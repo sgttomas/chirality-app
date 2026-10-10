@@ -68,6 +68,24 @@ pub fn revision_key(reference: &Value) -> Result<String, String> {
         _ => Err("unknown revision kind".into()),
     }
 }
+/// Streamed previews keep at most this many bytes, the latest text, labelled truncated.
+const PREVIEW_LIMIT: usize = 256 * 1024;
+fn append_preview(row: &mut Value, delta: &str) {
+    if !row["preview"].is_string() {
+        row["preview"] = json!("");
+    }
+    if let Value::String(preview) = &mut row["preview"] {
+        preview.push_str(delta);
+        if preview.len() > PREVIEW_LIMIT {
+            let mut cut = preview.len() - PREVIEW_LIMIT;
+            while !preview.is_char_boundary(cut) {
+                cut += 1;
+            }
+            preview.drain(..cut);
+            row["previewTruncated"] = json!(true);
+        }
+    }
+}
 fn identity(content: &Value) -> Value {
     // NPTD U-08 is explicitly TEST VALUE, not authoritative content identity.
     let bytes = serde_json::to_vec(content).expect("JSON Value serialization");
@@ -215,9 +233,7 @@ impl NativeView {
                     self.next_order += 1;
                 }
                 if row["displayState"] == "in-progress" {
-                    let preview = row["preview"].as_str().unwrap_or("").to_string()
-                        + p["delta"].as_str().ok_or("invalid plan delta")?;
-                    row["preview"] = json!(preview);
+                    append_preview(row, p["delta"].as_str().ok_or("invalid plan delta")?);
                     row["previewStanding"] = json!("in progress; may differ from completed plan");
                 }
             }
@@ -233,6 +249,15 @@ impl NativeView {
                     "item/commandExecution/outputDelta" => "commandExecution",
                     _ => "reasoning",
                 };
+                let summary_index = if kind == "reasoning" {
+                    let index = p["summaryIndex"].as_u64().ok_or("invalid summary index")? as usize;
+                    if index > 4096 {
+                        return Err("summary index out of range".into());
+                    }
+                    index
+                } else {
+                    0
+                };
                 let key = native_key(thread, turn, id);
                 let order = self.next_order;
                 let row=self.items.entry(key).or_insert_with(||json!({"threadId":thread,"turnId":turn,"native":{"id":id,"type":kind},"displayState":"in-progress","standing":"live-observed","observationEnded":false,"observedOrder":order}));
@@ -241,18 +266,24 @@ impl NativeView {
                 }
                 if row["displayState"] == "in-progress" {
                     if kind == "reasoning" {
-                        let index = p["summaryIndex"].as_u64().ok_or("invalid summary index")? as usize;
-                        if index > 4096 {
-                            return Err("summary index out of range".into());
+                        let index = summary_index;
+                        let held: usize = row["summaryPreview"].as_array().map(|a| a.iter().filter_map(Value::as_str).map(str::len).sum()).unwrap_or(0);
+                        if held >= PREVIEW_LIMIT {
+                            row["previewTruncated"] = json!(true);
+                        } else {
+                            if !row["summaryPreview"].is_array() {
+                                row["summaryPreview"] = json!([]);
+                            }
+                            let parts = row["summaryPreview"].as_array_mut().expect("array set above");
+                            while parts.len() <= index {
+                                parts.push(json!(""));
+                            }
+                            if let Value::String(part) = &mut parts[index] {
+                                part.push_str(delta);
+                            }
                         }
-                        let mut parts = row["summaryPreview"].as_array().cloned().unwrap_or_default();
-                        while parts.len() <= index {
-                            parts.push(json!(""));
-                        }
-                        parts[index] = json!(parts[index].as_str().unwrap_or("").to_string() + delta);
-                        row["summaryPreview"] = json!(parts);
                     } else {
-                        row["preview"] = json!(row["preview"].as_str().unwrap_or("").to_string() + delta);
+                        append_preview(row, delta);
                     }
                     row["previewStanding"] = json!("streamed so far; may differ from the completed item");
                 }
@@ -276,7 +307,7 @@ impl NativeView {
                 self.revisions.push(revision);
             }
             Some("turn/started" | "turn/completed") => {
-                self.turn(text(p, "threadId")?, &p["turn"])?;
+                self.turn(text(p, "threadId")?, &p["turn"], false)?;
             }
             Some("thread/goal/updated") => {
                 self.goals.insert(
@@ -307,6 +338,15 @@ impl NativeView {
         let id = text(native, "id")?;
         let key = native_key(thread, turn, id);
         let kind = text(native, "type")?;
+        // A history page can be older than frames already received: it fills
+        // absent, unknown or not-completed rows but never replaces a terminal one.
+        if recovered {
+            if let Some(old) = self.items.get(&key) {
+                if matches!(old["displayState"].as_str(), Some("completed" | "failed" | "declined" | "interrupted")) {
+                    return Ok(());
+                }
+            }
+        }
         let status = native["status"].as_str();
         let state = if recovered && status == Some("inProgress") {
             "unknown"
@@ -379,8 +419,15 @@ impl NativeView {
         self.items.insert(key, row);
         Ok(())
     }
-    fn turn(&mut self, thread: &str, native: &Value) -> Result<(), String> {
+    fn turn(&mut self, thread: &str, native: &Value, recovered: bool) -> Result<(), String> {
         let turn = text(native, "id")?;
+        if recovered && native["status"] == "inProgress" {
+            if let Some(old) = self.turns.get(&(thread.to_string(), turn.to_string())) {
+                if old["status"] != "inProgress" {
+                    return Ok(());
+                }
+            }
+        }
         if native["status"] != "inProgress" {
             for item in self.items.values_mut() {
                 if item["threadId"] == thread
@@ -436,11 +483,16 @@ impl NativeView {
                 }
             }
             "thread/turns/list" => {
-                for turn in result["data"].as_array().ok_or("turn history absent")? {
+                let mut turns: Vec<&Value> = result["data"].as_array().ok_or("turn history absent")?.iter().collect();
+                // Turns default to descending; receive them in conversation order.
+                if params["sortDirection"] != "asc" {
+                    turns.reverse();
+                }
+                for turn in turns {
                     for item in turn["items"].as_array().into_iter().flatten() {
                         self.item(thread, text(turn, "id")?, item, item["status"] != "inProgress", true, None)?;
                     }
-                    self.turn(thread, turn)?;
+                    self.turn(thread, turn, true)?;
                 }
             }
             "thread/read" => {
@@ -467,7 +519,7 @@ impl NativeView {
                                 )?;
                             }
                         }
-                        self.turn(thread, turn)?;
+                        self.turn(thread, turn, true)?;
                     }
                 }
             }
@@ -716,6 +768,55 @@ mod tests {
         frame(&mut v, 9, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"interrupted"}}));
         assert_eq!(row(&v, "c")["displayState"], "not-completed");
         assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
+    }
+    #[test]
+    fn a_stale_history_page_never_overwrites_newer_live_state() {
+        let stale = json!({"data":[{"id":"u","status":"inProgress","items":[{"id":"c","type":"commandExecution","status":"inProgress","command":"x","cwd":"/","commandActions":[]}]}]});
+        let row = |v: &NativeView, id: &str| v.snapshot()["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == id).unwrap().clone();
+        let live = |v: &mut NativeView, from: u64| {
+            frame(v, from, "turn/started", json!({"threadId":"t","turn":{"id":"u","status":"inProgress"}}));
+            frame(v, from + 1, "item/started", json!({"threadId":"t","turnId":"u","item":{"id":"c","type":"commandExecution","status":"inProgress"}}));
+            frame(v, from + 2, "item/completed", json!({"threadId":"t","turnId":"u","item":{"id":"c","type":"commandExecution","status":"completed","exitCode":0}}));
+        };
+        // Page lands after item completion, before turn completion.
+        let mut v = view();
+        live(&mut v, 1);
+        v.history("h", "thread/turns/list", &json!({"threadId":"t"}), &stale).unwrap();
+        assert_eq!(row(&v, "c")["displayState"], "completed");
+        assert_eq!(row(&v, "c")["standing"], "live-observed");
+        frame(&mut v, 4, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"completed"}}));
+        assert_eq!(row(&v, "c")["displayState"], "completed", "an observed completion is never reread as not-completed");
+        // Page lands after turn completion.
+        let mut v = view();
+        live(&mut v, 1);
+        frame(&mut v, 4, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"completed"}}));
+        v.history("h", "thread/turns/list", &json!({"threadId":"t"}), &stale).unwrap();
+        assert_eq!(v.snapshot()["turns"][0]["status"], "completed", "a stale inProgress turn does not reopen a completed one");
+        assert_eq!(row(&v, "c")["displayState"], "completed");
+        // History still fills what live observation lacks.
+        let mut v = view();
+        v.history("h", "thread/turns/list", &json!({"threadId":"t"}), &json!({"data":[{"id":"u","status":"completed","items":[{"id":"m","type":"agentMessage","text":"from history"}]}]})).unwrap();
+        assert_eq!(row(&v, "m")["standing"], "recovered-from-supplier");
+    }
+    #[test]
+    fn descending_turn_pages_arrive_in_conversation_order_and_previews_are_capped() {
+        let mut v = view();
+        v.history("h", "thread/turns/list", &json!({"threadId":"t"}), &json!({"data":[
+            {"id":"later","status":"completed","items":[{"id":"p2","type":"plan","text":"second"}]},
+            {"id":"earlier","status":"completed","items":[{"id":"p1","type":"plan","text":"first"}]}]})).unwrap();
+        let revisions = v.snapshot()["revisions"].clone();
+        let ordinal = |id: &str| revisions.as_array().unwrap().iter().find(|r| r["itemId"] == id).unwrap()["ordinal"].as_u64().unwrap();
+        assert!(ordinal("p1") < ordinal("p2"));
+        frame(&mut v, 1, "item/started", json!({"threadId":"t","turnId":"u","item":{"id":"c","type":"commandExecution","status":"inProgress"}}));
+        let chunk = "é".repeat(40 * 1024);
+        for pos in 2..10 {
+            frame(&mut v, pos, "item/commandExecution/outputDelta", json!({"threadId":"t","turnId":"u","itemId":"c","delta":chunk}));
+        }
+        let snapshot = v.snapshot();
+        let c = snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == "c").unwrap();
+        assert!(c["preview"].as_str().unwrap().len() <= PREVIEW_LIMIT);
+        assert!(c["preview"].as_str().unwrap().ends_with('é'));
+        assert_eq!(c["previewTruncated"], true);
     }
     #[test]
     fn observed_order_follows_first_receipt_not_identity_sort() {

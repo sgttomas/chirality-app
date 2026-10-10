@@ -595,12 +595,7 @@ fn conversation_send_text(
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
     if let Some(mode) = mode {
-        // A pending run-end notice goes with an ordinary turn (TX-5); a mode
-        // turn never carries or skips it.
-        let home_key = generation["home"].as_str().unwrap_or_default().to_owned();
-        if state.workflows.lock().unwrap().pending_notice_for(&home_key, &thread_id)?.is_some() {
-            return Err("A run in this conversation ended and its end notice goes with the next ordinary turn; send ordinary text first. Nothing sent".into());
-        }
+        runtime_session::mode_send_blocked_by_notice(&state.workflows, &generation, &thread_id)?;
         return runtime_session::send_conversation_text(
             &home.host.snapshot(), &generation, &thread_id, &text,
             |generation, thread, text| home.host.turn_start_text_mode(generation, thread, text, &mode),

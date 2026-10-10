@@ -1768,7 +1768,7 @@ impl Host {
         if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
-        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());Ok(row)
+        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());Ok(row)
     }
 
     pub fn thread_start_with_guidance_dispatch(&self, generation: &Value, cwd: &str, model: &str, model_provider: &str, guidance: &str) -> Result<SourceRequest,String> {
@@ -1997,7 +1997,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
         if no_duplicate&&i.state!="ready" {return Err("thread/start result is not ready for operational admission".into());}
         if no_duplicate&&i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("thread already operationally admitted in generation".into());}
-        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
+        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -2111,27 +2111,39 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
 
     /// PS-1/PS-2/PS-5: plain text with an explicit collaboration mode. The mode
-    /// settings carry the conversation's reported model and null developer
-    /// instructions, so Codex's built-in mode text applies and role guidance is
-    /// not set aside. Codex keeps the mode on later turns until another is sent.
+    /// settings carry the conversation's reported model and reasoning effort
+    /// (null when Codex reported none) and null developer instructions, so
+    /// Codex's built-in mode text applies and role guidance is not set aside.
+    /// Codex keeps the mode on later turns until another is sent.
     pub fn turn_start_text_mode(&self, generation: &Value, thread_id: &str, text: &str, mode: &str) -> Result<Value, String> {
         if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
         let params = {
             let i = self.inner.0.lock().unwrap();
             if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
             if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
-            let model = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id).and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
+            let thread = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id);
+            let model = thread.and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
             let Some(model) = model else { return Err("not started — no model selected".into()); };
+            let effort = thread.map(|t| t["reasoningEffort"].clone()).filter(|e| e.as_str().is_some_and(|s| !s.is_empty())).unwrap_or(Value::Null);
             let mut params = Self::text_turn_params(thread_id, text)?;
-            params["collaborationMode"] = json!({"mode":mode,"settings":{"model":model,"reasoning_effort":null,"developer_instructions":null}});
+            params["collaborationMode"] = json!({"mode":mode,"settings":{"model":model,"reasoning_effort":effort,"developer_instructions":null}});
             Self::validate_native_result("TurnStartParams", &params)?;
             params
         };
-        let response = self.conversation_operation("turn/start", generation, params, Duration::from_secs(20))?;
+        let settings = params["collaborationMode"]["settings"].clone();
+        let response = self.conversation_operation("turn/start", generation, params, Duration::from_secs(20));
+        if let Err(e) = &response {
+            // Refused before any write: no mode was requested.
+            if e.contains("refused-not-sent") || e.contains("conversation-not-loaded") { return response; }
+        }
         let mut i = self.inner.0.lock().unwrap();
+        let outcome = match &response {
+            Ok(_) => "turn/start result received; Codex keeps this mode on later turns until another mode is sent".to_string(),
+            Err(e) => format!("outcome not established ({e}); the conversation's current mode is unknown"),
+        };
         i.requested_modes.retain(|r| !(r["generation"] == *generation && r["threadId"] == thread_id));
-        i.requested_modes.push(json!({"generation":generation,"threadId":thread_id,"mode":mode,"standing":"requested by this App on turn/start; Codex keeps it on later turns until another mode is sent"}));
-        Ok(response)
+        i.requested_modes.push(json!({"generation":generation,"threadId":thread_id,"mode":mode,"settings":settings,"standing":outcome}));
+        response
     }
 
     fn text_turn_params(thread_id: &str, text: &str) -> Result<Value, String> {
@@ -2853,6 +2865,15 @@ mod conversation_transport_tests {
         assert_eq!(host.snapshot()["requestedModes"][0]["mode"],"default");
         host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
         assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
+        // The conversation's reported effort is kept, not reset.
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"effort","model":"m","reasoningEffort":"high"}));
+        let (refused,outbound)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"invented refusal"}})),vec![],||host.turn_start_text_mode(&g(),"effort","x","plan"));
+        assert_eq!(outbound["params"]["collaborationMode"]["settings"]["reasoning_effort"],"high");
+        assert!(refused.is_err());
+        let requested=host.snapshot()["requestedModes"].as_array().unwrap().iter().find(|r|r["threadId"]=="effort").unwrap().clone();
+        assert!(requested["standing"].as_str().unwrap().contains("current mode is unknown"),"a failed mode send never shows the mode as in force");
+        assert!(host.turn_start_text_mode(&g(),"unknown-thread","x","plan").is_err());
+        assert!(host.snapshot()["requestedModes"].as_array().unwrap().iter().all(|r|r["threadId"]!="unknown-thread"));
     }
     #[test]
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {

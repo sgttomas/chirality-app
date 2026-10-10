@@ -605,7 +605,11 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance", "run_ended"]);
     assert_eq!(log[3]["body"], json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
     assert_log_order(&log);
+    let refused = crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).unwrap_err();
+    assert!(refused.contains("end notice goes with the next ordinary turn"), "a plan/default mode send waits for the notice");
+    assert_eq!(disk.frames("turn/start").len(), 1, "the refused mode send wrote nothing");
     conversation_send_text(&root, &one, "hello").unwrap();
+    assert!(crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).is_ok(), "after the notice went, mode sends are allowed");
     let starts = disk.frames("turn/start");
     assert_eq!(starts.len(), 2);
     let notice_file = {

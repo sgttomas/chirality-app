@@ -4602,6 +4602,19 @@ pub(crate) fn start_workflow_run(
 /// SQ-END / TX-5: the person's next ordinary turn in a conversation whose run
 /// ended without a successor carries the end notice first, exactly once. Returns
 /// None when no notice is pending (ordinary sending applies unchanged).
+/// A plan/default mode turn never carries or skips a pending run-end notice
+/// (TX-5): while one is pending, the mode send is refused before anything is sent.
+pub(crate) fn mode_send_blocked_by_notice(
+    root: &std::sync::Mutex<WorkflowRootSession>,
+    generation: &Value,
+    thread: &str,
+) -> Result<(), String> {
+    let home = generation["home"].as_str().ok_or("generation home required")?;
+    if root.lock().unwrap().pending_notice_for(home, thread)?.is_some() {
+        return Err("A run in this conversation ended and its end notice goes with the next ordinary turn; send ordinary text first. Nothing sent".into());
+    }
+    Ok(())
+}
 pub(crate) fn send_with_pending_notice(
     root: &std::sync::Mutex<WorkflowRootSession>,
     generation: &Value,
