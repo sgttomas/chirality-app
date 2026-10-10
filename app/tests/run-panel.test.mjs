@@ -7,7 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RunBringBackView,RunPanel,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
+const {RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
@@ -162,7 +162,7 @@ test('the selected workflow shows its declared part instead of a JSON dump',()=>
   const undeclared=h(DeclaredPart,{declaration:{raw:null,reading:'undeclared',categories:Object.fromEntries(cats.map(c=>[c,'undeclared'])),elements:{},findings:[]}});
   assert.ok(undeclared.includes('declares no requirements part')&&undeclared.includes('Not declared.'));
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<SelectedWorkflow selection={data?.selection}/>')&&app.includes('<RunPanel run={run} conversations={conversations} busy={busy} act={action}/>'));
+  assert.ok(app.includes('<SelectedWorkflow selection={data?.selection}/>')&&app.includes('<RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>'));
 });
 
 test('Bring a real run back to authoring calls the host only on the press, with the chosen conversation (TT-10, TT-11)',()=>{
@@ -177,4 +177,40 @@ test('Bring a real run back to authoring calls the host only on the press, with 
   assert.deepEqual(calls,[['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'other',includeNative:true}]]);
   assert.ok(h(RunPanel,{run:run(),conversations,act}).includes('Bring a real run back to authoring'));
   assert.ok(!h(RunPanel,{run:run()}).includes('Bring a real run back'),'offered only where the host can be asked');
+});
+
+test('Bring a real run back defaults to the host’s default conversation for that run, still changeable; none without one (I-8, TT-10)',async()=>{
+  const g={appSession:'s',home:'h',spawnCounter:1};
+  const conversations=[{generation:g,threadId:'auth'},{generation:g,threadId:'other'}];
+  const root={runBringBackDefaults:[{run:'run-1',threadId:'other'},{run:'run-2',threadId:'auth'}]};
+  assert.equal(runBringBackDefault(root,'run-1'),'other');
+  assert.equal(runBringBackDefault(root,'run-9'),null);
+  assert.equal(runBringBackDefault({},'run-1'),null);
+  assert.equal(runBringBackDefault(undefined,'run-1'),null);
+  const selected=html=>html.match(/<option value="([^"]*)" selected="">/)?.[1]??null;
+  const panel=defaultThread=>h(RunPanel,{run:run(),conversations,bringBackDefault:defaultThread,act:async()=>{}});
+  assert.equal(selected(panel(runBringBackDefault(root,'run-1'))),JSON.stringify([g,'other']).replace(/"/g,'&quot;'),'defaults to the host-named conversation');
+  assert.equal(selected(panel(null)),'','no default: none chosen');
+  assert.equal(selected(panel('gone')),'','a default that is not a started conversation here is not chosen');
+  // Mounted: the default is used, sends nothing by itself, and the person can change it.
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();
+  const {createRoot}=await import('react-dom/client');
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);};
+  const container=document.createElement('div');document.body.appendChild(container);
+  const rootEl=createRoot(container);
+  await React.act(()=>rootEl.render(React.createElement(RunPanel,{run:run(),conversations,bringBackDefault:'other',act})));
+  assert.deepEqual(calls,[],'mounting sends nothing');
+  // React keeps each element's current props on its node; the mini document has no events.
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const press=async()=>{const b=container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Bring a real run back to authoring')[0];await React.act(()=>props(b).onClick());};
+  await press();
+  assert.deepEqual(calls.at(-1),['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'other',includeNative:false}]);
+  const select=container.querySelectorAll(n=>n.localName==='select')[0];
+  await React.act(()=>props(select).onChange({target:{value:JSON.stringify([g,'auth'])}}));
+  await press();
+  assert.deepEqual(calls.at(-1),['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'auth',includeNative:false}],'the person’s choice replaces the default');
+  await React.act(()=>props(select).onChange({target:{value:''}}));
+  assert.equal(props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Bring a real run back to authoring')[0]).disabled,true,'the person may clear it');
+  await React.act(()=>rootEl.unmount());
 });

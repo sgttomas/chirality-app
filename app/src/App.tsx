@@ -8,7 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
-import { RunPanel, SelectedWorkflow } from "./RunPanel";
+import { RunPanel, SelectedWorkflow, runBringBackDefault } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { PlanModeControl } from "./PlanMode";
@@ -35,7 +35,7 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: "api-key", label: "API key in separate configured key home" }]
   : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -99,9 +99,20 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
   const handoffs: Json[] = host?.continueAs ?? [];
   // WR TT-3a, TT-3b, TT-10: what the host pre-filled for the person to send.
   // Every send below happens only on the person's Send press.
-  const trialAct = (command: string, args: Record<string, unknown>) => roleAct(`trial: ${command}`, command, args, result => {
-    if (command === "workflow_trial_start_clean" && result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
-  });
+  // A trial or bring-back command rejects with the host's message as given, so
+  // the composer can show it (the host says whether the message stays
+  // pre-filled or was withdrawn); it is also shown in this panel's alert.
+  const trialAct = async (command: string, args: Record<string, unknown>): Promise<Json> => {
+    const label = `trial: ${command}`;
+    setBusy(label); setError("");
+    try {
+      const result: Json = await (trialRunAct ?? runAct)(command, args);
+      if (result === undefined) setError(`${label} did not complete; see the message below.`);
+      else if (command === "workflow_trial_start_clean" && result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
+      return result;
+    } catch (e) { setError(`${label}: ${String(e)}`); throw e; }
+    finally { setBusy(""); }
+  };
   const workflowRoot = host?.workflowRoot;
   const composers = composersFor(workflowRoot, selected);
   const trialConversation = (workflowRoot?.trialConversations ?? []).find((row: Json) => selected && row?.threadId === selected.threadId);
@@ -389,7 +400,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
         <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
         {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
-      <RunPanel run={run} conversations={conversations} busy={busy} act={action}/>
+      <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>
       <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
@@ -660,6 +671,15 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); }
     finally { await refresh(); }
   };
+  // As runAct, but a host error rejects with the host's message (trial sends show it as given).
+  const trialRunAct: RunAct = async (command, args) => {
+    try {
+      const result = await invoke(command, args);
+      setMessage(`${command}: ${JSON.stringify(result).slice(0, 600)}`);
+      return result;
+    } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
+    finally { await refresh(); }
+  };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
   const selectedThread: string | null = (host?.threads ?? []).find((t: Json) => JSON.stringify([t.generation, t.threadId]) === threadKey && JSON.stringify(t.generation) === JSON.stringify(host?.generation))?.threadId ?? null;
 
@@ -704,7 +724,7 @@ export function App() {
         </p>
         <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
         <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
-        <RoleChoice roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole}
+        <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole}
           setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }} />
         <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p>
         <SupplyStatus supply={host?.roleSupply} />
@@ -736,7 +756,7 @@ export function App() {
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} />
       <HistoryPanel host={host} refresh={refresh} />
 
-      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ConversationSelect, conversationKey } from "./TrialComposer";
+import { ConversationSelect, conversationKey, findConversation } from "./TrialComposer";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The run panel's readable parts (DEL-01-04 NIR §9 PD-1…PD-7, placing
@@ -283,14 +283,25 @@ export function RunBringBackView({ run, conversations, target, setTarget, includ
   </div>;
 }
 
-export function RunBringBack({ run, conversations, busy, act }: { run: Json; conversations: Json[]; busy: boolean; act: RunBringBackAct }) {
-  const [target, setTarget] = useState<string>("");
+/** TT-10's default target for bringing a run back: the host's
+ * `runBringBackDefaults` entry for this run (the authoring conversation of the
+ * latest trial of a draft of the run's slot), or none. */
+export const runBringBackDefault = (workflowRoot: Json, runRef: Json): string | null => {
+  const entry = list(workflowRoot?.runBringBackDefaults).find((d: Json) => d?.run === runRef);
+  return entry?.threadId ? text(entry.threadId) : null;
+};
+
+/** The person's pick wins; until then the target is the host's default
+ * conversation when it is a started conversation here, else none. */
+export function RunBringBack({ run, conversations, defaultThread = null, busy, act }: { run: Json; conversations: Json[]; defaultThread?: string | null; busy: boolean; act: RunBringBackAct }) {
+  const [picked, setPicked] = useState<string | null>(null);
   const [includeNative, setIncludeNative] = useState(false);
-  return <RunBringBackView run={run} conversations={conversations} target={target} setTarget={setTarget} includeNative={includeNative} setIncludeNative={setIncludeNative} busy={busy} act={act} />;
+  const target = picked ?? conversationKey(findConversation(conversations, defaultThread));
+  return <RunBringBackView run={run} conversations={conversations} target={target} setTarget={setPicked} includeNative={includeNative} setIncludeNative={setIncludeNative} busy={busy} act={act} />;
 }
 
 /** PD-1, PD-3, PD-7 for one run, from the run view the host reports. */
-export function RunPanel({ run, conversations, busy = false, act }: { run: Json; conversations?: Json[]; busy?: boolean; act?: RunBringBackAct }) {
+export function RunPanel({ run, conversations, bringBackDefault = null, busy = false, act }: { run: Json; conversations?: Json[]; bringBackDefault?: string | null; busy?: boolean; act?: RunBringBackAct }) {
   const compatibility = list(run?.compatibility);
   const declaration = compatibility.find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration;
   const workflow = run?.workflow ?? {};
@@ -302,7 +313,7 @@ export function RunPanel({ run, conversations, busy = false, act }: { run: Json;
     {declaration ? <DeclaredPart declaration={declaration} run={run} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     <h4>Compatibility (advisory)</h4>
     {compatibility.length ? <ul>{compatibility.map((c: Json, i: number) => <CompatibilityAdvisory key={i} entry={c} />)}</ul> : <p>No compatibility evaluation for this run.</p>}
-    {act && <RunBringBack run={run} conversations={conversations ?? []} busy={busy} act={act} />}
+    {act && <RunBringBack run={run} conversations={conversations ?? []} defaultThread={bringBackDefault} busy={busy} act={act} />}
   </div>;
 }
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ModelProviderFields, RoleChoice, SendOutcome, type SendState, type StartChoice } from "./ConversationRoles";
+import { ModelProviderFields, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Trial and bring-back composers (DEL-02-02 WR §4.2 TT-3a, TT-3b, TT-10; §6
@@ -33,14 +33,39 @@ export function ConversationSelect({ label, conversations, value, setValue, disa
   </select></label>;
 }
 
-/** Calls a host command for the person's press and turns the outcome into a send state. */
-export function pressSend(act: TrialAct, command: string, args: Record<string, unknown>, setOutcome: (outcome: SendState) => void): void {
+/** The host's error message as given (Tauri rejects with the host's string). */
+export const hostMessage = (error: unknown): string => error instanceof Error ? error.message : text(error);
+
+/** Calls a host command for the person's press and turns the outcome into a
+ * send state: "sent" only when the host resolved with a result, worded by
+ * `sentWords` from that result; a refusal or error keeps the host's message
+ * as given. */
+export function pressSend(act: TrialAct, command: string, args: Record<string, unknown>, setOutcome: (outcome: SendState) => void, sentWords: (result: Json) => string): void {
   setOutcome({ state: "sending" });
   let call: Promise<unknown>;
   try { call = Promise.resolve(act(command, args)); } catch (error) { call = Promise.reject(error); }
   void call.then(
-    result => setOutcome(result === undefined ? { state: "failed", failure: "The host did not accept the send; see the App message." } : { state: "sent" }),
-    error => setOutcome({ state: "failed", failure: String(error) }));
+    result => setOutcome(result === undefined ? { state: "failed", failure: "The host did not report the send's outcome; see the App message." } : { state: "sent", detail: sentWords(result) }),
+    error => setOutcome({ state: "failed", failure: hostMessage(error) }));
+}
+
+/** Success words for each trial send (WR SQ-DT DT-4, SQ-FT FT-4, SQ-BB BB-5). */
+export const delegatedSentWords = (threadId: Json) => `Sent to conversation ${text(threadId)}; the trial link was written on Codex's acknowledgment`;
+export const cleanSentWords = (threadId: Json) => `Sent in the new trial conversation ${text(threadId)}`;
+export const bringBackSentWords = (threadId: Json) => `Transcript sent to conversation ${text(threadId)}`;
+
+/** A trial or bring-back send's outcome in its own words. A failure shows the
+ * host's message as given (it says whether the message stays pre-filled or was
+ * withdrawn because the send's outcome is unknown); "You can send it again" is
+ * added only when the host's message says it stays pre-filled. */
+export function TrialSendOutcome({ outcome }: { outcome: SendState }) {
+  if (outcome.state === "sending") return <p role="status"><small>Sending; waiting for Codex's acknowledgment.</small></p>;
+  if (outcome.state === "sent") return <p role="status"><small>{text(outcome.detail)}.</small></p>;
+  if (outcome.state === "failed") {
+    const failure = text(outcome.failure);
+    return <p role="alert"><small>{failure}{/stays pre-filled/i.test(failure) ? " You can send it again." : ""}</small></p>;
+  }
+  return null;
 }
 
 /** TT-3a: the trial text as its own element. Openable and removable; never edited in place. */
@@ -49,7 +74,7 @@ export function TrialCard({ pending, busy, act }: { pending: Json; busy: boolean
     <p><b>{text(pending?.card)}</b></p>
     <details><summary>Open the trial text ({text(pending?.bytes)} bytes; identity {text(pending?.textIdentity?.value ?? pending?.textIdentity).slice(0, 12)})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.text)}</pre></details>
     <p><small>Not editable here: to change it, change the draft and Try again. Removing it cancels the trial; nothing is recorded.</small>{" "}
-      <button disabled={busy} onClick={() => { void act("workflow_trial_cancel", { reference: pending?.reference }); }}>Remove</button></p>
+      <button disabled={busy} onClick={() => { void Promise.resolve(act("workflow_trial_cancel", { reference: pending?.reference })).catch(() => undefined); }}>Remove</button></p>
   </div>;
 }
 
@@ -76,8 +101,8 @@ export function DelegatedTrialComposerView({ pending, conversations, message, se
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <PendingNotes pending={pending} />
     <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome)}>Send</button></p>
-    <SendOutcome outcome={outcome} />
+      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></p>
+    <TrialSendOutcome outcome={outcome} />
   </section>;
 }
 
@@ -109,19 +134,19 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     <PendingNotes pending={pending} />
     {started ? <div>
       <p>Trial conversation {conversationName(started)} started; the trial message was not sent. Send sends it to that conversation.</p>
-      <button disabled={busy || !ready || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: started.generation, threadId: started.threadId, personText: message }, setOutcome)}>Send</button>
+      <button disabled={busy || !ready || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: started.generation, threadId: started.threadId, personText: message }, setOutcome, () => cleanSentWords(started.threadId))}>Send</button>
     </div> : <div>
-      <RoleChoice roleSet={roleSet} limits={limits} role={choice.role} preselected={!choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole}
+      <RoleChoice group={`clean-trial-role:${text(pending?.reference)}`} roleSet={roleSet} limits={limits} role={choice.role} preselected={!choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole}
         setRole={role => setChoice({ ...choice, role, roleTouched: true })} />
       <p>The new conversation starts with no model selected; choose one.</p>
       <ModelProviderFields model={choice.model} modelProvider={choice.modelProvider}
         setModel={model => setChoice({ ...choice, model })} setModelProvider={modelProvider => setChoice({ ...choice, modelProvider })} />{" "}
       <label>Access entry <select value={choice.entryId} onChange={e => setChoice({ ...choice, entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label>
-      <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={() => pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: choice.model, modelProvider: choice.modelProvider, entryId: choice.entryId, modeHomeClass, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome)}>Send</button>
+      <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={() => pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: choice.model, modelProvider: choice.modelProvider, entryId: choice.entryId, modeHomeClass, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"))}>Send</button>
         <small> Starts the new conversation, then sends the trial text and your inputs once.</small></p>
       {noModel && <p><small>Not started — no model selected.</small></p>}
     </div>}
-    <SendOutcome outcome={outcome} />
+    <TrialSendOutcome outcome={outcome} />
   </section>;
 }
 
@@ -149,11 +174,11 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
       <details><summary>Open the transcript ({text(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.transcript)}</pre></details>
       {shortenings.length > 0 && <ul aria-label="Shortenings">{shortenings.map((s: Json, i: number) => <li key={i}><small>{text(s)}</small></li>)}</ul>}
       <p><small>Read from Codex history; a record of that conversation, it instructs nothing. Not editable here.</small>{" "}
-        <button disabled={busy || sent} onClick={() => { void act("workflow_bring_back_cancel", { id: pending?.id }); }}>Remove</button></p>
+        <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>
     </div>
     <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome)}>Send</button></p>
-    <SendOutcome outcome={outcome} />
+      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
+    <TrialSendOutcome outcome={outcome} />
   </section>;
 }
 

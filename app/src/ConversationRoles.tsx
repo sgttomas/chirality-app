@@ -45,7 +45,9 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
 
 /** ST-5: the start display's role choice, readable. The default is shown as a
  * preselection the person can change or clear before starting. */
-export function RoleChoice({ roleSet, limits, role, setRole, preselected }: { roleSet: Json; limits: Json; role: string; setRole: (role: string) => void; preselected: boolean }) {
+// `group` is the radio group's name: each instance on screen needs its own (the
+// start display's picker and a clean trial's picker must not share one group).
+export function RoleChoice({ roleSet, limits, role, setRole, preselected, group }: { roleSet: Json; limits: Json; role: string; setRole: (role: string) => void; preselected: boolean; group: string }) {
   if (!roleSet?.available) return <p>Role set unavailable: {text(roleSet?.reason)}. Only “No role” can be chosen.</p>;
   const offered: string[] = Array.isArray(roleSet.conversationRoles) ? roleSet.conversationRoles.map(text) : CONVERSATION_ROLES;
   const roles = list(roleSet.roles).filter((r: Json) => offered.includes(text(r.name)));
@@ -54,11 +56,11 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected }: { ro
     {roles.map((r: Json) => {
       const name = text(r.name);
       return <div key={name}>
-        <label><input type="radio" name="conversation-role" value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
+        <label><input type="radio" name={group} value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
         {role === name && <RoleLimits limits={limits} role={name} />}
       </div>;
     })}
-    <label><input type="radio" name="conversation-role" value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
+    <label><input type="radio" name={group} value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
     <p><small>{text(limits?.standing)}</small></p>
     <p><small>TASK is not a conversation role: a manager assigns bounded work to it, and its guidance is supplied for that delegation.</small></p>
   </fieldset>;
@@ -131,7 +133,7 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
 
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
-export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string };
+export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string; detail?: string };
 export async function attemptSend(send: (text: string) => Promise<boolean>, draft: string): Promise<SendState> {
   try {
     return (await send(draft)) ? { state: "sent" } : { state: "failed", failure: "The message was not accepted; see the App message below." };
