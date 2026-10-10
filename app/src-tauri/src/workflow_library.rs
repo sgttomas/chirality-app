@@ -1163,6 +1163,13 @@ impl HotRegistrationAttempt {
                 storage::sync_publication(&root.join(".chirality/workflow-registry.jsonl"))?;
                 return self.finish_line(index, line);
             }
+            // V15-R1 R1-1 (RC-7, RB-8): another process's X-2 may have closed this
+            // attempt with its own line meanwhile; end with that line, so the
+            // outcome is definite rather than "durability uncertain" for ever.
+            if self.end_if_a15_has_line(index, &rows)? {
+                return Ok(());
+            }
+            let root = &self.session.root;
             if line["ledger_seq"].as_u64() != Some(rows.len() as u64 + 1) {
                 return Err(
                     "intended ledger line no longer appendable; no duplicate/rebase".into(),
@@ -1172,22 +1179,10 @@ impl HotRegistrationAttempt {
             append_line(root, &line)?;
             return self.finish_line(index, line);
         }
-        // V15 F1 (RC-7, RB-8): one act never has two ledger lines. If the ledger
-        // already cites this attempt's A15 (for example X-2 of another process
-        // closed it as lost), append nothing and end the attempt in this process.
-        if e.reconfirm.is_some() {
-            let record = self.receipt.record_id();
-            if let Some(existing) = rows.iter().find(|v| v["act"]["record_id"] == record) {
-                let reason = format!(
-                    "A15 {record} already has ledger line {} ({}); nothing appended, one act has one line (RC-7, RB-8); review again",
-                    existing["ledger_seq"],
-                    existing["outcome"].as_str().unwrap_or("?")
-                );
-                close_attempt_journal(root, &json!({"act":{"record_id":record}}))?;
-                self.progress[index] = Progress::Failed(reason);
-                return Ok(());
-            }
+        if self.end_if_a15_has_line(index, &rows)? {
+            return Ok(());
         }
+        let e = &self.session.entries[index];
         // G-1 / G-1R (F14): compare the slot's latest *registered* revision, so
         // re-confirmed and not completed lines never fail a concurrent attempt.
         if slot_latest_now(&rows, &self.session.origin, &self.session.source_root, e)?
@@ -1271,6 +1266,29 @@ impl HotRegistrationAttempt {
             "App-kept base changed since review; review again".into(),
             rows,
         )?;
+        Ok(true)
+    }
+    /// V15 F1 (RC-7, RB-8): one act never has two ledger lines. If the ledger
+    /// already cites this re-confirmation attempt's A15 (for example X-2 of
+    /// another process closed it as lost), append nothing and end the attempt in
+    /// this process, naming that line. Checked on the first pass and (V15-R1
+    /// R1-1) on the intended-line path, where an append that wrote nothing left
+    /// the attempt *Intended*.
+    fn end_if_a15_has_line(&mut self, index: usize, rows: &[Value]) -> Result<bool, String> {
+        if self.session.entries[index].reconfirm.is_none() {
+            return Ok(false);
+        }
+        let record = self.receipt.record_id();
+        let Some(existing) = rows.iter().find(|v| v["act"]["record_id"] == record) else {
+            return Ok(false);
+        };
+        let reason = format!(
+            "A15 {record} already has ledger line {} ({}); nothing appended, one act has one line (RC-7, RB-8); review again",
+            existing["ledger_seq"],
+            existing["outcome"].as_str().unwrap_or("?")
+        );
+        close_attempt_journal(&self.session.root, &json!({"act":{"record_id":record}}))?;
+        self.progress[index] = Progress::Failed(reason);
         Ok(true)
     }
     /// WR §4.8 RC-6: G-1R…G-4R and G-6R. Never creates, rewrites or repairs a
@@ -1486,6 +1504,9 @@ impl HotRegistrationAttempt {
 }
 #[cfg(test)]
 thread_local! { static FAIL_LEDGER_SYNC: Cell<bool> = const { Cell::new(false) }; }
+/// One append fails before anything is written (V15-R1 P6).
+#[cfg(test)]
+thread_local! { static FAIL_LEDGER_APPEND: Cell<bool> = const { Cell::new(false) }; }
 #[cfg(test)]
 thread_local! { static STOP_AFTER_STORED: Cell<bool> = const { Cell::new(false) }; }
 fn hold(held: &Held, identity: &WorkflowIdentity) {
@@ -1633,6 +1654,10 @@ fn append_line(root: &Path, line: &Value) -> Result<(), String> {
     let path = root.join(".chirality/workflow-registry.jsonl");
     storage::check_path(&path)?;
     storage::ensure_directory(path.parent().unwrap())?;
+    #[cfg(test)]
+    if FAIL_LEDGER_APPEND.with(|fail| fail.replace(false)) {
+        return Err("injected ledger append failure before any write".into());
+    }
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)

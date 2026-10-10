@@ -518,6 +518,20 @@ owner or the owner. No Design file was changed.
     refused request, or a record that could not be written. A pending notice is
     re-scoped to the current generation of the same home, so a Codex relaunch
     does not strand it. Its record identity and bytes are unchanged.
+  - Which turn carries it (NIR TC-2): any new turn of the conversation, as its
+    first element. That is ordinary text, a plan or default mode turn (its
+    `collaborationMode` unchanged), the Continue-as summary request, or an
+    attachment-bearing turn (run-end line, the person's text, then the
+    attachments). A steer is not a new turn. One turn claims the notice at a
+    time. An attachment-bearing turn holds that claim without the run's lock,
+    because the attachment list's lock comes first (`host_status` order).
+    While it is held, every other new turn in the conversation, a run start
+    included, is refused before anything is written. If that send path ends
+    abnormally, the claim is settled from the Host's write facts.
+  - A run start holds a pending notice from its live check until its send
+    outcome; no turn can claim it meanwhile. Once the start's frame was
+    attempted, its chain line supersedes the notice; otherwise the notice is
+    pending again (TX-5: no separate notice).
   - After its frame was written: if Codex then refuses the turn, or the outcome
     is unknown, the notice is not resent, and the model may not have received
     it. The panel shows the outcome. A *native* fork
@@ -827,17 +841,17 @@ record's "App implementation items". No Design or schema file was changed.
     A15 re-confirms.
   - Tested: `v15_p2_second_process_x2_then_continue_keeps_one_line_per_act`,
     through the `storage::fail_directory_for_test` hook.
-  - **Exception (V15-R1 R1-1, open).** The ending above holds only when the
-    first process's attempt is not in *Intended*. If its append failed
-    without writing anything, the attempt is *Intended*. On every Continue
-    it then takes the intended-line path, is refused on `ledger_seq`, and
-    reports "registration ledger durability uncertain; same hot attempt
-    retained" for as long as the process runs. This is safe: there is still
-    one ledger line for the act, the ledger stays readable, and ‹k› is not
-    held. But it never shows the definite *not completed* line already in
-    the ledger. The repair is to fail on the intended path with the same
-    "already has ledger line ‹n›" reason, with the reviewer's probe P6 as a
-    test. It is open as a follow-up.
+  - **An attempt left *Intended* (V15-R1 R1-1, repaired).** If the first
+    process's append failed without writing anything, its attempt is
+    *Intended*, and Continue takes the intended-line path. That path now
+    checks for a ledger line citing the attempt's A15 before the `ledger_seq`
+    refusal. When X-2 of another process has written its *not completed*
+    line, the attempt ends *not completed* with the same "already has ledger
+    line ‹n›" reason. Before the repair it reported "registration ledger
+    durability uncertain; same hot attempt retained" on every Continue.
+    Tested: `v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line`
+    (the reviewer's probe P6), through a test hook that fails one append
+    before it writes.
 - **(c) Registration X-2 is still absent.** The App keeps no attempt journal
   for a *registration* (F15). A registration lost after G-3 and before G-4
   leaves its store folder and no ledger line, as before J8.
