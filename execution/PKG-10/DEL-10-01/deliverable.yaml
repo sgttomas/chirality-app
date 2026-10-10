@@ -49,41 +49,26 @@ needs:
     Target description — TargetName: Approved v4 coordination and lifecycle policy; TargetRefID: APP-V4-_COORDINATION;
     TargetLocation: projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md'
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md
-  condition: 'Use Field Book v1 for its assigned role in the manual-purpose/application/departure account,
-    limited to relevant practice and actual receiving use.
-
-
-    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
-    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
-    another loop adoption is claimed.
-
-
-    Target description — TargetName: Field Book v1; TargetRefID: F; TargetLocation: docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md'
+- from: external:ROOT-FIELD-BOOK
+  condition: Use Field Book v2 for the manual application account, limited to relevant practice and actual
+    receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#field-book.
+    Identify the resolved edition/revision where exact content matters. A later index change does not
+    automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
+    runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md
-  condition: 'Use Consolidated manual v7 for its assigned role in the manual-purpose/application/departure
-    account, limited to relevant practice and actual receiving use.
-
-
-    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
-    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
-    another loop adoption is claimed.
-
-
-    Target description — TargetName: Consolidated manual v7; TargetRefID: M; TargetLocation: docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md'
+- from: external:ROOT-PROJECT-MANAGEMENT-MANUAL
+  condition: Use Consolidated v9 for the manual application account, limited to relevant practice and
+    actual receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#project-management-manual.
+    Identify the resolved edition/revision where exact content matters. A later index change does not
+    automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
+    runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md
-  condition: 'Use Agent User Manual v3 for its assigned role in the manual-purpose/application/departure
-    account, limited to relevant practice and actual receiving use.
-
-
-    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
-    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
-    another loop adoption is claimed.
-
-
-    Target description — TargetName: Agent User Manual v3; TargetRefID: U; TargetLocation: docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md'
+- from: external:ROOT-AGENT-USER-MANUAL
+  condition: Use Agent User Manual v4 for the manual application account, limited to relevant practice
+    and actual receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#agent-user-manual.
+    Identify the resolved edition/revision where exact content matters. A later index change does not
+    automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
+    runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 - from: doc:execution/_Coordination/CURRENT_EXECUTION_BASIS.md
   condition: 'Use the owning selection/adoption record and scope to bind actual manual and method edition/content

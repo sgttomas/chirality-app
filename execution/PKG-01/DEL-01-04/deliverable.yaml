@@ -399,12 +399,14 @@ code_paths:
 - app/src/CodexControls.tsx
 - app/src/RunPanel.tsx
 - app/src/ConversationRoles.tsx
+- app/src/exactText.ts
 - app/src-tauri/src/conversation_roles.rs
 checks:
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/tests/codex-controls.test.mjs
 - app/tests/conversation-roles.test.mjs
+- app/tests/conversation-panel.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/run-offers.test.mjs

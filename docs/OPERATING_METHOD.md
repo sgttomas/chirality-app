@@ -52,6 +52,21 @@ scope by U4; their records remain unchanged.
 
 ## 3. What guides the work
 
+<a id="current-manual-guidance"></a>
+
+Current discovery starts at [the manual index](../../../docs/alignment-manual/README.md):
+[management manual](../../../docs/alignment-manual/README.md#project-management-manual),
+[Field Book](../../../docs/alignment-manual/README.md#field-book), and
+[operational guide](../../../docs/alignment-manual/README.md#agent-user-manual).
+For forward development under the owner's efficiency-reset direction, the selected
+editions are Consolidated v9, Field Book v2 and Agent User Manual v4. They replace
+retired development record procedures, not the accepted product requirements.
+A stable pointer supports discovery; the actual selected edition/revision supports
+reliance. Later pointer changes do not automatically adopt a different method.
+The original seed and frozen acceptance records retain their earlier editions.
+No claim is made that the owner examined every byte of the new prose.
+
+
 - **V4-OPS-10** Apply the Project Management manual, Field Book and Chirality
   Agent User Manual as core working governance through the methods selected
   for the actual undertaking. The Field Book supplies the compact route;
@@ -60,7 +75,7 @@ scope by U4; their records remain unchanged.
   concurrent and successive work without silently loading unrelated methods.
 - **V4-OPS-11** **Identified editions.** Record the actual manual editions,
   source revisions and methods selected for each undertaking and adopt changed
-  editions deliberately. The seed/research basis used Field Book v1,
+  editions deliberately. The historical seed/research basis used Field Book v1,
   Consolidated v7 and Agent User Manual v3. The source-checked wave used
   `e548d4cfada4d2105de6231516dc6e5fc4bd4689`; the earlier draft's pins remain
   historical. Project definition records the actual selection for new work,

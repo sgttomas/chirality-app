@@ -29,7 +29,7 @@ Source keys below identify repository-relative records. The accepted snapshot's 
 | EXAM | `projects/chirality-app-v4/docs/EXAMINATION.md`, §§1–2 and §7 |
 | OPEN | Snapshot `canonical/Open_Issues.csv` OI-013/014/017/018/024 and `canonical/External_Dependencies.csv` DEP-006; current counterparts in `projects/chirality-app-v4/execution/_Decomposition/` retain the affected open allocation/adoption matters |
 | SEED | Original `ARCHITECTURE.md` §5 and `OPERATING_METHOD.md` V4-OPS-11–14 under `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/`; historical wording qualified by HTML/OWNER and current ARCH/OPS |
-| PRACTICE | `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md` §§2–4; `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md` §§3.6–3.7 and 6.3–6.5; `docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md` §§1 and 7 |
+| PRACTICE | Stable discovery: `docs/alignment-manual/README.md`. Current selection: Field Book v2 §§2–4 and 9; Consolidated v9 chapters 1–3 and 8; Agent User Manual v4 §§1–3 and 11. Exact earlier inputs remain historical. |
 
 ## Deliverable Definition — Ontology
 

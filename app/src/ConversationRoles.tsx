@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Conversation roles (DEL-01-04 NIR §5.4 ST-5/ST-6, §5.8 CA-1…CA-4; DEL-02-04
@@ -105,6 +106,16 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork }: { 
 
 export type StartChoice = { model: string; modelProvider: string; entryId: string };
 
+/** The model and the configured provider are exact Codex identifiers, sent as
+ * typed; the webview must not capitalise or correct them (EXACT_TEXT). Used by
+ * the start display and by Continue as. */
+export function ModelProviderFields({ model, modelProvider, setModel, setModelProvider }: { model: string; modelProvider: string; setModel: (model: string) => void; setModelProvider: (provider: string) => void }) {
+  return <>
+    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>{" "}
+    <label>Configured Codex provider <input {...EXACT_TEXT} value={modelProvider} onChange={e => setModelProvider(e.target.value)} /></label>
+  </>;
+}
+
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
 export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string };
@@ -148,8 +159,8 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, op
     <label>Handoff message (editable; not sent) <textarea value={draft} disabled={busy || sent || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose one.</p>
-      <label>Model <input value={choice.model} onChange={e => setChoice({ ...choice, model: e.target.value })} /></label>{" "}
-      <label>Configured Codex provider <input value={choice.modelProvider} onChange={e => setChoice({ ...choice, modelProvider: e.target.value })} /></label>{" "}
+      <ModelProviderFields model={choice.model} modelProvider={choice.modelProvider}
+        setModel={model => setChoice({ ...choice, model })} setModelProvider={modelProvider => setChoice({ ...choice, modelProvider })} />{" "}
       <label>Access entry <select value={choice.entryId} onChange={e => setChoice({ ...choice, entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label>
       <p><button disabled={busy || !ready || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={() => start(choice)}>Start new conversation as {target}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>

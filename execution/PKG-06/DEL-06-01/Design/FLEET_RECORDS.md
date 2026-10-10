@@ -201,6 +201,18 @@ per VC):
   client-writable tag to put a brief's identity on a thread.
 - **Observed on the stock pairing.** Stock LM Studio 0.4.16 drops the
   delegation namespace, so no child exists there (OBS-2 §6.1).
+- **Observed natively at 0.160.0, with limits** ([native witness
+  2026-10-10](../../../PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) items 11–12). The route was stock Codex through the App
+  Server, with a ChatGPT account and `gpt-6-luna`, in one run.
+  - Spawn, wait, follow-up and close worked.
+  - Only `wait` appeared as a `collabAgentToolCall` item. No spawn item was
+    shown, so the spawn prompt was not available from the parent's items.
+  - The child was known from `subAgentActivity`, with its parent inferred and
+    its status not reported.
+  - An agent reached only its own spawn tree: `send_message` to another
+    conversation's ID returned "not found".
+  - Until a spawn item is observed on a stock route, AS-2's input and AS-1's
+    carriage are not observable from the parent (§11).
 
 **Association rule (PROPOSED).** The App cannot tag a thread, so the brief
 travels in the spawn:
@@ -445,4 +457,4 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 | PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
 | Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3):* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
 | Content-identity method: the prototype uses sha-256 of file bytes as a TEST VALUE (RS U-04) | Owner with DEL-04-03 | Before reliance |
-| Delegation on any stock route is unobserved (adapter only) | A later observation | Before VER-003 on a candidate |
+| Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. Whether another supplier surface (a child-thread read) supplies the prompt is open | A later observation | Before VER-003 on a candidate |
