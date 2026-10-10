@@ -1268,8 +1268,6 @@ impl HotRegistrationAttempt {
         )?;
         Ok(true)
     }
-    /// WR §4.8 RC-6: G-1R…G-4R and G-6R. Never creates, rewrites or repairs a
-    /// store folder; publishes no copy (no G-5).
     /// V15 F1 (RC-7, RB-8): one act never has two ledger lines. If the ledger
     /// already cites this re-confirmation attempt's A15 (for example X-2 of
     /// another process closed it as lost), append nothing and end the attempt in
@@ -1293,6 +1291,8 @@ impl HotRegistrationAttempt {
         self.progress[index] = Progress::Failed(reason);
         Ok(true)
     }
+    /// WR §4.8 RC-6: G-1R…G-4R and G-6R. Never creates, rewrites or repairs a
+    /// store folder; publishes no copy (no G-5).
     fn advance_reconfirmation(
         &mut self,
         index: usize,

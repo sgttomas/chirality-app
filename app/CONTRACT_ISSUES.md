@@ -526,7 +526,12 @@ owner or the owner. No Design file was changed.
     time. An attachment-bearing turn holds that claim without the run's lock,
     because the attachment list's lock comes first (`host_status` order).
     While it is held, every other new turn in the conversation, a run start
-    included, is refused before anything is written.
+    included, is refused before anything is written. If that send path ends
+    abnormally, the claim is settled from the Host's write facts.
+  - A run start holds a pending notice from its live check until its send
+    outcome; no turn can claim it meanwhile. Once the start's frame was
+    attempted, its chain line supersedes the notice; otherwise the notice is
+    pending again (TX-5: no separate notice).
   - After its frame was written: if Codex then refuses the turn, or the outcome
     is unknown, the notice is not resent, and the model may not have received
     it. The panel shows the outcome. A *native* fork

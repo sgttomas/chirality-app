@@ -1972,18 +1972,59 @@ fn submit_attachments_with_notice(
         .try_lock()
         .map_err(|_| NOTICE_RUN_BUSY.to_string())?
         .claim_end_notice(generation, thread)?;
-    let (result, written) = submit_selected_attachments_led(state, host, custody, owner, revision, order, generation, thread, None, text, context, home, Some(claim.lead()));
-    let carriage = if written {
-        let turn = result.as_ref().ok().and_then(|resolved| resolved["nativeTurnRef"]["turnId"].as_str()).map(str::to_owned);
-        let outcome = match &result {
-            Ok(resolved) => json!({"state":"native turn observed","carrier":"attachment-bearing turn","submissionRef":resolved["submissionRef"]}),
-            Err(e) => json!({"state":"attachment-bearing turn written; outcome failed/unknown; not resent","carrier":"attachment-bearing turn","limit":e}),
+    let mut claimed = ClaimedNotice { run, claim: Some(claim), source: None };
+    let lead = claimed.claim.as_ref().map(NoticeClaim::lead);
+    let result = submit_selected_inner(state, host, custody, owner, revision, order, generation, thread, None, text, context, home, lead, &mut claimed.source);
+    claimed.settle(result)
+}
+
+/// A notice claimed by an attachment-bearing turn, settled exactly once: by
+/// `settle` on the normal path, or on drop when the send path ends abnormally
+/// (a panic between claim and settle), so the notice is never left `Carrying`.
+/// Whether the frame's write was attempted is read from the Host's own facts
+/// for the prepared frame.
+struct ClaimedNotice<'a> {
+    run: &'a std::sync::Arc<std::sync::Mutex<WorkflowRun>>,
+    claim: Option<NoticeClaim>,
+    /// The prepared frame's source, once prepared (before any write).
+    source: Option<crate::hosting::SourceRequest>,
+}
+impl ClaimedNotice<'_> {
+    fn write_attempted(&self) -> bool {
+        self.source.as_ref().is_some_and(|source| source.evidence()["actualWriteAttemptObserved"] == true)
+    }
+    fn settle(mut self, result: Result<Value, String>) -> Result<Value, String> {
+        let carriage = if self.write_attempted() {
+            let turn = result.as_ref().ok().and_then(|resolved| resolved["nativeTurnRef"]["turnId"].as_str()).map(str::to_owned);
+            let outcome = match &result {
+                Ok(resolved) => json!({"state":"native turn observed","carrier":"attachment-bearing turn","submissionRef":resolved["submissionRef"]}),
+                Err(e) => json!({"state":"attachment-bearing turn written; outcome failed/unknown; not resent","carrier":"attachment-bearing turn","limit":e}),
+            };
+            NoticeCarriage::Written { turn, outcome, result }
+        } else {
+            NoticeCarriage::NotWritten(result.err().unwrap_or_else(|| "attachment-bearing turn: no write attempt observed".into()))
         };
-        NoticeCarriage::Written { turn, outcome, result }
-    } else {
-        NoticeCarriage::NotWritten(result.err().unwrap_or_else(|| "attachment-bearing turn: no write attempt observed".into()))
-    };
-    run.lock().unwrap().settle_end_notice(claim, carriage)
+        let claim = self.claim.take().expect("a claimed notice is settled once");
+        self.run.lock().unwrap_or_else(std::sync::PoisonError::into_inner).settle_end_notice(claim, carriage)
+    }
+}
+impl Drop for ClaimedNotice<'_> {
+    fn drop(&mut self) {
+        let Some(claim) = self.claim.take() else {
+            return;
+        };
+        let cause = "the attachment-bearing turn's send path ended abnormally";
+        let carriage = if self.write_attempted() {
+            NoticeCarriage::Written {
+                turn: None,
+                outcome: json!({"state":"attachment-bearing turn written; outcome unknown; not resent","carrier":"attachment-bearing turn","limit":cause}),
+                result: Err(cause.into()),
+            }
+        } else {
+            NoticeCarriage::NotWritten(format!("{cause} before any write"))
+        };
+        let _ = self.run.lock().unwrap_or_else(std::sync::PoisonError::into_inner).settle_end_notice(claim, carriage);
+    }
 }
 
 /// One-shot actual private list→durable Core preparation→owning context binding→
@@ -2002,32 +2043,13 @@ pub fn submit_selected_attachments(
     context: crate::recovery::ExplicitAppProjectContext,
     home: Option<&str>,
 ) -> Result<Value, String> {
-    submit_selected_attachments_led(state, host, custody, owner, revision, order, generation, thread, expected_turn, text, context, home, None).0
+    submit_selected_inner(state, host, custody, owner, revision, order, generation, thread, expected_turn, text, context, home, None, &mut None)
 }
 
 /// As `submit_selected_attachments`, with an optional leading App text element
-/// for a new turn (the run-end line, TC-2), and whether the frame's write was
-/// attempted (then it is never resent).
-fn submit_selected_attachments_led(
-    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
-    host: &crate::hosting::Host,
-    custody: std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>,
-    owner: &str,
-    revision: u64,
-    order: &[String],
-    generation: &Value,
-    thread: &str,
-    expected_turn: Option<&str>,
-    text: &str,
-    context: crate::recovery::ExplicitAppProjectContext,
-    home: Option<&str>,
-    lead: Option<(&str, &str)>,
-) -> (Result<Value, String>, bool) {
-    let mut written = false;
-    let result = submit_selected_inner(state, host, custody, owner, revision, order, generation, thread, expected_turn, text, context, home, lead, &mut written);
-    (result, written)
-}
-
+/// for a new turn (the run-end line, TC-2). `prepared_source` receives the
+/// prepared frame's source before any write, so the caller can read from the
+/// Host whether that write was attempted (then it is never resent).
 fn submit_selected_inner(
     state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
     host: &crate::hosting::Host,
@@ -2042,7 +2064,7 @@ fn submit_selected_inner(
     context: crate::recovery::ExplicitAppProjectContext,
     home: Option<&str>,
     lead: Option<(&str, &str)>,
-    written: &mut bool,
+    prepared_source: &mut Option<crate::hosting::SourceRequest>,
 ) -> Result<Value, String> {
     let selected = {
         let state = state.lock().unwrap();
@@ -2077,6 +2099,7 @@ fn submit_selected_inner(
         &selected,
         lead,
     )?);
+    *prepared_source = Some(prepared.source().clone());
     {
         let mut state = state.lock().unwrap();
         let session = state.as_mut().map_err(|error| error.clone())?;
@@ -2117,11 +2140,7 @@ fn submit_selected_inner(
             }
         }
     }
-    let dispatched = host.dispatch_attachment_turn(&prepared);
-    // Read from the Host's own source facts, whatever the dispatch returned: an
-    // attempted write may have reached Codex, so it is never treated as unsent.
-    *written = prepared.source().evidence()["actualWriteAttemptObserved"] == true;
-    let result = dispatched.and_then(|source| host.attachment_wait(&source, std::time::Duration::from_secs(20)));
+    let result = host.dispatch_attachment_turn(&prepared).and_then(|source| host.attachment_wait(&source, std::time::Duration::from_secs(20)));
     let resolved = host.resolve_attachment_submission(&custody, prepared.submission_ref());
     {
         let mut state = state.lock().unwrap();
@@ -4713,6 +4732,7 @@ impl WorkflowRootSession {
             hold_open_for: None,
             withdrawn: None,
             notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            notice_held_by_start: None,
             notice_record_failure: None,
             ended_after_turn: None,
             finished_report: None,
@@ -5261,9 +5281,61 @@ pub(crate) fn start_workflow_run(
         let reserved = root.held_step_in(&root.conversation_of(reference));
         (run, root.superseded_notices(reference), predecessor, reserved)
     };
-    let live_check = |others: &[std::sync::Arc<std::sync::Mutex<WorkflowRun>>]| -> Result<(), String> {
-        for other in others {
-            let other = other.try_lock().map_err(|_| "Another run operation is pending in this conversation; whether a run is live cannot be established; nothing sent")?;
+    if let Some(predecessor) = predecessor {
+        // A is ended (its end is held), so it needs no live check and its being
+        // busy does not stop B; its end is released once A is free.
+        let others: Vec<_> = others.into_iter().filter(|o| !std::sync::Arc::ptr_eq(o, &predecessor)).collect();
+        let checked = match reserved {
+            Some(e) => Err(format!("{e}. Nothing sent")),
+            None => hold_notices_for_start(&others, reference),
+        };
+        let mut run = run.lock().unwrap();
+        let (result, held) = match checked {
+            Ok(held) => (run.send(), held),
+            Err(e) => (Err(e), vec![]),
+        };
+        // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
+        let started = run.lifecycle == RunLifecycle::Open;
+        predecessor.lock().unwrap().release_held_end(started);
+        run.hold_open_for = None;
+        if started {
+            run.flush_records();
+        } else if !run.attempted {
+            run.withdrawn = Some("the successor was not sent; its predecessor was recorded as a plain end with a pending end notice".into());
+        }
+        drop(run);
+        // As before on this path, other runs' notices are released, not superseded.
+        release_start_holds(&held, reference, false);
+        return result;
+    }
+    if let Some(e) = reserved {
+        return Err(format!("{e}. Nothing sent"));
+    }
+    let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
+    if run.hold_open_for.is_some() {
+        return Err("This successor's start is already in progress; nothing sent".into());
+    }
+    let held = hold_notices_for_start(&others, reference)?;
+    let result = run.send();
+    let attempted = run.attempted;
+    drop(run);
+    release_start_holds(&held, reference, attempted);
+    result
+}
+/// RE-7 / CH-1 live check of the conversation's other runs before `reference`
+/// starts, each under its own lock. A pending end notice found there is held
+/// for this start (TX-5: the chain line says that run ended), so no turn can
+/// claim it between this check and the start's send outcome. A notice already
+/// going out with a turn refuses the start. On a refusal, holds taken so far
+/// are released.
+fn hold_notices_for_start(
+    others: &[std::sync::Arc<std::sync::Mutex<WorkflowRun>>],
+    reference: &str,
+) -> Result<Vec<std::sync::Arc<std::sync::Mutex<WorkflowRun>>>, String> {
+    let mut held = vec![];
+    for shared in others {
+        let checked = (|| -> Result<(), String> {
+            let mut other = shared.try_lock().map_err(|_| "Another run operation is pending in this conversation; whether a run is live cannot be established; nothing sent")?;
             // TC-2: a turn carrying an earlier run's end notice is being written;
             // a run start now would send its chain line beside that notice.
             if matches!(other.notice, NoticeState::Carrying { .. }) {
@@ -5275,48 +5347,40 @@ pub(crate) fn start_workflow_run(
             if other.lifecycle == RunLifecycle::Open {
                 return Err("A workflow run is live in this conversation; end it first (RE-7, CH-1). Nothing sent".into());
             }
-        }
-        Ok(())
-    };
-    if let Some(predecessor) = predecessor {
-        // A is ended (its end is held), so it needs no live check and its being
-        // busy does not stop B; its end is released once A is free.
-        let others: Vec<_> = others.into_iter().filter(|o| !std::sync::Arc::ptr_eq(o, &predecessor)).collect();
-        let checked = match reserved {
-            Some(e) => Err(format!("{e}. Nothing sent")),
-            None => live_check(&others),
-        };
-        let mut run = run.lock().unwrap();
-        let result = checked.and_then(|()| run.send());
-        // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
-        let started = run.lifecycle == RunLifecycle::Open;
-        predecessor.lock().unwrap().release_held_end(started);
-        run.hold_open_for = None;
-        if started {
-            run.flush_records();
-        } else if !run.attempted {
-            run.withdrawn = Some("the successor was not sent; its predecessor was recorded as a plain end with a pending end notice".into());
-        }
-        return result;
-    }
-    if let Some(e) = reserved {
-        return Err(format!("{e}. Nothing sent"));
-    }
-    let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
-    if run.hold_open_for.is_some() {
-        return Err("This successor's start is already in progress; nothing sent".into());
-    }
-    live_check(&others)?;
-    let result = run.send();
-    if run.attempted {
-        for other in others {
-            if let Ok(mut other) = other.try_lock() {
-                other.notice.supersede(reference);
-                other.sync_notice_flag();
+            if other.notice.awaiting_turn() {
+                if other.notice_held_by_start.is_some() {
+                    return Err(NOTICE_HELD_BY_START.into());
+                }
+                other.notice_held_by_start = Some(reference.to_owned());
+                held.push(shared.clone());
             }
+            Ok(())
+        })();
+        if let Err(e) = checked {
+            release_start_holds(&held, reference, false);
+            return Err(e);
         }
     }
-    result
+    Ok(held)
+}
+/// After the start's send outcome: its chain line went (`attempted`), so each
+/// held notice is superseded; otherwise each is pending again for the next turn.
+/// Called with the starting run's lock released.
+fn release_start_holds(
+    held: &[std::sync::Arc<std::sync::Mutex<WorkflowRun>>],
+    reference: &str,
+    attempted: bool,
+) {
+    for shared in held {
+        let mut other = shared.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if other.notice_held_by_start.as_deref() == Some(reference) {
+            other.notice_held_by_start = None;
+            if attempted {
+                other.notice.supersede(reference);
+            }
+            other.sync_notice_flag();
+        }
+    }
 }
 /// SQ-END EN-2 / TX-5 / NIR TC-2: the person's next new turn in a conversation
 /// whose run ended without a successor carries the end notice first, exactly
@@ -5367,7 +5431,8 @@ fn pending_notice_run(
     root.lock().unwrap().pending_notice_for(home, thread).transpose()
 }
 const NOTICE_RUN_BUSY: &str = "The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly";
-const NOTICE_IN_FLIGHT: &str = "The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
+const NOTICE_HELD_BY_START: &str = "A workflow run is starting in this conversation; its chain line says the earlier run ended, so that run's end notice waits for the start's outcome. Nothing sent. Try again shortly";
+const NOTICE_IN_FLIGHT: &str ="The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
 /// One new turn's claim on a pending end notice (TC-2): the notice's exact
 /// published text scoped to the current generation, and the client message
 /// identity its turn carries (the supply check locates the turn by it).
@@ -5650,6 +5715,11 @@ pub(crate) struct WorkflowRun {
     withdrawn: Option<String>,
     /// V10 G-5: shared with the Root index; true while an end notice awaits a turn.
     notice_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// TX-5: a later run's start in this conversation, between its live check
+    /// and its send outcome. Its chain line says this run ended, so the pending
+    /// notice cannot be claimed meanwhile; the start supersedes it once its
+    /// frame was attempted, or releases it.
+    notice_held_by_start: Option<String>,
     /// V10 R-4: the last actual failure to write this run's end-notice record
     /// (cleared once it is written). "Send without the end notice" needs it.
     notice_record_failure: Option<String>,
@@ -6250,7 +6320,7 @@ impl WorkflowRun {
         }
     }
     fn claim_and_carry_text(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> Result<(NoticeClaim, NoticeCarriage), String> {
-        if !self.notice.awaiting_turn() {
+        if !self.notice.awaiting_turn() || self.notice_held_by_start.is_some() {
             return Err(self.notice_not_claimable());
         }
         let thread = self.prepared().scope().conversation.clone();
@@ -6273,7 +6343,7 @@ impl WorkflowRun {
     /// `settle_end_notice`. The caller writes the turn with the claim's text
     /// as its first element.
     pub(crate) fn claim_end_notice(&mut self, generation: &Value, thread: &str) -> Result<NoticeClaim, String> {
-        if !self.notice.awaiting_turn() {
+        if !self.notice.awaiting_turn() || self.notice_held_by_start.is_some() {
             return Err(self.notice_not_claimable());
         }
         let scope = self.prepared().scope().clone();
@@ -6350,7 +6420,9 @@ impl WorkflowRun {
         result
     }
     fn notice_not_claimable(&self) -> String {
-        if matches!(self.notice, NoticeState::Carrying { .. }) {
+        if self.notice_held_by_start.is_some() {
+            NOTICE_HELD_BY_START.into()
+        } else if matches!(self.notice, NoticeState::Carrying { .. }) {
             NOTICE_IN_FLIGHT.into()
         } else {
             "No end notice is pending for this run; nothing sent".into()
@@ -6369,6 +6441,9 @@ impl WorkflowRun {
     pub fn skip_end_notice(&mut self) -> Result<Value, String> {
         if !self.notice.awaiting_turn() {
             return Err("No end notice is pending for this run".into());
+        }
+        if self.notice_held_by_start.is_some() {
+            return Err(NOTICE_HELD_BY_START.into());
         }
         let Some(failure) = self.notice_record_failure.clone() else {
             return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
@@ -7473,6 +7548,73 @@ for line in sys.stdin:
         peer.set_mode("turn-mode","");
         assert!(send_with_pending_notice(&root,&peer.generation,"thread","next").is_none(),"not resent");
         assert_eq!(notice_frames(&peer),1);
+    }
+    // Never twice, write side: the frame's write was attempted but failed in the pipe (the
+    // Host's read-only-input seam). Codex may or may not have read it, so the notice counts
+    // as sent and is never resent.
+    #[test]
+    fn tc2_attachment_turn_whose_pipe_write_failed_counts_as_sent(){
+        let peer=Peer::new();let (root,a)=ended_run(&peer);
+        let (list,owner,revision,refs,custody,_)=attachment(&peer,"notes.txt","attached bytes\n");
+        let kept=crate::hosting::install_broken_test_input(&peer.home.host);
+        let failed=submit_attachments_with_draft_trials(&list,&root,&peer.home.host,Ok(custody.clone()),&owner,revision,&refs,&peer.generation,"thread",None,"with files",crate::recovery::ExplicitAppProjectContext::unknown(),None).unwrap_err();
+        assert!(!failed.contains("it stays pending"),"{failed}");
+        let last=peer.home.host.snapshot()["clientRequests"].as_array().unwrap().last().cloned().unwrap();
+        assert_eq!((last["method"].as_str(),last["writeResult"].as_str()),(Some("turn/start"),Some("write-failed")),"{last}");
+        let view=root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"].clone();
+        assert_eq!(view["state"],"sent once with the next ordinary turn");
+        assert!(view["outcome"]["state"].as_str().unwrap().contains("not resent"),"{view}");
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","next").is_none(),"never resent");
+        assert_eq!(notice_frames(&peer),0,"the failed frame never reached the peer");
+        drop(kept);
+    }
+    // M2: a send path that ends abnormally between claim and settle (a panic) settles the
+    // claim on unwind: with no write attempted the notice is pending again, never left
+    // `Carrying`, and the next turn carries it once.
+    #[test]
+    fn tc2_a_claim_whose_send_path_panics_returns_the_notice(){
+        let peer=Peer::new();let (root,a)=ended_run(&peer);
+        let run=root.lock().unwrap().runs[&a].clone();
+        let claim=run.lock().unwrap().claim_end_notice(&peer.generation,"thread").unwrap();
+        let unwound=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+            let _claimed=ClaimedNotice{run:&run,claim:Some(claim),source:None};
+            panic!("fixture: the send path panicked after the claim");
+        }));
+        assert!(unwound.is_err());
+        assert!(notice_state(&root,&a).starts_with("pending"),"not stuck in Carrying");
+        assert!(run.lock().unwrap().view(&a)["status"]["limit"].as_str().unwrap().contains("ended abnormally before any write"));
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());
+        assert_eq!(notice_frames(&peer),1);
+    }
+    // M1 (TX-5 "no separate notice"): between a later run's live check and its send outcome,
+    // the earlier run's pending notice is held for that start; no turn of any kind can claim
+    // or skip it. A start whose frame was attempted supersedes it; otherwise it is pending again.
+    #[test]
+    fn tc2_a_run_start_holds_the_pending_notice_until_its_outcome(){
+        for attempted in [true,false]{
+            let peer=Peer::new();let (root,a)=ended_run(&peer);
+            let (list,owner,revision,refs,custody,_)=attachment(&peer,"notes.txt","attached bytes\n");
+            let b={let mut r=root.lock().unwrap();r.prepare_run(peer.home.clone(),&peer.generation,"thread","next".into(),peer.project()).unwrap()};
+            let run=root.lock().unwrap().runs[&a].clone();
+            let held=hold_notices_for_start(std::slice::from_ref(&run),&b).unwrap();assert_eq!(held.len(),1);
+            assert!(hold_notices_for_start(std::slice::from_ref(&run),"another-start").err().as_deref()==Some(NOTICE_HELD_BY_START),"one start at a time");
+            let starts=peer.turn_starts();
+            assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("held").unwrap_err().contains("is starting"));
+            assert!(send_with_pending_notice_in_mode(&root,&peer.generation,"thread","hello",Some("default")).expect("held").result.unwrap_err().contains("is starting"));
+            assert!(submit_attachments_with_draft_trials(&list,&root,&peer.home.host,Ok(custody.clone()),&owner,revision,&refs,&peer.generation,"thread",None,"with files",crate::recovery::ExplicitAppProjectContext::unknown(),None).unwrap_err().contains("is starting"));
+            assert!(run.lock().unwrap().skip_end_notice().is_err());
+            assert_eq!(peer.turn_starts(),starts,"nothing written while the start holds the notice");
+            release_start_holds(&held,&b,attempted);
+            if attempted{
+                assert!(notice_state(&root,&a).starts_with("not sent: the successor run's chain line"));
+                assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"no separate notice");
+                assert_eq!(notice_frames(&peer),0);
+            }else{
+                assert!(notice_state(&root,&a).starts_with("pending"));
+                assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());
+                assert_eq!(notice_frames(&peer),1);
+            }
+        }
     }
     // Notice-once under contention: while one turn's claim is held (Carrying), every other new
     // turn in the conversation is refused before anything is written (text, mode, attachments,

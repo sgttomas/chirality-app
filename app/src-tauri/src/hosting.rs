@@ -2972,12 +2972,14 @@ fn generated_outputs_match() -> bool {
     ].iter().all(|(bytes, expected)| sha256_hex(bytes) == *expected)
 }
 
+/// Returns the replaced input, so a caller with a live child can keep the
+/// child's stdin open (the child is not ended by the swap).
 #[cfg(test)]
-fn install_broken_test_input(host:&Host){
+pub(crate) fn install_broken_test_input(host:&Host)->Option<ChildStdin>{
     // A killed child can leave transient inherited pipe readers in concurrent
     // spawns. A read-only descriptor guarantees an actual OS write failure.
     let input:std::os::fd::OwnedFd=std::fs::File::open("/dev/null").unwrap().into();
-    *host.stdin.lock().unwrap()=Some(ChildStdin::from(input));
+    host.stdin.lock().unwrap().replace(ChildStdin::from(input))
 }
 
 #[cfg(test)]
