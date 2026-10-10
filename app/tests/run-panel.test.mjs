@@ -5,8 +5,9 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);return exports;};
-const {RunPanel,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
+import {localRequire} from './support/load-src.mjs';
+const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
+const {RunBringBackView,RunPanel,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
@@ -161,5 +162,19 @@ test('the selected workflow shows its declared part instead of a JSON dump',()=>
   const undeclared=h(DeclaredPart,{declaration:{raw:null,reading:'undeclared',categories:Object.fromEntries(cats.map(c=>[c,'undeclared'])),elements:{},findings:[]}});
   assert.ok(undeclared.includes('declares no requirements part')&&undeclared.includes('Not declared.'));
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<SelectedWorkflow selection={data?.selection}/>')&&app.includes('<RunPanel run={run}/>'));
+  assert.ok(app.includes('<SelectedWorkflow selection={data?.selection}/>')&&app.includes('<RunPanel run={run} conversations={conversations} busy={busy} act={action}/>'));
+});
+
+test('Bring a real run back to authoring calls the host only on the press, with the chosen conversation (TT-10, TT-11)',()=>{
+  const g={appSession:'s',home:'h',spawnCounter:1};
+  const conversations=[{generation:g,threadId:'auth'},{generation:g,threadId:'other'}];
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);};
+  const find=(node,found=[])=>{if(Array.isArray(node)){for(const n of node)find(n,found);return found;}if(!node||typeof node!=='object')return found;if(typeof node.type==='function')return find(node.type(node.props),found);if(node.type==='button')found.push(node);find(node.props?.children,found);return found;};
+  const view=(target,includeNative=false)=>RunBringBackView({run:run(),conversations,target,setTarget:()=>{},includeNative,setIncludeNative:()=>{},busy:false,act});
+  assert.equal(find(view(''))[0].props.disabled,true,'no conversation chosen, no bring back');
+  assert.deepEqual(calls,[]);
+  find(view(JSON.stringify([g,'other']),true))[0].props.onClick();
+  assert.deepEqual(calls,[['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'other',includeNative:true}]]);
+  assert.ok(h(RunPanel,{run:run(),conversations,act}).includes('Bring a real run back to authoring'));
+  assert.ok(!h(RunPanel,{run:run()}).includes('Bring a real run back'),'offered only where the host can be asked');
 });

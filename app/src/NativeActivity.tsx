@@ -236,10 +236,11 @@ function Checklist({ revisions }: { revisions: Json[] }) {
   </div>;
 }
 
-function Child({ child }: { child: Json }) {
+function Child({ child, trialLabel }: { child: Json; trialLabel?: Json }) {
   const reported = child.lastObservedStatus;
   const status = reported && typeof reported === "object" ? reported : { status: reported };
   return <>
+    {trialLabel ? <><b>{text(trialLabel)}</b> · </> : null}
     {text(child.threadId)} · last observed Codex status {text(status.status) || "not reported"}{status.message ? ` — ${text(status.message)}` : ""}
     {child.statusSource ? ` (status source ${text(child.statusSource)})` : ""} · parent from {text(child.parentSource)}
     {child.nativeThread?.agentRole != null && ` · role ${text(child.nativeThread.agentRole)} (as Codex reports)`}{child.nativeThread?.agentNickname != null && ` · nickname ${text(child.nativeThread.agentNickname)}`}
@@ -296,8 +297,12 @@ export function StopLabel({ stop }: { stop: Json | null }) {
   return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null }) {
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[] }) {
   const [shown, setShown] = useState<string>("");
+  // WR TT-2, TT-4: the host's trial labels (worded by the host) on the turn
+  // that carried a trial message and on a linked sub-agent's row. Display only.
+  const turnLabel = (thread: string, turn: string) => list(trialTurns).find((t: Json) => t?.threadId === thread && t?.turnId === turn)?.label;
+  const childLabel = (thread: Json) => list(trialChildren).find((t: Json) => t?.threadId === thread)?.label;
   if (!threadId) return <p>Select a conversation to see its activity.</p>;
   const descendants = activityModel(view, threadId).subtree;
   const target = shown && descendants.some((c: Json) => c.threadId === shown) ? shown : threadId;
@@ -324,6 +329,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
     {model.turns.map(turn => <section key={text(turn.turnId)} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
       <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
+      {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
       {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
@@ -333,6 +339,6 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}
       {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
     </section>)}
-    {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} /></RowBoundary></li>)}</ul></>}
+    {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></>}
   </div>;
 }

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ConversationSelect, conversationKey } from "./TrialComposer";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The run panel's readable parts (DEL-01-04 NIR §9 PD-1…PD-7, placing
@@ -264,8 +266,31 @@ export function RecordWriteNotice({ run }: { run: Json }) {
   return <p role="alert">{pending.length} run record entr{pending.length === 1 ? "y is" : "ies are"} not yet written ({pending.map((r: Json) => text(r?.kind)).join(", ")}){limits.length ? `: ${limits.join("; ")}` : ""}. They are kept in this App process only, in order, and are written to this run's record when writing works again, each followed by a “record write failed” limit. If the App quits first they are lost.</p>;
 }
 
+export type RunBringBackAct = (command: string, args: Record<string, unknown>) => Promise<unknown>;
+
+/** WR TT-10, TT-11: "Bring a real run back to authoring", at the person's
+ * press only. The host reads the run's turns and pre-fills the transcript,
+ * unsent, in the conversation the person chose. */
+export function RunBringBackView({ run, conversations, target, setTarget, includeNative, setIncludeNative, busy, act }: {
+  run: Json; conversations: Json[]; target: string; setTarget: (key: string) => void; includeNative: boolean; setIncludeNative: (on: boolean) => void; busy: boolean; act: RunBringBackAct;
+}) {
+  const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
+  return <div aria-label="Bring a real run back">
+    <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={setTarget} disabled={busy} />{" "}
+    <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => setIncludeNative(e.target.checked)} /> include native items</label>{" "}
+    <button disabled={busy || !chosen} onClick={() => { void act("workflow_run_bring_back", { runRef: run?.reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring a real run back to authoring</button>
+    <p><small>Pre-fills a transcript of this run, read from Codex history, in the chosen conversation's composer; nothing is sent until you send it there. For revising the workflow after real use.</small></p>
+  </div>;
+}
+
+export function RunBringBack({ run, conversations, busy, act }: { run: Json; conversations: Json[]; busy: boolean; act: RunBringBackAct }) {
+  const [target, setTarget] = useState<string>("");
+  const [includeNative, setIncludeNative] = useState(false);
+  return <RunBringBackView run={run} conversations={conversations} target={target} setTarget={setTarget} includeNative={includeNative} setIncludeNative={setIncludeNative} busy={busy} act={act} />;
+}
+
 /** PD-1, PD-3, PD-7 for one run, from the run view the host reports. */
-export function RunPanel({ run }: { run: Json }) {
+export function RunPanel({ run, conversations, busy = false, act }: { run: Json; conversations?: Json[]; busy?: boolean; act?: RunBringBackAct }) {
   const compatibility = list(run?.compatibility);
   const declaration = compatibility.find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration;
   const workflow = run?.workflow ?? {};
@@ -277,6 +302,7 @@ export function RunPanel({ run }: { run: Json }) {
     {declaration ? <DeclaredPart declaration={declaration} run={run} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     <h4>Compatibility (advisory)</h4>
     {compatibility.length ? <ul>{compatibility.map((c: Json, i: number) => <CompatibilityAdvisory key={i} entry={c} />)}</ul> : <p>No compatibility evaluation for this run.</p>}
+    {act && <RunBringBack run={run} conversations={conversations ?? []} busy={busy} act={act} />}
   </div>;
 }
 

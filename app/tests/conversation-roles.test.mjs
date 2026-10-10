@@ -148,3 +148,14 @@ test('model and provider are exact strings: no capitalisation, autocorrect, spel
   assert.ok(app.includes('<ModelProviderFields model={model} modelProvider={modelProvider}'));
   assert.equal(((app+roles).match(/<input [^>]*value=\{(model|modelProvider)\}/g)??[]).length,2,'only the shared fields bind model and provider');
 });
+
+test('the header shows the host’s trial header and the trials started here (TT-3b, TT-4)',()=>{
+  const {TrialHeader}=load('ConversationRoles.tsx');
+  const clean={threadId:'thread',reference:'trial:5',sequence:2,draftName:'load-check',rev12:'0123456789ab',header:'Trial 2 of draft load-check at content 0123456789ab — not registered; not a workflow run · authoring conversation auth',fork:false};
+  const html=h(RoleHeader,{thread:thread(),limits,busy:false,ready:true,continueAs:noop,fork:noop,trialConversation:clean});
+  assert.ok(html.includes('<b>Trial 2 of draft load-check at content 0123456789ab — not registered; not a workflow run · authoring conversation auth</b>'));
+  const started=h(RoleHeader,{thread:thread(),limits,busy:false,ready:true,continueAs:noop,fork:noop,trialsStartedHere:{threadId:'thread',trials:[{reference:'trial:5',sequence:2,draftName:'load-check',kind:'clean'},{reference:'trial:6',sequence:3,draftName:'load-check',kind:'delegated'}]}});
+  assert.ok(started.includes('Trials started here: trial 2 of draft load-check (clean); trial 3 of draft load-check (delegated).'));
+  assert.ok(!header(thread()).includes('Trial header'),'no trial line for an ordinary conversation');
+  assert.equal(h(TrialHeader,{}),'');
+});
