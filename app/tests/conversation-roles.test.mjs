@@ -61,24 +61,27 @@ test('fork and continued-from relations are shown as relations; nothing changes 
 });
 
 test('the start display is readable: preselection, no role, TASK not offered, limits as handed',()=>{
-  const html=h(RoleChoice,{roleSet,limits,role:roleSet.defaultRole,setRole:noop,preselected:true});
+  const html=h(RoleChoice,{group:"start-thread-role",roleSet,limits,role:roleSet.defaultRole,setRole:noop,preselected:true});
   assert.ok(html.includes(`<b>${roleSet.defaultRole}</b>`)&&html.includes('(preselected; change or clear it before starting)'));
   assert.ok(html.includes('<b>No role</b>: product guidance only.'));
   // ROLE SL-1 (owner ruling 2026-10-10): TASK is not listed as a conversation role, only explained.
   assert.ok(!/value="TASK"/.test(html)&&!html.includes('<b>TASK</b>'),'TASK is not a choice');
-  assert.equal((html.match(/name="conversation-role"/g)??[]).length,4,'three conversation roles and No role');
+  assert.equal((html.match(/name="start-thread-role"/g)??[]).length,4,'three conversation roles and No role, in the group the caller names');
+  const trialGroup=h(RoleChoice,{group:'clean-trial-role:trial:7',roleSet,limits,role:'',setRole:noop,preselected:false});
+  assert.equal((trialGroup.match(/name="clean-trial-role:trial:7"/g)??[]).length,4,'another instance, another group');
+  assert.ok(!trialGroup.includes('name="start-thread-role"')&&!/name="conversation-role"/.test(html+trialGroup),'no shared hard-coded group');
   assert.ok(html.includes('TASK is not a conversation role: a manager assigns bounded work to it'));
   // The host's list governs when it is handed.
-  const hostList=h(RoleChoice,{roleSet:{...roleSet,conversationRoles:['HELP_HUMAN','WORKING_ITEMS']},limits,role:'',setRole:noop,preselected:false});
+  const hostList=h(RoleChoice,{group:"start-thread-role",roleSet:{...roleSet,conversationRoles:['HELP_HUMAN','WORKING_ITEMS']},limits,role:'',setRole:noop,preselected:false});
   assert.ok(hostList.includes('value="WORKING_ITEMS"')&&!hostList.includes('value="HELPS_HUMANS"')&&!hostList.includes('value="TASK"'));
   // Continue as offers the same three and No role, never TASK.
   const cont=header(thread());
   assert.ok(!/<option[^>]*value="TASK"/.test(cont)&&/<option[^>]*value="WORKING_ITEMS"/.test(cont));
   assert.ok(html.includes('Stated, not enforced'));
   assert.ok(!html.includes('"standing"'),'no JSON in the start display');
-  const changed=h(RoleChoice,{roleSet,limits,role:'',setRole:noop,preselected:false});
+  const changed=h(RoleChoice,{group:"start-thread-role",roleSet,limits,role:'',setRole:noop,preselected:false});
   assert.ok(!changed.includes('(preselected'),'a cleared choice is no longer a preselection');
-  const shipped=h(RoleChoice,{roleSet:bundled,limits,role:bundled.defaultRole??'',setRole:noop,preselected:false});
+  const shipped=h(RoleChoice,{group:"start-thread-role",roleSet:bundled,limits,role:bundled.defaultRole??'',setRole:noop,preselected:false});
   assert.ok(!shipped.includes('(preselected')&&/<input[^>]*checked=""[^>]*value=""\/>/.test(shipped),'with no default in the set, No role is the start');
   const taskLimits=h(RoleLimits,{limits,role:'TASK'});
   assert.ok(taskLimits.includes('A task agent does not delegate: <b>Stated, not enforced</b>. Not this limit&#x27;s enforcement: approval-policy, sandbox, user-configuration, depth-limit.'));

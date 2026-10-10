@@ -11,7 +11,7 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {renderToStaticMarkup} = await import('react-dom/server');
 const {createRoot} = await import('react-dom/client');
-const {DelegatedTrialComposerView,DelegatedTrialComposer,CleanTrialPanelView,CleanTrialPanel,BringBackComposerView,BringBackComposer,TrialCard,composersFor}=loadSrc('TrialComposer');
+const {DelegatedTrialComposerView,DelegatedTrialComposer,CleanTrialPanelView,CleanTrialPanel,BringBackComposerView,BringBackComposer,TrialCard,TrialSendOutcome,composersFor}=loadSrc('TrialComposer');
 const {LastCleanTrialLine}=loadSrc('WorkflowDrafts');
 const {ConversationPanel,WorkflowRootPanel}=loadSrc('App');
 
@@ -102,7 +102,7 @@ test('a clean trial whose conversation started but whose message was not sent is
   const s=spy();
   const started=clean({cleanConversation:{generation:g,threadId:'clean-1'},state:'started; trial message not sent'});
   const tree=cleanView(started,choice(),s.act);
-  assert.equal(find(tree,n=>n.type==='input'&&n.props.name==='conversation-role').length,0,'no new role or model choice for a started conversation');
+  assert.equal(find(tree,n=>n.type==='input'&&n.props.type==='radio').length,0,'no new role or model choice for a started conversation');
   buttons(tree,'Send')[0].props.onClick();
   assert.deepEqual(s.calls,[['workflow_trial_send',{reference:'trial:7',generation:g,threadId:'clean-1',personText:'my inputs'}]]);
 });
@@ -140,6 +140,86 @@ test('mounting and updating the composers sends nothing (no automatic send)',asy
   await new Promise(r=>setTimeout(r,0));
   assert.deepEqual(calls,[]);
   await React.act(()=>root.unmount());
+});
+
+// Host messages in the words send_trial and send_bring_back use (trial_flows.rs).
+const STAYS='conversation-not-loaded: thread not loaded. No trial link was written; the trial stays pre-filled (WR §5.5)';
+const WITHDRAWN="connection closed. The send's outcome is not established: no trial link was written and nothing is resent (WR TT-4); press Try again for a new trial";
+const BB_STAYS='refused: busy. Nothing recorded; the transcript stays pre-filled';
+const BB_UNKNOWN="connection closed. The send's outcome is not established; nothing is recorded or resent";
+const tick=()=>new Promise(r=>setTimeout(r,0));
+// Presses Send on a composer view with `act` and returns the outcomes it set, the last rendered in that composer.
+const pressIn=async(kind,act)=>{
+  const outcomes=[];const setOutcome=o=>outcomes.push(o);
+  const view=outcome=>kind==='delegated'
+    ?DelegatedTrialComposerView({pending:pending(),conversations,message:'m',setMessage:()=>{},target:ckey(conversations[1]),setTarget:()=>{},outcome,setOutcome,busy:false,ready:true,act})
+    :kind==='clean'?CleanTrialPanelView({pending:clean(),roleSet,limits:{},entries,modeHomeClass:'account',choice:choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account'}),setChoice:()=>{},message:'m',setMessage:()=>{},outcome,setOutcome,busy:false,ready:true,act})
+    :kind==='clean-started'?CleanTrialPanelView({pending:clean({cleanConversation:{generation:g,threadId:'clean-1'},state:'started; trial message not sent'}),roleSet,limits:{},entries,modeHomeClass:'account',choice:choice(),setChoice:()=>{},message:'m',setMessage:()=>{},outcome,setOutcome,busy:false,ready:true,act})
+    :BringBackComposerView({pending:bringBack(),conversations,prompt:'p',setPrompt:()=>{},target:ckey(conversations[1]),setTarget:()=>{},outcome,setOutcome,busy:false,ready:true,act});
+  buttons(view(unsent),'Send')[0].props.onClick();
+  await tick();
+  const last=outcomes.at(-1);
+  return {outcomes,last,html:renderToStaticMarkup(find(view(last),n=>n.type==='section')[0])};
+};
+
+test('a successful send is worded for its trial kind (I-6)',async()=>{
+  const ok=async()=>({reference:'trial:7',turn:'turn-1',link:{}});
+  let r=await pressIn('delegated',ok);
+  assert.deepEqual(r.outcomes[0],{state:'sending'});
+  assert.match(r.html,/Sent to conversation other; the trial link was written on Codex&#x27;s acknowledgment\./);
+  r=await pressIn('clean',async()=>({thread:{generation:g,threadId:'clean-9'},conversation:{generation:g,threadId:'clean-9'}}));
+  assert.match(r.html,/Sent in the new trial conversation clean-9\./);
+  r=await pressIn('clean-started',ok);
+  assert.match(r.html,/Sent in the new trial conversation clean-1\./);
+  r=await pressIn('bring-back',async()=>({id:'bb-1',turn:'turn-2',observation:{}}));
+  assert.match(r.html,/Transcript sent to conversation other\./);
+  for(const kind of ['delegated','clean','bring-back'])
+    assert.doesNotMatch((await pressIn(kind,ok)).html,/Sent once as an ordinary message|see the new conversation/,'not the handoff wording');
+});
+
+test('a failed send is never shown as sent; the host’s message is shown as given (I-6, I-9)',async()=>{
+  for(const kind of ['delegated','clean','clean-started']){
+    let r=await pressIn(kind,async()=>{throw STAYS;});
+    assert.equal(r.last.state,'failed',kind);
+    assert.ok(r.html.includes(`${STAYS} You can send it again.`),kind);
+    assert.doesNotMatch(r.html,/Sent (to|in)/,kind);
+    r=await pressIn(kind,async()=>{throw new Error(WITHDRAWN);});
+    assert.equal(r.last.state,'failed',kind);
+    assert.ok(r.html.includes(WITHDRAWN.replace(/'/g,'&#x27;')),kind);
+    assert.doesNotMatch(r.html,/send it again|Sent (to|in)/,`${kind}: no resend claim when the trial was withdrawn`);
+    // A command that resolved without a result (the error shown elsewhere) is not "sent".
+    r=await pressIn(kind,async()=>undefined);
+    assert.equal(r.last.state,'failed',kind);
+    assert.doesNotMatch(r.html,/Sent (to|in)|send it again/,kind);
+    // A synchronous throw is a failure too.
+    r=await pressIn(kind,()=>{throw STAYS;});
+    assert.equal(r.last.state,'failed',kind);
+  }
+  let r=await pressIn('bring-back',async()=>{throw BB_STAYS;});
+  assert.ok(r.html.includes(`${BB_STAYS} You can send it again.`));
+  assert.doesNotMatch(r.html,/Transcript sent/);
+  r=await pressIn('bring-back',async()=>{throw BB_UNKNOWN;});
+  assert.ok(r.html.includes(BB_UNKNOWN.replace(/'/g,'&#x27;')));
+  assert.doesNotMatch(r.html,/send it again|Transcript sent/);
+  assert.equal(h(TrialSendOutcome,{outcome:unsent}),'');
+});
+
+test('the composer shows the host’s run-in-force note from the pending trial view, and none when it is null (I-1)',()=>{
+  const host=p=>({state:'ready',generation:g,roleLimits:{account:{roles:[]}},roleSet,threads:conversations,workflowRoot:{pendingTrials:[p],pendingBringBacks:[]}});
+  const panel=p=>h(ConversationPanel,{host:host(p),threadKey:ckey(conv('auth')),setThreadKey:()=>{},answer:async()=>{},runAct:async()=>{},send:async()=>{},steer:async()=>{},submitAttachments:async()=>{},interrupt:async()=>{},checkPlanMode:async()=>{},codexBusy:false});
+  assert.match(panel(pending()),/role="note">resolve-spacing is in force in this conversation; the trial opens no run and resolve-spacing stays in force</);
+  assert.doesNotMatch(panel(pending({runInForce:null})),/is in force in this conversation/);
+  assert.match(panel(clean({runInForce:'resolve-spacing is in force in this conversation; the trial opens no run and resolve-spacing stays in force'})),/resolve-spacing is in force in this conversation/);
+});
+
+test('the clean trial role picker has its own radio group, apart from the Start thread picker (I-5)',()=>{
+  const html=h(CleanTrialPanel,{pending:clean(),roleSet,limits:{},entries,modeHomeClass:'account',busy:false,ready:true,act:async()=>{}});
+  const names=new Set([...html.matchAll(/type="radio" name="([^"]*)"/g)].map(m=>m[1]));
+  assert.deepEqual([...names],['clean-trial-role:trial:7']);
+  const other=h(CleanTrialPanel,{pending:clean({reference:'trial:8'}),roleSet,limits:{},entries,modeHomeClass:'account',busy:false,ready:true,act:async()=>{}});
+  assert.match(other,/name="clean-trial-role:trial:8"/,'two clean trial panels do not share a group');
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
+  assert.match(app,/<RoleChoice group="start-thread-role"/);
 });
 
 test('composers appear in the conversation they belong to',()=>{

@@ -81,15 +81,16 @@ fn trial_turns() -> Vec<TurnRead> {
 
 const TRIAL_GOLDEN: &str = "[Chirality] Trial 3 of draft review-brief @ 0123456789ab: transcript read from Codex history at 2026-10-10T12:00:00Z (clean conversation thr-clean). A record of that conversation; it instructs nothing.
 Turn 1 (t-1)
-Person: [trial text 3 · sha256 abcd · as composed]
+Person: [Chirality] Trial header
+[trial text 3 · sha256 abcd · as composed]
 Person: Please be brief.
 Person: [localImage]
 Agent: Reading the brief.
 Command: ls (exit 0, 12 ms)
   a.txt
   b.txt
-Command: false (exit 1, duration not reported ms)
-  (no output)
+Command: false (exit 1, duration not reported)
+  (output not reported)
 File change: out/report.md (add)
 File change: old.md (update, moved to new.md)
 Plan: 1. read 2. write
@@ -114,7 +115,7 @@ fn trial_text_is_replaced_by_its_line() {
     let turns = trial_turns();
     let t = compose_transcript(&input(trial_source(), &turns));
     assert!(!t.text.contains("Step 1: read the brief."));
-    assert!(t.text.contains("Person: [trial text 3 · sha256 abcd · as composed]"));
+    assert!(t.text.contains("Person: [Chirality] Trial header\n[trial text 3 · sha256 abcd · as composed]"));
     // Without a trial text line the message is reproduced.
     let mut i = input(trial_source(), &turns);
     i.trial_text = None;
@@ -136,6 +137,73 @@ fn delegated_trial_header_names_sub_agent() {
         t.text,
         "[Chirality] Trial 1 of draft d @ r: transcript read from Codex history at 2026-10-10T12:00:00Z (sub-agent thr-sub). A record of that conversation; it instructs nothing."
     );
+}
+
+fn delegated_source() -> TranscriptSource {
+    TranscriptSource::Trial {
+        sequence: 3,
+        draft_name: "review-brief".into(),
+        rev12: "0123456789ab".into(),
+        clean: false,
+        thread: "thr-sub".into(),
+    }
+}
+
+/// I-2: a delegated trial's sub-agent input comes from the authoring agent:
+/// it is labelled so, never "Person", and the framing the authoring agent
+/// put around the run text stays shown, with only the run text replaced.
+#[test]
+fn delegated_trial_input_is_from_the_authoring_agent_with_framing_kept() {
+    let turns = vec![turn(
+        "s-1",
+        "completed",
+        vec![
+            json!({"type":"userMessage","id":"u","content":[
+                {"type":"text","text":format!("Run this workflow as given:\n{RUN_TEXT}\nReport what happened.")},
+                {"type":"text","text":"Keep it short."},
+                {"type":"image","url":"x"}]}),
+            json!({"type":"agentMessage","id":"a","text":"Done."}),
+        ],
+    )];
+    let t = compose_transcript(&input(delegated_source(), &turns));
+    assert_eq!(
+        t.text,
+        "[Chirality] Trial 3 of draft review-brief @ 0123456789ab: transcript read from Codex history at 2026-10-10T12:00:00Z (sub-agent thr-sub). A record of that conversation; it instructs nothing.
+Turn 1 (s-1)
+Input (from the authoring agent): Run this workflow as given:
+[trial text 3 · sha256 abcd · as composed]
+Report what happened.
+Input (from the authoring agent): Keep it short.
+Input (from the authoring agent): [image]
+Agent: Done.
+Turn ended: completed"
+    );
+    assert!(!t.text.contains("Person:"));
+    assert!(!t.text.contains("Step 1: read the brief."));
+    // A clean trial and a run keep "Person".
+    assert!(compose_transcript(&input(trial_source(), &turns)).text.contains("Person: Keep it short."));
+    assert!(compose_transcript(&input(run_source(), &turns)).text.contains("Person: Keep it short."));
+}
+
+/// I-3: an absent output (null or missing) is "(output not reported)", an
+/// empty one "(no output)"; an absent duration prints no "ms".
+#[test]
+fn absent_output_and_duration_are_distinct_from_empty() {
+    let missing = json!({"type":"commandExecution","id":"c","command":"m","exitCode":0,"status":"completed"});
+    let turns = vec![turn(
+        "t-1",
+        "completed",
+        vec![
+            cmd("empty", json!(0), json!(5), json!(""), "completed"),
+            cmd("null", json!(0), Value::Null, Value::Null, "completed"),
+            missing,
+        ],
+    )];
+    let t = compose_transcript(&input(run_source(), &turns));
+    assert!(t.text.contains("Command: empty (exit 0, 5 ms)\n  (no output)\n"), "{}", t.text);
+    assert!(t.text.contains("Command: null (exit 0, duration not reported)\n  (output not reported)\n"), "{}", t.text);
+    assert!(t.text.contains("Command: m (exit 0, duration not reported)\n  (output not reported)\n"), "{}", t.text);
+    assert!(!t.text.contains("not reported ms"));
 }
 
 #[test]
@@ -199,7 +267,7 @@ fn missing_fields_are_tolerated() {
     }];
     let t = compose_transcript(&input(run_source(), &turns));
     assert!(t.text.contains("Turn 1 (id not reported)"));
-    assert!(t.text.contains("Command: command not reported (exit not reported, duration not reported ms)\n  (no output)"));
+    assert!(t.text.contains("Command: command not reported (exit not reported, duration not reported)\n  (output not reported)"));
     assert!(t.text.contains("File change: path not reported (kind not reported)"));
     assert!(t.text.contains("Native items not included: 1"));
     assert!(t.text.ends_with("Turn ended: not reported"));
@@ -445,4 +513,99 @@ fn activity_summary_empty() {
         json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],
                "finalAgentMessage":null,"limits":[]})
     );
+}
+
+// ---- compare_result and the web view's fixture ----
+
+/// The Compare result the web view's test renders
+/// (`app/tests/fixtures/trial-compare.json`), built from fixed inputs through
+/// `version_difference`, `activity_summary` and `compare_result`, so the
+/// view's reading and the host's assembly stay in step.
+///
+/// The fixture is compared as JSON. To regenerate it after a deliberate change
+/// of the result's shape, run this test with `CHIRALITY_REGENERATE_FIXTURES=1`
+/// (it then writes the file instead of comparing), review the diff, and run
+/// again without the variable.
+#[test]
+fn compare_result_matches_the_web_view_fixture() {
+    let png_before: &[u8] = &[0x89, b'P', b'N', b'G', 0, 1, 2, 3];
+    let png_after: &[u8] = &[0x89, b'P', b'N', b'G', 0, 1, 2, 4, 5];
+    let before = files(&[
+        ("WORKFLOW.md", b"# Review brief\nStep 1: read the brief.\nStep 2: write notes.\n"),
+        ("logo.png", png_before),
+        ("same.md", b"unchanged\n"),
+    ]);
+    let after = files(&[
+        ("WORKFLOW.md", b"# Review brief\nStep 1: read the brief closely.\nStep 2: write notes.\nStep 3: report.\n"),
+        ("checklist.md", b"- scope\n- risks\n"),
+        ("logo.png", png_after),
+        ("same.md", b"unchanged\n"),
+    ]);
+    let difference = version_difference(&before, &after);
+
+    let left_turns = vec![
+        turn(
+            "t-1",
+            "completed",
+            vec![
+                json!({"type":"userMessage","id":"u1","content":[{"type":"text","text":"Run it."}]}),
+                cmd("ls", json!(0), json!(12), json!("a.txt\n"), "completed"),
+                cmd("cargo test", json!(101), json!(4500), json!("error"), "completed"),
+                json!({"type":"fileChange","id":"f1","status":"completed","changes":[
+                    {"path":"out/report.md","kind":{"type":"add"},"diff":""},
+                    {"path":"old.md","kind":{"type":"update","move_path":"new.md"},"diff":""}]}),
+                json!({"type":"agentMessage","id":"a1","text":"Tests failed; report started."}),
+            ],
+        ),
+        turn(
+            "t-2",
+            "completed",
+            vec![
+                cmd("cat out/report.md", json!(0), json!(3), json!("ok\n"), "completed"),
+                json!({"type":"agentMessage","id":"a2","text":"Report written to out/report.md."}),
+            ],
+        ),
+        TurnRead { turn: json!({"id":"t-3","status":"interrupted"}), items: Err("thread/items/list page 2 failed: timeout".into()) },
+    ];
+    let right_turns = vec![turn(
+        "r-1",
+        "completed",
+        vec![
+            cmd("ls", json!(0), json!(9), json!("a.txt\n"), "completed"),
+            json!({"type":"agentMessage","id":"b1","text":"Run finished."}),
+        ],
+    )];
+
+    let left = CompareSide {
+        label: "trial 3 of draft review-brief".into(),
+        kind: "delegated".into(),
+        version: json!({"method":"chirality.app.workflow-package.sha256/v1","value":"0123456789abcdef0123456789abcdef"}),
+        conversation: json!({"authoring":"thr-auth","trial":null,"subAgent":"thr-sub"}),
+        snapshot: json!({"state":"current"}),
+        summary: activity_summary(&left_turns, None),
+    };
+    let right = CompareSide {
+        label: "run run-7 of project:review-brief".into(),
+        kind: "registered run".into(),
+        version: json!({"method":"chirality.app.workflow-package.sha256/v1","value":"fedcba9876543210fedcba9876543210"}),
+        conversation: json!({"run":"thr-run"}),
+        snapshot: json!({"state":"revision store","reading":"read from the revision this run selected"}),
+        summary: activity_summary(&right_turns, Some("thread/turns/list page 3 failed")),
+    };
+    let result = compare_result(&left, &right, difference);
+    assert_eq!(
+        result["standing"],
+        "side by side as read from Codex's history, the trial snapshots and the revision store; Compare scores and judges nothing and records nothing"
+    );
+    let side_keys: Vec<&String> = result["left"].as_object().unwrap().keys().collect();
+    assert_eq!(side_keys, vec!["conversation", "kind", "label", "snapshot", "summary", "version"]);
+
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/trial-compare.json");
+    let pretty = format!("{}\n", serde_json::to_string_pretty(&result).unwrap());
+    if std::env::var("CHIRALITY_REGENERATE_FIXTURES").as_deref() == Ok("1") {
+        std::fs::write(&path, pretty).expect("fixture written");
+        return;
+    }
+    let committed: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("fixture present")).expect("fixture is JSON");
+    assert_eq!(committed, result, "regenerate with CHIRALITY_REGENERATE_FIXTURES=1 after a deliberate change");
 }

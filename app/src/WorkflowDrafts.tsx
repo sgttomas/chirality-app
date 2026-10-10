@@ -47,6 +47,13 @@ export function fidelityWords(fidelity: Json, kind?: string): string {
   }
 }
 
+/** TT-4: a trial row's version in the host's word ("current", "earlier" or
+ * "version not established"); any other word is shown as given, never inferred. */
+export function versionWords(version: Json): string {
+  if (version === "current" || version === "earlier") return `${version} version`;
+  return text(version) || "version not reported";
+}
+
 /** A Compare side as the host takes it. */
 export const trialSide = (reference: Json) => JSON.stringify({ trial: text(reference) });
 export const runSide = (reference: Json) => JSON.stringify({ run: text(reference) });
@@ -82,7 +89,7 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
   return <li aria-label={`Trial ${text(trial.sequence)}`}>
     <label><input type="checkbox" checked={ticked} disabled={busy} onChange={() => update({ chosen: ticked ? state.chosen.filter(c => c !== side) : [...state.chosen, side] })} /> Compare</label>{" "}
     <b>Trial {text(trial.sequence)}</b> · {trial.kind === "clean" ? "clean (fresh conversation)" : "delegated (with the authoring agent)"} · {text(trial.time)}
-    <div><small>Content {short(trial.content?.value)} ({trial.version === "current" ? "current version" : "earlier version"}) · authoring conversation {conversationName(trial.authoringConversation)} · {trial.kind === "clean"
+    <div><small>Content {short(trial.content?.value)} ({versionWords(trial.version)}) · authoring conversation {conversationName(trial.authoringConversation)} · {trial.kind === "clean"
       ? <>trial conversation {trial.trialConversation ? conversationName(trial.trialConversation) : "not started"}</>
       : <SubAgent trial={trial} busy={busy} act={act} />}</small></div>
     <div><small>Fidelity: {fidelityWords(fidelity, trial.kind)}{list(fidelity.limits).length ? ` (${list(fidelity.limits).map(text).join("; ")})` : ""}. Snapshot: {text(trial.snapshot?.reading) || "not read"}.
@@ -124,26 +131,57 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
   </article>;
 }
 
+// TT-11 Compare readings. Each words one field of the host's result
+// (`workflow_trial_transcript::compare_result`; fixture
+// tests/fixtures/trial-compare.json) as text; none prints raw JSON.
+const valueWords = (value: Json, absent: string): string =>
+  value === null || value === undefined || value === "" ? absent : typeof value === "object" ? "not readable as text" : String(value);
+/** `{method, value}` or null. */
+export const compareVersionWords = (version: Json): string =>
+  version?.value ? `content ${short(version.value)}${version.method ? ` (${text(version.method)})` : ""}` : "version not established";
+const CONVERSATION_ROLE: Record<string, string> = { authoring: "authoring conversation", trial: "clean trial conversation", subAgent: "linked sub-agent", run: "run conversation" };
+/** `{authoring, trial, subAgent}` for a trial, `{run}` for a run; each a thread id or null. */
+export function compareConversationWords(conversation: Json): string {
+  if (!conversation || typeof conversation !== "object") return "not reported";
+  const parts = Object.keys(CONVERSATION_ROLE).filter(k => k in conversation).map(k => `${CONVERSATION_ROLE[k]} ${valueWords(conversation[k], "none")}`);
+  return parts.length ? parts.join(" · ") : "not reported";
+}
+/** `{state, reading?}`. */
+export const compareSnapshotWords = (snapshot: Json): string =>
+  snapshot?.state ? `${text(snapshot.state)}${snapshot.reading ? `: ${text(snapshot.reading)}` : ""}` : "not reported";
+const endingWords = (e: Json) => `${valueWords(e?.turn, "turn not reported")} ${valueWords(e?.status, "ending not reported")}`;
+const commandWords = (c: Json) => `${valueWords(c?.command, "command not reported")} (exit ${valueWords(c?.exitCode, "not reported")}, ${valueWords(c?.status, "status not reported")})`;
+const fileChangeWords = (c: Json) => `${valueWords(c?.path, "path not reported")} (${valueWords(c?.kind, "kind not reported")})`;
+const joined = (items: Json, word: (x: Json) => string, sep: string, none: string) => { const rows = list(items); return rows.length ? rows.map(word).join(sep) : none; };
+/** `{bytes, sha256}` or null (absent on that side). */
+const fileSideWords = (side: Json): string => side ? `${valueWords(side.bytes, "size not reported")} bytes, sha256 ${valueWords(side.sha256, "not reported")}` : "absent";
+
 /** TT-11 Compare: the host's side-by-side reading and version difference. It scores and judges nothing. */
 export function CompareResult({ result }: { result: Json }) {
   if (!result) return null;
   const sides = [result.left, result.right];
-  const row = (label: string, read: (s: Json) => Json) => <tr><th scope="row">{label}</th>{sides.map((s, i) => <td key={i}>{text(read(s ?? {}))}</td>)}</tr>;
+  const row = (label: string, read: (s: Json) => string) => <tr><th scope="row">{label}</th>{sides.map((s, i) => <td key={i}>{read(s ?? {})}</td>)}</tr>;
   const difference = result.difference ?? {};
   return <div aria-label="Compare result">
     <table><tbody>
-      {row("Side", s => s.label)}{row("Kind", s => s.kind)}{row("Version", s => s.version)}{row("Conversation", s => conversationName(s.conversation))}{row("Snapshot", s => s.snapshot?.reading ?? s.snapshot)}
-      {row("Turns", s => s.summary?.turns)}{row("Endings", s => list(s.summary?.endings).map(text).join(", "))}
-      {row("Commands run", s => s.summary?.commands?.run)}{row("Commands failed", s => s.summary?.commands?.failed)}{row("Commands", s => list(s.summary?.commands?.list).map(text).join("; "))}
-      {row("File changes reported", s => Array.isArray(s.summary?.fileChanges) ? s.summary.fileChanges.map(text).join(", ") : s.summary?.fileChanges)}
-      {row("Final agent message", s => s.summary?.finalAgentMessage)}{row("Limits", s => list(s.summary?.limits).map(text).join("; "))}
+      {row("Side", s => valueWords(s.label, "not reported"))}{row("Kind", s => valueWords(s.kind, "not reported"))}{row("Version", s => compareVersionWords(s.version))}
+      {row("Conversation", s => compareConversationWords(s.conversation))}{row("Snapshot", s => compareSnapshotWords(s.snapshot))}
+      {row("Turns", s => valueWords(s.summary?.turns, "not reported"))}{row("Turn endings", s => joined(s.summary?.endings, endingWords, "; ", "none"))}
+      {row("Commands run", s => valueWords(s.summary?.commands?.run, "not reported"))}{row("Commands failed", s => valueWords(s.summary?.commands?.failed, "not reported"))}
+      {row("Commands", s => joined(s.summary?.commands?.list, commandWords, "; ", "none"))}
+      {row("File changes reported", s => joined(s.summary?.fileChanges, fileChangeWords, "; ", "none reported"))}
+      {row("Final agent message", s => valueWords(s.summary?.finalAgentMessage, "none"))}{row("Limits", s => joined(s.summary?.limits, l => valueWords(l, ""), "; ", "none"))}
     </tbody></table>
     <h5>Version difference</h5>
     {difference.limit ? <p role="note">{text(difference.limit)}</p> : <>
       {list(difference.files).length === 0 && <p>No file differs.</p>}
-      <ul>{list(difference.files).map((f: Json) => <li key={text(f.path)}>{text(f.path)}: {text(f.change)}{f.before || f.after ? ` (${short(f.before?.digest ?? f.before) || "absent"} → ${short(f.after?.digest ?? f.after) || "absent"})` : ""}{f.limit ? ` · ${text(f.limit)}` : ""}
-        {(f.text || f.lines) && <pre style={{ whiteSpace: "pre-wrap" }}>{f.text ? text(f.text) : Array.isArray(f.lines) ? f.lines.map(text).join("\n") : text(f.lines)}</pre>}</li>)}</ul>
-      {difference.unchanged !== undefined && <p><small>Unchanged files: {text(difference.unchanged)}.</small></p>}
+      <ul>{list(difference.files).map((f: Json) => <li key={text(f.path)}>
+        <b>{text(f.path)}</b>: {valueWords(f.change, "change not reported")} · before {fileSideWords(f.before)} · after {fileSideWords(f.after)}
+        {f.text === true
+          ? f.limit ? <> · {text(f.limit)}</> : Array.isArray(f.lines) ? <pre style={{ whiteSpace: "pre-wrap" }}>{f.lines.map((l: Json) => valueWords(l, "")).join("\n")}</pre> : <> · line difference not reported</>
+          : <> · not a text file: size and digest only</>}
+      </li>)}</ul>
+      {difference.unchanged !== undefined && <p><small>Unchanged files: {valueWords(difference.unchanged, "not reported")}.</small></p>}
       {difference.standing && <p><small>{text(difference.standing)}</small></p>}
     </>}
     <p><small>{text(result.standing) || "Shown side by side; nothing is scored or judged."}</small></p>

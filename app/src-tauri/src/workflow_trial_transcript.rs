@@ -79,7 +79,9 @@ enum OutputState {
 #[derive(Debug, Clone)]
 enum Piece {
     Line(String),
-    /// A command output (`None`: not reported); rendered as indented lines.
+    /// A command output (`None`: not reported, shown as "(output not
+    /// reported)", distinct from an empty output's "(no output)"); rendered
+    /// as indented lines.
     Output { text: Option<String>, state: OutputState },
 }
 
@@ -91,7 +93,8 @@ impl Piece {
     fn lines(&self) -> Vec<String> {
         let (text, state) = match self {
             Piece::Line(l) => return vec![l.clone()],
-            Piece::Output { text, state } => (text.as_deref().unwrap_or(""), state),
+            Piece::Output { text: None, .. } => return vec!["  (output not reported)".to_string()],
+            Piece::Output { text: Some(text), state } => (text.as_str(), state),
         };
         let (shown, cut) = match state {
             OutputState::Omitted => return vec![format!("  {}", omitted_line(text.len()))],
@@ -238,20 +241,29 @@ fn turn_pieces(k: usize, read: &TurnRead, input: &TranscriptInput) -> Vec<Piece>
 fn item_pieces(item: &Value, input: &TranscriptInput, out: &mut Vec<Piece>, native_omitted: &mut usize) {
     match str_field(item, "type").unwrap_or("") {
         "userMessage" => {
+            // A delegated trial's sub-agent thread gets its input from the
+            // authoring agent, not from the person (TT-9, TT-10).
+            let who = match &input.source {
+                TranscriptSource::Trial { clean: false, .. } => "Input (from the authoring agent)",
+                _ => "Person",
+            };
             let content = item.get("content").and_then(Value::as_array);
             for el in content.into_iter().flatten() {
                 let ty = str_field(el, "type").unwrap_or("input");
                 if ty == "text" {
                     let text = str_field(el, "text").unwrap_or("");
+                    // Only the run text is replaced by its line; any text
+                    // around it in the element (framing the authoring agent
+                    // added, the trial header) stays shown.
                     let shown = match &input.trial_text {
                         Some(t) if !t.run_text.is_empty() && text.contains(t.run_text.as_str()) => {
-                            t.line.as_str()
+                            text.replace(t.run_text.as_str(), t.line.as_str())
                         }
-                        _ => text,
+                        _ => text.to_string(),
                     };
-                    out.push(Piece::Line(format!("Person: {shown}")));
+                    out.push(Piece::Line(format!("{who}: {shown}")));
                 } else {
-                    out.push(Piece::Line(format!("Person: [{ty}]")));
+                    out.push(Piece::Line(format!("{who}: [{ty}]")));
                 }
             }
         }
@@ -265,8 +277,8 @@ fn item_pieces(item: &Value, input: &TranscriptInput, out: &mut Vec<Piece>, nati
             let duration = item
                 .get("durationMs")
                 .and_then(Value::as_i64)
-                .map_or("duration not reported".to_string(), |d| d.to_string());
-            out.push(Piece::Line(format!("Command: {command} (exit {exit}, {duration} ms)")));
+                .map_or("duration not reported".to_string(), |d| format!("{d} ms"));
+            out.push(Piece::Line(format!("Command: {command} (exit {exit}, {duration})")));
             out.push(Piece::Output {
                 text: str_field(item, "aggregatedOutput").map(str::to_string),
                 state: OutputState::Full,
@@ -551,6 +563,46 @@ pub(crate) fn activity_summary(turns: &[TurnRead], turns_limit: Option<&str>) ->
         "fileChanges": changes,
         "finalAgentMessage": final_message,
         "limits": limits,
+    })
+}
+
+/// One side of a TT-11 Compare as the host assembled it.
+#[derive(Debug, Clone)]
+pub(crate) struct CompareSide {
+    pub label: String,
+    /// `delegated`, `clean` or `registered run`.
+    pub kind: String,
+    /// `{method, value}` of the version compared, or null.
+    pub version: Value,
+    /// An object whose keys are among `authoring`, `trial`, `subAgent` (a
+    /// trial) and `run` (a run), each a thread id string or null.
+    pub conversation: Value,
+    /// `{state, reading?}`.
+    pub snapshot: Value,
+    /// `activity_summary`'s output.
+    pub summary: Value,
+}
+
+/// TT-11's Compare result: the two sides as read and the version difference
+/// (`version_difference`'s output, or `{limit}` when bytes were not
+/// available). The web view (`CompareResult`) renders exactly these fields;
+/// `app/tests/fixtures/trial-compare.json` is generated from this function.
+pub(crate) fn compare_result(left: &CompareSide, right: &CompareSide, difference: Value) -> Value {
+    let side = |s: &CompareSide| {
+        serde_json::json!({
+            "label": s.label,
+            "kind": s.kind,
+            "version": s.version,
+            "conversation": s.conversation,
+            "snapshot": s.snapshot,
+            "summary": s.summary,
+        })
+    };
+    serde_json::json!({
+        "left": side(left),
+        "right": side(right),
+        "difference": difference,
+        "standing": "side by side as read from Codex's history, the trial snapshots and the revision store; Compare scores and judges nothing and records nothing",
     })
 }
 
