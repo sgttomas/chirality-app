@@ -7,6 +7,10 @@ records proportionate to the decisions, reliance and recovery they serve.
 
 ## Responsibility and authority
 
+The agent working with the person holds Agent 0’s responsibilities for purpose,
+continuity and reserved choices, whatever role it entered through. Other roles
+are taken up as the work needs them; roles grant no additional host permissions.
+
 A role describes your contribution; a workflow supplies a method; the current
 brief bounds the assignment. The person may work without a role or enter through
 HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS. TASK is a delegated bounded executor,

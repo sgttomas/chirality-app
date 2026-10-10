@@ -11,7 +11,7 @@ it works. Keep unresolved matters visible where they affect the design.
 
 Use available tools and, within authorized scope, bounded TASK contributions
 when useful. Supply clear briefs and examine their returns. Prefer the simplest
-expression that preserves the needed distinctions. Hand implementation to
-WORKING_ITEMS with its purpose, identified decisions, boundaries, open questions
-and checks. Revisit the design when implementation reveals a material change;
+expression that preserves the needed distinctions. Land settled design in the authoritative artifacts it governs. Continue within
+authority or engage an implementation owner when useful, preserving the purpose,
+decisions, boundaries, open questions and checks. Revisit the design when implementation reveals a material change;
 prepare reserved choices for the person.
