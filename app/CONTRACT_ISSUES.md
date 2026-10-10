@@ -1228,7 +1228,20 @@ changed.
   digests but not where they are. Revisions with `WORKFLOW.md` only are not
   affected.
 - **Consequence:** supporting files of a registered run are named but not
-  locatable. Under WR TT-8 a trial names its files the same way, so the fix is
-  step 2 of WR §17 (the trial implementation plan): pass the project-relative
-  (or `~`-relative) holding folder.
-- **State:** OPEN. Code only; no Design change is needed.
+  locatable. §16.2 line 4 also covered only project and user libraries, while
+  bundled revisions (LS-5; for example the shipped `coordinated-knowledge-work`,
+  which has `REVIEW-NOTES.md`), and holding copies the person picked outside the
+  project, have no relative folder, and the composer refuses absolute labels.
+- **Design:** WR §16.2 TX-7 (CC-WR-TRIALS) now names a project- or
+  `~`-relative folder, or a content-addressed supply copy under
+  `.chirality/workflow-supply/` for any other holding copy, and refuses the run
+  start when that copy fails. A trial names its snapshot the same way (TT-8).
+- **State:** OPEN until WR §17 step 2 implements TX-7.
+
+## CI-33 Examination source pins need re-freezing
+
+- The WR and NIR Design pins (and DEL-09-02's `STANDALONE_QUALIFICATION.md`
+  and `sq.step-map.json`, whose J-4 should add WR-VC-21…WR-VC-25) in
+  `app/examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
+  `app/examination/sq_receiving/pins.json` need a reviewed re-freeze before the
+  next examination dispatch run; the WR pin was already stale on `main`.
