@@ -4,11 +4,10 @@
 //! TypeScript interface only lists and presents what this module reports.
 //!
 //! Nothing here is registration, review, a run or an act. A listed draft has no
-//! workflow identity (EXEC TR-1); trying one is ordinary conversation input
-//! that the person sends (K-7; NIR AT-8); a trial pointer is an App-kept
-//! pointer, not a run record, compatibility evidence or A15 evidence (TT-4).
+//! workflow identity (EXEC TR-1); trying one is a trial whose message the
+//! person sends (K-7; WR TT-3; NIR AT-8); a trial link is an App-kept record,
+//! not a run record, compatibility evidence or A15 evidence (TT-4).
 use super::{read_ledger, slot_lines, LibraryOwner};
-use crate::attachments::{DraftTrialReference, SelectedTextAttachment, TEXT_FILE_BOUND};
 use crate::storage;
 use crate::workflow_workspace::{valid_name, Snapshot, SNAPSHOT_METHOD};
 use serde_json::{json, Value};
@@ -27,7 +26,9 @@ pub(crate) const TRIAL_POINTERS: &str = "runtime/wr/trial-pointers";
 /// files and 16 MiB of regular-file bytes per package.
 pub(crate) const MAX_FILES: usize = crate::workflow_workspace::PACKAGE_MAX_FILES;
 pub(crate) const MAX_BYTES: u64 = crate::workflow_workspace::PACKAGE_MAX_BYTES;
-/// TT-4's fixed standing sentence (WR schema `trial_pointer.standing`).
+/// The standing sentence of an earlier attachment trial pointer (before
+/// CC-WR-TRIALS); such pointers are still read and listed.
+#[cfg(test)]
 pub(crate) const TRIAL_STANDING: &str =
     "draft tried in conversation; not a run of any workflow identity";
 
@@ -430,89 +431,6 @@ impl LibraryOwner {
     pub(crate) fn draft_key(&self, name: &str) -> Value {
         json!({"draft_location":self.origin,"draft_root":self.drafts_root().display().to_string(),"name":name})
     }
-
-    /// TT-3 (NIR AT-8, AT-9, AT-10): the draft's files as attachment sources for
-    /// the composer, each carrying the draft reference. `WORKFLOW.md` first,
-    /// then the other files in UTF-8 byte order of their paths. Pre-filling is
-    /// not sending: the caller only adds these to the person's private list.
-    /// Refuses a folder outside this library, a link, an unreadable or
-    /// oversized package, and a `WORKFLOW.md` that cannot go as text.
-    pub(crate) fn draft_trial_sources(&self, name: &str) -> Result<TrialSources, String> {
-        if !valid_name(name) {
-            return Err("Not a draft name of this library; nothing pre-filled".into());
-        }
-        let root = self.drafts_root();
-        let path = root.join(name);
-        storage::check_path(&path).map_err(|e| format!("Draft refused ({e}); nothing pre-filled"))?;
-        match fs::symlink_metadata(&path) {
-            Ok(m) if m.file_type().is_dir() => {}
-            Ok(_) => return Err(format!("Draft {name} is not a folder; nothing pre-filled")),
-            Err(e) => return Err(format!("Draft {name} not found ({e}); nothing pre-filled")),
-        }
-        prescan(&path).map_err(|e| format!("Draft {name} cannot be tried: {e}; nothing pre-filled"))?;
-        let snapshot = Snapshot::capture(&path)
-            .map_err(|e| format!("Draft {name} cannot be tried: {e}; nothing pre-filled"))?;
-        let content = json!({"method":SNAPSHOT_METHOD,"value":snapshot.revision()});
-        let draft = DraftTrialReference::new(&self.origin, name, content.clone())?
-            .with_root(&root.display().to_string());
-        let mut order: Vec<&String> = vec![];
-        order.extend(snapshot.files().keys().filter(|p| p.as_str() == "WORKFLOW.md"));
-        order.extend(snapshot.files().keys().filter(|p| p.as_str() != "WORKFLOW.md"));
-        let mut selections = vec![];
-        let mut not_attached = vec![];
-        for relative in order {
-            let bytes = &snapshot.files()[relative];
-            let carriable = bytes.len() <= TEXT_FILE_BOUND
-                && !bytes.contains(&0)
-                && std::str::from_utf8(bytes).is_ok();
-            if !carriable {
-                if relative == "WORKFLOW.md" {
-                    return Err(format!("Draft {name}: WORKFLOW.md cannot go as a text element (UTF-8, no NUL, at most {TEXT_FILE_BOUND} bytes; NIR AT-9); nothing pre-filled"));
-                }
-                not_attached.push(json!({"path":relative,"bytes":bytes.len(),
-                    "reason":"not a text file within the text-element bound (NIR AT-9); the named-path carrier (AT-10) is not supplied by this App, so it is not attached"}));
-                continue;
-            }
-            let file = path.join(relative);
-            match SelectedTextAttachment::from_native_selection(file, Some(draft.clone())) {
-                Ok(selected) => {
-                    // The bytes selected must be the bytes observed in the draft.
-                    if selected.snapshot()["identityAtSelection"]["value"]
-                        != crate::util::sha256_hex(bytes)
-                    {
-                        return Err(format!("Draft {name} changed while it was read; try again. Nothing pre-filled"));
-                    }
-                    selections.push(selected);
-                }
-                Err(hold) => {
-                    if relative == "WORKFLOW.md" {
-                        return Err(format!("Draft {name}: WORKFLOW.md not attachable ({}); nothing pre-filled", hold.message));
-                    }
-                    not_attached.push(json!({"path":relative,"bytes":bytes.len(),"reason":hold.message}));
-                }
-            }
-        }
-        let reread = Snapshot::capture(&path)
-            .map_err(|e| format!("Draft {name} changed while it was read ({e}); nothing pre-filled"))?;
-        if reread.revision() != snapshot.revision() {
-            return Err(format!("Draft {name} changed while it was read; try again. Nothing pre-filled"));
-        }
-        Ok(TrialSources {
-            key: self.draft_key(name),
-            content,
-            selections,
-            not_attached,
-        })
-    }
-}
-
-/// TT-3's composer sources for one draft.
-#[derive(Debug)]
-pub(crate) struct TrialSources {
-    pub key: Value,
-    pub content: Value,
-    pub selections: Vec<SelectedTextAttachment>,
-    pub not_attached: Vec<Value>,
 }
 
 /// Trials (WR TT-3, TT-4, TT-8, TT-9): the trial snapshot and text, and the

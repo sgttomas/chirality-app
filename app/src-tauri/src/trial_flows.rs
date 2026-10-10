@@ -72,6 +72,11 @@ fn not_written(reason: &str) -> bool {
         || reason.starts_with("conversation is not loaded")
 }
 
+/// Codex answered the `turn/start` with an error: a definite refusal, no turn.
+fn refused(reason: &str) -> bool {
+    reason.starts_with("turn/start native error")
+}
+
 /// A trial pre-filled and not yet sent (§5.5 *pre-filled*). Process memory only.
 struct PendingTrial {
     prepared: PreparedTrial,
@@ -317,11 +322,35 @@ impl WorkflowRootSession {
             None => Err(format!("No pre-filled trial {reference}")),
         }
     }
+    /// FT-3: the person pressed Send on a pre-filled clean trial whose
+    /// conversation is not started yet. Held until the start's outcome, so a
+    /// second press starts no second conversation.
+    pub fn begin_clean_start(&mut self, reference: &str) -> Result<(), String> {
+        let p = self.trial_desk.pending.get_mut(reference).ok_or_else(|| format!("No pre-filled trial {reference}; press Try again"))?;
+        if p.kind != TrialKind::Clean {
+            return Err("Only a clean trial starts a new conversation".into());
+        }
+        if p.in_flight {
+            return Err("This trial is being started now; nothing started again".into());
+        }
+        if p.clean.is_some() {
+            return Err("This trial's conversation already started; send the trial message there".into());
+        }
+        p.in_flight = true;
+        Ok(())
+    }
+    /// The new conversation did not start (ROLE T-2's states): still pre-filled.
+    pub fn abort_clean_start(&mut self, reference: &str) {
+        if let Some(p) = self.trial_desk.pending.get_mut(reference) {
+            p.in_flight = false;
+        }
+    }
     /// A clean trial conversation was started for `reference` (FT-4): from now
     /// on that conversation is the trial's and offers no workflow run.
     pub fn mark_clean_started(&mut self, reference: &str, generation: &Value, thread: &str) {
         if let Some(p) = self.trial_desk.pending.get_mut(reference) {
             p.clean = Some((generation.clone(), thread.to_owned()));
+            p.in_flight = false;
         }
     }
     /// TT-3b Fork: a fork of a trial conversation (or of such a fork) is
@@ -352,6 +381,10 @@ impl WorkflowRootSession {
             let reference = l["trial"]["reference"].as_str()?;
             (self.linked_child(reference).as_deref() == Some(thread)).then(|| reference.to_owned())
         })
+    }
+    /// `thread` is a linked trial sub-agent (TT-2: its lines offer nothing).
+    pub(crate) fn is_trial_child(&self, thread: &str) -> bool {
+        self.trial_child(thread).is_some()
     }
     /// The latest linked sub-agent of a delegated trial ("the latest link or
     /// unlink stands").
@@ -861,11 +894,11 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
     let mut root = root.lock().unwrap();
     let turn = match outcome {
         Ok(response) => response["result"]["turn"]["id"].as_str().map(str::to_owned),
-        Err(reason) if not_written(&reason) => {
+        Err(reason) if not_written(&reason) || refused(&reason) => {
             if let Some(p) = root.trial_desk.pending.get_mut(reference) {
                 p.in_flight = false;
             }
-            return Err(format!("{reason}. Nothing was sent; the trial stays pre-filled"));
+            return Err(format!("{reason}. No trial link was written; the trial stays pre-filled (WR §5.5)"));
         }
         Err(reason) => {
             root.trial_desk.pending.remove(reference);
@@ -1176,11 +1209,11 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
                 None => Ok(json!({"id":id,"turn":turn,"observation":null,"limit":"a real run brought back has no trial link; nothing is recorded for it"})),
             }
         }
-        Err(reason) if not_written(&reason) => {
+        Err(reason) if not_written(&reason) || refused(&reason) => {
             if let Some(b) = root.trial_desk.bring_backs.get_mut(id) {
                 b.in_flight = false;
             }
-            Err(format!("{reason}. Nothing was sent; the transcript stays pre-filled"))
+            Err(format!("{reason}. Nothing recorded; the transcript stays pre-filled"))
         }
         Err(reason) => {
             root.trial_desk.bring_backs.remove(id);
@@ -1263,6 +1296,3 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, home: &HomeSession, lef
     Ok(json!({"left":view(&a),"right":view(&b),"difference":difference,"standing":"side by side as read from Codex's history, the trial snapshots and the revision store; Compare scores and judges nothing and records nothing"}))
 }
 
-#[cfg(test)]
-#[path = "trial_flows_tests.rs"]
-mod tests;

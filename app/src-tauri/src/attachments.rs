@@ -268,10 +268,6 @@ impl SelectedTextAttachment {
     pub fn draft(&self) -> Option<&DraftTrialReference> {
         self.draft.as_ref()
     }
-    /// The private source path, for the host-side list that retains it.
-    pub(crate) fn source_path(&self) -> &Path {
-        &self.path
-    }
     pub fn native_path(&self) -> Value {
         native_path_identity(&self.path)
     }

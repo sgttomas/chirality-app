@@ -114,7 +114,7 @@ fn the_size_bound_is_checked_before_any_file_is_read() {
     assert_eq!(d["state"], "not valid");
     assert_eq!(d["reference"]["findings"][0]["code"], "HY-5 size bound");
     assert!(d["reference"]["content"]["not_established"].as_str().unwrap().starts_with("HY-5"));
-    assert!(s.owner().draft_trial_sources("too-many").unwrap_err().contains("HY-5"));
+    assert!(s.owner().prepare_trial("too-many", "listed", 1, Some(&s.0), None).unwrap_err().contains("HY-5"));
 }
 
 #[cfg(unix)]
@@ -138,11 +138,11 @@ fn links_are_never_followed_and_drafts_outside_the_library_are_refused() {
     assert_eq!(row(&o, "inner-link")["reference"]["findings"][0]["code"], "HY-3 non-regular entry");
     let owner = s.owner();
     for name in ["linked", "inner-link"] {
-        assert!(owner.draft_trial_sources(name).is_err(), "{name} must not be tried");
+        assert!(owner.prepare_trial(name, "listed", 1, Some(&s.0), None).is_err(), "{name} must not be tried");
     }
     // Names that would leave the drafts folder are not draft names.
     for name in ["../elsewhere", "a/b", "..", ""] {
-        assert!(owner.draft_trial_sources(name).unwrap_err().contains("Not a draft name"), "{name}");
+        assert!(owner.prepare_trial(name, "listed", 1, Some(&s.0), None).unwrap_err().contains("not a draft name"), "{name}");
     }
     // A drafts folder that is itself a link lists nothing.
     let t = Scratch::new();
@@ -151,7 +151,7 @@ fn links_are_never_followed_and_drafts_outside_the_library_are_refused() {
     let o = observe(&t.owner(), None, &none(), &BTreeMap::new());
     assert!(o.drafts.is_empty());
     assert!(o.limit.unwrap().contains("refused"));
-    assert!(t.owner().draft_trial_sources("elsewhere").is_err());
+    assert!(t.owner().prepare_trial("elsewhere", "listed", 1, Some(&t.0), None).is_err());
 }
 
 #[test]
@@ -216,43 +216,12 @@ fn review_states_come_from_the_caller_and_never_from_files() {
 }
 
 #[test]
-fn trial_sources_pre_fill_text_files_with_the_draft_reference_and_name_what_is_not_attached() {
-    let s = Scratch::new();
-    let path = s.put("load-check", "x");
-    fs::create_dir_all(path.join("resources")).unwrap();
-    fs::write(path.join("resources/checklist.md"), b"- one\n").unwrap();
-    fs::write(path.join("diagram.bin"), [0u8, 1, 2, 3]).unwrap();
-    let sources = s.owner().draft_trial_sources("load-check").unwrap();
-    let names: Vec<String> = sources.selections.iter().map(|sel| sel.snapshot()["displayName"].as_str().unwrap().to_owned()).collect();
-    assert_eq!(names, ["WORKFLOW.md (draft load-check)", "notes.txt (draft load-check)", "checklist.md (draft load-check)"], "WORKFLOW.md first, then UTF-8 path order");
-    assert_eq!(sources.not_attached.len(), 1);
-    assert_eq!(sources.not_attached[0]["path"], "diagram.bin");
-    assert!(sources.not_attached[0]["reason"].as_str().unwrap().contains("AT-10"));
-    let expected = Snapshot::capture(&path).unwrap();
-    assert_eq!(sources.content, json!({"method":SNAPSHOT_METHOD,"value":expected.revision()}));
-    assert_eq!(sources.key, json!({"draft_location":"project","draft_root":s.0.join(DRAFTS).display().to_string(),"name":"load-check"}));
-    for sel in &sources.selections {
-        let draft = &sel.snapshot()["draft"];
-        assert_eq!(draft["standing"], "draft — not a registered workflow; this conversation is not a workflow run");
-        assert_eq!(draft["content"], sources.content);
-        assert!(draft.get("draft_root").is_none(), "the NIR supply record names no extra element");
-        assert_eq!(sel.snapshot()["standing"], "selected; not sent");
-        // The supply record a send would carry conforms to NIR with its draft element.
-        let prepared = sel.prepare_for_source(&sel.native_path(), &crate::attachments::new_submission_ref().unwrap(), "2026-10-10T00:00:00Z").unwrap();
-        assert_eq!(prepared.supply_record()["draft"]["name"], "load-check");
-    }
-    // A WORKFLOW.md that cannot go as text refuses the whole pre-fill.
-    let big = s.put("too-long", "x");
-    fs::write(big.join("WORKFLOW.md"), format!("---\nname: too-long\n---\n{}", "a".repeat(TEXT_FILE_BOUND))).unwrap();
-    assert!(s.owner().draft_trial_sources("too-long").unwrap_err().contains("WORKFLOW.md cannot go as a text element"));
-    assert!(s.owner().draft_trial_sources("absent").unwrap_err().contains("not found"));
-}
-
-#[test]
 fn trial_pointers_survive_a_new_process_and_unreadable_ones_are_reported() {
     let s = Scratch::new();
-    s.put("load-check", "x");
-    let sources = s.owner().draft_trial_sources("load-check").unwrap();
+    let path = s.put("load-check", "x");
+    // An earlier attachment pointer (written before CC-WR-TRIALS) for this draft.
+    struct Sources { key: Value, content: Value }
+    let sources = Sources { key: s.owner().draft_key("load-check"), content: json!({"method":SNAPSHOT_METHOD,"value":Snapshot::capture(&path).unwrap().revision()}) };
     let mut store = TrialPointers::open(&s.app_data());
     assert!(store.for_draft(&sources.key).is_empty());
     let pointer = store.record(&sources.key, &sources.content, "thread-1").unwrap();
@@ -289,7 +258,7 @@ fn the_sixteen_mebibyte_bound_refuses_listing_trial_capture_and_review() {
     fs::write(big.join("data.txt"), vec![b'a'; (MAX_BYTES - used + 1) as usize]).unwrap();
     let o = observe(&s.owner(), None, &none(), &BTreeMap::new());
     assert_eq!(row(&o, "too-big")["reference"]["findings"][0]["code"], "HY-5 size bound");
-    assert!(s.owner().draft_trial_sources("too-big").unwrap_err().contains("HY-5"));
+    assert!(s.owner().prepare_trial("too-big", "listed", 1, Some(&s.0), None).unwrap_err().contains("HY-5"));
     // The capture's running budget refuses on its own, whatever the metadata said.
     assert!(Snapshot::capture(&big).unwrap_err().starts_with("HY-5"));
     let refused = s.owner().review_draft("too-big", "listed").err().unwrap();

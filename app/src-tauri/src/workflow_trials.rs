@@ -269,6 +269,19 @@ impl TrialLinks {
         store
     }
 
+    /// Test fixture: an earlier attachment trial pointer as the App wrote it
+    /// before CC-WR-TRIALS (the App no longer writes these; it reads them).
+    #[cfg(test)]
+    pub(crate) fn record(&mut self, key: &Value, content: &Value, conversation: &str) -> Result<Value, String> {
+        let pointer = json!({"record_kind":"trial_pointer","draft":key,"content":content,
+            "conversation":conversation,"time":crate::util::now_rfc3339(),"standing":super::TRIAL_STANDING});
+        crate::workflow_workspace::wr_validate("trial_pointer", &pointer)?;
+        let file = format!("{}.json", crate::util::opaque_id("trial-")?);
+        self.keep(&file, &pointer)?;
+        self.pointers.push(pointer.clone());
+        Ok(pointer)
+    }
+
     /// TT-4: the trial link, written once when the host acknowledged the send
     /// of `prepared`'s trial message. One link per trial reference: a second
     /// call for the same trial returns the existing link when it records the

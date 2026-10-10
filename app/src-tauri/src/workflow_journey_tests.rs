@@ -627,9 +627,9 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let mode = send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).expect("notice pending");
     assert!(!mode.written && mode.result.unwrap_err().contains("plan mode not offered"));
     let no_selection: Mutex<Result<AttachmentSelectionSession, String>> = Mutex::new(Err("fixture: no attachment selection".into()));
-    let submit = |expected: Option<&str>| submit_attachments_with_draft_trials(&no_selection, &root, &one.host, Err("fixture: no custody".into()), "owner", 1, &[], &one.generation, THREAD, expected, "with files", crate::recovery::ExplicitAppProjectContext::unknown(), None);
-    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection");
-    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no attachment selection", "a steer is not held by the notice");
+    let submit = |expected: Option<&str>| submit_attachments_with_pending_notice(&no_selection, &root, &one.host, Err("fixture: no custody".into()), "owner", 1, &[], &one.generation, THREAD, expected, "with files", crate::recovery::ExplicitAppProjectContext::unknown(), None);
+    assert_eq!(submit(None).unwrap_err(), "fixture: no custody");
+    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no custody", "a steer is not held by the notice");
     assert_eq!(disk.frames("turn/start").len(), 1, "the refused sends wrote nothing");
     assert!(disk.frames("turn/steer").is_empty());
     assert!(run_a.lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"), "still pending");
@@ -661,7 +661,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert!(notice_text.contains(&a));
     assert_eq!(starts[1]["params"]["input"].as_array().unwrap().len(), 2);
     assert!(send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).is_none(), "after the notice went, nothing waits for it");
-    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection");
+    assert_eq!(submit(None).unwrap_err(), "fixture: no custody");
     conversation_send_text(&root, &one, "later").unwrap();
     let starts = disk.frames("turn/start");
     assert_eq!(starts.len(), 3);
