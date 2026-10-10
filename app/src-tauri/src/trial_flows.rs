@@ -382,10 +382,6 @@ impl WorkflowRootSession {
             (self.linked_child(reference).as_deref() == Some(thread)).then(|| reference.to_owned())
         })
     }
-    /// `thread` is a linked trial sub-agent (TT-2: its lines offer nothing).
-    pub(crate) fn is_trial_child(&self, thread: &str) -> bool {
-        self.trial_child(thread).is_some()
-    }
     /// The latest linked sub-agent of a delegated trial ("the latest link or
     /// unlink stands").
     fn linked_child(&self, reference: &str) -> Option<String> {

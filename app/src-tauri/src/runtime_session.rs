@@ -5011,11 +5011,6 @@ impl WorkflowRootSession {
         let Some(home) = view["home"].as_str() else { return json!([]) };
         let mut offers = Vec::new();
         for thread in crate::run_offers::threads_with_messages(view) {
-            // WR TT-2: a clean trial conversation (or a fork of one) and a
-            // trial's sub-agent offer no workflow start or end.
-            if self.trial_conversation(&thread).is_some() || self.is_trial_child(&thread) {
-                continue;
-            }
             let Ok(in_force) = self.run_in_force(home, &thread) else { continue };
             let mut finished = None;
             let mut run_name = None;
@@ -5025,6 +5020,9 @@ impl WorkflowRootSession {
                     .filter(|r| !self.finished_offer_suppressed(reference) && self.trial_offer_refusal(&thread, &r.item().turn).is_none());
                 run_name = Some(run.prepared().workflow().name.clone());
             }
+            // WR TT-2: lines in a clean trial conversation (or a fork of one),
+            // a trial's sub-agent, or the turn that carries a trial message
+            // offer no workflow start or end.
             let proposal = crate::run_offers::current_proposal(view, &thread, &self.supersessions(view, home, &thread))
                 .filter(|(m, _)| self.trial_offer_refusal(&thread, &m.item.turn).is_none());
             if let Some(report) = &finished {
@@ -7239,11 +7237,33 @@ for line in sys.stdin:
         let offers=root.offers(&offer_view(&peer,&[("turn","t1",5,finished,"live-observed")]));
         assert!(offers.as_array().unwrap().is_empty(),"{offers}");
         assert!(root.trial_offer_refusal("thread","turn").unwrap().contains("trial 1"));
+        // A proposal line in the trial's turn offers nothing; in a later turn it is an offer.
+        let proposal="Next workflow: project:coordinated-knowledge-work";
+        assert!(root.offers(&offer_view(&peer,&[("turn","p1",6,proposal,"live-observed")])).as_array().unwrap().is_empty());
+        assert_eq!(root.offers(&offer_view(&peer,&[("turn-3","p3",12,proposal,"live-observed")])).as_array().unwrap().len(),1);
         let mut root=root;
         let refused=root.end_on_report(&run,&offer_view(&peer,&[("turn","t1",5,finished,"live-observed")]),&message("turn","t1")).unwrap_err();
         assert!(refused.contains("TT-2"),"{refused}");
+        // A later turn's finished line naming the run's own workflow raises no End-run offer either.
+        let later=offer_view(&peer,&[("turn","t1",5,finished,"live-observed"),("turn-2","t2",9,finished,"live-observed")]);
+        assert!(root.offers(&later).as_array().unwrap().is_empty(),"{}",root.offers(&later));
+        assert!(root.end_on_report(&run,&later,&message("turn-2","t2")).unwrap_err().contains("own workflow"));
+        assert_eq!(root.runs[&run].lock().unwrap().lifecycle,RunLifecycle::Open);
         let mut status=root.snapshot();root.decorate_status(&mut status,&json!({}));
         assert!(status["trialTurns"][0]["label"].as_str().unwrap().contains("not a step of coordinated-knowledge-work's run"));
+    }
+    #[test]
+    fn a_trial_of_another_draft_during_a_run_silences_only_its_own_turn(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let other=peer.fixture.root.join(".chirality/workflow-drafts/site-visit");std::fs::create_dir_all(&other).unwrap();
+        std::fs::write(other.join("WORKFLOW.md"),"---\nname: site-visit\n---\n# Visit\n").unwrap();root.observe_drafts(&json!([])).unwrap();
+        let run=open_run(&peer,&mut root,"thread");
+        let reference=root.prepare_trial("delegated","site-visit",Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();let root=root.into_inner().unwrap();
+        assert!(!root.finished_offer_suppressed(&run),"a trial of another draft leaves End run available");
+        let finished="Done.\nWorkflow finished: project:coordinated-knowledge-work";
+        assert!(root.offers(&offer_view(&peer,&[("turn","t1",5,finished,"live-observed")])).as_array().unwrap().is_empty(),"the trial turn's finished line offers nothing");
+        assert_eq!(root.offers(&offer_view(&peer,&[("turn-2","t2",9,finished,"live-observed")])).as_array().unwrap().len(),1,"a later turn's finished line offers End run");
     }
     #[test]
     fn clean_trial_is_its_own_conversation_offers_no_run_and_brings_back_a_transcript(){
@@ -7268,8 +7288,12 @@ for line in sys.stdin:
         let recorded=tick_reads(&peer,&root,&ended);assert_eq!(recorded[0]["fidelity"]["state"],"verbatim");
         assert!(tick_reads(&peer,&root,&ended).is_empty(),"read once");
         // Proposal and finished lines in the clean trial conversation offer nothing.
-        let lines=json!({"home":g["home"],"generation":g,"items":[{"threadId":thread,"turnId":"turn","native":{"id":"m","type":"agentMessage","text":"Next workflow: project:coordinated-knowledge-work"},"displayState":"completed","standing":"live-observed","observedOrder":3}]});
+        let on=|t:&str|json!({"home":g["home"],"generation":g,"items":[
+            {"threadId":t,"turnId":"turn","native":{"id":"start-user","type":"userMessage","content":[]},"displayState":"completed","standing":"live-observed","observedOrder":0},
+            {"threadId":t,"turnId":"turn","native":{"id":"m","type":"agentMessage","text":"Next workflow: project:coordinated-knowledge-work"},"displayState":"completed","standing":"live-observed","observedOrder":3}]});
+        let lines=on(&thread);
         assert!(root.lock().unwrap().offers(&lines).as_array().unwrap().is_empty());
+        assert_eq!(root.lock().unwrap().offers(&on("thread-5")).as_array().unwrap().len(),1,"the same line in an ordinary conversation is an offer");
         // A fork is labelled and offers no run either.
         root.lock().unwrap().mark_fork(&thread,"thread-9");
         assert_eq!(root.lock().unwrap().trial_conversation("thread-9"),Some((reference.clone(),true)));
