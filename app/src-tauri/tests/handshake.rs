@@ -140,11 +140,19 @@ fn hosts_codex_initialize_then_thread_start() {
     assert_eq!(vi["handshakeReportedIdentity"]["codexHome"], json!(home.display().to_string()));
     assert_eq!(ready["declaredCapabilities"], json!({"experimentalApi": true, "requestAttestation": false, "explicitGatewayOauth": true}));
 
-    // H4/H6: the notification that arrives with the initialize response was held,
-    // then delivered with ready, unchanged, including emittedAtMs.
-    let journal = host.journal();
-    let rc = journal.iter().find(|e| e["frame"]["method"] == "remoteControl/status/changed")
-        .expect("remoteControl/status/changed delivered");
+    // H4/H6: notifications received before readiness are buffered; the stock
+    // supplier may also emit this notification after the initialize reply.
+    // Observe delivery with a bounded wait instead of assuming scheduling order.
+    let notification_deadline = Instant::now() + Duration::from_secs(5);
+    let rc = loop {
+        if let Some(frame) = host.journal().into_iter()
+            .find(|e| e["frame"]["method"] == "remoteControl/status/changed") {
+            break frame;
+        }
+        assert!(Instant::now() < notification_deadline,
+                "remoteControl/status/changed not delivered within deadline");
+        std::thread::sleep(Duration::from_millis(10));
+    };
     assert_eq!(rc["generation"], generation);
     assert!(rc["frame"].get("emittedAtMs").is_some());
 
