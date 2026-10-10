@@ -580,7 +580,8 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
   `<App user-data>/runtime/wr/draft-bases/<sha256 of the draft key JSON>.json`.
   It validates the record against the WR schema before writing and again when
   reading, and replaces it atomically. WR names only "App data folder" (§3 is
-  PROPOSED; OI-008 open), so the sub-path and file name are this
+  PROPOSED; the owner's OI-008 ruling places the writer in the Rust host but
+  names no sub-path), so the sub-path and file name are this
   implementation's choice. For the WR owner: confirm or name the location.
   **Trust assumption (V11 J5-1).** The record is a claim, not proof. Any
   process running as the user can write it, including an agent whose Codex
@@ -1301,3 +1302,21 @@ changed.
   changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
   handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
   from the frozen hash.
+- **OI-008 ruling (2026-10-10).** The owner decided process placement for the
+  whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
+  §11 and NIR §1.1 were also edited, since their pins were already stale. Five
+  texts that still match these pins were left unchanged, so they still read
+  OI-008 as open or proposed. Apply the ruling to each at the re-freeze:
+  - DEL-01-01 `HOSTING_BOUNDARY.md`: §1's note "Everything further is the
+    OI-008 proposal in §12", the §7 mention, the §11 row "Decide Rust/TS
+    allocation", §12 (its label and heading; OUT-003 should record the ruling,
+    REQ-004), U-02 and VC-11.
+  - DEL-01-02 `EXECUTION_AND_RECOVERY.md`: §0 ("a different OI-008 answer
+    moves code"), §4 "Placement (R17-5, PROPOSED)", the owners-table row that
+    names OI-008, and U-R8.
+  - DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md`: §1 "Placement (PROPOSED
+    under R17-5; OI-008 option O-1 …)" and U-P7.
+  - DEL-01-04 `APP_ACT_CONTROL.md`: "R17-5 (process division, PROPOSED)" in
+    its changes from v0.1.
+  - DEL-09-02 `ScopeOfWork.md` TBD-002 ("OI-008 remains OPEN"). Its
+    `deliverable.yaml` already records the ruling.

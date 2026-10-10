@@ -9,7 +9,7 @@
   "sources": [
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/ROLE_SUPPLY.md",
-      "sha256": "bf79d3b71a396682018d0a462902658acba1cb82a2a967422d1b192e8ab87467",
+      "sha256": "9b1852f58c02fc6de1b09451fb7c07fce26ed0d84c90706db7bf01302fe9fb44",
       "readExtent": "4.1; GS-1 through GS-7; 6.1; U-R6/U-R11"
     },
     {
@@ -19,7 +19,7 @@
     },
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/ScopeOfWork.md",
-      "sha256": "693c3272665cebdae30302587d15e486d26bc9c512c3959ea29745a303e92cef",
+      "sha256": "56299ad076ba402c51eefe2e87df010decdb7ce1ca28d0520dd24225e69a9aa3",
       "readExtent": "REQ-001 through REQ-006"
     },
     {

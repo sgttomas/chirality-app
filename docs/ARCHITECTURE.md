@@ -144,10 +144,18 @@ required by V4-APP-01. Historical code is retained as evidence until its
 retirement is explicitly accounted for; this paragraph is not deletion
 permission (B-HTML 07).
 
-**Left to the implementation session:** how responsibilities divide between
-the Rust main process and the TypeScript interface beyond the properties
-above; whether Chirality keeps sign-in separate from the user's other Codex
-clients (v3's overlay home) or shares it; API-key sign-in through the pinned
+**Process placement (OI-008), decided by the owner on 2026-10-10:** "The Rust
+host owns everything that writes the person's files or the App's records,
+talks to Codex, or captures a person's act. The web view presents, and sends
+only what the person initiates. It never writes records or operates the act
+control." This generalizes the owner's earlier rulings for the workflow draft
+workspace ("A, proceed with the Rust host.") and the fleet records, and it
+keeps the properties above. Where shared contracts and components live stays
+open (OI-014).
+
+**Left to the implementation session:** whether Chirality keeps sign-in
+separate from the user's other Codex clients (v3's overlay home) or shares
+it; API-key sign-in through the pinned
 protocol; signing and notarisation of the App and Codex binaries under Tauri,
 including applicable entitlements; and the actual supplier version. The
 original investigation recorded a v3 pin of 0.154.0 and a then-current

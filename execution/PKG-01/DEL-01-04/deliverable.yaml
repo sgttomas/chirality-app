@@ -117,18 +117,21 @@ needs:
     projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-001'
   evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: external:OI-008
-  condition: 'The App implementation owner must choose Rust/TypeScript allocation before affected architecture
-    production contracts while preserving main-process session/request ownership; UI/storage details remain
-    open.
+  condition: 'Met 2026-10-10 for the Rust/TypeScript allocation: the App implementation owner (the owner)
+    ruled "The Rust host owns everything that writes the person''s files or the App''s records, talks to
+    Codex, or captures a person''s act. The web view presents, and sends only what the person initiates.
+    It never writes records or operates the act control." Main-process session/request ownership is preserved;
+    UI and attachment-storage details remain open (ScopeOfWork TBD-003).
 
 
-    Notes: FACT: Actual owner decision is unverified. PointOfNeed=Before architecture production contracts.
+    Notes: FACT: PointOfNeed=Before architecture production contracts.
     This affects dependent choices only; independent receiving-definition work proceeds. No blanket project
     hold or new implementation authority. UPDATE 20261010: for the workflow draft workspace only (DEL-02-02
     WR §11, U-WR-2) the owner decided: "A, proceed with the Rust host." Draft observation, content identity,
     hygiene and the trial pointer run in the Rust host; the TypeScript interface only lists and presents,
-    and draft transitions are received from the workspace and rendered (PL-5). Every other allocation question
-    under OI-008 remains open.
+    and draft transitions are received from the workspace and rendered (PL-5). UPDATE 20261010 (later):
+    the owner''s general ruling quoted above settles OI-008 for the whole App, including the act control
+    (PL-3) and request custody (PL-1).
 
 
     Target description — TargetName: App implementation owner — App process division; TargetRefID: OI-008;
