@@ -171,7 +171,7 @@ fn interrupt_actual_live_turn(host: &Host, generation: &Value, thread: &str, tur
                     && t["observationEnded"] != true
             })
     {
-        let _ = host.turn_interrupt(generation, thread, turn); // never a grant or human act
+        let _ = host.turn_interrupt(generation, thread, turn, "H-acct", &chirality_app_v4_lib::stop_records::person("")); // never a grant or human act
     }
 }
 

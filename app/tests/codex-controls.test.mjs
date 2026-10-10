@@ -6,7 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);return exports;};
-const {CodexProcessControls,StopOutcome,stopLabel}=load('CodexControls.tsx');
+const {CodexProcessControls,StopOutcome,stopLabel,StopRequests}=load('CodexControls.tsx');
 const {StopLabel}=load('NativeActivity.tsx');
 const g={appSession:'s',home:'h',spawnCounter:1};
 const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00:00Z',modeHomeClass:'account',generation:g,
@@ -15,7 +15,7 @@ const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00
   outstandingRequests:{count:1,reading:'Not answered by the App; they end unanswered with the Codex process.'},
   runsInForce:{rows:[{run:'run-1',conversation:'thread',workflow:{name:'coordinated-knowledge-work'},state:'open'}],reading:'Stopping Codex ends no workflow run.'},
   historyNote:'A turn still live at the stop: Codex may write into its history that the user interrupted the turn on purpose. That note comes from this stop.',
-  records:'Kept in this App process only. The App writes no recovery stop record (REC SR) and no ledger codex_stop record, so after the App is relaunched it cannot say that a turn was interrupted by Stop Codex.',start:null,conversations:null};
+  records:"Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.",start:null,conversations:null};
 const stops=outcomes=>({outcomes,stopWaitLimitSeconds:10,records:outcome.records});
 const render=(host,act=()=>{})=>renderToStaticMarkup(React.createElement(CodexProcessControls,{host,busy:false,act}));
 
@@ -27,7 +27,8 @@ test('Stop and Restart ask first and are offered only while Codex runs',()=>{
   assert.ok(ready.includes('with no time limit')&&ready.includes('<b>Keep Codex running</b> (the default) and Cancel change nothing'));
   assert.ok(ready.includes('waits up to 10 s')&&ready.includes('no workflow run ends')&&ready.includes('continues no conversation until you choose <b>Continue selected conversation</b>'));
   assert.ok(ready.includes('your operational choice, not a recorded act'));
-  assert.ok(ready.includes('writes no recovery stop record (REC SR) and no ledger codex_stop record'),'the missing record is stated as a limit');
+  assert.ok(ready.includes('Recorded in the App&#x27;s recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent'),'what is recorded, and where, is stated');
+  assert.ok(ready.includes('The outcome panel itself is kept in this App process only.'));
   for(const state of ['stopped','absent','refused','stopping']){
     const html=render({state,generation:g,codexStops:stops([])});
     assert.equal((html.match(/disabled=""/g)??[]).length,2,`${state}: Stop and Restart unavailable, Start available`);
@@ -77,6 +78,44 @@ test('a refused stop is a refusal: no Stop label for its turns, here or in the a
   // A later stop that did not name t1 leaves no label either; an older stopped outcome still does.
   assert.equal(stopLabel(stops([refused]),'thread','t1'),null);
   assert.equal(stopLabel(stops([outcome,refused]),'thread','t1').label,'interrupted by Stop Codex');
+});
+
+// REC SR rows as the host reports them (stop_records::outcomes).
+const sr=(over={})=>({stopRequestId:'stop:1',appSession:'s',earlierSession:false,home:'H-acct',generation:'gen',threadId:'thread',turnId:'t1',cause:'person-interrupt',
+  requestedAt:'2026-10-10T00:00:01Z',state:'outcome-observed',label:'interrupted by the person',reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger',...over});
+
+test('stop-request records label turns first and read back after a relaunch (REC SR)',()=>{
+  const requests={records:[sr(),sr({stopRequestId:'stop:2',turnId:'t3',appSession:'old',earlierSession:true,state:'sent',label:'outcome unknown (stop requested)',
+    reading:'The App session ended before a final status was recorded for this turn.',codexReported:null}),
+    sr({stopRequestId:'stop:3',turnId:'t4',state:'refused',label:null,reading:'Codex refused the stop request: no active turn',codexReported:null,persistence:'not yet written to the App ledger; kept in this App process'})],
+    limits:[],standing:'App-observed stop requests (REC SR).'};
+  // A recorded request is preferred to this process's Stop Codex outcome for the same turn.
+  assert.equal(stopLabel(stops([outcome]),'thread','t1',requests).label,'interrupted by the person');
+  assert.equal(stopLabel(stops([outcome]),'thread','t2',requests).label,'interrupted by Stop Codex (final status not observed)','no record: the outcome still labels');
+  const label=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t1',requests)}));
+  assert.ok(label.includes('App label: <b>interrupted by the person</b>. Final status observed when the turn ended. Codex reported: interrupted.'));
+  assert.ok(label.includes('Record: recorded in the App ledger.'));
+  const earlier=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t3',requests)}));
+  assert.ok(earlier.includes('<b>outcome unknown (stop requested)</b>')&&earlier.includes('From an earlier App session.'),earlier);
+  const refused=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t4',requests)}));
+  assert.ok(refused.includes('Stop request: Codex refused the stop request: no active turn')&&!refused.includes('App label'),refused);
+  assert.ok(refused.includes('Record: not yet written to the App ledger; kept in this App process.'),'a write not yet accepted is visible');
+  const listed=renderToStaticMarkup(React.createElement(StopRequests,{requests}));
+  assert.ok(listed.includes('Recorded stop requests (3)'));
+  assert.ok(listed.includes('turn t1 · your interrupt at 2026-10-10T00:00:01Z: <b>interrupted by the person</b>. Final status observed'));
+  assert.ok(listed.includes('turn t3 · your interrupt at 2026-10-10T00:00:01Z (earlier App session)'));
+  assert.equal(renderToStaticMarkup(React.createElement(StopRequests,{requests:{records:[],limits:[]}})),'');
+  assert.ok(render({state:'ready',generation:g,codexStops:stops([]),stopRequests:requests}).includes('Recorded stop requests (3)'));
+  const bad=renderToStaticMarkup(React.createElement(StopRequests,{requests:{records:[],limits:['a stop_request ledger entry is not a valid stop-request record and is not shown: x']}}));
+  assert.ok(bad.includes('Limit: a stop_request ledger entry is not a valid'));
+  // The outcome says whether the codex_stop record and each turn's stop-request record were written.
+  const html=renderToStaticMarkup(React.createElement(StopOutcome,{outcome:{...outcome,codexStopRecord:{state:'recorded',reading:'Recorded in the App ledger before any interrupt was sent'},
+    turns:[{...outcome.turns[0],stopRequest:sr({cause:'codex-stop'})},{...outcome.turns[1],stopRequest:null}]}}));
+  assert.ok(html.includes('Stop Codex record: Recorded in the App ledger before any interrupt was sent.'));
+  assert.ok(html.includes('stop-request record: recorded in the App ledger'));
+  assert.ok(html.includes('stop-request record: not recorded'));
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
+  assert.ok(app.includes('stopLabel(host?.codexStops, thread, turn, host?.stopRequests)'));
 });
 
 test('conversation sends are paused while Stop or Restart Codex runs',()=>{

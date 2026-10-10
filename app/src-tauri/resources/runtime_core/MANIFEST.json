@@ -84,6 +84,13 @@
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json",
       "sourceSha256": "b961aab3df10a904820b71245f2dbd5df98ffe067291130995f8f96ba7355c01",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
+    },
+    {
+      "file": "recovery.stop-request.schema.json",
+      "sha256": "738bad11f825e9976ba9f8f1158b8938bf621c640ceae561c7e26d2899e6c5ef",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.stop-request.schema.json",
+      "sourceSha256": "738bad11f825e9976ba9f8f1158b8938bf621c640ceae561c7e26d2899e6c5ef",
+      "standing": "maintained unchanged Design schema (PROPOSED 0.2); REC stop-request records are validated against it before the ledger append"
     }
   ]
 }

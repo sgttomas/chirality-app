@@ -4627,6 +4627,7 @@ impl WorkflowRootSession {
             notice_record_failure: None,
             ended_after_turn: None,
             finished_report: None,
+            checkpoints: None,
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -4831,6 +4832,9 @@ impl WorkflowRootSession {
             .try_lock()
             .map_err(|_| "Original run operation pending; nothing ended".to_string())
             .and_then(|mut run| {
+                if let Some(view) = view {
+                    run.observe_checkpoints(view);
+                }
                 let ended = run.end_run(finished.as_ref(), Some(&successor))?;
                 run.ended_after_turn = view.and_then(|v| run.latest_turn(v));
                 Ok(ended)
@@ -4872,9 +4876,16 @@ impl WorkflowRootSession {
             return Err("The record does not show this run open, or in an unknown state, in this conversation; nothing recorded".into());
         }
         let cause = if completed { "completed" } else { "ended by the person" };
+        // CE-17 from the run's own record (RC-10): its arrivals still waiting there.
+        let (recorded, limits) = crate::storage::read_all(project);
+        if !limits.is_empty() {
+            return Err(format!("The run record is incomplete, so its waiting arrivals cannot be read; nothing recorded: {limits:?}"));
+        }
+        let run_entries: Vec<Value> = recorded.into_iter().filter(|e| e["runId"] == run).collect();
+        let waiting = crate::checkpoint_recorder::waiting_arrivals(&run_entries);
         let mut entry = crate::records::supply::PendingRunEntry::new(
             "run_ended",
-            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":[]}),
+            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":waiting}),
             crate::util::now_rfc3339(),
         )?;
         crate::records::supply::append_run_entry(project, run, &mut entry)?;
@@ -5036,6 +5047,7 @@ impl WorkflowRootSession {
     pub fn end_plain(&mut self, run_ref: &str, view: &Value) -> Result<Value, String> {
         let run = self.conversation_run(run_ref)?;
         let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
+        run.observe_checkpoints(view);
         let result = run.end_run(None, None)?;
         run.ended_after_turn = run.latest_turn(view);
         Ok(result)
@@ -5050,6 +5062,7 @@ impl WorkflowRootSession {
             return Err("Only an open run can be ended; nothing recorded".into());
         }
         let report = crate::run_offers::verify_finished(view, &run.in_force(run_ref, view), message)?;
+        run.observe_checkpoints(view);
         let result = run.end_run(Some(&report), None)?;
         run.ended_after_turn = run.latest_turn(view);
         Ok(result)
@@ -5126,6 +5139,22 @@ impl WorkflowRootSession {
 /// Starts a prepared run (CH-1 rechecked at dispatch). The Root lock is not held
 /// across the native wait. A successor start supersedes the predecessor's pending
 /// end notice: its chain line says the same (TX-5).
+/// EXEC §2.4: the checkpoint recorder reads a home's native view for the open
+/// runs of that home. Root is held only to list the runs; a run with an
+/// operation pending is skipped and read at the next observation, since its
+/// rows stay in the view. Records only; nothing is sent (RC-4).
+pub(crate) fn record_run_observations(workflows: &std::sync::Mutex<WorkflowRootSession>, view: &Value) {
+    if !view.is_object() {
+        return;
+    }
+    let runs: Vec<_> = workflows.lock().unwrap().runs.values().cloned().collect();
+    for run in runs {
+        if let Ok(mut run) = run.try_lock() {
+            run.observe_checkpoints(view);
+        }
+    }
+}
+
 pub(crate) fn start_workflow_run(
     root: &std::sync::Mutex<WorkflowRootSession>,
     reference: &str,
@@ -5427,6 +5456,8 @@ pub(crate) struct WorkflowRun {
     ended_after_turn: Option<String>,
     /// FN-2: the agent's finished report the person ended the run on, if any.
     finished_report: Option<crate::run_offers::FinishedReport>,
+    /// EXEC §2.4 checkpoint recorder, from the run's opening (CE-1) on.
+    checkpoints: Option<crate::checkpoint_recorder::CheckpointRecorder>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -5507,6 +5538,7 @@ impl WorkflowRun {
             "lifecycle":self.lifecycle_view(),"conversation":self.prepared().scope().conversation,
             "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
             "compatibility":self.compatibility_view(),
+            "checkpointRecorder":self.checkpoints.as_ref().map(crate::checkpoint_recorder::CheckpointRecorder::view),
             "workflow":{"origin":self.prepared().workflow().origin,"name":self.prepared().workflow().name,"revision":self.prepared().workflow().revision,"sourceRoot":self.prepared().workflow().source_root},
             "home":self.prepared().scope().home,"generation":self.prepared().scope().generation,
             "endedAfterTurn":self.ended_after_turn,"finishedReport":self.finished_report.as_ref().map(crate::run_offers::FinishedReport::view),
@@ -5545,7 +5577,7 @@ impl WorkflowRun {
             RunLifecycle::Ended => "ended by the person",
         };
         json!({"state":state,"follows":self.follows,"end":self.end.as_ref().map(|e|json!({"run":e.run,"cause":run_end_cause(&e.reason)})),
-            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"limit":e.failure})).collect::<Vec<_>>()})
+            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"limit":e.failure,"body":e.body})).collect::<Vec<_>>()})
     }
     pub fn has_pending_records(&self) -> bool {
         let pending_check = |c: &WorkflowCheckSlot| {
@@ -5858,15 +5890,53 @@ impl WorkflowRun {
             }
         }
         self.lifecycle = RunLifecycle::Open;
-        match crate::records::supply::PendingRunEntry::new(
-            "run_opened",
-            body,
-            crate::util::now_rfc3339(),
-        ) {
+        let opened_at = crate::util::now_rfc3339();
+        match crate::records::supply::PendingRunEntry::new("run_opened", body, opened_at.clone()) {
             Ok(entry) => self.entries.push(entry),
             Err(e) => self.status["recordLimit"] = json!(format!("run_opened identity unavailable: {e}")),
         }
+        // EXEC A-2 / CE-1: the recorder lists the resolved revision's checkpoints (RP-5).
+        let (recorder, listed) = crate::checkpoint_recorder::CheckpointRecorder::start(self.selection.snapshot().declaration());
+        self.checkpoints = Some(recorder);
+        self.push_recorder_outputs(listed, &opened_at);
         self.flush_records();
+    }
+    /// Recorder outputs become this run's pending entries, in order, each
+    /// with its reserved identity and observation time (RS W-1/W-2).
+    fn push_recorder_outputs(&mut self, outputs: Vec<crate::checkpoint_recorder::Output>, observed_at: &str) {
+        for (kind, body) in outputs {
+            match crate::records::supply::PendingRunEntry::new(kind, body, observed_at.to_owned()) {
+                Ok(entry) => self.entries.push(entry),
+                Err(e) => self.status["recordLimit"] = json!(format!("{kind} identity unavailable: {e}")),
+            }
+        }
+    }
+    /// The run's entries as the recorder reads them (`kind`, `body`).
+    fn recorded_bodies(&self) -> Vec<Value> {
+        self.entries.iter().map(|e| json!({"kind":e.kind,"body":e.body})).collect()
+    }
+    /// EXEC §2.4/§2.5: records what the native view shows of this open run
+    /// (CE-3, CE-11, CE-12). Recording sends, asks or pauses nothing (RC-4).
+    pub(crate) fn observe_checkpoints(&mut self, view: &Value) {
+        if self.lifecycle != RunLifecycle::Open {
+            return;
+        }
+        let Some(mut recorder) = self.checkpoints.take() else { return };
+        let scope = self.prepared().scope().clone();
+        let start = self.start_in(view);
+        let entries = self.recorded_bodies();
+        let outputs = recorder.observe(view, &crate::checkpoint_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, project_root: &self.project_root }, &entries);
+        self.checkpoints = Some(recorder);
+        let held = self.entries.iter().any(|e| e.written.is_none());
+        let recorded = !outputs.is_empty();
+        if recorded {
+            self.push_recorder_outputs(outputs, &crate::util::now_rfc3339());
+        }
+        // A-12: entries held by a write failure are retried at each observation;
+        // once written late, each is followed by its "record write failed" limit.
+        if held || recorded {
+            self.flush_records();
+        }
     }
     /// EXEC AE-7 / A-11: only the person's explicit end ends a run. `successor`
     /// is set for "End ‹A› and start ‹B›": no end notice, the chain line says it.
@@ -5889,9 +5959,11 @@ impl WorkflowRun {
         if successor.is_some_and(|name| !crate::workflow_workspace::valid_name(name)) || cause == "invalid" {
             return Err("successor workflow name invalid; nothing ended".into());
         }
+        // CE-17 (closes CI-20 (h)): the arrivals whose recorded disposition is *waiting*.
+        let waiting = crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies());
         let entry = crate::records::supply::PendingRunEntry::new(
             "run_ended",
-            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":[]}),
+            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":waiting}),
             crate::util::now_rfc3339(),
         )?;
         self.end = Some(crate::workflow_workspace::OwnerRunEnd {
@@ -6323,10 +6395,13 @@ mod workflow_root_tests {
         }
         fn selected(&self)->WorkflowRootSession{let mut root=WorkflowRootSession::default();root.select_development_copy(self.package.clone()).unwrap();root}
         /// The ordinary journey (TT-1): development copy -> draft -> review -> A15 -> hot registered selection.
-        fn registered(&self)->WorkflowRootSession{
+        fn registered(&self)->WorkflowRootSession{self.registered_with(|_|{})}
+        /// As `registered`, with the draft edited before its review (a changed WORKFLOW.md).
+        fn registered_with(&self,edit:impl FnOnce(&std::path::Path))->WorkflowRootSession{
             let mut root=self.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&self.root))));
             root.open_library(self.root.clone(),"project",Some(&self.root),control.clone()).unwrap();
             root.create_selected_draft("coordinated-knowledge-work").unwrap();
+            edit(&self.root.join(".chirality/workflow-drafts/coordinated-knowledge-work"));
             let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("supplier intentionally unavailable".into())).unwrap());
             root.begin_review(home,json!({"hostState":"absent","identityVerified":false}),vec!["coordinated-knowledge-work".into()],false).unwrap();
             let reference=root.active_review.clone().unwrap();
@@ -7029,7 +7104,7 @@ for line in sys.stdin:
     #[test]
     fn j3_vc_e_17_interrupt_stop_quit_and_relaunch_never_end_a_run(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
-        let _=peer.home.host.turn_interrupt(&peer.generation,"thread","turn"); // DEF-3; acknowledgment immaterial
+        let _=peer.home.host.turn_interrupt(&peer.generation,"thread","turn","H-acct",&crate::stop_records::person("")); // DEF-3; acknowledgment immaterial
         assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open,"interrupt is the turn's outcome only");
         peer.home.host.stop_scoped(&peer.generation,"the person","Codex stop").unwrap(); // DEF-5 (the App quit path stops the same way, DEF-6)
         assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);
@@ -7069,6 +7144,80 @@ for line in sys.stdin:
         let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
         assert_eq!(kinds,["run_opened","run_ended","supplied_guidance"],"R3 of the notice follows run_ended in the ended run's log");
         assert_eq!(log[2]["body"]["supplyForm"],"workflow run end notice (turn text)");assert_eq!(log[2]["body"]["adoption"],"unknown");
+    }
+    /// The fixture registered with a declared part carrying checkpoints (the
+    /// recorder's own fixture declaration), appended to its WORKFLOW.md.
+    fn declared(peer:&Peer)->WorkflowRootSession{
+        peer.fixture.registered_with(|draft|{let path=draft.join("WORKFLOW.md");let mut text=std::fs::read_to_string(&path).unwrap();
+            text.push_str(&format!("\n```workflow-declaration\n{}\n```\n",crate::checkpoint_recorder::tests::DECLARATION));std::fs::write(&path,text).unwrap();})
+    }
+    /// A receiver view of the fixture conversation with receipt positions: the
+    /// run's start turn ("turn") and the given native items, in this order.
+    fn recorder_view(peer:&Peer,items:&[Value])->Value{
+        let mut rows=vec![json!({"threadId":"thread","turnId":"turn","native":{"id":"start-user","type":"userMessage","content":[]},"displayState":"completed","standing":"live-observed","observedOrder":0,"receipt":{"generation":peer.generation,"started":1,"completed":1}})];
+        for (n,item) in items.iter().enumerate(){let n=n as u64+1;let done=item["status"]!="inProgress";
+            let mut row=json!({"threadId":"thread","turnId":"turn","native":item,"startNative":item,"displayState":if done{"completed"}else{"in-progress"},"standing":"live-observed","observedOrder":n,"receipt":{"generation":peer.generation,"started":10*n}});
+            if done{row["receipt"]["completed"]=json!(10*n+5);row["sourceFrame"]=json!({"method":"item/completed","params":{"completedAtMs":1_790_000_000_000i64}});}rows.push(row);}
+        json!({"home":peer.generation["home"],"generation":peer.generation,"items":rows})
+    }
+    // EXEC §2.4 through the actual run and RS writer: CE-1 at opening, CE-3 only from an
+    // observed native item that meets the declaration, CE-12 for the agent's next action,
+    // nothing sent because of an arrival (RC-4), and CE-17 lists the waiting arrival.
+    #[test]
+    fn recorder_lists_records_arrivals_without_reacting_and_ends_with_waiting_arrivals(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        let kinds=kinds_for(&peer,&a);assert_eq!(kinds,["run_opened","checkpoint_listed","checkpoint_listed","checkpoint_listed"],"CE-1 follows run_opened");
+        let wire=peer.wire().len();let requests=peer.home.host.client_requests().len();
+        let run=root.runs[&a].clone();
+        // A non-matching message and the person's own command record nothing.
+        let quiet=recorder_view(&peer,&[json!({"id":"m0","type":"agentMessage","text":"Working on it.\nSpacing report"}),json!({"id":"c0","type":"commandExecution","source":"userShell","command":"ls","status":"completed"})]);
+        run.lock().unwrap().observe_checkpoints(&quiet);
+        assert_eq!(kinds_for(&peer,&a).len(),4,"no arrival from a message whose first line is not the designating line");
+        let items=[json!({"id":"m0","type":"agentMessage","text":"Working on it.\nSpacing report"}),json!({"id":"c0","type":"commandExecution","source":"userShell","command":"ls","status":"completed"}),
+            json!({"id":"m1","type":"agentMessage","text":"Spacing report\nAll within the limit."}),json!({"id":"c1","type":"commandExecution","source":"agent","command":"ls","status":"inProgress"})];
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&items));
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(&kinds[4..],["checkpoint_arrival","disposition_change","continued_past"]);
+        assert_eq!(log[4]["body"]["event"]["ref"],"item:thread/turn/m1");assert_eq!(log[6]["body"]["actionRef"],"item:thread/turn/c1");
+        assert_eq!(peer.wire().len(),wire,"an arrival sends nothing (RC-4)");assert_eq!(peer.home.host.client_requests().len(),requests);
+        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open,"an arrival pauses or ends nothing");
+        // The run view carries the recorded bodies for the run panel.
+        let shown=run.lock().unwrap().view(&a);let records=shown["lifecycle"]["records"].as_array().unwrap().clone();
+        assert_eq!(records[4]["body"]["checkpoint"],"CP-check");assert_eq!(records[4]["written"],true);
+        run.lock().unwrap().end_run(None,None).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();
+        assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]),"CE-17 lists the arrival still waiting (CI-20 (h))");
+        // After the end nothing more is recorded for the run.
+        let more=[items.to_vec(),vec![json!({"id":"m2","type":"agentMessage","text":"Spacing report"})]].concat();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&more));
+        assert!(!rs_for(&peer,&a).iter().skip_while(|e|e["kind"]!="run_ended").any(|e|e["kind"]=="checkpoint_arrival"));
+    }
+    // A-12 / CE-19: a run record that cannot be written is visible on the run; the held
+    // entries are written in order once writing resumes, each followed by its limit.
+    #[test]
+    fn recorder_write_failure_is_visible_and_written_late_with_its_limit(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&[json!({"id":"m1","type":"agentMessage","text":"Spacing report"})]));
+        let shown=run.lock().unwrap().view(&a);let pending:Vec<Value>=shown["lifecycle"]["records"].as_array().unwrap().iter().filter(|r|r["written"]==false).cloned().collect();
+        assert_eq!(pending.len(),2,"the arrival and its disposition are held, not dropped: {shown}");assert!(pending[0]["limit"].is_string(),"the failure is shown");
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&[json!({"id":"m1","type":"agentMessage","text":"Spacing report"})]));
+        let log=rs_for(&peer,&a);let arrival=log.iter().position(|e|e["kind"]=="checkpoint_arrival").unwrap();
+        let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==log[arrival]["recordId"]).expect("CE-19 names the late arrival");
+        assert!(limit>arrival,"W-2: the late entry, then its limit");
+        assert_eq!(log.iter().filter(|e|e["kind"]=="checkpoint_arrival").count(),1,"written once");
+    }
+    // RC-10 after relaunch: a reopened run's end lists the arrivals its record shows waiting.
+    #[test]
+    fn recorded_end_after_relaunch_reads_waiting_arrivals_from_the_record(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&[json!({"id":"m1","type":"agentMessage","text":"Spacing report"})]));
+        let mut fresh=WorkflowRootSession::default();drop(root);
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();
+        assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]));
     }
     /// A native view as the receiver would hold it for the fixture conversation:
     /// the run's start turn ("turn") and the given live agent messages.

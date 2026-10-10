@@ -494,7 +494,7 @@ pub(crate) mod native_statement {
             tail.push("No conversation is continued automatically; continue one yourself.".into());
         }
         tail.push("None observed is not none: coverage is not complete.".into());
-        tail.push("This is your operational choice, not a recorded act. No stop record survives a relaunch.".into());
+        tail.push("This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending; what the ledger accepts can be read after a relaunch.".into());
         tail.push(format!("Observed at {}.", text_or(&view["observedAt"], "not reported")));
         tail.push(format!("{act} proceeds; {KEEP_CODEX} (the default) and Cancel change nothing."));
         let whole = [head.clone(), listed, tail.clone()].concat().join("\n");

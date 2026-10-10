@@ -76,6 +76,13 @@ impl StopOps for Ops {
     fn turn_reading(&mut self, turn: &Value) -> Option<Value> {
         (self.ends)(turn["turnId"].as_str().unwrap())
     }
+    fn record_confirmed(&mut self, _material: &Value) -> Value {
+        self.log.push("record".into());
+        json!({"state":"recorded"})
+    }
+    fn stop_record(&mut self, _turn: &Value) -> Value {
+        Value::Null
+    }
     fn stop(&mut self) -> Result<Value, String> {
         self.log.push("stop".into());
         if self.stop_ok { Ok(json!({"state":"stopped"})) } else { Err("stop not accepted in state stopping".into()) }
@@ -108,7 +115,7 @@ fn confirm_closes_to_new_turns_writes_every_interrupt_then_waits_then_stops() {
         _ => None,
     };
     let out = ops.run(false).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "interrupt t1", "interrupt t2", "interrupt t3", "interrupt t4", "ack t1", "ack t2", "ack t3", "ack t4", "stop"],
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "interrupt t1", "interrupt t2", "interrupt t3", "interrupt t4", "ack t1", "ack t2", "ack t3", "ack t4", "stop"],
         "closed before the final reassessment; all interrupts written before any wait; the stop last");
     assert_eq!(out["state"], "stopped");
     let labels: Vec<&str> = out["turns"].as_array().unwrap().iter().map(|t| t["label"].as_str().unwrap()).collect();
@@ -120,7 +127,8 @@ fn confirm_closes_to_new_turns_writes_every_interrupt_then_waits_then_stops() {
     assert!(t4["codexReported"].is_null());
     assert!(out["historyNote"].as_str().unwrap().contains("comes from this stop"), "G-5 note for a turn live at the stop");
     assert_eq!(out["standing"], "your operational choice; not a recorded act");
-    assert!(out["records"].as_str().unwrap().contains("writes no recovery stop record"));
+    assert!(out["records"].as_str().unwrap().contains("a stop-request record for each interrupt before it is sent"));
+    assert_eq!(ops.log.iter().filter(|l| *l == "record").count(), 1, "one codex_stop record");
     assert!(out["start"].is_null() && out["conversations"].is_null());
 }
 
@@ -145,7 +153,7 @@ fn an_unacknowledged_first_interrupt_does_not_starve_the_others() {
     ops.ends = |turn| if turn == "t2" { ended("interrupted") } else { None };
     let begin = Instant::now();
     let out = ops.run(false).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "interrupt t1", "interrupt t2", "ack t1", "ack t2", "stop"], "t2 was written before t1's wait");
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "interrupt t1", "interrupt t2", "ack t1", "ack t2", "stop"], "t2 was written before t1's wait");
     assert!(ops.waits[1] < Duration::from_millis(20), "t2's acknowledgment is read on the shared deadline, not a fresh budget");
     assert!(begin.elapsed() < Duration::from_millis(400), "one stop wait limit in all");
     assert_eq!(out["turns"][0]["interruptRequest"]["state"], "sent; not acknowledged");
@@ -169,7 +177,7 @@ fn all_turns_ended_before_the_limit_stop_without_waiting_it_out() {
 fn no_live_work_is_a_simple_confirmation_and_sends_no_interrupt() {
     let mut ops = Ops::new(vec![view_material(json!([]), json!([]), json!([]))], vec![true]);
     let out = ops.run(false).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "stop"]);
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "stop"]);
     assert_eq!(out["turns"], json!([]));
     let statement = crate::act_control::native_statement::codex_stop_statement(&ops.asked[0]).unwrap();
     assert!(statement.in_app.is_none());
@@ -200,7 +208,7 @@ fn a_list_changed_on_confirm_then_confirmed_again_interrupts_the_current_list() 
     let mut ops = Ops::new(vec![first, second.clone(), second], vec![true, true]);
     ops.ends = |_| ended("interrupted");
     let out = ops.run(false).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "reopen", "ask", "close", "assess", "interrupt t1", "interrupt t2", "ack t1", "ack t2", "stop"]);
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "reopen", "ask", "close", "assess", "record", "interrupt t1", "interrupt t2", "ack t1", "ack t2", "stop"]);
     assert_eq!(out["state"], "stopped");
     assert_eq!(out["assessment"]["observedLiveTurns"].as_array().unwrap().len(), 2, "the outcome names the list the person confirmed");
 }
@@ -219,7 +227,7 @@ fn restart_starts_once_after_the_stop_and_continues_no_conversation() {
     let mut ops = Ops::new(vec![view_material(json!([live("t1")]), json!([]), json!([]))], vec![true]);
     ops.ends = |_| ended("interrupted");
     let out = ops.run(true).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "interrupt t1", "ack t1", "stop", "start"], "start follows the stop; no resume or other operation");
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "interrupt t1", "ack t1", "stop", "start"], "start follows the stop; no resume or other operation");
     assert_eq!(out["action"], "Restart Codex");
     assert_eq!(out["start"]["state"], "started");
     assert!(out["conversations"].as_str().unwrap().contains("No conversation was continued automatically"));
@@ -231,7 +239,7 @@ fn a_refused_stop_is_a_refusal_with_no_turn_label_and_reopens_to_new_turns() {
     let mut ops = Ops::new(vec![view_material(json!([live("t1")]), json!([]), json!([]))], vec![true]);
     ops.stop_ok = false;
     let out = ops.run(true).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "interrupt t1", "ack t1", "stop", "reopen"], "no second process; reopened");
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "interrupt t1", "ack t1", "stop", "reopen"], "no second process; reopened");
     assert_eq!(out["state"], "stop refused");
     assert_eq!(out["stop"]["state"], "refused");
     assert_eq!(out["start"]["state"], "not started");
@@ -305,7 +313,7 @@ fn a_not_ready_process_is_reported_and_nothing_is_sent_to_it() {
     material["notReady"] = json!("Codex is handshaking, not ready: live work cannot be observed and nothing is sent to it; only the process is stopped");
     let mut ops = Ops::new(vec![material], vec![true]);
     let out = ops.run(false).unwrap();
-    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "stop"], "no interrupt to a process that is not ready");
+    assert_eq!(ops.log, ["assess", "ask", "close", "assess", "record", "stop"], "no interrupt to a process that is not ready");
     let s = crate::act_control::native_statement::codex_stop_statement(&ops.asked[0]).unwrap();
     assert!(s.text.contains("state handshaking") && s.text.contains("nothing is sent to it; only the process is stopped."));
     assert_eq!(out["state"], "stopped");
@@ -382,8 +390,21 @@ for line in sys.stdin:
     }
     impl Fixture {
         fn new() -> Self {
+            Self::started(false)
+        }
+        /// As `new`, with the App ledger configured before the start (§7).
+        fn with_ledger() -> Self {
+            Self::started(true)
+        }
+        fn ledger(&self) -> PathBuf {
+            self.root.join("recovery.ledger.jsonl")
+        }
+        fn started(ledger: bool) -> Self {
             let (root, cfg) = Self::prepare();
             let host = Arc::new(Host::new());
+            if ledger {
+                host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
+            }
             host.start(&cfg, "stop fixture").unwrap();
             let generation = host.snapshot()["generation"].clone();
             host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
@@ -466,7 +487,7 @@ for line in sys.stdin:
         let (wire, lifecycle) = (f.wire(), f.home.host.lifecycle_events().len());
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let mut shown = Vec::new();
-        let out = stop_native_home(&f.home, &workflows, &f.generation, false, |view| { shown.push(view.clone()); false }, || panic!("no start")).unwrap();
+        let out = stop_native_home(&f.home, &workflows, &f.generation, false, "fixture person", |view| { shown.push(view.clone()); false }, || panic!("no start")).unwrap();
         assert_eq!(out["state"], "cancelled");
         assert_eq!(shown.len(), 1);
         assert_eq!(shown[0]["observedLiveTurns"][0]["turnId"], "turn-1", "the question lists the observed live turn");
@@ -490,7 +511,7 @@ for line in sys.stdin:
         let steer = f.home.host.turn_steer_text(&f.generation, "thread", "turn-1", "late steer").unwrap_err();
         assert!(steer.contains("Stop Codex was confirmed") && steer.contains("turn/steer"), "{steer}");
         assert_eq!(f.wire(), wire, "nothing written for a refused turn or steer");
-        let written = f.home.host.turn_interrupt_begin(&f.generation, "thread", "turn-1").unwrap();
+        let written = f.home.host.turn_interrupt_begin(&f.generation, "thread", "turn-1", crate::stop_records::Cause::CodexStop, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
         assert!(f.home.host.turn_interrupt_acknowledgment(&written, Duration::from_secs(2)).is_ok());
         assert_eq!(f.wire().last().unwrap(), "turn/interrupt", "interrupts are still sent");
         // A refused stop reopens; another process is never closed by this one.
@@ -508,7 +529,7 @@ for line in sys.stdin:
         let f = Fixture::new();
         f.live_turn("turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_secs(3), |_| true, || panic!("no start")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_secs(3), |_| true, || panic!("no start")).unwrap();
         assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt, then the input closed");
         assert_eq!(out["state"], "stopped");
         assert_eq!(out["turns"][0]["interruptRequest"]["state"], "acknowledged");
@@ -521,6 +542,41 @@ for line in sys.stdin:
         assert_eq!(stop["actor"], "the person");
     }
 
+    /// §3.1 and §3.4 through the real Host: the person's confirmation writes
+    /// the ledger `codex_stop` entry before any interrupt, each interrupt's
+    /// SR-01 precedes its send, the observed end settles it with the TO-4
+    /// label, and a relaunched App reads that label back from the ledger.
+    #[test]
+    fn real_host_records_codex_stop_and_stop_requests_and_reads_them_back() {
+        let f = Fixture::with_ledger();
+        f.live_turn("turn-1");
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "R · OS account r", Duration::from_secs(3), |_| true, || panic!("no start")).unwrap();
+        assert_eq!(out["state"], "stopped");
+        assert_eq!(out["codexStopRecord"]["state"], "recorded");
+        assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex");
+        assert_eq!(out["turns"][0]["stopRequest"]["label"], "interrupted by Stop Codex", "the record carries the same label");
+        let rows: Vec<Value> = std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        let kinds: Vec<String> = rows.iter().map(|e| match e["kind"].as_str().unwrap() {
+            "stop_request" => format!("stop_request {}", e["record"]["transition"].as_str().unwrap()),
+            other => other.to_owned(),
+        }).collect();
+        let stop = kinds.iter().position(|k| k == "codex_stop").expect("codex_stop recorded");
+        let first = kinds.iter().position(|k| k == "stop_request SR-01").expect("SR-01 recorded");
+        assert!(stop < first, "codex_stop before the first stop request: {kinds:?}");
+        assert!(kinds.contains(&"stop_request SR-06".to_owned()), "{kinds:?}");
+        let entry = rows.iter().find(|e| e["kind"] == "codex_stop").unwrap();
+        assert_eq!((entry["homes"].clone(), entry["restart"].clone()), (json!(["H-acct"]), json!(false)));
+        assert_eq!(entry["liveTurns"], json!([{"threadId":"thread","turnId":"turn-1"}]));
+        assert_eq!(entry["actor"]["identity"], "R · OS account r");
+        crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
+        // Relaunch: a new App session reads the stop outcome from the ledger alone.
+        let relaunched = Host::new();
+        relaunched.configure_recovery(f.ledger()).unwrap();
+        let back = relaunched.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().find(|r| r["turnId"] == "turn-1").unwrap().clone();
+        assert_eq!((back["label"].as_str(), back["cause"].as_str(), back["earlierSession"].as_bool()), (Some("interrupted by Stop Codex"), Some("codex-stop"), Some(true)));
+    }
+
     #[test]
     fn real_host_unanswered_first_interrupt_does_not_starve_the_second() {
         let f = Fixture::new();
@@ -531,7 +587,7 @@ for line in sys.stdin:
         f.live_turn_in("thread-2", "turn-2");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let begin = Instant::now();
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_millis(800), |_| true, || panic!("no start")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(800), |_| true, || panic!("no start")).unwrap();
         // The stop wait limit, then at most HOSTING's grace and exit wait.
         assert!(begin.elapsed() < Duration::from_millis(800) + Duration::from_secs(7));
         assert_eq!(f.wire().iter().filter(|m| *m == "turn/interrupt").count(), 2, "both interrupts written");
@@ -555,7 +611,7 @@ for line in sys.stdin:
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let host = f.home.host.clone();
         let cfg = f.cfg.clone();
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, Duration::from_secs(3), |view| view["restart"] == true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, "fixture person", Duration::from_secs(3), |view| view["restart"] == true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
         assert_eq!(out["start"]["state"], "started");
         let now = f.home.host.snapshot();
         assert_eq!(now["state"], "ready");
@@ -574,7 +630,7 @@ for line in sys.stdin:
         let wire = f.wire();
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let mut shown = Vec::new();
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_secs(1), |view| { shown.push(view.clone()); true }, || panic!("no start")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_secs(1), |view| { shown.push(view.clone()); true }, || panic!("no start")).unwrap();
         assert_eq!(out["state"], "stopped", "{out}");
         assert_eq!(f.home.host.snapshot()["state"], "stopped");
         assert_eq!(shown[0]["state"], "exited-unexpectedly");
@@ -590,7 +646,7 @@ for line in sys.stdin:
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let host = f.home.host.clone();
         let cfg = f.cfg.clone();
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, "fixture person", Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
         assert_eq!(out["state"], "stopped", "{out}");
         assert_eq!(out["start"]["state"], "started", "{out}");
         let now = f.home.host.snapshot();
@@ -602,7 +658,7 @@ for line in sys.stdin:
     fn real_host_halted_codex_can_be_stopped_and_restarted() {
         let f = Fixture::halted();
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_secs(1), |view| view["state"] == "halted-after-repeated-failure", || panic!("no start")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_secs(1), |view| view["state"] == "halted-after-repeated-failure", || panic!("no start")).unwrap();
         assert_eq!(out["state"], "stopped", "{out}");
         assert_eq!(f.home.host.snapshot()["state"], "stopped");
         // Halted again, then Restart once the handshake would succeed.
@@ -610,7 +666,7 @@ for line in sys.stdin:
         std::fs::remove_file(f.root.join("fail-initialize")).unwrap();
         let host = f.home.host.clone();
         let cfg = f.cfg.clone();
-        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, "fixture person", Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
         assert_eq!(out["start"]["state"], "started", "{out}");
         assert_eq!(f.home.host.snapshot()["state"], "ready");
     }
@@ -621,11 +677,11 @@ for line in sys.stdin:
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let mut other = f.generation.clone();
         other["spawnCounter"] = json!(99);
-        let refused = stop_native_home(&f.home, &workflows, &other, false, |_| panic!("not asked"), || panic!("no start")).unwrap_err();
+        let refused = stop_native_home(&f.home, &workflows, &other, false, "fixture person", |_| panic!("not asked"), || panic!("no start")).unwrap_err();
         assert!(refused.contains("Nothing stopped"));
         assert_eq!(f.home.host.snapshot()["state"], "ready");
         f.home.host.stop("fixture", "stopped elsewhere").unwrap();
-        let refused = stop_native_home(&f.home, &workflows, &f.generation, true, |_| panic!("not asked"), || panic!("no start")).unwrap_err();
+        let refused = stop_native_home(&f.home, &workflows, &f.generation, true, "fixture person", |_| panic!("not asked"), || panic!("no start")).unwrap_err();
         assert!(refused.contains("not running") && refused.contains("use Start Codex"));
     }
 }

@@ -166,7 +166,7 @@ pub(crate) fn run_start(view: &Value, thread: &str, run_generation: &Value, star
 }
 impl RunStart {
     /// Whether a message whose turn has this position belongs to the run.
-    fn includes(self, turn_order: u64) -> bool {
+    pub(crate) fn includes(self, turn_order: u64) -> bool {
         match self {
             Self::At(start) => turn_order >= start,
             Self::BeforeView => true,

@@ -21,10 +21,14 @@
 //! A stop is the person's operational choice, not a recorded act. Neither
 //! stop ends a workflow run or answers a request (DEF-5).
 //!
-//! Limit: the App writes no REC stop-request (SR) record and no ledger
-//! `codex_stop` record; no writer for them exists yet. The outcome below is
-//! kept in this App process's memory only, so after a relaunch the App cannot
-//! say that a turn was interrupted by Stop Codex.
+//! Records (DEL-01-02 §3.1, §3.4, §7; DRAFT/PROPOSED Design text): once the
+//! person confirms, the App writes the ledger `codex_stop` entry, then each
+//! interrupt's REC stop request (SR-01, cause *codex-stop*) before it is
+//! sent, and each later transition (SR-02…SR-10). The turn's settled record
+//! carries the same TO-4 label as the outcome below, so after a relaunch the
+//! App can still say that a turn was interrupted by Stop Codex. A record the
+//! ledger has not accepted is shown as not yet written and stays queued in
+//! this process; the stop still proceeds.
 
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use serde_json::{json, Value};
@@ -41,7 +45,7 @@ pub const STOP_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// Kept in memory for display; older outcomes are dropped first.
 pub const OUTCOMES_KEPT: usize = 20;
 
-pub(crate) const RECORDS_LIMIT: &str = "Kept in this App process only. The App writes no recovery stop record (REC SR) and no ledger codex_stop record, so after the App is relaunched it cannot say that a turn was interrupted by Stop Codex.";
+pub(crate) const RECORDS_LIMIT: &str = "Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.";
 
 fn action(restart: bool) -> &'static str {
     if restart {
@@ -153,6 +157,11 @@ pub(crate) trait StopOps {
     fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String>;
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String>;
     fn turn_reading(&mut self, turn: &Value) -> Option<Value>;
+    /// The ledger `codex_stop` entry for the confirmed list, written before
+    /// any interrupt (§3.1). Returns whether it was recorded.
+    fn record_confirmed(&mut self, material: &Value) -> Value;
+    /// The turn's stop-request record as the App now holds it (Null if none).
+    fn stop_record(&mut self, turn: &Value) -> Value;
     fn stop(&mut self) -> Result<Value, String>;
     fn start(&mut self) -> Result<Value, String>;
 }
@@ -191,6 +200,8 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
         changed = true;
     };
     let confirmed_at = crate::util::now_rfc3339();
+    // §3.1: L `codex_stop` on the person's answer, before the interrupts.
+    let codex_stop_record = ops.record_confirmed(&confirmed.material);
     let deadline = Instant::now() + wait_limit;
     // SR-01: every interrupt is written before any wait and before the stop.
     let live: Vec<Value> = confirmed.material["observedLiveTurns"].as_array().cloned().unwrap_or_default();
@@ -224,6 +235,7 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
         turn["codexReported"] = json!(end);
         // A refused stop is reported as a refusal; no turn gets a Stop label.
         turn["label"] = if stopped { json!(outcome_label(end.as_deref())) } else { Value::Null };
+        turn["stopRequest"] = ops.stop_record(turn);
     }
     let start = match (restart, stopped) {
         (true, true) => Some(match ops.start() {
@@ -252,6 +264,7 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
         "conversations": if restart && stopped { json!("No conversation was continued automatically. To continue one, read stored conversations, select it and choose Continue selected conversation.") } else { Value::Null },
         "historyNote": if live_at_stop && stopped { json!("A turn still live at the stop: Codex may write into its history that the user interrupted the turn on purpose. That note comes from this stop.") } else { Value::Null },
         "records": RECORDS_LIMIT,
+        "codexStopRecord": codex_stop_record,
     }))
 }
 
@@ -265,6 +278,13 @@ pub(crate) struct HostStop<'a, C, S> {
     pub(crate) restart: bool,
     pub(crate) confirm: C,
     pub(crate) start: Option<S>,
+    /// The person as the App observes them (K1-4), for the records.
+    pub(crate) person: Value,
+}
+impl<C, S> HostStop<'_, C, S> {
+    fn home_class(&self) -> Result<&'static str, String> {
+        crate::stop_records::home_class(self.home.class().as_str()).ok_or_else(|| "this home has no App-owned home class".to_owned())
+    }
 }
 impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for HostStop<'_, C, S> {
     type Pending = crate::hosting::SourceRequest;
@@ -287,8 +307,10 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
         let mut written = None;
         // The same guard as the person's Interrupt control (live turn, no
         // interrupt already requested); the request is written, not awaited.
+        let home = self.home_class()?;
+        let person = &self.person;
         crate::runtime_session::interrupt_conversation_turn(&host.snapshot(), self.generation, thread, id, |g, t, u| {
-            written = Some(host.turn_interrupt_begin(g, t, u)?);
+            written = Some(host.turn_interrupt_begin(g, t, u, crate::stop_records::Cause::CodexStop, home, person)?);
             Ok(Value::Null)
         })?;
         written.ok_or_else(|| "interrupt request not written".to_owned())
@@ -298,6 +320,19 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
     }
     fn turn_reading(&mut self, turn: &Value) -> Option<Value> {
         self.home.host.conversation_turn(&turn["generation"], turn["threadId"].as_str().unwrap_or_default(), turn["turnId"].as_str().unwrap_or_default())
+    }
+    fn record_confirmed(&mut self, material: &Value) -> Value {
+        match self.home_class() {
+            Ok(home) => self.home.host.record_codex_stop(&self.person, home, self.restart, material),
+            Err(error) => json!({"state":"not recorded","reading":error}),
+        }
+    }
+    fn stop_record(&mut self, turn: &Value) -> Value {
+        let generation = crate::recovery::generation_ref(&turn["generation"]).unwrap_or_default();
+        let rows = self.home.host.snapshot()["stopRequests"]["records"].clone();
+        rows.as_array().into_iter().flatten().rev()
+            .find(|r| r["generation"] == generation.as_str() && r["threadId"] == turn["threadId"] && r["turnId"] == turn["turnId"] && r["cause"] == "codex-stop")
+            .cloned().unwrap_or(Value::Null)
     }
     fn stop(&mut self) -> Result<Value, String> {
         self.home.host.stop_scoped(self.generation, "the person", action(self.restart))
@@ -309,27 +344,31 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn stop_native_home(
     home: &HomeSession,
     workflows: &Mutex<WorkflowRootSession>,
     generation: &Value,
     restart: bool,
+    person: &str,
     confirm: impl FnMut(&Value) -> bool,
     start: impl FnOnce() -> Result<Value, String>,
 ) -> Result<Value, String> {
-    stop_native_home_within(home, workflows, generation, restart, STOP_WAIT_LIMIT, confirm, start)
+    stop_native_home_within(home, workflows, generation, restart, person, STOP_WAIT_LIMIT, confirm, start)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn stop_native_home_within(
     home: &HomeSession,
     workflows: &Mutex<WorkflowRootSession>,
     generation: &Value,
     restart: bool,
+    person: &str,
     wait_limit: Duration,
     confirm: impl FnMut(&Value) -> bool,
     start: impl FnOnce() -> Result<Value, String>,
 ) -> Result<Value, String> {
-    let mut ops = HostStop { home, workflows, generation, restart, confirm, start: Some(start) };
+    let mut ops = HostStop { home, workflows, generation, restart, confirm, start: Some(start), person: crate::stop_records::person(person) };
     stop_or_restart(&mut ops, restart, wait_limit)
 }
 

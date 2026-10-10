@@ -287,10 +287,12 @@ export function RunEndMarker({ run }: { run: Json }) {
   return <div role="note" style={marker}>Run ended: <b>{cause}</b> ({runName(run)}, run {text(run?.reference)}){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
 }
 
-// TO-4 / RECOVERY §3.4: the App's own label for a turn it interrupted at Stop
-// Codex, beside Codex's reported status (Codex cannot say who interrupted).
+// TO-4 / RECOVERY §3.4: the App's own label for a turn it was asked to stop,
+// beside Codex's reported status (Codex cannot say who interrupted). A REC SR
+// row carries its own reading and where it is recorded.
 export function StopLabel({ stop }: { stop: Json | null }) {
   if (!stop) return null;
+  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b>{text(stop.label)}</b>. </> : "Stop request: "}{text(stop.reading)}{stop.codexReported ? ` Codex reported: ${text(stop.codexReported)}.` : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: {text(stop.persistence)}.</small></p>;
   return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 

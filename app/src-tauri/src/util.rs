@@ -45,6 +45,16 @@ pub fn now_rfc3339() -> String {
     )
 }
 
+/// RFC 3339 UTC text with milliseconds for a Unix time in milliseconds, such
+/// as a supplier `startedAtMs` / `completedAtMs` value.
+pub fn rfc3339_from_ms(ms: i64) -> String {
+    let secs = ms.div_euclid(1000);
+    let days = secs.div_euclid(86_400);
+    let sod = secs.rem_euclid(86_400);
+    let (y, m, dd) = civil_from_days(days);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z", y, m, dd, sod / 3600, (sod % 3600) / 60, sod % 60, ms.rem_euclid(1000))
+}
+
 // Howard Hinnant's days-to-civil algorithm.
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;

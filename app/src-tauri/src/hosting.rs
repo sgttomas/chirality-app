@@ -199,6 +199,9 @@ struct Inner {
     execution_custody: execution_custody::ExecutionCustody,
     turn_request_threads: HashMap<String, (Value, String, u64)>,
     interrupt_requests: Vec<Value>,
+    /// REC stop requests (DEL-01-02 §3.4) of this Host, each with its latest
+    /// record; their ledger entries go through `pending_recovery`.
+    stop_requests: Vec<crate::stop_records::StopRequest>,
     /// The generation for which the person confirmed Stop/Restart Codex:
     /// from then on no new turn or steer is sent in it (only interrupts).
     stop_confirmed: Option<Value>,
@@ -716,6 +719,7 @@ impl Host {
                 let request = i.client_requests.iter().find(|r| r["generation"] == entry["generation"] && r["requestIdentity"] == entry["requestIdentity"]);
                 json!({"binding":entry,"clientRequest":request,"turnOutcome":"determined by native turn events, not interrupt acknowledgment"})
             }).collect::<Vec<_>>(),
+            "stopRequests": Self::stop_request_view(i),
             "modelTurnExercised": if i.source_requests.values().any(|e|e.request.frame["method"]=="turn/start")||i.client_requests.iter().any(|r| r["method"] == "turn/start") { Value::Null } else { json!(false) },
             "modelTurnEvidence": {"standing":"provider/model execution not established by request or mock result", "protocolRequests":i.client_requests.iter().filter(|r| r["method"] == "turn/start").collect::<Vec<_>>()},
         })
@@ -1308,6 +1312,7 @@ impl Host {
         let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit") {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
+        Self::stop_requests_generation_closed(i,&generation);
         Self::oauth_lost(i,&generation);
         let ended = i.server_requests.close(&generation);
         Self::persist_requests(i);
@@ -2137,26 +2142,201 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Some(NativeTurnRefusal{request_ref:source.request_ref.clone(),thread:source.frame["params"]["threadId"].as_str()?.into(),client_id:source.frame["params"]["clientUserMessageId"].as_str()?.into(),error,response_position:e.response_position?})
     }
 
-    /// Native interrupt acknowledgment is distinct from turn completion.
-    pub fn turn_interrupt(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Result<Value, String> {
-        if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
-        self.conversation_operation("turn/interrupt", generation,
-            json!({"threadId":thread_id,"turnId":turn_id}), Duration::from_secs(20))
+    /// The person's Interrupt (DEF-3, cause *person-interrupt*): the stop
+    /// request is recorded before the write (SR-01), then the request is sent
+    /// and its acknowledgment awaited. An acknowledgment is not the turn's end.
+    /// `home` is the App-owned home (H-acct or H-key); `person` is the person
+    /// as the App observes them (identity not verified).
+    pub fn turn_interrupt(&self, generation: &Value, thread_id: &str, turn_id: &str, home: &str, person: &Value) -> Result<Value, String> {
+        let source = self.turn_interrupt_begin(generation, thread_id, turn_id, crate::stop_records::Cause::PersonInterrupt, home, person)?;
+        self.turn_interrupt_acknowledgment(&source, Duration::from_secs(20))
     }
-    /// The same request, written without waiting for its acknowledgment, so
-    /// Stop Codex can write every interrupt before waiting on one shared
-    /// deadline (RECOVERY SR-01, SR-10).
-    pub fn turn_interrupt_begin(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Result<SourceRequest, String> {
+    /// One stop request (RECOVERY §3.4): the request's own guards are checked
+    /// first, and a refusal there writes no record (SQ-I I-1). Then SR-01 is
+    /// queued and written to the ledger before the request is written to
+    /// Codex; a ledger that does not accept it keeps it queued in this process
+    /// and the stop still proceeds (I-2). The send then gives SR-02 or SR-03.
+    /// The request is not awaited, so Stop Codex can write every interrupt
+    /// before waiting on one shared deadline (SR-10).
+    pub fn turn_interrupt_begin(&self, generation: &Value, thread_id: &str, turn_id: &str, cause: crate::stop_records::Cause, home: &str, person: &Value) -> Result<SourceRequest, String> {
         if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
         crate::recovery::generation_ref(generation)?;
-        self.request_begin_scoped("turn/interrupt", json!({"threadId":thread_id,"turnId":turn_id}), json!({"kind":"person-directed"}), false, Some(generation))
+        let params = json!({"threadId":thread_id,"turnId":turn_id});
+        // One writer: the guard, SR-01 and the send are not interleaved with
+        // another stop request, so a second press is refused (SR-11).
+        let _writer = self.recovery_writer.lock().unwrap();
+        let id = {
+            let mut i = self.inner.0.lock().unwrap();
+            if i.state != "ready" { return Err(format!("refused-not-sent(not-ready): state {}", i.state)); }
+            if i.generation != *generation || i.server_requests.is_closed(generation) { return Err("refused-not-sent: turn/interrupt generation changed before request registration".into()); }
+            Self::check_conversation_request(&i, "turn/interrupt", &params)?;
+            match crate::stop_records::StopRequest::requested(generation, home, thread_id, turn_id, cause, person) {
+                Ok(request) => {
+                    let id = request.id().to_owned();
+                    i.stop_requests.push(request);
+                    Self::queue_stop_record(&mut i, &id);
+                    Some(id)
+                }
+                Err(error) => {
+                    // Bookkeeping never blocks the person's stop (I-2); the gap is shown.
+                    i.recovery_projection_errors.push(json!({"generation":generation,"threadId":thread_id,"turnId":turn_id,"limit":format!("stop request not recorded: {error}"),"standing":"the interrupt is still sent; no stop-request record exists for it"}));
+                    None
+                }
+            }
+        };
+        self.drain_recovery_owned();
+        let begun = self.request_begin_scoped("turn/interrupt", params, json!({"kind":"person-directed"}), false, Some(generation));
+        let evidence = begun.as_ref().ok().map(SourceRequest::evidence);
+        if let Some(id) = id {
+            let mut i = self.inner.0.lock().unwrap();
+            match (&begun, &evidence) {
+                (Ok(source), Some(evidence)) if evidence["writeResult"] == "written" => Self::stop_request_sent(&mut i, &id, source),
+                (Ok(_), Some(evidence)) if evidence["writeResult"] == "write-failed" => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(true, evidence["writeError"].as_str().unwrap_or("write failed")).map(Some)); }
+                (Ok(_), evidence) => {
+                    let reason = evidence.as_ref().and_then(|e| e["noAttemptCause"].as_str()).unwrap_or("no complete write of the request was observed").to_owned();
+                    Self::stop_request_update(&mut i, &id, |r| r.not_sent(false, &format!("refused before sending: {reason}")).map(Some));
+                }
+                (Err(error), _) => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(false, &format!("refused before sending: {error}")).map(Some)); }
+            }
+        }
+        self.drain_recovery_owned();
+        begun
     }
-    /// Waits up to `wait` for that interrupt's acknowledgment, read as
-    /// `turn_interrupt` reads it. When the wait ends the request stays
-    /// pending; nothing is resent. An acknowledgment is not the turn's end.
+    /// SR-02, then any response or turn end the reader observed before the
+    /// request was linked, in receipt order (SR-04/05, SR-06/07, SR-12).
+    fn stop_request_sent(i: &mut Inner, id: &str, source: &SourceRequest) {
+        let key = source.request_id().to_string();
+        let response = i.source_requests.get(&key).and_then(|e| e.response.clone().map(|r| (r, e.response_position.unwrap_or(u64::MAX))));
+        let (generation, thread, turn) = match i.stop_requests.iter().find(|r| r.id() == id) {
+            Some(r) => (r.generation().clone(), r.record()["threadId"].as_str().unwrap_or_default().to_owned(), r.record()["turnId"].as_str().unwrap_or_default().to_owned()),
+            None => return,
+        };
+        let ended = i.conversation_turns.iter().find(|t| t["generation"] == generation && t["threadId"] == thread && t["turnId"] == turn && t["terminalEventObserved"] == true)
+            .map(|t| (t["nativeTurn"]["status"].as_str().unwrap_or_default().to_owned(), t["receiptPosition"].as_u64().unwrap_or(u64::MAX)));
+        Self::stop_request_update(i, id, |r| r.sent(source.request_ref(), source.request_id()).map(Some));
+        let mut later: Vec<(u64, bool)> = Vec::new();
+        if let Some((_, position)) = &response { later.push((*position, true)); }
+        if let Some((_, position)) = &ended { later.push((*position, false)); }
+        later.sort();
+        for (_, is_response) in later {
+            if is_response {
+                let frame = response.as_ref().unwrap().0.clone();
+                Self::stop_request_update(i, id, |r| r.response(&frame));
+            } else {
+                let status = ended.as_ref().unwrap().0.clone();
+                Self::stop_request_update(i, id, |r| r.turn_completed(&status));
+            }
+        }
+    }
+    /// Applies one transition to a stop request and queues its record.
+    fn stop_request_update(i: &mut Inner, id: &str, change: impl FnOnce(&mut crate::stop_records::StopRequest) -> Result<Option<Value>, String>) -> bool {
+        let Some(request) = i.stop_requests.iter_mut().find(|r| r.id() == id) else { return false };
+        match change(request) {
+            Ok(Some(_)) => { Self::queue_stop_record(i, id); true }
+            Ok(None) => false,
+            Err(error) => { request.set_note(format!("a transition was not recorded: {error}")); false }
+        }
+    }
+    /// Queues the stop request's current record for the ledger, validated as
+    /// a ledger entry. Without a ledger it is kept in this process only.
+    fn queue_stop_record(i: &mut Inner, id: &str) {
+        let session = if i.app_session.is_empty() { i.generation["appSession"].as_str().unwrap_or_default().to_owned() } else { i.app_session.clone() };
+        let ledger = i.recovery.is_some();
+        let queue = Arc::clone(&i.pending_recovery);
+        let Some(request) = i.stop_requests.iter_mut().find(|r| r.id() == id) else { return };
+        if !ledger {
+            request.set_note("App ledger unavailable: kept in this App process only; not readable after a relaunch");
+            return;
+        }
+        let entry = crate::stop_records::ledger_entry(&session, request.record());
+        match RecoveryLedger::validate_pointer_entry(&entry) {
+            Ok(()) => { queue.facts.lock().unwrap().push_back(entry.clone()); request.queued(entry); }
+            Err(error) => request.set_note(format!("not recorded: {error}")),
+        }
+    }
+    /// SR-04 / SR-05 / SR-12 for the stop request this response answers.
+    fn stop_request_response(i: &mut Inner, generation: &Value, frame: &Value) {
+        let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == generation && r.request_identity() == frame.get("id")).map(|r| r.id().to_owned()).collect();
+        for id in ids { Self::stop_request_update(i, &id, |r| r.response(frame)); }
+    }
+    /// SR-06 / SR-07 when `turn/completed` is observed for a stopped turn.
+    fn stop_request_turn_end(i: &mut Inner, generation: &Value, thread: &str, native: &Value) {
+        let (Some(turn), Some(status)) = (native["id"].as_str(), native["status"].as_str()) else { return };
+        let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.is_for(generation, thread, turn)).map(|r| r.id().to_owned()).collect();
+        for id in ids { Self::stop_request_update(i, &id, |r| r.turn_completed(status)); }
+    }
+    /// SR-08 for every stop request of a closing generation with no final status.
+    fn stop_requests_generation_closed(i: &mut Inner, generation: &Value) {
+        let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == generation).map(|r| r.id().to_owned()).collect();
+        for id in ids { Self::stop_request_update(i, &id, |r| r.generation_closed()); }
+    }
+    /// SR-10: the caller's wait for this interrupt's response ended.
+    fn stop_request_wait_ended(&self, source: &SourceRequest) {
+        {
+            let mut i = self.inner.0.lock().unwrap();
+            let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == source.generation() && r.request_identity() == Some(source.request_id())).map(|r| r.id().to_owned()).collect();
+            for id in ids { Self::stop_request_update(&mut i, &id, |r| r.waiting_ended()); }
+        }
+        self.flush_recovery_observations();
+    }
+    /// The stop requests the person can see: the ledger's (every App session)
+    /// and this process's, each with whether its latest record is in the
+    /// ledger (§3.4; R-2 reading).
+    fn stop_request_view(i: &Inner) -> Value {
+        let queued = i.pending_recovery.facts.lock().unwrap();
+        let queue_limit = i.pending_recovery.limit.lock().unwrap().clone();
+        let recorded = |entry: &Value| i.recovery_snapshot.as_ref().and_then(|s| s["entries"].as_array()).is_some_and(|rows| rows.contains(entry));
+        let live: Vec<(Value, String)> = i.stop_requests.iter().map(|r| {
+            let persistence = match (r.last_entry(), r.note()) {
+                (Some(entry), _) if recorded(entry) => "recorded in the App ledger".to_owned(),
+                (Some(entry), _) if queued.contains(entry) => format!("not yet written to the App ledger; kept in this App process{}", queue_limit.as_ref().map(|l| format!(" ({l})")).unwrap_or_default()),
+                (_, Some(note)) => note.to_owned(),
+                _ => "not recorded".to_owned(),
+            };
+            (r.record().clone(), persistence)
+        }).collect();
+        let current = if i.app_session.is_empty() { i.generation["appSession"].as_str().unwrap_or_default() } else { i.app_session.as_str() };
+        crate::stop_records::outcomes(i.recovery_snapshot.as_ref(), &live, current)
+    }
+    /// C-12: the ledger `codex_stop` entry for the person's confirmed Stop or
+    /// Restart Codex, written before any interrupt is sent (§3.1). Returns
+    /// whether it is in the ledger; a ledger that does not accept it keeps it
+    /// queued in this process.
+    pub fn record_codex_stop(&self, actor: &Value, home: &str, restart: bool, material: &Value) -> Value {
+        let _writer = self.recovery_writer.lock().unwrap();
+        let entry = {
+            let i = self.inner.0.lock().unwrap();
+            if i.recovery.is_none() {
+                return json!({"state":"not recorded","reading":"App ledger unavailable: the Stop Codex record is kept in this App process only and is not readable after a relaunch"});
+            }
+            match crate::stop_records::codex_stop_entry(&i.app_session, actor, home, restart, material) {
+                Ok(entry) => { i.pending_recovery.facts.lock().unwrap().push_back(entry.clone()); entry }
+                Err(error) => return json!({"state":"not recorded","reading":format!("The Stop Codex record could not be formed: {error}")}),
+            }
+        };
+        self.drain_recovery_owned();
+        let i = self.inner.0.lock().unwrap();
+        if i.pending_recovery.facts.lock().unwrap().contains(&entry) {
+            let limit = i.pending_recovery.limit.lock().unwrap().clone().unwrap_or_else(|| "writer busy".into());
+            json!({"state":"not yet recorded","reading":format!("The App ledger did not accept the Stop Codex record ({limit}); it stays queued in this App process"),"entry":entry})
+        } else {
+            json!({"state":"recorded","reading":"Recorded in the App ledger before any interrupt was sent","entry":entry})
+        }
+    }
+    /// Waits up to `wait` for that interrupt's acknowledgment. When the wait
+    /// ends the request stays pending and its stop request records SR-10;
+    /// nothing is resent. An acknowledgment is not the turn's end.
     pub fn turn_interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
         if source.frame["method"] != "turn/interrupt" { return Err("not an interrupt request".into()); }
-        let response = self.wait_source_response(source, wait)?;
+        let response = match self.wait_source_response(source, wait) {
+            Ok(response) => response,
+            Err(error) => {
+                if error.contains("within the wait limit") { self.stop_request_wait_ended(source); }
+                return Err(error);
+            }
+        };
+        #[cfg(test)]
+        if let Some(hook) = self.before_turn_result.lock().unwrap().take() { hook(); }
         let i = self.inner.0.lock().unwrap();
         if i.generation != source.generation || i.server_requests.is_closed(&source.generation) || i.state != "ready" {
             return Err("turn/interrupt response belongs to closed/replaced generation; native response retained in journal".into());
@@ -2297,6 +2477,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         i.execution_custody.turn(generation,thread,native,source=="turn/completed",&now_rfc3339());
         Self::persist_execution(i);
+        if source == "turn/completed" { Self::stop_request_turn_end(i, generation, thread, native); }
     }
 
     fn check_conversation_request(i: &Inner, method: &str, params: &Value) -> Result<(), String> { Self::check_conversation_request_excluding(i,method,params,None) }
@@ -2457,6 +2638,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     }
                 }
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(frame.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
+                Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(frame.clone());
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
@@ -2975,13 +3157,13 @@ mod conversation_transport_tests {
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {
         let host=host();let text="exact text\n\né / 家";
         let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],Host::text_turn_params("thread",text).unwrap());let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
-        let (ack,outbound)=exchange(&host,Some(json!({"result":{}})),vec![],||host.turn_interrupt(&g(),"thread","turn"));assert_eq!(ack.unwrap()["result"],json!({}));assert_eq!(outbound["params"],json!({"threadId":"thread","turnId":"turn"}));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
-        let count=host.client_requests().len();assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"stop-already-requested");assert_eq!(host.client_requests().len(),count);event(&host,"interrupted");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"interrupted");assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"no-live-turn");
+        let (ack,outbound)=exchange(&host,Some(json!({"result":{}})),vec![],||host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")));assert_eq!(ack.unwrap()["result"],json!({}));assert_eq!(outbound["params"],json!({"threadId":"thread","turnId":"turn"}));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
+        let count=host.client_requests().len();assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"stop-already-requested");assert_eq!(host.client_requests().len(),count);event(&host,"interrupted");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"interrupted");assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");
     }
     #[test]
     fn foreign_closed_unknown_thread_and_unknown_turn_are_not_registered_or_written() {
         let host=host();for foreign in [json!(1),json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1}),json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2})] {assert!(host.turn_start_text(&foreign,"thread","text").is_err());}
-        assert!(host.turn_start_text(&g(),"unknown","text").unwrap_err().contains("conversation-not-loaded"));assert_eq!(host.turn_interrupt(&g(),"thread","unknown").unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_start_text(&g(),"thread","text").is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+        assert!(host.turn_start_text(&g(),"unknown","text").unwrap_err().contains("conversation-not-loaded"));assert_eq!(host.turn_interrupt(&g(),"thread","unknown","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_start_text(&g(),"thread","text").is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);
     }
     #[test]
     fn native_error_failed_write_and_wait_limit_keep_distinct_evidence_and_late_response() {
@@ -2996,8 +3178,8 @@ mod conversation_transport_tests {
     }
     #[test]
     fn interrupt_error_timeout_and_closure_do_not_claim_effect_or_automatic_retry() {
-        let host=host();event(&host,"inProgress");let (result,_)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"interrupt refused"}})),vec![],||host.turn_interrupt(&g(),"thread","turn"));assert!(result.unwrap_err().contains("native error"));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
-        let (result,_)=exchange(&host,None,vec![],||host.conversation_operation("turn/interrupt",&g(),json!({"threadId":"thread","turnId":"turn"}),Duration::from_millis(15)));assert!(result.is_err());assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"stop-already-requested");let count=host.client_requests().len();Host::close_generation(&mut host.inner.0.lock().unwrap());assert_eq!(host.client_requests().len(),count);assert_eq!(host.client_requests().last().unwrap()["outcome"],"unknown-no-response");let turn=&host.snapshot()["conversationTurns"][0];assert_eq!(turn["nativeTurn"]["status"],"inProgress");assert_eq!(turn["observationEnded"],true);
+        let host=host();event(&host,"inProgress");let (result,_)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"interrupt refused"}})),vec![],||host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")));assert!(result.unwrap_err().contains("native error"));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
+        let (result,_)=exchange(&host,None,vec![],||host.conversation_operation("turn/interrupt",&g(),json!({"threadId":"thread","turnId":"turn"}),Duration::from_millis(15)));assert!(result.is_err());assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"stop-already-requested");let count=host.client_requests().len();Host::close_generation(&mut host.inner.0.lock().unwrap());assert_eq!(host.client_requests().len(),count);assert_eq!(host.client_requests().last().unwrap()["outcome"],"unknown-no-response");let turn=&host.snapshot()["conversationTurns"][0];assert_eq!(turn["nativeTurn"]["status"],"inProgress");assert_eq!(turn["observationEnded"],true);
     }
     #[test]
     fn exact_completed_then_started_repro_preserves_terminal_and_raw_inconsistency() {
@@ -3005,16 +3187,16 @@ mod conversation_transport_tests {
         let late=json!({"method":"turn/started","params":{"threadId":"thread","turn":turn("inProgress")},"nativeExtra":"contradictory source preserved"});
         host.on_line(&serde_json::to_vec(&late).unwrap(),&g());let snapshot=host.snapshot();let record=&snapshot["conversationTurns"][0];
         assert_eq!(record["nativeTurn"],before["nativeTurn"]);assert_eq!(record["source"],before["source"]);assert_eq!(record["receiptPosition"],before["receiptPosition"]);assert_eq!(record["terminalEventObserved"],true);assert_eq!(record["inconsistencyLimits"][0]["source"],"turn/started");assert_eq!(record["inconsistencyLimits"][0]["reportedStatus"],"inProgress");assert_eq!(host.journal().last().unwrap()["frame"],late);
-        assert_eq!(Host::check_conversation_request(&host.inner.0.lock().unwrap(),"turn/interrupt",&json!({"threadId":"thread","turnId":"turn"})).unwrap_err(),"no-live-turn");assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+        assert_eq!(Host::check_conversation_request(&host.inner.0.lock().unwrap(),"turn/interrupt",&json!({"threadId":"thread","turnId":"turn"})).unwrap_err(),"no-live-turn");assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);
         // Terminal guard is independent of raw-payload status, even if a
         // future reading accidentally supplies an active-looking payload.
-        host.inner.0.lock().unwrap().conversation_turns[0]["nativeTurn"]["status"]=json!("inProgress");assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"no-live-turn");
+        host.inner.0.lock().unwrap().conversation_turns[0]["nativeTurn"]["status"]=json!("inProgress");assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");
     }
     #[test]
     fn all_processed_active_like_sources_and_late_start_response_stay_non_live() {
         let host=host();event(&host,"interrupted");let terminal=host.snapshot()["conversationTurns"][0]["nativeTurn"].clone();
         let active_completed=json!({"method":"turn/completed","params":{"threadId":"thread","turn":turn("inProgress")}});host.on_line(&serde_json::to_vec(&active_completed).unwrap(),&g());assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"],terminal);
-        let (response,_)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread","exact text"));assert_eq!(response.unwrap()["result"]["turn"]["status"],"inProgress");let record=host.snapshot()["conversationTurns"][0].clone();assert_eq!(record["nativeTurn"],terminal);assert_eq!(record["inconsistencyLimits"].as_array().unwrap().len(),2);assert_eq!(host.turn_interrupt(&g(),"thread","turn").unwrap_err(),"no-live-turn");
+        let (response,_)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread","exact text"));assert_eq!(response.unwrap()["result"]["turn"]["status"],"inProgress");let record=host.snapshot()["conversationTurns"][0].clone();assert_eq!(record["nativeTurn"],terminal);assert_eq!(record["inconsistencyLimits"].as_array().unwrap().len(),2);assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");
         // A distinct native turn ID in the same thread is an ordinary new turn,
         // not revival of the completed tuple.
         let mut next=turn("inProgress");next["id"]=json!("next-turn");host.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"thread","turn":next}})).unwrap(),&g());assert!(Host::check_conversation_request(&host.inner.0.lock().unwrap(),"turn/interrupt",&json!({"threadId":"thread","turnId":"next-turn"})).is_ok());
@@ -3023,7 +3205,7 @@ mod conversation_transport_tests {
     fn full_tuple_transition_after_response_cannot_mutate_successor_turn_state() {
         for method in ["turn/start","turn/interrupt"] {for successor in [json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2}),json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1})] {
             let host=host();if method=="turn/interrupt" {event(&host,"inProgress");}let me=Arc::clone(&host);let next=successor.clone();*host.before_turn_result.lock().unwrap()=Some(Box::new(move||{let mut i=me.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation=next;i.state="ready".into();}));
-            let response=if method=="turn/start" {json!({"result":{"turn":turn("inProgress")}})}else{json!({"result":{}})};let (result,outbound)=exchange(&host,Some(response.clone()),vec![],||if method=="turn/start" {host.turn_start_text(&g(),"thread","exact text")}else{host.turn_interrupt(&g(),"thread","turn")});assert!(result.unwrap_err().contains("closed/replaced generation"));let snapshot=host.snapshot();assert_eq!(snapshot["generation"],successor);assert!(snapshot["conversationTurns"].as_array().unwrap().iter().all(|t|t["generation"]==g()));assert_eq!(snapshot["clientRequests"][0]["generation"],g());let mut expected=response;expected["id"]=outbound["id"].clone();assert_eq!(host.journal().last().unwrap()["frame"],expected);
+            let response=if method=="turn/start" {json!({"result":{"turn":turn("inProgress")}})}else{json!({"result":{}})};let (result,outbound)=exchange(&host,Some(response.clone()),vec![],||if method=="turn/start" {host.turn_start_text(&g(),"thread","exact text")}else{host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person(""))});assert!(result.unwrap_err().contains("closed/replaced generation"));let snapshot=host.snapshot();assert_eq!(snapshot["generation"],successor);assert!(snapshot["conversationTurns"].as_array().unwrap().iter().all(|t|t["generation"]==g()));assert_eq!(snapshot["clientRequests"][0]["generation"],g());let mut expected=response;expected["id"]=outbound["id"].clone();assert_eq!(host.journal().last().unwrap()["frame"],expected);
         }}
     }
 
@@ -3817,3 +3999,7 @@ mod execution_custody_tests;
 #[cfg(test)]
 #[path = "recovery_root_tests.rs"]
 mod recovery_root_tests;
+
+#[cfg(test)]
+#[path = "stop_records_host_tests.rs"]
+mod stop_records_host_tests;

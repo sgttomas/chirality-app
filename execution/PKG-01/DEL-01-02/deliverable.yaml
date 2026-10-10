@@ -59,7 +59,11 @@ needs:
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/codex_stop.rs
+- app/src-tauri/src/stop_records.rs
+- app/src-tauri/resources/runtime_core/recovery.stop-request.schema.json
 checks:
 - app/src-tauri/src/codex_stop_tests.rs
+- app/src-tauri/src/stop_records_tests.rs
+- app/src-tauri/src/stop_records_host_tests.rs
 - execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
 - execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py

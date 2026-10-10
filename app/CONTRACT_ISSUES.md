@@ -494,9 +494,17 @@ owner or the owner. No Design file was changed.
     run's own home and thread after the run's generation is checked as
     current. A missing binding stays `Unknown`.
   - No catalog edition is ever observed, so CK-3 is never evaluated.
-- **(h) `run_ended.waitingArrivals` (J3).** The App has no checkpoint recorder
-  (EXEC §2.4). `run_ended` writes `waitingArrivals: []`, meaning only that the
-  App recorded no arrivals. It is not evidence that none were reached.
+- **(h) `run_ended.waitingArrivals` (J3). Closed 2026-10-10.** The App now
+  has a first-slice checkpoint recorder (EXEC §2.4, `checkpoint_recorder.rs`;
+  EXEC is DRAFT/PROPOSED text). `run_ended` lists every recorded arrival whose
+  latest disposition is *waiting* (CE-17), read from the run's own entries, so
+  an end after relaunch (`end_recorded_run`) lists them too. Residual limits,
+  each stated in the record itself: only output arrivals AW-6 (message) and
+  AW-7 (file) are evaluated, and every other checkpoint's `checkpoint_listed`
+  entry says *not evaluable* with its reason; acts are not counted yet
+  (CE-5/CE-6), so an arrival stays *waiting* after the act and its
+  `checkpoint_arrival` carries that limit. An empty list therefore means no
+  evaluated arrival is waiting, not that no checkpoint was reached.
 - **(i) Notice dispatch is counted once (J3; corrected by V10 G-1).** TX-5 says
   "once".
   - When consumed: only when the Host observed a write attempt of the

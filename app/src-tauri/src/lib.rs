@@ -11,6 +11,7 @@ pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
 pub mod catalog;
+mod checkpoint_recorder;
 pub mod codex_stop;
 pub mod conversation_roles;
 pub mod connector_standing;
@@ -56,6 +57,7 @@ pub(crate) mod a15_native;
 pub mod schema_validation;
 pub mod standing;
 pub mod storage;
+pub mod stop_records;
 pub mod util;
 
 use act_control::{ActControl, InputSource};
@@ -206,6 +208,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
     s["homeRouting"] = state.homes.lock().unwrap().snapshot();
     s["homeAccess"] = home.account_view();
+    // EXEC §2.4: the checkpoint recorder reads this home's view for its open
+    // runs before the run panel is read (runtime -> attachments -> Root -> run).
+    runtime_session::record_run_observations(&state.workflows, &s["nativeView"]);
     {
         let root = state.workflows.lock().unwrap();
         s["workflowRoot"] = root.snapshot();
@@ -461,7 +466,8 @@ fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Val
     }
     let (title, act) = if restart { ("Restart Codex", act_control::native_statement::RESTART_CODEX) } else { ("Stop Codex", act_control::native_statement::STOP_CODEX) };
     let mut refused = None;
-    let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart,
+    let person = stop_person(&state, &home);
+    let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart, &person,
         |view| confirm_choice(&app, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act, &mut refused),
         || start_home(&state, &home, "the person: Restart Codex"));
     codex_stop::finish(&state.codex_stops, title, refused, result)
@@ -685,13 +691,25 @@ fn conversation_interrupt(
     turn_id: String,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    // REC SR (DEL-01-02 §3.4): the stop request names the App-owned home and
+    // the person as the App observes them; it is recorded before the send.
+    let home_class = stop_records::home_class(home.class().as_str()).ok_or("This home has no App-owned home class; nothing sent")?;
+    let person = stop_records::person(&stop_person(&state, &home));
     runtime_session::interrupt_conversation_turn(
         &home.host.snapshot(),
         &generation,
         &thread_id,
         &turn_id,
-        |generation, thread, turn| home.host.turn_interrupt(generation, thread, turn),
+        |generation, thread, turn| home.host.turn_interrupt(generation, thread, turn, home_class, &person),
     )
+}
+/// The person as a stop request names them (K1-4): the App's name setting
+/// and the OS account, never verified.
+fn stop_person(state: &AppState, home: &Arc<runtime_session::HomeSession>) -> String {
+    let (_, context) = current_actor_context_for(state, home);
+    let actor = act_control::person(context["displayName"].as_str(), context["osAccount"].as_str());
+    let line = act_control::native_statement::actor_line(&actor);
+    line.strip_suffix(" (identity not verified)").unwrap_or(&line).to_owned()
 }
 
 /// NIR §5.8 CA-1/CA-2, ROLE §3.3: "Continue as ‹role›". Asks the source

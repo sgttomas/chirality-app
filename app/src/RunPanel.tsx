@@ -76,14 +76,46 @@ export const arrivalLabel = (disposition: Json) => DISPOSITION[text(disposition)
 
 /** The run record's entry kinds, as the run view reports them. */
 const recordKinds = (run: Json): string[] => list(run?.lifecycle?.records).map((r: Json) => text(r?.kind));
+const records = (run: Json): Json[] => list(run?.lifecycle?.records);
+const sameArrival = (a: Json, checkpoint: string, ordinal: Json) => text(a?.checkpoint) === checkpoint && a?.arrivalOrdinal === ordinal;
+const TIME_SOURCE: Record<string, string> = { supplier_item_time: "time Codex gave for the item", app_observation_time: "time the App observed it" };
+// An entry not yet in the run record says so; one written late carries its CE-19 limit.
+const writtenNote = (r: Json, all: Json[]): string => r?.written === false ? `Not yet written to the run record: ${text(r.limit) || "the write did not complete"}.`
+  : all.some((e: Json) => e?.kind === "evidence_limit" && e?.body?.label === "record write failed" && e?.body?.subjectRef === r?.recordId) ? "Written late; the run record carries a “record write failed” limit for it." : "";
+const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
+
+/** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
+ * the run record. Information only: nothing waits on it and nothing is sent. */
+export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) {
+  const b = arrival?.body ?? {};
+  const name = text(b.checkpoint);
+  const related = (kind: string) => all.filter((e: Json) => e?.kind === kind && sameArrival(e?.body?.arrival, name, b.arrivalOrdinal));
+  const changes = related("disposition_change");
+  const latest = changes.length ? changes[changes.length - 1].body?.disposition : undefined;
+  const time = b.event?.evidencedTime;
+  const note = writtenNote(arrival, all);
+  return <li>
+    Arrival {text(b.arrivalOrdinal)}: {latest === undefined ? "disposition not recorded" : arrivalLabel(latest)}. Observed {text(b.event?.ref)}{time ? ` at ${text(time.value)} (${TIME_SOURCE[text(time.source)] ?? text(time.source)})` : ""}.
+    {list(b.referents).map((r: Json, i: number) => line(`r${i}`, `Subject: ${text(r?.subject)}; content ${r?.content?.notObtainable ? `not obtainable: ${text(r.content.reason)}` : `${text(r?.content?.method)} ${text(r?.content?.value).slice(0, 12)}`}.`))}
+    {line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
+    {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
+    {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the act the run went on with ${text(c.body?.firstActionRef)}.`))}
+    {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
+    {note && line("w", note)}
+  </li>;
+}
 
 /** OV-1, SD-1, PD-1, PD-7: one declared checkpoint as plan guidance, with
  * what the run record holds about it. */
 export function CheckpointGuidance({ element, run }: { element: Json; run?: Json }) {
   const v = element?.value ?? {};
   const invalid = element?.reading === "invalid";
-  const listed = run ? recordKinds(run).includes("checkpoint_listed") : null;
-  const arrivals = run ? recordKinds(run).filter(k => k === "checkpoint_arrival").length : 0;
+  const all = run ? records(run) : [];
+  const name = text(v.name);
+  const listing = all.find((r: Json) => r?.kind === "checkpoint_listed" && text(r?.body?.checkpoint) === name);
+  const arrivals = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && text(r?.body?.checkpoint) === name);
+  const unread = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && typeof r?.body?.checkpoint !== "string").length;
+  const evaluability = listing?.body?.evaluability;
   return <li>
     <b>{text(v.name) || "(unnamed checkpoint)"}</b>: {actLabel(v.required_act)} by {ACTOR[text(v.actor)] ?? text(v.actor)} on {SUBJECT[text(v.subject?.class)] ?? text(v.subject?.class)}{v.subject?.output ? ` (${text(v.subject.output)})` : ""}, {reachedWhen(v.reached_when)}.
     {invalid && <> <b>Declaration finding: invalid</b> ({list(element.findings).map(text).join("; ")}). It is listed as written and treated as nothing more.</>}
@@ -94,7 +126,12 @@ export function CheckpointGuidance({ element, run }: { element: Json; run?: Json
     {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
     {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
     <br /><small>The agent asks you for the act when its work reaches this point; the act is recorded only when you perform it.</small>
-    {run && <><br /><small>Run record: {arrivals ? `${arrivals} arrival entr${arrivals === 1 ? "y" : "ies"} recorded in this run, for any of its checkpoints; this view does not read their bodies, so which checkpoint each concerns and its label are not shown.` : "no arrival recorded. This App does not yet record checkpoint arrivals, so none is shown."}{listed === false ? " The checkpoint list itself is missing in record (no checkpoint_listed entry); it is shown here from the declaration." : ""}</small></>}
+    {run && line("record", `Run record: ${!listing ? (invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
+      : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
+      : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
+    {run && listing && (arrivals.length
+      ? <ul aria-label={`Recorded arrivals of ${name}`}>{arrivals.map((a: Json, i: number) => <ArrivalRecord key={i} arrival={a} all={all} />)}</ul>
+      : line("none", `No arrival recorded in this run.${unread ? ` ${unread} arrival entr${unread === 1 ? "y" : "ies"} could not be read, so this may be incomplete.` : ""}`))}
   </li>;
 }
 
@@ -103,10 +140,30 @@ export function CheckpointGuidance({ element, run }: { element: Json; run?: Json
 export type Facets = { temporal: string; hostChecks: string; limitations: string; humanActs: string; examination: string; evidence: string; route: string };
 // Kinds known to say nothing about an output's standing. Any other kind,
 // including one this view has never seen, makes the facets unknown.
-export const OUTPUT_NEUTRAL_KINDS = ["run_opened", "supplied_guidance", "compatibility_report_ref", "run_ended"];
+export const OUTPUT_NEUTRAL_KINDS = ["run_opened", "supplied_guidance", "compatibility_report_ref", "run_ended", "checkpoint_listed"];
+// Checkpoint entries whose bodies this view reads (EXEC CE-3, CE-12): an arrival,
+// its "waiting" disposition and a continuation record no act, check or result,
+// so they leave the facets as they are; an arrival bound to an output adds an
+// evidence note. The same kinds without a readable body, or with another
+// disposition, read as unknown like any other entry.
+const readCheckpointEntry = (r: Json): boolean => {
+  const b = r?.body;
+  switch (r?.kind) {
+    case "checkpoint_arrival": return typeof b?.checkpoint === "string" && b?.event?.source === "native_item";
+    case "disposition_change": return b?.disposition === "waiting";
+    case "continued_past": return typeof b?.arrival?.checkpoint === "string";
+    default: return false;
+  }
+};
+// An arrival whose bound subject is this output: what the record observed, and no more.
+function arrivalEvidence(output: Json, run: Json): string | undefined {
+  const name = text(output?.name);
+  const bound = records(run).filter((r: Json) => r?.kind === "checkpoint_arrival" && list(r?.body?.referents).some((x: Json) => text(x?.subject).startsWith(`output ${name}:`)));
+  if (!name || !bound.length) return undefined;
+  return `observed in the conversation only: ${bound.map((r: Json) => `${text(r.body.event?.ref)} (arrival of ${text(r.body.checkpoint)})`).join("; ")}. That marks where the agent put the output; it does not show that its content meets the declaration`;
+}
 export function outputStanding(output: Json, run: Json): Facets {
-  const kinds = recordKinds(run);
-  const unread = Array.from(new Set(kinds.filter(k => !OUTPUT_NEUTRAL_KINDS.includes(k))));
+  const unread = Array.from(new Set(records(run).filter((r: Json) => !OUTPUT_NEUTRAL_KINDS.includes(text(r?.kind)) && !readCheckpointEntry(r)).map((r: Json) => text(r?.kind))));
   if (unread.length) {
     const unknown = `unknown: the run record holds ${unread.join(", ")} entries whose bodies this view does not read, so their relation to ${text(output?.name)} is not shown`;
     return { temporal: unknown, hostChecks: unknown, limitations: unknown, humanActs: unknown, examination: unknown, evidence: `unknown (record entries not read by this view)`, route: unknown };
@@ -117,7 +174,7 @@ export function outputStanding(output: Json, run: Json): Facets {
     limitations: "none reported",
     humanActs: "none recorded in this run (acts on App files are in their own act log)",
     examination: "none recorded",
-    evidence: `missing: no record of ${text(output?.name) || "this output"} in the run record`,
+    evidence: arrivalEvidence(output, run) ?? `missing: no record of ${text(output?.name) || "this output"} in the run record`,
     route: "not recorded",
   };
 }
@@ -196,6 +253,16 @@ export function CompatibilityAdvisory({ entry }: { entry: Json }) {
   </li>;
 }
 
+/** EXEC A-12 / CE-19: run record entries the App could not write yet. They are
+ * kept in this App process, in order, and written when writing works again,
+ * each followed by a "record write failed" limit. Nothing is written elsewhere. */
+export function RecordWriteNotice({ run }: { run: Json }) {
+  const pending = records(run).filter((r: Json) => r?.written === false);
+  if (!pending.length) return null;
+  const limits = Array.from(new Set(pending.map((r: Json) => text(r?.limit)).filter(Boolean)));
+  return <p role="alert">{pending.length} run record entr{pending.length === 1 ? "y is" : "ies are"} not yet written ({pending.map((r: Json) => text(r?.kind)).join(", ")}){limits.length ? `: ${limits.join("; ")}` : ""}. They are kept in this App process only, in order, and are written to this run's record when writing works again, each followed by a “record write failed” limit. If the App quits first they are lost.</p>;
+}
+
 /** PD-1, PD-3, PD-7 for one run, from the run view the host reports. */
 export function RunPanel({ run }: { run: Json }) {
   const compatibility = list(run?.compatibility);
@@ -204,6 +271,7 @@ export function RunPanel({ run }: { run: Json }) {
   return <div aria-label="Run panel">
     <p>Workflow {text(workflow.name)} ({text(workflow.origin)}), revision {text(workflow.revision).slice(0, 12)} · conversation {text(run?.conversation)} · run {text(run?.lifecycle?.state)}{run?.lifecycle?.follows ? ` · follows ${text(run.lifecycle.follows)}` : ""}{run?.lifecycle?.end ? ` · ended: ${text(run.lifecycle.end.cause)}` : ""}.</p>
     <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
+    <RecordWriteNotice run={run} />
     <h4>Declared part of {text(workflow.name) || "this workflow"}</h4>
     {declaration ? <DeclaredPart declaration={declaration} run={run} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     <h4>Compatibility (advisory)</h4>

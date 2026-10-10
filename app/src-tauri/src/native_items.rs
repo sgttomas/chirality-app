@@ -213,14 +213,24 @@ impl NativeView {
         // inspectable in hosting's unmodified ordered journal.
         match frame["method"].as_str() {
             Some("item/started" | "item/completed") => {
+                let completed = frame["method"] == "item/completed";
                 self.item(
                     text(p, "threadId")?,
                     text(p, "turnId")?,
                     &p["item"],
-                    frame["method"] == "item/completed",
+                    completed,
                     false,
                     Some(frame.clone()),
                 )?;
+                // Receipt positions of the item's start and completion in this
+                // generation: the App's receiving order, never a native sequence.
+                let key = native_key(text(p, "threadId")?, text(p, "turnId")?, text(&p["item"], "id")?);
+                if let Some(row) = self.items.get_mut(&key) {
+                    if row["receipt"]["generation"] != *g {
+                        row["receipt"] = json!({"generation": g});
+                    }
+                    row["receipt"][if completed { "completed" } else { "started" }] = json!(pos);
+                }
             }
             Some("item/plan/delta") => {
                 let thread = text(p, "threadId")?;
@@ -360,6 +370,9 @@ impl NativeView {
         if let Some(old) = self.items.get(&key) {
             if let Some(start) = old.get("startNative") {
                 row["startNative"] = start.clone();
+            }
+            if let Some(receipt) = old.get("receipt") {
+                row["receipt"] = receipt.clone();
             }
             row["observedOrder"] = old["observedOrder"].clone();
         }
