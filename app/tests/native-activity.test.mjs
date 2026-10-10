@@ -8,7 +8,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 const url=new URL('../src/NativeActivity.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);
-const {NativeActivityView,activityModel,activityThreads,displayStateText,resultNotSupplied}=exports;
+const {NativeActivityView,activityModel,displayStateText,resultNotSupplied}=exports;
 
 // Invented rows in the host snapshot shape (native_items.rs), native items per the pinned 0.160.0 ThreadItem.
 const row=(turnId,observedOrder,native,extra={})=>({threadId:'T',turnId,native,displayState:'completed',standing:'live-observed',observationEnded:false,observedOrder,...extra});
@@ -30,11 +30,9 @@ const view=()=>({
     {threadId:'OTHER',turnId:'turn-x',native:{id:'o',type:'agentMessage',text:'Other thread text'},displayState:'completed',observedOrder:10},
     {threadId:'C',turnId:'child-turn',native:{id:'c1',type:'agentMessage',text:'Child says hi'},displayState:'in-progress',observedOrder:11},
   ],
-  turns:[],
-  turnRecords:[
-    {threadId:'T',native:{id:'turn-2',status:'completed',startedAt:200,items:[]}},
-    {threadId:'T',native:{id:'turn-1',status:'interrupted',startedAt:100,error:{message:'interrupted by request'},items:[]}},
-  ],
+  typesPin:'0.160.0',
+  turns:[{id:'turn-2',status:'completed',startedAt:200,items:[]},{id:'turn-1',status:'interrupted',startedAt:100,error:{message:'interrupted by request'},items:[]}],
+  turnRecords:[{threadId:'T',turnId:'turn-2'},{threadId:'T',turnId:'turn-1'}],
   revisions:[
     {kind:'plan-item',revisionId:'pi',threadId:'T',turnId:'turn-2',itemId:'turn-2-plan',ordinal:1,typesPin:'0.160.0'},
     {kind:'checklist',revisionId:'cl1',threadId:'T',turnId:'turn-2',ordinal:1,content:{explanation:null,steps:[{step:'Read',status:'inProgress'}]}},
@@ -50,10 +48,11 @@ test('turns follow native start time and items follow receipt order, scoped to t
   const model=activityModel(view(),'T');
   assert.deepEqual(model.turns.map(t=>t.turnId),['turn-1','turn-2']);
   assert.deepEqual(model.turns[0].items.map(r=>r.native.id),['z-user','y-reason','c-cmd','b-mcp','d-file']);
-  assert.deepEqual(activityThreads(view()),['T','OTHER','C']);
-  const late={items:[{threadId:'T',turnId:'late',native:{id:'x',type:'contextCompaction'},observedOrder:0},{threadId:'T',turnId:'early',native:{id:'y',type:'contextCompaction'},observedOrder:1},{threadId:'T',turnId:'unstarted',native:{id:'z',type:'contextCompaction'},observedOrder:2}],
-    turnRecords:[{threadId:'T',native:{id:'late',status:'completed',startedAt:300}},{threadId:'T',native:{id:'early',status:'completed',startedAt:100}}]};
-  assert.deepEqual(activityModel(late,'T').turns.map(t=>t.turnId),['early','late','unstarted'],'native start time outranks receipt order');
+  const item=(turnId,observedOrder)=>({threadId:'T',turnId,native:{id:turnId,type:'contextCompaction'},displayState:'completed',observedOrder});
+  const late={items:[item('late',0),item('early',5),item('unstarted',2)],turns:[{id:'late',status:'completed',startedAt:300},{id:'early',status:'completed',startedAt:100}],turnRecords:[{threadId:'T',turnId:'late'},{threadId:'T',turnId:'early'}]};
+  assert.deepEqual(activityModel(late,'T').turns.map(t=>t.turnId),['early','late','unstarted'],'native start time outranks receipt order; unstarted turns merge by receipt');
+  const reversed={...late,items:[...late.items].reverse(),turns:[...late.turns].reverse(),turnRecords:[...late.turnRecords].reverse()};
+  assert.deepEqual(activityModel(reversed,'T').turns.map(t=>t.turnId),['early','late','unstarted'],'input order does not matter');
   const html=render();
   assert.ok(html.indexOf('Please')<html.indexOf('ls -la')&&html.indexOf('ls -la')<html.indexOf('Second answer'));
   assert.ok(!html.includes('Other thread text'));assert.ok(!html.includes('Child says hi'));
@@ -107,4 +106,42 @@ test('empty and unselected states stay explicit',()=>{
   assert.ok(render(view(),null).includes('Select a conversation'));
   assert.ok(render({items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]},'T').includes('No activity observed'));
   assert.ok(render(null,'T').includes('No activity observed'));
+});
+
+test('an unfinished message, reasoning or compaction never reads as finished',()=>{
+  for(const state of ['not-completed','unknown','in-progress']){
+    const v=view();v.items=[row('turn-1',0,{id:'m',type:'agentMessage',text:'',phase:'final_answer'},{displayState:state,preview:'Partial ans',previewStanding:'streamed so far; may differ from the completed item'}),
+      row('turn-1',1,{id:'r',type:'reasoning',summary:[],content:[]},{displayState:state,summaryPreview:['thinking part']}),
+      row('turn-1',2,{id:'k',type:'contextCompaction'},{displayState:state})];
+    const html=render(v);
+    assert.equal((html.match(new RegExp(displayStateText({displayState:state}).replace(/[()]/g,'\\$&'),'g'))??[]).length,3,state);
+    assert.ok(html.includes('Partial ans'));assert.ok(html.includes('streamed so far'));assert.ok(html.includes('thinking part'));
+  }
+  const done=view();done.items=[row('turn-1',0,{id:'m',type:'agentMessage',text:'Final',phase:'final_answer'},{preview:'stale'})];
+  const html=render(done);assert.ok(html.includes('Final'));assert.ok(!html.includes('stale'));assert.ok(!html.includes('none in this item kind'),'a completed message shows no state line');
+});
+
+test('streamed plan and command previews show while in progress',()=>{
+  const v=view();v.items=[row('turn-1',0,{id:'p',type:'plan',text:''},{displayState:'in-progress',preview:'1. Draft step',previewStanding:'in progress; may differ from completed plan'}),
+    row('turn-1',1,{id:'c',type:'commandExecution',command:'make',cwd:'/w',status:'inProgress',commandActions:[]},{displayState:'in-progress',preview:'building...'})];
+  const html=render(v);
+  assert.ok(html.includes('1. Draft step'));assert.ok(html.includes('may differ from completed plan'));
+  assert.ok(html.includes('output so far'));assert.ok(html.includes('building...'));
+});
+
+test('off-schema native values render as text instead of breaking the view',()=>{
+  const v=view();v.items=[row('turn-1',0,{id:'w',type:'webSearch',query:{q:1}}),row('turn-1',1,{id:'c',type:'commandExecution',command:['ls'],cwd:'/w',status:{odd:true},commandActions:[]})];
+  const html=render(v);
+  assert.ok(html.includes('{&quot;q&quot;:1}'));assert.ok(html.includes('[&quot;ls&quot;]'));
+});
+
+test('every descendant in the subtree is selectable and roles show as Codex reports them',()=>{
+  const v=view();v.descendants.push({threadId:'G',parentThreadId:'C',parentSource:'subAgentActivity containing thread (inference)',guidance:'not-known',nativeThread:{agentRole:'reviewer',agentNickname:null}});
+  v.descendants[0].nativeThread={agentRole:'explorer',agentNickname:'Ada'};
+  const html=render(v);
+  assert.ok(html.includes('<option value="G">descendant G (of C)</option>'));
+  assert.ok(html.includes('role explorer (as Codex reports)'));assert.ok(html.includes('nickname Ada'));
+  assert.ok(html.includes('(status source collabAgentToolCall.agentsStates)'));
+  const model=activityModel(v,'C');assert.equal(model.parent.parentThreadId,'T');
+  assert.ok(!renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'C'})).includes('status source',html.indexOf('G ·')));
 });

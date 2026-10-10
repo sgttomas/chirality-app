@@ -188,6 +188,10 @@ struct Inner {
     version_identity: Option<Value>,
     verification: Option<Value>,
     declared_capabilities: Option<Value>,
+    /// Last `collaborationMode/list` result read for a generation (EX-2/EX-3).
+    collaboration_modes: Value,
+    /// Collaboration modes this App requested on `turn/start`, per generation/thread.
+    requested_modes: Vec<Value>,
     configuration_identity: Option<Value>,
     stop_record: Option<Value>,
     threads: Vec<Value>,
@@ -673,6 +677,8 @@ impl Host {
             "journal": i.journal,
             "malformedFrames": i.malformed,
             "threads": i.threads,
+            "planMode": Self::plan_mode_availability(&i),
+            "requestedModes": i.requested_modes,
             "conversationTurns": i.conversation_turns,
             "turnInterruptRequests": i.interrupt_requests.iter().map(|entry| {
                 let request = i.client_requests.iter().find(|r| r["generation"] == entry["generation"] && r["requestIdentity"] == entry["requestIdentity"]);
@@ -2076,6 +2082,58 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(params)
     }
 
+    /// EX-3: the plan-mode element is offered only when this generation declared
+    /// `experimentalApi` and Codex listed a `plan` preset for it. Experimental.
+    fn plan_mode_availability(i: &Inner) -> Value {
+        let declared = i.declared_capabilities.as_ref().and_then(|c| c["experimentalApi"].as_bool()) == Some(true);
+        let read = &i.collaboration_modes;
+        let current = !read.is_null() && read["generation"] == i.generation;
+        let plan = current && read["result"]["data"].as_array().into_iter().flatten().any(|m| m["mode"] == "plan");
+        let (state, reason) = if !declared { ("not-offered", "experimental API not declared for this Codex connection") }
+            else if !current { ("not-checked", "collaboration modes not read for this Codex generation") }
+            else if !plan { ("not-offered", "Codex listed no plan preset") }
+            else { ("offered", "Codex listed a plan preset; experimental") };
+        json!({"state":state,"reason":reason,"experimental":true,"presets":if current {read["result"]["data"].clone()} else {Value::Null}})
+    }
+
+    /// Reads Codex's collaboration-mode presets for the current generation.
+    /// A read only; it sets no mode and changes no thread.
+    pub fn collaboration_modes_read(&self, generation: &Value) -> Result<Value, String> {
+        crate::recovery::generation_ref(generation)?;
+        let response = self.request_inner_scoped("collaborationMode/list", json!({}), json!({"kind":"person-directed"}), Duration::from_secs(10), false, Some(generation))?;
+        let mut i = self.inner.0.lock().unwrap();
+        if i.generation != *generation || i.server_requests.is_closed(generation) { return Err("collaborationMode/list response belongs to a closed or replaced generation".into()); }
+        if let Some(error) = response.get("error") { return Err(format!("collaborationMode/list native error: {error}")); }
+        let result = response.get("result").cloned().ok_or("collaborationMode/list has no result")?;
+        Self::validate_native_result("CollaborationModeListResponse", &result)?;
+        i.collaboration_modes = json!({"generation":generation,"result":result});
+        Ok(Self::plan_mode_availability(&i))
+    }
+
+    /// PS-1/PS-2/PS-5: plain text with an explicit collaboration mode. The mode
+    /// settings carry the conversation's reported model and null developer
+    /// instructions, so Codex's built-in mode text applies and role guidance is
+    /// not set aside. Codex keeps the mode on later turns until another is sent.
+    pub fn turn_start_text_mode(&self, generation: &Value, thread_id: &str, text: &str, mode: &str) -> Result<Value, String> {
+        if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
+        let params = {
+            let i = self.inner.0.lock().unwrap();
+            if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
+            if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
+            let model = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id).and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
+            let Some(model) = model else { return Err("not started — no model selected".into()); };
+            let mut params = Self::text_turn_params(thread_id, text)?;
+            params["collaborationMode"] = json!({"mode":mode,"settings":{"model":model,"reasoning_effort":null,"developer_instructions":null}});
+            Self::validate_native_result("TurnStartParams", &params)?;
+            params
+        };
+        let response = self.conversation_operation("turn/start", generation, params, Duration::from_secs(20))?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.requested_modes.retain(|r| !(r["generation"] == *generation && r["threadId"] == thread_id));
+        i.requested_modes.push(json!({"generation":generation,"threadId":thread_id,"mode":mode,"standing":"requested by this App on turn/start; Codex keeps it on later turns until another mode is sent"}));
+        Ok(response)
+    }
+
     fn text_turn_params(thread_id: &str, text: &str) -> Result<Value, String> {
         if thread_id.is_empty() || text.is_empty() { return Err("thread identity and text required".into()); }
         Ok(json!({"threadId":thread_id,"input":[{"type":"text","text":text,"text_elements":[]}]}))
@@ -2767,6 +2825,34 @@ mod conversation_transport_tests {
         let text="Exact\n\né / 家\n{\"approvalPolicy\":\"never\"}";let params=Host::text_turn_params("thread",text).unwrap();assert_eq!(params,json!({"threadId":"thread","input":[{"type":"text","text":text,"text_elements":[]}]}));
         let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();for (target,params) in [("TurnStartParams",params),("TurnInterruptParams",json!({"threadId":"thread","turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();}
         assert!(Host::text_turn_params("",text).is_err());assert!(Host::text_turn_params("thread","").is_err());
+    }
+    #[test]
+    fn plan_mode_is_offered_only_after_a_plan_preset_and_sends_the_conversation_model() {
+        let host=host();
+        assert_eq!(host.snapshot()["planMode"]["state"],"not-offered");
+        assert!(host.turn_start_text_mode(&g(),"thread","plan it","plan").unwrap_err().contains("not offered"));
+        assert!(host.client_requests().is_empty(),"refused before any send");
+        host.inner.0.lock().unwrap().declared_capabilities=Some(json!({"experimentalApi":true}));
+        assert_eq!(host.snapshot()["planMode"]["state"],"not-checked");
+        let (no_plan,outbound)=exchange(&host,Some(json!({"result":{"data":[{"name":"Default","mode":"default"}]}})),vec![],||host.collaboration_modes_read(&g()));
+        assert_eq!(outbound["method"],"collaborationMode/list");assert_eq!(outbound["params"],json!({}));
+        assert_eq!(no_plan.unwrap()["state"],"not-offered");
+        let (offered,_)=exchange(&host,Some(json!({"result":{"data":[{"name":"Plan","mode":"plan"},{"name":"Default","mode":"default"}]}})),vec![],||host.collaboration_modes_read(&g()));
+        assert_eq!(offered.unwrap()["state"],"offered");
+        assert!(host.turn_start_text_mode(&g(),"thread","x","other").is_err());
+        let (sent,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text_mode(&g(),"thread","plan it","plan"));
+        assert!(sent.is_ok());
+        assert_eq!(outbound["method"],"turn/start");
+        assert_eq!(outbound["params"]["input"],Host::text_turn_params("thread","plan it").unwrap()["input"]);
+        assert_eq!(outbound["params"]["collaborationMode"],json!({"mode":"plan","settings":{"model":"selected","reasoning_effort":null,"developer_instructions":null}}));
+        assert_eq!(host.snapshot()["requestedModes"][0]["mode"],"plan");
+        event(&host,"completed");
+        let (_,outbound)=exchange(&host,Some(json!({"result":{"turn":{"id":"turn2","status":"inProgress","items":[],"itemsView":"full"}}})),vec![],||host.turn_start_text_mode(&g(),"thread","carry it out","default"));
+        assert_eq!(outbound["params"]["collaborationMode"]["mode"],"default");
+        assert_eq!(host.snapshot()["requestedModes"].as_array().unwrap().len(),1,"one current requested mode per conversation");
+        assert_eq!(host.snapshot()["requestedModes"][0]["mode"],"default");
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
+        assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
     }
     #[test]
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {

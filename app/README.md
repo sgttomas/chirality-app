@@ -86,7 +86,17 @@ performed an act.
     the order this App first received each item. Each row keeps the native item
     and status beside its display reading; unknown, not-completed and
     result-not-supplied stay distinct, and no act, return or integration is
-    inferred. Agent text appears at item completion; streamed deltas are not shown.
+    inferred. Agent text, reasoning summaries, plans and command output stream
+    as labelled previews that the completed native item replaces. Stored-history
+    pages the person reads (turns, items, thread read) are added as
+    recovered-from-supplier rows; nothing is rebuilt automatically.
+18. Plan mode (experimental) is offered only when this Codex connection declared
+    the experimental API and Codex lists a `plan` preset. Sending in plan or
+    default mode puts `collaborationMode` on `turn/start` with the conversation's
+    reported model and null developer instructions; it is ordinary input, never
+    a recorded act. Codex keeps the mode until another is sent; the App shows
+    the last mode it requested. A pending run-end notice still goes with the
+    next ordinary turn, so a mode send waits for it.
 
 ## Modules
 
@@ -107,7 +117,7 @@ performed an act.
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
-| `src/NativeActivity.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part); no controls |
+| `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
 ## Offline build and checks

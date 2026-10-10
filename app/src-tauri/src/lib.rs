@@ -561,6 +561,14 @@ fn history_action(
     let receipt = home.host.history_dispatch(&query)?;
     home.history.lock().unwrap().dispatched(receipt.clone());
     let waited = home.host.history_wait(&receipt, std::time::Duration::from_secs(20));
+    // The page also feeds the readable native view (DEL-01-03 REQ-001: plan and
+    // other items are recovered from Codex history). Runtime before history lock,
+    // matching host_status's order.
+    if let Ok(evidence) = &waited {
+        if let Some(result) = evidence["response"].get("result") {
+            home.runtime.lock().unwrap().receive_history(query.generation(), query.home(), query.method(), query.params(), result);
+        }
+    }
     let mut history = home.history.lock().unwrap();
     history.reconcile(&home.host);
     waited?;
@@ -583,8 +591,21 @@ fn conversation_send_text(
     generation: Value,
     thread_id: String,
     text: String,
+    mode: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    if let Some(mode) = mode {
+        // A pending run-end notice goes with an ordinary turn (TX-5); a mode
+        // turn never carries or skips it.
+        let home_key = generation["home"].as_str().unwrap_or_default().to_owned();
+        if state.workflows.lock().unwrap().pending_notice_for(&home_key, &thread_id)?.is_some() {
+            return Err("A run in this conversation ended and its end notice goes with the next ordinary turn; send ordinary text first. Nothing sent".into());
+        }
+        return runtime_session::send_conversation_text(
+            &home.host.snapshot(), &generation, &thread_id, &text,
+            |generation, thread, text| home.host.turn_start_text_mode(generation, thread, text, &mode),
+        );
+    }
     // WR TX-5 / SQ-END: when a run in this conversation ended with no successor,
     // this next ordinary turn carries its end notice first, exactly once.
     if let Some(result) = runtime_session::send_with_pending_notice(&state.workflows, &generation, &thread_id, &text) {
@@ -597,6 +618,13 @@ fn conversation_send_text(
         &text,
         |generation, thread, text| home.host.turn_start_text(generation, thread, text),
     )
+}
+
+/// EX-2/EX-3 availability read for the plan-mode element.
+#[tauri::command(async)]
+fn collaboration_modes_read(state: State<'_, AppState>, generation: Value) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    home.host.collaboration_modes_read(&generation)
 }
 
 #[tauri::command(async)]
@@ -1289,6 +1317,7 @@ pub fn run() {
             history_action,
             history_select,
             conversation_send_text,
+            collaboration_modes_read,
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,

@@ -377,7 +377,7 @@ fn reviewed_v4_seed_entry_preserves_edits_and_old_composition_new_entry_reads_ne
     // Independent V0-INSTRUCTION-TRANCHE admitted source identities.
     assert_eq!(
         chirality_app_v4_lib::util::sha256_hex(COMMON_DEFAULT),
-        "d9233f5af0393e045f0d50fe14b60ede6ec3558da625c1a0deec84fae07afc27"
+        "c64305fb6cec44c448116315e8f547ab133fe4b750dc356191af893f94c19290"
     );
     for role in Role::ALL {
         assert_eq!(
@@ -388,19 +388,19 @@ fn reviewed_v4_seed_entry_preserves_edits_and_old_composition_new_entry_reads_ne
     for (role, expected) in [
         (
             Role::HELP_HUMAN,
-            "11e619e41acad799b90552dda19a3d49c4d3921bcebbce7317254a58d03e04be",
+            "88aee799de1f7e8d490fd6e4b30affee17d3a2654ff67a4628ac4d45dc834ad3",
         ),
         (
             Role::HELPS_HUMANS,
-            "9306048b3229f63170cde5dbbb1280e048aae8aa434b1934085598bf8e649158",
+            "771453ac033e038c7ee26bce397e02fedbf7e021ed1d4dd5c7ebb48a73e012ae",
         ),
         (
             Role::WORKING_ITEMS,
-            "4be2e37da843353cde22bd2ed65f8756f00a865171939f1ac2c6d65adf025914",
+            "051a57528a1de4e549aa18f03c1acd7e685977c81b5f9c8085f391c2bed48cc8",
         ),
         (
             Role::TASK,
-            "aaab8c8c20b1d5c3592f04d1337b3335f82ff44428a2304614c191cce71ba3cc",
+            "c11c1020dcf50ecd9fd596c65aab4add5e263bf786d60dcb6fdd479b7e588908",
         ),
     ] {
         assert_eq!(
@@ -566,4 +566,26 @@ fn admitted_unseen_terminal_completion_precedes_close_foreign_and_postclosed_fra
         received["nativeView"]["items"]
     );
     assert_eq!(refused["observerCursor"]["position"], 2);
+}
+
+#[test]
+fn person_read_history_pages_reach_only_the_open_generation_view() {
+    let old = g("same-home", 1);
+    let current = g("same-home", 2);
+    let mut session = RuntimeSession::default();
+    session.receive(&observation(&old, "ready", vec![], vec![]));
+    session.receive(&observation(&current, "ready", vec![], vec![]));
+    let page = json!({"thread":{"id":"t","turns":[{"id":"u","status":"completed","items":[{"id":"p","type":"plan","text":"recovered plan"}]}]}});
+    session.receive_history(&old, "same-home", "thread/read", &json!({"threadId":"t"}), &page);
+    session.receive_history(&current, "same-home", "thread/list", &json!({}), &json!({"data":[]}));
+    let refused = session.receive(&observation(&current, "ready", vec![], vec![]));
+    assert!(refused["nativeView"]["items"].as_array().unwrap().is_empty());
+    assert!(refused["nativeViewLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("not the open receiving generation")));
+    session.receive_history(&current, "same-home", "thread/read", &json!({"threadId":"t"}), &page);
+    let read = session.receive(&observation(&current, "ready", vec![], vec![]));
+    assert_eq!(read["nativeView"]["items"][0]["native"]["text"], "recovered plan");
+    assert_eq!(read["nativeView"]["items"][0]["standing"], "recovered-from-supplier");
+    assert_eq!(read["nativeView"]["revisions"][0]["standing"], "recovered-from-supplier");
+    assert_eq!(read["observerRecovery"]["historyPagesRead"], 1);
+    assert_eq!(read["observerRecovery"]["historyRebuilt"], false);
 }

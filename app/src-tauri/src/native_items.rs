@@ -221,6 +221,42 @@ impl NativeView {
                     row["previewStanding"] = json!("in progress; may differ from completed plan");
                 }
             }
+            Some(method @ ("item/agentMessage/delta" | "item/commandExecution/outputDelta" | "item/reasoning/summaryTextDelta")) => {
+                // Streamed text is a preview of an in-progress item only; the
+                // completed native item replaces the whole row (and the preview).
+                let thread = text(p, "threadId")?;
+                let turn = text(p, "turnId")?;
+                let id = text(p, "itemId")?;
+                let delta = p["delta"].as_str().ok_or("invalid delta")?;
+                let kind = match method {
+                    "item/agentMessage/delta" => "agentMessage",
+                    "item/commandExecution/outputDelta" => "commandExecution",
+                    _ => "reasoning",
+                };
+                let key = native_key(thread, turn, id);
+                let order = self.next_order;
+                let row=self.items.entry(key).or_insert_with(||json!({"threadId":thread,"turnId":turn,"native":{"id":id,"type":kind},"displayState":"in-progress","standing":"live-observed","observationEnded":false,"observedOrder":order}));
+                if row["observedOrder"] == order {
+                    self.next_order += 1;
+                }
+                if row["displayState"] == "in-progress" {
+                    if kind == "reasoning" {
+                        let index = p["summaryIndex"].as_u64().ok_or("invalid summary index")? as usize;
+                        if index > 4096 {
+                            return Err("summary index out of range".into());
+                        }
+                        let mut parts = row["summaryPreview"].as_array().cloned().unwrap_or_default();
+                        while parts.len() <= index {
+                            parts.push(json!(""));
+                        }
+                        parts[index] = json!(parts[index].as_str().unwrap_or("").to_string() + delta);
+                        row["summaryPreview"] = json!(parts);
+                    } else {
+                        row["preview"] = json!(row["preview"].as_str().unwrap_or("").to_string() + delta);
+                    }
+                    row["previewStanding"] = json!("streamed so far; may differ from the completed item");
+                }
+            }
             Some("turn/plan/updated") => {
                 let thread = text(p, "threadId")?;
                 let turn = text(p, "turnId")?;
@@ -377,7 +413,12 @@ impl NativeView {
         let thread = text(params, "threadId")?;
         match method {
             "thread/items/list" => {
-                for entry in result["data"].as_array().ok_or("items history absent")? {
+                let mut entries: Vec<&Value> = result["data"].as_array().ok_or("items history absent")?.iter().collect();
+                // Receipt order follows conversation order within a page.
+                if params["sortDirection"] == "desc" {
+                    entries.reverse();
+                }
+                for entry in entries {
                     let native = entry.get("item").unwrap_or(entry);
                     let turn = entry
                         .get("turnId")
@@ -396,6 +437,9 @@ impl NativeView {
             }
             "thread/turns/list" => {
                 for turn in result["data"].as_array().ok_or("turn history absent")? {
+                    for item in turn["items"].as_array().into_iter().flatten() {
+                        self.item(thread, text(turn, "id")?, item, item["status"] != "inProgress", true, None)?;
+                    }
                     self.turn(thread, turn)?;
                 }
             }
@@ -466,7 +510,7 @@ impl NativeView {
         json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
             "turns":self.turns.values().collect::<Vec<_>>(),
-            "turnRecords":self.turns.iter().map(|((thread,_),turn)|json!({"threadId":thread,"native":turn})).collect::<Vec<_>>(),"goals":self.goals,"checklistGaps":self.checklist_gaps,
+            "turnRecords":self.turns.keys().map(|(thread,turn)|json!({"threadId":thread,"turnId":turn})).collect::<Vec<_>>(),"typesPin":self.types_pin,"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})
     }
 }
@@ -650,6 +694,30 @@ mod tests {
         assert_eq!(v.snapshot()["descendants"][0]["observationEnded"], true);
     }
     #[test]
+    fn streamed_deltas_are_previews_replaced_by_the_completed_item() {
+        let mut v = view();
+        let d = |item: &str, delta: &str| json!({"threadId":"t","turnId":"u","itemId":item,"delta":delta});
+        frame(&mut v, 1, "item/started", json!({"threadId":"t","turnId":"u","item":{"id":"m","type":"agentMessage","text":""}}));
+        frame(&mut v, 2, "item/agentMessage/delta", d("m", "Hel"));
+        frame(&mut v, 3, "item/agentMessage/delta", d("m", "lo"));
+        frame(&mut v, 4, "item/commandExecution/outputDelta", d("c", "out"));
+        frame(&mut v, 5, "item/reasoning/summaryTextDelta", json!({"threadId":"t","turnId":"u","itemId":"r","delta":"second","summaryIndex":1}));
+        let row = |v: &NativeView, id: &str| v.snapshot()["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == id).unwrap().clone();
+        assert_eq!(row(&v, "m")["preview"], "Hello");
+        assert_eq!(row(&v, "m")["displayState"], "in-progress");
+        assert_eq!(row(&v, "c")["native"]["type"], "commandExecution");
+        assert_eq!(row(&v, "r")["summaryPreview"], json!(["", "second"]));
+        assert!(v.consume(&json!({"generation":g(1),"position":6,"frame":{"method":"item/reasoning/summaryTextDelta","params":{"threadId":"t","turnId":"u","itemId":"r","delta":"x","summaryIndex":100000}}})).is_err());
+        frame(&mut v, 7, "item/completed", json!({"threadId":"t","turnId":"u","item":{"id":"m","type":"agentMessage","text":"Hello!"}}));
+        assert!(row(&v, "m").get("preview").is_none());
+        assert_eq!(row(&v, "m")["native"]["text"], "Hello!");
+        frame(&mut v, 8, "item/agentMessage/delta", d("m", " late"));
+        assert!(row(&v, "m").get("preview").is_none(), "a delta after completion does not reopen the item");
+        frame(&mut v, 9, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"interrupted"}}));
+        assert_eq!(row(&v, "c")["displayState"], "not-completed");
+        assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
+    }
+    #[test]
     fn observed_order_follows_first_receipt_not_identity_sort() {
         let mut v = view();
         let item = |id: &str, status: &str| json!({"threadId":"t","turnId":"u","item":{"id":id,"type":"commandExecution","status":status}});
@@ -663,8 +731,15 @@ mod tests {
         let order = |id: &str| snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == id).unwrap()["observedOrder"].as_u64().unwrap();
         assert_eq!([order("z-first"), order("m-plan"), order("a-third"), order("b-history")], [0, 1, 2, 3]);
         assert_eq!(snapshot["items"][0]["native"]["id"], "a-third");
+        v.history("h", "thread/items/list", &json!({"threadId":"t","turnId":"w","sortDirection":"desc"}), &json!({"data":[{"id":"later","type":"agentMessage","text":"2"},{"id":"earlier","type":"userMessage","content":[]}]})).unwrap();
+        v.history("h", "thread/turns/list", &json!({"threadId":"t"}), &json!({"data":[{"id":"x","status":"completed","items":[{"id":"x1","type":"userMessage","content":[]},{"id":"x2","type":"agentMessage","text":"a"}]}]})).unwrap();
+        let snapshot = v.snapshot();
+        let order = |id: &str| snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == id).unwrap()["observedOrder"].as_u64().unwrap();
+        assert!(order("earlier") < order("later"), "a descending page is received in conversation order");
+        assert!(order("x1") < order("x2"));
+        assert_eq!(snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == "x2").unwrap()["standing"], "recovered-from-supplier");
         frame(&mut v, 6, "turn/started", json!({"threadId":"t","turn":{"id":"u","status":"inProgress"}}));
-        assert_eq!(v.snapshot()["turnRecords"], json!([{"threadId":"t","native":{"id":"u","status":"inProgress"}}]));
+        assert_eq!(v.snapshot()["turnRecords"], json!([{"threadId":"t","turnId":"u"},{"threadId":"t","turnId":"x"}]));
     }
 }
 

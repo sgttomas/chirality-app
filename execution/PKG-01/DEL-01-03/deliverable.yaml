@@ -139,5 +139,7 @@ needs:
 code_paths:
 - app/src-tauri/src/native_items.rs
 - app/src/NativeActivity.tsx
+- app/src/PlanMode.tsx
 checks:
 - app/tests/native-activity.test.mjs
+- app/tests/plan-mode.test.mjs

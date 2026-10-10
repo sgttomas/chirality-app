@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
+import { PlanModeControl } from "./PlanMode";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
@@ -87,7 +88,7 @@ export function SteeringControl({ target, reason, ready, busy, text, submit }: {
   </div>;
 }
 
-function ConversationPanel({ host, send, steer, submitAttachments, interrupt }: { host: Json; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+function ConversationPanel({ host, send, steer, submitAttachments, interrupt, checkPlanMode }: { host: Json; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [threadKey, setThreadKey] = useState<string>("");
   const [turnId, setTurnId] = useState<string>("");
   const [text, setText] = useState<string>("");
@@ -101,10 +102,10 @@ function ConversationPanel({ host, send, steer, submitAttachments, interrupt }: 
   const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
   const steeringTarget = steering?.target && JSON.stringify(steering.target.generation) === generationKey && steering.target.threadId === selected?.threadId ? steering.target : null;
   const alreadyRequested = (host?.turnInterruptRequests ?? []).some((request: Json) => live && JSON.stringify(request.binding?.generation) === generationKey && request.binding?.threadId === live.threadId && request.binding?.turnId === live.turnId && (request.clientRequest?.outcome === "response-observed-result" || (request.clientRequest?.outcome === "pending" && request.clientRequest?.writeResult === "written")));
-  const sendText = async () => {
+  const sendText = async (mode?: "plan" | "default") => {
     if (!selected || !text || busy) return;
-    setBusy("sending"); setError("");
-    try { await send(selected.generation, selected.threadId, text); setText(""); }
+    setBusy(mode ? `sending in ${mode} mode` : "sending"); setError("");
+    try { await send(selected.generation, selected.threadId, text, mode); setText(""); }
     catch (e) { setError(String(e)); }
     finally { setBusy(""); }
   };
@@ -143,7 +144,10 @@ function ConversationPanel({ host, send, steer, submitAttachments, interrupt }: 
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} />
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
-    <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={sendText}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
+    <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
+    {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
+      ready={host?.state === "ready"} busy={!!busy} hasText={!!text}
+      check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
     <p>Text is sent unchanged to the selected native conversation. Its role, model and provider remain the conversation's existing settings.</p>
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
@@ -682,8 +686,10 @@ export function App() {
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} />
       <HistoryPanel host={host} refresh={refresh} />
 
-      <ConversationPanel host={host} send={async (generation, threadId, text) => {
-        await conversationAction("conversation_send_text", { generation, threadId, text });
+      <ConversationPanel host={host} send={async (generation, threadId, text, mode) => {
+        await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
+      }} checkPlanMode={async generation => {
+        try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
       }} steer={async (generation, threadId, expectedTurnId, text) => {
         await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
