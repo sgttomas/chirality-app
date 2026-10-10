@@ -3,7 +3,9 @@ name: Workflow-making workspace and registration
 needs:
 - from: DEL-01-03
   condition: 'Receive native plans, revisions, tool and delegation presentation from DEL-01-03 for the
-    standalone workflow-making join; actual native contribution is required for dependent behavior.
+    standalone workflow-making join, including delegation availability, descendant identities and on-demand
+    child-thread reads, which a delegated trial uses to link its sub-agent and show whether the workflow
+    was given verbatim (WR TT-9); actual native contribution is required for dependent behavior.
 
 
     Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
@@ -15,8 +17,10 @@ needs:
   evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
 - from: DEL-01-04
   condition: 'Receive native requests, outcomes, attachments, the draft-UI receiving interface and the
-    App act control that captures registration (with its capture evidence) from DEL-01-04; actual supplied
-    content and native transitions remain required, and the person performs the registration act.
+    App act control that captures registration (with its capture evidence) from DEL-01-04, together with
+    the placement of trial texts and bring-back transcripts in pre-filled, person-sent messages and a new
+    conversation opened for a clean trial (NIR AT-8; WR TT-3, TT-10); actual supplied content and native
+    transitions remain required, and the person performs the registration act.
 
 
     Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract

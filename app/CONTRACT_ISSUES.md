@@ -1173,3 +1173,23 @@ changed.
   prerequisite is added to native_development. DEL-11-03 handoff rights and
   DEL-01-06 conditional package contract are unchanged. Exact source/custody
   records: AgentRuns/APP-V4-GROUP-B-20261008/sq-result-receiver-adoption.
+
+## CI-32 WR §16.2 files line: run start names a placeholder folder
+
+- **Found:** 2026-10-10, while revising WR trials (CC-WR-TRIALS, U-WR-24), by
+  checking how a registered run's supporting files reach the agent.
+- **Design text** (`DEL-02-02 …/Design/WORKSPACE_AND_REGISTRATION.md` §16.2
+  line 4): the files line names "the folder" of the revision's other files,
+  where "‹folder› is project-relative for a project library and `~`-relative
+  for the user library".
+- **Code:** `runtime_session.rs` starts a run with
+  `PreparedRunText::start(…, "selected native workflow holding copy", …)`, so a
+  revision with files besides `WORKFLOW.md` gets a files line naming that fixed
+  label rather than the holding folder. The agent is told the files' names and
+  digests but not where they are. Revisions with `WORKFLOW.md` only are not
+  affected.
+- **Consequence:** supporting files of a registered run are named but not
+  locatable. Under WR TT-8 a trial names its files the same way, so the fix is
+  step 2 of WR §17 (the trial implementation plan): pass the project-relative
+  (or `~`-relative) holding folder.
+- **State:** OPEN. Code only; no Design change is needed.

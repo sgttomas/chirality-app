@@ -144,11 +144,17 @@ performed an act.
     chooses an ordinary conversation and sends. Draft files are refused for a
     conversation with a workflow run in force. An acknowledged send keeps one
     App-kept trial pointer per draft (TT-4), which survives a relaunch.
-    *Pending owner decision (WR U-WR-24):* TT-3 as confirmed opens a new
-    not-started conversation and names non-text files (AT-10). The App does
-    neither yet: non-text files are listed "not attached". **Review for
-    registration…** opens the existing review for the listed content, refused
-    as DS-6 if the draft changed since listing.
+    Non-text files are listed "not attached". *Owner decision (WR U-WR-24,
+    2026-10-10), not yet implemented:* WR §4.2 replaces this pre-fill with a
+    trial that mirrors a real run. **Try with the authoring agent** pre-fills a
+    message asking the authoring conversation's agent to run the draft's trial
+    text through one sub-agent and report. **Try in a fresh conversation** is
+    optional and opens a new conversation with the trial text pre-filled; its
+    transcript can be brought back to the authoring conversation. Supporting
+    files are named as a registered run names them. WR §17 is the
+    implementation plan; until it lands the App behaves as described above.
+    **Review for registration…** opens the existing review for the listed
+    content, refused as DS-6 if the draft changed since listing.
     Registration stays the person's A15 act at the native confirmation. A trial
     is not a run, registration, checking or acceptance.
 22. **Stop Codex…** and **Restart Codex…** always ask first (DEL-01-04 §5.2,
