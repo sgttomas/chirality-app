@@ -1821,6 +1821,40 @@ impl Host {
         {let mut i=self.inner.0.lock().unwrap();if i.generation==request.generation&&!i.server_requests.is_closed(&request.generation){if let Some(offer)=i.cce_offer.as_mut(){if let Some(thread)=response["result"]["thread"]["id"].as_str(){offer.native_admitted(request,thread);}}}}
         Ok(response)
     }
+    /// ROLE §3.3 F-1 / NIR CA-4: a same-role copy. `thread/fork` carries the
+    /// thread id only: no instructions, model or settings (ROLE §5.2; B-16),
+    /// so the fork keeps the source's guidance and the source is unchanged.
+    pub fn thread_fork_dispatch(&self, generation: &Value, source_thread: &str) -> Result<SourceRequest,String> {
+        crate::recovery::generation_ref(generation)?;
+        {
+            let i=self.inner.0.lock().unwrap();
+            if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("refused-not-sent: the conversation belongs to a closed, replaced or not-ready Codex generation".into());}
+            if !i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==source_thread) {return Err("refused-not-sent: choose a current conversation of this Codex generation to fork".into());}
+        }
+        let params=json!({"threadId":source_thread});
+        crate::role_supply::check_role_inputs("thread/fork",&params)?;
+        Self::validate_native_result("ThreadForkParams",&params)?;
+        self.request_begin_scoped("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation))
+    }
+    /// Admits the forked conversation operationally from the correlated
+    /// `thread/fork` result only. The fork must be a new thread reporting the
+    /// source as `forkedFromId`; otherwise nothing is admitted.
+    pub fn thread_fork_finish(&self, request: &SourceRequest) -> Result<Value,String> {
+        self.check_source(request)?;let evidence=request.evidence();
+        if request.frame["method"]!="thread/fork"||evidence["writeResult"]!="written"||evidence["outcome"]!="response-observed-result"||evidence["sentFrame"].is_null() {return Err(format!("thread/fork has no successful write and correlated result (outcome {}); nothing admitted, no automatic retry",evidence["outcome"]));}
+        let response=evidence["response"].clone();
+        if response.get("id")!=Some(request.request_id())||response.get("error").is_some()||response.get("result").is_none() {return Err("thread/fork response is uncorrelated or failed; nothing admitted".into());}
+        Self::validate_native_result("ThreadForkResponse",&response["result"])?;
+        let source=&request.frame["params"]["threadId"];let t=&response["result"]["thread"];
+        if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
+        let generation=request.generation();
+        let mut i=self.inner.0.lock().unwrap();
+        if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
+        if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
+        let standing=i.supplier_standing.clone();let result=&response["result"];
+        let row=json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
+        i.threads.push(row.clone());Ok(row)
+    }
     #[cfg(test)]
     fn cce_thread_start(&self,generation:&Value,cwd:&str,composition:&crate::role_supply::Composition,supply_ref:&str)->Result<SourceRequest,String>{
         let intent=call_custody::OfferIntent::new(composition,supply_ref).map_err(|e|e.message())?;

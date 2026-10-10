@@ -6,6 +6,8 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { CodexProcessControls, stopLabel } from "./CodexControls";
+import { ContinueAsPanel, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
+import { RunPanel, SelectedWorkflow } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { PlanModeControl } from "./PlanMode";
@@ -25,6 +27,11 @@ export function SteeringControl({ target, reason, ready, busy, text, submit }: {
     <p>Steering sends this text unchanged with the expected native turn ID. A steering acknowledgment does not establish turn replacement or completion. Source/target changes can refuse the request; the draft is retained on failure and no automatic resend occurs.</p>
   </div>;
 }
+
+// The access entries a new conversation may use in the active home.
+const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === "api-key"
+  ? [{ value: "api-key", label: "API key in separate configured key home" }]
+  : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
 function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
@@ -80,15 +87,30 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
   const offers: Json[] = (host?.workflowRoot?.offers ?? []).filter((offer: Json) => selected && offer?.message?.threadId === selected.threadId);
   const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
   const offerAct: RunAct = async (command, args) => { setOfferBusy(true); try { return await runAct(command, args); } finally { setOfferBusy(false); } };
+  // NIR §5.8: Continue as and Fork go through the host; neither changes this conversation's role.
+  const roleAct = async (label: string, command: string, args: Record<string, unknown>, after?: (result: Json) => void) => {
+    setBusy(label); setError("");
+    try { const result = await runAct(command, args); if (result === undefined) setError(`${label} did not complete; see the message below.`); else after?.(result); }
+    finally { setBusy(""); }
+  };
+  const handoffs: Json[] = host?.continueAs ?? [];
   return <section id="conversation">
     <h2>Conversation text and turn control</h2>
     <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
       <option value="">Select a conversation</option>
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
-    {selected && <p>Original App role: {JSON.stringify(selected.appRole ?? { standing: "unknown", reason: "original App supply binding not established" })}. Native role hints do not establish an App role.</p>}
-    {(selected?.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations.</p>)}
+    {selected && <RoleHeader key={selected.threadId} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"}
+      continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
+      fork={() => { void roleAct("forking", "conversation_fork", { generation: selected.generation, threadId: selected.threadId }, result => {
+        if (result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
+      }); }} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
+    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
+      start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, continueAs: handoff.id }); }}
+      send={draft => { const started = handoff.started; if (started) void roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null }); }}
+      open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
+      dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
     <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn)}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
@@ -160,7 +182,7 @@ export function HistoryPanel({ host, refresh }: { host: Json; refresh: () => Pro
     <p><label>Stored conversation <select value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{(history?.threads ?? []).map((row: Json) => <option key={row.native.id} value={row.native.id}>{row.native.id} · {row.native.status?.type ?? "status not reported"} · {row.native.preview || "empty preview"}</option>)}</select></label></p>
     {selected && <>
       <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p>
-      {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations. This conversation retains its original role.</p>)}
+      {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.kind === "not-read" ? `current guidance not compared (${notice.reason})` : notice.reason}; new conversations use the current guidance. This conversation retains its original role.</p>)}
       <button disabled={!available || busy} onClick={() => run("metadata")}>Read metadata</button>{" "}
       <button disabled={!available || busy} onClick={() => run("turns")}>Read turns</button>{" "}
       <button disabled={!available || busy} onClick={() => run("goal")}>Read goal</button>{" "}
@@ -303,8 +325,9 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
     <button disabled={busy} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
-    <p>Paths are shown as text (display only: identities keep their exact bytes; a path that is not valid UTF-8 is marked).</p>
-    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre>
+    <SelectedWorkflow selection={data?.selection}/>
+    <details><summary>Selection and libraries as the host reports them (paths shown as text; identities keep their exact bytes; a path that is not valid UTF-8 is marked)</summary>
+    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
     <WorkflowDraftsView data={data?.drafts} attachments={host?.attachmentSelections} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} busy={busy} act={action}/>
     <label>New draft name, or in-place library entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
@@ -340,7 +363,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
         <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
         {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
-      <ul>{(run.compatibility??[]).map((c:Json,i:number)=><li key={i}>{c.occasion} (advisory, never gates a start): {c.statement??c.state??c.checkResult??"evaluated"}; publication {c.publication?.state}; {c.r14}</li>)}</ul>
+      <RunPanel run={run}/>
       <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
@@ -529,6 +552,7 @@ export function App() {
   const [modelProvider, setModelProvider] = useState<string>("");
   const [entryId, setEntryId] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, setThreadKey] = useState<string>("");
   const roleInitialized = useRef(false);
   useEffect(() => {
@@ -653,11 +677,13 @@ export function App() {
           <label>Model <input value={model} onChange={(e) => setModel(e.target.value)} /></label>{" "}
           <label>Configured Codex provider <input value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} /></label>
         </p>
-        <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{host?.homeRouting?.activeModeHomeClass === "api-key" ? <option value="api-key">API key in separate configured key home</option> : <><option value="chatgpt-account">ChatGPT account in configured account home</option><option value="local-provider">Configured local provider</option></>}</select></label></p>
+        <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
         <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
-        <p><label>Conversation role <select value={role} onChange={e => { roleInitialized.current = true; setRole(e.target.value); }}><option value="">No role selected</option>{(host?.roleSet?.roles??[]).filter((entry:Json)=>entry.name!=="TASK").map((entry:Json)=><option key={entry.name} value={entry.name}>{entry.name}</option>)}</select></label></p>
-        <p>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}</p>
-        <p>Role guidance: {JSON.stringify(host?.roleSupply)} {host?.instructionsProblem}</p>
+        <RoleChoice roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole}
+          setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }} />
+        <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p>
+        <SupplyStatus supply={host?.roleSupply} />
+        {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>

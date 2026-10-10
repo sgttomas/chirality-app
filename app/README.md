@@ -181,6 +181,47 @@ performed an act.
     kept in App process memory, so after a relaunch the App cannot say that a
     turn was interrupted by Stop Codex. Quitting the App does not ask first yet
     (K-4, SQ-Q Q-2): it stops each home's Codex on exit, as before.
+23. **Run panel** (NIR §9 PD-1…PD-7, AS §4, §8, §9). The selected workflow and
+    each run show the declared part readably, as the host read it from the
+    revision's own bytes: inputs, tools, checkpoints, outputs, returned
+    evidence, written-for roles and tool ceiling, each with its reading and
+    findings; the JSON stays in a fold. A checkpoint is plan guidance (OV-1,
+    SD-1): act label (DS-1), actor, subject, when it is reached, purpose,
+    scope, where the act is performed (SD-3), declared held actions and
+    decision paths. `governed` is shown and changes nothing (OV-7); an invalid
+    declaration is a finding. No hold, block, pause or hold-support value is
+    shown (PD-6, OV-3). The App records no checkpoint arrivals yet, so each
+    checkpoint says "no arrival recorded", and the missing `checkpoint_listed`
+    entry is shown as missing in record (PD-7). Each declared output shows its
+    promise apart from its standing facets (AS §8), which come only from the
+    run record: with nothing recorded they read none reported, not recorded or
+    missing; record entries this view does not read make them unknown. The
+    advisory compatibility (DEL-02-03 CK-1/CK-2) is shown readably; a role
+    outside the written-for roles names both and points to Continue as
+    (U-R10, chosen display).
+24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
+    start display lists the role set readably, with the `default_for_new_chat`
+    role labelled as a preselection (the bundled set marks none today, U-R11),
+    "No role", and each role's limits as the limit account hands them (TASK
+    "A task agent does not delegate: Stated, not enforced"; a modified copy
+    reads not known). TASK is listed but not offered as a conversation role,
+    as before. The conversation header shows the role, fixed for the
+    conversation's life, and its relation (its own start, continued from, or
+    fork of). **Guidance changed since this conversation started** appears
+    only when a file the conversation started with now differs or is missing;
+    a store that cannot be read is said to be not compared. **Continue as
+    ‹role›…** sends one visible ordinary turn to the source conversation asking
+    its agent for a handoff summary (refused while a run-end notice is
+    pending, as for attachments); the completed agent message observed live is
+    placed under an App header naming the source and its role, editable and
+    unsent; a failed or interrupted turn leaves the header only. The new
+    conversation starts with no model chosen and records `continuedFrom`
+    {source thread, source start record}; its first message is sent only when
+    the person sends it. **Fork (same role)** sends `thread/fork` with the
+    thread id only and admits the fork only when Codex reports a new thread
+    forked from the source; the fork inherits the source's role binding. Neither
+    changes the source conversation's role or record. Handoffs are kept in App
+    process memory.
 
 ## Modules
 
@@ -205,6 +246,8 @@ performed an act.
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, interrupts before the stop within the stop wait limit, TO-4 labels and the in-memory outcome |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states, TT-3 composer sources, TT-4 trial pointers) and its list presentation in NIR §7 words; nothing here registers, reviews or runs |
+| `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with run-record limits, output standing facets from the record only (AS §8), readable advisory compatibility |
+| `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
@@ -351,6 +394,11 @@ Native authenticity, real process-kill/fsync failure witnesses, durable history 
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
+
+The run panel (item 23) cannot show checkpoint arrivals or output records
+until the App records them (EXEC Wave B); conversation roles (item 24) keep
+handoffs in process memory and write no persistent role-supply log; delete or
+archive beside Fork waits on U-R13.
 
 Stop and Restart Codex (item 22) still lack three things: the REC stop-request
 (SR) and ledger `codex_stop` records, an ask-first App quit (K-4), and a native

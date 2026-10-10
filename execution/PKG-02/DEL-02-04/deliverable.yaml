@@ -98,3 +98,12 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: false
   evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/conversation_roles.rs
+- app/src-tauri/src/role_lifecycle.rs
+- app/src-tauri/src/role_supply.rs
+- app/src/ConversationRoles.tsx
+checks:
+- app/src-tauri/src/conversation_roles_tests.rs
+- app/src-tauri/tests/role_lifecycle.rs
+- app/tests/conversation-roles.test.mjs

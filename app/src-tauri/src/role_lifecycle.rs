@@ -242,6 +242,10 @@ pub struct RoleBinding {
     original: FrozenGuidance,
     origin: Origin,
     observation: NativeObservation,
+    /// ROLE §3.3 CA-3: the "Continue as" relation {source thread, source start
+    /// record}; a relation, not a copy. Absent for an ordinary start or a fork.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    continued_from: Option<Value>,
 }
 impl RoleBinding {
     pub fn home(&self) -> &str {
@@ -268,12 +272,29 @@ impl RoleBinding {
     pub fn evidence(&self) -> Value {
         json!({"format":"chirality.role.binding/0.1","binding":self,"adoption":"unknown","provenance":"in-memory App-observed; serialized/imported copy is not trusted"})
     }
-    /// Current store comparison changes the future-conversation notice only.
+    /// Current store comparison changes the future-conversation notice only
+    /// (ROLE §4.4 GC-1, GC-2). `kind` keeps an actual change (`changed`, or the
+    /// file `missing`) apart from a comparison that could not be made
+    /// (`not-read`); only the first two read "guidance changed since this
+    /// conversation started". Equal bytes, including a restore to the original
+    /// bytes, give no notice.
     pub fn changes(&self, current: &BTreeMap<String, Result<Vec<u8>, String>>) -> Vec<Value> {
         self.original.parts.iter().filter_map(|part|{
-            let reason=match current.get(&part.path){None=>Some("missing".into()),Some(Err(e))=>Some(format!("unreadable: {e}")),Some(Ok(bytes)) if content(bytes)!=part.identity=>Some("guidance changed since this conversation started".into()),_=>None};
-            reason.map(|reason|json!({"path":part.path,"reason":reason,"appliesTo":"future-conversations","currentConversationRoleChanged":false}))
+            let found=match current.get(&part.path){None=>Some(("missing","missing".to_owned())),Some(Err(e))=>Some(("not-read",format!("unreadable: {e}"))),Some(Ok(bytes)) if content(bytes)!=part.identity=>Some(("changed","guidance changed since this conversation started".to_owned())),_=>None};
+            found.map(|(kind,reason)|json!({"path":part.path,"kind":kind,"reason":reason,"appliesTo":"future-conversations","currentConversationRoleChanged":false}))
         }).collect()
+    }
+    /// How this conversation's role came to be: its own start, a start that
+    /// continues another conversation (CA-3), or a same-role fork (F-1).
+    pub fn relation(&self) -> Value {
+        match &self.origin {
+            Origin::Start => match &self.continued_from {
+                Some(from) => json!({"kind":"continued-from","from":from}),
+                None => json!({"kind":"start"}),
+            },
+            Origin::InheritedFork { source_thread, source_supply_ref } => json!({"kind":"inherited-fork",
+                "sourceThread":source_thread,"sourceSupplyRef":source_supply_ref,"forkedFromId":self.observation.forked_from}),
+        }
     }
     pub fn resume(
         &self,
@@ -369,8 +390,19 @@ pub struct PreparedStart {
     request_ref: String,
     supply_ref: String,
     guidance: FrozenGuidance,
+    continued_from: Option<Value>,
 }
 impl PreparedStart {
+    /// CA-3: this start continues another conversation. The relation names the
+    /// source thread and its start record (or that none is established); the
+    /// supplied guidance is still this start's own composition.
+    pub fn continuing(mut self, relation: Value) -> Result<Self, String> {
+        if relation["sourceThread"].as_str().is_none_or(str::is_empty) {
+            return Err("continue-as source conversation absent".into());
+        }
+        self.continued_from = Some(relation);
+        Ok(self)
+    }
     pub fn new(
         home: &str,
         generation: Value,
@@ -389,6 +421,7 @@ impl PreparedStart {
             request_ref: request_ref.into(),
             supply_ref: supply_ref.into(),
             guidance: FrozenGuidance::capture(composition)?,
+            continued_from: None,
         })
     }
     /// Additive role-owned fragment only; the owner supplies selected destination.
@@ -437,6 +470,7 @@ impl PreparedStart {
             original: self.guidance,
             origin: Origin::Start,
             observation,
+            continued_from: self.continued_from,
         })
     }
 }
@@ -550,6 +584,7 @@ impl MetadataRequest {
                 source_supply_ref: self.source.supply_ref,
             },
             observation,
+            continued_from: None,
         })
     }
 }

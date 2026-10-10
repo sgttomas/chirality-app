@@ -1064,9 +1064,20 @@ impl HistorySession {
         composition: &crate::role_supply::Composition,
         supply_ref: &str,
     ) -> Result<(), String> {
+        self.start_dispatched_continuing(receipt, composition, supply_ref, None)
+    }
+    /// As `start_dispatched`; a "Continue as" start (ROLE §3.3 CA-3) also binds
+    /// its relation to the source conversation. The source binding is untouched.
+    pub fn start_dispatched_continuing(
+        &mut self,
+        receipt: crate::hosting::SourceRequest,
+        composition: &crate::role_supply::Composition,
+        supply_ref: &str,
+        continued_from: Option<Value>,
+    ) -> Result<(), String> {
         let e = receipt.evidence();
         let prepared = (|| {
-            crate::role_lifecycle::PreparedStart::new(
+            let prepared = crate::role_lifecycle::PreparedStart::new(
                 e["home"].as_str().ok_or("start home absent")?,
                 e["generation"].clone(),
                 e["requestIdentity"].clone(),
@@ -1075,7 +1086,11 @@ impl HistorySession {
                     .ok_or("start request reference absent")?,
                 supply_ref,
                 composition,
-            )
+            )?;
+            match continued_from {
+                Some(relation) => prepared.continuing(relation),
+                None => Ok(prepared),
+            }
         })();
         let error = prepared.as_ref().err().cloned();
         let mut summary = receipt_summary(&e);
@@ -1291,17 +1306,41 @@ impl HistorySession {
             }
             None => Err("App instruction root unavailable; current guidance not read".into()),
         };
-        current.insert("AGENTS.md".into(), read("AGENTS.md", COMMON_DEFAULT));
-        for role in crate::role_supply::Role::ALL {
-            current.insert(
-                format!("agents/AGENT_{}.md", role.name()),
-                read(
-                    &format!("agents/AGENT_{}.md", role.name()),
-                    role_default(role),
-                ),
-            );
+        // GC-1: a file absent from the store is a change ("missing"); any other
+        // read failure only means the comparison could not be made.
+        let absent = |path: &str| {
+            root.is_some_and(|root| {
+                matches!(std::fs::symlink_metadata(root.join(path)), Err(e) if e.kind() == std::io::ErrorKind::NotFound)
+            })
+        };
+        if !absent("AGENTS.md") {
+            current.insert("AGENTS.md".into(), read("AGENTS.md", COMMON_DEFAULT));
         }
-        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"futureGuidanceNotices":binding.changes(&current)})
+        for role in crate::role_supply::Role::ALL {
+            let path = format!("agents/AGENT_{}.md", role.name());
+            if !absent(&path) {
+                current.insert(path.clone(), read(&path, role_default(role)));
+            }
+        }
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
+    }
+    /// ROLE §3.3 F-1: bind a same-role fork from the actual `thread/fork`
+    /// request and its correlated response. The fork inherits the source's
+    /// original guidance; the source binding is left exactly as it was. With
+    /// no source binding the fork's role stays unknown (nothing is bound).
+    pub fn fork_observed(&mut self, host: &crate::hosting::Host, receipt: &crate::hosting::SourceRequest, source_thread: &str) -> Result<Value, String> {
+        let status = host.source_request_status(receipt)?;
+        let home = status["home"].as_str().ok_or("fork home absent")?.to_owned();
+        let Some(source) = self.roles.get(&home, source_thread).cloned() else {
+            return Ok(json!({"kind":"inherited-fork","sourceThread":source_thread,"role":{"standing":"unknown","reason":"source conversation's original App role not established in this App process; the fork keeps the source's guidance, whatever it is"}}));
+        };
+        let request = source.fork(&home, status["generation"].clone(), status["requestIdentity"].clone(),
+            status["requestRef"].as_str().ok_or("fork request reference absent")?, &crate::util::opaque_id("sup:")?)?;
+        let binding = request.observe(&status["generation"], &status["sentFrame"], &status["response"])?;
+        let relation = binding.relation();
+        let thread = binding.thread().to_owned();
+        self.roles.insert(binding)?;
+        Ok(json!({"kind":"inherited-fork","thread":thread,"relation":relation,"role":self.role(&home,&thread)}))
     }
     pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
         let Some(history) = self.history.as_ref() else {
@@ -4113,7 +4152,9 @@ impl WorkflowRootSession {
             },
             Err(error) => json!({"standing":"candidate catalog unavailable","entries":[],"limit":error}),
         };
-        json!({"productionCatalog":production_catalog,"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
+        json!({"productionCatalog":production_catalog,"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err(),
+                // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
+                "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
@@ -6328,6 +6369,9 @@ mod workflow_root_tests {
         assert_eq!(review.status["entries"][0]["state"],"registered");drop(review);
         root.select_hot_registered_copy(&reference,&revision,f.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
         assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
+        // PD-1: the run panel reads the selected revision's declared part from the host, as WD read it.
+        let declaration=&root.snapshot()["selection"]["declaration"];
+        assert!(declaration["reading"].is_string()&&declaration["categories"].is_object(),"{declaration}");
         let mut cold=WorkflowRootSession::default();assert!(cold.select_hot_registered_copy(&reference,&revision,f.package.clone()).is_err(),"readable ledger/tuple cannot recreate hot registration authority");
         assert!(cold.select_development_copy(f.root.join(".chirality/workflows/coordinated-knowledge-work")).is_ok(),"exact copy can separately retain development admission, not old A15");
     }

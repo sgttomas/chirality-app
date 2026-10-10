@@ -12,6 +12,7 @@ pub mod attachments;
 pub mod canonical;
 pub mod catalog;
 pub mod codex_stop;
+pub mod conversation_roles;
 pub mod connector_standing;
 pub mod connector_route_store;
 mod connector_answer_only;
@@ -93,6 +94,8 @@ pub struct AppState {
     /// Confirmed Stop/Restart Codex outcomes, newest last, in this process only
     /// (`codex_stop::RECORDS_LIMIT`).
     codex_stops: Mutex<Vec<Value>>,
+    /// Open "Continue as ‹role›" handoffs (NIR §5.8; ROLE §3.3), this process only.
+    continue_as: Mutex<conversation_roles::Handoffs>,
 }
 
 impl AppState {
@@ -174,9 +177,12 @@ fn host_status(state: State<'_, AppState>) -> Value {
         if let (Some(home), Some(id)) = (thread["generation"]["home"].as_str(), thread["threadId"].as_str()) {
             let role = history.role_details(home, id, root.as_deref().ok());
             thread["appRole"] = role["appRole"].clone();
+            thread["roleRelation"] = role["roleRelation"].clone();
             thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
         }
     }
+    // ROLE §6.2 LA-4: the limits shown where a role is chosen, as handed.
+    s["roleLimits"] = conversation_roles::limit_account(root.as_deref().ok());
     let generation = s["generation"].clone();
     let targets = s["threads"].as_array().into_iter().flatten().filter(|thread|thread["generation"] == generation)
         .filter_map(|thread|thread["threadId"].as_str()).map(|thread|match runtime_session::observed_steering_target(&s, &generation, thread) {
@@ -209,6 +215,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
         s["workflowRoot"]["projectLibraryAvailable"] = json!(state.workspace.is_some());
     }
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
+    s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
@@ -496,8 +503,15 @@ fn thread_start(
     entry_id: String,
     mode_home_class: String,
     role: Option<role_supply::Role>,
+    continue_as: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
+    // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
+    // with its own role composition; it only records its relation to the source.
+    let continued_from = match &continue_as {
+        Some(id) => Some(state.continue_as.lock().unwrap().continuation(id, &home.host.snapshot()["generation"], role)?),
+        None => None,
+    };
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
@@ -533,7 +547,7 @@ fn thread_start(
     let supply_ref = {
         let mut slot = home.access_selection.lock().unwrap();
         let supply_ref = runtime_session::claim_start(&mut slot, selection, || util::opaque_id("sup:"))?;
-        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
@@ -542,7 +556,7 @@ fn thread_start(
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
-            home.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)
+            home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &supply_ref, continued_from.clone())
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
             let waited = home.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
             home.history.lock().unwrap().reconcile(&home.host);
@@ -562,12 +576,13 @@ fn thread_start(
         };
         let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
-            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         }
         result
     };
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
+            if let Some(id) = &continue_as { state.continue_as.lock().unwrap().started(id, thread, &generation); }
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
             let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
         }
@@ -680,6 +695,37 @@ fn conversation_interrupt(
         &turn_id,
         |generation, thread, turn| home.host.turn_interrupt(generation, thread, turn),
     )
+}
+
+/// NIR §5.8 CA-1/CA-2, ROLE §3.3: "Continue as ‹role›". Asks the source
+/// conversation's agent for a handoff summary in a visible ordinary turn
+/// there; the new conversation is started later by `thread_start` with this
+/// handoff. The source conversation's role is unchanged.
+#[tauri::command(async)]
+fn continue_as_begin(state: State<'_, AppState>, generation: Value, thread_id: String, role: Option<role_supply::Role>) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    // As for an attachment send: a pending run-end notice goes with ordinary text first.
+    runtime_session::mode_send_blocked_by_notice(&state.workflows, &generation, &thread_id)?;
+    let home_name = generation["home"].as_str().ok_or("generation home required")?.to_owned();
+    let source_role = home.history.lock().unwrap().binding(&home_name, &thread_id)
+        .map(|binding| binding.role_in_force(&home_name, &thread_id))
+        .unwrap_or(role_lifecycle::RoleInForce::Unknown { reason: "original App supply binding not established".into() });
+    let (id, text) = state.continue_as.lock().unwrap().reserve(&generation, &thread_id, source_role, role)?;
+    let outcome = runtime_session::send_conversation_text(&home.host.snapshot(), &generation, &thread_id, &text,
+        |generation, thread, text| home.host.turn_start_text(generation, thread, text));
+    Ok(state.continue_as.lock().unwrap().sent(&id, outcome))
+}
+
+#[tauri::command]
+fn continue_as_dismiss(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.continue_as.lock().unwrap().dismiss(&id)
+}
+
+/// NIR CA-4, ROLE F-1: "Fork (same role)".
+#[tauri::command(async)]
+fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: String) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    conversation_roles::fork_conversation(&home, &generation, &thread_id, std::time::Duration::from_secs(20))
 }
 
 /// Paths come exclusively from native file selection; no path/origin is an IPC argument.
@@ -1324,6 +1370,7 @@ pub fn run() {
         root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
         codex_stop_gate: Mutex::new(()),
         codex_stops: Mutex::new(Vec::new()),
+        continue_as: Mutex::new(conversation_roles::Handoffs::default()),
     };
     let host = Arc::clone(&home.host);
             app.manage(state);
@@ -1434,6 +1481,9 @@ pub fn run() {
             collaboration_modes_read,
             conversation_steer_text,
             conversation_interrupt,
+            continue_as_begin,
+            continue_as_dismiss,
+            conversation_fork,
             set_person_name,
             workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_try_draft,workflow_review_draft,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
@@ -1468,7 +1518,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new())};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default())};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
