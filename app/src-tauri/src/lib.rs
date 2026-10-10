@@ -52,6 +52,8 @@ pub(crate) mod run_offers;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
+pub(crate) mod workflow_trial_transcript;
+pub(crate) mod host_tick;
 pub(crate) mod execution_compatibility;
 pub(crate) mod a15_native;
 pub mod schema_validation;
