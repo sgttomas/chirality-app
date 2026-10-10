@@ -12,7 +12,7 @@ Use one coordinator for a shared result. That role must release work and resolve
 
 ## 1. Prove a usable path before multiplying work
 
-Name the intended consumer, the result they must be able to use, and the conditions that establish delivery. Bind the source basis, permitted transformations, uncertainty treatment, write boundaries, and decisions reserved for others. Use the existing brief; do not create another form simply to contain these facts.
+Name the intended consumer, the result they must be able to use, and the conditions that establish delivery. Bind the source basis, permitted transformations, uncertainty treatment, write boundaries, and decisions reserved for others. Use the existing brief; do not create another form simply to contain these facts. Prioritize reserved choices by what they unlock: present each as a concrete choice with its consequence, and do not make approval of an internal work graph a routine human decision.
 
 Choose an early unit that can travel all the way from authoritative input through production, required review, integration, and actual consumption. Include the interfaces or assumptions most likely to invalidate dependent work. A document section with a continued table may be more revealing than several easy pages; a decision-ready argument may be more revealing than a collection of research notes. Use an authorized test destination when actual publication requires a later decision. A bounded disposable experiment is appropriate when it resolves consequential uncertainty more cheaply.
 
@@ -38,7 +38,7 @@ A document owner may work through connected sections while the coordinator integ
 
 A useful standing assignment says, in substance: “Own this scope through repairs. Make completed units available to this reviewer with their exact versions. Continue the next natural unit while review proceeds, within the agreed ready-work limit. Escalate these defined changes or blockers; ordinary steps are already authorized.” This is an example, not another required template.
 
-Arrange the independent reviewer before expanding production where review is required. Start with a small ready queue and adjust it from actual review demand. Preserve the owner through findings instead of transferring the material to whoever is free. Where the host requires a new turn after a return, the coordinator must explicitly start it; a standing responsibility does not make queued advice executable.
+Arrange the independent reviewer before expanding production where review is required. Start with a small ready queue and adjust it from actual review demand. Preserve the owner through findings instead of transferring the material to whoever is free. Where the host requires a new turn after a return, the coordinator must explicitly start it; a standing responsibility does not make queued advice executable. Where a host delivers late returns past the coordinator that dispatched them, that coordinator keeps its turn open until its dispatched work returns, and contributors return the result location, checks and unresolved findings through the available channel. Keep a recovery note only when delivery otherwise cannot be recovered.
 
 Keep concurrent writes disjoint and shared changes under one integration authority. Renewal transfers logical responsibility and valid evidence; it does not justify repeating completed work. Models, staffing, and tools are assignment choices. Do not occupy every available slot merely because it exists.
 
@@ -102,7 +102,7 @@ The final corpus had heterogeneous object metadata. Establishing usable source-t
 
 Distinguish genuine residual uncertainty from unfinished required work. Uncertainty is compatible with completion only where the authorized outcome permits it. Cost does not convert a missing requirement into uncertainty, and agent checking does not confer human acceptance.
 
-Deliver the usable locations, checked scope and basis, limitations, and remaining decisions. Preserve the result with proportionate checkpoints and identify local-only recovery dependencies. Slow transport need not stop independent work once its snapshot is fixed. At interruption, preserve prepared versus executed changes, pending checks, applicable decisions, and known or unknown jobs. Inspect an executed write whose confirmation was lost; never replay it merely to obtain a cleaner receipt.
+Deliver the usable locations, checked scope and basis, limitations, and remaining decisions. Preserve the result with proportionate checkpoints and identify local-only recovery dependencies. Keep a pending human decision's reviewed bytes, and any handoff, at a stable path or immutable ref, and verify the link after branch or worktree changes. Slow transport need not stop independent work once its snapshot is fixed. At interruption, preserve prepared versus executed changes, pending checks, applicable decisions, and known or unknown jobs. Inspect an executed write whose confirmation was lost; never replay it merely to obtain a cleaner receipt.
 
 Locally added redundant controls can be combined or retired within authority. Required conditions and gates remain with their decision owner. The stopping rule is the agreed result supported by adequate evidence—not exhaustion of every improvement an agent can imagine.
 

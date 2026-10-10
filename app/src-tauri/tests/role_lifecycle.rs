@@ -8,12 +8,7 @@ mod util {
             .collect()
     }
 }
-#[path = "../src/role_lifecycle.rs"]
-mod role_lifecycle;
-#[path = "../src/role_supply.rs"]
-mod role_supply;
-use role_lifecycle::*;
-use role_supply::*;
+use chirality_app_v4_lib::{role_lifecycle::*, role_supply::*};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 fn generation(home: &str, n: u64) -> Value {
