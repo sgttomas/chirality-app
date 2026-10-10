@@ -858,14 +858,12 @@ fn store_folders(s: &Scratch) -> usize {
         .map(|d| d.count())
         .unwrap_or(0)
 }
-fn journal_files(s: &Scratch) -> usize {
-    fs::read_dir(s.0.join(".chirality/.workflow-staging/attempts"))
-        .map(|d| {
-            d.filter_map(|e| e.ok())
-                .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
-                .count()
-        })
-        .unwrap_or(0)
+/// SQ-X X-1's view: A15 entries of the library that no ledger line cites. An
+/// attempt is closed exactly when its A15 has its ledger line (no journal).
+fn uncited_count(s: &Scratch) -> usize {
+    uncited(&s.0, "project", "fixture-project", &ledger(s))
+        .unwrap()
+        .len()
 }
 fn reconfirmed(outcome: &EntryOutcome) -> RegisteredRevision {
     match outcome {
@@ -966,7 +964,7 @@ fn wr_vc_16_reconfirm_after_relaunch_keeps_the_revision_and_needs_a_new_act() {
         copy.files(),
         "no published copy written"
     );
-    assert_eq!(journal_files(&s), 0, "the attempt closed");
+    assert_eq!(uncited_count(&s), 0, "the attempt closed");
     let (acts, _) = crate::records::read_log(&storage::library_log(&s.0));
     let act = acts
         .iter()
@@ -1187,7 +1185,7 @@ fn wr_vc_19_dismissal_staleness_and_loss_have_no_effect() {
         "never repaired"
     );
     fs::write(store.join("notes.txt"), b"original notes\n").unwrap();
-    assert_eq!(journal_files(&s), 0);
+    assert_eq!(uncited_count(&s), 0, "every act has its line");
 }
 
 /// WR-VC-19 / RC-5 (F1): freshness is read against `freshness.slot_latest`. A
@@ -1243,14 +1241,41 @@ fn wr_vc_19_freshness_is_against_slot_latest_not_the_prior() {
     }
 }
 
-/// WR-VC-19 / RC-7, X-2: process loss. Lost after *stored*, before G-4R: X-2
-/// writes *not completed*. Lost after G-4R became durable: X-2 rereads the
-/// ledger, finds the line citing the act and writes nothing (V13 F3).
+/// WR-VC-19 / RC-7, X-2: process loss of a re-confirmation (owner ruling
+/// 2026-10-10: no attempt journal; X-2 reads the A15 record). Lost after
+/// capture, or after *stored* before G-4R: X-2 writes *not completed*, never
+/// *re-confirmed*. Lost after G-4R became durable: X-2 finds the line citing the
+/// act and writes nothing.
 #[test]
 fn wr_vc_19_process_loss_and_x2() {
     let s = Scratch::new();
     let one = s.put("sample", false, "One");
     let first = register(&s.persistent_owner(), one.revision());
+    let lost_and_relaunched = |s: &Scratch, record: &str, at: usize| {
+        let relaunched = s.persistent_owner();
+        assert_eq!(relaunched.reconciliation().len(), 1, "{:?}", relaunched.reconciliation());
+        assert!(relaunched.reconciliation()[0].contains("not completed"), "{:?}", relaunched.reconciliation());
+        let rows = ledger(s);
+        assert_eq!(rows.len(), at + 1);
+        assert_eq!(rows[at]["outcome"], "not completed");
+        assert_eq!(rows[at]["reason"], "process lost before re-confirmation committed");
+        assert_eq!(rows[at]["disposition"], "re-confirmation");
+        assert_eq!(rows[at]["reconfirms"]["ledger_seq"], 1);
+        assert_eq!(rows[at]["act"]["record_id"], record);
+        assert_eq!(uncited_count(s), 0);
+        relaunched
+    };
+    // Lost after capture, before the attempt began: the A15 alone.
+    {
+        let owner = s.persistent_owner();
+        let session = owner.review_draft("sample", one.revision()).unwrap();
+        let record = receipt(&session).record_id().to_string();
+        assert_eq!(uncited_count(&s), 1);
+        drop(session);
+        drop(owner);
+        let relaunched = lost_and_relaunched(&s, &record, 1);
+        assert!(!relaunched.is_held(first.identity()));
+    }
     // Lost after *stored*, before G-4R.
     {
         let owner = s.persistent_owner();
@@ -1258,34 +1283,13 @@ fn wr_vc_19_process_loss_and_x2() {
         let r = receipt(&session);
         let record = r.record_id().to_string();
         let mut attempt = session.begin_hot_registration(r).unwrap();
-        STOP_AFTER_STORED.with(|stop| stop.set(true));
-        assert!(matches!(
-            &attempt.advance()[0],
-            EntryOutcome::Pending { .. }
-        ));
-        assert_eq!(journal_files(&s), 1);
-        assert_eq!(ledger(&s).len(), 1);
+        LOSE_AT.with(|at| at.set(LOSE_BEFORE_COMMIT));
+        assert!(matches!(&attempt.advance()[0], EntryOutcome::Pending { .. }));
+        assert_eq!(ledger(&s).len(), 2);
         drop(attempt);
         drop(owner);
-        let relaunched = s.persistent_owner();
-        assert_eq!(
-            relaunched.reconciliation().len(),
-            1,
-            "{:?}",
-            relaunched.reconciliation()
-        );
-        assert!(relaunched.reconciliation()[0].contains("not completed"));
-        let rows = ledger(&s);
-        assert_eq!(rows.len(), 2);
-        assert_eq!(rows[1]["outcome"], "not completed");
-        assert_eq!(
-            rows[1]["reason"],
-            "process lost before re-confirmation committed"
-        );
-        assert_eq!(rows[1]["disposition"], "re-confirmation");
-        assert_eq!(rows[1]["act"]["record_id"], record.as_str());
-        assert_eq!(journal_files(&s), 0);
-        assert!(!relaunched.is_held(first.identity()));
+        let relaunched = lost_and_relaunched(&s, &record, 2);
+        assert!(!relaunched.is_held(first.identity()), "X-2 never completes a re-confirmation");
         // A later open finds nothing to do.
         assert!(s.persistent_owner().reconciliation().is_empty());
     }
@@ -1297,35 +1301,186 @@ fn wr_vc_19_process_loss_and_x2() {
         let record = r.record_id().to_string();
         let mut attempt = session.begin_hot_registration(r).unwrap();
         FAIL_LEDGER_SYNC.with(|fail| fail.set(true));
-        assert!(matches!(
-            &attempt.advance()[0],
-            EntryOutcome::Pending { .. }
-        ));
-        assert_eq!(journal_files(&s), 1);
+        assert!(matches!(&attempt.advance()[0], EntryOutcome::Pending { .. }));
         drop(attempt);
         drop(owner);
         let relaunched = s.persistent_owner();
-        assert!(
-            relaunched.reconciliation()[0].contains("nothing written"),
-            "{:?}",
-            relaunched.reconciliation()
-        );
+        assert!(relaunched.reconciliation().is_empty(), "{:?}", relaunched.reconciliation());
         let rows = ledger(&s);
-        assert_eq!(rows.len(), 3);
-        assert_eq!(rows[2]["outcome"], "re-confirmed");
+        assert_eq!(rows.len(), 4);
+        assert_eq!(rows[3]["outcome"], "re-confirmed");
         assert_eq!(
-            rows.iter()
-                .filter(|v| v["act"]["record_id"] == record.as_str())
-                .count(),
+            rows.iter().filter(|v| v["act"]["record_id"] == record.as_str()).count(),
             1,
             "one act, one ledger line"
         );
-        assert_eq!(journal_files(&s), 0);
-        assert!(
-            !relaunched.is_held(first.identity()),
-            "X-2 never completes a re-confirmation"
-        );
+        assert!(!relaunched.is_held(first.identity()), "X-2 never completes a re-confirmation");
     }
+}
+
+// ---- SQ-X for registrations without an attempt journal (owner ruling
+// 2026-10-10): X-2 decides from the A15 record and the store folder.
+
+/// One draft review, capture and begin, lost at `at` (or after capture when
+/// `at` is 0); returns the A15 record identity. The attempt is dropped, as a
+/// lost process's memory is, which also ends its liveness lock.
+fn lose_registration(owner: &LibraryOwner, revision: &str, at: u8) -> String {
+    let session = owner.review_draft("sample", revision).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    if at == 0 {
+        return record;
+    }
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    LOSE_AT.with(|cell| cell.set(at));
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => assert!(reason.contains("injected process loss"), "{reason}"),
+        other => panic!("expected the injected loss: {other:?}"),
+    }
+    record
+}
+fn store_of(s: &Scratch, revision: &str) -> PathBuf {
+    s.0.join(".chirality/workflow-revisions/sample")
+        .join(storage::key(revision))
+        .join("sample")
+}
+
+/// Lost after the store copy (G-3) and before G-4, the slot unchanged: X-2
+/// completes G-4 and G-5 citing the same A15. Nothing is selectable from it in
+/// the new process (RC-2); its standing reads LS-1 (a DS-8 review follows).
+#[test]
+fn sqx_registration_lost_after_store_completes_citing_the_same_a15() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let record = lose_registration(&s.persistent_owner(), one.revision(), LOSE_BEFORE_COMMIT);
+    assert!(store_of(&s, one.revision()).is_dir(), "stored before the loss");
+    assert!(ledger(&s).is_empty());
+    assert!(!s.0.join(".chirality/workflows/sample").exists());
+    let relaunched = s.persistent_owner();
+    assert_eq!(relaunched.reconciliation().len(), 1, "{:?}", relaunched.reconciliation());
+    assert!(relaunched.reconciliation()[0].contains("completed at relaunch"), "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 1);
+    let line = &rows[0];
+    assert_eq!(line["outcome"], "registered");
+    assert_eq!(line["act"]["record_id"], record.as_str(), "the same A15");
+    assert_eq!(line["sequence"], 1);
+    assert_eq!(line["disposition"], "new workflow");
+    assert_eq!(line["prior_revision"], Value::Null);
+    assert_eq!(line["identity"]["revision"], one.revision());
+    assert_eq!(line["reviewed_draft"]["draft"]["name"], "sample");
+    assert!(line["store_path"].as_str().unwrap().starts_with(".chirality/workflow-revisions/sample/"));
+    super::super::wr_validate("library_entry", line).unwrap();
+    // G-5: the published copy is the registered bytes.
+    assert_eq!(
+        Snapshot::capture(&s.0.join(".chirality/workflows/sample")).unwrap().files(),
+        one.files()
+    );
+    let k: WorkflowIdentity = serde_json::from_value(line["identity"].clone()).unwrap();
+    assert!(!relaunched.is_held(&k), "RC-2: nothing selectable from X-2");
+    // X-2 records no App-kept base (G-6 is the live process's): the old draft is
+    // DS-3 (K-6), and Refine (RF-1), which needs LS-1 as read, gives a DS-8 draft.
+    assert!(relaunched.review_draft("sample", one.revision()).err().unwrap().starts_with("DS-3"));
+    fs::remove_dir_all(s.0.join(".chirality/workflow-drafts/sample")).unwrap();
+    relaunched.refine_from_store("sample", one.revision()).unwrap();
+    assert_eq!(
+        relaunched.review_draft("sample", one.revision()).unwrap().current().unwrap().descriptor()["disposition"],
+        "re-confirmation",
+        "LS-1 as read: the A15 record and the store"
+    );
+    assert!(s.persistent_owner().reconciliation().is_empty(), "nothing left");
+}
+
+/// Lost after the store copy, but the slot moved on before relaunch: *not
+/// completed*; the store folder is left as it is.
+#[test]
+fn sqx_registration_slot_moved_on_is_not_completed() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    // A second process, opened before the loss, registers later.
+    let mover = s.owner();
+    let two = s.put("sample", false, "Two");
+    let record = lose_registration(&s.persistent_owner(), two.revision(), LOSE_BEFORE_COMMIT);
+    mover.bases.lock().unwrap().insert("sample".into(), first.identity().clone());
+    let three = s.put("sample", false, "Three");
+    register(&mover, three.revision());
+    let relaunched = s.persistent_owner();
+    assert!(relaunched.reconciliation()[0].contains("not completed: slot moved on"), "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 3);
+    assert_eq!(rows[2]["outcome"], "not completed");
+    assert_eq!(rows[2]["act"]["record_id"], record.as_str());
+    assert_eq!(rows[2]["identity"]["revision"], two.revision());
+    assert!(rows[2]["reason"].as_str().unwrap().starts_with("slot moved on"));
+    assert_eq!(
+        Snapshot::capture(&store_of(&s, two.revision())).unwrap().files(),
+        two.files(),
+        "the store folder is left, standing not registered"
+    );
+}
+
+/// No store folder (lost right after capture, or before the store copy), or a
+/// store folder that no longer recomputes: *not completed*, citing the A15. A
+/// store folder is never deleted or repaired.
+#[test]
+fn sqx_registration_without_a_recomputing_store_is_not_completed() {
+    // The A15 alone: lost after capture, before the attempt began.
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let record = lose_registration(&s.persistent_owner(), one.revision(), 0);
+    let relaunched = s.persistent_owner();
+    assert!(relaunched.reconciliation()[0].contains("process lost before the registration was stored"), "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!((rows.len(), &rows[0]["outcome"], &rows[0]["act"]["record_id"]), (1, &json!("not completed"), &json!(record)));
+    // Lost before the store copy (G-2): no store folder either.
+    let two = s.put("sample", false, "Two");
+    let record = lose_registration(&s.persistent_owner(), two.revision(), LOSE_BEFORE_STORE);
+    assert!(!store_of(&s, two.revision()).exists());
+    s.persistent_owner();
+    let rows = ledger(&s);
+    assert_eq!(rows[1]["outcome"], "not completed");
+    assert_eq!(rows[1]["act"]["record_id"], record.as_str());
+    assert!(rows[1]["reason"].as_str().unwrap().starts_with("process lost before the registration was stored"));
+    // Stored, then the store bytes changed before relaunch.
+    let three = s.put("sample", false, "Three");
+    let record = lose_registration(&s.persistent_owner(), three.revision(), LOSE_BEFORE_COMMIT);
+    let store = store_of(&s, three.revision());
+    fs::write(store.join("notes.txt"), b"tampered").unwrap();
+    let relaunched = s.persistent_owner();
+    assert!(relaunched.reconciliation()[0].contains("does not recompute"), "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 3);
+    assert_eq!(rows[2]["outcome"], "not completed");
+    assert_eq!(rows[2]["act"]["record_id"], record.as_str());
+    assert_eq!(fs::read(store.join("notes.txt")).unwrap(), b"tampered", "left as it is");
+    assert!(read_ledger(&s.0).is_ok());
+}
+
+/// A line already citing the act: X-2 writes nothing (a durable G-4 whose sync
+/// was uncertain, or an ordinary completed registration).
+#[test]
+fn sqx_line_already_present_writes_nothing() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    assert!(s.persistent_owner().reconciliation().is_empty());
+    let two = s.put("sample", false, "Two");
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", two.revision()).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    FAIL_LEDGER_SYNC.with(|fail| fail.set(true));
+    assert!(matches!(&attempt.advance()[0], EntryOutcome::Pending { .. }));
+    drop(attempt);
+    drop(owner);
+    let before = fs::read(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    let relaunched = s.persistent_owner();
+    assert!(relaunched.reconciliation().is_empty(), "{:?}", relaunched.reconciliation());
+    assert_eq!(fs::read(s.0.join(".chirality/workflow-registry.jsonl")).unwrap(), before);
+    let rows = ledger(&s);
+    assert_eq!(rows.iter().filter(|v| v["act"]["record_id"] == record.as_str()).count(), 1);
 }
 
 /// WR-VC-20: re-confirmed lines add nothing to the slot's series and never change
@@ -1471,108 +1626,89 @@ fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
     reconfirmed(&attempt.advance()[0]);
 }
 
-// ---- V15 F1 (MAJOR): the App never appends a re-confirmation line its own RC-9
-// reader refuses, and one act never has two ledger lines (RC-7, RB-8). Based on
-// the reviewer's probes P1, P2 and P5 (`v15-probe-tests.rs.txt`).
+// ---- V15 F1 (MAJOR): the App never appends a line its own reader refuses, and
+// one act never has two ledger lines (RC-7, RB-8). Based on the reviewer's
+// probes P1, P2, P5 and P6 (`v15-probe-tests.rs.txt`), restated for SQ-X without
+// a journal (owner ruling 2026-10-10).
 
-/// P1: X-2 from a journal whose intended line is schema-valid but breaks RC-9
-/// appends nothing; the attempt stays pending with the exact cause.
+/// P1 (restated): an uncited A15 that X-2 cannot close as a registration of
+/// this library is reported with its cause and nothing is written; an act log
+/// that cannot be read completely leaves X-1 not established.
 #[test]
-fn v15_p1_x2_never_appends_a_line_its_reader_refuses() {
+fn v15_p1_x2_writes_nothing_it_cannot_establish() {
     let s = Scratch::new();
     let one = s.put("sample", false, "One");
     register(&s.persistent_owner(), one.revision());
-    {
+    let record = {
         let owner = s.persistent_owner();
         let session = owner.review_draft("sample", one.revision()).unwrap();
         let r = receipt(&session);
+        let record = r.record_id().to_string();
         let mut attempt = session.begin_hot_registration(r).unwrap();
-        STOP_AFTER_STORED.with(|stop| stop.set(true));
+        LOSE_AT.with(|at| at.set(LOSE_BEFORE_COMMIT));
         let _ = attempt.advance();
-    }
-    let dir = s.0.join(".chirality/.workflow-staging/attempts");
-    let file = fs::read_dir(&dir)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .find(|p| !p.file_name().unwrap().to_string_lossy().starts_with('.'))
-        .unwrap();
-    let mut journal: Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
-    journal["intended"]["reconfirms"]["sequence"] = json!(2);
-    fs::write(&file, serde_json::to_vec(&journal).unwrap()).unwrap();
-    let relaunched = s.persistent_owner();
-    let outcome = relaunched.reconciliation().join("; ");
-    assert!(
-        outcome.contains("X-2 pending") && outcome.contains("RC-9"),
-        "{outcome}"
-    );
-    assert_eq!(
-        ledger(&s).len(),
-        1,
-        "nothing appended; the ledger still reads"
-    );
-    assert_eq!(
-        journal_files(&s),
-        1,
-        "the attempt stays open with its cause"
-    );
+        record
+    };
+    // The re-confirmation's ‹k› no longer matches any registered line.
+    let log = storage::library_log(&s.0);
+    let kept = fs::read_to_string(&log).unwrap();
+    let mut lines: Vec<String> = kept.lines().map(str::to_owned).collect();
+    let at = lines.iter().position(|l| l.contains(&record)).unwrap();
+    lines[at] = lines[at].replace(one.revision(), &"a".repeat(64));
+    fs::write(&log, lines.join("\n") + "\n").unwrap();
+    let outcome = s.persistent_owner().reconciliation().join("; ");
+    assert!(outcome.contains("X-2 pending") && outcome.contains("no registered line records"), "{outcome}");
+    assert_eq!(ledger(&s).len(), 1, "nothing appended; the ledger still reads");
+    // An act log that cannot be read completely: nothing is decided.
+    fs::write(&log, kept.clone() + "{not json\n").unwrap();
+    let outcome = s.persistent_owner().reconciliation().join("; ");
+    assert!(outcome.contains("X-1 not established") && outcome.contains("act log"), "{outcome}");
+    assert_eq!(ledger(&s).len(), 1);
+    fs::write(&log, kept).unwrap();
+    assert!(s.persistent_owner().reconciliation()[0].contains("not completed"));
 }
 
-/// P2: process B's journal publication fails its directory sync (pending);
-/// process C's X-2 closes the attempt as lost; B's Continue then finds the line
-/// citing its A15 and appends nothing: one act, one ledger line.
+/// P2 (restated): a live attempt in another App process is not closed as lost.
+/// Process B's append fails before writing (its attempt is *Intended* and still
+/// held); process C opens the library: X-2 is deferred and writes nothing. B's
+/// Continue then commits its own line. The same holds for a live review whose
+/// A15 is recorded but whose attempt has not begun.
 #[test]
-fn v15_p2_second_process_x2_then_continue_keeps_one_line_per_act() {
-    struct ResetSync;
-    impl Drop for ResetSync {
-        fn drop(&mut self) {
-            storage::fail_directory_for_test(None);
-        }
-    }
+fn sqx_live_attempt_in_another_process_is_not_closed_as_lost() {
     let s = Scratch::new();
     let one = s.put("sample", false, "One");
-    let first = register(&s.persistent_owner(), one.revision());
-    let dir = s.0.join(".chirality/.workflow-staging/attempts");
-    fs::create_dir_all(&dir).unwrap();
     let owner_b = s.persistent_owner();
+    // A review with its A15 recorded, the attempt not yet begun.
     let session = owner_b.review_draft("sample", one.revision()).unwrap();
     let r = receipt(&session);
     let record = r.record_id().to_string();
+    let deferred = s.persistent_owner();
+    assert!(deferred.reconciliation()[0].starts_with("X-2 deferred"), "{:?}", deferred.reconciliation());
+    assert!(ledger(&s).is_empty());
+    // The attempt begins and its append fails before writing anything.
     let mut attempt = session.begin_hot_registration(r).unwrap();
-    storage::fail_directory_for_test(Some(dir.clone()));
-    let _reset = ResetSync;
-    assert!(matches!(
-        &attempt.advance()[0],
-        EntryOutcome::Pending { .. }
-    ));
-    storage::fail_directory_for_test(None);
+    FAIL_LEDGER_APPEND.with(|fail| fail.set(true));
+    assert!(matches!(&attempt.advance()[0], EntryOutcome::Pending { .. }));
     let owner_c = s.persistent_owner();
-    assert!(
-        owner_c.reconciliation()[0].contains("not completed"),
-        "{:?}",
-        owner_c.reconciliation()
-    );
+    assert!(owner_c.reconciliation()[0].starts_with("X-2 deferred"), "{:?}", owner_c.reconciliation());
+    assert!(ledger(&s).is_empty(), "the live attempt was not closed as lost");
     match &attempt.advance()[0] {
-        EntryOutcome::NotCompleted { reason, .. } => {
-            assert!(reason.contains("already has ledger line"), "{reason}")
-        }
-        other => panic!("expected no second line: {other:?}"),
+        EntryOutcome::Registered { .. } => {}
+        other => panic!("expected B to commit its own line: {other:?}"),
     }
-    let raw = fs::read_to_string(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
-    assert_eq!(
-        raw.lines().filter(|l| l.contains(&record)).count(),
-        1,
-        "one act, one line"
-    );
-    assert!(read_ledger(&s.0).is_ok());
-    assert!(!owner_b.is_held(first.identity()));
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["act"]["record_id"], record.as_str());
+    // Closed: the liveness lock is released and a later open has nothing to do.
+    assert!(s.persistent_owner().reconciliation().is_empty());
+    assert!(storage::try_lock_exclusive(&liveness_path(&s.0)).unwrap().is_some());
 }
 
-/// P6 (V15-R1 R1-1): process B's append fails before writing anything, so its
-/// attempt is *Intended*; process C's X-2 closes the attempt as lost with a
-/// *not completed* line citing B's A15. B's Continue then ends with that line,
-/// a definite outcome, instead of "durability uncertain" on every Continue.
-/// One act, one ledger line.
+/// P6 (V15-R1 R1-1), kept as the defence behind the liveness lock: if B's
+/// liveness were lost while its attempt is *Intended* (its append wrote
+/// nothing), C's X-2 closes the attempt with a *not completed* line citing B's
+/// A15, and B's Continue ends with that line, a definite outcome. One act, one
+/// ledger line. The same for a registration C completed: B finishes with it.
 #[test]
 fn v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line() {
     let s = Scratch::new();
@@ -1591,7 +1727,7 @@ fn v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line() {
         other => panic!("expected pending: {other:?}"),
     }
     assert_eq!(ledger(&s).len(), 1, "the failed append wrote nothing");
-    assert_eq!(journal_files(&s), 1, "the attempt was stored first");
+    attempt.session.live = None; // liveness lost (defence test only)
     let owner_c = s.persistent_owner();
     assert!(
         owner_c.reconciliation()[0].contains("not completed"),
@@ -1615,8 +1751,22 @@ fn v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line() {
         "one act, one line"
     );
     assert!(read_ledger(&s.0).is_ok());
-    assert_eq!(journal_files(&s), 0);
     assert!(!owner_b.is_held(first.identity()));
+    // A registration whose liveness is lost after its store copy: C completes
+    // it citing B's A15; B's Continue finishes with that line, appending none.
+    let two = s.put("sample", false, "Two");
+    let owner_b = s.persistent_owner();
+    let session = owner_b.review_draft("sample", two.revision()).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    LOSE_AT.with(|at| at.set(LOSE_BEFORE_COMMIT));
+    assert!(matches!(&attempt.advance()[0], EntryOutcome::Pending { .. }));
+    attempt.session.live = None;
+    assert!(s.persistent_owner().reconciliation()[0].contains("completed at relaunch"));
+    assert!(matches!(&attempt.advance()[0], EntryOutcome::Registered { .. }));
+    let raw = fs::read_to_string(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    assert_eq!(raw.lines().filter(|l| l.contains(&record)).count(), 1, "one act, one line");
 }
 
 /// P5: after capture, registered line 1 is edited outside the App so it no

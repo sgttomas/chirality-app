@@ -87,10 +87,21 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   Markdown work graphs (Root SPEC §9.8) are a practice DEL-10-02 owns, not a
   format with identified versions; this format does not change them, and
   their adoption of it would be a separate instruction change.
-- **FR-D3 Location.** The records live with the user's project (V4-REC-02;
-  RS OF-9). No path is selected (OI-013, OI-014). The prototype uses
-  `briefs/`, `graphs/<undertaking>/` and `coordination.fleet.jsonl` under one
-  folder.
+- **FR-D3 Location and placement (settled, owner 2026-10-10).** The records
+  live with the user's project (V4-REC-02; RS OF-9), in one fixed default
+  folder, `<project>/.chirality/fleet/`: `briefs/`, `graphs/<undertaking>/`
+  and `coordination.fleet.jsonl`, the layout the prototype uses. It sits
+  beside the App's other project folders (`.chirality/workflow-drafts/`,
+  `.chirality/records/`; WR §3). v4.0 has no folder picker. The Rust host
+  reads and writes the records, as for the draft workspace (WR §11, the
+  owner's "A, proceed with the Rust host"): file writes stay out of the
+  webview, and the TypeScript interface lists and presents what the host
+  hands it. Files written there with
+  ordinary tools stay valid input (FR-D1). The owner agreed with this
+  recommendation: "For the Fleet workspace I agree with the approach you laid
+  out and your recommendations for what the Design leaves open." This settles
+  OI-008's process placement for these records and selects their path; it
+  allocates nothing beyond them (OI-013, OI-014).
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
   children: every `dispatch_observed`, associated with a brief or not.
   RECOVERY's ledger is unchanged.
@@ -432,6 +443,6 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 |---|---|---|
 | AS-1 is guidance, not enforcement: a manager may spawn without the reference | O-A, with DEL-02-04 (guidance text) | Before the App's guidance is written |
 | PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
-| Process placement of reader and writer (OI-008) | Owner, at the phase review | Before allocation |
+| Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3):* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
 | Content-identity method: the prototype uses sha-256 of file bytes as a TEST VALUE (RS U-04) | Owner with DEL-04-03 | Before reliance |
 | Delegation on any stock route is unobserved (adapter only) | A later observation | Before VER-003 on a candidate |

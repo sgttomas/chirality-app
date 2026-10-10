@@ -436,7 +436,15 @@ Project run logs use `.chirality/records/runs/<safe-run-key>/<safe-writer-key>.j
 outside-run acts use `.chirality/records/acts/<safe-writer-key>.jsonl` with captures
 in `.chirality/captures/`. Library A15 allocation uses the library's
 `.chirality/records/acts.jsonl` and `.chirality/captures/`; its native registration
-witness remains unfinished. Storage keys are separate from governed identities.
+witness remains unfinished. There is no registration attempt journal (owner
+ruling 2026-10-10): when a library is opened, SQ-X finds A15 records that no
+ledger line cites and decides from the record and the revision store (WR §6
+X-1, X-2; CI-24 (b)). Each open review holds
+`.chirality/workflow-registration.live.lock` shared until its attempt is
+closed, and X-2 runs only when it can hold that file exclusively, so a live
+attempt in another App process is never closed as lost. A
+`.chirality/.workflow-staging/attempts/` folder left by an earlier build is
+no longer read. Storage keys are separate from governed identities.
 Explicitly discovered legacy `records/coordination.rs.jsonl` stays intact.
 Unwritable or incomplete targets report limits without silent relocation.
 

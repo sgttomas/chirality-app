@@ -65,6 +65,10 @@ fn p3_entry_host_metadata_uses_the_exact_four_role_asset() {
         json!(["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS"])
     );
     assert!(metadata["roles"].as_array().unwrap().iter().any(|r| r["name"] == "TASK"));
+    assert_eq!(
+        metadata["identity"],
+        role_supply::content(role_supply::BUNDLED_ROLE_SET)
+    );
 }
 #[test]
 fn p3_entry_task_start_is_refused_before_send_and_task_guidance_stays_for_delegation() {
@@ -83,10 +87,6 @@ fn p3_entry_task_start_is_refused_before_send_and_task_guidance_stays_for_delega
     let task = role_supply::Guidance::read_seeded(&editable, "agents/AGENT_TASK.md", runtime_session::INSTRUCTION_RELEASE, runtime_session::role_default(role_supply::Role::TASK)).unwrap();
     role_supply::Composition::new(&common, Some((role_supply::Role::TASK, &task)), true).unwrap();
     std::fs::remove_dir_all(base).unwrap();
-    assert_eq!(
-        metadata["identity"],
-        role_supply::content(role_supply::BUNDLED_ROLE_SET)
-    );
 }
 
 #[test]

@@ -57,6 +57,19 @@ impl Drop for Ownership {
     }
 }
 pub fn lock(path: &Path) -> Result<Ownership, String> {
+    flock(path, libc::LOCK_EX).map(|o| o.expect("a blocking lock is always taken"))
+}
+/// A shared lock, held by each holder for as long as it lives; the OS releases
+/// it when the holding process ends.
+pub fn lock_shared(path: &Path) -> Result<Ownership, String> {
+    flock(path, libc::LOCK_SH).map(|o| o.expect("a blocking lock is always taken"))
+}
+/// An exclusive lock taken only if no other holder (shared or exclusive, in this
+/// or another process) has the file locked now; `None` otherwise. Never waits.
+pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
+    flock(path, libc::LOCK_EX | libc::LOCK_NB)
+}
+fn flock(path: &Path, operation: libc::c_int) -> Result<Option<Ownership>, String> {
     check_path(path)?;
     ensure_directory(path.parent().ok_or("lock has no parent")?)?;
     let file = OpenOptions::new()
@@ -66,10 +79,14 @@ pub fn lock(path: &Path) -> Result<Ownership, String> {
         .truncate(false)
         .open(path)
         .map_err(|e| format!("owning lock: {e}"))?;
-    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
-        return Err(format!("owning lock: {}", std::io::Error::last_os_error()));
+    if unsafe { libc::flock(file.as_raw_fd(), operation) } != 0 {
+        let error = std::io::Error::last_os_error();
+        if operation & libc::LOCK_NB != 0 && error.kind() == std::io::ErrorKind::WouldBlock {
+            return Ok(None);
+        }
+        return Err(format!("owning lock: {error}"));
     }
-    Ok(Ownership(file))
+    Ok(Some(Ownership(file)))
 }
 #[cfg(test)]
 thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }

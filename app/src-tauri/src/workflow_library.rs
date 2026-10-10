@@ -26,7 +26,8 @@ pub(crate) struct LibraryOwner {
     /// result this App process holds. Filled only by this process's own hot
     /// commits; never rebuilt from the ledger or any record read from disk.
     held: Held,
-    /// SQ-X X-2 outcomes for re-confirmation attempts found at open, with causes.
+    /// SQ-X X-1/X-2 outcomes at open (registration and re-confirmation
+    /// attempts recovered from their A15 records and the store), with causes.
     reconciliation: Vec<String>,
 }
 type Held = std::sync::Arc<std::sync::Mutex<std::collections::HashSet<(String, String)>>>;
@@ -50,12 +51,15 @@ impl LibraryOwner {
             held: Default::default(),
             reconciliation: vec![],
         };
-        // SQ-X X-1/X-2 at App start, per library: close re-confirmation attempts
-        // a lost process left *stored*. Never completes one (RC-7).
-        owner.reconciliation = reconcile_reconfirmations(&owner.root);
+        // SQ-X X-1/X-2 at App start, per library (owner ruling 2026-10-10: no
+        // attempt journal). Every A15 that no ledger line cites, and whose
+        // attempt no live review holds, is closed from the A15 record and the
+        // store: a registration completes or ends *not completed*; a
+        // re-confirmation is never completed (RC-7).
+        owner.reconciliation = reconcile_attempts(&owner.root, &owner.origin, &owner.source_root);
         Ok(owner)
     }
-    /// What SQ-X X-2 did for re-confirmation attempts at open (WR §4.8 RC-7).
+    /// What SQ-X X-1/X-2 did at open (WR §6 SQ-X; §4.8 RC-7).
     pub(crate) fn reconciliation(&self) -> &[String] {
         &self.reconciliation
     }
@@ -271,6 +275,10 @@ impl LibraryOwner {
             return Err("one draft or ordered in-place entries required".into());
         }
         let mut unique = std::collections::HashSet::new();
+        // SQ-X liveness: held from before any A15 of this review can be recorded
+        // until its attempt is closed or the review is dropped.
+        let live = storage::lock_shared(&liveness_path(&self.root))
+            .map_err(|e| format!("registration liveness lock not established: {e}"))?;
         let ledger = read_ledger(&self.root)?;
         let review_ref = crate::util::opaque_id("review:")?;
         let descriptor_id = format!("descriptor:{review_ref}");
@@ -428,6 +436,7 @@ impl LibraryOwner {
             descriptor: Value::Null,
             presentation: Value::Null,
             withdrawn: Cell::new(false),
+            live: Some(live),
         };
         session.descriptor = session.compose_descriptor();
         super::wr_validate(session.descriptor_kind(), &session.descriptor)?;
@@ -534,6 +543,12 @@ pub(crate) struct ReviewSession {
     descriptor: Value,
     presentation: Value,
     withdrawn: Cell<bool>,
+    /// SQ-X liveness (WR §6 X-1): a shared lock on the library's liveness file,
+    /// held while this review or its registration attempt may still record an
+    /// A15 or write its ledger line. Another process's X-2 closes an attempt
+    /// only when it can take that file exclusively, so a live attempt is never
+    /// closed as lost; the OS releases the lock when this process ends.
+    live: Option<storage::Ownership>,
 }
 impl ReviewSession {
     fn descriptor_kind(&self) -> &'static str {
@@ -1113,6 +1128,13 @@ impl HotRegistrationAttempt {
                 }
             }
         }
+        // SQ-X liveness: once every entry has its durable ledger line, nothing of
+        // this attempt is left for any X-2, so the shared lock is released.
+        if self.progress.iter().all(|p| {
+            matches!(p, Progress::Committed(..) | Progress::ReConfirmed(..) | Progress::Failed(..))
+        }) {
+            self.session.live = None;
+        }
         self.progress
             .iter()
             .zip(&self.session.entries)
@@ -1210,6 +1232,8 @@ impl HotRegistrationAttempt {
         }
         let store = store_path(root, &e.review.identity);
         storage::check_path(&store)?;
+        #[cfg(test)]
+        lose_at(LOSE_BEFORE_STORE)?;
         if store.exists() {
             if Snapshot::capture(&store)?.files() != e.review.snapshot().files() {
                 return self.fail_entry(index, "store conflict".into(), &rows);
@@ -1241,6 +1265,8 @@ impl HotRegistrationAttempt {
         line["disposition"] = json!(e.disposition);
         line["store_path"] = json!(store.strip_prefix(root).unwrap().to_string_lossy());
         super::wr_validate("library_entry", &line)?;
+        #[cfg(test)]
+        lose_at(LOSE_BEFORE_COMMIT)?;
         self.progress[index] = Progress::Intended(line.clone());
         append_line(root, &line)?;
         self.finish_commit(index, line)
@@ -1268,31 +1294,44 @@ impl HotRegistrationAttempt {
         )?;
         Ok(true)
     }
-    /// WR §4.8 RC-6: G-1R…G-4R and G-6R. Never creates, rewrites or repairs a
-    /// store folder; publishes no copy (no G-5).
-    /// V15 F1 (RC-7, RB-8): one act never has two ledger lines. If the ledger
-    /// already cites this re-confirmation attempt's A15 (for example X-2 of
-    /// another process closed it as lost), append nothing and end the attempt in
-    /// this process, naming that line. Checked on the first pass and (V15-R1
-    /// R1-1) on the intended-line path, where an append that wrote nothing left
-    /// the attempt *Intended*.
+    /// V15 F1 (RC-7, RB-8): one act never has two ledger lines (one per entry
+    /// for a multi-entry act). If the ledger already cites this attempt's A15
+    /// for this entry, append nothing and end the attempt in this process with
+    /// that line. Checked on the first pass and (V15-R1 R1-1) on the
+    /// intended-line path, where an append that wrote nothing left the attempt
+    /// *Intended*. Since the owner's 2026-10-10 ruling (no attempt journal) a
+    /// live attempt holds the SQ-X liveness lock, so another process's X-2 does
+    /// not close it; this check stays as the defence that keeps the ledger
+    /// unambiguous if it ever does. A *registered* line for this very entry is
+    /// the commit of the act captured here and is finished as such.
     fn end_if_a15_has_line(&mut self, index: usize, rows: &[Value]) -> Result<bool, String> {
-        if self.session.entries[index].reconfirm.is_none() {
-            return Ok(false);
-        }
-        let record = self.receipt.record_id();
-        let Some(existing) = rows.iter().find(|v| v["act"]["record_id"] == record) else {
+        let record = self.receipt.record_id().to_owned();
+        let e = &self.session.entries[index];
+        let multi = matches!(self.session.mode, ReviewMode::MultiInPlace);
+        let Some(existing) = rows.iter().find(|v| {
+            v["act"]["record_id"] == record.as_str()
+                && (!multi || v["identity"]["name"] == e.review.identity.name.as_str())
+        }) else {
             return Ok(false);
         };
+        if e.reconfirm.is_none()
+            && existing["outcome"] == "registered"
+            && existing["identity"] == json!(e.review.identity)
+        {
+            self.progress[index] = Progress::Intended(existing.clone());
+            self.finish_commit(index, existing.clone())?;
+            return Ok(true);
+        }
         let reason = format!(
             "A15 {record} already has ledger line {} ({}); nothing appended, one act has one line (RC-7, RB-8); review again",
             existing["ledger_seq"],
             existing["outcome"].as_str().unwrap_or("?")
         );
-        close_attempt_journal(&self.session.root, &json!({"act":{"record_id":record}}))?;
         self.progress[index] = Progress::Failed(reason);
         Ok(true)
     }
+    /// WR §4.8 RC-6: G-1R…G-4R and G-6R. Never creates, rewrites or repairs a
+    /// store folder; publishes no copy (no G-5).
     fn advance_reconfirmation(
         &mut self,
         index: usize,
@@ -1346,30 +1385,28 @@ impl HotRegistrationAttempt {
             );
             return self.fail_entry(index, reason, rows);
         }
-        // G-4R: the intended line; the attempt is *stored* (attempt journal) first.
+        // G-4R: the intended line. The attempt is *stored* (§5.2): its A15
+        // record and ‹k›'s store folder are what SQ-X X-2 reads if the process
+        // is lost now (owner ruling 2026-10-10: no attempt journal).
         let mut line = self.line(index, rows, "re-confirmed");
         line["sequence"] = r.line["sequence"].clone();
         line["store_path"] = r.line["store_path"].clone();
         super::wr_validate("library_entry", &line)?;
         rc9_guard(&root, rows, &line)?;
-        write_attempt_journal(&root, &line)?;
         #[cfg(test)]
-        if STOP_AFTER_STORED.with(|stop| stop.replace(false)) {
-            return Err("injected process loss after the attempt was stored".into());
-        }
+        lose_at(LOSE_BEFORE_COMMIT)?;
         self.progress[index] = Progress::Intended(line.clone());
         append_line(&root, &line)?;
         self.finish_reconfirm(index, line)
     }
     /// G-6R once G-4R is durable: the App holds the result, so ‹k› is selectable
     /// in this process only (RC-2); ‹k› becomes the draft's base.
-    fn finish_reconfirm(&mut self, index: usize, line: Value) -> Result<(), String> {
+    fn finish_reconfirm(&mut self, index: usize, _line: Value) -> Result<(), String> {
         let e = &self.session.entries[index];
         let store = store_path(&self.session.root, &e.review.identity);
         if Snapshot::capture(&store)?.files() != e.review.snapshot().files() {
             return Err("re-confirmed store no longer matches; selectable value withheld".into());
         }
-        close_attempt_journal(&self.session.root, &line)?;
         let revision = RegisteredRevision {
             identity: e.review.identity.clone(),
             snapshot: e.review.snapshot().clone(),
@@ -1466,189 +1503,362 @@ impl HotRegistrationAttempt {
         if e.in_place {
             return Ok(());
         }
-        let root = &self.session.root;
-        let copy = root
-            .join(".chirality/workflows")
-            .join(&e.review.identity.name);
-        storage::check_path(&copy)?;
-        if copy.exists() && Snapshot::capture(&copy)?.files() == e.review.snapshot().files() {
-            return Ok(());
-        }
-        let staging = root
-            .join(".chirality/.workflow-staging")
-            .join(crate::util::opaque_id("publish-")?);
-        storage::ensure_directory(staging.parent().unwrap())?;
-        e.review.snapshot().publish_new(&staging)?;
-        sync_package(&staging)?;
-        storage::ensure_directory(copy.parent().unwrap())?;
-        if copy.exists() {
-            let old = Snapshot::capture(&copy)?;
-            let kept = root
-                .join(".chirality/workflow-unrecorded")
-                .join(&e.review.identity.name)
-                .join(old.revision());
-            storage::ensure_directory(kept.parent().unwrap())?;
-            if kept.exists() {
-                if Snapshot::capture(&kept)?.files() != old.files() {
-                    return Err("kept-aside content conflict; published copy not replaced".into());
-                }
-                return Err("changed copy already kept aside; current copy retained for explicit reconciliation".into());
-            }
-            fs::rename(&copy, &kept).map_err(|e| e.to_string())?;
-            storage::sync_dir(copy.parent().unwrap())?;
-            storage::sync_dir(kept.parent().unwrap())?;
-        }
-        fs::rename(&staging, &copy).map_err(|e| e.to_string())?;
-        storage::sync_dir(copy.parent().unwrap())
+        publish_copy_of(&self.session.root, &e.review.identity.name, e.review.snapshot())
     }
+}
+/// G-5: publish the copy at `workflows/<name>/` from the registered bytes,
+/// moving unrecorded content aside first (LS-3); never overwrites it.
+fn publish_copy_of(root: &Path, name: &str, snapshot: &Snapshot) -> Result<(), String> {
+    let copy = root.join(".chirality/workflows").join(name);
+    storage::check_path(&copy)?;
+    if copy.exists() && Snapshot::capture(&copy)?.files() == snapshot.files() {
+        return Ok(());
+    }
+    let staging = root
+        .join(".chirality/.workflow-staging")
+        .join(crate::util::opaque_id("publish-")?);
+    storage::ensure_directory(staging.parent().unwrap())?;
+    snapshot.publish_new(&staging)?;
+    sync_package(&staging)?;
+    storage::ensure_directory(copy.parent().unwrap())?;
+    if copy.exists() {
+        let old = Snapshot::capture(&copy)?;
+        let kept = root
+            .join(".chirality/workflow-unrecorded")
+            .join(name)
+            .join(old.revision());
+        storage::ensure_directory(kept.parent().unwrap())?;
+        if kept.exists() {
+            if Snapshot::capture(&kept)?.files() != old.files() {
+                return Err("kept-aside content conflict; published copy not replaced".into());
+            }
+            return Err("changed copy already kept aside; current copy retained for explicit reconciliation".into());
+        }
+        fs::rename(&copy, &kept).map_err(|e| e.to_string())?;
+        storage::sync_dir(copy.parent().unwrap())?;
+        storage::sync_dir(kept.parent().unwrap())?;
+    }
+    fs::rename(&staging, &copy).map_err(|e| e.to_string())?;
+    storage::sync_dir(copy.parent().unwrap())
 }
 #[cfg(test)]
 thread_local! { static FAIL_LEDGER_SYNC: Cell<bool> = const { Cell::new(false) }; }
 /// One append fails before anything is written (V15-R1 P6).
 #[cfg(test)]
 thread_local! { static FAIL_LEDGER_APPEND: Cell<bool> = const { Cell::new(false) }; }
+/// Test hook: the App process is lost at this point of the next attempt pass
+/// (the attempt is then dropped, as a lost process's memory is).
 #[cfg(test)]
-thread_local! { static STOP_AFTER_STORED: Cell<bool> = const { Cell::new(false) }; }
+thread_local! { static LOSE_AT: Cell<u8> = const { Cell::new(0) }; }
+#[cfg(test)]
+const LOSE_BEFORE_STORE: u8 = 1;
+#[cfg(test)]
+const LOSE_BEFORE_COMMIT: u8 = 2;
+#[cfg(test)]
+fn lose_at(point: u8) -> Result<(), String> {
+    if LOSE_AT.with(|at| at.get() == point) {
+        LOSE_AT.with(|at| at.set(0));
+        return Err(format!("injected process loss at point {point}"));
+    }
+    Ok(())
+}
 fn hold(held: &Held, identity: &WorkflowIdentity) {
     if let Ok(mut h) = held.lock() {
         h.insert((identity.name.clone(), identity.revision.clone()));
     }
 }
-/// §5.2 attempt journal for a re-confirmation in *stored* (RC-6 G-3R): App-kept
-/// and temporary, in the library's staging area (§3 "Review snapshots, staging";
-/// X-1 reads "each library's attempt journal"). Removed when the attempt closes.
-fn attempt_journal(root: &Path, line: &Value) -> PathBuf {
-    root.join(".chirality/.workflow-staging/attempts")
-        .join(format!(
-            "{}.json",
-            storage::key(&line["act"]["record_id"].to_string())
-        ))
+/// SQ-X liveness file (WR §6 X-1). Every open review holds it shared, from
+/// before its A15 can be recorded until its attempt has a durable ledger line
+/// for each entry; X-2 runs only when it can take it exclusively. A live
+/// attempt in any App process therefore defers X-2, and a lost process's
+/// shared lock ends with it. The file holds nothing: it is not a journal.
+fn liveness_path(root: &Path) -> PathBuf {
+    root.join(".chirality/workflow-registration.live.lock")
 }
-fn write_attempt_journal(root: &Path, line: &Value) -> Result<(), String> {
-    let path = attempt_journal(root, line);
-    storage::check_path(&path)?;
-    let entry = json!({"record_kind":"wr_reconfirmation_attempt","state":"stored","act":line["act"],"intended":line});
-    if let Ok(bytes) = fs::read(&path) {
-        let existing: Value = serde_json::from_slice(&bytes)
-            .map_err(|e| format!("attempt journal malformed: {}: {e}", path.display()))?;
-        if existing["act"] == line["act"] {
-            return Ok(());
-        }
+/// One entry of an A15 act record that no ledger line cites (SQ-X X-1), as the
+/// persisted record states it (RS §6.1; WR RB-4a): what was approved.
+struct Uncited {
+    record_id: String,
+    capture: String,
+    /// The re-confirm purpose (WR RC-4; U-WR-22: the A15 carries it).
+    reconfirm: bool,
+    subject: WorkflowIdentity,
+    /// The prior revision the act bound: for a registration, the slot's latest
+    /// at review (its freshness); for a re-confirmation, ‹k›'s own prior.
+    prior: Option<WorkflowIdentity>,
+    /// The reviewed draft or entry (WR ID-3) and its content identity.
+    reviewed: String,
+    content: Value,
+}
+/// RS `workflowTuple` (camelCase) to the WR identity.
+fn rs_identity(v: &Value) -> Result<WorkflowIdentity, String> {
+    let field = |k: &str| {
+        v[k].as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| format!("workflow tuple field {k} not readable"))
+    };
+    let derived_from = match &v["derivedFrom"] {
+        Value::Null => None,
+        d => Some(Box::new(rs_identity(d)?)),
+    };
+    let identity = WorkflowIdentity {
+        kind: field("kind")?,
+        origin: field("origin")?,
+        source_root: field("sourceRoot")?,
+        name: field("name")?,
+        revision: field("revision")?,
+        revision_method: field("revisionMethod")?,
+        derived_from,
+    };
+    identity.validate()?;
+    Ok(identity)
+}
+/// SQ-X X-1: the entries of this library's A15 records that no ledger line
+/// cites (one line per single-descriptor act; one per entry of a multi-entry
+/// act, RB-8). An entry that cannot be read as a registration of this library
+/// is returned as its cause; nothing is written for it.
+fn uncited(
+    root: &Path,
+    origin: &str,
+    source: &str,
+    rows: &[Value],
+) -> Result<Vec<Result<Uncited, String>>, String> {
+    let log = storage::library_log(root);
+    let (acts, limits) = crate::records::read_log(&log);
+    if !limits.is_empty() {
         return Err(format!(
-            "attempt journal {} names another act",
-            path.display()
+            "act log not completely readable: {}",
+            limits.join("; ")
         ));
     }
-    storage::create_json(&path, &entry)
-}
-fn close_attempt_journal(root: &Path, line: &Value) -> Result<(), String> {
-    let path = attempt_journal(root, line);
-    storage::check_path(&path)?;
-    match fs::remove_file(&path) {
-        Ok(()) => storage::sync_dir(path.parent().ok_or("journal has no parent")?),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(format!(
-            "attempt journal not closed: {}: {e}",
-            path.display()
-        )),
+    let mut found = vec![];
+    for act in acts
+        .iter()
+        .filter(|a| a["kind"] == "human_act" && a["body"]["actKind"] == "A15")
+    {
+        let record = act["recordId"].as_str().unwrap_or_default().to_owned();
+        let body = &act["body"];
+        let multi = body["relations"]["registeredEntries"].is_array();
+        let entries: Vec<(&Value, &Value, &Value)> = if multi {
+            body["relations"]["registeredEntries"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|e| (&e["subject"], &e["reviewedDraft"], &e["priorRevision"]))
+                .collect()
+        } else {
+            vec![(
+                &body["boundSubject"][0],
+                &body["relations"]["reviewedDraft"],
+                &body["relations"]["priorRevision"],
+            )]
+        };
+        for (subject, reviewed, prior) in entries {
+            let entry = (|| -> Result<Uncited, String> {
+                let tuple: Value = subject
+                    .as_str()
+                    .and_then(|s| s.strip_prefix("workflow revision "))
+                    .ok_or("its bound subject is not a workflow revision")
+                    .and_then(|s| {
+                        serde_json::from_str(s).map_err(|_| "its bound subject is not readable")
+                    })?;
+                let subject = rs_identity(&tuple)?;
+                let prior = match prior {
+                    Value::Null => None,
+                    p => Some(rs_identity(p)?),
+                };
+                let content = json!({"method":subject.revision_method,"value":subject.revision});
+                if !body["boundContent"]
+                    .as_array()
+                    .is_some_and(|b| b.contains(&content))
+                    || reviewed["content"] != content
+                {
+                    return Err("its bound content is not its subject's revision".into());
+                }
+                Ok(Uncited {
+                    record_id: record.clone(),
+                    capture: body["captureEvidence"][0]["ref"]
+                        .as_str()
+                        .ok_or("its capture evidence reference is not readable")?
+                        .into(),
+                    reconfirm: body["purpose"]
+                        .as_str()
+                        .is_some_and(|p| p.starts_with("make it available again in this App session")),
+                    reviewed: reviewed["draft"]
+                        .as_str()
+                        .ok_or("its reviewed draft is not readable")?
+                        .into(),
+                    content,
+                    prior,
+                    subject,
+                })
+            })();
+            let cited = rows.iter().any(|v| {
+                v["act"]["record_id"] == record.as_str()
+                    && (!multi
+                        || entry
+                            .as_ref()
+                            .is_ok_and(|u| v["identity"]["name"] == u.subject.name.as_str()))
+            });
+            if cited {
+                continue;
+            }
+            found.push(match entry {
+                Ok(u) if u.subject.origin != origin || u.subject.source_root != source => Err(format!(
+                    "A15 {record} names library {}:{}, not this one; nothing written",
+                    u.subject.origin, u.subject.source_root
+                )),
+                Ok(u) => Ok(u),
+                Err(cause) => Err(format!("A15 {record} has no ledger line, but {cause}; nothing written")),
+            });
+        }
     }
+    Ok(found)
 }
-/// SQ-X X-1/X-2 for re-confirmation attempts (WR §4.8 RC-7; V13 F3). A *stored*
-/// re-confirmation is never completed here. Under the ledger lock the ledger is
-/// reread for a line citing the attempt's A15: if one exists nothing is written;
-/// otherwise *not completed* "process lost before re-confirmation committed",
-/// citing that A15. Either way the attempt closes and ‹k› is not selectable.
-fn reconcile_reconfirmations(root: &Path) -> Vec<String> {
-    let dir = root.join(".chirality/.workflow-staging/attempts");
-    if storage::check_path(&dir).is_err() {
-        return vec![format!(
-            "attempt journal not established: {}",
-            dir.display()
-        )];
+/// SQ-X X-2 for one uncited entry, under the liveness file and the ledger lock
+/// (owner ruling 2026-10-10: decided from the A15 record and the store, with no
+/// attempt journal). A re-confirmation is never completed (RC-7, RB-8): *not
+/// completed* "process lost before re-confirmation committed". A registration
+/// completes G-4 and G-5 citing the same A15 when its store folder recomputes
+/// to the revision and the slot's latest registered revision is still the
+/// prior the act bound; otherwise it is *not completed*, and a store folder is
+/// left as it is, standing "not registered". Nothing is made selectable (RC-2).
+fn close_uncited(root: &Path, rows: &mut Vec<Value>, u: &Uncited) -> Result<String, String> {
+    let slot = slot_lines(rows, &u.subject.origin, &u.subject.source_root, &u.subject.name);
+    let in_place = u.reviewed.starts_with("entry:");
+    let mut line = json!({"record_kind":"library_entry","ledger_seq":rows.len()+1,"identity":u.subject,
+        "act":{"record_id":u.record_id,"capture_evidence":u.capture},"prior_revision":u.prior,
+        "written_at":crate::util::now_rfc3339(),
+        "evidence_limits":["identity not verified; A15 captured in an earlier App process and read from its record at relaunch (SQ-X X-2); not replayed, and nothing is selectable from it in this process (RC-2)"]});
+    if in_place {
+        line["reviewed_entry"] = json!({"entry":u.reviewed,"content":u.content});
+    } else {
+        line["reviewed_draft"] = json!({"draft":{"draft_location":u.subject.origin,
+            "draft_root":root.join(".chirality/workflow-drafts").display().to_string(),"name":u.subject.name},"content":u.content});
     }
-    let list = || match fs::read_dir(&dir) {
-        Ok(entries) => Ok(entries
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
-            .filter(|p| {
-                p.extension().is_some_and(|x| x == "json")
-                    && !p
-                        .file_name()
-                        .is_some_and(|n| n.to_string_lossy().starts_with('.'))
-            })
-            .collect::<Vec<_>>()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(vec![]),
-        Err(e) => Err(format!(
-            "attempt journal unreadable: {}: {e}",
-            dir.display()
-        )),
+    let record = &u.record_id;
+    let name = &u.subject.name;
+    let mut store = None;
+    let outcome = if u.reconfirm {
+        let k = slot
+            .iter()
+            .find(|v| v["outcome"] == "registered" && v["identity"] == json!(u.subject))
+            .ok_or_else(|| {
+                format!("re-confirmation A15 {record} names a revision of {name} that no registered line records; nothing written")
+            })?;
+        line["outcome"] = json!("not completed");
+        line["reason"] = json!("process lost before re-confirmation committed");
+        line["disposition"] = json!("re-confirmation");
+        line["reconfirms"] =
+            json!({"identity":k["identity"],"ledger_seq":k["ledger_seq"],"sequence":k["sequence"]});
+        format!("re-confirmation of {name} by A15 {record} not completed: process lost before re-confirmation committed")
+    } else {
+        let path = store_path(root, &u.subject);
+        storage::check_path(&path)?;
+        let moved = latest(&slot)? != u.prior
+            || slot.iter().any(|v| {
+                v["outcome"] == "registered" && v["identity"]["revision"] == u.subject.revision.as_str()
+            });
+        let cause = if moved {
+            Some("slot moved on".to_owned())
+        } else if !path.exists() {
+            Some("process lost before the registration was stored".to_owned())
+        } else {
+            match Snapshot::capture(&path) {
+                Ok(read) if read.revision() == u.subject.revision => None,
+                Ok(_) => Some("store folder does not recompute to the revision; left as it is, not registered".to_owned()),
+                Err(e) => Some(format!("store folder not readable ({e}); left as it is, not registered")),
+            }
+        };
+        match cause {
+            Some(cause) => {
+                line["outcome"] = json!("not completed");
+                line["reason"] = json!(format!("{cause} (found at relaunch, SQ-X X-2)"));
+                format!("registration of {name} by A15 {record} not completed: {cause}")
+            }
+            None => {
+                sync_package(&path)?;
+                storage::sync_dir(path.parent().ok_or("revision store has no parent")?)?;
+                // The A15 record does not carry DS-1 / DS-7 for a draft: read as
+                // SP-4 reads it now (a published copy equal to the revision).
+                let published = root.join(".chirality/workflows").join(name);
+                let disposition = if in_place {
+                    "in place"
+                } else if u.prior.is_some() {
+                    "new revision"
+                } else if published.is_dir()
+                    && Snapshot::capture(&published).is_ok_and(|p| p.revision() == u.subject.revision)
+                {
+                    "in place"
+                } else {
+                    "new workflow"
+                };
+                line["outcome"] = json!("registered");
+                line["sequence"] =
+                    json!(slot.iter().filter(|v| v["outcome"] == "registered").count() + 1);
+                line["disposition"] = json!(disposition);
+                line["store_path"] = json!(path.strip_prefix(root).map_err(|e| e.to_string())?.to_string_lossy());
+                line["evidence_limits"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!("disposition read at relaunch: the A15 record does not carry it"));
+                store = Some(path);
+                format!("registration of {name} by A15 {record} completed at relaunch (same A15; store recomputes; slot unchanged); not selectable in this App session")
+            }
+        }
     };
-    // A cheap look first, so a library with no journal takes no lock.
-    match list() {
-        Ok(files) if files.is_empty() => return vec![],
-        Ok(_) => {}
-        Err(cause) => return vec![cause],
+    super::wr_validate("library_entry", &line)?;
+    rc9_guard(root, rows, &line)?;
+    append_line(root, &line)?;
+    rows.push(line);
+    // G-5 after a completed draft registration; a failure is repaired later.
+    if let (Some(path), false) = (store, in_place) {
+        if let Err(error) = Snapshot::capture(&path).and_then(|s| publish_copy_of(root, name, &s)) {
+            return Ok(format!("{outcome}; published copy repair pending: {error}"));
+        }
     }
+    Ok(outcome)
+}
+/// SQ-X X-1/X-2 at open (WR §6; owner ruling 2026-10-10). A cheap look first,
+/// so a library with nothing uncited takes no lock. X-2 then needs the
+/// liveness file exclusively (no review or attempt open in any App process)
+/// and the ledger lock, and rereads both records under them.
+fn reconcile_attempts(root: &Path, origin: &str, source: &str) -> Vec<String> {
+    let look = || -> Result<Vec<Result<Uncited, String>>, String> {
+        let rows = read_ledger(root)?;
+        uncited(root, origin, source, &rows)
+    };
+    match look() {
+        Ok(found) if found.is_empty() => return vec![],
+        Ok(_) => {}
+        Err(cause) => return vec![format!("X-1 not established: {cause}")],
+    }
+    let _live = match storage::try_lock_exclusive(&liveness_path(root)) {
+        Ok(Some(live)) => live,
+        Ok(None) => {
+            return vec!["X-2 deferred: a review or registration attempt is open in an App process for this library, so an A15 without a ledger line may still be live; nothing written. X-2 runs again when the library is next opened".into()]
+        }
+        Err(e) => return vec![format!("X-2 pending: {e}")],
+    };
     let _lock = match storage::lock(&root.join(".chirality/workflow-registry.lock")) {
         Ok(lock) => lock,
         Err(e) => return vec![format!("X-2 pending: {e}")],
     };
-    // V15 F8: list again under the lock; another process may have closed some.
-    let files = match list() {
-        Ok(files) => files,
-        Err(cause) => return vec![cause],
+    let mut rows = match read_ledger(root) {
+        Ok(rows) => rows,
+        Err(cause) => return vec![format!("X-2 pending: {cause}")],
     };
-    let mut outcomes = vec![];
-    for file in files {
-        let result = (|| -> Result<String, String> {
-            let bytes = match fs::read(&file) {
-                Ok(bytes) => bytes,
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                    return Ok(format!(
-                        "re-confirmation attempt journal {} already closed",
-                        file.display()
-                    ))
-                }
-                Err(e) => return Err(format!("{}: {e}", file.display())),
-            };
-            let journal: Value = serde_json::from_slice(&bytes)
-                .map_err(|e| format!("attempt journal malformed: {}: {e}", file.display()))?;
-            let intended = &journal["intended"];
-            if journal["record_kind"] != "wr_reconfirmation_attempt"
-                || intended["disposition"] != "re-confirmation"
-                || journal["act"] != intended["act"]
-            {
-                return Err(format!("attempt journal malformed: {}", file.display()));
-            }
-            let record = &intended["act"]["record_id"];
-            let rows = read_ledger(root)?;
-            if rows.iter().any(|v| &v["act"]["record_id"] == record) {
-                close_attempt_journal(root, intended)?;
-                return Ok(format!(
-                    "re-confirmation attempt of A15 {record} closed: a ledger line already cites it; nothing written"
-                ));
-            }
-            let mut line = intended.clone();
-            let fields = line.as_object_mut().ok_or("intended line not an object")?;
-            fields.remove("sequence");
-            fields.remove("store_path");
-            line["outcome"] = json!("not completed");
-            line["reason"] = json!("process lost before re-confirmation committed");
-            line["ledger_seq"] = json!(rows.len() + 1);
-            line["written_at"] = json!(crate::util::now_rfc3339());
-            super::wr_validate("library_entry", &line)?;
-            // V15 F1: never append a line the App's RC-9 reader would refuse;
-            // the journal stays and the cause is reported.
-            rc9_guard(root, &rows, &line)?;
-            append_line(root, &line)?;
-            close_attempt_journal(root, intended)?;
-            Ok(format!(
-                "re-confirmation attempt of A15 {record} not completed: process lost before re-confirmation committed"
-            ))
-        })();
-        outcomes.push(result.unwrap_or_else(|cause| format!("X-2 pending: {cause}")));
-    }
-    outcomes
+    let found = match uncited(root, origin, source, &rows) {
+        Ok(found) => found,
+        Err(cause) => return vec![format!("X-2 pending: {cause}")],
+    };
+    found
+        .into_iter()
+        .map(|u| {
+            u.and_then(|u| close_uncited(root, &mut rows, &u))
+                .unwrap_or_else(|cause| format!("X-2 pending: {cause}"))
+        })
+        .collect()
 }
 fn append_line(root: &Path, line: &Value) -> Result<(), String> {
     let path = root.join(".chirality/workflow-registry.jsonl");

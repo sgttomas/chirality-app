@@ -804,52 +804,61 @@ record's "App implementation items". No Design or schema file was changed.
   from disk. DS-4 "select it instead" and RC-5 (d) read the owner's set. LS-1
   "as read" (ledger line, A15 record with the same bound content, store
   recompute) only gates the DS-8 offer (V13 R2-N2).
-- **(b) Attempt journal placement (X-1, X-2).** WR §5.2 names an "attempt
-  journal (App-kept)" without a location, and X-1 reads "each library's
-  attempt journal". The App writes one journal file per *stored*
-  re-confirmation at
-  `<library>/.chirality/.workflow-staging/attempts/<sha256 of the A15 record id>.json`.
-  This is inside §3's App-written, temporary staging area. The file is
-  removed when the attempt closes. X-2 runs when a library owner is opened (in
-  Root, once per library per process). It takes the ledger lock, then lists
-  the journal directory and treats a journal that has gone as already closed
-  (V15 F8). It rereads the ledger for a line citing the A15. If one exists it
-  writes nothing; otherwise it writes *not completed* "process lost before
-  re-confirmation committed", but only if the App's RC-9 reader would accept
-  that line. If not, it writes nothing, keeps the journal and reports
-  "X-2 pending" with the exact cause (V15 F1). It never completes a
-  re-confirmation. Its outcomes appear in the Root snapshot's
-  `libraries[].reconciliation`. For the WR owner: name the journal location.
-
-  **Second App process (corrected after V15 F1; the earlier text understated
-  it).** A journal is visible outside the lock only when the attempt is
-  pending: the append failed or was uncertain, or the journal's own
-  publication failed after the file was visible.
-  - If a second App process opens the library then, its X-2 closes the
-    attempt as lost and writes *not completed* citing the A15.
-  - When the first process continues, G-1R finds the ledger already citing its
-    A15. It appends nothing and ends the attempt *not completed* in that
-    process, naming the line ("already has ledger line ‹n›"). ‹k› is not held.
-  - So one act keeps one ledger line (RC-7, RB-8), and the ledger stays
-    readable.
-  - The person's act had no effect and they review again; a second review and
-    A15 re-confirms.
-  - Tested: `v15_p2_second_process_x2_then_continue_keeps_one_line_per_act`,
-    through the `storage::fail_directory_for_test` hook.
-  - **An attempt left *Intended* (V15-R1 R1-1, repaired).** If the first
-    process's append failed without writing anything, its attempt is
-    *Intended*, and Continue takes the intended-line path. That path now
-    checks for a ledger line citing the attempt's A15 before the `ledger_seq`
-    refusal. When X-2 of another process has written its *not completed*
-    line, the attempt ends *not completed* with the same "already has ledger
-    line ‹n›" reason. Before the repair it reported "registration ledger
-    durability uncertain; same hot attempt retained" on every Continue.
-    Tested: `v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line`
-    (the reviewer's probe P6), through a test hook that fails one append
-    before it writes.
-- **(c) Registration X-2 is still absent.** The App keeps no attempt journal
-  for a *registration* (F15). A registration lost after G-3 and before G-4
-  leaves its store folder and no ledger line, as before J8.
+- **(b) No attempt journal (X-1, X-2; owner ruling 2026-10-10).** The journal
+  location question is moot. The owner ruled: "For the matter with the attempt
+  journal, yes instead recover as you recommended." WR §5.2, RC-7 and SQ-X now
+  say so, and the App keeps no journal.
+  - **What X-2 reads.** When a library owner is opened (in Root, once per
+    library per process), X-1 reads the library act log and the ledger and
+    finds the A15 entries no ledger line cites (one line per single-descriptor
+    act, one per entry of a multi-entry act). The persisted A15 record holds
+    what X-2 needs: the subject tuple (slot and revision), the bound content,
+    the reviewed draft or entry, the prior revision it bound (for a
+    registration, the slot's latest at review) and, by its purpose, whether it
+    is a re-confirmation. A registration completes G-4 and G-5 citing the same
+    A15 when the store folder recomputes and the slot's latest registered
+    revision is still that prior; otherwise it is *not completed*. A
+    re-confirmation is always *not completed* "process lost before
+    re-confirmation committed". A line already citing the act: nothing is
+    written. Outcomes appear in the Root snapshot's
+    `libraries[].reconciliation`.
+  - **One gap, read from disk.** The A15 record does not say whether a draft
+    with no prior was DS-1 (*new workflow*) or DS-7 (*in place*: a published
+    copy equal to the draft). X-2 reads it as SP-4 would at relaunch (a
+    published copy equal to the revision gives *in place*) and says so in the
+    line's `evidence_limits`. Only that label depends on it: the decision to
+    complete does not, and nothing reads the label for standing or selection.
+    For the RS and WR owners: carry the disposition in the A15 record if the
+    label must be the one shown at the act.
+  - **Live or lost, without a journal.** Each open review holds the library's
+    `.chirality/workflow-registration.live.lock` shared (`flock`), from before
+    its A15 can be recorded until its attempt has a durable line for every
+    entry. X-2 runs only if it can take that file exclusively without waiting,
+    and then takes the ledger lock and rereads. Otherwise it is deferred,
+    writes nothing, and runs at the next open. A live attempt, including one
+    left pending by a failed or uncertain append, is therefore never closed as
+    lost by another process. The OS releases the lock when a process ends, so
+    a lost attempt is closed at the next open after it.
+  - **One act, one line (RC-7, RB-8, RC-9).** Both writers append only under
+    the exclusive ledger lock (G-4), after rereading the ledger for a line
+    citing the act. The live attempt also checks this on its first pass and on
+    the intended-line path (V15-R1 R1-1, kept). It now applies to registrations
+    too: a *not completed* line ends the attempt with "already has ledger line
+    ‹n›", and a *registered* line for that entry is finished as the commit of
+    the act captured there. X-2 never appends a line the App's RC-9 reader
+    refuses; it reports the cause instead.
+  - **Tests.** `wr_vc_19_process_loss_and_x2`,
+    `sqx_registration_lost_after_store_completes_citing_the_same_a15`,
+    `sqx_registration_slot_moved_on_is_not_completed`,
+    `sqx_registration_without_a_recomputing_store_is_not_completed`,
+    `sqx_line_already_present_writes_nothing`,
+    `sqx_live_attempt_in_another_process_is_not_closed_as_lost`,
+    `v15_p1_x2_writes_nothing_it_cannot_establish` and
+    `v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line` (the
+    defence, with the liveness lock released by hand).
+  - A `.chirality/.workflow-staging/attempts/` folder written by an earlier
+    build is no longer read; the A15 records it named are recovered as above.
+- **(c) Registration X-2: implemented** (was "still absent"), as in (b).
 - **(d) F14, rollback and version skew.** G-1, G-1R and RB-3 (b) now compare
   the slot's latest *registered* revision, not the whole slot. *Re-confirmed*
   and *not completed* lines therefore never fail a concurrent attempt or stale
@@ -976,10 +985,11 @@ changed.
   - A change that still leaves ‹k›'s line reading as registered for its tuple
     and sequence (for example a changed `written_at`) is written *not
     completed* as WR says.
-  - X-2 likewise keeps a journal whose *not completed* line would breach RC-9,
-    reporting "X-2 pending" with the cause.
+  - X-2 likewise appends no line that would breach RC-9, and a re-confirmation
+    A15 whose ‹k› no registered line records gets no line; it reports
+    "X-2 pending" with the cause (there is no journal, CI-24 (b)).
   - Tests: `v15_p5_g1r_line_no_longer_registered_appends_nothing`,
-    `v15_p1_x2_never_appends_a_line_its_reader_refuses` and
+    `v15_p1_x2_writes_nothing_it_cannot_establish` and
     `v15_f2_g1r_registered_line_changed_is_not_completed`.
 - **For the WR owner.** Rule on the case, for example:
   - G-1R ends the attempt without a ledger line when RC-9 cannot be met (the
