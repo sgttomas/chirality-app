@@ -1709,10 +1709,15 @@ impl Host {
     }
 
     pub fn history_dispatch(&self, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
+        self.history_dispatch_by(query, json!({"kind":"person-directed"}))
+    }
+    /// As `history_dispatch`, journalled with `initiator`: an App rule's read
+    /// (WR TT-9's linking read on the host tick) names itself, not the person.
+    pub(crate) fn history_dispatch_by(&self, query: &HistoryQuery, initiator: Value) -> Result<HistoryDispatch,String> {
         crate::recovery::generation_ref(query.generation())?;
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
-        let source=self.request_begin_scoped(query.method(),query.params().clone(),json!({"kind":"person-directed"}),false,Some(query.generation()))?;
+        let source=self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?;
         Ok(HistoryDispatch {query:query.clone(),source})
     }
     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}

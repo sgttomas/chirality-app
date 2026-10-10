@@ -427,7 +427,11 @@ impl TrialLinks {
             .for_draft(key)
             .into_iter()
             .map(|p| {
-                let version = if current.is_some_and(|c| p["content"]["value"] == c) { "current" } else { "earlier" };
+                let version = match current {
+                    None => "version not established",
+                    Some(c) if p["content"]["value"] == c => "current",
+                    Some(_) => "earlier",
+                };
                 let Some(trial) = p.get("trial") else {
                     return json!({"kind":"earlier attachment trial","content":p["content"],"version":version,
                         "conversation":p["conversation"],"time":p["time"],"link":p});
@@ -457,6 +461,121 @@ impl TrialLinks {
         &self.limits
     }
 }
+/// WR §3 "Trial conversation marks": which conversations are a trial's (a
+/// clean trial conversation from its start, a fork of one), so that TT-2's
+/// "for its life" holds whatever became of the trial message (sent, outcome
+/// unknown, card removed) and across a relaunch.
+pub(crate) const TRIAL_CONVERSATIONS: &str = "runtime/wr/trial-conversations";
+/// The fixed standing sentence of a trial conversation mark.
+pub(crate) const MARK_STANDING: &str =
+    "App-kept mark: this conversation belongs to a trial of a draft and offers no workflow run (WR TT-2); not a run record, registration, checking or acceptance";
+
+/// App-kept trial conversation marks, one create-once file per conversation
+/// (`mark-<sha256 of the thread id, 32 hex>.json`), read at open. A file that
+/// cannot be read back or is not named for the conversation it marks is
+/// reported in `limits`, never dropped silently or rewritten.
+#[derive(Default)]
+pub(crate) struct TrialConversationMarks {
+    dir: Option<PathBuf>,
+    refused: Option<String>,
+    marks: Vec<Value>,
+    limits: Vec<String>,
+}
+fn mark_stem(thread: &str) -> String {
+    format!("mark-{}", &crate::util::sha256_hex(thread.as_bytes())[..32])
+}
+impl TrialConversationMarks {
+    pub(crate) fn open(app_data: &Path) -> Self {
+        let dir = app_data.join(TRIAL_CONVERSATIONS);
+        let mut store = Self { dir: Some(dir.clone()), ..Self::default() };
+        if let Err(cause) = storage::check_path(&dir) {
+            store.limits.push(format!("trial conversation marks not readable: {cause}"));
+            store.dir = None;
+            store.refused = Some(cause);
+            return store;
+        }
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return store,
+            Err(e) => {
+                store.limits.push(format!("trial conversation marks unreadable: {}: {e}", dir.display()));
+                return store;
+            }
+        };
+        let mut files: Vec<PathBuf> = entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
+        files.sort();
+        for file in files {
+            let shown = file.display().to_string();
+            let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            if name.starts_with('.') {
+                store.limits.push(format!("trial conversation marks: staging file left by an interrupted write, not a mark (left as it is): {shown}"));
+                continue;
+            }
+            let read = crate::workflow_workspace::read_regular_file(&file)
+                .map_err(|e| format!("trial conversation mark unreadable: {shown}: {e}"))
+                .and_then(|b| serde_json::from_slice::<Value>(&b).map_err(|e| format!("trial conversation mark malformed: {shown}: {e}")));
+            match read {
+                Ok(v) if v["record"] == "trial conversation mark"
+                    && v["thread"].as_str().is_some_and(|t| format!("{}.json", mark_stem(t)) == name)
+                    && v["trial"].as_str().is_some_and(valid_trial_reference) =>
+                {
+                    store.marks.push(v)
+                }
+                Ok(_) => store.limits.push(format!("trial conversation mark malformed: {shown}: not a mark named for its conversation; not listed")),
+                Err(limit) => store.limits.push(limit),
+            }
+        }
+        store
+    }
+    /// Marks `thread` as trial `reference`'s conversation (`fork_of`: a fork of
+    /// that conversation). Create-once; marking an already marked conversation
+    /// for the same trial returns the existing mark. The mark holds in this
+    /// process even when it cannot be written; the error says so.
+    pub(crate) fn mark(&mut self, thread: &str, reference: &str, sequence: u64, draft: &str, fork_of: Option<&str>) -> Result<Value, String> {
+        if let Some(existing) = self.find(thread) {
+            if existing["trial"] == reference {
+                return Ok(existing.clone());
+            }
+            return Err(format!("conversation {thread} is already marked as trial {}'s", existing["trial"]));
+        }
+        let mark = json!({"record":"trial conversation mark","thread":thread,"trial":reference,"sequence":sequence,"draft":draft,
+            "relation":if fork_of.is_some(){"fork of a trial conversation"}else{"clean trial conversation"},"fork_of":fork_of,
+            "time":crate::util::now_rfc3339(),"standing":MARK_STANDING});
+        self.marks.push(mark.clone());
+        if let Some(cause) = &self.refused {
+            return Err(format!("trial conversation mark held in process memory only: the App data folder is refused ({cause})"));
+        }
+        let Some(dir) = &self.dir else {
+            self.limits.push("trial conversation mark held in process memory only: App data folder not attached (WR §3)".into());
+            return Ok(mark);
+        };
+        let path = dir.join(format!("{}.json", mark_stem(thread)));
+        match storage::create_json(&path, &mark) {
+            Ok(()) => Ok(mark),
+            Err(error) => {
+                let found = crate::workflow_workspace::read_regular_file(&path).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok());
+                match found {
+                    Some(found) if found["thread"] == thread && found["trial"] == reference => Ok(mark),
+                    _ => Err(format!("trial conversation mark not written (held in process memory only): {error}")),
+                }
+            }
+        }
+    }
+    pub(crate) fn find(&self, thread: &str) -> Option<&Value> {
+        self.marks.iter().find(|m| m["thread"] == thread)
+    }
+    /// A mark of trial `reference` (the first).
+    pub(crate) fn find_trial(&self, reference: &str) -> Option<&Value> {
+        self.marks.iter().find(|m| m["trial"] == reference)
+    }
+    pub(crate) fn all(&self) -> &[Value] {
+        &self.marks
+    }
+    pub(crate) fn limits(&self) -> &[String] {
+        &self.limits
+    }
+}
+
 /// The first clock reading later than `latest`, reading again (with `wait`
 /// between readings) at most 50 times; after that the last reading as it is.
 fn later_than(latest: Option<&str>, mut now: impl FnMut() -> String, mut wait: impl FnMut()) -> String {

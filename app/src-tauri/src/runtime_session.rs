@@ -1589,7 +1589,7 @@ impl AttachmentSelectionSession {
             "selections":self.slots.iter().enumerate().map(|(position,slot)|json!({"position":position,"selection":slot.selected.snapshot()})).collect::<Vec<_>>(),
             "operation":self.operation,"submissions":self.submissions.iter().map(|submission|json!({"submissionRef":submission.prepared.submission_ref(),"state":submission.prepared.state(),"frozenAppContext":submission.context.view(),"contextBinding":submission.context_binding,"outcome":submission.outcome,"limits":"private hot capability; no imported source or provider adoption"})).collect::<Vec<_>>(),"launchAppProjectObservation":{"source":"explicit App launch CHIRALITY_WORKSPACE","nativeRoot":self.launch_workspace.as_ref().map(|path|crate::attachments::native_path_identity(path)),
                 "associationStanding":"launch source only; no accepted REC context/persistent thread-project binding established by this picker"},
-            "workflowRun":"no workflow run is supplied with attachments; a draft's files pre-filled by Try in a conversation carry their draft reference (WR TT-3, NIR AT-8) and sending them is ordinary input",
+            "workflowRun":"no workflow run is supplied with attachments; a draft reaches a trial as its trial text, never as attachments (WR TT-3, NIR AT-8), so a draft's files you attach are ordinary attachments",
             "submissionStanding":"private source handles; each immutable submission has its own source outcome below","custody":"private App memory; DTO/path/hash cannot construct a selection"})
     }
     fn check(&self, owner: &str, revision: u64) -> Result<(), String> {
@@ -1778,12 +1778,6 @@ pub fn reconfirm_attachment_source(
             .iter()
             .find(|slot| slot.selected.selection_ref() == reference)
             .ok_or("Unknown private attachment handle")?;
-        // WR TT-3/TT-4, NIR AT-8: a pre-filled draft file keeps the draft content
-        // it was read with. Re-reading it as an ordinary source would drop its
-        // draft standing and leave a trial pointer naming content not sent.
-        if slot.selected.draft().is_some() {
-            return Err("This file was pre-filled from a draft. If the draft changed since it was pre-filled, remove its files and choose Try in a conversation again; nothing changed".into());
-        }
         let values = (slot.native_path.clone(), slot.selected.snapshot());
         session.operation = json!({"state":"reconfirming","selectionRef":reference});
         values
@@ -4219,7 +4213,7 @@ impl WorkflowRootSession {
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
-            "trialPointerLimits":self.trials.limits(),
+            "trialPointerLimits":self.trials.limits().iter().cloned().chain(self.trial_mark_limits()).collect::<Vec<_>>(),
             "limit":"actual hot registrations may run; development and production bundle candidate selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
@@ -4227,6 +4221,7 @@ impl WorkflowRootSession {
         // WR §3 "Trial pointers | App data folder": read back what earlier
         // processes kept (TT-4).
         self.trials = crate::workflow_workspace::registration::drafts::TrialPointers::open(&data);
+        self.open_trial_marks(&data);
         self.app_user_data = Some(data);
     }
     /// Opens the explicit App project (CHIRALITY_WORKSPACE) as its project
@@ -4564,7 +4559,6 @@ impl WorkflowRootSession {
         successor_of: Option<(String, crate::workflow_workspace::OwnerRunEnd)>,
         proposal: Option<Value>,
     ) -> Result<String, String> {
-        current_conversation(&home.host.snapshot(), generation, thread)?;
         // WR TT-2: a clean trial conversation (and a fork of one) offers no
         // workflow selection for a run for its life.
         if let Some((reference, fork)) = self.trial_conversation(thread) {
@@ -4572,6 +4566,7 @@ impl WorkflowRootSession {
             let what = if fork { format!("a fork of trial {n}") } else { format!("trial {n}") };
             return Err(format!("This conversation is {what} of a draft; start runs in another conversation (WR TT-2). Nothing prepared or sent"));
         }
+        current_conversation(&home.host.snapshot(), generation, thread)?;
         let selected = self
             .selected
             .as_ref()
@@ -5214,10 +5209,14 @@ pub(crate) fn record_run_observations(workflows: &std::sync::Mutex<WorkflowRootS
     if !view.is_object() {
         return;
     }
-    let runs: Vec<_> = workflows.lock().unwrap().runs.values().cloned().collect();
+    // WR TT-2: a trial's turn and sub-agent are not run activity.
+    let (runs, view) = {
+        let root = workflows.lock().unwrap();
+        (root.runs.values().cloned().collect::<Vec<_>>(), root.without_trial_activity(view))
+    };
     for run in runs {
         if let Ok(mut run) = run.try_lock() {
-            run.observe_checkpoints(view);
+            run.observe_checkpoints(&view);
         }
     }
 }
@@ -6809,7 +6808,7 @@ if '--version' in sys.argv:
 def emit(v):print(json.dumps(v),flush=True)
 starts=[0]
 def thread(tid='thread'):return {'id':tid,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
-def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
+def turn():return {'id':(mode('turn-id') or 'turn'),'status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client='';inputs=[]
 def mode(name):
  return open(name).read().strip() if os.path.exists(name) else ''
@@ -6834,20 +6833,28 @@ for line in sys.stdin:
   if mode('turn-mode')=='stall':
    # Stops reading its input (until the Host's stop ends the process).
    import time;time.sleep(60);continue
+  if mode('turn-mode')=='slow':
+   import time;time.sleep(1.5)
   text=f['params']['input'][0]['text'];client=f['params'].get('clientUserMessageId','');inputs=[e.get('text','') for e in f['params']['input']];result={'turn':turn()}
   if mode('notify-mode')=='checkpoint':
    emit({'id':f['id'],'result':result})
    tid=f['params']['threadId']
    for n,item in enumerate([{'id':'start-user','type':'userMessage','content':[]},{'id':'m1','type':'agentMessage','text':'Spacing report'}]):
-    emit({'method':'item/started','params':{'threadId':tid,'turnId':'turn','item':item}})
-    emit({'method':'item/completed','params':{'threadId':tid,'turnId':'turn','item':item}})
+    emit({'method':'item/started','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
+    emit({'method':'item/completed','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
+   continue
+  if mode('notify-mode')=='spawn':
+   emit({'id':f['id'],'result':result})
+   item={'id':'spawn-old','type':'collabAgentToolCall','status':'completed','tool':'spawnAgent','senderThreadId':f['params']['threadId'],'receiverThreadIds':['child-old'],'agentsStates':{'child-old':{'status':'running'}}}
+   emit({'method':'item/started','params':{'threadId':f['params']['threadId'],'turnId':result['turn']['id'],'item':item}})
+   emit({'method':'item/completed','params':{'threadId':f['params']['threadId'],'turnId':result['turn']['id'],'item':item}})
    continue
  elif method=='collaborationMode/list':result={'data':[{'name':'Plan','mode':'plan'},{'name':'Default','mode':'default'}]}
  elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list' and f['params'].get('threadId','').startswith('child'):
   if mode('child-mode')=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable child'}});continue
-  result={'data':[{'id':'child-turn','status':'completed','items':[],'error':None,'itemsView':'summary'}],'nextCursor':None}
+  result={'data':[] if mode('child-mode')=='noturn' else [{'id':'child-turn','status':'completed','items':[],'error':None,'itemsView':'summary'}],'nextCursor':None}
  elif method=='thread/items/list' and f['params'].get('threadId','').startswith('child'):
   trial=[t for t in inputs if t.startswith('[Chirality] Workflow trial')]
   given=trial[0] if trial else ''
@@ -7103,11 +7110,12 @@ for line in sys.stdin:
     fn links(peer:&Peer)->crate::workflow_workspace::registration::drafts::TrialLinks{crate::workflow_workspace::registration::drafts::TrialLinks::open(&peer.fixture.root.join("app-data"))}
     fn descendant_view(peer:&Peer,children:&[&str])->Value{
         json!({"home":peer.generation["home"],"generation":peer.generation,"items":[],"turns":[],
-            "descendants":children.iter().map(|c|json!({"threadId":c,"parentThreadId":"thread"})).collect::<Vec<_>>()})
+            "descendants":children.iter().map(|c|json!({"threadId":c,"parentThreadId":"thread","lastObservedStatus":{"status":"running"}})).collect::<Vec<_>>()})
     }
     fn tick_reads(peer:&Peer,root:&Mutex<WorkflowRootSession>,view:&Value)->Vec<Value>{
         let home=peer.generation["home"].as_str().unwrap().to_owned();
         let due=root.lock().unwrap().trial_reads_due(&home,view);
+        assert!(due.len()<=4);
         let results=trial_flows::perform_trial_reads(&peer.home,due);
         root.lock().unwrap().apply_trial_reads(results)
     }
@@ -7217,8 +7225,10 @@ for line in sys.stdin:
         tick_reads(&peer,&root,&descendant_view(&peer,&["child-d"]));
         let rows=trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]));
         assert!(rows[0]["subAgent"]["unread"].as_array().unwrap().iter().any(|c|c=="child-d"));
-        let linked=root.lock().unwrap().link_trial_child(&reference,"child-d",true).unwrap();assert_eq!(linked["linked_by"],"by the person");
-        root.lock().unwrap().link_trial_child(&reference,"child-d",false).unwrap();
+        let view=descendant_view(&peer,&["child-d"]);
+        assert!(root.lock().unwrap().link_trial_child(&reference,"thread-77",true,&view).unwrap_err().contains("not a sub-agent"),"the person links only a sub-agent of the authoring conversation");
+        let linked=root.lock().unwrap().link_trial_child(&reference,"child-d",true,&view).unwrap();assert_eq!(linked["linked_by"],"by the person");
+        root.lock().unwrap().link_trial_child(&reference,"child-d",false,&Value::Null).unwrap();
         assert_eq!(trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]))[0]["subAgent"]["state"],"sub-agent not linked","the latest link or unlink stands");
     }
     #[test]
@@ -7333,19 +7343,180 @@ for line in sys.stdin:
         root.lock().unwrap().observe_drafts(&json!([])).unwrap();
         let second=root.lock().unwrap().prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
         trial_flows::send_trial(&root,&peer.home,&second,&g,"thread","").unwrap();
-        let compared=trial_flows::compare(&root,&peer.home,&json!({"trial":first}),&json!({"trial":second})).unwrap();
+        let compared=trial_flows::compare(&root,&|_|Some(peer.home.clone()),&json!({"trial":first}),&json!({"trial":second})).unwrap();
         let changed=compared["difference"]["files"].as_array().unwrap();
         assert!(changed.iter().any(|f|f["path"]=="WORKFLOW.md"&&f["change"]=="changed"&&f["lines"].as_array().unwrap().iter().any(|l|l=="+ refined")),"{compared}");
         assert_eq!(compared["right"]["summary"]["limits"][0].as_str().unwrap().contains("No sub-agent is linked"),true);
         let run=open_run(&peer,&mut root.lock().unwrap(),"thread");
-        let with_run=trial_flows::compare(&root,&peer.home,&json!({"trial":first}),&json!({"run":run})).unwrap();
+        let with_run=trial_flows::compare(&root,&|_|Some(peer.home.clone()),&json!({"trial":first}),&json!({"run":run})).unwrap();
         assert_eq!(with_run["right"]["kind"],"registered run");assert!(with_run["difference"]["files"].is_array());
-        assert!(trial_flows::compare(&root,&peer.home,&json!({"run":run}),&json!({"run":run})).is_err());
+        assert!(trial_flows::compare(&root,&|_|Some(peer.home.clone()),&json!({"run":run}),&json!({"run":run})).is_err());
         // Bring a real run back: pre-filled; sending it records nothing (no trial link).
         let pending=trial_flows::bring_back(&root,&peer.home,None,Some(&run),&g,"thread",false).unwrap();
         let sent=trial_flows::send_bring_back(&root,&peer.home,pending["id"].as_str().unwrap(),&g,"thread","").unwrap();
         assert!(sent["observation"].is_null());
         assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().starts_with(&format!("[Chirality] Run {run} of project:coordinated-knowledge-work")));
+    }
+    // ---- Review repairs (H-B1, H-B2, H-1, H-3, H-4, H-6, H-7, H-10) ----
+    fn started_clean(peer:&Peer,root:&mut WorkflowRootSession)->(String,String){
+        let reference=root.prepare_trial("clean",DRAFT,Some((&peer.generation,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        root.begin_clean_start(&reference).unwrap();
+        let cfg=peer.home.host_config.as_ref().unwrap().clone();
+        peer.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
+        let thread=format!("thread-{}",peer.home.host.snapshot()["threads"].as_array().unwrap().len());
+        root.mark_clean_started(&reference,&peer.generation,&thread);(reference,thread)
+    }
+    fn lines_in(peer:&Peer,thread:&str)->Value{json!({"home":peer.generation["home"],"generation":peer.generation,"items":[
+        {"threadId":thread,"turnId":"turn","native":{"id":"start-user","type":"userMessage","content":[]},"displayState":"completed","standing":"live-observed","observedOrder":0},
+        {"threadId":thread,"turnId":"turn","native":{"id":"m","type":"agentMessage","text":"Next workflow: project:coordinated-knowledge-work"},"displayState":"completed","standing":"live-observed","observedOrder":3}]})}
+    // H-B1 / M7: a clean trial whose message outcome is unknown, or whose card was
+    // removed after its conversation started, keeps its trial standing for the
+    // conversation's life, across a relaunch; the trial is never resent.
+    #[test]
+    fn a_clean_trial_conversation_stays_trial_only_whatever_became_of_its_message(){
+        let peer=Peer::new();let mut root=trial_root(&peer);
+        let (removed,removed_thread)=started_clean(&peer,&mut root);
+        root.cancel_trial(&removed).unwrap();
+        assert!(root.trial_conversation(&removed_thread).is_some(),"the card removed after the start: still a trial conversation");
+        let (reference,thread)=started_clean(&peer,&mut root);
+        let root=Mutex::new(root);
+        peer.set_mode("turn-mode","exit");
+        assert!(trial_flows::send_trial(&root,&peer.home,&reference,&peer.generation,&thread,"x").unwrap_err().contains("not established"));
+        let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
+        assert!(status["pendingTrials"].as_array().unwrap().iter().all(|p|p["reference"]!=reference.as_str()),"an unknown outcome withdraws the pre-fill: it can never be resent");
+        assert!(links(&peer).link(&reference).is_none());
+        let mut root=root.into_inner().unwrap();
+        for t in [&thread,&removed_thread]{
+            assert!(root.offers(&lines_in(&peer,t)).as_array().unwrap().is_empty(),"no offer in {t}");
+            assert!(root.prepare_run(peer.home.clone(),&peer.generation,t,"run".into(),peer.project()).unwrap_err().contains("TT-2"));
+        }
+        let mut status=root.snapshot();root.decorate_status(&mut status,&json!({}));
+        assert!(status["trialConversations"].as_array().unwrap().iter().any(|c|c["threadId"]==thread.as_str()&&c["header"].as_str().unwrap().contains("not acknowledged")));
+        let mut fresh=WorkflowRootSession::default();fresh.set_app_user_data(peer.fixture.root.join("app-data"));
+        assert_eq!(fresh.trial_conversation(&thread),Some((reference.clone(),false)),"the mark survives a new App process");
+        assert!(fresh.offers(&lines_in(&peer,&thread)).as_array().unwrap().is_empty());
+        assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,&thread,"run".into(),peer.project()).unwrap_err().contains("TT-2"));
+    }
+    // M3 / H-3: a fork of a clean trial conversation refuses runs, and its mark survives a relaunch.
+    #[test]
+    fn a_fork_of_a_clean_trial_conversation_refuses_runs_after_a_relaunch(){
+        let peer=Peer::new();let mut root=trial_root(&peer);
+        let (reference,thread)=started_clean(&peer,&mut root);
+        root.mark_fork(&thread,"thread-fork");
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread-fork","run".into(),peer.project()).unwrap_err().contains("a fork of trial"));
+        let mut fresh=WorkflowRootSession::default();fresh.set_app_user_data(peer.fixture.root.join("app-data"));
+        assert_eq!(fresh.trial_conversation("thread-fork"),Some((reference,true)));
+        assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread-fork","run".into(),peer.project()).unwrap_err().contains("TT-2"));
+        assert!(fresh.offers(&lines_in(&peer,"thread-fork")).as_array().unwrap().is_empty());
+        // A damaged mark is reported, never dropped silently.
+        std::fs::write(peer.fixture.root.join("app-data").join(crate::workflow_workspace::registration::drafts::trials::TRIAL_CONVERSATIONS).join("mark-0.json"),b"{}").unwrap();
+        let reopened=crate::workflow_workspace::registration::drafts::trials::TrialConversationMarks::open(&peer.fixture.root.join("app-data"));
+        assert!(reopened.limits().iter().any(|l|l.contains("mark-0.json")));
+    }
+    // M1: two Sends of one trial while the first waits for Codex send once.
+    #[test]
+    fn concurrent_sends_of_one_trial_send_once(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);let before=peer.turn_starts();peer.set_mode("turn-mode","slow");
+        let (first,second)=std::thread::scope(|scope|{
+            let a=scope.spawn(||trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","first"));
+            std::thread::sleep(Duration::from_millis(400));
+            let b=trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","second");
+            (a.join().unwrap(),b)
+        });
+        assert!(first.is_ok(),"{first:?}");assert!(second.unwrap_err().contains("being sent now"));
+        assert_eq!(peer.turn_starts(),before+1);assert_eq!(links(&peer).all_links().len(),1);
+    }
+    // M2: with a run's end notice pending, the trial send is refused before anything is written.
+    #[test]
+    fn a_pending_end_notice_refuses_the_trial_send(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let run=open_run(&peer,&mut root,"thread");root.runs[&run].lock().unwrap().end_run(None,None).unwrap();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);let before=peer.turn_starts();
+        assert!(trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","x").unwrap_err().contains("end notice"));
+        assert_eq!(peer.turn_starts(),before);assert!(links(&peer).all_links().is_empty());
+        let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
+        assert_eq!(status["pendingTrials"][0]["reference"],reference.as_str(),"still pre-filled");
+    }
+    // M4: a bring-back send Codex refuses records nothing and stays pre-filled.
+    #[test]
+    fn a_refused_bring_back_send_records_nothing(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let (reference,thread)=started_clean(&peer,&mut root);let root=Mutex::new(root);
+        trial_flows::send_trial(&root,&peer.home,&reference,&g,&thread,"").unwrap();
+        let id=trial_flows::bring_back(&root,&peer.home,Some(&reference),None,&g,"thread",false).unwrap()["id"].as_str().unwrap().to_owned();
+        peer.set_mode("turn-mode","error");
+        assert!(trial_flows::send_bring_back(&root,&peer.home,&id,&g,"thread","assess").unwrap_err().contains("stays pre-filled"));
+        assert!(links(&peer).observations(&reference).iter().all(|o|o["observation"]!="brought back"));
+        let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
+        assert_eq!(status["pendingBringBacks"].as_array().unwrap().len(),1);
+    }
+    // M6 / H-4: a sub-agent the view showed before the trial was sent is no
+    // candidate; the tick's linking read is journalled as the App rule's.
+    #[test]
+    fn sub_agents_seen_before_the_send_are_not_candidates_and_rule_reads_name_the_rule(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","earlier work").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while !crate::host_tick::receive_view(&peer.home)["descendants"].as_array().is_some_and(|d|!d.is_empty()){assert!(std::time::Instant::now()<deadline,"spawn observed");std::thread::sleep(Duration::from_millis(20));}
+        peer.set_mode("notify-mode","");
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
+        peer.set_mode("child-mode","given");
+        let recorded=tick_reads(&peer,&root,&descendant_view(&peer,&["child-old","child-new"]));
+        assert_eq!(recorded[0]["child_thread"],"child-new","the earlier sub-agent is not read or linked");
+        let requests=peer.home.host.client_requests();
+        let reads:Vec<&Value>=requests.iter().filter(|r|r["method"]=="thread/items/list").collect();
+        assert!(!reads.is_empty()&&reads.iter().all(|r|r["initiator"]==json!({"kind":"app-rule","name":"trial-linking-read"})),"{reads:?}");
+        trial_flows::read_trial_again(&root,&peer.home,&reference,&json!({})).unwrap();
+        assert_eq!(peer.home.host.client_requests().iter().filter(|r|r["method"]=="thread/items/list").last().unwrap()["initiator"],json!({"kind":"person-directed"}),"Read again is the person's");
+    }
+    // H-7: a sub-agent is read once it shows activity; a first turn not yet in
+    // history is read again only after the view shows new activity of it.
+    #[test]
+    fn a_sub_agent_is_read_when_started_and_again_only_after_new_activity(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
+        let node=|status:&str,extra:Value|{let mut v=descendant_view(&peer,&["child-x"]);v["descendants"][0]["lastObservedStatus"]=json!({"status":status});v["descendants"][0]["lastNativeActivity"]=extra;v};
+        let reads=item_reads(&peer)+peer.wire().iter().filter(|f|f["method"]=="thread/turns/list").count();
+        let count=|p:&Peer|item_reads(p)+p.wire().iter().filter(|f|f["method"]=="thread/turns/list").count();
+        assert!(tick_reads(&peer,&root,&node("pendingInit",Value::Null)).is_empty());assert_eq!(count(&peer),reads,"not read while only spawned");
+        peer.set_mode("child-mode","noturn");
+        tick_reads(&peer,&root,&node("running",Value::Null));let after=count(&peer);assert!(after>reads);
+        tick_reads(&peer,&root,&node("running",Value::Null));assert_eq!(count(&peer),after,"the same state is not read again");
+        peer.set_mode("child-mode","given");
+        let recorded=tick_reads(&peer,&root,&node("running",json!({"kind":"activity"})));
+        assert_eq!(recorded[0]["observation"],"sub-agent linked");
+    }
+    // H-10: a trial turn's activity records no checkpoint arrival for the run in force.
+    #[test]
+    fn a_trial_turn_records_no_checkpoint_arrival(){
+        let peer=Peer::new();let mut root=declared(&peer);root.set_app_user_data(peer.fixture.root.join("app-data"));root.observe_drafts(&json!([])).unwrap();
+        let g=peer.generation.clone();let a=open_run(&peer,&mut root,"thread");let before=kinds_for(&peer,&a).len();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);peer.set_mode("turn-id","trial-turn");
+        trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();peer.set_mode("turn-id","");
+        let row=|turn:&str,id:&str,n:u64|json!({"threadId":"thread","turnId":turn,"native":{"id":id,"type":"agentMessage","text":"Spacing report"},"startNative":{"id":id,"type":"agentMessage","text":"Spacing report"},"displayState":"completed","standing":"live-observed","observedOrder":n,"receipt":{"generation":g,"started":10*n,"completed":10*n+5},"sourceFrame":{"method":"item/completed","params":{"completedAtMs":1_790_000_000_000i64}}});
+        let start=json!({"threadId":"thread","turnId":"turn","native":{"id":"start-user","type":"userMessage","content":[]},"displayState":"completed","standing":"live-observed","observedOrder":0,"receipt":{"generation":g,"started":1,"completed":1}});
+        let view=json!({"home":g["home"],"generation":g,"items":[start.clone(),row("trial-turn","t1",1)]});
+        record_run_observations(&root,&view);
+        assert_eq!(kinds_for(&peer,&a).len(),before,"the trial turn's line is not the run's arrival");
+        let view=json!({"home":g["home"],"generation":g,"items":[start,row("trial-turn","t1",1),row("turn","m2",2)]});
+        record_run_observations(&root,&view);
+        assert!(kinds_for(&peer,&a).iter().any(|k|k=="checkpoint_arrival"),"the run's own line still arrives");
+    }
+    // H-1: a failing tick is counted and shown; the next tick runs.
+    #[test]
+    fn a_failing_tick_is_counted_and_the_loop_goes_on(){
+        crate::host_tick::guarded("test-failing-tick",||panic!("synthetic tick failure"));
+        let mut ran=false;crate::host_tick::guarded("test-failing-tick",||ran=true);
+        assert!(ran);
+        let state=crate::host_tick::tick_state();
+        assert_eq!(state["ticks"]["test-failing-tick"]["failures"],1);
+        assert_eq!(state["ticks"]["test-failing-tick"]["lastFailure"]["message"],"synthetic tick failure");
     }
     fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
     fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}

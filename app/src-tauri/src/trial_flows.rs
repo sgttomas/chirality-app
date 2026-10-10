@@ -19,6 +19,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 use std::time::Duration;
 
+/// Who a workspace read is journalled as: the person (Read again, Bring back,
+/// Compare) or the App rule of TT-9's linking read on the host tick (H-4).
+pub(crate) fn person_read() -> Value {
+    json!({"kind":"person-directed"})
+}
+pub(crate) fn rule_read() -> Value {
+    json!({"kind":"app-rule","name":"trial-linking-read"})
+}
 /// How long one history page read waits for Codex.
 const READ_WAIT: Duration = Duration::from_secs(10);
 /// Pages read per list at most (a list that goes on is named incomplete).
@@ -91,6 +99,7 @@ struct PendingTrial {
     message: String,
     work_folder: String,
     delegation: Option<Value>,
+    run_in_force: Option<String>,
     in_flight: bool,
 }
 /// A trial whose message Codex acknowledged in this process: what TT-9's
@@ -107,8 +116,11 @@ struct SentState {
     client: String,
     /// Descendants already in the native view when the message was sent.
     baseline: BTreeSet<String>,
-    /// Children read once (TT-9): Ok(given this trial's workflow) or the failure.
-    read: BTreeMap<String, Result<bool, String>>,
+    /// Children read (TT-9): Ok(given this trial's workflow) or the failure
+    /// with the child's descendant node as it was when read (a child whose
+    /// first turn was not in Codex's history yet is read again only after the
+    /// view shows new activity of it).
+    read: BTreeMap<String, Result<bool, (String, String)>>,
     /// Further children whose first input carried this trial's begin marker.
     also_given: BTreeSet<String>,
     /// A clean trial's first-turn fidelity read was made.
@@ -134,8 +146,11 @@ pub(crate) struct TrialDesk {
     pending: BTreeMap<String, PendingTrial>,
     sent: BTreeMap<String, SentState>,
     bring_backs: BTreeMap<String, PendingBringBack>,
-    /// Forks of a trial conversation (fork thread → trial reference).
-    forks: BTreeMap<String, String>,
+    /// Trial conversation marks (WR §3): clean trial conversations from their
+    /// start and forks of them, kept in the App data folder.
+    marks: crate::workflow_workspace::registration::drafts::trials::TrialConversationMarks,
+    /// Problems writing marks, shown with the trial pointer limits.
+    limits: Vec<String>,
     /// Runs for which a `Workflow finished:` line raises no End-run offer: a
     /// trial of a draft of the run's own workflow was sent during the run (TT-2).
     finished_offer_suppressed: BTreeSet<String>,
@@ -282,10 +297,10 @@ impl WorkflowRootSession {
             message,
             work_folder,
             delegation,
+            run_in_force,
             in_flight: false,
         };
-        let mut view = self.pending_view(&pending);
-        view["runInForce"] = json!(run_in_force);
+        let view = self.pending_view(&pending);
         self.trial_desk.pending.insert(reference, pending);
         Ok(view)
     }
@@ -348,23 +363,57 @@ impl WorkflowRootSession {
     /// A clean trial conversation was started for `reference` (FT-4): from now
     /// on that conversation is the trial's and offers no workflow run.
     pub fn mark_clean_started(&mut self, reference: &str, generation: &Value, thread: &str) {
-        if let Some(p) = self.trial_desk.pending.get_mut(reference) {
-            p.clean = Some((generation.clone(), thread.to_owned()));
-            p.in_flight = false;
+        let Some(p) = self.trial_desk.pending.get_mut(reference) else { return };
+        p.clean = Some((generation.clone(), thread.to_owned()));
+        p.in_flight = false;
+        let (sequence, draft) = (p.prepared.text.sequence(), p.draft.clone());
+        // TT-2 "for its life": the mark outlives the pre-fill and the process.
+        if let Err(cause) = self.trial_desk.marks.mark(thread, reference, sequence, &draft, None) {
+            self.trial_desk.limits.push(cause);
         }
+    }
+    /// The new conversation's start was dispatched but its outcome or identity
+    /// is not established: the pre-fill is withdrawn (nothing recorded).
+    pub fn withdraw_clean_start(&mut self, reference: &str) {
+        self.trial_desk.pending.remove(reference);
+    }
+    /// Opens the App-kept trial conversation marks (App start).
+    pub(crate) fn open_trial_marks(&mut self, app_data: &std::path::Path) {
+        self.trial_desk.marks = crate::workflow_workspace::registration::drafts::trials::TrialConversationMarks::open(app_data);
+    }
+    /// Problems of the trial conversation marks, shown beside the trial pointer limits.
+    pub(crate) fn trial_mark_limits(&self) -> Vec<String> {
+        self.trial_desk.marks.limits().iter().cloned().chain(self.trial_desk.limits.iter().cloned()).collect()
     }
     /// TT-3b Fork: a fork of a trial conversation (or of such a fork) is
     /// labelled "fork of trial ‹n›", has no trial link, and offers no workflow run.
     pub fn mark_fork(&mut self, source: &str, fork: &str) {
-        if let Some((reference, _)) = self.trial_conversation(source) {
-            self.trial_desk.forks.insert(fork.to_owned(), reference);
+        let Some((reference, _)) = self.trial_conversation(source) else { return };
+        let sequence = self.trial_sequence(&reference).parse::<u64>().unwrap_or(0);
+        let draft = self.trial_draft_name(&reference);
+        if let Err(cause) = self.trial_desk.marks.mark(fork, &reference, sequence, &draft, Some(source)) {
+            self.trial_desk.limits.push(cause);
         }
+    }
+    fn trial_draft_name(&self, reference: &str) -> String {
+        self.trials.link(reference).and_then(|l| l["draft"]["name"].as_str().map(str::to_owned))
+            .or_else(|| self.trial_desk.pending.get(reference).map(|p| p.draft.clone()))
+            .or_else(|| self.trial_desk.marks.find_trial(reference).and_then(|m| m["draft"].as_str().map(str::to_owned)))
+            .unwrap_or_default()
+    }
+    /// The thread whose Codex home a trial's reads go to (H-5): the clean
+    /// trial conversation, or the delegated trial's authoring conversation.
+    pub(crate) fn trial_home_thread(&self, reference: &str) -> Option<String> {
+        let link = self.trials.link(reference)?;
+        let trial = &link["trial"];
+        let thread = if trial["kind"] == "clean" { &trial["clean_conversation"] } else { &trial["authoring_conversation"] };
+        thread.as_str().map(str::to_owned)
     }
     /// The trial a conversation belongs to as a clean trial conversation (or a
     /// fork of one): (trial reference, is a fork).
     pub(crate) fn trial_conversation(&self, thread: &str) -> Option<(String, bool)> {
-        if let Some(reference) = self.trial_desk.forks.get(thread) {
-            return Some((reference.clone(), true));
+        if let Some(mark) = self.trial_desk.marks.find(thread) {
+            return mark["trial"].as_str().map(|r| (r.to_owned(), !mark["fork_of"].is_null()));
         }
         if let Some((reference, _)) = self.trial_desk.pending.iter().find(|(_, p)| p.clean.as_ref().is_some_and(|(_, t)| t == thread)) {
             return Some((reference.clone(), false));
@@ -414,6 +463,28 @@ impl WorkflowRootSession {
             .find(|l| l["trial"]["kind"] == "delegated" && l["trial"]["authoring_conversation"] == thread && l["trial"]["turn"] == turn)
             .map(|l| format!("this turn carries trial {}'s message; its lines offer nothing", l["trial"]["sequence"]))
     }
+    /// TT-2: the native view as the checkpoint recorder reads it: rows of a
+    /// turn that carries a trial message and of a linked trial sub-agent are
+    /// not a run's activity, so they record no checkpoint arrival.
+    pub(crate) fn without_trial_activity(&self, view: &Value) -> Value {
+        let links = self.trials.all_links();
+        let turns: Vec<(String, String)> = links.iter().filter(|l| l["trial"]["kind"] == "delegated").filter_map(|l| {
+            Some((l["trial"]["authoring_conversation"].as_str()?.to_owned(), l["trial"]["turn"].as_str()?.to_owned()))
+        }).collect();
+        let children: Vec<String> = links.iter().filter_map(|l| l["trial"]["reference"].as_str().and_then(|r| self.linked_child(r))).collect();
+        if turns.is_empty() && children.is_empty() {
+            return view.clone();
+        }
+        let mut filtered = view.clone();
+        if let Some(items) = filtered["items"].as_array_mut() {
+            items.retain(|row| {
+                let thread = row["threadId"].as_str().unwrap_or_default();
+                let turn = row["turnId"].as_str().unwrap_or_default();
+                !children.iter().any(|c| c == thread) && !turns.iter().any(|(t, u)| t == thread && u == turn)
+            });
+        }
+        filtered
+    }
     /// TT-2: a `Workflow finished:` line raises no End-run offer for this run.
     pub(crate) fn finished_offer_suppressed(&self, run: &str) -> bool {
         self.trial_desk.finished_offer_suppressed.contains(run)
@@ -423,6 +494,7 @@ impl WorkflowRootSession {
             .link(reference)
             .map(|l| l["trial"]["sequence"].to_string())
             .or_else(|| self.trial_desk.pending.get(reference).map(|p| p.prepared.text.sequence().to_string()))
+            .or_else(|| self.trial_desk.marks.find_trial(reference).map(|m| m["sequence"].to_string()))
             .unwrap_or_else(|| "?".into())
     }
 
@@ -438,7 +510,7 @@ impl WorkflowRootSession {
             "content":p.prepared.content,"rev12":rev,
             "card":format!("trial {} of draft {} at content {rev} — not registered; not a workflow run",text.sequence(),p.draft),
             "header":text.header(),"text":text.text(),"textIdentity":text.identity(),"bytes":text.bytes(),"message":p.message,
-            "authoring":place(&p.authoring),"cleanConversation":place(&p.clean),"delegation":p.delegation,"runInForce":Value::Null,
+            "authoring":place(&p.authoring),"cleanConversation":place(&p.clean),"delegation":p.delegation,"runInForce":p.run_in_force,
             "draftChanged":changed,"workFolder":p.work_folder,
             "state":if p.clean.is_some(){"started; trial message not sent"}else{"pre-filled"},"limit":Value::Null,
             "standing":"pre-filled, not sent: nothing is sent or recorded until you press Send; the trial text is changed by changing the draft and pressing Try again"})
@@ -457,7 +529,7 @@ impl WorkflowRootSession {
             let work = format!(".chirality/trial-work/trial-{sequence}-{short}/");
             let source = if row["kind"] == "clean" { row["trialConversation"].as_str().map(str::to_owned) } else { self.linked_child(&reference) };
             if let Some(sent) = self.trial_desk.sent.get(&reference) {
-                let unread: Vec<&String> = sent.read.iter().filter(|(_, r)| r.is_err()).map(|(c, _)| c).collect();
+                let unread: Vec<&String> = sent.read.iter().filter(|(_, r)| r.as_ref().is_err_and(|(cause, _)| cause != IN_PROGRESS)).map(|(c, _)| c).collect();
                 row["subAgent"]["alsoGiven"] = json!(sent.also_given);
                 row["subAgent"]["unread"] = json!(unread);
             }
@@ -547,11 +619,32 @@ impl WorkflowRootSession {
                     "header":format!("Trial {n} of draft {} at content {rev} — not registered; not a workflow run · authoring conversation {authoring}",p.draft)}));
             }
         }
-        for (fork, reference) in &self.trial_desk.forks {
-            conversations.push(json!({"threadId":fork,"reference":reference,"sequence":self.trial_sequence(reference),"fork":true,
-                "header":format!("fork of trial {}; it offers no workflow run",self.trial_sequence(reference))}));
+        // Marked conversations not covered above: forks, and clean trial
+        // conversations whose message was not acknowledged (outcome unknown or
+        // card removed). They keep their trial standing (TT-2).
+        for mark in self.trial_desk.marks.all() {
+            let thread = mark["thread"].as_str().unwrap_or_default();
+            if conversations.iter().any(|c| c["threadId"] == thread) {
+                continue;
+            }
+            let n = mark["sequence"].clone();
+            let header = if mark["fork_of"].is_null() {
+                format!("Trial {n} of draft {} — the trial message was not acknowledged here (outcome unknown, or not sent); not registered; not a workflow run; it offers no workflow run", mark["draft"].as_str().unwrap_or_default())
+            } else {
+                format!("fork of trial {n}; it offers no workflow run")
+            };
+            conversations.push(json!({"threadId":thread,"reference":mark["trial"],"sequence":n,"draftName":mark["draft"],"fork":!mark["fork_of"].is_null(),"header":header}));
         }
         root["trialConversations"] = json!(conversations);
+        // TT-10: a real run is brought back by default to the authoring
+        // conversation of the latest trial of a draft of that run's slot.
+        root["runBringBackDefaults"] = json!(self.runs.iter().filter_map(|(run_ref, run)| {
+            let run = run.try_lock().ok()?;
+            let w = run.prepared().workflow();
+            let latest = links.iter().rev().find(|l| l["draft"]["name"] == w.name.as_str()
+                && self.libraries.values().any(|lib| lib.origin == w.origin && lib.owner.try_lock().is_ok_and(|o| o.draft_key(&w.name) == l["draft"])))?;
+            Some(json!({"run":run_ref,"threadId":latest["trial"]["authoring_conversation"]}))
+        }).collect::<Vec<_>>());
         root["trialsStartedHere"] = json!(started_here.into_iter().map(|(t, trials)| json!({"threadId":t,"trials":trials})).collect::<Vec<_>>());
         root["trialTurns"] = json!(turns);
         root["trialChildren"] = json!(children);
@@ -594,11 +687,19 @@ impl WorkflowRootSession {
             match sent.kind {
                 TrialKind::Delegated => {
                     for child in descendants_of(view, &sent.authoring) {
-                        if sent.baseline.contains(&child) || sent.read.contains_key(&child) || due.len() >= READS_PER_TICK {
+                        if sent.baseline.contains(&child) || due.len() >= READS_PER_TICK {
                             continue;
                         }
-                        // Marked read before the read runs: at most one automatic read per child.
-                        sent.read.insert(child.clone(), Err("read in progress".into()));
+                        let signature = node_signature(view, &child);
+                        match sent.read.get(&child) {
+                            None if child_started(view, &child) => {}
+                            // A first turn not yet in Codex's history is read again
+                            // once the view shows new activity of the child.
+                            Some(Err((cause, seen))) if (cause == NOT_YET_TURN || cause == NOT_YET_MESSAGE) && *seen != signature => {}
+                            _ => continue,
+                        }
+                        // Marked before the read runs: one automatic read per observed state.
+                        sent.read.insert(child.clone(), Err((IN_PROGRESS.into(), signature)));
                         due.push(TrialRead::Child { reference: sent.reference.clone(), generation: sent.generation.clone(), child });
                     }
                 }
@@ -628,7 +729,11 @@ impl WorkflowRootSession {
                     match result.texts {
                         Err(cause) => {
                             if let Some(s) = self.trial_desk.sent.get_mut(&reference) {
-                                s.read.insert(child, Err(cause));
+                                let seen = match s.read.get(&child) {
+                                    Some(Err((_, seen))) => seen.clone(),
+                                    _ => String::new(),
+                                };
+                                s.read.insert(child, Err((cause, seen)));
                             }
                         }
                         Ok(texts) => {
@@ -672,13 +777,17 @@ impl WorkflowRootSession {
     }
 
     /// TT-9 by the person: Link as trial ‹n› / unlink. A display relation, not an act.
-    pub fn link_trial_child(&mut self, reference: &str, child: &str, link: bool) -> Result<Value, String> {
+    pub fn link_trial_child(&mut self, reference: &str, child: &str, link: bool, view: &Value) -> Result<Value, String> {
         let record = self.trials.link(reference).cloned().ok_or_else(|| format!("No trial link {reference}"))?;
         if record["trial"]["kind"] != "delegated" {
             return Err("Only a delegated trial links a sub-agent".into());
         }
         if child.is_empty() || record["trial"]["authoring_conversation"] == child {
             return Err("Choose a sub-agent of the authoring conversation".into());
+        }
+        let authoring = record["trial"]["authoring_conversation"].as_str().unwrap_or_default();
+        if link && !descendants_of(view, authoring).iter().any(|c| c == child) {
+            return Err(format!("{child} is not a sub-agent of the authoring conversation {authoring} in what this App observes; nothing linked"));
         }
         let observation = if link {
             if self.linked_child(reference).as_deref() == Some(child) {
@@ -696,10 +805,10 @@ impl WorkflowRootSession {
 }
 
 /// Codex's response to one workspace read (TT-9, TT-10), or why it failed.
-fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value) -> Result<Value, String> {
+fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value, by: &Value) -> Result<Value, String> {
     let home_key = generation["home"].as_str().ok_or("generation home required")?;
     let query = crate::native_history::workspace_read(home_key, generation, method, params)?;
-    let dispatch = home.host.history_dispatch(&query)?;
+    let dispatch = home.host.history_dispatch_by(&query, by.clone())?;
     let evidence = home.host.history_wait(&dispatch, READ_WAIT)?;
     let response = &evidence["response"];
     if let Some(error) = response.get("error") {
@@ -712,7 +821,7 @@ fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value
         .ok_or_else(|| format!("{method} returned no result (outcome {})", evidence["outcome"]))
 }
 /// All turns of `thread`, oldest first, and why the list is incomplete if it is.
-pub(crate) fn read_turns(home: &HomeSession, generation: &Value, thread: &str) -> (Vec<Value>, Option<String>) {
+pub(crate) fn read_turns(home: &HomeSession, generation: &Value, thread: &str, by: &Value) -> (Vec<Value>, Option<String>) {
     let mut turns = vec![];
     let mut cursor: Option<String> = None;
     let mut seen = BTreeSet::new();
@@ -721,7 +830,7 @@ pub(crate) fn read_turns(home: &HomeSession, generation: &Value, thread: &str) -
         if let Some(c) = &cursor {
             params["cursor"] = json!(c);
         }
-        let page = match read_page(home, generation, "thread/turns/list", params) {
+        let page = match read_page(home, generation, "thread/turns/list", params, by) {
             Ok(page) => page,
             Err(cause) => return (turns, Some(cause)),
         };
@@ -735,7 +844,7 @@ pub(crate) fn read_turns(home: &HomeSession, generation: &Value, thread: &str) -
     (turns, Some(format!("more than {MAX_PAGES} pages of turns")))
 }
 /// The items of one turn, in order, every page.
-pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, turn: &str) -> Result<Vec<Value>, String> {
+pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, turn: &str, by: &Value) -> Result<Vec<Value>, String> {
     let mut items = vec![];
     let mut cursor: Option<String> = None;
     let mut seen = BTreeSet::new();
@@ -744,7 +853,7 @@ pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, t
         if let Some(c) = &cursor {
             params["cursor"] = json!(c);
         }
-        let page = read_page(home, generation, "thread/items/list", params)?;
+        let page = read_page(home, generation, "thread/items/list", params, by)?;
         for entry in page["data"].as_array().into_iter().flatten() {
             if entry["turnId"] == turn {
                 items.push(entry["item"].clone());
@@ -765,7 +874,7 @@ fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>
     let chosen = client
         .and_then(|c| messages.iter().find(|m| m["clientId"] == c).copied())
         .or_else(|| messages.first().copied())
-        .ok_or("the turn holds no user message")?;
+        .ok_or(NOT_YET_MESSAGE)?;
     Ok(chosen["content"]
         .as_array()
         .into_iter()
@@ -774,18 +883,20 @@ fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>
         .filter_map(|e| e["text"].as_str().map(str::to_owned))
         .collect())
 }
+const NOT_YET_TURN: &str = "the sub-agent has no turn in Codex's history yet";
+const NOT_YET_MESSAGE: &str = "the turn holds no user message yet";
 /// TT-9's read of a child's (or a clean trial's) first user message.
-fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, turn: Option<&str>, client: Option<&str>) -> Result<Vec<String>, String> {
+fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, turn: Option<&str>, client: Option<&str>, by: &Value) -> Result<Vec<String>, String> {
     let turn = match turn {
         Some(turn) => turn.to_owned(),
         None => {
             let mut params = json!({"threadId":thread,"sortDirection":"asc","itemsView":"summary"});
             params["limit"] = json!(1);
-            let page = read_page(home, generation, "thread/turns/list", params)?;
-            page["data"][0]["id"].as_str().map(str::to_owned).ok_or("the sub-agent has no turn yet")?
+            let page = read_page(home, generation, "thread/turns/list", params, by)?;
+            page["data"][0]["id"].as_str().map(str::to_owned).ok_or(NOT_YET_TURN)?
         }
     };
-    let items = read_items(home, generation, thread, &turn)?;
+    let items = read_items(home, generation, thread, &turn, by)?;
     first_user_texts(&items, client)
 }
 /// Performs the reads `trial_reads_due` returned. Holds no App lock.
@@ -794,14 +905,30 @@ pub(crate) fn perform_trial_reads(home: &HomeSession, reads: Vec<TrialRead>) -> 
         .into_iter()
         .map(|read| {
             let texts = match &read {
-                TrialRead::Child { generation, child, .. } => read_first_user_texts(home, generation, child, None, None),
-                TrialRead::CleanFirstTurn { generation, thread, turn, client, .. } => read_first_user_texts(home, generation, thread, Some(turn), Some(client)),
+                TrialRead::Child { generation, child, .. } => read_first_user_texts(home, generation, child, None, None, &rule_read()),
+                TrialRead::CleanFirstTurn { generation, thread, turn, client, .. } => read_first_user_texts(home, generation, thread, Some(turn), Some(client), &rule_read()),
             };
             TrialReadResult { read, texts }
         })
         .collect()
 }
 
+const IN_PROGRESS: &str = "read in progress";
+/// The child's descendant node as the view shows it now (its last native call,
+/// activity, status and thread read), compared to decide a re-read.
+fn node_signature(view: &Value, child: &str) -> String {
+    view["descendants"].as_array().into_iter().flatten().find(|d| d["threadId"] == child).map(Value::to_string).unwrap_or_default()
+}
+/// The view shows the child past its spawn: an item or turn of its own, a
+/// status other than `pendingInit`, or a subagent activity row. Its first turn
+/// should then be in Codex's history (H-7).
+fn child_started(view: &Value, child: &str) -> bool {
+    let own = view["items"].as_array().into_iter().flatten().any(|r| r["threadId"] == child)
+        || view["turns"].as_array().into_iter().flatten().any(|t| t["threadId"] == child);
+    let node = view["descendants"].as_array().into_iter().flatten().find(|d| d["threadId"] == child);
+    let status = node.and_then(|n| n["lastObservedStatus"]["status"].as_str());
+    own || node.is_some_and(|n| !n["lastNativeActivity"].is_null()) || status.is_some_and(|s| s != "pendingInit")
+}
 /// Descendant threads the native view shows under `parent` (DEL-01-03 §7.2).
 fn descendants_of(view: &Value, parent: &str) -> Vec<String> {
     view["descendants"]
@@ -973,7 +1100,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
         let reading = match (&text, turn.as_deref()) {
             (Err(cause), _) => FidelityReading::NotChecked { limits: vec![cause.clone()] },
             (_, None) => FidelityReading::NotChecked { limits: vec!["Codex's acknowledgment named no turn".into()] },
-            (Ok(text), Some(turn)) => match read_first_user_texts(home, &generation, &thread, Some(turn), trial["client_message"].as_str()) {
+            (Ok(text), Some(turn)) => match read_first_user_texts(home, &generation, &thread, Some(turn), trial["client_message"].as_str(), &person_read()) {
                 Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
                 Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the first turn could not be read: {cause}")] },
             },
@@ -984,7 +1111,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     }
     let text = text?;
     if let Some(child) = linked {
-        let reading = match read_first_user_texts(home, &generation, &child, None, None) {
+        let reading = match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
             Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
             Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the sub-agent's first turn could not be read: {cause}")] },
         };
@@ -995,7 +1122,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     let marker = text.begin_marker();
     let mut unread = vec![];
     for child in candidates {
-        match read_first_user_texts(home, &generation, &child, None, None) {
+        match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
             Ok(texts) if texts.iter().any(|t| t.contains(&marker)) => {
                 let mut root = root.lock().unwrap();
                 if root.linked_child(reference).is_some() {
@@ -1026,7 +1153,7 @@ struct HistorySource {
     trial_line: Option<TrialTextLine>,
 }
 fn read_source(home: &HomeSession, generation: &Value, source: &HistorySource) -> (Vec<TurnRead>, Option<String>) {
-    let (turns, mut limit) = read_turns(home, generation, &source.thread);
+    let (turns, mut limit) = read_turns(home, generation, &source.thread, &person_read());
     let mut reads = vec![];
     let mut started = source.from_turn.is_none();
     for turn in turns {
@@ -1037,7 +1164,7 @@ fn read_source(home: &HomeSession, generation: &Value, source: &HistorySource) -
             }
             started = true;
         }
-        let items = read_items(home, generation, &source.thread, &id);
+        let items = read_items(home, generation, &source.thread, &id, &person_read());
         if let (Some(run), Ok(items)) = (&source.run_end, &items) {
             let ends = items.iter().filter(|i| i["type"] == "userMessage").flat_map(|i| i["content"].as_array().cloned().unwrap_or_default()).any(|e| {
                 e["text"].as_str().is_some_and(|t| (t.starts_with("[Chirality] Workflow run ended:") || t.starts_with("[Chirality] Previous workflow run ended:")) && t.contains(&format!("(run {run}")))
@@ -1222,8 +1349,10 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
 /// same slot, side by side with the difference between their versions (read
 /// from the trial snapshots and the revision store). Scores and judges nothing;
 /// records nothing.
-pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, home: &HomeSession, left: &Value, right: &Value) -> Result<Value, String> {
+pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) -> Option<std::sync::Arc<HomeSession>>, left: &Value, right: &Value) -> Result<Value, String> {
     struct Side {
+        /// The conversation whose Codex home this side is read from (H-5).
+        home_thread: Option<String>,
         label: String,
         kind: String,
         version: Value,
@@ -1246,6 +1375,7 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, home: &HomeSession, lef
             };
             let trial = &link["trial"];
             return Ok(Side {
+                home_thread: root.trial_home_thread(reference),
                 label: format!("trial {} of draft {name}", trial["sequence"]),
                 kind: trial["kind"].as_str().unwrap_or_default().into(),
                 version: link["content"].clone(),
@@ -1259,7 +1389,7 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, home: &HomeSession, lef
         if let Some(run_ref) = spec["run"].as_str() {
             let (source, files, slot) = root.run_source(run_ref)?;
             let run = root.runs.get(run_ref).and_then(|r| r.try_lock().ok().map(|r| json!({"method":r.prepared().workflow().revision_method,"value":r.prepared().workflow().revision}))).unwrap_or(Value::Null);
-            return Ok(Side { label: format!("run {run_ref} of {slot}"), kind: "registered run".into(), version: run, conversation: json!({"run":source.thread}), snapshot: json!({"state":"revision store","reading":"read from the revision this run selected"}), files: Some(files), slot, source: Ok(source) });
+            return Ok(Side { home_thread: Some(source.thread.clone()), label: format!("run {run_ref} of {slot}"), kind: "registered run".into(), version: run, conversation: json!({"run":source.thread}), snapshot: json!({"state":"revision store","reading":"read from the revision this run selected"}), files: Some(files), slot, source: Ok(source) });
         }
         Err("Each side of Compare is a trial or a run".into())
     };
@@ -1274,11 +1404,17 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, home: &HomeSession, lef
     if runs == 1 && a.slot != b.slot {
         return Err(format!("Compare takes a trial and a real run of a revision of the same slot ({} and {} differ)", a.slot, b.slot));
     }
-    let generation = home.host.snapshot()["generation"].clone();
     let summarize = |s: &Side| -> Value {
-        match &s.source {
-            Ok(source) => {
-                let (turns, limit) = read_source(home, &generation, source);
+        let home = s.home_thread.as_deref().and_then(resolve);
+        let source = match (&s.source, home) {
+            (Ok(source), Some(home)) => Ok((source, home)),
+            (Ok(_), None) => Err("this side's conversation is not loaded in a Codex home now; its activity was not read".to_owned()),
+            (Err(cause), _) => Err(cause.clone()),
+        };
+        match source {
+            Ok((source, home)) => {
+                let generation = home.host.snapshot()["generation"].clone();
+                let (turns, limit) = read_source(&home, &generation, source);
                 transcript::activity_summary(&turns, limit.as_deref())
             }
             Err(cause) => json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],"finalAgentMessage":null,"limits":[cause]}),

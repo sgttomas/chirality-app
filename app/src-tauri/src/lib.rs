@@ -212,6 +212,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["homeAccess"] = home.account_view();
     // OI-008: host_status presents; it records nothing. The checkpoint recorder
     // and the trial reads run on the host's own tick (`host_tick`).
+    s["hostTicks"] = host_tick::tick_state();
     s["workflowRoot"] = host_tick::workflow_status(&state.workflows, &s["nativeView"], state.workspace.is_some());
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
@@ -598,6 +599,9 @@ fn start_conversation(
         result
     };
     conversation_roles::mark_started(&state.continue_as, continue_as.as_deref(), &result, &generation);
+    // The start's own generation, for a caller that continues in the new
+    // conversation (a clean trial's first turn, WR FT-4).
+    let result = result.map(|mut response| { response["startGeneration"] = generation.clone(); response });
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
@@ -1014,7 +1018,7 @@ fn workflow_trial_prepare(state:State<'_,AppState>,name:String,kind:String,gener
 /// WR TT-11 Try again: a new trial of the draft's current version.
 #[tauri::command(async)]
 fn workflow_trial_again(state:State<'_,AppState>,reference:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().active();
+    let home=trial_home(&state,&reference).unwrap_or_else(|_|state.homes.lock().unwrap().active());
     state.workflows.lock().unwrap().trial_again(&reference,Some(&home),state.workspace.as_deref())
 }
 /// WR §5.5: removing the trial card cancels the trial; nothing is recorded.
@@ -1033,30 +1037,53 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
     state.workflows.lock().unwrap().begin_clean_start(&reference)?;
+    // From here every outcome releases or withdraws the pre-fill (H-2).
     let started=match start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None){
         Ok(started)=>started,
-        Err(error)=>{state.workflows.lock().unwrap().abort_clean_start(&reference);return Err(error);}
+        Err(error)=>{
+            // The start may have reached Codex: the pre-fill is withdrawn so a
+            // second press cannot start a second conversation; Try again makes a new trial.
+            state.workflows.lock().unwrap().withdraw_clean_start(&reference);
+            return Err(format!("{error}. The trial conversation was not started (or its start was not acknowledged); the pre-filled trial was withdrawn and nothing was recorded; press Try again"));
+        }
     };
-    let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
-    let generation=home.host.snapshot()["generation"].clone();
-    let thread=started["result"]["thread"]["id"].as_str().ok_or("The new conversation's identity was not reported; the trial message is not sent")?.to_owned();
+    let generation=started["startGeneration"].clone();
+    let Some(thread)=started["result"]["thread"]["id"].as_str().map(str::to_owned) else {
+        state.workflows.lock().unwrap().withdraw_clean_start(&reference);
+        return Err("The new conversation's identity was not reported; the pre-filled trial was withdrawn and nothing was sent or recorded; press Try again".into());
+    };
     state.workflows.lock().unwrap().mark_clean_started(&reference,&generation,&thread);
     let sent=runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,&generation,&thread,&person_text);
     match sent {
         Ok(mut value)=>{value["conversation"]=json!({"generation":generation,"threadId":thread});value["thread"]=value["conversation"].clone();Ok(value)}
-        Err(error)=>Err(format!("The trial conversation {thread} started, but the trial message was not acknowledged: {error}")),
+        Err(error)=>Err(format!("The trial conversation {thread} started (it stays trial-only), but the trial message was not acknowledged: {error}")),
     }
+}
+/// WR TT-9, H-5: the Codex home holding `thread` now (the trial's own home).
+fn home_of_thread(state:&AppState,thread:&str)->Option<Arc<runtime_session::HomeSession>>{
+    state.homes.lock().unwrap().entries().into_iter().find(|home|{
+        let snapshot=home.host.snapshot();
+        snapshot["threads"].as_array().into_iter().flatten().any(|t|t["threadId"]==thread&&t["generation"]==snapshot["generation"])
+    })
+}
+fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
+    let thread=state.workflows.lock().unwrap().trial_home_thread(reference).ok_or_else(||format!("No trial link {reference}"))?;
+    home_of_thread(state,&thread).ok_or_else(||format!("The trial's conversation {thread} is not loaded in a Codex home now; nothing read or recorded"))
 }
 /// WR TT-9: Link as trial ‹n› / unlink, by the person.
 #[tauri::command]
-fn workflow_trial_link(state:State<'_,AppState>,reference:String,child_thread:String)->Result<Value,String>{state.workflows.lock().unwrap().link_trial_child(&reference,&child_thread,true)}
+fn workflow_trial_link(state:State<'_,AppState>,reference:String,child_thread:String)->Result<Value,String>{
+    let view=trial_home(&state,&reference)?.runtime.lock().unwrap().native_view();
+    state.workflows.lock().unwrap().link_trial_child(&reference,&child_thread,true,&view)
+}
 #[tauri::command]
-fn workflow_trial_unlink(state:State<'_,AppState>,reference:String,child_thread:String)->Result<Value,String>{state.workflows.lock().unwrap().link_trial_child(&reference,&child_thread,false)}
+fn workflow_trial_unlink(state:State<'_,AppState>,reference:String,child_thread:String)->Result<Value,String>{state.workflows.lock().unwrap().link_trial_child(&reference,&child_thread,false,&Value::Null)}
 /// WR TT-9: the person opened the trial and asks to read it again.
 #[tauri::command(async)]
 fn workflow_trial_read(state:State<'_,AppState>,reference:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().active();
+    let home=trial_home(&state,&reference)?;
     let view=home.runtime.lock().unwrap().native_view();
     runtime_session::trial_flows::read_trial_again(&state.workflows,&home,&reference,&view)
 }
@@ -1083,8 +1110,7 @@ fn workflow_bring_back_send(state:State<'_,AppState>,id:String,generation:Value,
 /// WR TT-11 Compare: side by side, with the version difference; records nothing.
 #[tauri::command(async)]
 fn workflow_trial_compare(state:State<'_,AppState>,left:Value,right:Value)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().active();
-    runtime_session::trial_flows::compare(&state.workflows,&home,&left,&right)
+    runtime_session::trial_flows::compare(&state.workflows,&|thread|home_of_thread(&state,thread),&left,&right)
 }
 /// WR RB-1: review a draft chosen from the host's list, bound to the listed content.
 #[tauri::command(async)]
@@ -1540,8 +1566,15 @@ pub fn run() {
                 std::thread::Builder::new().name("chirality-host-tick".into()).spawn(move || loop {
                     std::thread::sleep(host_tick::INTERVAL);
                     let state = handle.state::<AppState>();
-                    host_tick::tick(&state.homes, &state.workflows);
+                    host_tick::guarded("record", || host_tick::tick(&state.homes, &state.workflows));
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
+                // TT-9 reads wait on Codex; their own thread never delays the record tick.
+                let handle = app.handle().clone();
+                std::thread::Builder::new().name("chirality-trial-tick".into()).spawn(move || loop {
+                    std::thread::sleep(host_tick::INTERVAL);
+                    let state = handle.state::<AppState>();
+                    host_tick::guarded("trial", || host_tick::trial_tick(&state.homes, &state.workflows));
+                }).map_err(|e| format!("trial tick thread not started: {e}"))?;
             }
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
             if let Ok(cfg) = host_config {
