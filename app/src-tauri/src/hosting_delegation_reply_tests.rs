@@ -105,6 +105,27 @@ fn a_failed_write_ends_the_wait_and_a_later_reply_keeps_no_body() {
 }
 
 #[test]
+fn a_reply_before_the_wait_began_leaves_no_body_in_the_channel() {
+    let host = host();
+    let child = open_pipe(&host);
+    let me = Arc::downgrade(&host);
+    *host.before_delegation_wait.lock().unwrap() = Some(Box::new(move |request: &SourceRequest| {
+        let Some(host) = me.upgrade() else { return };
+        host.on_line(&serde_json::to_vec(&json!({"jsonrpc":"2.0","id":request.request_id(),"result":{"description":BODY}})).unwrap(), &g());
+    }));
+    host.delegation_signals_read_within(&g(), "thread", json!({"kind":"person-directed"}), Duration::from_secs(2));
+    *host.before_delegation_wait.lock().unwrap() = None;
+    let receivers: Vec<_> = host.inner.0.lock().unwrap().source_requests.values().map(|e| Arc::clone(&e.request.receiver)).collect();
+    assert!(!receivers.is_empty());
+    for receiver in receivers {
+        let queued = receiver.lock().unwrap().try_recv();
+        assert!(queued.is_err(), "a reply stays in the channel: {queued:?}");
+    }
+    assert_no_body(&host);
+    close_pipe(&host, child);
+}
+
+#[test]
 fn a_reduced_reply_keeps_only_what_codex_sent_and_reads_its_outcome() {
     let result = delegation_withheld(&json!({"id":7,"result":{"description":BODY}}));
     assert!(result.get("error").is_none(), "no error where Codex sent none: {result}");

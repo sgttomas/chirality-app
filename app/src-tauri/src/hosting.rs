@@ -576,6 +576,10 @@ pub struct Host {
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// Runs with each delegation read's request after its write and before
+    /// its wait (a reply that arrives before the wait starts).
+    #[cfg(test)]
+    before_delegation_wait: Mutex<Option<Box<dyn Fn(&SourceRequest) + Send>>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -642,6 +646,8 @@ impl Host {
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
+            #[cfg(test)]
+            before_delegation_wait: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -2551,6 +2557,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if wait.is_zero() { return Err(format!("{method} not sent: the reading's time limit was reached")); }
             let request = self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))?;
             sent.borrow_mut().push(request.request_id().to_string());
+            #[cfg(test)]
+            if let Some(hook) = self.before_delegation_wait.lock().unwrap().as_ref() { hook(&request); }
             let response = self.wait_source_response(&request, wait).map_err(|e| {
                 if e.contains("within the wait limit") { silent.set(true); }
                 // Any failure ends this reading's wait: a later reply is kept
@@ -2609,6 +2617,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         signals["readAt"] = json!(crate::util::now_rfc3339());
         signals["readAtMs"] = json!(delegation_now_ms());
         let key = crate::delegation_availability::key(&conversation);
+        // A reply that arrived before its wait began was taken from the
+        // request evidence, not the channel: empty each request's channel.
+        // Taken outside the Host lock (a wait holds its receiver, then the
+        // Host lock). Every wait has ended; a later reply reaches the channel
+        // reduced (`on_line`).
+        let receivers: Vec<_> = {
+            let i = self.inner.0.lock().unwrap();
+            sent.borrow().iter().filter_map(|id| i.source_requests.get(id).map(|e| Arc::clone(&e.request.receiver))).collect()
+        };
+        for receiver in receivers { while receiver.lock().unwrap().try_recv().is_ok() {} }
         let mut i = self.inner.0.lock().unwrap();
         // The reading has taken its fields: the request evidence keeps the
         // reply's outcome only (a reply arriving after the reading stopped
