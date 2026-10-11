@@ -1324,6 +1324,18 @@ changed.
     otherwise both read *not read*, so the reading is *not established*
     (never *present* or *missing* from another provider's answers).
     `features.multi_agent` is read with the conversation's `cwd`.
+  - With no `model_provider` configured (the common case, and the App's own
+    homes) both server-provider reads name no provider, so the reading is
+    *not established* for every conversation, even for a `disabled` model.
+    The App does not infer Codex's default provider from that absence (it is
+    not in the 0.160.0 types; OBS-2's observation is of 0.158.0). This holds
+    until the native witness observes what 0.160.0's `config/read` and
+    capabilities report for an unconfigured home; the witness run settles it.
+  - Not verifiable from the App: a `config.toml` edited after the app-server
+    started may make `config/read` (read from the files now) and the
+    parameterless reads (the server's loaded configuration) diverge. The
+    reading then rests on `config/read` and may be wrong until the server is
+    restarted.
   - The generated `Config` types no `features` field. `features.multi_agent`
     is read as an additional property of `config/read`'s `config`, with the
     conversation's `cwd`. A configuration that was read and has no such

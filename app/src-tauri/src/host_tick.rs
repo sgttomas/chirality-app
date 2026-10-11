@@ -57,20 +57,20 @@ pub(crate) fn trial_tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRoot
 }
 
 /// Delegation readings (NPTD §7.1, read at run time per R19-5) taken per tick
-/// per home at most: one conversation whose model, provider and folder have
-/// no reading, or one older than `DELEGATION_REFRESH`. Try with the authoring
-/// agent and Try again also read their conversation.
+/// per home at most. The tick reads only on need: a conversation model,
+/// provider and folder with no reading yet, or a *missing* reading older than
+/// `DELEGATION_MISSING_REFRESH`. Try with the authoring agent and Try again
+/// read their conversation at the press.
 pub(crate) const DELEGATION_READS_PER_TICK: usize = 1;
-/// A delegation reading's age after which the tick reads it again, so a
-/// changed configuration or provider shows without a press (a *missing*
-/// reading hides the press that would re-read it).
-pub(crate) const DELEGATION_REFRESH: std::time::Duration = std::time::Duration::from_secs(60);
+/// A *missing* reading's age after which the tick reads it again (it hides
+/// the press that would re-read it). Other readings are not refreshed here.
+pub(crate) const DELEGATION_MISSING_REFRESH: std::time::Duration = std::time::Duration::from_secs(120);
 
 /// The delegation reads due in one home: conversations whose model became
-/// known (started, resumed or forked) and have no reading, or a stale one.
-/// Holds no App lock.
+/// known (started, resumed or forked) and have no reading, or a stale
+/// *missing* one. Holds no App lock.
 pub(crate) fn delegation_tick_home(home: &HomeSession) -> usize {
-    delegation_tick_home_aged(home, DELEGATION_REFRESH)
+    delegation_tick_home_aged(home, DELEGATION_MISSING_REFRESH)
 }
 pub(crate) fn delegation_tick_home_aged(home: &HomeSession, max_age: std::time::Duration) -> usize {
     let due = home.host.delegation_reads_due(DELEGATION_READS_PER_TICK, max_age);

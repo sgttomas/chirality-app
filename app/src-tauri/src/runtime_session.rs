@@ -7705,19 +7705,49 @@ for line in sys.stdin:
         reset_delegation(&peer);assert_eq!(delegation_reading(&peer,fp)["reading"],"present");
         let _=g;
     }
-    // M-1: a reading is taken again on the tick once it is older than the
-    // refresh age, so a missing reading does not stay hidden for good.
+    // M-1, N-B1: the tick reads a *missing* reading again once it is older
+    // than the refresh age (it hides the press that would re-read it); a
+    // present or not established reading is not refreshed on the tick.
     #[test]
-    fn the_tick_reads_a_stale_reading_again(){
+    fn the_tick_reads_again_only_a_stale_missing_reading(){
         let peer=Peer::new();peer.set_mode("namespace-tools","false");
         assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
         let shown=||{let mut t=peer.home.host.snapshot()["threads"].clone();crate::delegation_availability::annotate_threads(&mut t,&peer.home.host.delegation_readings());t[0]["delegation"]["reading"].clone()};
         assert_eq!(shown(),"missing");
         peer.set_mode("namespace-tools","");
         assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),0,"fresh within the refresh age");
-        assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),1,"stale: read again");
+        assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),1,"stale missing: read again");
         assert_eq!(shown(),"present");
-        assert!(crate::host_tick::DELEGATION_REFRESH<=Duration::from_secs(300));
+        assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),0,"a present reading is not refreshed on the tick");
+        peer.set_mode("namespace-tools","error");
+        assert_eq!(trial_flows::delegation_signals_for("delegated",Some(&peer.home),Some((&peer.generation,"thread"))).map(|s|crate::delegation_availability::evaluate(Some(&s))["reading"].clone()),Some(json!("not established")));
+        assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),0,"nor a not established one");
+    }
+    // N-B1: ticks without need send nothing and grow neither the journal nor
+    // the request evidence; a delegation read's result bodies (configuration,
+    // model catalogue) reach neither the journal, the snapshot host_status
+    // sends, nor the kept request evidence.
+    #[test]
+    fn delegation_reads_keep_no_result_bodies_and_idle_ticks_grow_nothing(){
+        let peer=Peer::new();
+        let journal=||peer.home.host.journal().len();
+        assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
+        let wire_reads=||peer.wire().iter().filter(|f|matches!(f["method"].as_str(),Some("model/list"|"config/read"|"modelProvider/capabilities/read"))).count();
+        let (j0,e0,w0)=(journal(),peer.home.host.kept_replies().0,wire_reads());
+        for _ in 0..50 {crate::host_tick::delegation_tick_home(&peer.home);}
+        assert_eq!((journal(),peer.home.host.kept_replies().0,wire_reads()),(j0,e0,w0),"idle ticks read nothing and keep nothing");
+        // A press reads again: the journal and evidence take outcomes only.
+        trial_flows::delegation_signals_for("delegated",Some(&peer.home),Some((&peer.generation,"thread"))).unwrap();
+        let snapshot=peer.home.host.snapshot().to_string();
+        let journalled=serde_json::to_string(&peer.home.host.journal()).unwrap();
+        let (_,kept)=peer.home.host.kept_replies();
+        for text in [&snapshot,&journalled,&kept]{
+            assert!(!text.contains("fixture private configuration text"),"no configuration body");
+            assert!(!text.contains("supportedReasoningEfforts"),"no model catalogue");
+            assert!(!text.contains("imageGeneration"),"no capabilities body");
+        }
+        assert!(journalled.contains("resultWithheld"),"the replies are journalled as their outcome");
+        assert_eq!(crate::delegation_availability::evaluate(Some(&peer.home.host.delegation_readings()[0]["signals"]))["reading"],"present","the reading itself keeps what it needs");
     }
     // M-2: a reading has one overall time limit and sends nothing more once a
     // request got no response.

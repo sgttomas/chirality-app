@@ -160,9 +160,13 @@ writes records or operates the act control." `src-tauri/` holds that host;
     sub-agent and report. The host reads delegation availability (NPTD §7.1:
     the model's `multiAgentVersion`, `features.multi_agent`, the provider's
     `namespaceTools`) for each conversation's model and provider when Try is
-    pressed and on its tick (again after a minute); readings from Codex's
+    pressed and on its tick when needed (once per conversation model, and again
+    for a *missing* reading after two minutes); readings from Codex's
     provider-wide reads count only when the app-server's own provider is the
-    conversation's; *missing* hides the button with the reason,
+    conversation's. With no `model_provider` configured (the usual case) the
+    reading is therefore *not established* until the native witness settles
+    what Codex 0.160.0 reports for an unconfigured home; *missing* hides the
+    button with the reason,
     *not established* offers it with that note. **Try in a fresh
     conversation** is optional: a new-conversation panel takes the person's
     role and model, puts the trial text first, then the editable inputs
