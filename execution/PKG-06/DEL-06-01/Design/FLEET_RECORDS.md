@@ -223,7 +223,7 @@ per VC):
     it. The App's read of the child's first turn found no user message, and
     reading again read the same.
   - So at 0.160.0 the child thread and its parent are observable (from
-    `subAgentActivity`, the parent by inference), but the spawn prompt is
+    `subAgentActivity`: a `started` row, or by inference), but the spawn prompt is
     observable neither from the parent's items nor as the child's readable
     input. AS-2's spawn item and `spawnPromptContent`
     identity cannot be computed from Codex at this pin, and AS-1's carriage

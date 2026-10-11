@@ -1349,3 +1349,7 @@ changed.
   - The distribution and terminal receiving cohorts still fail on their
     historical `hosting.rs` pins; that is separate from this issue (CI runs
     them only on a broad Python run).
+  - DEL-01-01 `distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json`
+    (U-SQ-1) still names `STANDALONE_QUALIFICATION.md` at its earlier hash
+    `9f88209d…`. It sits inside an attested reference, so it was not
+    rewritten; a later reference refresh carries the current bytes.

@@ -39,7 +39,7 @@
     {
       "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
       "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "sha256": "sha256:ab28ce9bb93e24dfae2a75c6c5f19eeec78d0f27048dcf0d134cb62c3b7fed22"
+      "sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540"
     },
     {
       "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
@@ -79,7 +79,7 @@
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
       "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
-      "sha256": "sha256:638d26e98d9eb5f673768f4fd9e5a7d6751870effe98e35cca82d3f41d9682dd"
+      "sha256": "sha256:497c1b62aeb4fda3d15700fe6495dd97a1d9c5b92659221e41a9e88191dd1aef"
     },
     {
       "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",

@@ -42,7 +42,8 @@ use std::time::{Duration, Instant};
 /// turn ended within a millisecond of it (RECOVERY §3.4, OBS-2 §4); 10 s keeps
 /// the wait short. An interrupt need not stop a running command: at 0.160.0
 /// one ran to completion after its turn ended (RECOVERY §3.4); the process
-/// stop that follows is what ends it.
+/// stop that follows ends the process tree (HOSTING H11); a surviving command
+/// is recorded, not assumed gone.
 pub const STOP_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// Kept in memory for display; older outcomes are dropped first.
 pub const OUTCOMES_KEPT: usize = 20;

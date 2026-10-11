@@ -2069,10 +2069,10 @@ contracts and components live stays open (OI-014).
 below were the DEL-01-01 drafting task's proposal to the App implementation
 owner, assessed in this order: maintainability, then functionality, then
 local models/privacy (V4-CST-01, AX-001); few mainstream stacks, no
-release-candidate frameworks (M-6, SOW-101). The ruling adopts O-1's Rust
-core: verification, spawn, process-tree lifecycle, framing, correlation,
-generation tagging, the register with R1–R9 and the recording tap are in the
-Rust host, and O-3 and O-4 stay set aside. Where O-1 differs, the ruling
+release-candidate frameworks (M-6, SOW-101). Under the ruling, O-1's Rust
+core is in the Rust host: verification, spawn, process-tree lifecycle, framing, correlation,
+generation tagging, the register with R1–R9 and the recording tap; O-3 and
+O-4 stay set aside. Where O-1 differs, the ruling
 governs: O-1 had the interface compose typed requests with generated TS
 types through one generic request path. Under the ruling the Rust host
 composes and sends every request to Codex, and writes every record; the web
