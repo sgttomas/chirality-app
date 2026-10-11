@@ -211,6 +211,12 @@ mod tests {
         assert_eq!(unnamed["reading"], "not established", "namespaceTools false for another provider is not this conversation's: {unnamed}");
         // No reading at all.
         assert_eq!(evaluate(None)["reading"], "not established");
+        // RV21 (R21-1): a configuration never read is not "nothing set", even
+        // with the other two signals read as present.
+        let unread_config = json!({"model_multi_agent_version":"v2","effective_config":null,"provider_capabilities":{"namespaceTools":true},"limits":[]});
+        assert_eq!(evaluate(Some(&unread_config))["reading"], "not established");
+        let unread_caps = json!({"model_multi_agent_version":"v2","effective_config":{},"provider_capabilities":null,"limits":[]});
+        assert_eq!(evaluate(Some(&unread_caps))["reading"], "not established");
     }
 
     #[test]
