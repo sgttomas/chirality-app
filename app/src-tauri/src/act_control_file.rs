@@ -287,11 +287,17 @@ impl ActControl {
         if slot.kind == FileActKind::Rely && event.choice() == "act" {
             limits.push("professional standing is the person's own statement; not verified");
         }
-        let capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":reference.id,
+        let mut capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":reference.id,
             "offerDigest":slot.offer["offerDigest"],"choice":event.choice(),"actKind":slot.kind.code(),"actor":event.actor(),
             "boundSubject":[slot.offer["subject"]["ref"]],"boundContent":[slot.offer["subject"]["contentIdentity"]],
             "scope":slot.offer["scope"],"purpose":slot.offer["purpose"],"capturedAt":capture_time(),"surface":"App interface","inputSource":"host-native-confirmation",
             "answers":slot.offer["answers"],"evidenceLimits":limits});
+        // AAC §6.3 SEAL-C: sealed under this installation's host-held key before
+        // publication. If it cannot be sealed the act is still captured and
+        // recorded, saying so, and is never counted (CI-20 (h)).
+        if let Err(reason) = crate::capture_seal::seal(&slot.root, &mut capture) {
+            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(crate::capture_seal::unsealed_limit(&reason)));
+        }
         crate::schema_validation::validate_capture(&capture)?;
         // The native event is not itself an admitted capture. Definite failure
         // before publication means nothing captured (AAC 4.1 step 6).

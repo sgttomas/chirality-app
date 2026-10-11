@@ -394,6 +394,7 @@ needs:
 code_paths:
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/canonical.rs
+- app/src-tauri/src/capture_seal.rs
 - app/src-tauri/src/recovery.rs
 - app/src-tauri/src/attachments.rs
 - app/src/RequestCards.tsx

@@ -294,7 +294,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     `disposition_change`. **Acts are counted** (CE-5, CE-6, CE-8) from the
     App-file act and decline records in the project's record set, each only
     through the one capture object it cites: current after correction,
-    written by the capturing surface, its capture resolved, valid and saying
+    written by the capturing surface, its capture resolved, valid, sealed
+    under a key this App installation holds (AAC §6.3 SEAL-C) and saying
     what the record says, one record per capture (SP-3, RS R-8). Any other
     record naming the arrival's file adds an "unresolvable reference" limit
     and is never an act. An act of the required kind on the arrival's file and
@@ -578,7 +579,11 @@ line (WR TX-7) and `.chirality/workflow-trials/` trial snapshots (TT-8); the
 App never rewrites or removes either, and recreates a deleted one when it is
 next needed.
 
-Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
+App-file act and decline captures are sealed with this installation's key,
+kept in the App user-data `capture-seal/keys.json` (owner-only), and only a
+capture whose seal verifies there counts (AAC §6.3 SEAL-C; CI-20 (h)); anything
+that can read that file can seal. Trustworthy persistent cold replay and
+SEAL-2's OS key store and entry seal remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.
 Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a

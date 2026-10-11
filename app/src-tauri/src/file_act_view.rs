@@ -1,5 +1,6 @@
 //! Read-only A4/A6/A7 claims, separate from decision-package A16 semantics.
-//! Cold capture files are readable claims, never proof of native origin.
+//! Cold capture files are readable claims, never proof of native origin; a
+//! capture counts only when sealed under a key this installation holds.
 use crate::{
     act_policy::ContentIdentity,
     standing::{compare, CurrentContent, Lapse},
@@ -99,6 +100,9 @@ pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
     if capture["captureId"] != id {
         return Err("Capture identity mismatch".into());
     }
+    // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
+    // holds is the App act control's capture (CI-20 (h), R-1).
+    crate::capture_seal::verify(root, &capture)?;
     Ok(capture)
 }
 /// Whether a file act or decline record says what its capture says: kind,
@@ -110,6 +114,8 @@ pub(crate) fn corresponds(c: &Value, record: &Value) -> bool {
     let kind = if decline { &b["declinedKind"] } else { &b["actKind"] };
     c["actKind"] == *kind
         && c["choice"] == if decline { "decline" } else { "act" }
+        // The add-once backlink, once present, names this record (AAC §5.2a).
+        && c.get("recordId").is_none_or(|linked| *linked == record["recordId"])
         && if decline {
             c["actor"] == b["actor"] && c["boundSubject"] == b["subject"] && c["capturedAt"] == b["time"]
         } else {
@@ -210,7 +216,7 @@ pub(crate) fn read(root: &Path) -> Value {
         {
             continue;
         }
-        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; no professional certification".into()];
+        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; a verified capture seal shows only that a holder of this App installation's key wrote the capture (AAC §6.3 SEAL-C); no professional certification".into()];
         let found = capture(root, b);
         let captured = found.as_ref().ok();
         if let Err(e) = &found {

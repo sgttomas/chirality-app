@@ -10,6 +10,7 @@ pub mod act_control;
 pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
+pub mod capture_seal;
 pub mod catalog;
 mod checkpoint_recorder;
 pub mod codex_stop;
@@ -1632,6 +1633,9 @@ pub fn run() {
     let host = Arc::clone(&home.host);
             app.manage(state);
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
+            // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
+            // App data folder, outside every project.
+            if let Ok(data) = data.as_ref() { capture_seal::install(data); }
             let state = app.state::<AppState>();
             *state.home_bootstrap.lock().unwrap() = (|| {
                 let data=data.as_ref().map_err(Clone::clone)?;

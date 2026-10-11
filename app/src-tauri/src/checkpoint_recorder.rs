@@ -36,7 +36,7 @@ use std::path::Path;
 
 /// The App's exact-byte content method (RS §6.2a, CC-CONTENT-RX).
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
-const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). Acts on host content and A12 control relations are not observed by this App. A capture is a readable claim; its native origin is not verified.";
+const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). A capture counts only when its seal verifies under a key this App installation holds (AAC §6.3 SEAL-C); an unsealed capture, or one sealed by another installation, is not verified here and not counted. A seal shows a holder of this installation's key wrote the capture, not that a person acted or who: any process that can read the key, a same-user process or an agent whose sandbox can read the App data folder included, could seal. Acts on host content and A12 control relations are not observed by this App.";
 const MESSAGE_ACT_LIMIT: &str = "No App act control binds an act to an agent message (CAP-1 binds App files by content identity), so no act can be counted for this arrival.";
 const MESSAGE_LIMIT: &str = "The designating line marks where the agent put the output; it does not show that the content is what the declaration describes (AW-6).";
 const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path after removing the project root from an absolute path and normalizing `.` segments and repeated separators on both sides; a path with `..` never matches; how Codex reports file paths is not observed (O-8, U-E26).";
@@ -812,7 +812,8 @@ pub(crate) fn waiting_arrivals(entries: &[Value]) -> Vec<Value> {
 /// against the one capture object it cites, as `file_act_view` reads them:
 /// the record set read once with its correction relations (RS W-3, R-6), a
 /// corrected record skipped, the recorder the App's capturing surface (PH-4),
-/// the capture resolved from the capture store, schema-checked and
+/// the capture resolved from the capture store, schema-checked, sealed
+/// under a key this installation holds (AAC §6.3 SEAL-C) and
 /// corresponding in kind, choice, actor, subject, content, scope, purpose and
 /// time, and one record per capture (RS R-8). An incomplete record set is not
 /// read: nothing is counted from part of it.

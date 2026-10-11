@@ -9099,11 +9099,12 @@ for line in sys.stdin:
     /// capture store and its record, written by the capturing surface (RS §6).
     fn record_file_act(peer:&Peer,rel:&str,kind:&str,content:&[u8],time:&str)->String{
         let root=&peer.fixture.root;let path=std::fs::canonicalize(root.join(rel)).unwrap();let id=crate::util::opaque_id("cap:").unwrap();
-        let capture=json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
+        let mut capture=json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
             "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)},"choice":"act","actKind":kind,"actor":{"osAccount":"fixture","identityVerified":false},
             "boundSubject":[path.to_str().unwrap()],"boundContent":[{"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(content)}],
             "scope":"The summary file.","purpose":"You decide to rely on the summary.","capturedAt":time,"surface":"App interface","inputSource":"host-native-confirmation",
             "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
+        crate::capture_seal::seal(root,&mut capture).unwrap(); // sealed as the act control seals it (AAC §6.3 SEAL-C)
         crate::schema_validation::validate_capture(&capture).unwrap();
         let store=crate::storage::capture_path(root,&id);std::fs::create_dir_all(store.parent().unwrap()).unwrap();std::fs::write(store,serde_json::to_vec(&capture).unwrap()).unwrap();
         crate::records::append(&root.join(crate::recorder::LOG),"human_act",&crate::records::APP_INTERFACE,crate::act_control::act_body(&capture)).unwrap()["recordId"].as_str().unwrap().to_owned()

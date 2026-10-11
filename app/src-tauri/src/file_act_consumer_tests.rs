@@ -94,6 +94,9 @@ fn connected_file_act_all_kinds_and_declines_read_original_capture_without_write
             let row = &rows[0];
             assert_eq!(row["kind"], kind.code());
             assert_eq!(row["captureCorrespondence"], true);
+            // AAC §6.3 SEAL-C: the act control sealed its capture before publication.
+            let stored: Value = serde_json::from_slice(&std::fs::read(storage::capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap())).unwrap()).unwrap();
+            assert_eq!(stored["seal"]["method"], capture_seal::SEAL_METHOD);
             assert_eq!(row["actor"]["identityVerified"], false);
             assert_eq!(
                 row["recordedBy"]["identity"],
@@ -232,4 +235,24 @@ fn connected_file_act_reader_does_not_upgrade_missing_or_mismatched_capture() {
         true
     );
     std::fs::remove_dir_all(root).unwrap();
+}
+
+/// CI-20 (h): when this installation's seal keys are unavailable the person's
+/// act is still captured and recorded, saying it is not sealed, and it is never
+/// counted as an evidenced act.
+#[test]
+fn connected_file_act_without_seal_keys_is_recorded_unsealed_and_not_counted() {
+    let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
+    let reference = selected(&state, &home, &root, act_control::FileActKind::Rely);
+    capture_seal::set_folder_for_test(Some(None));
+    let result = synthetic(&state, &reference, "act", || {});
+    assert_eq!(result["state"], "AC-7 recorded");
+    let view = file_act_view::read(&root);
+    capture_seal::set_folder_for_test(None);
+    let row = &view["rows"][0];
+    let stored: Value = serde_json::from_slice(&std::fs::read(storage::capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap())).unwrap()).unwrap();
+    assert!(stored.get("seal").is_none());
+    assert!(stored["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().starts_with("capture not sealed (")), "{stored:#}");
+    assert_eq!(row["captureCorrespondence"], false);
+    assert!(row["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("capture has no App seal")), "{row:#}");
 }

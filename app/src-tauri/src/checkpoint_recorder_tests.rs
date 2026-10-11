@@ -240,7 +240,14 @@ fn capture_of(choice: &str, kind: &str, file: &std::path::Path, content: &Value,
     crate::schema_validation::validate_capture(&capture).unwrap();
     capture
 }
+/// Store a capture as the App act control does: sealed under this installation's key.
 fn store(root: &std::path::Path, capture: &Value) {
+    let mut sealed = capture.clone();
+    crate::capture_seal::seal(root, &mut sealed).unwrap();
+    store_as_is(root, &sealed);
+}
+/// Store a capture's bytes exactly as given (legacy or another writer's capture).
+fn store_as_is(root: &std::path::Path, capture: &Value) {
     let path = crate::storage::capture_path(root, capture["captureId"].as_str().unwrap());
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, serde_json::to_vec(capture).unwrap()).unwrap();
@@ -316,7 +323,7 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_not_counted", "disposition_change", "act_not_counted", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
     assert_eq!(outputs[0].1["referents"][0], json!({"subject":RELY,"content":{"method":EXACT_BYTES,"value":crate::util::sha256_hex(b"v1"),"scope":"the file's bytes as the App read them after observing the completed change"}}));
     assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l == FILE_READ_LIMIT));
-    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A capture is a readable claim; its native origin is not verified.")), "the run record says native origin is unverified");
+    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A seal shows a holder of this installation's key wrote the capture, not that a person acted or who")), "the run record states the seal's limit");
     let arrival = json!({"checkpoint":"CP-rely","arrivalOrdinal":1});
     assert_eq!(outputs[2].1, json!({"arrival":arrival,"act":{"recordId":a4,"actKind":"A4","capturedAt":AFTER,"capturingSurface":"app_act_control"},"reason":"another act kind","capturedBeforeArrival":false}));
     assert_eq!(outputs[3].1["disposition"], "waiting");
@@ -441,6 +448,79 @@ fn records_not_verified_against_their_capture_count_nothing() {
     assert_eq!(waiting_arrivals(&all), vec![json!({"checkpoint":"CP-rely","arrivalOrdinal":1})]);
     assert!(count_acts(&all, &read, &root).is_empty(), "each limit is written once");
     std::fs::remove_dir_all(root).unwrap();
+}
+
+// CI-20 (h) R-1 (AAC §6.3 SEAL-C): a record and a capture written by anything but the
+// App act control count nothing in checkpoint counting or the file-act view, each refused
+// with its stated limit: a forged record with a valid-looking capture carrying a seal that
+// does not verify, a legacy capture without a seal, and a capture sealed by another
+// installation (a moved project), which reads "not verified here", never forged.
+#[test]
+fn forged_legacy_and_foreign_captures_count_nothing() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let keys = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("seal-installations-").unwrap());
+    let (here, elsewhere) = (keys.join("here"), keys.join("elsewhere"));
+    crate::capture_seal::set_folder_for_test(Some(Some(here.clone())));
+    // Forged: every fact corresponds and the seal names this installation's key,
+    // but its value was not made with it.
+    let genuine = capture_of("act", "A7", &file, &digest("v0"), AFTER);
+    store(&root, &genuine); // makes this installation's key; this act is on other content
+    let genuine_id = record_for(&root, &genuine, &crate::records::APP_INTERFACE);
+    let mut forged = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    let key_id = {
+        let mut probe = forged.clone();
+        crate::capture_seal::seal(&root, &mut probe).unwrap();
+        probe["seal"]["value"].as_str().unwrap().split(':').next().unwrap().to_owned()
+    };
+    forged["seal"] = json!({"method":crate::capture_seal::SEAL_METHOD,"value":format!("{key_id}:{}","ab".repeat(32))});
+    store_as_is(&root, &forged);
+    let forged_id = record_for(&root, &forged, &crate::records::APP_INTERFACE);
+    // Legacy: a capture written before sealing, schema-valid and corresponding.
+    let legacy = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store_as_is(&root, &legacy);
+    let legacy_id = record_for(&root, &legacy, &crate::records::APP_INTERFACE);
+    // A second record citing a sealed capture whose backlink names another record.
+    let mut linked = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    crate::capture_seal::seal(&root, &mut linked).unwrap();
+    linked["recordId"] = json!("rec:app:the-original");
+    store_as_is(&root, &linked);
+    let relinked_id = record_for(&root, &linked, &crate::records::APP_INTERFACE);
+    // Moved here from another installation: sealed there under its own key.
+    crate::capture_seal::set_folder_for_test(Some(Some(elsewhere.clone())));
+    let foreign_id = act(&root, "A7", &file, "v1", LATER);
+    crate::capture_seal::set_folder_for_test(Some(Some(here.clone())));
+    let (all, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(read.acts.len(), 1, "only this installation's sealed capture is an act");
+    assert_eq!(read.acts[0]["record"]["recordId"], genuine_id.as_str());
+    let reason = |id: &str| read.unresolved.iter().find(|u| u["record"]["recordId"] == id).unwrap()["reason"].as_str().unwrap().to_owned();
+    assert!(reason(&forged_id).contains("capture seal does not verify under this installation's key"), "{}", reason(&forged_id));
+    assert!(reason(&legacy_id).contains("capture has no App seal"), "{}", reason(&legacy_id));
+    assert!(reason(&foreign_id).contains("which this App installation does not hold") && reason(&foreign_id).contains("not verified here"), "{}", reason(&foreign_id));
+    assert!(!reason(&foreign_id).contains("forg"), "a foreign seal is never called forged");
+    assert_eq!(reason(&relinked_id), "the record differs from the capture it cites");
+    let limited: BTreeSet<&str> = outputs.iter().filter(|(k, b)| *k == "evidence_limit" && b["label"] == "unresolvable reference").map(|(_, b)| b["subjectRef"].as_str().unwrap()).collect();
+    assert_eq!(limited, BTreeSet::from([forged_id.as_str(), legacy_id.as_str(), foreign_id.as_str(), relinked_id.as_str()]), "each refusal is a stated limit, not silently dropped");
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    // The file-act view applies the same rule.
+    let view = crate::file_act_view::read(&root);
+    for id in [&forged_id, &legacy_id, &foreign_id] {
+        let row = view["rows"].as_array().unwrap().iter().find(|r| r["recordId"] == id.as_str()).unwrap();
+        assert_eq!(row["captureCorrespondence"], false, "{row:#}");
+        assert!(row["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("not verified")), "{row:#}");
+    }
+    // Read back in the installation that sealed it, the moved act counts.
+    crate::capture_seal::set_folder_for_test(Some(Some(elsewhere.clone())));
+    let (_, outputs, read) = observe_with(&root);
+    assert!(read.acts.iter().any(|a| a["record"]["recordId"] == foreign_id.as_str()));
+    assert!(kinds(&outputs).contains(&"act_counted"), "{outputs:#?}");
+    let view = crate::file_act_view::read(&root);
+    assert!(view["rows"].as_array().unwrap().iter().any(|r| r["recordId"] == foreign_id.as_str() && r["captureCorrespondence"] == true));
+    crate::capture_seal::set_folder_for_test(None);
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(keys).unwrap();
 }
 
 // m-c 1: a record whose bound content differs from its capture's is not an act, even

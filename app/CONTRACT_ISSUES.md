@@ -26,7 +26,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-17 | CC-REC-ITEM-TURN-CUSTODY adopted (ledger schema 0.3, optional actual `turnId`) and implemented with cold-tuple tests; actual native quit/relaunch evidence and PI-6 mapping remain open. |
 | CI-18 | Corrected in code, no Design change: Root `prepare_run` refuses development selections under TT-1/TX-1. A development standing would need a named WR change; a registered-selection native witness is still needed. |
 | CI-19 | Open Design questions on EXEC report representation (unrecognized elements, revision method, App-only host facts, R14 without a report, strictness); the code refuses publication rather than inventing facts. |
-| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, residuals open. |
+| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, R-1 capture forgery fixed by AAC SEAL-C (host-held key), residuals open. |
 | CI-21 | App-kept draft bases implemented in the App data folder with exact ledger causes; (b) closed by CC-WR-RECONFIRM adoption. The base location and base freshness under RB-3 await WR owner confirmation. |
 | CI-22 | Bounded A15 statement, digest-named App display and the owner's three-button layout are implemented ahead of AAC adoption; the AAC adoption text is still needed. |
 | CI-23 | RS `if` stops the DEL-04-03 and WR prototypes under `minischema`; the App's `jsonschema` is unaffected. Open with DEL-04-03 (RS). |
@@ -569,14 +569,27 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   resolved from the capture store, schema-valid and corresponding in kind,
   choice, actor, subject, content, scope, purpose and time, and one record
   per capture. Any other record that names an arrival's file is an
-  "unresolvable reference" limit, never an act (RS §13.7). A capture file is
-  a readable claim; native origin is not verified (as `file_act_view`), and
-  each arrival's limits say so. Anyone who can write `.chirality/` could
-  forge a record together with its capture; the owner accepted this risk for
-  now (2026-10-11: "Merge, track the fix (Recommended)"), with the limit
-  written on every arrival. The fix is the next slice: keep captures and act
-  records out of reach of agents, or authenticate them with a key the host
-  holds.
+  "unresolvable reference" limit, never an act (RS §13.7). Review finding
+  R-1: anyone who can write `.chirality/` could forge a record together with
+  its capture. The owner chose "Merge, track the fix (Recommended)"
+  (2026-10-11): keep captures and act records out of reach of agents, or sign
+  them with a key the host holds. **Fixed 2026-10-11 by AAC §6.3 SEAL-C**
+  (`capture_seal.rs`): the act control seals each App-file act or decline
+  capture with HMAC-SHA-256 under a per-installation key in the App data
+  folder, and a capture counts here and in `file_act_view` only when its seal
+  verifies under a key this installation holds and its backlink, if any, names
+  the record. An unsealed capture (every capture written before the fix), one
+  sealed by another installation (a moved project: "not verified here", never
+  called forged) or one whose seal does not verify is an "unresolvable
+  reference" limit with that reason. Moving the files out of the project was
+  not chosen: it would change RS §13.7's owner-selected allocation and
+  DEL-04-03 REQ-001; the OS key store waits for the signed App (AAC §6.3).
+  Residual: anything that can read the key file can seal, including any
+  same-user process and a Codex agent whose sandbox can read the App data
+  folder (Codex's default read access can); the seal is not proof that a
+  person acted, nor native-origin proof for cold replay (CI-10); a writer of
+  the project's files can still make a genuine act uncounted, but not make a
+  new one count. Each arrival's limits say so.
   `run_ended` lists every recorded arrival whose latest disposition is
   *waiting* (CE-17), after counting the acts recorded since the last
   observation; after a relaunch (`end_recorded_run`) the acts are counted from

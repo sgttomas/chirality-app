@@ -543,6 +543,63 @@ SEAL-2 is about where a record came from, not who the person is: K1-4's
 governance-phase matter. The capture-evidence schema carries the optional
 *seal* element at 0.1; the prototype does not implement it.
 
+**SEAL-C (selected and implemented 2026-10-11 for App-file act and decline
+captures; CI-20 (h) review finding R-1).** The owner chose "Merge, track the
+fix (Recommended)", whose next slice was to "either keep captures and act
+records out of reach of agents, or sign them with a key the host holds". SEAL-C
+is SEAL-2's capture half, with the key in the App data folder:
+
+- *Seal.* The Rust act control seals each A4/A6/A7 act or decline capture before
+  its first publication: the capture schema's `seal` is
+  `{method: "chirality.app.capture-seal.hmac-sha256/v1", value: "<key id>:<hex>"}`,
+  HMAC-SHA-256 under this installation's key over a fixed domain string and the
+  capture without `seal` and `recordId` in §5.1's canonical form. The add-once
+  backlink (§5.2a) is outside the seal, so it needs no reseal and recovery's
+  comparisons are unchanged. A capture that cannot be sealed is still captured
+  and recorded, with the evidence limit "capture not sealed (‹reason›) …", and
+  is never counted.
+- *Read.* The checkpoint counter (EXEC §2.4) and the file-act view count a
+  capture only when its seal verifies under a key this installation holds, and
+  a record only when the capture's backlink, if present, names it. Otherwise
+  each states its limit, never a forgery claim: no seal (written before sealing,
+  or not by this act control); a method it does not verify; a key this
+  installation does not hold (another installation, or a key lost here: "not
+  verified here"); a seal that does not verify (the act facts changed after
+  sealing, or it was not sealed here); the keys unavailable.
+- *Key.* `<App data>/capture-seal/keys.json`, created at the first capture, an
+  owner-only file (0600) in an owner-only folder (0700); keys open to other
+  users, owned by another user, or inside (or containing) the project are not
+  used. The key identity is derived from the key. *Rotation* adds a current key
+  and keeps earlier keys, so earlier captures still verify; it is a host
+  function, not offered in the interface. *Loss* of the file means a new key at
+  the next capture; earlier captures read "not verified here".
+- *Moved project.* A project read by another installation reads its captures
+  as "not verified here" and counts none of them; read again by the sealing
+  installation, they count.
+- *Existing captures.* Captures written before SEAL-C have no seal. They stay
+  readable with their original limits and are not counted; nothing reseals
+  them, since sealing a cold file would promote unverified bytes (§5.2a,
+  RS §14.1a). The person can act again on current content.
+- *Why not SEAL-2's key store, or moving the files.* SEAL-2 names a key "available
+  only to the signed App"; the App is not yet signed (PKG I-4, U-PKG-8) and an
+  unsigned build's key-store access changes with every build, so the OS key store
+  is the follow-up at signing. Moving captures and act records out of the
+  project would change RS §13.7's owner-selected allocation and DEL-04-03's
+  "ordinary project files" (REQ-001), which are the owner's; SEAL-C changes
+  neither, adds no RS entry element and leaves format 0.1, R-7 and R11 as they
+  are (RS FR-08's entry seal stays conditional). It does not depend on the
+  person's sandbox or approval setting (D3).
+- *Limits.* Anything that can read the key file can seal: any process running
+  as the same OS user, and a Codex agent whose sandbox lets it read the App
+  data folder (Codex's default read access does). SEAL-C shows a capture was
+  sealed by a holder of this installation's key; it shows neither that a person
+  acted nor who (K1-4), and it is not native-origin proof for cold replay
+  (§5.2a; CI-10 stays open). The backlink is not sealed, so a writer of the
+  project's files can still make a genuine act uncounted (for example by
+  editing the backlink or adding a second record on its capture, R-8), but
+  cannot make a new one count. A15 and A16 captures are not sealed; neither is
+  counted through this rule.
+
 ### 6.4 Limits that no placement removes (stated, not hidden)
 
 - The person's tool-permission and sandbox settings are their own (D3). With
@@ -595,7 +652,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 | VC-AAC-15 WR → AAC → RS cross-check (R21-3) | WR-v0.2's own `a15_descriptor` and `a15_multi_descriptor` examples, valid against WR's schema, compose valid offers and captures and an RS entry valid against RS's schema, with wording, descriptor, purpose and reviewed content unchanged; RS's L-4 act-log example (record 4, capture `cap:reg-in-place-2`) has capture evidence in this format and the control writes the same relations from it | model | K-17, K-17b pass |
 | VC-AAC-12 All entries conform | Every RS entry the control wrote is valid | model | K-16 pass (11 entries at RV21; 9 at v0.2) |
 | VC-AAC-13 Native confirmation | A script in the webview cannot complete a capture; the native confirmation shows the offer's own text | candidate | Not run |
-| VC-AAC-14 Provenance | An entry written by another process without a valid seal is reported "capture not verifiable" | candidate; DEL-04-03 reader rule | Not run (SEAL-2 not implemented) |
+| VC-AAC-14 Provenance | An entry written by another process without a valid seal is reported "capture not verifiable" | candidate; DEL-04-03 reader rule | SEAL-C (§6.3): App-file act captures, model only (`checkpoint_recorder_tests` forged/legacy/foreign cases, `capture_seal` tests); RS entry seal not implemented |
 
 ## 9. UNRESOLVED
 
@@ -603,7 +660,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 |---|---|---|---|
 | U-AAC-1 P-2/Rust capture allocation | Owner selected for Group A, this run OWNER_DECISIONS (CC-P-A) | Product adoption after independent backcheck | §6.2 selected; native custody/durability witnesses still required; no global OI closure |
 | U-AAC-2 *Closed (DECISION-L L-5):* no per-act OS check now | — | — | P-3 not adopted |
-| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | PROPOSED; J-R4 |
+| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | SEAL-C selected for App-file act captures (§6.3, 2026-10-11); SEAL-2's OS key store and entry seal remain PROPOSED; J-R4 |
 | U-AAC-4 *Closed (R18-1 C-22):* record at capture, registration after, outcome beside the act, as WR | — | — | §4.2 |
 | U-AAC-5 Home of "the name set in the App" | Integrator | Node F | Assigned here |
 | U-AAC-6 Codex account of a signed-in home | DEL-01-05; observation only with a new owner answer (L-6) | Before act-control implementation | §7: O-6 filled in part |
