@@ -238,6 +238,37 @@ pub fn submission_context_plan(
     )
 }
 
+/// RECOVERY §4.1 `tags of`: one conversation's tags of one owner, in order
+/// (`seq`), from every REC `conversation_index` row of that (home, thread).
+/// Tags are stored and returned, never interpreted (R17-10); several per owner
+/// and conversation, so an earlier run's tag is never replaced (R19-2).
+pub fn tags_of(rows: &[Value], home: &str, thread: &str, owner: &str) -> Vec<Value> {
+    let mut tags: Vec<Value> = Vec::new();
+    for row in rows.iter().filter(|r| r["kind"] == "conversation_index" && r["home"] == home && r["threadId"] == thread) {
+        for tag in row["tags"].as_array().into_iter().flatten() {
+            if tag["owner"] == owner && !tags.contains(tag) {
+                tags.push(tag.clone());
+            }
+        }
+    }
+    tags.sort_by_key(|t| t["seq"].as_u64().unwrap_or(0));
+    tags
+}
+/// RECOVERY §4.1 `look up`: the conversations (home, thread) whose REC index
+/// carries this owner's tag value. Nothing is interpreted.
+pub fn look_up(rows: &[Value], owner: &str, value: &str) -> Vec<(String, String)> {
+    let mut found = Vec::new();
+    for row in rows.iter().filter(|r| r["kind"] == "conversation_index") {
+        let carries = row["tags"].as_array().into_iter().flatten().any(|t| t["owner"] == owner && t["value"] == value);
+        if let (true, Some(home), Some(thread)) = (carries, row["home"].as_str(), row["threadId"].as_str()) {
+            if !found.iter().any(|(h, t): &(String, String)| h == home && t == thread) {
+                found.push((home.to_owned(), thread.to_owned()));
+            }
+        }
+    }
+    found
+}
+
 pub struct RecoveryLedger {
     path: PathBuf,
     entries: Vec<Value>,

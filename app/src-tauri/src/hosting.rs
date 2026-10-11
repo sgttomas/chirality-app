@@ -944,6 +944,41 @@ impl Host {
         match appended{Ok(())=>{result["indexSnapshot"]=entry;result["persistence"]=json!("durable App metadata");result["durableBindingObserved"]=json!(true);},Err(error)=>{i.recovery_error=Some(error.clone());result["persistence"]=json!("memory-only");result["limit"]=json!(format!("context append unavailable: {error}; hot binding retained, cold lookup unavailable"));}}
         Ok(result)
     }
+    /// RECOVERY §4.1 `tag` for a receiver's opaque value (EXEC A-2, §2.7: DEL-02-03's
+    /// run starter tags the conversation with the run reference when `run_opened` is
+    /// recorded). Appends the conversation's latest REC index row with one more tag
+    /// `{owner, value, seq}`, exactly as the NIR submission-context tag is appended:
+    /// ordered, several per owner and conversation, an earlier tag never replaced.
+    /// Stored without interpretation (R17-10). Any failure (no index row for this
+    /// home class and thread, ledger unavailable or append refused) leaves the tag
+    /// in the caller's memory only (RECOVERY §4.1 failure column); it never blocks.
+    pub fn tag_conversation(&self,generation:&Value,thread:&str,home:Option<&str>,owner:&str,value:&str)->Value{
+        let memory=|limit:String|json!({"persistence":"memory-only","owner":owner,"value":value,"limit":limit,"standing":"the tag lives in memory only; after a relaunch `tags of` returns nothing for it and the receiver falls back (EXEC RE-4)"});
+        if owner.is_empty()||value.is_empty(){return memory("tag owner and value required".into());}
+        if let Err(e)={let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)}{return memory(format!("tag scope not current: {e}"));}
+        let _writer=self.recovery_writer.lock().unwrap();self.drain_recovery_owned();self.refresh_recovery_observation();
+        let(ledger,rows)={let i=self.inner.0.lock().unwrap();(i.recovery.clone(),Self::context_rows(i.recovery_snapshot.as_ref()))};
+        let Some(home)=home else{return memory("REC home class absent: no conversation index row".into());};
+        let Some(index)=rows.iter().rev().find(|e|e["home"]==home&&e["threadId"]==thread).cloned() else{return memory("no REC conversation index row for this home class and thread (no known App project when the conversation started)".into());};
+        if let Some(tag)=index["tags"].as_array().into_iter().flatten().find(|t|t["owner"]==owner&&t["value"]==value){return json!({"persistence":"durable App metadata","tag":tag,"idempotent":true});}
+        let Some(ledger)=ledger else{return memory("App ledger unavailable".into());};
+        let seq=match rows.iter().flat_map(|e|e["tags"].as_array().into_iter().flatten()).filter_map(|t|t["seq"].as_u64()).max().unwrap_or(0).checked_add(1){Some(seq)=>seq,None=>return memory("tag sequence exhausted".into())};
+        let tag=json!({"owner":owner,"value":value,"seq":seq});
+        let mut entry=index;entry["session"]=generation["appSession"].clone();entry["at"]=json!(now_rfc3339());
+        match entry["tags"].as_array_mut(){Some(tags)=>tags.push(tag.clone()),None=>return memory("REC index tags absent".into())}
+        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry);(appended,ledger.snapshot())};
+        let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);
+        match appended{Ok(())=>json!({"persistence":"durable App metadata","tag":tag,"idempotent":false}),Err(error)=>{i.recovery_error=Some(error.clone());drop(i);memory(format!("tag append unavailable: {error}"))}}
+    }
+    /// RECOVERY §4.1 `tags of` over this Host's current ledger observation.
+    pub fn tags_of(&self,home:&str,thread:&str,owner:&str)->Vec<Value>{
+        let rows=self.inner.0.lock().unwrap().recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array().cloned()).unwrap_or_default();
+        crate::recovery::tags_of(&rows,home,thread,owner)
+    }
+    /// The REC ledger entries this Host currently observes (read-only).
+    pub fn recovery_entries(&self)->Vec<Value>{
+        self.inner.0.lock().unwrap().recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array().cloned()).unwrap_or_default()
+    }
 
     /// The child's process id, which is also its process-group id (H11).
     pub fn child_pid(&self) -> Option<i32> {

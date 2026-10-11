@@ -940,7 +940,10 @@ fn publication_boundary() -> Result<(), String> {
     Ok(())
 }
 /// Typed owner callback remains required for end-notice preparation; cold evidence
-/// does not create a lifecycle event or a new sendable notice.
+/// does not create a lifecycle event or a new sendable notice. After a relaunch
+/// the person's own end in this process is the lifecycle event, and
+/// `after_relaunch` composes its notice from the run's recorded identity facts
+/// (CI-20 (c); WR TX-5).
 #[derive(Debug)]
 pub struct PreparedEndPublication {
     text: String,
@@ -1007,6 +1010,96 @@ impl PreparedEndPublication {
             notice,
             record,
         })
+    }
+    /// CI-20 (c) / WR TX-5: the end notice for a run the person ended in this
+    /// process after a relaunch (`end_recorded_run`). The end is the person's live
+    /// act here; the notice's identity facts (name, origin, revision, run) come
+    /// only from the run's own recorded run-start `run_text` in this project,
+    /// which must validate and match the run's recorded `run_opened` workflow.
+    /// Never from Codex history, never invented. Any doubt refuses, with the reason.
+    #[allow(clippy::too_many_arguments)]
+    pub fn after_relaunch(
+        project: &ProjectRecords,
+        run: &str,
+        conversation: &str,
+        opened_workflow: &Value,
+        reason: &super::RunEndReason,
+        writer: &str,
+        observed_at: &str,
+        current_generation: &Value,
+    ) -> Result<Self, String> {
+        let mut starts = Vec::new();
+        for reference in project.list_references()? {
+            match project.resolve(&reference) {
+                Ok(record)
+                    if record.body()["record_kind"] == "run_text"
+                        && record.body()["purpose"] == "run start"
+                        && record.body()["run"] == run =>
+                {
+                    starts.push(record)
+                }
+                Ok(_) => {}
+                Err(e) => return Err(format!("the project's records cannot all be read, so the run's recorded start text is not established ({reference}: {e:?})")),
+            }
+        }
+        if starts.len() != 1 {
+            return Err(if starts.is_empty() {
+                "no recorded run-start text for this run in the project".into()
+            } else {
+                "several recorded run-start texts name this run".into()
+            });
+        }
+        let original = starts.remove(0);
+        let body = original.body();
+        super::wr_validate("run_text", body)
+            .map_err(|e| format!("the recorded run-start text does not validate: {e}"))?;
+        if body["conversation"] != conversation {
+            return Err("the recorded run-start text names another conversation".into());
+        }
+        let workflow: super::WorkflowIdentity = serde_json::from_value(body["workflow"].clone())
+            .map_err(|e| format!("the recorded run-start text's workflow identity is unreadable: {e}"))?;
+        workflow.validate()?;
+        if opened_workflow["kind"] != workflow.kind.as_str()
+            || opened_workflow["origin"] != workflow.origin.as_str()
+            || opened_workflow["sourceRoot"] != workflow.source_root.as_str()
+            || opened_workflow["name"] != workflow.name.as_str()
+            || opened_workflow["revision"] != workflow.revision.as_str()
+        {
+            return Err("the recorded run-start text does not match the run's recorded run_opened workflow".into());
+        }
+        let home = current_generation["home"]
+            .as_str()
+            .filter(|h| !h.is_empty())
+            .ok_or("the current Codex generation of this home is not established")?;
+        let (text, record) = super::end_notice_parts(&workflow, run, conversation, reason)?;
+        let notice = PreparedRunText {
+            // The run started only from a registered revision (run_admission);
+            // nothing here admits, selects or sends a workflow.
+            admission: SelectionAdmission::RegisteredRevision,
+            scope: super::RunScope {
+                run: run.to_owned(),
+                conversation: conversation.to_owned(),
+                home: home.to_owned(),
+                generation: current_generation.clone(),
+                source_root: workflow.source_root.clone(),
+                holding_library: body["holding_library"].as_str().unwrap_or("").to_owned(),
+                selection_ref: body["selection"].as_str().unwrap_or("").to_owned(),
+                revision_store: PathBuf::new(),
+            },
+            workflow,
+            text: text.clone(),
+            record: record.clone(),
+            proposal: None,
+        };
+        let record = PendingRecord::new(
+            project,
+            record,
+            vec![original.reference().into()],
+            vec![],
+            writer,
+            observed_at,
+        )?;
+        Ok(Self { text, notice, record })
     }
     pub fn reference(&self) -> &str {
         self.record.reference()

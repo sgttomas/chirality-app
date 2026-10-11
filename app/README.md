@@ -306,6 +306,28 @@ writes records or operates the act control." `src-tauri/` holds that host;
     advisory compatibility (DEL-02-03 CK-1/CK-2) is shown readably; a role
     outside the written-for roles names both and points to Continue as
     (U-R10, chosen display).
+    **Across a relaunch (CI-20 (c), (d), (j)).** When a run opens, the host
+    tags its conversation in the App's recovery ledger with the run reference
+    (owner `DEL-02-03`). A tag that cannot be stored is kept in memory only and
+    shown on the run; the run goes on. At startup the host writes one "App-restart
+    interruption" limit for each recovery restart fact. The limit goes on the run
+    opened last in that conversation with no `run_ended`, found by the tag, or by
+    `run_opened.conversationRef` when no tag is stored (the limit says which). It
+    is written once per run and fact, and earlier ended runs are untouched.
+    **Reopen** shows what the startup writer did. Nothing ends a run
+    automatically: there is no "interruption not recovered" end. When the person
+    ends an interrupted run from the record, that end gets its end notice. The
+    notice is composed from the run's recorded run-start text, checked against
+    its `run_opened`, and the next message in that conversation carries it
+    once. Until then a new run cannot start there. If the record is missing or
+    does not match, no notice is sent and the reason is shown. The pending
+    notice is held in this process only. Reopen lists it, with "Retry the
+    end-notice record" and "Send without the end notice" when its record cannot
+    be written. A record the writer refuses permanently is not held: it is
+    nonconformant, or its reserved identity is held by a different entry. A
+    "record write failed" limit names it as never written, and later records,
+    including the person's `run_ended`, are written in order. I/O failures still
+    hold strict order.
 24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
     start display lists the role set readably, with the `default_for_new_chat`
     role labelled as a preselection (the bundled set marks none today, U-R11),

@@ -34,6 +34,12 @@ impl PendingSuppliedGuidance {
     pub fn failure(&self) -> Option<&str> {
         self.failure.as_deref()
     }
+    pub fn run(&self) -> &str {
+        &self.run
+    }
+    pub fn observed_at(&self) -> &str {
+        &self.observed_at
+    }
     /// V10 G-4 (W-2): held behind an earlier unwritten record of the run, so it
     /// is written late and its "record write failed" limit follows it.
     pub fn hold(&mut self, reason: &str) {
@@ -142,6 +148,10 @@ pub struct PendingRunEntry {
     pub observed_at: String,
     pub failure: Option<String>,
     pub written: Option<Value>,
+    /// CI-20 (j), RS W-2: the writer refuses this entry permanently (every retry
+    /// would be refused the same way); it is never written, and a "record write
+    /// failed" limit names it so later entries proceed.
+    pub refused: Option<String>,
 }
 impl PendingRunEntry {
     pub fn new(kind: &'static str, body: Value, observed_at: String) -> Result<Self, String> {
@@ -152,8 +162,50 @@ impl PendingRunEntry {
             observed_at,
             failure: None,
             written: None,
+            refused: None,
         })
     }
+    /// Neither written nor permanently refused: still owed to the log (W-2).
+    pub fn pending(&self) -> bool {
+        self.written.is_none() && self.refused.is_none()
+    }
+}
+/// CI-20 (j), RS W-1/W-2: whether a write refusal of a reserved entry is one that
+/// every retry would repeat. Conservative: only definite, deterministic refusals
+/// count — the entry is nonconformant (W-1 (a)), or its reserved identity is held
+/// by a different entry in a complete record set. Anything else (I/O, an
+/// incomplete or unreadable record set, validation unavailable) is not permanent
+/// and stays held in order.
+pub(crate) fn permanent_refusal(
+    root: &std::path::Path,
+    run: &str,
+    kind: &str,
+    record_id: &str,
+    body: &Value,
+    observed_at: &str,
+) -> Option<String> {
+    if let Some(reason) = crate::records::nonconformance(kind, body, record_id, run, observed_at) {
+        return Some(format!("it is nonconformant (RS W-1 (a)): {reason}"));
+    }
+    let (entries, limits) = crate::storage::read_all(root);
+    if !limits.is_empty() {
+        return None;
+    }
+    entries
+        .iter()
+        .find(|e| e["recordId"].as_str() == Some(record_id))
+        .filter(|e| !(e["kind"] == kind && e["body"] == *body && e["runId"] == run && e["observedAt"] == observed_at))
+        .map(|e| format!("its reserved record identity {record_id} is already held by a different entry ({} in run {})", e["kind"], e["runId"]))
+}
+/// The "record write failed" limit for an entry the writer refuses permanently:
+/// it names the entry's reserved identity and says it can never be written, why,
+/// and that it is not in the record.
+pub(crate) fn never_written_limit(kind: &str, record_id: &str, reason: &str) -> Result<PendingRunEntry, String> {
+    PendingRunEntry::new(
+        "evidence_limit",
+        json!({"label":"record write failed","subjectRef":record_id,"detail":format!("{kind} {record_id} can never be written: {reason}. It is not in the record; later entries of this run were written after it (RS W-2, CI-20 (j))")}),
+        crate::util::now_rfc3339(),
+    )
 }
 /// W-1/W-2 for one lifecycle entry in the run's log: idempotent for an uncertain
 /// earlier write (same identity and content), late writes followed by "record

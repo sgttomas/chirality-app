@@ -1524,20 +1524,7 @@ impl PreparedRunText {
         {
             return Err("end event does not identify this run".into());
         }
-        let reason = end.reason.text()?;
-        if matches!(&end.reason, RunEndReason::ToStart(_)) {
-            return Err("successor start uses chain line, not end notice".into());
-        }
-        let text = format!(
-            "[Chirality] Workflow run ended: {} revision {} (run {}, {}). No workflow is in force.",
-            self.workflow.name,
-            &self.workflow.revision[..self.workflow.revision.len().min(12)],
-            self.scope.run,
-            reason
-        );
-        let record = serde_json::json!({"record_kind":"run_text","purpose":"run end notice","framing":"WR-FRAME-1","run":self.scope.run,"conversation":self.scope.conversation,"lines":{"end_line":text},"text_identity":exact_text_identity(&text),"text_bytes":text.len()});
-        wr_validate("run_text", &record)?;
-        Ok((text, record))
+        end_notice_parts(&self.workflow, &self.scope.run, &self.scope.conversation, &end.reason)
     }
     /// TX3 locates this selected tuple's exact marker lines, not an arbitrary
     /// workflow-shaped pair from observed text. No source-byte normalization.
@@ -1605,6 +1592,30 @@ impl PreparedRunText {
             evidence_limits: limits,
         })
     }
+}
+/// TX-5's end-notice line and its `run_text` record (purpose *run end notice*)
+/// for one run: the live end's notice and, after a relaunch, the notice
+/// composed from the run's recorded identity facts (CI-20 (c)) use this one form.
+fn end_notice_parts(
+    workflow: &WorkflowIdentity,
+    run: &str,
+    conversation: &str,
+    reason: &RunEndReason,
+) -> Result<(String, serde_json::Value), String> {
+    let why = reason.text()?;
+    if matches!(reason, RunEndReason::ToStart(_)) {
+        return Err("successor start uses chain line, not end notice".into());
+    }
+    let text = format!(
+        "[Chirality] Workflow run ended: {} revision {} (run {}, {}). No workflow is in force.",
+        workflow.name,
+        &workflow.revision[..workflow.revision.len().min(12)],
+        run,
+        why
+    );
+    let record = serde_json::json!({"record_kind":"run_text","purpose":"run end notice","framing":"WR-FRAME-1","run":run,"conversation":conversation,"lines":{"end_line":text},"text_identity":exact_text_identity(&text),"text_bytes":text.len()});
+    wr_validate("run_text", &record)?;
+    Ok((text, record))
 }
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct TextComparison {

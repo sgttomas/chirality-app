@@ -335,6 +335,36 @@ pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), S
     Ok(())
 }
 
+/// The RS entry `append_reserved` writes, with its writer sequence.
+fn envelope(kind: &str, recorder: &Recorder, body: Value, id: String, seq: u64, run: Option<&str>, observed_at: Option<&str>) -> Value {
+    let mut entry = json!({
+        "format": "chirality.rs.record",
+        "formatVersion": "0.1",
+        "recordId": id,
+        "kind": kind,
+        "recorder": {"role": recorder.role, "identity": recorder.identity},
+        "context": {"surface": "App"},
+        "seq": seq,
+        "writtenAt": now_rfc3339(),
+        "body": body,
+    });
+    if let Some(run) = run {
+        entry["runId"] = json!(run);
+    }
+    if let Some(observed) = observed_at {
+        entry["observedAt"] = json!(observed);
+    }
+    entry
+}
+/// CI-20 (j), RS W-1 (a): why the App writer's entry for this reserved
+/// observation would be refused as nonconformant on every write. None when it
+/// conforms, or when validation itself is unavailable (not a definite refusal).
+pub(crate) fn nonconformance(kind: &str, body: &Value, id: &str, run: &str, observed_at: &str) -> Option<String> {
+    if kind.is_empty() { return None; }
+    let validator = crate::schema_validation::bundled().ok()?;
+    let entry = envelope(kind, &APP_WRITER, body.clone(), id.to_owned(), 1, Some(run), Some(observed_at));
+    validator.validate(&entry).err()
+}
 fn append_reserved(
     log: &Path,
     kind: &str,
@@ -394,23 +424,7 @@ fn append_reserved(
         .unwrap_or(0)
         .checked_add(1)
         .ok_or("writer sequence exhausted; nothing written")?;
-    let mut entry = json!({
-        "format": "chirality.rs.record",
-        "formatVersion": "0.1",
-        "recordId": id,
-        "kind": kind,
-        "recorder": {"role": recorder.role, "identity": recorder.identity},
-        "context": {"surface": "App"},
-        "seq": seq,
-        "writtenAt": now_rfc3339(),
-        "body": body,
-    });
-    if let Some(run) = run {
-        entry["runId"] = json!(run);
-    }
-    if let Some(observed) = observed_at {
-        entry["observedAt"] = json!(observed);
-    }
+    let entry = envelope(kind, recorder, body, id, seq, run, observed_at);
     validator.validate(&entry)?;
     let mut line = serde_json::to_string(&entry).map_err(|e| e.to_string())?;
     line.push('\n');

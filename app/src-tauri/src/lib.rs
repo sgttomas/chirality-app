@@ -50,6 +50,7 @@ pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
 pub(crate) mod run_offers;
+pub(crate) mod run_restart;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
@@ -1332,7 +1333,9 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
-    let events=restart_events(&recovery);
+    let mut events=restart_events(&recovery);
+    // The REC custody projection is where the Host derives app_restart_interruption.
+    for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     state.workflows.lock().unwrap().reopen(root,&events)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
@@ -1340,8 +1343,28 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
 fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option<String>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing recorded and no fallback")?;
     let thread=thread_id.ok_or("The record names no conversation for this run; it cannot be ended from here")?;
+    let home=conversation_home(&state,&thread);
     // V10 G-7: a reopened run is ended only as the person's plain end (no completed).
-    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false)
+    // CI-20 (c): its end notice is composed from the run's recorded identity facts.
+    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,Some(home))
+}
+/// CI-20 (c): the Codex home of a conversation named by the record: the home a
+/// REC restart fact names for it, otherwise the active home.
+fn conversation_home(state:&State<'_,AppState>,thread:&str)->Arc<runtime_session::HomeSession>{
+    let homes=state.homes.lock().unwrap();
+    for home in homes.entries(){
+        let named=restart_events(&home.host.recovery_custody().snapshot()).iter().any(|e|e["threadId"]==thread);
+        if named{return home;}
+    }
+    homes.active()
+}
+/// CI-20 (c): "Retry the end-notice record" or "Send without the end notice" for a
+/// run the person ended after a relaunch (`action`: "retry" or "skip").
+#[tauri::command]
+fn workflow_reopened_notice(state:State<'_,AppState>,run_id:String,action:String)->Result<Value,String>{
+    let end=state.workflows.lock().unwrap().reopened_end(&run_id).ok_or("No end made after the relaunch is held for this run in this process")?;
+    let mut end=end.try_lock().map_err(|_|"That run's end-notice operation is pending")?;
+    match action.as_str(){"retry"=>end.retry_notice_record(),"skip"=>end.skip_end_notice(),_=>Err("unknown end-notice action".into())}
 }
 /// REC `app_restart_interruption` facts, wherever the recovery projection carries them.
 fn restart_events(value:&Value)->Vec<Value>{
@@ -1676,6 +1699,18 @@ pub fn run() {
                     }
                 }).map_err(|e| format!("waiting indicator thread not started: {e}"))?;
             }
+            // CI-20 (d), OI-008: the host writes RS "App-restart interruption" limits
+            // from this session's REC restart facts, at startup, never on a web-view
+            // request. Its outcome is shown by workflow_reopen.
+            {
+                let handle = app.handle().clone();
+                std::thread::Builder::new().name("chirality-restart-limits".into()).spawn(move || {
+                    let state = handle.state::<AppState>();
+                    let homes = state.homes.lock().unwrap().entries();
+                    let outcome = run_restart::startup(&homes, state.workspace.as_deref());
+                    state.workflows.lock().unwrap().set_restart_limits(outcome);
+                }).map_err(|e| format!("restart-limit thread not started: {e}"))?;
+            }
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
             if let Ok(cfg) = host_config {
                 let h = Arc::clone(&host);
@@ -1729,7 +1764,7 @@ pub fn run() {
             continue_as_dismiss,
             conversation_fork,
             set_person_name,
-            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

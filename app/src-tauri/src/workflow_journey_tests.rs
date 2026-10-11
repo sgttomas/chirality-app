@@ -852,7 +852,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert!(root.lock().unwrap().runs.is_empty());
     assert_eq!((disk.frames("turn/start").len(), disk.wr_files().len()), (turns, wr), "nothing prepared, recorded or sent");
     // workflow_end_recorded: the person's plain end of the interrupted run.
-    let ended = root.lock().unwrap().end_recorded_run(&project, &b, THREAD, false).unwrap();
+    let ended = root.lock().unwrap().end_recorded_run(&project, &b, THREAD, false, None).unwrap();
     assert_eq!(ended["cause"], "ended by the person");
     let b_log = disk.rs_for(&b);
     assert_eq!(kinds(&b_log), ["run_opened", "run_ended"]);

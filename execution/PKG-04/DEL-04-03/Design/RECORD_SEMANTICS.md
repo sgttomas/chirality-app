@@ -1455,7 +1455,7 @@ approval before acquiring a missing dependency.
 | Each operation request, read, examination or loop-side refusal | `operation_entry`; `examination_findings` | DEL-03-01, DEL-03-02, DEL-03-03, DEL-05-01 |
 | Tool-permission settlement (App runs) | `tool_permission_settlement` | DEL-01-01 observed facts; DEL-01-02 custody facts for *ended unanswered (process exit)* (RECOVERY-v0.2 §8.2; v0.9) |
 | Role guidance supplied at conversation start or a fork; a workflow supplied in the run-start turn; the run-end line on the next turn (R20-3); a stated role limit observed not kept (v0.9) | `supplied_guidance`; `role_limit_observation` | DEL-02-04 (ROLE-v0.2 §6); DEL-02-02 (WR-v0.2; R19-7) |
-| Relaunch with a run interrupted (v0.9) | `evidence_limit` "App-restart interruption" on the run current in the conversation at the interruption | DEL-01-02 (`app_restart_interruption`) |
+| Relaunch with a run interrupted (v0.9) | `evidence_limit` "App-restart interruption" on the run current in the conversation at the interruption. In the App the host writes it at startup, once per run and restart fact, with `subjectRef` set to the fact's eventId (CI-20 (d)) | DEL-01-02 (`app_restart_interruption`) |
 | Checkpoint listed; declaration finding (run start) | `checkpoint_listed`; `declaration_finding` | DEL-02-03 (App); DEL-05-01 (host) |
 | Checkpoint reached | `checkpoint_arrival` (request observation as then known) | DEL-02-03 (App); DEL-05-01 (host) |
 | An act counted or not counted at an arrival; a per-item decision; an act-declined event, a control relation or an act after run end at an arrival; an arrival replaced | `act_counted`; `act_not_counted`; `item_decision`; `arrival_declined`; `control_relation`; `act_after_run_end`; `arrival_replaced` | DEL-02-03 (App; on X from ADAPTER's observations); DEL-05-01 (host) |
@@ -1473,9 +1473,20 @@ approval before acquiring a missing dependency.
 | Step | What happens | What can fail | Who reports it | Record left | What happens next |
 |---|---|---|---|---|---|
 | **W-0 Open** | Opens the log for (run, writer); takes the next `seq` after the last entry; if the last line is unterminated, terminates it (never truncates or edits) and appends "partial entry not recovered" | The log cannot be read or written | The writer, to its caller (the App or host run recording) | Nothing new | Entries are held as *pending write* (W-2); the display compares *missing in record* (§8) |
-| **W-1 Append** | Completes the header, validates the entry against the schema, then writes one line in one write and syncs it; `seq` advances only on success | (a) The entry is nonconformant. (b) The write fails | (a) and (b): the writer, to its caller, naming the entry | (a) Nothing: a nonconformant entry is never written as a best effort. (b) Nothing yet | (a) The caller corrects its input or records the limit it can. (b) W-2 |
+| **W-1 Append** | Completes the header, validates the entry against the schema, then writes one line in one write and syncs it; `seq` advances only on success | (a) The entry is nonconformant. (b) The write fails | (a) and (b): the writer, to its caller, naming the entry | (a) Nothing: a nonconformant entry is never written as a best effort. (b) Nothing yet | (a) The caller corrects its input or records the limit it can; a refused pending observation is not held (W-2, permanent refusals). (b) W-2 |
 | **W-2 Late write** | At the next append or retry, writes the pending entries in their order, then an `evidence_limit` "record write failed" naming them; each keeps its `observedAt` | The writer stops before the pending entries are written | The caller already holds the failure report | The entries are not in the record | The display shows *missing in record*; a later run cannot back-fill them |
 | **W-3 Correct** | Appends a new entry of the same kind naming the corrected one in `corrects`, with a reason | A correction of another kind, or without a reason | Schema (reason) and reader (kind), §13.5 | The correction is nonconformant and changes nothing | The corrected entry stays readable, marked "corrected by ⟨entry⟩" |
+
+**Permanent refusals (W-1, W-2; CI-20 (j)).** W-2 keeps strict order for
+failures that may succeed later, such as I/O. Some pending entries would be
+refused on every retry: a nonconformant entry (W-1 (a)), or one whose
+reserved identity is held by a different entry. The writer does not hold
+such an entry as pending. It records an `evidence_limit` "record write
+failed" whose `subjectRef` is that entry's reserved identity. The detail says
+the entry can never be written, why, and that it is not in the record. Later
+pending entries, the person's `run_ended` included, then proceed in order.
+The writer classifies conservatively: only definite, deterministic refusals
+count, and anything else stays held. The format is unchanged.
 
 ### 14.1a Capture custody for retry and persistent replay (CC-CUST-R)
 
@@ -1584,7 +1595,7 @@ last-wins dictionary is not the source warrant for cross-log precedence.
 | FC-4 | An entry of an unknown version | Newer minor: read limited. Other major or format: refused | Unchanged | Ran |
 | FC-5 | A correction | Both readable; derived state uses the correction; kind cannot change | Both | Ran |
 | FC-6 | An entry is lost outside the writer | "entries missing (sequence gap)" | As found | Ran |
-| FC-7 | A nonconformant entry is offered, or found | The writer refuses to write it; the reader flags one it finds | Nothing written; or the entry flagged | Ran |
+| FC-7 | A nonconformant entry is offered, or found | The writer refuses to write it; the reader flags one it finds. A refused pending observation gets a "record write failed" limit naming it as never written, and later entries proceed (§14.1 permanent refusals) | Nothing written, or only that limit; or the entry flagged | Ran |
 | FC-8 | A referenced source becomes unresolvable after the write (e.g. SWBPIPE's receipts are session-only, SQ-09) | Resolution status at read "unresolvable"; what was recorded stays as recorded — a disposition already *performed* is not recomputed to *waiting* — and the record-out states the limit | Unchanged | Designed, not run |
 | FC-9 | The App restarts during a run with a submission in flight (ADAPTER PI-6), or the agent resubmits without first observing by identity (ADAPTER PI-2) | The in-flight submission stays *outcome unknown*, observer App (W-0 on relaunch opens the same run log; an interruption is not a run end, EXEC §4.12). Both conditions are R11 limits the writer records (R13-2): "resubmission without prior observation" on the resubmission's operation entry, "App-restart interruption" on relaunch; deriving them at read time is not adopted | The submission's entry, *outcome unknown*, observer App, and the limit entries | Designed, not run |
 
