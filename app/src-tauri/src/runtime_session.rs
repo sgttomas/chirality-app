@@ -4118,11 +4118,11 @@ struct WorkflowSelectionState {
 /// WR TT-1 (SETTLED) and TX-1: only registered (LS-1), bundled (LS-5), host-listed
 /// (LS-6) or shipped-held (LS-8) revisions are composed and run. The App holds no
 /// bundled/host/shipped capability yet, so only an actual hot registered revision
-/// runs here. Development evidence is never laundered into a selection (WP-6; CI-18).
+/// runs here. Development evidence is never laundered into a selection (WP-6; WR TT-1/TX-1).
 fn run_admission(selection: &crate::workflow_workspace::Selection) -> Result<(), String> {
     match selection.admission() {
         crate::workflow_workspace::SelectionAdmission::RegisteredRevision => Ok(()),
-        other => Err(format!("Selected workflow is not runnable ({}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (CONTRACT_ISSUES CI-18).", other.standing())),
+        other => Err(format!("Selected workflow is not runnable ({}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (WR TT-1/TX-1).", other.standing())),
     }
 }
 pub(crate) struct WorkflowRootSession {
@@ -4157,9 +4157,9 @@ pub(crate) struct WorkflowRootSession {
     /// WR §4.2 trial flows: pre-filled trials and bring-backs, sent trials'
     /// linking state (process memory; the records are `trials`).
     trial_desk: trial_flows::TrialDesk,
-    /// CI-20 (d): the startup writer's outcome for this session's REC restart facts.
+    /// EXEC §2.7 / RECOVERY §4.1: the startup writer's outcome for this session's REC restart facts.
     restart_limits: Value,
-    /// CI-20 (c): runs the person ended after a relaunch whose end notice waits,
+    /// WR TX-5 / SQ-END: runs the person ended after a relaunch whose end notice waits,
     /// in this process only, for the conversation's next ordinary turn (TX-5).
     reopened_ends: std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<ReopenedEnd>>>,
     /// (home, conversation) -> runs in `reopened_ends`, in order.
@@ -4617,7 +4617,7 @@ impl WorkflowRootSession {
             selection_ref: selected.reference.clone(),
             revision_store: selected.package.clone(),
         };
-        // WR §16.2 TX-7 (CI-32): the files line names the holding folder relative
+        // WR §16.2 TX-7 (WR §16.2 TX-7): the files line names the holding folder relative
         // to the project or the home folder, or a content-addressed supply copy
         // written into the project; the run does not start when that fails.
         let home_folder = std::env::var_os("HOME")
@@ -4780,7 +4780,7 @@ impl WorkflowRootSession {
                 return Ok(Some(PendingNotice::Run(self.conversation_run(reference)?)));
             }
         }
-        // CI-20 (c): an end the person made after a relaunch.
+        // WR TX-5 / SQ-END: an end the person made after a relaunch.
         for reference in self.reopened_conversations.get(&key).into_iter().flatten() {
             if pending(reference) {
                 let end = self.reopened_ends.get(reference).cloned().ok_or("reopened end index inconsistent")?;
@@ -4789,9 +4789,9 @@ impl WorkflowRootSession {
         }
         Ok(None)
     }
-    /// CI-20 (c): a pending end notice of a run ended after a relaunch holds back
+    /// WR TX-5 / SQ-END: a pending end notice of a run ended after a relaunch holds back
     /// a run start in its conversation. A later run cannot cite that run across
-    /// the relaunch (CI-20 (f)), so its chain line would not say it ended; the
+    /// the relaunch (EXEC CH-2 / RE-7), so its chain line would not say it ended; the
     /// notice goes first with an ordinary message.
     fn reopened_notice_blocks(&self, home: &str, thread: &str) -> Option<String> {
         self.reopened_conversations
@@ -4799,7 +4799,7 @@ impl WorkflowRootSession {
             .into_iter()
             .flatten()
             .find(|r| self.notice_flags.get(*r).is_some_and(|f| f.load(std::sync::atomic::Ordering::SeqCst)))
-            .map(|r| format!("Run {r}, ended after the relaunch, has its end notice pending in this conversation; a new run's chain line cannot say that run ended (CI-20 (f)), so send an ordinary message first: it carries the end notice (WR TX-5)"))
+            .map(|r| format!("Run {r}, ended after the relaunch, has its end notice pending in this conversation; a new run's chain line cannot say that run ended (EXEC CH-2 / RE-7), so send an ordinary message first: it carries the end notice (WR TX-5)"))
     }
     fn reopened_ends_view(&self) -> Value {
         json!(self.reopened_ends.values().map(|end| match end.try_lock() {
@@ -4807,7 +4807,7 @@ impl WorkflowRootSession {
             Err(_) => json!({"state":"operation pending"}),
         }).collect::<Vec<_>>())
     }
-    /// CI-20 (d): the startup writer's outcome (lib.rs setup; host-owned).
+    /// EXEC §2.7 / RECOVERY §4.1: the startup writer's outcome (lib.rs setup; host-owned).
     pub fn set_restart_limits(&mut self, outcome: Value) {
         self.restart_limits = outcome;
     }
@@ -4943,7 +4943,7 @@ impl WorkflowRootSession {
         }
     }
     /// After relaunch: the person's explicit end (DEF-4) of a run the project's
-    /// records show open and interrupted. Writes run_ended. CI-20 (c): the end is
+    /// records show open and interrupted. Writes run_ended. WR TX-5 / SQ-END: the end is
     /// the person's live act in this process, so its TX-5 end notice is composed
     /// from that end plus the run's own recorded identity facts (its recorded
     /// run-start run_text, checked against its run_opened) and is pending for the
@@ -5013,14 +5013,14 @@ impl WorkflowRootSession {
             None => json!({"state":"not composed: no Codex home for this conversation in this process; no end notice is sent for this end"}),
             Some(home) => match self.hold_reopened_notice(&records, run, thread, &opened_workflow, home) {
                 Ok(view) => view,
-                Err(e) => json!({"state":format!("not composed: {e}; no end notice is sent for this end (CI-20 (c))")}),
+                Err(e) => json!({"state":format!("not composed: {e}; no end notice is sent for this end (WR TX-5 / SQ-END)")}),
             },
         };
         let view = json!({"run":run,"state":"ended by the person","cause":cause,"endNotice":notice});
         self.reopen(project, &[]).ok();
         Ok(view)
     }
-    /// CI-20 (c): compose and hold the end notice of a run the person just ended
+    /// WR TX-5 / SQ-END: compose and hold the end notice of a run the person just ended
     /// after a relaunch.
     fn hold_reopened_notice(
         &mut self,
@@ -5314,7 +5314,7 @@ impl WorkflowRootSession {
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let mut view = crate::records::supply::read_project_runs(&records, restart_events).view();
-        // CI-20 (d): what the host's startup writer did with this session's restart facts.
+        // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
         self.reopened = Some(view.clone());
@@ -5578,8 +5578,8 @@ fn pending_notice_run(
     root.lock().unwrap().pending_notice_for(home, thread).transpose()
 }
 /// The owner of a pending end notice (TX-5): a run held by this process, or a
-/// run the person ended after a relaunch (CI-20 (c)). Both follow the same
-/// claim, carriage and settlement rules (TC-2, CI-20 (i)).
+/// run the person ended after a relaunch (WR TX-5 / SQ-END). Both follow the same
+/// claim, carriage and settlement rules (TC-2, WR TX-5 dispatch-once).
 #[derive(Clone)]
 pub(crate) enum PendingNotice {
     Run(std::sync::Arc<std::sync::Mutex<WorkflowRun>>),
@@ -5677,7 +5677,7 @@ fn settle_claimed_notice(
         }
     }
 }
-/// CI-20 (c), WR TX-5 / SQ-END: the person's end, made in this process after a
+/// WR TX-5 / SQ-END, WR TX-5 / SQ-END: the person's end, made in this process after a
 /// relaunch, of a run the record showed open and interrupted. The end is the
 /// person's live act here; the notice is composed from it plus the run's own
 /// recorded identity facts (its recorded run-start `run_text`, checked against
@@ -5990,7 +5990,7 @@ impl WorkflowCheckSlot {
     /// Never re-reads native history and never sends.
     /// `record_ready`: the lifecycle entry this R3 follows in the run log is
     /// written (run_opened for the start text, run_ended for the end notice).
-    /// CI-20 (j): returns the "record write failed" limit when the writer refuses
+    /// RS §14.1 Permanent refusals: returns the "record write failed" limit when the writer refuses
     /// this R3 permanently; the R3 is then settled as never written.
     fn advance(
         &mut self,
@@ -6028,7 +6028,7 @@ impl WorkflowCheckSlot {
                     let refusal = crate::records::supply::permanent_refusal_in(project.root(), pending.run(), "supplied_guidance", &id, &body, pending.observed_at(), set)
                         .and_then(|reason| crate::records::supply::never_written_limit("supplied_guidance", &id, &reason, pending.observed_at()).ok().map(|limit| (reason, limit)));
                     if let Some((reason, limit)) = refusal {
-                        self.r3 = WorkflowR3::Unavailable(format!("never written: {reason}; a \"record write failed\" limit names {id} (CI-20 (j))"));
+                        self.r3 = WorkflowR3::Unavailable(format!("never written: {reason}; a \"record write failed\" limit names {id} (RS §14.1 Permanent refusals)"));
                         return Some(limit);
                     }
                 }
@@ -6248,11 +6248,11 @@ impl WorkflowRun {
             .any(|e| e.kind == kind && e.written.is_some())
     }
     /// The lifecycle entry an R3 follows is settled: written, or permanently
-    /// refused with its "record write failed" limit (CI-20 (j)).
+    /// refused with its "record write failed" limit (RS §14.1 Permanent refusals).
     fn entry_settled(&self, kind: &str) -> bool {
         self.entries.iter().any(|e| e.kind == kind && !e.pending())
     }
-    /// CI-20 (j): the "record write failed" limit for a record the writer refuses
+    /// RS §14.1 Permanent refusals: the "record write failed" limit for a record the writer refuses
     /// permanently joins the ordered entries where the next pending entry stands.
     fn insert_never_written_limit(&mut self, limit: crate::records::supply::PendingRunEntry) {
         let at = self.entries.iter().position(|e| e.pending()).unwrap_or(self.entries.len());
@@ -6264,7 +6264,7 @@ impl WorkflowRun {
     /// it is marked held, so when it is written late its "record write failed"
     /// limit follows it. An R3 also waits for its lifecycle entry (run_opened for
     /// the start text, run_ended for the end notice).
-    /// CI-20 (j): strict order holds for failures that may succeed later. A record
+    /// RS §14.1 Permanent refusals: strict order holds for failures that may succeed later. A record
     /// the writer refuses permanently (nonconformant, or its reserved identity held
     /// by a different entry) is not held: a "record write failed" limit names it as
     /// never written, and later entries proceed in order.
@@ -6428,7 +6428,7 @@ impl WorkflowRun {
             view["occasionLabel"] = json!(slot.occasion);
             view["gate"] = json!("informs only; never gates a start (CC-3)");
             view["r14"] = json!(match &slot.result {
-                Ok(e) if e.published.is_ok() => "EXEC report published in memory only; the App has no allocated report store, so no R14 is written (CI-20)",
+                Ok(e) if e.published.is_ok() => "EXEC report published in memory only; the App has no allocated report store, so no R14 is written (EXEC §2.7 / WR §16.4 RN-4)",
                 _ => "no report published; no R14 written (run's R14 stays 'no report evaluated')",
             });
             view
@@ -6510,7 +6510,7 @@ impl WorkflowRun {
             Ok(source) => source,
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
-                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not recorded: no Host receipt of a turn/start refusal; outcome not established (CI-20)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not recorded: no Host receipt of a turn/start refusal; outcome not established (EXEC §2.7 / WR §16.4 RN-4)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err(error);
             }
         };
@@ -6530,7 +6530,7 @@ impl WorkflowRun {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
                 // V9 F-1: only Codex's definite refusal of this exact turn/start
                 // grounds a supply_check *not found* (WR §16.4, RN-4). An unknown
-                // outcome mints nothing that claims not found (CI-20).
+                // outcome mints nothing that claims not found (EXEC §2.7 / WR §16.4 RN-4).
                 let refusal = self.home.host.prepared_turn_refusal(&source);
                 let definite = refusal.is_some();
                 let check = match refusal {
@@ -6539,7 +6539,7 @@ impl WorkflowRun {
                 };
                 self.status = json!({"state":if definite {"native workflow-text turn/start refused by Codex; original source retained"} else {"native workflow-text send outcome unknown; original source retained"},
                     "records":records,"limit":error,"automaticRetry":false,"run":"not opened (EXEC A-3): start not confirmed",
-                    "supplyCheck":if definite {"not found (RN-4): turn/start refused by Codex"} else {"not recorded: turn/start outcome unknown (CI-20)"},
+                    "supplyCheck":if definite {"not found (RN-4): turn/start refused by Codex"} else {"not recorded: turn/start outcome unknown (EXEC §2.7 / WR §16.4 RN-4)"},
                     "check":check,"r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
             }
@@ -6617,7 +6617,7 @@ impl WorkflowRun {
         for (kind, body) in outputs {
             match crate::records::supply::PendingRunEntry::new(kind, body, observed_at.to_owned()) {
                 Ok(entry) => {
-                    // CC-R CI-3: a request whose requester identity is not observed
+                    // CC-R RS §13.6 requester identity: a request whose requester identity is not observed
                     // carries RS's separate limit, citing the request's record.
                     let limit = (kind == "act_request").then(|| json!({"label":"requester identity not established","subjectRef":entry.record_id,
                         "detail":"supplier request observed; the agent or MCP server that authored it is not identified"}));
@@ -7204,7 +7204,7 @@ mod workflow_root_tests {
     struct Peer { fixture:Fixture,home:Arc<HomeSession>,generation:Value }
     impl Peer {
         fn new()->Self{Self::build(false)}
-        /// CI-20 (d): with the App's REC ledger configured and the conversation indexed
+        /// EXEC §2.7 / RECOVERY §4.1: with the App's REC ledger configured and the conversation indexed
         /// for a known App project (H-acct), so the run tag can be stored.
         fn with_recovery()->Self{Self::build(true)}
         fn build(recovery:bool)->Self {
@@ -7364,7 +7364,7 @@ for line in sys.stdin:
     }
     impl Drop for Peer{fn drop(&mut self){let _=self.home.host.stop("owned fixture cleanup","test ended");}}
     #[test]
-    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
+    // WR TT-1/TX-1: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
@@ -7374,7 +7374,7 @@ for line in sys.stdin:
         peer.select_history();let supply=run.check_native_supply().unwrap();assert_eq!(supply["pageCount"],1);assert_eq!(supply["comparison"]["state"],"equal_claimed_text");assert_eq!(supply["adoption"],"unknown");assert_eq!(supply["sourceReceipts"].as_array().unwrap().len(),1);
     }
     #[test]
-    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
+    // WR TT-1/TX-1: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
         assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into(),peer.project()).is_err());
@@ -8527,14 +8527,14 @@ for line in sys.stdin:
         assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="supplied_guidance"));
     }
     // V9 F-1: a genuinely unknown outcome (transport loss before any response) mints nothing
-    // claiming *not found*; status stays "outcome unknown"; no resend (CI-20).
+    // claiming *not found*; status stays "outcome unknown"; no resend (EXEC §2.7 / WR §16.4 RN-4).
     #[test]
     fn workflow_root_unknown_send_outcome_mints_no_check_and_never_resends(){
         let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","exit");
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
-        assert_eq!(run.status["supplyCheck"],"not recorded: turn/start outcome unknown (CI-20)");
+        assert_eq!(run.status["supplyCheck"],"not recorded: turn/start outcome unknown (EXEC §2.7 / WR §16.4 RN-4)");
         assert_eq!(peer.fixture.wr_files().len(),2,"no supply_check claims not found for an unknown outcome");
         assert!(run.view(&reference)["checks"].as_array().unwrap().is_empty());
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
@@ -8597,7 +8597,7 @@ for line in sys.stdin:
         assert!(limit["seq"].as_u64()>r3[0]["seq"].as_u64()&&limit["seq"].as_u64()<r3[1]["seq"].as_u64(),"W-2: late entries, then the limit, then later entries");
     }
     // V9 F-2 (a later R3 held behind an earlier R3 that can never be written) was superseded
-    // by CI-20 (j): see ci20j_permanently_refused_r3_gets_its_limit_and_later_records_proceed.
+    // by RS §14.1 Permanent refusals: see permanently_refused_r3_gets_its_limit_and_later_records_proceed.
     // V9 F-3: the pages used to mint a check must be the Host's custody pages of the sealed
     // traversal, byte for byte; count alone is not a binding.
     #[test]
@@ -8931,7 +8931,7 @@ for line in sys.stdin:
             }
         }
     }
-    // CI-32 / WR TX-7 on the real run start: the shipped coordinated-knowledge-work has
+    // WR §16.2 TX-7 / WR TX-7 on the real run start: the shipped coordinated-knowledge-work has
     // REVIEW-NOTES.md, so the files line names a folder. Held inside the project, it is the
     // project-relative holding folder (never the old placeholder label). Held outside the run's
     // project, a content-addressed supply copy is written into the project and named; when that
@@ -9083,7 +9083,7 @@ for line in sys.stdin:
         assert_eq!(records[5]["body"]["checkpoint"],"CP-check");assert_eq!(records[5]["written"],true);
         run.lock().unwrap().end_run(None,None).unwrap();
         let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();
-        assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]),"CE-17 lists the arrival still waiting (CI-20 (h))");
+        assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]),"CE-17 lists the arrival still waiting (AAC §6.3 / EXEC §2.4–2.5)");
         // After the end nothing more is recorded for the run.
         let more=[items.to_vec(),vec![json!({"id":"m2","type":"agentMessage","text":"Spacing report"})]].concat();
         run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&more));
@@ -9135,7 +9135,7 @@ for line in sys.stdin:
     fn summary_items()->[Value;2]{
         [json!({"id":"m1","type":"agentMessage","text":"Spacing report"}),json!({"id":"f1","type":"fileChange","status":"completed","changes":[{"path":"out/summary.md","kind":{"type":"add"},"diff":""}]})]
     }
-    // CE-5 through the actual run and RS writer (CI-20 (h)): the person's act on the file
+    // CE-5 through the actual run and RS writer (AAC §6.3 / EXEC §2.4–2.5): the person's act on the file
     // output is counted, so run_ended lists only the arrival whose act was not recorded.
     #[test]
     fn end_counts_recorded_acts_so_waiting_arrivals_exclude_performed_ones(){
@@ -9296,7 +9296,7 @@ for line in sys.stdin:
         assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
     }
     // CE-4 through the actual run and RS writer: a person-input request while an arrival waits
-    // is written with RS's separate "requester identity not established" limit (CC-R CI-3).
+    // is written with RS's separate "requester identity not established" limit (CC-R RS §13.6 requester identity).
     #[test]
     fn a_request_while_an_arrival_waits_is_recorded_with_its_requester_limit(){
         let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
@@ -9967,7 +9967,7 @@ for line in sys.stdin:
         started_rx.recv_timeout(Duration::from_secs(2)).unwrap();let outcome=done_rx.recv_timeout(Duration::from_millis(200));let observer_root_available=root.try_lock().is_ok();drop(held);worker.join().unwrap();
         assert_eq!(outcome.ok(),Some(true),"busy original review must return pending, not block workflow root");assert!(observer_root_available);
     }
-    // CI-20 (c), (d), (j): restart residuals.
+    // WR TX-5 / SQ-END, (d), (j): restart residuals.
     include!("run_restart_tests.rs");
 }
 #[cfg(test)] #[path = "workflow_journey_tests.rs"] mod workflow_journey_tests;

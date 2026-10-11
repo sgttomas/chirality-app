@@ -584,7 +584,7 @@ fn role_set_metadata() -> Value {
     }
 }
 /// The App resources a non-dev build reads from `resource_dir()` in its
-/// default configuration (CI-31): `tauri.conf.json` `bundle.resources` maps
+/// default configuration (PKG §4.1 P-2/P-3): `tauri.conf.json` `bundle.resources` maps
 /// each from `resources/` (see `bundle_resources_tests`). Feature-gated
 /// readers (`distribution-successor`'s `codex/` and `distribution-reference/`,
 /// `synthetic-distribution-anchor`'s namespace) are supplied by their own
@@ -1359,13 +1359,13 @@ fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option
     let thread=thread_id.ok_or("The record names no conversation for this run; it cannot be ended from here")?;
     let home=conversation_home(&state,&thread,&run_id);
     // V10 G-7: a reopened run is ended only as the person's plain end (no completed).
-    // CI-20 (c): its end notice is composed from the run's recorded identity facts,
+    // WR TX-5 / SQ-END: its end notice is composed from the run's recorded identity facts,
     // keyed to the conversation's own home; with no established home, none is sent.
     let mut out=state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,home.as_ref().ok().cloned())?;
-    if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (CI-20 (c))")});}
+    if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (WR TX-5 / SQ-END)")});}
     Ok(out)
 }
-/// CI-20 (c): the Codex home of a conversation named by the record, from the
+/// WR TX-5 / SQ-END: the Codex home of a conversation named by the record, from the
 /// App's recovery ledger (`run_restart::conversation_home_class`); never a guess.
 fn conversation_home(state:&State<'_,AppState>,thread:&str,run:&str)->Result<Arc<runtime_session::HomeSession>,String>{
     let homes=state.homes.lock().unwrap().entries();
@@ -1375,7 +1375,7 @@ fn conversation_home(state:&State<'_,AppState>,thread:&str,run:&str)->Result<Arc
     homes.into_iter().find(|home|stop_records::home_class(home.class().as_str())==Some(class.as_str()))
         .ok_or_else(||format!("Codex home {class} of conversation {thread} is not available in this App process"))
 }
-/// CI-20 (c): "Retry the end-notice record" or "Send without the end notice" for a
+/// WR TX-5 / SQ-END: "Retry the end-notice record" or "Send without the end notice" for a
 /// run the person ended after a relaunch (`action`: "retry" or "skip").
 #[tauri::command]
 fn workflow_reopened_notice(state:State<'_,AppState>,run_id:String,action:String)->Result<Value,String>{
@@ -1719,7 +1719,7 @@ pub fn run() {
                     }
                 }).map_err(|e| format!("waiting indicator thread not started: {e}"))?;
             }
-            // CI-20 (d), OI-008: the host writes RS "App-restart interruption" limits
+            // EXEC §2.7 / RECOVERY §4.1, OI-008: the host writes RS "App-restart interruption" limits
             // from this session's REC restart facts, at startup, never on a web-view
             // request. Its outcome is shown by workflow_reopen.
             {
@@ -1881,7 +1881,7 @@ mod group_b_fixture_consumer;
 #[path = "p3_role_entry_tests.rs"]
 mod p3_role_entry_tests;
 
-// CI-31: a bundle built from the default configuration carries every resource
+// PKG §4.1 P-2/P-3: a bundle built from the default configuration carries every resource
 // the default host reads from `resource_dir()`, at the place it reads it.
 #[cfg(test)]
 mod bundle_resources_tests {

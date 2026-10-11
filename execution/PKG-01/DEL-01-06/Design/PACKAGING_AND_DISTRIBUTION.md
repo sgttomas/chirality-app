@@ -254,6 +254,13 @@ this deliverable; this is a proposal to it, not an edit of HOSTING.
 tree's relative layout, so the sibling resources stay where the binary
 expects them. Running from the bundle is observed at FP-2.
 
+**Open default-bundle native witness.** Default `bundle.resources` now maps
+instructions and workflows to P-3/P-2, guarded by
+`app/src-tauri/src/bundle_resources_tests.rs`. An offline default-configuration
+debug bundle carried byte-equal trees, but its native start has not been witnessed.
+The distribution-successor vendor/reference trees and synthetic-anchor namespace
+remain supplied by their own selected overlays.
+
 ### 4.2 Interfaces
 
 | Interface | Direction | Arc (DAG-004) | Contribution | If it fails |

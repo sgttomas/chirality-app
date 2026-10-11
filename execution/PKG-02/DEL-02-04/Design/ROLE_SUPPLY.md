@@ -441,6 +441,17 @@ there is no need to choose session flags for the observed per-thread route.
   (`config/read`) and supplies no child role whose name the person's
   configuration defines; if it cannot read it, none
   (`user-configuration-not-read`). It enables, disables and limits nothing.
+**Open discovery and receiving condition.** Stock 0.160.0 `config/read`
+  returning `agents:null` does not establish complete collision exclusion:
+  per-thread definitions can shadow a person's standalone `agents/` definition
+  without those origins appearing in that response. ACCESS/HOST M-A shares
+  `config.toml`, `AGENTS.md` and `skills`; native `agents/` is outside that set.
+  The controlled native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md`
+  supplies bounded collision/carrier evidence, not complete configuration-layer
+  discovery or actual App child supply. Complete discovery/exclusion, additive
+  child content and base preservation, App publication and actual association
+  remain open; no process-wide fallback or user configuration edit is selected.
+
 - **CR-3** TASK offers no child roles. That is not enforcement (K-10).
 - **CR-4 A child without a role type.** A child spawned with a built-in type
   (`default`, `explorer`, `worker`) or none has **unknown** guidance: not

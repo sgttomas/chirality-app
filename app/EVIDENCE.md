@@ -14,8 +14,10 @@ exports use maintained invented fixtures, with native confirmation stand-ins.
 No authenticated model turn occurred in these product checks. Parent supplier
 provider probes are separate evidence.
 
-CI-1…CI-9 changed through named reviewed Design control and tested consumer
-adoption. CI-10 preserves unverified cold captures without creating acts;
+The initial schema identity, requester provenance, scope handoff, capture
+persistence, supplier-route and W-1 validation repairs are governed by RS §13,
+RS §13.6, AAC §4.1a/§5.2a, HOSTING LT-24 and RS §14.1. Their bounded consumers
+were implemented and tested. AAC §6.3 U-AAC-3 preserves unverified cold captures without creating acts;
 trustworthy cold replay, signing/provenance and broader Group A work remain open.
 The historical walking-skeleton evidence below retains its original scope and
 0.158.0 observations; its old gaps describe that earlier source, not current code.
@@ -127,7 +129,7 @@ scratch binary and got the same value. It is not a qualification of the pin.
 
 - The recorder writes two `act_request` entries from the fixture's package
   files. Their bodies equal Pass 4's apart from `time` and `requester`
-  (CONTRACT_ISSUES CI-3). The same bytes are not requested twice.
+  (RS §13.6 requester identity). The same bytes are not requested twice.
 - The composed A16 offer equals Pass 4's `offer-PKG-1.json` apart from
   `offerId`, `composedAt` and the digest. The digest recomputes under
   `aac-offer-digest/0.1`.
@@ -162,7 +164,7 @@ scratch binary and got the same value. It is not a qualification of the pin.
 ### Schema test
 
 - Ajv 8.20.0 (draft 2020-12, `strict: false`) compiles:
-  - RS, with CI-1's in-memory ref rewrite;
+  - RS, with RS §13 declared-ID schema resolution's in-memory ref rewrite;
   - the DEL-02-03 checkpoint schema 0.7;
   - DEL-04-02 settings-in;
   - AAC offer 0.3 and capture 0.3;
@@ -176,7 +178,7 @@ scratch binary and got the same value. It is not a qualification of the pin.
 
 ## Observations
 
-- **N-1 Network contact at `thread/start` (CONTRACT_ISSUES CI-8).** Before
+- **N-1 Network contact at `thread/start` (ACCESS §9).** Before
   writing the tests, I ran a probe (`$SCRATCH/sk/probe.py`) against the stock
   binary. It had a fresh scratch home, `-c features.plugins=false` and
   `-c analytics.enabled=false`, and no model provider configured. `thread/start`
@@ -215,7 +217,7 @@ scratch binary and got the same value. It is not a qualification of the pin.
 ## Blocked or missing offline
 
 - **A JSON Schema validator crate for Rust is missing.** It is needed for RS
-  §14.1 W-1 in the writer (CI-9). The cargo cache at
+  §14.1 W-1 in the writer (RS §14.1 W-1). The cargo cache at
   `~/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/` holds no
   `jsonschema`, `boon` or `valico` crate. Candidates are `jsonschema` (crates.io)
   and `boon` (crates.io; draft 2020-12, few dependencies). I did not look up

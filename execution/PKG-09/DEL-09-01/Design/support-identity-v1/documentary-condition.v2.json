@@ -847,7 +847,7 @@
           ]
         }
       ],
-      "sha256": "f0dbba0bea6e7f0b06cca51408ef93b211bffbffcc02d3f7bf522964fe3238ee"
+      "sha256": "62175dfeeeee7b4a6f3ddb65af75c80b628181d3d628eb4d724d75a88bee9e9e"
     },
     {
       "path": "execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
@@ -1253,7 +1253,7 @@
           "count": 1
         }
       ],
-      "sha256": "3c2a5f82a88e2ab4ed94d3031384a5f73f7ec5fb636b75d0aa6cca7262d8e177"
+      "sha256": "f820a5b20c7664d4bafa50f8135ba1201e1eae9c04c3233f2848a10fa6553810"
     },
     {
       "path": "execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",

@@ -253,3 +253,12 @@ The cases retain the reviewed proposal's scope, including its repaired dossier
 coverage boundary. A future implementation must test complete schema-valid
 invented records, exact bytes and source drift; this Design-only contribution
 provides no executable receiver, fixture qualification or implicit adoption.
+
+## Current implementation conditions
+
+**Open actual examination condition.** The bounded connected receiver and
+invented mutation fixtures are implemented. They establish their limited file
+joins, not an actual examination, native supplier witness or qualification.
+Missing review/attachments retain incomplete or unsupported standing; historical
+and failed/not-run records keep their meanings. Actual candidate evidence and
+DEL-11-03 receiving remain separate conditions.

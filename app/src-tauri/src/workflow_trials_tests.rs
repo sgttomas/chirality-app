@@ -1,5 +1,5 @@
 //! Trial core checks (WR §17 steps 1–4): the shared composer and the trial
-//! text (WR-VC-21), TX-7 folder labels and supply copies (CI-32), the TT-8
+//! text (WR-VC-21), TX-7 folder labels and supply copies (WR §16.2 TX-7), the TT-8
 //! trial snapshot and its destination handling, and the TT-4 trial link store.
 use super::*;
 use crate::workflow_workspace::package_copy::{write_content_copy, BEFORE_PUBLISH};
@@ -288,7 +288,7 @@ fn copy_destinations_refuse_links_fifos_and_other_bytes_without_following_or_blo
     assert_eq!(fs::read(d.join("notes.txt")).unwrap(), b"swapped\n", "never removed or rewritten by the App");
 }
 
-// TX-7 (CI-32): (a) project-relative, (b) `~/`-relative, (c) a supply copy in
+// TX-7 (WR §16.2 TX-7): (a) project-relative, (b) `~/`-relative, (c) a supply copy in
 // the project, written once, reused, recreated after deletion; refused with
 // the cause when it cannot be written; nothing for a WORKFLOW.md-only package.
 #[test]

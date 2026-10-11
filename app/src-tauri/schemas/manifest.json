@@ -9,7 +9,7 @@
     {
       "file": "checkpoint-record-entries.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json",
-      "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3",
+      "sha256": "78ff4826cd639a9a48aedb6270b8e2292d589af20c14013709771b8fc6451c57",
       "id": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7"
     },
     {
@@ -27,13 +27,13 @@
     {
       "file": "aac.offer.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/aac.offer.schema.json",
-      "sha256": "34e61d5ac20bc4481f43bff3431dbab5e9032bcac966354ce9861c8b7b9d603e",
+      "sha256": "fa1ccf2628b1e4653f7720eb45feaa7a887039c79a3929ef35a220461d0575b0",
       "id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3"
     },
     {
       "file": "aac.capture-evidence.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/aac.capture-evidence.schema.json",
-      "sha256": "53e4a553b765dab705b1dc251c25d9755ddaafb26d762d5f03386ed7047241e4",
+      "sha256": "1786998b1dd53ccf184d280ce5a571c9f385dcfd41beac8e20a6d279d1a25439",
       "id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3"
     }
   ],

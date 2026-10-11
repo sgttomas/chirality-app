@@ -332,7 +332,7 @@ def file_bytes(doc):
 
 
 def decision_scope_for_capture(pkg):
-    """CC-R CI-4 owner-selected AAC handoff; does not rewrite package/request scope."""
+    """AAC §4.1a owner-selected scope handoff; does not rewrite package/request scope."""
     scope = pkg.get("scope")
     return scope if scope else "not named by the package"
 

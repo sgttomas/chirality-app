@@ -78,7 +78,7 @@ remains unpublished and does not silently become the canonical method.
 This offline tool checks a frozen technical selection of EXP result, review,
 change-impact and PKG records against complete EXP §4.4 identity: version,
 three schema IDs and prototype SHA-256. It preserves existing record bytes and
-schemas. CI-26 canonical publication and consumer adoption remain unresolved.
+schemas. EXP support-identity-v1/METHOD.md canonical publication and consumer adoption remain unresolved.
 A passing report establishes supplied file consistency only.
 
 `declaration.v1.json` freezes exact accepted source, rule and existing checker

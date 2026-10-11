@@ -7,11 +7,11 @@
     },
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/sources.json",
-      "sha256": "28a46bd631365616490c514ad7853301bf743365258e71c3c6310ead102568d3"
+      "sha256": "5b36e2877a50688c51a2f80f1308eac9cd5c5fb7ea522f725960bc86b8cfed1b"
     },
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",
-      "sha256": "b86d2e34e3ad4c2748d871015a3605e222e51b9c5b8ca8143693d2e42cbdc215"
+      "sha256": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
     },
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json",

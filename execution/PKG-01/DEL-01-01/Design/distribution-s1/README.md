@@ -30,9 +30,12 @@ needs a named reviewed successor; never silently change the meaning of an old ID
 
 ## Precisely selected method and precedence
 
-For this S1 cohort only, select these clauses of the unchanged sibling
-DISTRIBUTION_IDENTITY.md (SHA-256
-`d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290`):
+For this S1 cohort only, select these clauses of the
+[original DISTRIBUTION_IDENTITY.md](https://github.com/sgttomas/chirality/blob/d8f6ec059bb40b54229d07b5cd433cca83511577/projects/chirality-app-v4/execution/PKG-01_Native%20App%20and%20third-party%20harness%20integration/1_Working/DEL-01-01_Stock%20Codex%20hosting%20and%20supplier%20contract/Design/DISTRIBUTION_IDENTITY.md)
+(SHA-256 `d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290`).
+That identity resolves to the pre-flattening supplier text, not today's sibling
+file. Link and condition-pointer repairs in the current sibling do not renew
+this source selection:
 
 - Distribution identity method `codex-vendor-tree-v1`, in full: complete tree,
   root/directory modes, exact file bytes/modes/sizes, compatible file manifest,
@@ -91,6 +94,17 @@ The offline checker's selected-attestation argument is an explicit trusted test
 seam, never production caller authority. S3 must supply actual separately
 reviewed acquisition/generation/probe/version-advance evidence. PKG R23-22 still
 selects the actual eligible pin; fixture 9.9.9 and historical 0.160.0 are not choices.
+
+**Open production and packaged receiving conditions.** The stock Codex
+0.160.0 macOS arm64 expected reference under
+`references/codex-0.160.0-macos-arm64/` is supplied with its separate attestation
+(S3). Main has not supplied the production build selection and connected runtime
+verification (S2), complete receiving joins (S4) or actual packaged native witness
+(S5). A prepared tree, equal main-binary digest, static reference-equality result
+or development bundle does not establish these. Signature/build integrity and
+installed custody remain required by the selected method. The attested
+`generation-correspondence.json` still cites its earlier SQ Design identity;
+it has not been rewritten or promoted to correspondence with later SQ meaning.
 
 ## Closed shapes and semantic duties
 

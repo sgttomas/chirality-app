@@ -674,7 +674,7 @@
     {
       "role": "missing-inputs.json",
       "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",
-      "sha256": "sha256:b86d2e34e3ad4c2748d871015a3605e222e51b9c5b8ca8143693d2e42cbdc215"
+      "sha256": "sha256:8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
     },
     {
       "role": "invented-inputs.json",
@@ -1501,7 +1501,7 @@
           ]
         }
       ],
-      "sha256": "sha256:f0dbba0bea6e7f0b06cca51408ef93b211bffbffcc02d3f7bf522964fe3238ee"
+      "sha256": "sha256:62175dfeeeee7b4a6f3ddb65af75c80b628181d3d628eb4d724d75a88bee9e9e"
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
@@ -1899,7 +1899,7 @@
           "count": 1
         }
       ],
-      "sha256": "sha256:3c2a5f82a88e2ab4ed94d3031384a5f73f7ec5fb636b75d0aa6cca7262d8e177"
+      "sha256": "sha256:f820a5b20c7664d4bafa50f8135ba1201e1eae9c04c3233f2848a10fa6553810"
     },
     {
       "role": "governing/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
@@ -2179,7 +2179,7 @@
     {
       "role": "condition_manifest",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
-      "sha256": "sha256:119b2cf4d8b025080efe5f17ad7081d178e42a3adbaa3c85f2dd305a6dfc7fe4"
+      "sha256": "sha256:1ab01131468a27f3a4381dc81972e99a016662c95c769b619c5769883e76d9ba"
     }
   ],
   "historical_provenance": [

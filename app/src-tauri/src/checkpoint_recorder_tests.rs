@@ -331,7 +331,7 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert_eq!(outputs[5].1["annotations"][0]["label"], "act on other content");
     assert_eq!(outputs[6].1, json!({"arrival":arrival,"act":{"recordId":rely,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control"},"relation":"after arrival","referents":[RELY]}));
     assert_eq!(outputs[7].1, json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":1,"answeredBy":[rely],"annotations":[]}));
-    assert!(waiting_arrivals(&all).is_empty(), "the performed arrival is not listed as waiting (CI-20 (h))");
+    assert!(waiting_arrivals(&all).is_empty(), "the performed arrival is not listed as waiting (AAC §6.3 / EXEC §2.4–2.5)");
     assert!(count_acts(&all, &read, &root).is_empty(), "rebuildable: acts already cited are not read again (RC-10)");
     // While the arrival still waits, an act already not counted is not cited again.
     let waiting: Vec<Value> = all.iter().take_while(|e| e["kind"] != "act_counted").cloned().collect();
@@ -362,7 +362,7 @@ fn earlier_acts_count_only_on_current_content() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-// m-3 (CI-20 (h) reading): before the arrival, the latest decision of the required kind on the
+// m-3 (AAC §6.3 / EXEC §2.4–2.5 reading): before the arrival, the latest decision of the required kind on the
 // current content governs; an earlier one on that content is superseded.
 #[test]
 fn the_latest_decision_before_the_arrival_governs() {
@@ -450,7 +450,7 @@ fn records_not_verified_against_their_capture_count_nothing() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-// CI-20 (h) R-1 (AAC §6.3 SEAL-C): a record and a capture written by anything but the
+// AAC §6.3 / EXEC §2.4–2.5 R-1 (AAC §6.3 SEAL-C): a record and a capture written by anything but the
 // App act control count nothing in checkpoint counting or the file-act view, each refused
 // with its stated limit: a forged record with a valid-looking capture carrying a seal that
 // does not verify, a legacy capture without a seal, and a capture sealed by another

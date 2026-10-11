@@ -1470,7 +1470,7 @@ child start, not per thread/turn.
 
 ### 8.3 Observed model destination (R4-1, R5-4; owner decision D5)
 
-**CC-H thread-start disclosure.** Model contact can precede a turn: CI-8
+**CC-H thread-start disclosure.** Model contact can precede a turn: ACCESS §9
 records an observation at 0.158.0 of Responses websocket prewarm on
 `thread/start` with Codex's default provider and no credentials (401).
 ACCESS §9 displays this as `phase: thread-start`, `purpose: model`; it is

@@ -500,7 +500,7 @@ fn j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base() {
         identical.err()
     );
     // After a relaunch it is DS-8 re-confirmation, by the owner's CC-WR-RECONFIRM
-    // decision (was DS-4 here before J8; CI-21 (b) closed by adoption).
+    // decision (was DS-4 here before J8; WR §3 / RB-3 (b) closed by adoption).
     let relaunched = s
         .persistent_owner()
         .review_draft("sample", two.revision())
@@ -1578,7 +1578,7 @@ fn wr_vc_20_ledger_series_with_reconfirmation_lines() {
 fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
     let s = Scratch::new();
     // Two entries: a single in-place a15_descriptor is refused by the adopted
-    // AAC offer schema (pre-existing; CONTRACT_ISSUES CI-24 (e)).
+    // AAC offer schema (pre-existing; WR §4.8 / SQ-X (e)).
     let entry = s.put("sample", true, "In place");
     s.put("other", true, "Other in place");
     let session = s
@@ -1871,7 +1871,7 @@ fn v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line() {
 
 /// P5: after capture, registered line 1 is edited outside the App so it no
 /// longer reads as registered. WR G-1R says *not completed*, but no such line
-/// can satisfy RC-9 here (CI-25): the App appends nothing and the attempt stays
+/// can satisfy RC-9 here (WR G-1R / RC-9): the App appends nothing and the attempt stays
 /// pending with the exact cause; the ledger stays readable.
 #[test]
 fn v15_p5_g1r_line_no_longer_registered_appends_nothing() {

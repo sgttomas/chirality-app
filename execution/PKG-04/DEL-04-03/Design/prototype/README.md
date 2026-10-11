@@ -75,4 +75,4 @@ package discovered without writer identity and its separate RS evidence limit.
 `python3 -B check_cc_r.py` uses the already installed `jsonschema` and
 `referencing` packages to check the standard URI registry (no network or
 installation); the standard-library prototype checks remain available without
-those packages. CI-9 still requires validation in the product host writer.
+those packages. RS W-1 still requires validation in the product host writer.

@@ -19,7 +19,7 @@ from fleet_store import Writer, file_identity, vendored  # noqa: E402
 EXECUTION = os.path.normpath(os.path.join(HERE, "..", "..", "..", ".."))
 FX_FL1 = os.path.normpath(os.path.join(HERE, "..", "..", "..", "DEL-06-01",
                                        "Design", "prototype", "fixtures", "FX-FL1"))
-RS_LOG = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "E", "fixtures", "FX-DP1",
+RS_LOG = os.path.join(EXECUTION, "..", "app", "tests", "fixtures", "FX-DP1",
                       "records", "coordination.rs.jsonl")
 # Connector inputs: DEL-06-01 prototype/fixtures/vendored/EU-D1 (R23-44), hash-checked by fleet_store.vendored().
 RESULTS = []

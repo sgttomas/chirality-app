@@ -382,12 +382,19 @@ supply leaves the card with the supplier's item identity only.
 | WI-5 | **The stop control in several windows (R22-3).** Each window on a conversation shows the turn's "Interrupt" control while the turn is live (§5.2). The first person's press settles it: DEL-01-02 writes one stop request and sends it once (RECOVERY-v0.2 §3.4 SR-01). A press in another window is refused, `stop-already-requested` while that request is pending (SR-11) or `no-live-turn` once the turn has ended (RECOVERY-v0.2 §4.1), and that window's control then shows the turn's state from the same stop request (pending, then its outcome under §5.1, for example TO-4 or one of RECOVERY-v0.2 §3.4's labels), as WI-4 does for cards. Nothing is sent twice (RECOVERY-v0.2 §3.3) |
 
 
+**Open indicator condition — WI-1/WI-3.** The implemented App indicator is a
+count of waiting supplier requests on the macOS Dock badge. It is absent on
+platforms without a badge, names no conversations outside the window, and a
+Dock click opens the App window rather than the named conversation. The
+remaining WI-1 and WI-3 meanings are unsupplied. Closing hides/minimizes the
+window (RECOVERY SQ-W); it does not end work or requests.
+
 ### 4.5 The answer submission (data) and secret values (SE)
 
 A card hands the register's *answer* operation one
 [`nir.answer-submission.schema.json`](nir.answer-submission.schema.json)
 object: request identity, generation, method, the native answer unchanged.
-With CC-H/CI-2 consumer adoption under CC-A (candidate, 2026-10-04): generation
+With CC-H (HOSTING H5) consumer adoption under CC-A (candidate, 2026-10-04): generation
 is the complete H5 object {`appSession`, `home`, `spawnCounter`}, and request
 correlation/closed-generation checks compare **all three** values. `home` names
 the stable App-owned home, never credentials or a filesystem path. Answer
@@ -988,3 +995,15 @@ RS's own schema.
 - RX (design pass 3 residual sweep, 2026-10-02; in place, no version step): R20-9 "End run" offer, row "RX" in "Changes from v0.1" at the top.
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1" at the top.
 - v0.1 (D round 1): first version.
+
+## Current implementation conditions
+
+**Open positive-acceptance condition — user verification (FO-6).** The stock
+0.160.0 source assessment has not supplied a documented receiving route for
+Chirality's truthful `chirality-app-v4` client identity, exact enrollment and
+verifier/backend binding, or native success/rejection witnesses. Direct
+experimental local RPC admission and an eligible hosted elicitation connection
+are separate; neither establishes the other. Native acceptance without its
+proof remains unsupported, with decline and cancel available. Published proof
+mapping alone does not complete positive acceptance. Per-act presence and AAC's
+capture-origin custody are separate contracts.

@@ -77,7 +77,7 @@ Atomic publication/replacement and exclusive serialization are model assumptions
 not demonstrated filesystem/native behavior. The old act_control model still
 pre-mints recordId; its results do not establish CC-A's persistence sequence.
 
-CI-1 consumer propagation: `run_cases.py` explicitly registers EXEC's committed
+RS §13 consumer propagation: `run_cases.py` explicitly registers EXEC's committed
 checkpoint schema by its declared `$id` before validating RS entries. No URI
 rewrite or hidden path fallback is used. The first failed run is retained in
 `results/RUN_2026-10-04_CC-A_LEGACY.txt`; after registration it completes
@@ -86,7 +86,7 @@ revised HOSTING generation objects), retained in
 `results/RUN_2026-10-04_CC-A_REGISTRY.txt`. Reconciliation is pending with CC-H;
 no combined prototype pass is claimed from these two outputs.
 
-CC-H/CI-2 consumer propagation subsequently replaces the NIR register double's
+CC-H (HOSTING H5) consumer propagation subsequently replaces the NIR register double's
 integer generation with the hosting owner's invented full tuple
 `{appSession: "aac-fixture-session", home: "account", spawnCounter: 1}`;
 closed-generation keys use all three fields. This is not an observed host.

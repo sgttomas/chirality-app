@@ -109,7 +109,16 @@ Native-form and SQ preparation do not yet consume or admit these canonical
 bindings; their pinned sources remain unchanged. Their later receiving work, and
 S4 distribution-reference/attestation/runtime joins, must explicitly adopt this
 method and add their own checks before claiming its guarantees. The receiving
-notice records those owners and points of need. This bounded CI-26 representation
+notice records those owners and points of need. This bounded support-identity representation
 and initial consumer closure is separate from M1 runner admission, M2/M3 native
 witnesses, SQ qualification and product release. It changes no group ordering,
 deliverable set, native criteria or owner decision rights.
+
+## Current implementation conditions
+
+**Open qualification and receiving conditions.** The full support tuple's
+representational gap is closed for the explicitly adopted consumer cohort.
+Complete M1 runner/native qualification, M2/M3 witnesses and other receivers'
+full adoption remain separate. The later fixed SQ route is governed by
+DEL-09-02 `sq-exp-receiving-v1/RECEIVING.md`; neither it nor a consistent file
+join establishes supplier or package qualification.

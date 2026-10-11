@@ -1153,7 +1153,7 @@ impl ActControl {
             alt["statement"].as_str().unwrap_or("")
         );
         // AAC §4.1a: all selected text without silent truncation. When the alert
-        // cannot hold it, the App shows the chosen alternative whole (CI-22);
+        // cannot hold it, the App shows the chosen alternative whole (AAC §6.2 native statement and default key);
         // nothing is frozen for a refused statement.
         let content = json!({"package":o["subject"]["ref"],"contentIdentity":o["subject"]["contentIdentity"],
             "offerId":o["offerId"],"offerDigest":o["offerDigest"],"chosenAlternative":alt});

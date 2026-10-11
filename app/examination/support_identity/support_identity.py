@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI-26 staged exact-byte support bindings; publication is never established."""
+"""EXP support-identity-v1/METHOD.md staged exact-byte support bindings; publication is never established."""
 import argparse
 import hashlib
 import json
@@ -17,7 +17,7 @@ from referencing import Registry
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 DECLARATION_SHA256 = 'c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92'
-SCHEMA_SHA256 = 'aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0'
+SCHEMA_SHA256 = 'b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394'
 KINDS = {'before': 'result', 'after': 'result', 'rerun': 'result',
          'review': 'review', 'change': 'change', 'package': 'package'}
 RECORD_KINDS = {'result': 'exam_result', 'review': 'exam_review',
@@ -29,7 +29,7 @@ LIMITS = [
     'Caller-selected artifact/basis digest is a technical freeze, not authorization or an authenticated authority.',
     'No actual review independence, repair, native execution, signatures, qualification, acceptance or release established.',
     'Filesystem link checks are best effort; hostile concurrent filesystem isolation and authenticated custody are not established.',
-    'CI-26 canonical disposition and consumer adoption remain with the owning Design loops.',
+    'EXP support-identity-v1/METHOD.md canonical disposition and consumer adoption remain with the owning Design loops.',
 ]
 
 
