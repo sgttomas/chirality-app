@@ -439,3 +439,4 @@ checks:
 - app/tests/validate-records.test.mjs
 - execution/PKG-04/DEL-04-03/Design/prototype/check_cc_r.py
 - execution/PKG-04/DEL-04-03/Design/prototype/run_prototype.py
+- execution/PKG-04/DEL-04-03/Design/prototype/test_minischema.py

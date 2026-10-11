@@ -484,6 +484,7 @@ CASES = [
 def main(argv):
     emit = argv[argv.index("--emit") + 1] if "--emit" in argv else None
     reg = Registry()
+    reg.load(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"))
     ids = {}
     for name, d, f in (("ACT", ACT_DIR, "ACT_POLICY_CLASS_RECORD.schema.json"),
                        ("AS", AS_DIR, "AS_SETTINGS_IN.schema.json"),

@@ -482,3 +482,33 @@ See the named change's source basis, consumer account and check results in
 `execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/changes/CC-SQ-J2-ST4/`
 (relative to the App v4 project). Earlier prototype results above remain
 historical.
+
+## Current implementation conditions
+
+**Open recording and source correspondence conditions.** DEL-01-01's
+`CAPTURE_ST5_NV04_0.160.0.md` supplies development captures of ST-5 (X-09 with
+X-10 recovery read) and NV-04. Neither is at an App candidate's pin, so the
+`st5_recording` and `st4_route_or_recording` missing inputs remain. The ST-4
+"none exists yet" wording above and in the J-2 step-map counterpart predates
+those development captures; it has not been received as candidate evidence.
+Whether to cite them here and whether a candidate-pin rerun of
+`prototype/st5/st5_harness.py` fulfills U-SQ-6/ST-4 remain open with the SQ owner.
+No case criterion, stimulus count/order or qualification rule changes here.
+
+Examination source/basis labels that name the revision first inspected rather
+than the currently bound bytes still need truthful correspondence. Historical
+distribution/terminal file-correspondence cohorts receive verified operational
+inputs separately from frozen producer provenance. Their passing packet checks
+supply historical correspondence, not a current candidate or native witness.
+The owning receiving inputs bind the meaning tested without turning unrelated
+Design or Host edits into renewed qualification claims.
+
+The maintained distribution and terminal file receivers also offer the explicit
+`build-selection` profile for the byte-preserved b5 synthetic LT09 and LT09/LT23
+packets. Their default remains `stop-admission`. Fixed pin/predecessor mappings,
+complete reader receipts and crossed-cohort refusals are guarded by
+`group_b_distribution_receiving_test.py` and `group_b_terminal_receiving_test.py`.
+Current executable helpers and schemas are operational inputs; the original
+Host source map, producer executable and captured packets retain their
+historical identities. This additive replay supplies no candidate-pin SQ result
+or production/native witness.

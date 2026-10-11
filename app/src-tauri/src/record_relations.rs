@@ -134,7 +134,7 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
             || semantic.get(id).is_some_and(|s| !s.eligible_for_derived_claim()) {
             // A semantically invalid/incomparable correction is readable but
             // cannot suppress a valid predecessor. A valid repair can correct
-            // an ineligible original; CI-12 relation/order logic stays intact.
+            // an ineligible original; RS §14.2a relation/order logic stays intact.
             continue;
         }
         edges.entry(target.clone()).or_default().insert(id.clone());

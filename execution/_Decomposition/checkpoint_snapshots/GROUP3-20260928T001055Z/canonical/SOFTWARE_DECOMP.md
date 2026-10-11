@@ -50,7 +50,7 @@ These are accepted contribution/interface responsibilities, not an accepted proj
 
 ## Implementation approach
 
-The [scoped owner clarification](../_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md) confirms Codex is sufficient initially and explains implementation sourcing. PKG-01 owns native App integration of the stock third-party harness, including Codex-native OAuth/sign-in in DEL-01-05; it is not a new Chirality App agent engine. “Owned” identifies behavior, receiving-contract fit and maintenance responsibility, not mandatory original authorship.
+The [scoped owner clarification](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md) confirms Codex is sufficient initially and explains implementation sourcing. PKG-01 owns native App integration of the stock third-party harness, including Codex-native OAuth/sign-in in DEL-01-05; it is not a new Chirality App agent engine. “Owned” identifies behavior, receiving-contract fit and maintenance responsibility, not mandatory original authorship.
 
 Assess relevant Pi, T3 Code, v3 and other exemplars and selectively reuse/adapt suitable components or patterns against the receiving contract. Preserve significant source/version/attribution and adaptation rationale in existing SoW/PR records, then qualify the actual code/versions and applicable reuse terms. The retained dated reports locate candidates; they do not certify present fitness or licensing. No dedicated research Package, per-row checklist, mandatory copy, whole-application fork or generic multi-harness gateway is introduced. Pi runtime adoption remains a distinct architecture choice; minimal-host receiving, external construction and conditional shared allocation stay as accepted.
 
@@ -62,7 +62,7 @@ The eight L units are DEL-01-01, DEL-01-02, DEL-02-02, DEL-09-01, DEL-09-02, DEL
 
 [Open_Issues.csv](Open_Issues.csv) retains the exact policy, extension, technical means, extra host/fleet, validation-period, provider-allocation and adoption matters with their points of need. OI-025's earlier stage-deferral is resolved by the actual Group2 approval of all-objective mappings. No carried substantive value is silently decided.
 
-The [workflow](../_Coordination/WORKFLOW_UPSTREAM_COMPARISON_2026-09-27.md) and [PEC](../_Coordination/PEC_UPSTREAM_COMPARISON_2026-09-27.md) comparisons remain bounded source accounts. At integration base 7e0125a7, PEC TM1 has recorded its future consumer-contract consideration, hosted-CI notice and deferred K3 publication. No provider PRD/source/API/profile change or newly delivered domain-engine contract was supplied by that cleanup. SCA-APP-012's owning derivative work and future relevant provider inputs remain separate; only a material changed warrant reopens affected preparation.
+The [workflow](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/WORKFLOW_UPSTREAM_COMPARISON_2026-09-27.md) and [PEC](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/PEC_UPSTREAM_COMPARISON_2026-09-27.md) comparisons remain bounded source accounts. At integration base 7e0125a7, PEC TM1 has recorded its future consumer-contract consideration, hosted-CI notice and deferred K3 publication. No provider PRD/source/API/profile change or newly delivered domain-engine contract was supplied by that cleanup. SCA-APP-012's owning derivative work and future relevant provider inputs remain separate; only a material changed warrant reopens affected preparation.
 
 ## Artifact coverage and decision/change log
 
@@ -75,7 +75,7 @@ The structured scope of work is ScopeLedger.csv; Deliverables.csv carries the an
 
 ## Checkpoint and next stage
 
-The [Group3 reader](../_Coordination/Reviews/APP-V4-GROUP3-20260927/READER.md) and manifest identify this final candidate. Its [separate independent final audit](../_Coordination/Reviews/APP-V4-GROUP3-20260927/REVIEW.md) reports the actual verdict; prior Group2 broad/clarification checks remain evidence for their own subjects.
+The [Group3 reader](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP3-20260927/READER.md) and manifest identify this final candidate. Its [separate independent final audit](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP3-20260927/REVIEW.md) reports the actual verdict; prior Group2 broad/clarification checks remain evidence for their own subjects.
 
 Both accepted snapshots/pointers now exist and were consumed before this assembly. After the independent Group3 audit, the human accepts the final decomposition as the basis for downstream use or returns affected parts for repair. Only an actual Group3 act creates its immutable snapshot and _LATEST_ACCEPTED.md handoff; project setup remains later work under its selected method and actual inputs. Routine Git integration does not replace the final decision.
 

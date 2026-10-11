@@ -115,7 +115,7 @@ class CanonicalBindingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'canonical selected source changed'): canonical.CanonicalSupport()
         method.unlink()
         with patch.object(canonical, 'PROJECT', self.root):
-            with self.assertRaises(OSError): canonical.CanonicalSupport()
+            with self.assertRaisesRegex(ValueError, 'canonical selected source changed'): canonical.CanonicalSupport()
 
     def test_source_tuple_cannot_be_repinned_without_semantic_agreement(self):
         local = self.root / 'tool'; local.mkdir()

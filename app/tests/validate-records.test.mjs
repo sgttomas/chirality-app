@@ -39,7 +39,7 @@ function validators() {
   const ajv = new Ajv2020({ strict: false, allErrors: true });
   const checkpoint = readJson(join(D0203, "checkpoint-record-entries.schema.json"));
   const settingsIn = readJson(join(D0402, "AS_SETTINGS_IN.schema.json"));
-  // CC-R CI-1: register the authoritative declared schema IDs without rewriting.
+  // CC-R RS §13 declared-ID schema resolution: register the authoritative declared schema IDs without rewriting.
   const rs = readJson(join(D0403, "RS_RECORD.schema.json"));
   const offer = readJson(join(D0104, "aac.offer.schema.json"));
   const capture = readJson(join(D0104, "aac.capture-evidence.schema.json"));

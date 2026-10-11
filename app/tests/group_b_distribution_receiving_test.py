@@ -18,8 +18,7 @@ LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source
 PREVIOUS_CURRENT = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
 COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_lt09_fixtures'
 STOP_PREDECESSOR = APP / 'tests/group_b_lt12_combined_lt09_fixtures'
-BUILD_SELECTION_PREDECESSOR = APP / 'tests/group_b_stop_admission_lt09_fixtures'
-FIXTURES = APP / 'tests/group_b_build_selection_lt09_fixtures'
+FIXTURES = APP / 'tests/group_b_stop_admission_lt09_fixtures'
 
 
 def load(name, path):
@@ -91,7 +90,6 @@ class DistributionReceivingTests(unittest.TestCase):
                     self.assertEqual(receiver.sha(raw), provenance['exchange_sha256'][case])
                 report = self.receiver.check(self.path, receiver.sha(raw), self.selection, receiver.sha(self.selection.read_bytes()))
                 self.assertTrue(report['file_correspondence_passed'])
-                self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-LT09-v1')
                 self.assertEqual(set(report['canonical_support']['existing_checks']), {'package', 'review', 'change'})
                 self.assertEqual(len(report['canonical_support']['existing_checks']['package']['reported_prerequisite_gaps']), 3)
                 self.assertEqual(report['application_candidate']['standing'], 'invented-consumer-fixture')
@@ -223,14 +221,81 @@ class DistributionReceivingTests(unittest.TestCase):
             self.rebind_publication(); self.refused()
 
     def test_pinned_sources_and_pin_file_refuse_drift(self):
-        with patch.object(receiver, 'PINS_SHA256', '0' * 64):
+        read = receiver.read_file
+        def changed_pins(path):
+            raw = read(path)
+            return raw + b'\n' if Path(path).name == 'pins.stop-admission-lt09-v1.json' else raw
+        with patch.object(receiver, 'read_file', changed_pins):
             with self.assertRaisesRegex(ValueError, 'pins changed'): receiver.Receiver()
         original = receiver.relative
-        def changed(root, path):
-            raw = original(root, path)
-            return raw + b'\n' if path.endswith('distribution_s1.rs') else raw
-        with patch.object(receiver, 'relative', changed):
-            with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+        for input_path in receiver.CURRENT_INPUTS:
+            with self.subTest(input=input_path):
+                def changed(root, path):
+                    raw = original(root, path)
+                    return raw + b'\n' if path == input_path else raw
+                with patch.object(receiver, 'relative', changed):
+                    with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+
+    def test_explicit_build_selection_cohort_preserves_raw_packets_and_cli(self):
+        fixtures = APP / 'tests/group_b_build_selection_lt09_fixtures'
+        provenance = receiver.parse((fixtures / 'provenance.json').read_bytes())
+        selected = receiver.Receiver('build-selection')
+        for case in ('selected', 'unselected'):
+            path = fixtures / case / 'exchange.json'; raw = path.read_bytes()
+            self.assertEqual(receiver.sha(raw), provenance['exchange_sha256'][case])
+            exchange = receiver.parse(raw)
+            self.assertEqual(exchange['producer'], provenance['producer'])
+            selection = records.write(self.record_root, selected.canonical, exchange['applicationCandidate'])
+            report = selected.check(path, receiver.sha(raw), selection, receiver.sha(selection.read_bytes()))
+            self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-LT09-v1')
+            self.assertTrue(report['file_correspondence_passed'])
+            self.assertFalse(report['qualification_established'])
+            self.assertFalse(report['producer_history_authenticated'])
+            self.assertFalse(report['semantic_reader_reexecuted'])
+            command = [sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),
+                       str(path), '--exchange-sha256', receiver.sha(raw), '--selection', str(selection),
+                       '--selection-sha256', receiver.sha(selection.read_bytes())]
+            default = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(default.returncode, 2, default.stdout + default.stderr)
+            result = subprocess.run(command + ['--cohort', 'build-selection'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(receiver.parse(result.stdout)['receiving_adoption'], report['receiving_adoption'])
+
+    def test_named_cohorts_refuse_crossed_or_rewritten_producer_packets(self):
+        for cohort, other in [('stop-admission', 'build-selection'), ('build-selection', 'stop-admission')]:
+            selected = receiver.Receiver(cohort)
+            folder = 'group_b_build_selection_lt09_fixtures' if other == 'build-selection' else 'group_b_stop_admission_lt09_fixtures'
+            fixtures = APP / 'tests' / folder
+            for case in ('selected', 'unselected'):
+                path = fixtures / case / 'exchange.json'
+                with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                    selected.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+            shutil.rmtree(self.case); shutil.copytree(fixtures / 'selected', self.case)
+            self.exchange = receiver.parse(self.path.read_bytes())
+            self.exchange['producer']['sourceRevision'] = selected.pins['producer_source_revision']
+            self.path.write_bytes(encoded(self.exchange))
+            with self.assertRaisesRegex(ValueError, 'reader identity differs'):
+                selected.check(self.path, receiver.sha(self.path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+
+    def test_build_selection_profile_guards_only_operational_inputs_and_fixed_pins(self):
+        with self.assertRaisesRegex(ValueError, 'unsupported receiving cohort'):
+            receiver.Receiver('../pins.json')
+        original = receiver.relative
+        for input_path in receiver.CURRENT_INPUTS:
+            def changed(root, path):
+                raw = original(root, path)
+                return raw + b'\n' if path == input_path else raw
+            with patch.object(receiver, 'relative', changed):
+                with self.assertRaisesRegex(ValueError, 'selected source changed'):
+                    receiver.Receiver('build-selection')
+        read = receiver.read_file
+        for name in ('pins.build-selection-lt09-v1.json', 'pins.stop-admission-lt09-v1.json'):
+            def changed_pins(path):
+                raw = read(path)
+                return raw + b'\n' if Path(path).name == name else raw
+            with patch.object(receiver, 'read_file', changed_pins):
+                with self.assertRaisesRegex(ValueError, 'pins changed'):
+                    receiver.Receiver('build-selection')
 
     def test_historical_cohort_is_preserved_but_not_active(self):
         provenance = receiver.parse((HISTORICAL / 'provenance.json').read_bytes())
@@ -267,12 +332,14 @@ class DistributionReceivingTests(unittest.TestCase):
     def test_namespace_source_guard_and_non_authority_report(self):
         original = receiver.relative
         def changed(root, path):
+            self.assertFalse(path.endswith('.rs'), 'historical producer source was read from the live checkout')
             raw = original(root, path)
-            return raw + b'\n' if path.endswith('attachment_custody.rs') else raw
+            return raw
         with patch.object(receiver, 'relative', changed):
-            with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+            historical_reader = receiver.Receiver()
+            self.assertEqual(historical_reader.pins['reader'], self.receiver.pins['reader'])
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-LT09-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-STOP-ADMISSION-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
 
@@ -337,16 +404,6 @@ class DistributionReceivingTests(unittest.TestCase):
         self.exchange['actualLt09']['transitionId'] = 'LT-20'
         self.exchange['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(self.exchange['actualLt09'])
         self.rebind_publication(); self.refused('unsupported envelope')
-
-    def test_build_selection_source_refuses_previous_stop_cohort_even_with_rewritten_revision(self):
-        for case in ('selected', 'unselected'):
-            path = BUILD_SELECTION_PREDECESSOR / case / 'exchange.json'
-            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
-                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
-        shutil.rmtree(self.case); shutil.copytree(BUILD_SELECTION_PREDECESSOR / 'selected', self.case)
-        self.path = self.case / 'exchange.json'; self.exchange = receiver.parse(self.path.read_bytes())
-        self.exchange['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
-        self.refused('reader identity differs')
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

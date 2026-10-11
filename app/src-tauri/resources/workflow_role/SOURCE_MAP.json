@@ -12,7 +12,7 @@
   {
     "resource": "checkpoint-record-entries.schema.json",
     "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json",
-    "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3"
+    "sha256": "78ff4826cd639a9a48aedb6270b8e2292d589af20c14013709771b8fc6451c57"
   },
   {
     "resource": "compatibility-report.schema.json",

@@ -45,6 +45,14 @@ with fewer roles satisfies that unchanged contract.
 
 ## S1: fixed sources, exact files, explicit citations
 
+For the maintained successor current-producer reader, DEL-09-01's
+`support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md` governs documentary
+inputs. Its fixed manifest binds the cited case rows and governing clauses,
+excluding implementation notes and observed-result columns. The original
+full-byte support snapshot remains separately checked and available to the
+unchanged validators and historical correspondence. Schemas, step map,
+validators, helpers, records and candidate identities retain exact bindings.
+
 All fields below are **new receiving-contract selections**, not fields to insert
 in SQ-v0.2 or EXP-v0.2 records. The separately implemented reader must pin SQ protocol/schema,
 step map/prototype and their supplier-case source closure, plus the existing
@@ -245,3 +253,12 @@ The cases retain the reviewed proposal's scope, including its repaired dossier
 coverage boundary. A future implementation must test complete schema-valid
 invented records, exact bytes and source drift; this Design-only contribution
 provides no executable receiver, fixture qualification or implicit adoption.
+
+## Current implementation conditions
+
+**Open actual examination condition.** The bounded connected receiver and
+invented mutation fixtures are implemented. They establish their limited file
+joins, not an actual examination, native supplier witness or qualification.
+Missing review/attachments retain incomplete or unsupported standing; historical
+and failed/not-run records keep their meanings. Actual candidate evidence and
+DEL-11-03 receiving remain separate conditions.

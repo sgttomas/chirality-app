@@ -294,7 +294,7 @@ impl ActControl {
             "answers":slot.offer["answers"],"evidenceLimits":limits});
         // AAC §6.3 SEAL-C: sealed under this installation's host-held key before
         // publication. If it cannot be sealed the act is still captured and
-        // recorded, saying so, and is never counted (CI-20 (h)).
+        // recorded, saying so, and is never counted (AAC §6.3 / EXEC §2.4–2.5).
         if let Err(reason) = crate::capture_seal::seal(&slot.root, &mut capture) {
             capture["evidenceLimits"].as_array_mut().unwrap().push(json!(crate::capture_seal::unsealed_limit(&reason)));
         }

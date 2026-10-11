@@ -403,7 +403,7 @@ pub struct ModelDestination {
 ///   `compatibility_report_ref` from that evaluation and never puts the
 ///   preparation id in one. The run's R14 then stays "no report evaluated", as
 ///   RS R14 states; whether RS writes that absence as an entry is RS's own
-///   representation (its body still requires a report reference; see CI-19).
+///   representation (its body still requires a report reference; see EXEC §3 report representation).
 ///   J1 shows the advisory view, including `publication.factsNotSupplied`.
 /// - The report is advisory. The person may start whatever it says (CC-3,
 ///   SL-7). Nothing here reads, edits or vetoes the user's Codex configuration.

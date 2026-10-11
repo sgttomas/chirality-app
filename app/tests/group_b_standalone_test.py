@@ -100,6 +100,54 @@ class StandalonePreparationTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'source changed'):
                 prep.prepare(root)
 
+    def test_unread_implementation_notes_do_not_change_preparation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for item in prep.verified_sources()['sources']:
+                target = root / item['path']
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((prep.ROOT / item['path']).read_bytes())
+                if 'selectors' in item:
+                    with target.open('a') as stream:
+                        stream.write('\n## Unrelated implementation observation\nChanged internal code; same case.\n')
+            self.assertEqual(prep.prepare(root), self.plan)
+
+    def test_every_selected_passage_and_missing_or_duplicate_selector_refuses(self):
+        for source in prep.verified_sources()['sources']:
+            if 'selectors' not in source:
+                continue
+            original = (prep.ROOT / source['path']).read_bytes()
+            for selector in source['selectors']:
+                key = selector.get('heading', selector.get('case', selector.get('paragraphPrefix')))
+                with self.subTest(source=source['role'], clause=key):
+                    text = original.decode()
+                    line = next(line for line in text.splitlines(keepends=True)
+                                if (line.rstrip('\r\n') == key if 'heading' in selector
+                                    else line.startswith('| ' + key) if 'case' in selector
+                                    else line.startswith(key)))
+                    if 'heading' in selector:
+                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
+                    elif 'case' in selector:
+                        cells = line.split('|')
+                        column = selector.get('columns', [0])[0]
+                        cells[column + 1] += ' CHANGED MEANING '
+                        changed_line = '|'.join(cells)
+                    else:
+                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
+                    changed = text.replace(line, changed_line, 1).encode()
+                    if 'heading' in selector:
+                        with self.assertRaisesRegex(ValueError, 'source changed'):
+                            prep.source_input(source, changed)
+                    else:
+                        self.assertNotEqual(prep.source_input(source, original), prep.source_input(source, changed))
+                    duplicate = (text + '\n' + line).encode()
+                    with self.assertRaisesRegex(ValueError, 'source changed'):
+                        prep.source_input(source, duplicate)
+
+    def test_local_inventory_and_missing_input_bytes_are_bound(self):
+        roles = {source['role'] for source in prep.verified_sources()['sources']}
+        self.assertTrue({'missing-inputs.json', 'invented-inputs.json'} <= roles)
+
     def test_cli_roundtrip_rejection_and_duplicate_keys(self):
         command = [sys.executable, str(APP / 'examination/standalone/prepare.py')]
         result = subprocess.run(command + ['prepare'], capture_output=True, text=True, check=True)

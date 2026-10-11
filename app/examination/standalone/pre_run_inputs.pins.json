@@ -6,48 +6,1482 @@
     "projects/chirality-app-v4/app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
     "projects/chirality-app-v4/app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
     "projects/chirality-app-v4/app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
-    "projects/chirality-app-v4/app/examination/native_forms/native_form.py": "509017abe056bdac96eee9b7012ee2c6cb7b9b942a1c6ab6840efd02bdcd6f2b",
-    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "914613301650e0a251826d4f5d972b1052ca7bdc30260dee70c64756952255ed",
+    "projects/chirality-app-v4/app/examination/native_forms/native_form.py": "5ec10f1cb4b3b62047ac6b4248283df411fcf69b7cc14a235585d846162a7f2a",
+    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "1e1098a0f5bdff10f2f8c4e9837fc553758a6c10b42233a10d91145d19021665",
     "projects/chirality-app-v4/app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
-    "projects/chirality-app-v4/app/examination/sources.json": "ad2893c1566bd31a55d3f8f03bef3158b472cd8057cf7f2437d555ccf2fef6d1",
-    "projects/chirality-app-v4/app/examination/standalone/fixtures/README.md": "403d9c06b27714e015e2f7a6514ab1c1957336a4f8b9b437e08a38c8d8a5f092",
+    "projects/chirality-app-v4/app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json": "2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24",
-    "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json": "b86d2e34e3ad4c2748d871015a3605e222e51b9c5b8ca8143693d2e42cbdc215",
-    "projects/chirality-app-v4/app/examination/standalone/prepare.py": "99df421b8bce6af634bd661d3112216e04a817e713de244b9b9b05935d105109",
-    "projects/chirality-app-v4/app/examination/standalone/sources.json": "be8edbdf287db6157787ba0c48a2f8d3555c7c419ca6960da0582a8bb10adacb",
-    "projects/chirality-app-v4/app/examination/support_identity/binding.v1.schema.json": "aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0",
-    "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json": "29543c5ef6a3efd9b0cd063359c52f4b08ad6e867add2ac76c10684d8eae0c37",
-    "projects/chirality-app-v4/app/examination/support_identity/canonical.py": "e41d321842e8a059161ddd0539a78dfc8b840b82a8f4c284c98d9008d74f9dda",
+    "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356",
+    "projects/chirality-app-v4/app/examination/standalone/prepare.py": "05e44be5850ae204da5d6876a10bd67348370330fe353541744126fe8d621b06",
+    "projects/chirality-app-v4/app/examination/standalone/sources.json": "5b36e2877a50688c51a2f80f1308eac9cd5c5fb7ea522f725960bc86b8cfed1b",
+    "projects/chirality-app-v4/app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
+    "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json": "e1ff480dfac752d33150d6b748c1749dde060351e6bf123a175509b1fc118199",
+    "projects/chirality-app-v4/app/examination/support_identity/canonical.py": "d130f95222ac7101694a607f3c3b8976d4585b3970e65824d419c6bdf3f0a7f3",
     "projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
-    "projects/chirality-app-v4/app/examination/support_identity/support_identity.py": "01b4e6f2b2a20a7e016d85b187dbe70c22ed89bdd5ad10c30b2a8413622ae501",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": "23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md": "ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md": "c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md": "bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md": "203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md": "996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4",
-    "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md": "7affbb8cea544a29bbf485e4fc6b1e0c15d5666e9c3614110580d912ff344e5f",
+    "projects/chirality-app-v4/app/examination/support_identity/support_identity.py": "9ee17f994a5ecd5073039cc3984155641452aef28def35030783f903caf924b7",
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": {
+      "sha256": "1d9b05952ccb940aa576e735c0887e93cf99c57436f44a3b845a8363d0b6934e",
+      "selectors": [
+        {
+          "case": "X-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "X-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "paragraphPrefix": "`recorded`, `recorded-truncated`, `mutated`, `constructed`.",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **Outcome labels** per case:",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md": {
+      "sha256": "bc7e9e2be3857db827042d26c6983cb93ed6111a7c2cd24873126519a2f50d20",
+      "selectors": [
+        {
+          "case": "VC-R-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-15",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "heading": "## 2. Stops, losses and run ends (R17-3; DEL-01-02 owns these definitions)"
+        },
+        {
+          "heading": "### 3.1 App session (AS)"
+        },
+        {
+          "heading": "### 3.2 Conversation (CV)"
+        },
+        {
+          "heading": "### 3.3 Observer attachment (OA)"
+        },
+        {
+          "heading": "### 3.4 Stop request (SR)"
+        },
+        {
+          "heading": "### 3.5 Outstanding requests across generations (RQ)"
+        },
+        {
+          "case": "VC-R-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md": {
+      "sha256": "67fe33e1d36d3ce215c6a069cebbdfb3244ca535e5b3b81f55cd4ddcedeb9825",
+      "selectors": [
+        {
+          "case": "NV-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "PS-1",
+          "count": 1
+        },
+        {
+          "case": "PS-2",
+          "count": 1
+        },
+        {
+          "case": "PS-3",
+          "count": 1
+        },
+        {
+          "case": "PS-4",
+          "count": 1
+        },
+        {
+          "case": "PS-5",
+          "count": 1
+        },
+        {
+          "heading": "### 5.2 Revision identity and durability (B-2; PROPOSED; R17-4, R18-1 C-03)"
+        },
+        {
+          "heading": "### 6.2 Rules"
+        },
+        {
+          "heading": "### 7.2 Identity model"
+        },
+        {
+          "heading": "### 7.3 Display rules"
+        },
+        {
+          "heading": "### 7.4 Observing children"
+        },
+        {
+          "heading": "### 7.5 States"
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md": {
+      "sha256": "f820a5b20c7664d4bafa50f8135ba1201e1eae9c04c3233f2848a10fa6553810",
+      "selectors": [
+        {
+          "case": "VC-AAC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "heading": "### 4.2 Registration of a reviewed draft, A15 (K-8)"
+        },
+        {
+          "case": "NA-1",
+          "count": 1
+        },
+        {
+          "case": "NA-2",
+          "count": 1
+        },
+        {
+          "case": "NA-3",
+          "count": 1
+        },
+        {
+          "case": "NA-4",
+          "count": 1
+        },
+        {
+          "heading": "### 4.1 An act on App content (A4, A6, A7), standing or at an arrival"
+        },
+        {
+          "heading": "### 6.2 Selected P-2/Rust allocation (CC-P-A; Group A implementation)"
+        },
+        {
+          "case": "AK-c",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md": {
+      "sha256": "6e36cb9f846670f24bc2985ebddb2db5162e9fdce325a8b49350c953adf5582f",
+      "selectors": [
+        {
+          "case": "VC-NIR-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-11",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-16",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "heading": "### 4.2 What a card offers (FO) and the words it uses (LB)"
+        },
+        {
+          "heading": "### 4.3 The explicit decline, per kind (DM)"
+        },
+        {
+          "heading": "### 4.4 Card states (CS) over the register states"
+        },
+        {
+          "heading": "### 5.1 Turn outcome states (TO)"
+        },
+        {
+          "heading": "### 5.2 The three stop operations, as presented (R17-3)"
+        },
+        {
+          "heading": "### 5.3 Reload, reopen and relaunch (SQ-V)"
+        },
+        {
+          "heading": "### 5.4 Conversation start display (K-3)"
+        },
+        {
+          "heading": "### 5.5 Delegated agents (descendants)"
+        },
+        {
+          "heading": "### 4.1 Kinds at 0.158.0 and how each is met"
+        },
+        {
+          "case": "NR-2",
+          "count": 1
+        },
+        {
+          "case": "NR-3",
+          "count": 1
+        },
+        {
+          "case": "NR-7",
+          "count": 1
+        },
+        {
+          "case": "NR-8",
+          "count": 1
+        },
+        {
+          "case": "NR-9",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md": {
+      "sha256": "92a45dff7be6e0937be9996ed3462205be9d57759cb78569b2ba259e73bc3f36",
+      "selectors": [
+        {
+          "case": "VC-A01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "heading": "### 5.1 ChatGPT account entry (one per H-acct)"
+        },
+        {
+          "heading": "### 5.2 API-key entry (one per H-key; K2-1)"
+        },
+        {
+          "heading": "### 5.3 Local-provider entry (one per provider id in the effective configuration)"
+        },
+        {
+          "heading": "### 5.4 Conversation selection (K-3; one per App conversation)"
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md": {
+      "sha256": "5312e36e02749cd3397dc8aa71385a1f6705833528afcd7bb76039e5bdd951f1",
+      "selectors": [
+        {
+          "heading": "### 5.1 Elements"
+        },
+        {
+          "paragraphPrefix": "`manifest_sha256` is the sha256",
+          "count": 1
+        },
+        {
+          "heading": "### 5.4 Rules (`prototype/check_pkg.py`)"
+        },
+        {
+          "heading": "### 7.2 Configuration space before the fallback"
+        },
+        {
+          "paragraphPrefix": "**SIGN-1 (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**Its risk**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**SIGN-2 Fallback:",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "FP-0, FP-1 and FP-3 run before",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Written as a DEL-09-01 EXP result record",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**It starts as a person receives the App",
+          "count": 1
+        },
+        {
+          "case": "**FP-1(a",
+          "count": 1
+        },
+        {
+          "case": "**FP-1(b",
+          "count": 1
+        },
+        {
+          "case": "**FP-3",
+          "count": 1
+        },
+        {
+          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`"
+        },
+        {
+          "heading": "## 8. Install/launch witness (OUT-003; REQ-003)"
+        },
+        {
+          "case": "**FP-0",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 3,
+            "marker": " **Run at "
+          }
+        },
+        {
+          "case": "**FP-2",
+          "count": 1
+        },
+        {
+          "case": "**FP-4",
+          "count": 1
+        },
+        {
+          "case": "**FP-5",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md": {
+      "sha256": "7745545fb8b181a6cd21c88836365cbd6b89d0f3179f46c89e4f26a91779cf4e",
+      "selectors": [
+        {
+          "paragraphPrefix": "The existing PKG-v0.2 protocol,",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Use `app/examination/support_identity/canonical.py check`",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "A current producer binding declares",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Existing inventory/unsigned preparation",
+          "count": 1
+        }
+      ]
+    },
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/pkg.identity-record.schema.json": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a",
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
-    "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md": "9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
-    "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md": "9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322",
-    "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md": "2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4",
-    "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md": "9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+    "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md": {
+      "sha256": "f48ceef037fb6fb76f50cf0bd80fe058e2e64ed2c6e4f273c9c32120f4a67872",
+      "selectors": [
+        {
+          "case": "VC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "VC-28",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "paragraphPrefix": "- **C-1**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **C-2**",
+          "count": 1
+        },
+        {
+          "case": "S-R",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **C-3**",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md": {
+      "sha256": "62175dfeeeee7b4a6f3ddb65af75c80b628181d3d628eb4d724d75a88bee9e9e",
+      "selectors": [
+        {
+          "case": "WR-VC-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-21",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-22",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-23",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-24",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-25",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "heading": "### 2.2 Identity rules"
+        },
+        {
+          "heading": "### 4.2 Drafts and trials (K-7; CC-WR-TRIALS)"
+        },
+        {
+          "heading": "### 4.3 Review binding and the registration act (K-8; R17-11)"
+        },
+        {
+          "heading": "### 4.4 Selection (WD C-1…C-6; U-10)"
+        },
+        {
+          "heading": "### 4.5 Package hygiene at review (WD RV-2 and \"Whether registration refuses them is DEL-02-02's\")"
+        },
+        {
+          "case": "**DS-3",
+          "count": 1
+        },
+        {
+          "case": "**DS-4",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **SP-5 (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **SP-3",
+          "count": 1
+        },
+        {
+          "heading": "### 4.8 Re-confirming a registered revision for use (CC-WR-RECONFIRM; PROPOSED)"
+        },
+        {
+          "heading": "### 5.1 Draft (per draft folder)"
+        },
+        {
+          "heading": "### 16.2 Composition (framing WR-FRAME-1; PROPOSED, fixed by the schema's patterns)"
+        },
+        {
+          "heading": "### 16.6 Supply check against Codex's history (R19-7; R21-4; PROPOSED)"
+        },
+        {
+          "case": "**LS-1",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "case": "**LS-4",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md": {
+      "sha256": "2a5fe50cd1bb091e909ded735e3231732816a951c210b4cfe1f0eeb8d9aed0a3",
+      "selectors": [
+        {
+          "case": "VC-E-17 Run end and runs in sequence",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        },
+        {
+          "case": "VC-E-18 Per-run workflow supply",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        },
+        {
+          "paragraphPrefix": "- **RE-4 Interruption",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RE-6 Run owner",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RE-7 Runs in sequence",
+          "count": 1
+        },
+        {
+          "heading": "### 2.6 Operating sequences with failure behaviour (current phase; S1-C EXEC 7)"
+        },
+        {
+          "heading": "### 6.1 Trace links (original and revised identities)"
+        },
+        {
+          "case": "**AE-7",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md": {
+      "sha256": "463c23b34680e509a98aa77ac8c733a09c2987ac64a02b5b40ccf2a7f82d71a3",
+      "selectors": [
+        {
+          "case": "VC-37",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        },
+        {
+          "case": "VC-40",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        },
+        {
+          "case": "R3",
+          "count": 3
+        },
+        {
+          "case": "**FR-06",
+          "count": 1,
+          "columns": [
+            0,
+            1
+          ]
+        },
+        {
+          "case": "**L-4",
+          "count": 1,
+          "columns": [
+            0,
+            1
+          ]
+        },
+        {
+          "heading": "### 6.2 Rules"
+        },
+        {
+          "heading": "## 7. Content binding and lapse comparison rule"
+        },
+        {
+          "heading": "### 13.6a Native workflow supply receiving (CC-RS-WR-SUPPLY-FIT)"
+        },
+        {
+          "heading": "### 14.2 Reader"
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md": {
+      "sha256": "fe6740fa33cd760403df3ca575bf5f9b431727839419b021fd7b8627c3b835f6",
+      "selectors": [
+        {
+          "heading": "### 3.1 Outcomes"
+        },
+        {
+          "heading": "### 3.2 Run basis and evidence labels"
+        },
+        {
+          "heading": "### 3.3 Activity"
+        },
+        {
+          "heading": "### 3.4 Evidence provenance, fixture standing and limits"
+        },
+        {
+          "heading": "### 3.5 The rule set (EXP-R1…EXP-R9)"
+        },
+        {
+          "heading": "### 4.1 Result record — `exam.result-record.schema.json`"
+        },
+        {
+          "heading": "### 4.2 Review record — `exam.review-record.schema.json`"
+        },
+        {
+          "heading": "### 4.3 Change-impact record — `exam.change-impact.schema.json`"
+        },
+        {
+          "heading": "### 4.4 Support revision"
+        },
+        {
+          "heading": "### 6.2 Reopening (REQ-004; V4-EXM-03)"
+        },
+        {
+          "heading": "### 6.3 Repair with the criterion protected (REQ-005; V4-EXM-05)"
+        },
+        {
+          "heading": "## 9. Native and browser evidence kept apart"
+        },
+        {
+          "paragraphPrefix": "**Reviewer (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-1 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-2 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-3 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-4 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-5 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **N-1 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **N-2 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **Route change.",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **WKWebView identity.",
+          "count": 1
+        },
+        {
+          "case": "`model_only",
+          "count": 1
+        },
+        {
+          "case": "`seam_replay",
+          "count": 1
+        },
+        {
+          "case": "`seam_live",
+          "count": 1
+        },
+        {
+          "case": "`interface_webkit",
+          "count": 1
+        },
+        {
+          "case": "`interface_chromium",
+          "count": 1
+        },
+        {
+          "case": "`native_development",
+          "count": 1
+        },
+        {
+          "case": "`native_packaged",
+          "count": 1
+        },
+        {
+          "heading": "### 8.3 Definition checks for a runner or an N-2 tool (R23-17 item 3)"
+        },
+        {
+          "heading": "## 5. Fixture support (OUT-001; REQ-001)"
+        },
+        {
+          "heading": "### 6.1 Case state (per case, per subject)"
+        },
+        {
+          "heading": "### 8.2 Native-step form (route N-1; U-EXP-3, decided)"
+        },
+        {
+          "paragraphPrefix": "**Interface runner (",
+          "count": 1
+        }
+      ]
+    },
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md": "acbdb61f2301462a802aefe72c6d73953624b206e3a8c66fac6338ca19928588",
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md": {
+      "sha256": "7cd4c3cd335114d3b7d455eac221551e5836f9ed636a02d9ef62d7d48f94596a",
+      "selectors": [
+        {
+          "heading": "## Authority and selection boundary"
+        },
+        {
+          "heading": "## Binding and selection"
+        },
+        {
+          "heading": "## Required checks and preserved limits"
+        }
+      ]
+    },
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/binding.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/declaration.json": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md": "ad1db79bb586ea1168223a187d771617cec05ecd1ced984f679282312f266ef0",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py": "65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6",
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/ScopeOfWork.md": {
+      "sha256": "8cb4ce5f78fc791a318d52b31bf0cab5f6744e8c3a416421a4044aca713ef679",
+      "selectors": [
+        {
+          "paragraphPrefix": "- **REQ-001**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-002**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-003**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-004**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-005**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-006**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-007**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-008**",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md": {
+      "sha256": "abfe800ba2e646341e69c0304249890400301ed6d6d32b6bf386e4e8e499b364",
+      "selectors": [
+        {
+          "heading": "## 3. Case definitions (OUT-001; the step map)"
+        },
+        {
+          "heading": "## 4. Route, configuration and evidence"
+        },
+        {
+          "heading": "## 5. The dossier (OUT-002) — `sq.dossier.schema.json`"
+        },
+        {
+          "heading": "## 6. States and sequence"
+        },
+        {
+          "heading": "## 7. Failure behaviour"
+        },
+        {
+          "heading": "## 8. Return to DEL-11-03 (AC-008)"
+        },
+        {
+          "heading": "## 9. What the person must do, and what is never automated"
+        },
+        {
+          "paragraphPrefix": "- **Pin basis (",
+          "count": 1
+        }
+      ]
+    },
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/ScopeOfWork.md": "64533cfdc825da17b41f3e1d754bf549e42d76488aabecfac85e74ee65aae878"
+    "projects/chirality-app-v4/app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "1ab01131468a27f3a4381dc81972e99a016662c95c769b619c5769883e76d9ba",
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md": {
+      "sha256": "e73ba05a10bd8c1722e42404016b40bb6de6dd6de156baedba7603da06e5f77e",
+      "selectors": [
+        {
+          "heading": "## Existing method remains intact"
+        },
+        {
+          "heading": "## Explicit new receiving cohort"
+        },
+        {
+          "paragraphPrefix": "A future maintained SQ receiver must freeze",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The receiver reports exact correspondence",
+          "count": 1
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md": {
+      "sha256": "b5e8dc3dbbc5fd3fdeff63d534d9795749a84ab76617e33f5a20134366bb7a12",
+      "selectors": [
+        {
+          "heading": "## Governing sources and inherited obligations"
+        },
+        {
+          "heading": "## S1: fixed sources, exact files, explicit citations"
+        },
+        {
+          "heading": "## S2: review evidence and conditional attachments"
+        },
+        {
+          "heading": "## S3: Report and validation order"
+        },
+        {
+          "paragraphPrefix": "Implementation must preserve original record bytes",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The new choices selected for this route",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The following source-level acceptance obligations",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The cases retain the reviewed proposal",
+          "count": 1
+        },
+        {
+          "case": "01/16",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "11",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "15",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "17",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md": {
+      "sha256": "8dd3572a17308ecffc10f74fc677f36285505dc094b7b1dbfd9b1a8ae2828909",
+      "selectors": [
+        {
+          "paragraphPrefix": "The owner approved this successor condition",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Schemas, step maps, executable validators/helpers",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The original full-byte publication tuple",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The existing sidecar remains a declaration",
+          "count": 1
+        }
+      ]
+    }
   },
   "fixture_roles": {
     "revision_1_workflow": {

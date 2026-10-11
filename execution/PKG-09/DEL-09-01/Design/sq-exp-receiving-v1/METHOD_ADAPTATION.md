@@ -58,6 +58,14 @@ resolution semantics are added by this support adaptation.
 
 ## Propagation and limits
 
+The owner-approved documentary source successor is
+`../support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md`. The current-producer
+receiver checks that selected meaning separately from the original full-byte
+publication snapshot; historical correspondence remains on the original
+condition. Its report identifies the successor as checked at that read, never
+as evidence that an older producer used it. Existing record and sidecar formats
+continue to identify their original full support tuple and exact bytes.
+
 A future maintained SQ receiver must freeze both supplements and the complete
 selected SQ/EXP/schema/prototype/validator source closure under its own reviewed
 pins. Original canonical, S4, standalone preparation and native-form pins/code

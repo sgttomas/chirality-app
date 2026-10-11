@@ -233,7 +233,7 @@ def main():
     states = {nm.card_state(rd.entries[r])[0] for r in rd.order}
     print("     final card states of the walk:", ", ".join(sorted(states)))
 
-    # CC-H/CI-2: equal spawn counters in another session/home are not this generation.
+    # CC-H (HOSTING H5): equal spawn counters in another session/home are not this generation.
     for changed_field in ("appSession", "home"):
         rg = nm.RegisterDouble(declared=off)
         rg.receive("same-counter", "item/fileChange/requestApproval", {"threadId": "t"}, nm.FIXTURE_GENERATION)

@@ -34,6 +34,8 @@ class PreRunInputsTests(unittest.TestCase):
         return self.inputs.check(payload, self.api.sha(payload), self.plan)
 
     def test_connected_all_cases_preserve_original_blank_and_missing_inputs(self):
+        _, condition = self.inputs.support.source_condition('current_producer_declaration')
+        self.assertEqual(condition['method'], 'selected-documentary-source-condition/v2')
         self.inputs.check(self.selected, self.selected_sha, self.plan)
         self.assertEqual(len(self.selection['fixture_roles']), 13)
         self.assertIsNone(self.selection['candidate_slot']['revision'])
@@ -94,27 +96,27 @@ class PreRunInputsTests(unittest.TestCase):
         target = self.inputs.snapshot / relative
         target.write_bytes(target.read_bytes() + b'\n')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'fixture drift'): self.api.PreRunInputs()
+            with self.assertRaisesRegex(ValueError, 'fixture drift'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
         target.unlink()
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaises(OSError): self.api.PreRunInputs()
+            with self.assertRaises(OSError): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
 
     def test_unlisted_fixture_companions_and_directories_refuse(self):
         directory = self.inputs.snapshot / 'projects/chirality-app-v4/app/examination/standalone/fixtures/revision-1/invented-pipe-inventory'
         extra = directory / 'extra.py'; extra.write_text('unexpected companion')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'unexpected fixture file'): self.api.PreRunInputs()
+            with self.assertRaisesRegex(ValueError, 'unexpected fixture file'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
         extra.unlink(); extra.mkdir()
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'unexpected fixture directory'): self.api.PreRunInputs()
+            with self.assertRaisesRegex(ValueError, 'unexpected fixture directory'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
 
     def test_actual_source_and_helper_pin_drift_refuse(self):
         target = self.inputs.snapshot / 'projects/chirality-app-v4/app/examination/standalone/prepare.py'
         target.write_bytes(target.read_bytes() + b'\n')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'source drift'): self.api.PreRunInputs()
+            with self.assertRaisesRegex(ValueError, 'source drift'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
         with patch.object(self.api, 'PINS_SHA256', '0' * 64):
-            with self.assertRaisesRegex(ValueError, 'pins changed'): self.api.PreRunInputs()
+            with self.assertRaisesRegex(ValueError, 'pins changed'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
         with patch.object(wrapper, 'PINS_SHA256', '0' * 64):
             with self.assertRaisesRegex(ValueError, 'pins changed'): wrapper.consumer()
 

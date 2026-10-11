@@ -12,13 +12,16 @@ ROOT = HERE.parents[4]
 
 
 def consumer(root=ROOT):
-    lock = json.loads((HERE / 'sources.live-end-v1.json').read_text())
+    lock = json.loads((HERE / 'sources.json').read_text())
+    captured = {}
     for item in lock['sources']:
-        if hashlib.sha256((root / item['path']).read_bytes()).hexdigest() != item['sha256']:
+        raw = (root / item['path']).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != item['sha256']:
             raise ValueError('standalone consumer source drift: ' + item['path'])
+        captured[item['path']] = raw
     spec = importlib.util.spec_from_file_location('chirality_b7_native_form_consumer', root / lock['sources'][0]['path'])
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    exec(compile(captured[lock['sources'][0]['path']], str(spec.origin), 'exec'), module.__dict__)
     return module
 
 

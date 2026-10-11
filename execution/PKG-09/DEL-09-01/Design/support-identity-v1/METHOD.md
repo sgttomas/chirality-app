@@ -91,6 +91,13 @@ Filesystem link checks are best effort, not hostile concurrent-filesystem custod
 
 ## Effective cohort and propagation
 
+The owner-approved successor documentary condition is defined in
+`DOCUMENTARY_SOURCE_CONDITION.md`. For current-producer reads, that condition
+binds today's cited rows and governing clauses; the original publication tuple
+remains a separate exact frozen-source check. Historical correspondence retains
+the original full-byte method. The receiving report identifies the additional
+condition at that read; an existing sidecar never proves its producer used it.
+
 The canonical `app/examination/support_identity/canonical.py` CLI/API and PKG's
 receiving supplement form this method's initial full-identity cohort. Producers
 using this route freeze their selected basis and retain both original record and
@@ -102,7 +109,16 @@ Native-form and SQ preparation do not yet consume or admit these canonical
 bindings; their pinned sources remain unchanged. Their later receiving work, and
 S4 distribution-reference/attestation/runtime joins, must explicitly adopt this
 method and add their own checks before claiming its guarantees. The receiving
-notice records those owners and points of need. This bounded CI-26 representation
+notice records those owners and points of need. This bounded support-identity representation
 and initial consumer closure is separate from M1 runner admission, M2/M3 native
 witnesses, SQ qualification and product release. It changes no group ordering,
 deliverable set, native criteria or owner decision rights.
+
+## Current implementation conditions
+
+**Open qualification and receiving conditions.** The full support tuple's
+representational gap is closed for the explicitly adopted consumer cohort.
+Complete M1 runner/native qualification, M2/M3 witnesses and other receivers'
+full adoption remain separate. The later fixed SQ route is governed by
+DEL-09-02 `sq-exp-receiving-v1/RECEIVING.md`; neither it nor a consistent file
+join establishes supplier or package qualification.

@@ -98,6 +98,15 @@ answers to supplier questions; PEC projections.
 - **DV-9 Derived only.** Rendering or rebuilding writes no file and no record;
   the input files' hashes are the same before and after (VER-005).
 
+**Open receiving condition — record order.** RS §14.2a's warranted-order
+reader and bounded App request/control receiving remove path/UUID/time precedence,
+retain competing identities and lapse history, and keep incomparable branches
+explicit. Full decision-view adoption and native reader/control journeys remain
+open; partial readable-entry rendering is not a total-order claim. Public reads
+are pure. Confirmation rechecks the bound immutable request without treating
+unrelated incomplete logs as a veto; AAC §5.2a cold native-origin custody remains
+separate and unsupplied.
+
 ## 4. Row states
 
 | State | Entered when | Shown as |

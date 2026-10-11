@@ -172,7 +172,7 @@ The prototype exercised AX-01…AX-15 (§8).
 | 7 | Write `human_act` (*direct capture*) or `act_declined` through DEL-04-03's writer | Host → DEL-04-03 | RS entry | Write fails · the writer · capture kept, entry pending · late write with "record write failed" (RS FC-1); the display shows *missing in record* until written (AS §6) |
 | 8 | The checkpoint recorder observes the record (AE-2); `act_counted` / `act_not_counted` / `arrival_declined` are DEL-02-03's | DEL-02-03 | Its entries | DEL-02-03 §2.6 A-8 |
 
-### 4.1a A16: choose, then confirm (CC-A / CI-5 candidate)
+### 4.1a A16: choose, then confirm (CC-A)
 
 The webview may let the person select any alternative named by the package;
 selection is not a capture. Before opening the native confirmation the host
@@ -204,7 +204,7 @@ requires a new native presentation. No callback accepts a new webview-supplied
 alternative as the choice after the native confirmation.
 
 For A16, if package scope is absent or empty, the host sets offer scope to
-**"not named by the package"** (CI-4; owner answer relayed 2026-10-04:
+**"not named by the package"** (AAC §4.1a scope handoff; owner answer relayed 2026-10-04:
 "Use the explicit absence label (recommended)"; this run's OWNER_DECISIONS.md).
 This is an explicit absence label, not inferred scope. The native confirmation
 shows exactly that label, and capture and RS copy it unchanged. Nonempty package
@@ -355,7 +355,12 @@ per-entry descriptor). The Group A App-local capture store is selected in
 or library's store (RS §9 resolution status). External OI-013 and remaining
 OI-014 allocation stay with their owners.
 
-### 5.2a Capture persistence and the record backlink (CC-A / CI-6 candidate)
+**Open outcome receiving condition.** The capture schema admits entry outcomes,
+including *re-confirmed*, but the App currently writes no capture entry outcome
+for registration or re-confirmation. The ledger line and Root status carry the
+outcome; they do not supply this capture-store field.
+
+### 5.2a Capture persistence and the record backlink (CC-A)
 
 **Native-origin precondition (CC-CUST-A, ACT-1).** "Capture" and "original
 captured facts" here mean evidence actually produced by the host-native
@@ -529,7 +534,13 @@ password or Touch ID check per act now);** it stays recorded as an option a
 later decision may take up. The
 interface may show the offer in the webview too, for reading; only the native
 confirmation captures. For A16, the webview selection and host-frozen native
-confirmation follow §4.1a (CC-A / CI-5 candidate).
+confirmation follow §4.1a (CC-A).
+
+**Owner ruling — default key (2026-10-08).** The owner chose "Three buttons;
+Return is safe (Recommended)" for A15, A16 and request-answer confirmations.
+The implemented slots are [Don't ‹act›] [‹Act›] [Cancel], first default; only
+the middle slot acts, and an unmatched, failed or aborted alert captures
+nothing.
 
 ### 6.3 Record provenance
 
@@ -544,11 +555,11 @@ governance-phase matter. The capture-evidence schema carries the optional
 *seal* element at 0.1; the prototype does not implement it.
 
 **SEAL-C (selected and implemented 2026-10-11 for App-file act and decline
-captures; CI-20 (h) review finding R-1).** The owner chose "Merge, track the
+captures; EXEC §2.4 App-file act counting review finding R-1).** The owner chose "Merge, track the
 fix (Recommended)", whose next slice was to "either keep captures and act
 records out of reach of agents, or sign them with a key the host holds". SEAL-C
 is that owner-chosen host-key fix. It is separate from SEAL-2, which stays
-deferred ("Keep SEAL-2 deferred; continue other work"; CI-10): SEAL-C uses the
+deferred ("Keep SEAL-2 deferred; continue other work"; AAC §5.2a cold provenance): SEAL-C uses the
 capture schema's optional `seal` element with a key in the App data folder, and
 adopts no OS key store, no entry seal and no signing. The owner confirmed this
 scope on 2026-10-11 ("Yes, within it (Recommended)"): the host-key fix is what
@@ -604,7 +615,7 @@ the App data folder, and the key moves to the OS keychain at signing (OI-011):
   data folder (Codex's default read access does). SEAL-C shows a capture was
   sealed by a holder of this installation's key; it shows neither that a person
   acted nor who (K1-4), and it is not native-origin proof for cold replay
-  (§5.2a; CI-10 stays open). The backlink is not sealed, so a writer of the
+  (§5.2a; cold native-origin proof remains open). The backlink is not sealed, so a writer of the
   project's files can still make a genuine act uncounted (for example by
   editing the backlink or adding a second record on its capture, R-8); a
   writer without read access to the key cannot make a new one count. A sealed
@@ -693,8 +704,8 @@ same three sources to form its actor reference (NIR §4.5), so the register's
   selected P-2/Rust implementation (§6.2). Independent backcheck and product
   adoption remain required. Schema shapes and CC-A's capture sequence unchanged.
 
-- CC-A candidate (2026-10-04): AAC-v0.4; CI-4 owner-selected absence label and CI-5 §4.1a/§6.2;
-  CI-6 §4.4/§5.2a;
+- CC-A candidate (2026-10-04): AAC-v0.4; owner-selected absence label and native choice confirmation (§4.1a/§6.2);
+  capture persistence and backlink (§4.4/§5.2a);
   existing schema shapes unchanged (0.3). Change account and captured basis:
   `execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-A.md`.
   Independent review and consumer adoption pending; no product propagation.
@@ -705,3 +716,33 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 - RV21 (repairs from V21, 2026-10-02; in place, no version step): R21-3, V21-A MINOR 1–3, V21-B m-11; row "RV21" in "Changes from v0.1".
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1".
 - v0.1 (D round 1): first version.
+
+## Current implementation conditions
+
+**Open readability adoption condition.** The App implements a native statement
+bounded to 30 lines and 1500 characters, with no truncation. A15 names the
+complete review by reference and `aac-offer-digest/0.1`; oversized A16 chosen
+content, logout assessments, request answers and attachment comparisons use a
+digest-named complete App display before and while confirmation is open. The
+host checks the frozen content/digest at capture; the App display is a reading
+aid and a compromised webview could display other bytes beside that digest.
+Content with non-integer numbers is refused with its JSON Pointer because the
+selected digest defines integers only. Fixed statement parts with no usable
+route are refused with the cause, never recorded as the person's cancel.
+These implemented routes run ahead of AAC §4.1a/§6.2 adoption; the proposed
+wording extending those clauses is **not adopted** here. The bounds are not
+natively witnessed, actual native authenticity remains open, and A16 and
+request-answer dialogs need their own witnesses.
+
+**Open single in-place descriptor condition.** WR DS-7's one `entry:` reviewed
+reference is refused by `aac.offer.schema.json` `allOf/6`, which requires the
+`draft:` form for a single `a15_descriptor`; multi-entry in-place registration
+works. AAC/WR have not settled admitting `entry:` or another DS-7 form.
+
+**Open native confirmation witnesses.** The dated A15 native observation found Escape and Return closed it
+without capture/registration and a click on the middle button registered; it
+did not distinguish the non-act slot or witness A16/request-answer dialogs.
+File acts are excluded: they retain [act (default)] [Decline this act] [Cancel]
+until a custom surface exists whose abort cannot be read as a decline, so
+Return still performs a file act. Logout, sign-in cancellation and attachment
+source retain their two-button layouts.

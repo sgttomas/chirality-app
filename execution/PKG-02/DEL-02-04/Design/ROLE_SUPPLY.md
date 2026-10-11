@@ -152,11 +152,14 @@ structural/source analysis is a separate warrant, not a rewritten PASS.
 review identities, source paths, custody and receiving limits. The generic
 field contract does not narrow permitted other-role/no-role composition, but
 this sample proves no other/no-role native supply. Rust Host/store/seeding joins,
-other primary roles, TASK-child supply, lifetime/resume/fork, child carrier,
-provider/model adoption, delegation availability/enforcement and qualification
-still require their own candidate evidence. Native child supply stays
-**not-supplied** until its actual carrier/custody/configuration evidence exists;
-0.158.0 adapter observations below remain historical. Runtime capability values
+other primary roles, lifetime/resume/fork, provider/model adoption,
+delegation availability/enforcement and qualification still require their own
+candidate evidence. The separately maintained
+[child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md) observes per-thread TASK
+configuration and exact child bytes in scripted stock-supplier execution with
+clean and full-history delegation. It does not establish App configuration,
+publication or child-role reconciliation. The current App still reports child
+roles **not-supplied**; 0.158.0 adapter observations below remain historical. Runtime capability values
 are read from the actual acting route, never inferred from0.160.0 or this sample.
 
 ## 3. Selection
@@ -289,6 +292,7 @@ authoring convention, not a supply condition).
   non-UTF-8 file refuses the start (v0.2: "start" for "supply") with its
   reason (RC-08, RC-09); the App never substitutes the shipped default
   without the person's restore.
+
 - **GS-6 New release.** For each file: if the copy still equals the default
   that was seeded, it takes the new default (`release-default-applied`); if
   the person modified it, it is kept and flagged "a new default is available"
@@ -407,10 +411,16 @@ instructions on resume or fork (RC-07, RC-11; schema IS-1, IS-6, IS-9).
 ### 5.3 Native child roles (R17-9 as amended by R18-4)
 
 **Current0.160.0 receiving standing:** the primary sample §2.1 does not establish
-the child carrier. The requirements and historical0.158.0 adapter mechanism
-below remain; current native children/config files are not reported supplied
-from field existence or primary-role carriage. User-defined role names and the
-person's native configuration remain untouched. U-R3 stays open.
+the child carrier. The [maintained supplier check](CHILD_ROLE_CARRIER_0.160.0.md)
+separately observes the per-thread dotted configuration carrier, exact
+common+TASK bytes and correlated child metadata. Its native child identity comes
+from completed `subAgentActivity(kind=started).agentThreadId`, not the
+historical CR-5 item shape. Missing/malformed role files and a person-defined
+TASK collision are checked separately. The requirements and historical
+0.158.0 adapter mechanism below remain; the App's actual configuration,
+content-bound file publication and child reconciliation are not supplied by
+this fixture. U-R3 remains open for that App implementation and evidence;
+there is no need to choose session flags for the observed per-thread route.
 
 - **CR-1** A conversation whose role offers child roles (§4.1) is started with
   additive `agents.<CHILD>.description` and `agents.<CHILD>.config_file`. The
@@ -431,6 +441,17 @@ person's native configuration remain untouched. U-R3 stays open.
   (`config/read`) and supplies no child role whose name the person's
   configuration defines; if it cannot read it, none
   (`user-configuration-not-read`). It enables, disables and limits nothing.
+**Open discovery and receiving condition.** Stock 0.160.0 `config/read`
+  returning `agents:null` does not establish complete collision exclusion:
+  per-thread definitions can shadow a person's standalone `agents/` definition
+  without those origins appearing in that response. ACCESS/HOST M-A shares
+  `config.toml`, `AGENTS.md` and `skills`; native `agents/` is outside that set.
+  The controlled native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md`
+  supplies bounded collision/carrier evidence, not complete configuration-layer
+  discovery or actual App child supply. Complete discovery/exclusion, additive
+  child content and base preservation, App publication and actual association
+  remain open; no process-wide fallback or user configuration edit is selected.
+
 - **CR-3** TASK offers no child roles. That is not enforcement (K-10).
 - **CR-4 A child without a role type.** A child spawned with a built-in type
   (`default`, `explorer`, `worker`) or none has **unknown** guidance: not
@@ -666,6 +687,66 @@ requires, since the role file replaces the parent's text. v3's pins of
 `key=value` override strings (`codexNativeRoleConfigOverrides`), which reads as
 `-c` overrides at process start (inference from the code); for v4 that is
 CR-1a's fallback carrier, unobserved at 0.158.0.
+
+### 9.1 Guidance reader implementation observations
+
+The App reader opens the instruction root and role folder as no-follow
+directory descriptors, then opens the selected file relative to that folder
+with no-follow and non-blocking flags. It accepts regular files only; FIFOs,
+directories and devices cannot supply guidance or make it wait for a writer.
+Reading is bounded by the opened file's observed length plus one detection
+byte. It checks file mutation/replacement and root/role-folder replacement
+before accepting the exact buffer. Relative roots and existing ancestor
+aliases retain their prior meaning; static root, role-folder and leaf links
+refuse. Ordinary hard-linked regular files remain readable. The focused
+`role_guidance_reads_tests.rs` cases and public `role_lifecycle` FIFO case
+exercise this boundary; they establish no native supplier uptake or cold
+provenance. Metadata and name rechecks expose persistent changes; they do
+not establish an atomic snapshot of a hostile filesystem. No new guidance
+size policy or fallback is introduced.
+
+### 9.2 Initial-copy writes
+
+The current initial-copy implementation retains the selected existing
+ancestor and each created parent/root/role-folder descriptor before creating
+leaves. Managed entries use no-follow directory-relative creates and exclusive
+file creates, with file/directory sync and directory identity rechecks. A
+store for which root creation returns AlreadyExists is validated without
+adding copies; known existing stores are never repaired. A racing regular
+copy is preserved and checked. Failures can leave partial copies in the
+originally opened store; they remain explicit and are not silently repaired
+on a later start. These are bounded filesystem observations, not an atomic
+hostile-filesystem snapshot, a seed-history custody warrant or native uptake.
+Directory creation and descriptor acquisition are separate operations. A
+normal directory replacing a newly made entry before `openat` can be acquired
+as that entry; the rechecks do not establish its creation custody. Protection
+against redirection begins with the retained objects and does not make that
+acquisition atomic.
+
+### 9.3 Initial seed history and remaining source attribution
+
+After the copies are synced and current guidance validation succeeds, the App
+creates `.seed-record.json` exclusively through the retained instruction root.
+`chirality.instruction-seed-record/1` names the compiled release and the exact
+default content identities of files this call created. Preserved racing paths,
+even when byte-equal to a default, are separate with origin *unknown*. The two
+lists partition the five guidance paths; the App never rewrites this record.
+A store whose creation was preempted is validation-only and gets no invented
+history.
+
+Record creation is a direct exclusive write, not an atomic transaction. A
+write/sync failure can leave partial record bytes and partial guidance copies;
+the call reports failure. A colliding record is preserved and refused. Later
+known-store calls validate guidance only and never repair or recreate history.
+This record is mutable by anyone with file access and supplies no authenticated
+creation custody, native uptake or adoption.
+
+**Open source-history receiving condition.** Production guidance reads still
+receive the compiled release/default reference from the caller; they do not
+consume this history artifact. The source schema's *App release whose default
+was seeded* attribution therefore remains unestablished for older or changed
+stores. Initial record publication does not close that receiving gap or select
+GS-6/U-R9 release-update behavior.
 
 ## 10. Prototype (R17-1)
 

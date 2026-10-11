@@ -465,7 +465,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         let selected = r.select_development_copy(disk.package.clone()).unwrap();
         assert_eq!(selected["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING);
         assert_eq!(selected["selection"]["runnable"], false);
-        // workflow_prepare_run on a development selection (TT-1/TX-1, CI-18).
+        // workflow_prepare_run on a development selection (TT-1/TX-1, WR TT-1/TX-1).
         let refused = r.prepare_run(one.home.clone(), &one.generation, THREAD, "person".into(), Some(&project));
         assert!(refused.as_ref().is_err_and(|e| e.contains("TT-1") && e.contains("TX-1")), "{refused:?}");
         assert!(r.runs.is_empty());
@@ -918,7 +918,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         assert_eq!(descriptor["purpose"], "make it available again in this App session from the project library");
         assert_eq!(descriptor["subject"]["revision"], revision_three.as_str());
         assert_eq!(descriptor["reconfirms"]["sequence"], 3);
-        // J6 integration (CI-24 (f)): the DS-8 descriptor this path composed
+        // J6 integration (WR §4.8 / SQ-X (f)): the DS-8 descriptor this path composed
         // selects J6's re-confirmation statement and its act label.
         let (statement, act_label) = confirm_with_double(&mut r, &reference);
         assert_eq!(act_label, "Re-confirm", "J6's re-confirm act label");

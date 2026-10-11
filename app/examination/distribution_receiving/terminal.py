@@ -11,9 +11,16 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'db04fa8c7ffb1df41c5868f082e5a86e6215a34b8bcb7106a3b4366b364886c8'
+PINS_SHA256 = '828dd8c40a93d01606df58ebc4228c9fb80248e79025f72226c9a673813662e5'
 FORMAT = 'group-b-s1-terminal-reader-exchange.v1'
-ADOPTION = 'B-S4-BUILD-SELECTION-TERMINAL-v1'
+ADOPTION = 'B-S4-STOP-ADMISSION-TERMINAL-v1'
+COHORTS = {
+    'stop-admission': ('pins.stop-admission-terminal-v1.json', PINS_SHA256,
+                       'pins.lt12-combined-terminal-v1.json'),
+    'build-selection': ('pins.build-selection-terminal-v1.json',
+                        'db04fa8c7ffb1df41c5868f082e5a86e6215a34b8bcb7106a3b4366b364886c8',
+                        'pins.stop-admission-terminal-v1.json'),
+}
 LIMITS = [
     'Exported LT09/LT23 pair file correspondence only; no native semantic reader reexecution.',
     'Pre-spawn observation is unchanged, not renewed terminal integrity, custody or descendant proof.',
@@ -32,7 +39,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = '0216f2fa2f0127c1b20eef71b4d90331a47dbf6524b02abd6157a3eb12d0ed28'
+HELPER_SHA256 = '64fcfe4c61e64bc5441749315485a811089012afb3870b7aefca53226ac6d045'
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')
@@ -44,24 +51,28 @@ class PredecessorReceiver(base.Receiver):
 
     No historical pin file/initializer is changed or represented as passing.
     """
-    def __init__(self, pins):
+    def __init__(self, pins, current_inputs):
         self.pins = pins
+        self.current_inputs = current_inputs
         self.schemas = {}
         for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3'):
-            schema = base.parse(base.relative(PROJECT, 'app/src-tauri/resources/distribution-successor/' + name + '.schema.json'))
+            schema = base.parse(current_inputs['app/src-tauri/resources/distribution-successor/' + name + '.schema.json'])
             self.schemas[name] = base.Draft202012Validator(schema, registry=base.Registry())
         path = PROJECT / 'app/examination/support_identity/canonical.py'
-        self.canonical = load('_terminal_canonical', path, base.read_file(path)).CanonicalSupport()
+        self.canonical = load('_terminal_canonical', path, current_inputs['app/examination/support_identity/canonical.py']).CanonicalSupport()
 
 
 class TerminalReceiver:
-    def __init__(self):
-        raw = base.read_file(HERE / 'pins.build-selection-terminal-v1.json')
-        base.require(base.sha(raw) == PINS_SHA256, 'terminal pins changed')
+    def __init__(self, cohort='stop-admission'):
+        base.require(cohort in COHORTS, 'unsupported receiving cohort')
+        pins_name, pins_sha, predecessor_name = COHORTS[cohort]
+        raw = base.read_file(HERE / pins_name)
+        base.require(base.sha(raw) == pins_sha, 'terminal pins changed')
         self.pins = base.parse(raw)
-        for path, digest in self.pins['sources'].items():
-            base.require(base.sha(base.relative(PROJECT, path)) == digest, 'terminal selected source changed: ' + path)
-        self.predecessor = PredecessorReceiver(self.pins)
+        base.require(base.sha(base.read_file(HERE / predecessor_name)) == self.pins['predecessor_pins_sha256'],
+                     'historical predecessor pins changed')
+        current_inputs = base.current_inputs()
+        self.predecessor = PredecessorReceiver(self.pins, current_inputs)
         self.canonical = self.predecessor.canonical
 
     def check(self, path, expected_sha, selection, selection_sha):
@@ -148,7 +159,7 @@ class TerminalReceiver:
         excluded_after = {ref[k]['path'] for k in ('lifecycle', 'transport')}
         base.require({p:b for p,b in before.items() if p not in excluded_before} ==
                      {p:b for p,b in after.items() if p not in excluded_after}, 'terminal shared closure bytes differ')
-        return {'terminal_pair_file_correspondence_passed': True, 'receiving_adoption': ADOPTION,
+        return {'terminal_pair_file_correspondence_passed': True, 'receiving_adoption': self.pins['adoption'],
                 'exchange_sha256': expected_sha, 'selection_sha256': selection_sha,
                 'exported_event_pair': ['LT-09', 'LT-23'], 'case': exchange['case'],
                 'producer': exchange['producer'], 'application_candidate': exchange['applicationCandidate'],
@@ -163,9 +174,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('exchange'); parser.add_argument('--exchange-sha256', required=True)
     parser.add_argument('--selection', required=True); parser.add_argument('--selection-sha256', required=True)
+    parser.add_argument('--cohort', choices=tuple(COHORTS), default='stop-admission')
     args = parser.parse_args(argv)
     try:
-        report = TerminalReceiver().check(args.exchange, args.exchange_sha256, args.selection, args.selection_sha256)
+        report = TerminalReceiver(args.cohort).check(args.exchange, args.exchange_sha256, args.selection, args.selection_sha256)
         print(json.dumps(report, indent=2)); return 0
     except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.TimeoutExpired) as error:
         print(json.dumps({'terminal_pair_file_correspondence_passed': False, 'input_error': str(error),

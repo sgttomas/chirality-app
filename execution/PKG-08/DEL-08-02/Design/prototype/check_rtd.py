@@ -4,7 +4,7 @@ RC-1…RC-4, and its consumption of DEL-08-01's receiving records.
 
 Design prototype (owner O-D). Not product code. Needs Python 3 and
 `jsonschema` (Draft 2020-12, `referencing`). No network; writes nothing.
-It reads EU-D1's frozen Domains receiving records (RUN/D/evidence/records/,
+It reads EU-D1's frozen Domains receiving records (prototype/fixtures/EU-D1/,
 CW and DRC as frozen) and the standing schema, read-only.
 
 Accounts (all invented, built here):
@@ -41,11 +41,11 @@ DESIGN = os.path.dirname(HERE)
 EXEC = os.path.abspath(os.path.join(DESIGN, "..", "..", ".."))
 STANDING = os.path.join(EXEC, "PKG-07",
                         "DEL-07-02", "Design", "connector.standing.schema.json")
-EVID = os.path.join(EXEC, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "D", "evidence", "records")
+EVID = os.path.join(HERE, "fixtures", "EU-D1")
 RESULTS = []
 DRC = os.path.join(EXEC, "PKG-08",
                    "DEL-08-01", "Design", "DOMAINS_RECEIVING.md")
-CFB = os.path.join(os.path.dirname(STANDING), "CONNECTOR_FALLBACK.md")
+CFB = os.path.join(EVID, "CONNECTOR_FALLBACK.md")
 # RTD1-R1 (R23-52 item 4): the bytes this check and RTD-v0.2 rely on
 PINS = {
     STANDING: "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",

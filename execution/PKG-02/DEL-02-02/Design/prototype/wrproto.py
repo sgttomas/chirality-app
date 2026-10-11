@@ -1108,12 +1108,16 @@ def main():
     print("python %s" % sys.version.split()[0])
     for p in (os.path.join(WD_DIR, "prototype", "wdproto.py"), os.path.join(RS_DIR, "prototype", "minischema.py"),
               os.path.join(WD_DIR, "workflow-declaration.schema.json"), os.path.join(RS_DIR, "RS_RECORD.schema.json"),
+              os.path.join(E, "PKG-04", "DEL-04-02", "Design", "AS_SETTINGS_IN.schema.json"),
+              os.path.join(E, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"),
               SCHEMA, VALID, INVALID, os.path.abspath(__file__)):
         print("  input %s sha256 %s" % (os.path.relpath(p, E), sha(p)))
 
     wd_schema = wdproto.load(wdproto.SCHEMA_PATH)
     reg = minischema.Registry()
     reg.add(wd_schema)                       # WD uses keywords outside minischema's subset; tuples are
+    reg.load(os.path.join(E, "PKG-04", "DEL-04-02", "Design", "AS_SETTINGS_IN.schema.json"))
+    reg.load(os.path.join(E, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"))
     reg.load(SCHEMA)                         # cross-checked with wdproto's own validator below
     reg.load(os.path.join(RS_DIR, "RS_RECORD.schema.json"))
     wr = reg.by_id[WR_ID]
