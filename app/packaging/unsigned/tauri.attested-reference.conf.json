@@ -1,0 +1,31 @@
+{
+  "productName": "Chirality App v4 (development candidate)",
+  "version": "0.0.0",
+  "identifier": "dev.chirality.app-v4.skeleton",
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "resources": {
+      "resources/instructions/": "instructions/",
+      "resources/production_workflows/": "workflows/",
+      "resources/distribution-reference/VERSION_ADVANCE_0.160.0.md": "distribution-reference/VERSION_ADVANCE_0.160.0.md",
+      "resources/distribution-reference/build-selection.s2.json": "distribution-reference/build-selection.s2.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+      "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+      "resources/distribution-reference/generated/0.160.0/GENERATION.json": "distribution-reference/generated/0.160.0/GENERATION.json"
+    },
+    "macOS": {
+      "minimumSystemVersion": "15.0",
+      "signingIdentity": null
+    }
+  }
+}

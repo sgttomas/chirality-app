@@ -33,7 +33,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-24 | CC-WR-RECONFIRM and RF-1 implemented; X-2 implemented without an attempt journal (owner ruling 2026-10-10). Questions for the AAC and WR owners remain. |
 | CI-25 | The App appends no re-confirmation line its RC-9 reader would refuse and keeps the attempt pending; a WR owner ruling on G-1R against RC-9 is still needed. |
 | CI-26 | CC-EXP-SUPPORT-IDENTITY-01 merge closes the representational gap for its named consumer cohort; M1 qualification and other receivers keep their partial basis. |
-| CI-27 | OPEN. The A-IN-S3 expected reference for stock 0.160.0 is supplied and attested (2026-10-10); compiled build selection and full-tree preflight are supplied; production custody/resource packaging (S2), receiving joins (S4) and the packaged witness (S5) remain. |
+| CI-27 | OPEN. The A-IN-S3 expected reference for stock 0.160.0 is supplied and attested (2026-10-10); compiled build selection and full-tree preflight are supplied; production custody/actual resource packaging (S2), receiving joins (S4) and the packaged witness (S5) remain. |
 | CI-28 | CC-SQ-J2-ST4 reviewed and integrated: J-2 carries ST-4 with counts, order and semantics unchanged; DEL-11-03 receiving assessment remains. |
 | CI-29 | CFB-v0.3 route-account 0.2 (PR #1130) and the C3-P persistence backend (PR #1137) merged; no source truth, provider wiring or connected witness is claimed. |
 | CI-30 | CC-SQ-EXP-RECEIVING-01 Design and bounded connected receiver independently READY and merged (PR #1161); no actual examination, native witness or qualification is closed. |
@@ -1302,9 +1302,10 @@ changed.
   refuses before execution because no installed-custody issuer is available.
   The accepted default legacy route is unchanged. The committed closure copies
   are checked byte-for-byte against Design by `schemas/sync.py`.
-  CI-27 stays OPEN: the production bundle still needs an explicit resource
-  mapping for `distribution-reference/` (DEL-01-06), installed custody (S5/OI-011),
-  actual packaged witness (S5). The S4 file receivers now select fresh synthetic
+  CI-27 stays OPEN: an opt-in `tauri.attested-reference.conf.json` now
+  maps the exact twelve-file closure to `distribution-reference/`, checked with
+  Tauri's actual SDK mapper. Actual bundle content/native checks, installed
+  custody (S5/OI-011) and the packaged witness (S5) remain. The S4 file receivers now select fresh synthetic
   exports of the reviewed build-selection source through named fixed cohorts;
   their exact-byte joins retain historical-source and authority refusals. This
   restores receiving checks, without supplying actual native/package reliance.
