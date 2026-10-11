@@ -54,7 +54,7 @@
     {
       "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
       "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
-      "sha256": "sha256:8d8646170af216ca82e30e7b9588c52dc99608a71750342e6681b3be8b1fdef6"
+      "sha256": "sha256:90d8ff7d8fa741fb65783cb3bb607bc72131214b1d3a713d38dae75a9083af30"
     },
     {
       "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
@@ -74,7 +74,7 @@
     {
       "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
       "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
-      "sha256": "sha256:7c514cc32caff6d85a36ad7c3b0c28280315f56c0f7f3afc0973eb6ebd357e31"
+      "sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4"
     },
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
