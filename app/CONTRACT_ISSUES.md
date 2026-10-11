@@ -571,8 +571,12 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   per capture. Any other record that names an arrival's file is an
   "unresolvable reference" limit, never an act (RS §13.7). A capture file is
   a readable claim; native origin is not verified (as `file_act_view`), and
-  each arrival's limits say so. Whether anyone who can write `.chirality/`
-  could forge a record together with its capture is open for the owner.
+  each arrival's limits say so. Anyone who can write `.chirality/` could
+  forge a record together with its capture; the owner accepted this risk for
+  now (2026-10-11: "Merge, track the fix (Recommended)"), with the limit
+  written on every arrival. The fix is the next slice: keep captures and act
+  records out of reach of agents, or authenticate them with a key the host
+  holds.
   `run_ended` lists every recorded arrival whose latest disposition is
   *waiting* (CE-17), after counting the acts recorded since the last
   observation; after a relaunch (`end_recorded_run`) the acts are counted from
