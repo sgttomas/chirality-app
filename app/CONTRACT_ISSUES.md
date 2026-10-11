@@ -570,13 +570,19 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   choice, actor, subject, content, scope, purpose and time, and one record
   per capture. Any other record that names an arrival's file is an
   "unresolvable reference" limit, never an act (RS §13.7). A capture file is
-  a readable claim; native origin is not verified (as `file_act_view`).
+  a readable claim; native origin is not verified (as `file_act_view`), and
+  each arrival's limits say so. Whether anyone who can write `.chirality/`
+  could forge a record together with its capture is open for the owner.
   `run_ended` lists every recorded arrival whose latest disposition is
   *waiting* (CE-17), after counting the acts recorded since the last
   observation; after a relaunch (`end_recorded_run`) the acts are counted from
   the run's own record first. While an arrival waits and the act records
-  cannot be read, either end is refused with the reason. Readings where EXEC
-  is silent, chosen in implementation:
+  cannot be read, the person's end still ends the run (A-11): an
+  "unresolvable reference" limit naming the unread act records and why is
+  written before `run_ended`, live and after a relaunch. (After a relaunch an
+  incomplete record set still refuses the end as before, since nothing can
+  be appended to it, RS W-1.) Readings where EXEC is silent, chosen in
+  implementation:
   - An App-content act is on an arrival's subject when its bound subject
     names the arrival's file; that binding is taken as covering the referent
     (SP-5), since the declared scope is prose. AW-7's content identity is
@@ -585,8 +591,8 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
     "after arrival" (both App-written RFC 3339 times; equal times are "after
     arrival"; a record with another time form is not counted).
   - Before the arrival, the latest decision of the required kind on the
-    current content governs (design-owner choice for this implementation,
-    2026-10-11): an act makes the arrival *performed* "by earlier act"
+    current content governs (an implementation reading where the Design is
+    silent, chosen as the more cautious one): an act makes the arrival *performed* "by earlier act"
     (SP-6), a decline resolves it negatively (CE-8), and earlier decisions of
     that kind on that content are superseded. A decline counts only on the
     arrival's current content (its capture's content), before or after the

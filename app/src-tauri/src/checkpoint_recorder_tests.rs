@@ -3,6 +3,11 @@
 //! CE-17 waiting arrivals, and the EXEC entry-body schema.
 use super::*;
 
+thread_local! {
+    /// Called by `file_content` between the read and its recheck (tests only).
+    pub(crate) static DURING_READ: std::cell::RefCell<Option<Box<dyn Fn(&std::path::Path)>>> = const { std::cell::RefCell::new(None) };
+}
+
 pub(crate) const DECLARATION: &str = r#"{
  "declaration_contract_version": "WD-v0.8",
  "required_tools": [{"name":"add-support","class":"host_operation","operation":"OP-C4","versions":["v1"],"purpose":"Propose added supports.","necessity":"required","stages":["Propose"]}],
@@ -311,6 +316,7 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_not_counted", "disposition_change", "act_not_counted", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
     assert_eq!(outputs[0].1["referents"][0], json!({"subject":RELY,"content":{"method":EXACT_BYTES,"value":crate::util::sha256_hex(b"v1"),"scope":"the file's bytes as the App read them after observing the completed change"}}));
     assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l == FILE_READ_LIMIT));
+    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A capture is a readable claim; its native origin is not verified.")), "the run record says native origin is unverified");
     let arrival = json!({"checkpoint":"CP-rely","arrivalOrdinal":1});
     assert_eq!(outputs[2].1, json!({"arrival":arrival,"act":{"recordId":a4,"actKind":"A4","capturedAt":AFTER,"capturingSurface":"app_act_control"},"reason":"another act kind","capturedBeforeArrival":false}));
     assert_eq!(outputs[3].1["disposition"], "waiting");
@@ -435,6 +441,50 @@ fn records_not_verified_against_their_capture_count_nothing() {
     assert_eq!(waiting_arrivals(&all), vec![json!({"checkpoint":"CP-rely","arrivalOrdinal":1})]);
     assert!(count_acts(&all, &read, &root).is_empty(), "each limit is written once");
     std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-c 1: a record whose bound content differs from its capture's is not an act, even
+// when the record's content is the arrival's.
+#[test]
+fn a_record_whose_content_differs_from_its_capture_does_not_count() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let capture = capture_of("act", "A7", &file, &digest("v0"), AFTER);
+    store(&root, &capture);
+    let mut body = crate::act_control::act_body(&capture);
+    body["boundContent"] = json!([digest("v1")]);
+    let id = crate::records::append(&root.join(crate::recorder::LOG), "human_act", &crate::records::APP_INTERFACE, body).unwrap()["recordId"].as_str().unwrap().to_owned();
+    let (all, outputs, read) = observe_with(&root);
+    assert!(read.acts.is_empty());
+    assert_eq!((read.unresolved[0]["record"]["recordId"].as_str(), read.unresolved[0]["reason"].as_str()), (Some(id.as_str()), Some("the record differs from the capture it cites")));
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "evidence_limit"]);
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-c 2: a file that changes while it is read is not obtainable (RS §6.2a coherent snapshot).
+#[test]
+fn a_file_changed_during_the_read_is_not_obtainable() {
+    let root = project("v1");
+    DURING_READ.with(|hook| *hook.borrow_mut() = Some(Box::new(|file: &std::path::Path| {
+        let mut f = std::fs::OpenOptions::new().append(true).open(file).unwrap();
+        std::io::Write::write_all(&mut f, b" and more").unwrap();
+    })));
+    let content = file_content(&root, "out/summary.md");
+    DURING_READ.with(|hook| *hook.borrow_mut() = None);
+    assert_eq!(content["notObtainable"], true, "{content}");
+    assert!(content["reason"].as_str().unwrap().starts_with("the file changed while it was read"));
+    assert_eq!(file_content(&root, "out/summary.md")["value"], crate::util::sha256_hex(b"v1 and more"), "read again once it is still");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-b: the limit written when the act records cannot be read at an end is a conformant RS entry.
+#[test]
+fn the_unread_acts_limit_is_conformant() {
+    let limit = acts_unread_limit("the project's record set is incomplete");
+    conformant(&[limit.clone()]);
+    assert_eq!(limit.1["label"], "unresolvable reference");
+    assert!(limit.1["detail"].as_str().unwrap().contains("record set is incomplete"));
 }
 
 // m-2 (RS R-6): a corrected act record is not current, so it never counts; its correction

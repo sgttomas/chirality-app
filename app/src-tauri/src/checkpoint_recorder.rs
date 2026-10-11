@@ -36,7 +36,7 @@ use std::path::Path;
 
 /// The App's exact-byte content method (RS §6.2a, CC-CONTENT-RX).
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
-const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). Acts on host content and A12 control relations are not observed by this App.";
+const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). Acts on host content and A12 control relations are not observed by this App. A capture is a readable claim; its native origin is not verified.";
 const MESSAGE_ACT_LIMIT: &str = "No App act control binds an act to an agent message (CAP-1 binds App files by content identity), so no act can be counted for this arrival.";
 const MESSAGE_LIMIT: &str = "The designating line marks where the agent put the output; it does not show that the content is what the declaration describes (AW-6).";
 const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path after removing the project root from an absolute path and normalizing `.` segments and repeated separators on both sides; a path with `..` never matches; how Codex reports file paths is not observed (O-8, U-E26).";
@@ -562,6 +562,8 @@ fn file_content(root: &Path, declared: &str) -> Value {
             }
             hasher.update(&buf[..n]);
         }
+        #[cfg(test)]
+        tests::DURING_READ.with(|hook| if let Some(hook) = hook.borrow().as_ref() { hook(&file) });
         let after = f.metadata().map_err(|e| e.to_string())?;
         let named_after = std::fs::symlink_metadata(&file).map_err(|e| e.to_string())?;
         if stamp(&before) != stamp(&after) || stamp(&after) != stamp(&named_after) {
@@ -870,6 +872,13 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         read.unresolved.extend(refused.into_iter().map(|a| json!({"record":a["record"],"reason":"several records cite one capture (RS R-8)"})));
     }
     Ok(read)
+}
+/// The limit written before `run_ended` when the person ends a run while an
+/// arrival waits and the act records cannot be read (EXEC A-11: the person's
+/// explicit end ends the run; it is not refused).
+pub(crate) fn acts_unread_limit(reason: &str) -> Output {
+    ("evidence_limit", json!({"label":"unresolvable reference","subjectRef":"the project's act records",
+        "detail":format!("The project's act records could not be read when the run ended, so acts recorded since the last observation were not counted and waitingArrivals may list an arrival whose act was done: {reason}")}))
 }
 /// A fingerprint of the project's record logs and capture store (paths,
 /// sizes and modification times): the act records are read again only when

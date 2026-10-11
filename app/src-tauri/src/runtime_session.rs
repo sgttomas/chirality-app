@@ -4977,13 +4977,12 @@ impl WorkflowRootSession {
         if !limits.is_empty() {
             return Err(format!("The run record is incomplete, so its waiting arrivals cannot be read; nothing recorded: {limits:?}"));
         }
-        let acts = crate::checkpoint_recorder::project_act_records(project)
-            .map_err(|e| format!("The recorded acts cannot be read, so the arrivals still waiting cannot be listed; nothing recorded: {e}"))?;
         let mut run_entries: Vec<Value> = recorded.into_iter().filter(|e| e["runId"] == run).collect();
         let opened_workflow = run_entries.iter().find(|e| e["kind"] == "run_opened").map(|e| e["body"]["workflow"].clone()).unwrap_or(Value::Null);
         // CE-5/CE-6/CE-8 from the run's own record (RC-10): acts recorded while the
-        // run was interrupted are counted before its waiting arrivals are listed.
-        for (kind, body) in crate::checkpoint_recorder::count_acts(&run_entries, &acts, project) {
+        // run was interrupted are counted before its waiting arrivals are listed. As
+        // for a live end, unreadable act records give a limit, not a refusal (A-11).
+        for (kind, body) in end_counting(&run_entries, project) {
             let mut entry = crate::records::supply::PendingRunEntry::new(kind, body.clone(), crate::util::now_rfc3339())?;
             crate::records::supply::append_run_entry(project, run, &mut entry)
                 .map_err(|e| format!("A counted act could not be recorded, so the run was not ended: {e}"))?;
@@ -5306,6 +5305,18 @@ impl WorkflowRootSession {
         view["endedAfterRelaunch"] = self.reopened_ends_view();
         self.reopened = Some(view.clone());
         Ok(view)
+    }
+}
+/// CE-5/CE-6/CE-8 at an end after relaunch: the acts counted from the run's own
+/// record or, while an arrival waits and the act records cannot be read, the
+/// limit naming them (A-11: the end is not refused).
+fn end_counting(run_entries: &[Value], project: &std::path::Path) -> Vec<crate::checkpoint_recorder::Output> {
+    if crate::checkpoint_recorder::waiting_arrivals(run_entries).is_empty() {
+        return vec![];
+    }
+    match crate::checkpoint_recorder::project_act_records(project) {
+        Ok(acts) => crate::checkpoint_recorder::count_acts(run_entries, &acts, project),
+        Err(e) => vec![crate::checkpoint_recorder::acts_unread_limit(&e)],
     }
 }
 /// Starts a prepared run (CH-1 rechecked at dispatch). The Root lock is not held
@@ -6661,14 +6672,15 @@ impl WorkflowRun {
             return Err("successor workflow name invalid; nothing ended".into());
         }
         // CE-5/CE-6/CE-8 for acts recorded since the last observation, then CE-17:
-        // the arrivals whose recorded disposition is still *waiting*. While an
-        // arrival waits and the act records cannot be read, the end is refused, as
-        // after a relaunch: its waiting list could name an arrival whose act was done.
+        // the arrivals whose recorded disposition is still *waiting*. The person's
+        // end is never refused for unreadable act records (A-11): a limit naming
+        // them and why is written before run_ended.
         if !crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies()).is_empty() {
-            let acts = crate::checkpoint_recorder::project_act_records(&self.project_root)
-                .map_err(|e| format!("The recorded acts cannot be read, so the arrivals still waiting cannot be listed; nothing recorded: {e}"))?;
-            let counted = crate::checkpoint_recorder::count_acts(&self.recorded_bodies(), &acts, &self.project_root);
-            self.push_recorder_outputs(counted, &crate::util::now_rfc3339());
+            let outputs = match crate::checkpoint_recorder::project_act_records(&self.project_root) {
+                Ok(acts) => crate::checkpoint_recorder::count_acts(&self.recorded_bodies(), &acts, &self.project_root),
+                Err(e) => vec![crate::checkpoint_recorder::acts_unread_limit(&e)],
+            };
+            self.push_recorder_outputs(outputs, &crate::util::now_rfc3339());
         }
         let waiting = crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies());
         let entry = crate::records::supply::PendingRunEntry::new(
@@ -9131,21 +9143,47 @@ for line in sys.stdin:
         run.lock().unwrap().observe_checkpoints(&view);
         assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"),"counted at the next observation");
     }
-    // m-4: while an arrival waits, an end whose act records cannot be read is refused, as after
-    // a relaunch; nothing is recorded and the run stays open.
-    #[test]
-    fn end_is_refused_while_an_arrival_waits_and_act_records_are_unreadable(){
-        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
-        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
-        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+    /// Appends a partial line to the act log; returns the log and its bytes before.
+    fn break_act_log(peer:&Peer)->(std::path::PathBuf,Vec<u8>){
         let log=peer.fixture.root.join(crate::recorder::LOG);std::fs::create_dir_all(log.parent().unwrap()).unwrap();
         let before=std::fs::read(&log).unwrap_or_default();
         let mut f=std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":").unwrap();
-        let err=run.lock().unwrap().end_run(None,None).unwrap_err();
-        assert!(err.contains("cannot be read"),"{err}");
-        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open);
+        (log,before)
+    }
+    // m-b (EXEC A-11): while an arrival waits and the act records cannot be read, the person's
+    // end still ends the run; a limit naming the unread act records is recorded before run_ended.
+    #[test]
+    fn end_with_unreadable_act_records_ends_the_run_with_a_limit(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let (log,before)=break_act_log(&peer);
+        run.lock().unwrap().end_run(None,None).expect("the person's end is not refused");
+        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Ended);
+        // The broken record set holds the entries back (RS W-1/W-2); once repaired they are written in order.
         std::fs::write(&log,before).unwrap();
-        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"));
+        run.lock().unwrap().flush_records();
+        let log=rs_for(&peer,&a);
+        let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]=="the project's act records").expect("the unread act records are named");
+        let end=log.iter().position(|e|e["kind"]=="run_ended").expect("run_ended written");
+        assert!(limit<end,"the limit precedes run_ended");
+        assert!(log[limit]["body"]["detail"].as_str().unwrap().contains("could not be read"));
+        assert_eq!(log[end]["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
+    }
+    // m-b after relaunch: the relaunch end's counting gives the same limit, not a refusal, when
+    // the act records cannot be read while an arrival waits; with nothing waiting it reads nothing.
+    #[test]
+    fn end_after_relaunch_counting_gives_the_limit_for_unreadable_act_records(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let run_entries=rs_for(&peer,&a);
+        let (log,before)=break_act_log(&peer);
+        let outputs=end_counting(&run_entries,&peer.fixture.root);
+        assert_eq!(outputs,vec![crate::checkpoint_recorder::acts_unread_limit(&crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap_err())]);
+        let none:Vec<Value>=run_entries.iter().filter(|e|e["kind"]!="checkpoint_arrival").cloned().collect();
+        assert!(end_counting(&none,&peer.fixture.root).is_empty(),"nothing waits, nothing is read");
+        std::fs::write(&log,before).unwrap();
     }
     // RC-10 after relaunch: an act recorded while the run was interrupted is counted from the
     // run's own record before its end lists the waiting arrivals.

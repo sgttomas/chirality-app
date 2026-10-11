@@ -314,9 +314,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, acts recorded since the last observation are counted
-    first, also for a run ended after a relaunch (an end is refused while an
-    arrival waits and the act records cannot be read), and `run_ended` lists
-    the arrivals still waiting (CE-17). Each checkpoint shows its listing or
+    first, also for a run ended after a relaunch (when the act records cannot
+    be read, the end still ends the run and a limit naming them is written
+    first), and `run_ended` lists the arrivals still waiting (CE-17). Each checkpoint shows its listing or
     finding, its arrivals with their labels, requests, counted and not-counted
     acts and limits. A run record entry that cannot be
     written is shown on the run (A-12). It is written later, in order, with a
