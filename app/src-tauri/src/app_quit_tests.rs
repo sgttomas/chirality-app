@@ -110,6 +110,54 @@ fn quit_and_codex_stop_admit_one_another_only_when_neither_is_under_way() {
 }
 
 #[test]
+fn codex_stop_is_refused_after_a_decided_quit_releases_its_guards() {
+    // The quit thread drops its guards right after asking the App to exit,
+    // before `RunEvent::Exit`; Stop/Restart must stay refused meanwhile.
+    let (quit, stop_gate) = (AppQuit::default(), Mutex::new(()));
+    let held = admit_quit(&quit, &stop_gate).unwrap();
+    assert!(quit.allow(&Decision::Quit(json!({"stopRequests":["stop:a"]}))));
+    drop(held);
+    assert!(!quit.busy(), "the guards are released");
+    let refused = admit_codex_stop(&quit).unwrap_err();
+    assert!(refused.contains("quitting") && refused.contains("Stop or Restart Codex was not started"), "{refused}");
+}
+
+#[test]
+fn busy_reads_a_flag_and_never_makes_a_quit_find_the_gate_taken() {
+    let quit = AppQuit::default();
+    assert!(!quit.busy());
+    let guard = quit.gate().expect("gate");
+    assert!(quit.busy(), "busy while a question guard is alive");
+    assert!(quit.gate().is_none(), "a second question is not opened while one is");
+    drop(guard);
+    assert!(!quit.busy(), "not busy once the guard is dropped");
+    // A Quit pressed while Stop/Restart Codex probes `busy()` must always get
+    // the gate: poll `busy()` continuously while opening the gate many times.
+    let stop = std::sync::atomic::AtomicBool::new(false);
+    let polls = std::sync::atomic::AtomicUsize::new(0);
+    std::thread::scope(|s| {
+        s.spawn(|| {
+            while !stop.load(std::sync::atomic::Ordering::SeqCst) {
+                let _ = quit.busy();
+                polls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        });
+        while polls.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+            std::thread::yield_now();
+        }
+        let mut dropped = 0;
+        for _ in 0..200_000 {
+            match quit.gate() {
+                Some(guard) => drop(guard),
+                None => dropped += 1,
+            }
+        }
+        stop.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(dropped, 0, "a Quit was found the gate taken by a busy() probe {dropped} times");
+    });
+}
+
+#[test]
 fn keep_running_or_cancel_records_cancelled_and_changes_nothing() {
     let mut d = Double::new(vec![material(&["turn-1"], 1, 1)], vec![Ok(false)]);
     let Decision::Cancelled(out) = d.run() else { panic!("AS-05 keeps running") };

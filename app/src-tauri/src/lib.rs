@@ -523,7 +523,9 @@ fn request_quit(app: tauri::AppHandle) {
             return;
         }
         // One operation over the Codex processes at a time (Stop/Restart
-        // Codex or quit); a second Quit while the question is open is ignored.
+        // Codex or quit); a second Quit while the question is open (or this
+        // quit is under way) is ignored, since that question is in front of
+        // the person. Any other refusal is told in a dialog.
         let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
             Ok(held) => held,
             Err(reason) if reason.starts_with("The quit question") => return,

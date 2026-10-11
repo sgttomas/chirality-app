@@ -27,7 +27,8 @@
 use crate::codex_stop::{interrupt_and_wait, Interrupts, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use serde_json::{json, Value};
-use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 /// U-R4 quit wait limit: the Stop Codex wait limit, a TEST VALUE owned by the
@@ -301,26 +302,36 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
 /// The App's quit state, held in `AppState`.
 #[derive(Default)]
 pub(crate) struct AppQuit {
-    /// One quit question at a time.
-    question: Mutex<()>,
+    /// One quit question at a time: set while a quit question is open or a
+    /// quit is under way, by the [`QuestionGuard`] that `gate()` returns. A
+    /// flag, not a lock, so that `busy()` only reads it and never takes
+    /// anything a Quit pressed at that instant could find taken.
+    open: AtomicBool,
     /// Set once the quit may proceed (AS-03 or a confirmed quit): the quit
     /// stop-request identities whose final states `session_ended` carries.
     proceed: Mutex<Option<Vec<String>>>,
 }
+/// Held while the quit question is open or the quit is under way; clears the
+/// flag when dropped (also while unwinding from a panic).
+#[must_use]
+#[derive(Debug)]
+pub(crate) struct QuestionGuard<'a>(&'a AtomicBool);
+impl Drop for QuestionGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
 impl AppQuit {
-    /// The question gate; a second Quit while one is open is ignored. A gate
-    /// poisoned by an earlier panic guards no data, so it is recovered.
-    pub(crate) fn gate(&self) -> Option<MutexGuard<'_, ()>> {
-        match self.question.try_lock() {
-            Ok(guard) => Some(guard),
-            Err(TryLockError::Poisoned(poisoned)) => Some(poisoned.into_inner()),
-            Err(TryLockError::WouldBlock) => None,
-        }
+    /// The question gate. None only while another guard is alive, that is
+    /// while a quit question is truly open or a quit is under way; a second
+    /// Quit then is ignored, the open question being in front of the person.
+    pub(crate) fn gate(&self) -> Option<QuestionGuard<'_>> {
+        self.open.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).ok().map(|_| QuestionGuard(&self.open))
     }
     /// True while a quit question is open or a quit is under way (Stop and
-    /// Restart Codex refuse meanwhile).
+    /// Restart Codex refuse meanwhile). Reads the flag; takes no lock.
     pub(crate) fn busy(&self) -> bool {
-        matches!(self.question.try_lock(), Err(TryLockError::WouldBlock))
+        self.open.load(Ordering::SeqCst)
     }
     pub(crate) fn allow(&self, decision: &Decision) -> bool {
         match decision {
@@ -339,17 +350,26 @@ impl AppQuit {
 }
 
 /// One operation at a time over the Codex processes: a quit holds its own
-/// question gate and the Stop/Restart Codex gate until the App exits (or the
-/// person keeps it running). While Stop or Restart Codex is under way the quit
-/// is refused with the reason, and nothing is recorded or asked.
-pub(crate) fn admit_quit<'a>(quit: &'a AppQuit, stop_gate: &'a Mutex<()>) -> Result<(MutexGuard<'a, ()>, MutexGuard<'a, ()>), String> {
+/// question gate and the Stop/Restart Codex gate while its question is open
+/// and its sequence runs (or until the person keeps the App running). The
+/// guards are released when the sequence returns, which for a decided quit is
+/// right after the App is asked to exit and before it has exited; from the
+/// decision until the exit, Stop and Restart Codex are refused because the
+/// quit is proceeding (`admit_codex_stop`), not by these guards. While Stop or
+/// Restart Codex is under way the quit is refused with the reason, and nothing
+/// is recorded or asked.
+pub(crate) fn admit_quit<'a>(quit: &'a AppQuit, stop_gate: &'a Mutex<()>) -> Result<(QuestionGuard<'a>, MutexGuard<'a, ()>), String> {
     let question = quit.gate().ok_or("The quit question is already open.")?;
     let stop = crate::codex_stop::question_gate(stop_gate)
         .map_err(|_| "Stop or Restart Codex is under way, so Quit was not started. Choose Quit again when it has finished.".to_owned())?;
     Ok((question, stop))
 }
-/// The Stop/Restart Codex side: refused while a quit is open or under way.
+/// The Stop/Restart Codex side: refused while a quit is open or under way,
+/// and from a decided quit until the App has exited.
 pub(crate) fn admit_codex_stop(quit: &AppQuit) -> Result<(), String> {
+    if quit.proceeding().is_some() {
+        return Err("The App is quitting; Stop or Restart Codex was not started".into());
+    }
     if quit.busy() {
         return Err("The App quit is under way; Stop or Restart Codex was not started".into());
     }

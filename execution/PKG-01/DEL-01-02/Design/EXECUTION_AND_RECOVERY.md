@@ -586,7 +586,8 @@ the platform's predefined Quit; an exit request the person did not decide
 is held and asked as Quit. Quit and Stop/Restart Codex are one operation at a
 time: a quit asked while Stop or Restart Codex is under way is refused with
 the reason (nothing recorded or asked), and Stop or Restart Codex is refused
-while a quit is open or under way. A process is reopened to new turns only by
+while a quit is open or under way, and from a decided quit until the App has
+exited. A process is reopened to new turns only by
 the operation that closed it. AS-03 closes every ready home to new turns and
 assesses again before the exit (work started meanwhile is asked); the HOSTING
 stop reason of AS-08 is "quit confirmed by the person". The quit wait limit (U-R4) is the Stop Codex wait
