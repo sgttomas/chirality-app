@@ -127,6 +127,38 @@ test('the bring-back composer pre-fills the prompt and transcript card and sends
   assert.deepEqual(s.calls[1],['workflow_bring_back_send',{id:'bb-1',generation:g,threadId:'auth',personText:'assess please'}]);
 });
 
+// Trial witness 2026-10-10 (b): the title named the trial by its raw reference.
+test('the bring-back composer names the trial by its sequence and draft, never its reference (TT-10)',()=>{
+  const titled=h(BringBackComposer,{pending:bringBack({sequence:2,draftName:'summarize-decisions'}),conversations,busy:false,ready:true,act:async()=>{}});
+  assert.match(titled,/<h3>Bring trial 2 of draft summarize-decisions back — pre-filled, not sent<\/h3>/);
+  for(const shown of [titled,h(BringBackComposer,{pending:bringBack(),conversations,busy:false,ready:true,act:async()=>{}})]){
+    assert.doesNotMatch(shown.match(/<h3>[^<]*<\/h3>/)[0],/trial:7/,'the internal reference is not the title');
+  }
+  assert.match(h(BringBackComposer,{pending:bringBack({trial:null,run:'run:abc'}),conversations,busy:false,ready:true,act:async()=>{}}),/<h3>Bring run run:abc back/);
+});
+
+// Trial witness 2026-10-10 (d): the workflow panel's status line echoed the raw
+// JSON of the last trial result and kept a stale "pre-filled" after the send.
+test('the workflow panel shows no raw or stale trial result after a trial press',async()=>{
+  const prefilled={reference:'trial:e1525de4-0000',sequence:2,kind:'clean',state:'pre-filled',text:'[Chirality] Workflow trial 2 …'};
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return c==='workflow_trial_prepare'?prefilled:{ok:true};};
+  const data={drafts:{drafts:[{name:'load-check',state:'draft',content:{value:'0123456789abcdef'},trials:[],findings:[],reference:{draft:{name:'load-check'}},tryLimit:null,reviewLimit:null}]},reviews:[]};
+  const container=document.createElement('div');document.body.appendChild(container);
+  const root=createRoot(container);
+  await React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,threads:[]},act})));
+  const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
+  const press=async name=>{const b=container.querySelectorAll(e=>e.localName==='button'&&e.textContent===name)[0];assert.ok(b,name);await React.act(async()=>{props(b).onClick();await tick();});};
+  await press('Try in a fresh conversation');
+  assert.deepEqual(calls[0][0],'workflow_trial_prepare');
+  assert.doesNotMatch(container.textContent,/pre-filled"|trial:e1525de4|"state"/,'no raw trial result is shown');
+  // Another workflow press still reports its result as before.
+  await press('Read recorded workflow supply (durable, read-only)');
+  assert.match(container.textContent,/\{"ok":true\}/);
+  await press('Try in a fresh conversation');
+  assert.doesNotMatch(container.textContent,/\{"ok":true\}|pre-filled"/,'a trial press leaves no earlier result standing');
+  await React.act(()=>root.unmount());
+});
+
 test('mounting and updating the composers sends nothing (no automatic send)',async()=>{
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {};};
   const container=document.createElement('div');document.body.appendChild(container);

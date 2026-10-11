@@ -425,12 +425,32 @@ impl NativeView {
                 }
             }
         } else if kind == "subAgentActivity" {
-            if let Some(id) = native["agentThreadId"].as_str() {
+            // The containing thread is inferred to be the parent only when the
+            // named thread is not the containing thread itself, not the root
+            // agent (`agentPath` "/root"), and not already known as the
+            // containing thread's ancestor: a sub-agent's own history can carry
+            // activity naming its parent (trial witness 2026-10-10, where the
+            // parent was shown as a "descendant of" its own child).
+            let names_root = native["agentPath"].as_str() == Some("/root");
+            if let Some(id) = native["agentThreadId"].as_str().filter(|id| *id != thread && !names_root && !self.is_ancestor(id, thread)) {
                 self.descendants.entry(id.into()).or_insert_with(||json!({"threadId":id,"parentThreadId":thread,"parentSource":"subAgentActivity containing thread (inference)","lastNativeActivity":native,"guidance":"not-known","observationEnded":false}));
             }
         }
         self.items.insert(key, row);
         Ok(())
+    }
+    /// `candidate` is `thread`'s parent, or an ancestor of it, among the known
+    /// descendant nodes (bounded walk; a cycle ends it).
+    fn is_ancestor(&self, candidate: &str, thread: &str) -> bool {
+        let mut current = thread.to_owned();
+        for _ in 0..=self.descendants.len() {
+            match self.descendants.get(&current).and_then(|n| n["parentThreadId"].as_str()) {
+                Some(parent) if parent == candidate => return true,
+                Some(parent) => current = parent.to_owned(),
+                None => return false,
+            }
+        }
+        false
     }
     fn turn(&mut self, thread: &str, native: &Value, recovered: bool) -> Result<(), String> {
         let turn = text(native, "id")?;
@@ -757,6 +777,31 @@ mod tests {
                 && i["native"]["raw"] == 42));
         v.close(&g(1)).unwrap();
         assert_eq!(v.snapshot()["descendants"][0]["observationEnded"], true);
+    }
+    // Trial witness 2026-10-10 (c): the parent viewing its child. The child's
+    // own history carries subAgentActivity naming the parent; that never makes
+    // the parent a descendant of its child.
+    #[test]
+    fn sub_agent_activity_in_a_child_naming_its_parent_does_not_invert_the_relation() {
+        for path in [json!("/root"), Value::Null] {
+            let mut v = view();
+            frame(&mut v, 1, "item/completed", json!({"threadId":"parent","turnId":"u","item":{"id":"a1","type":"subAgentActivity","kind":"started","agentPath":"/root/summarize_trial","agentThreadId":"child"}}));
+            frame(&mut v, 2, "item/completed", json!({"threadId":"child","turnId":"c","item":{"id":"a2","type":"subAgentActivity","kind":"interacted","agentPath":path,"agentThreadId":"parent"}}));
+            frame(&mut v, 3, "item/completed", json!({"threadId":"child","turnId":"c","item":{"id":"a3","type":"subAgentActivity","kind":"interacted","agentThreadId":"child"}}));
+            let nodes = v.snapshot()["descendants"].as_array().unwrap().clone();
+            assert_eq!(nodes.len(), 1, "{nodes:?}");
+            assert_eq!((&nodes[0]["threadId"], &nodes[0]["parentThreadId"]), (&json!("child"), &json!("parent")));
+        }
+        // A thread named as the root agent is never a descendant.
+        let mut v = view();
+        frame(&mut v, 1, "item/completed", json!({"threadId":"child","turnId":"c","item":{"id":"a","type":"subAgentActivity","kind":"interacted","agentPath":"/root","agentThreadId":"parent"}}));
+        assert_eq!(v.snapshot()["descendants"], json!([]));
+        // A grandchild is still placed under the child that shows its activity.
+        let mut v = view();
+        frame(&mut v, 1, "item/completed", json!({"threadId":"parent","turnId":"u","item":{"id":"a1","type":"subAgentActivity","agentPath":"/root/a","agentThreadId":"child"}}));
+        frame(&mut v, 2, "item/completed", json!({"threadId":"child","turnId":"c","item":{"id":"a2","type":"subAgentActivity","agentPath":"/root/a/b","agentThreadId":"grandchild"}}));
+        let nodes = v.snapshot()["descendants"].as_array().unwrap().clone();
+        assert!(nodes.iter().any(|n| n["threadId"] == "grandchild" && n["parentThreadId"] == "child"), "{nodes:?}");
     }
     #[test]
     fn streamed_deltas_are_previews_replaced_by_the_completed_item() {

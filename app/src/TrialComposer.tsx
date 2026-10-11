@@ -170,6 +170,15 @@ export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeCla
     message={message} setMessage={setMessage} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} />;
 }
 
+/** The bring-back composer's title: a trial by its sequence and draft, as
+ * elsewhere (never its internal reference); a run by its reference. */
+export function bringBackTitle(pending: Json): string {
+  if (!pending?.trial) return `Bring run ${text(pending?.run)} back`;
+  const n = pending.sequence === null || pending.sequence === undefined ? "" : ` ${text(pending.sequence)}`;
+  const draft = text(pending.draftName) ? ` of draft ${text(pending.draftName)}` : "";
+  return `Bring trial${n}${draft} back`;
+}
+
 /** TT-10, SQ-BB BB-4/BB-5: a transcript pre-filled in the target conversation. */
 export function BringBackComposerView({ pending, conversations, prompt, setPrompt, target, setTarget, outcome, setOutcome, busy, ready, act }: {
   pending: Json; conversations: Json[]; prompt: string; setPrompt: (p: string) => void; target: string; setTarget: (key: string) => void;
@@ -179,7 +188,7 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
   const sent = outcome.state === "sending" || outcome.state === "sent";
   const shortenings = list(pending?.shortenings);
   return <section aria-label="Bring back composer" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>{pending?.trial ? `Bring trial ${text(pending.trial)} back` : `Bring run ${text(pending?.run)} back`} — pre-filled, not sent</h3>
+    <h3>{bringBackTitle(pending)} — pre-filled, not sent</h3>
     <label>Your message (editable; not sent) <textarea value={prompt} disabled={busy || sent} onChange={e => setPrompt(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
     <div aria-label="Transcript" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
       <p><b>{text(pending?.card)}</b></p>

@@ -240,3 +240,20 @@ test('the host’s trial labels show on the trial turn and the linked sub-agent 
   assert.ok(html.includes('<b>sub-agent of trial 4 of draft load-check</b> · C · last observed'));
   assert.ok(!render().includes('trial 4'),'no labels without the host’s');
 });
+
+// Trial witness 2026-10-10 (c): conversation A (the parent) showed "Descendant of"
+// its own child. A parent viewing its child is never labelled the child's descendant.
+test('a parent viewing its child is not shown as a descendant of that child',()=>{
+  const v={...view(),descendants:[
+    {threadId:'C',parentThreadId:'T',parentSource:'subAgentActivity containing thread (inference)',guidance:'not-known',observationEnded:false},
+    // The inverted inference an older host built from the child's own activity naming its parent.
+    {threadId:'T',parentThreadId:'C',parentSource:'subAgentActivity containing thread (inference)',guidance:'not-known',observationEnded:false}]};
+  const model=activityModel(v,'T');
+  assert.equal(model.parent,null);
+  assert.deepEqual(model.children.map(c=>c.threadId),['C']);
+  const shown=renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'T'}));
+  assert.doesNotMatch(shown,/Descendant of C/);
+  assert.match(shown,/descendant C/,'the child stays listed under the parent');
+  // The child itself still reads as the parent's descendant.
+  assert.equal(activityModel({...v,descendants:[v.descendants[0]]},'C').parent.parentThreadId,'T');
+});

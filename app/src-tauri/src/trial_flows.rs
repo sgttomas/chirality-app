@@ -622,11 +622,53 @@ impl WorkflowRootSession {
             let sequence = link["trial"]["sequence"].as_u64().unwrap_or(0);
             let short = reference.trim_start_matches("trial:").chars().take(8).collect::<String>();
             let work = format!(".chirality/trial-work/trial-{sequence}-{short}/");
-            let source = if row["kind"] == "clean" { row["trialConversation"].as_str().map(str::to_owned) } else { self.linked_child(&reference) };
+            let linked = self.linked_child(&reference);
+            let source = if row["kind"] == "clean" { row["trialConversation"].as_str().map(str::to_owned) } else { linked.clone() };
+            let mut linked_cause: Option<String> = None;
             if let Some(sent) = self.trial_desk.sent.get(&reference) {
-                let unread: Vec<&String> = sent.read.iter().filter(|(_, r)| r.as_ref().is_err_and(|(cause, _)| cause != IN_PROGRESS)).map(|(c, _)| c).collect();
-                row["subAgent"]["alsoGiven"] = json!(sent.also_given);
+                // A child already linked to this trial is never offered as a
+                // candidate for it again (Link as trial ‹n›).
+                let mut unread = vec![];
+                let mut not_checkable_children = vec![];
+                for (child, read) in &sent.read {
+                    let Err((cause, _)) = read else { continue };
+                    if cause == IN_PROGRESS {
+                        continue;
+                    }
+                    if linked.as_deref() == Some(child.as_str()) {
+                        linked_cause = Some(cause.clone());
+                    } else if not_checkable(cause) {
+                        not_checkable_children.push(json!({"thread":child,"reading":cause}));
+                    } else {
+                        unread.push(json!(child));
+                    }
+                }
+                row["subAgent"]["alsoGiven"] = json!(sent.also_given.iter().filter(|c| linked.as_deref() != Some(c.as_str())).collect::<Vec<_>>());
                 row["subAgent"]["unread"] = json!(unread);
+                row["subAgent"]["notCheckable"] = json!(not_checkable_children);
+            }
+            // TT-9: a fidelity that cannot be checked reads so, from the latest
+            // recorded reading or the linked child's read, and Read again is
+            // not offered as if a later read could tell more.
+            if row["kind"] == "delegated" {
+                let unchecked = row["fidelity"]["state"] == "not checked";
+                let recorded = row["fidelity"]["limits"].as_array().into_iter().flatten().filter_map(Value::as_str).find(|l| not_checkable(l)).map(str::to_owned);
+                let never_read = row["fidelity"]["read_thread"].is_null();
+                let cause = recorded.or_else(|| linked_cause.clone().filter(|c| not_checkable(c) && never_read));
+                if let Some(cause) = cause.filter(|_| unchecked) {
+                    row["fidelity"]["checkable"] = json!(false);
+                    row["fidelity"]["reading"] = json!(cause);
+                }
+                let candidates_not_checkable = linked.is_none()
+                    && row["subAgent"]["unread"].as_array().is_none_or(|u| u.is_empty())
+                    && row["subAgent"]["notCheckable"].as_array().is_some_and(|n| !n.is_empty());
+                row["readAgain"] = if row["fidelity"]["checkable"] == false {
+                    json!({"offered":false,"reason":"reading again would read the same: the sub-agent's input is not checkable"})
+                } else if candidates_not_checkable {
+                    json!({"offered":false,"reason":"reading again would read the same: no sub-agent's input here is checkable; link the one that ran the trial"})
+                } else {
+                    json!({"offered":true})
+                };
             }
             row["live"] = json!(source.as_deref().is_some_and(|t| thread_live(view, t)));
             row["filesOutsideWorkFolder"] = match source.as_deref() {
@@ -668,6 +710,7 @@ impl WorkflowRootSession {
         }
         root["pendingTrials"] = json!(self.trial_desk.pending.values().map(|p| self.pending_view(p)).collect::<Vec<_>>());
         root["pendingBringBacks"] = json!(self.trial_desk.bring_backs.iter().map(|(id, b)| json!({"id":id,"trial":b.trial,"run":b.run,
+            "sequence":b.trial.as_deref().and_then(|t| self.trials.link(t)).map(|l| l["trial"]["sequence"].clone()),"draftName":b.trial.as_deref().map(|t| self.trial_draft_name(t)),
             "target":{"generation":b.target.0,"threadId":b.target.1},"prompt":b.prompt,"transcript":b.transcript,"card":b.card,
             "textIdentity":crate::role_supply::content(b.transcript.as_bytes()),"bytes":b.transcript.len(),"shortenings":b.shortenings,"includeNative":b.include_native,
             "standing":"pre-filled, not sent: the transcript is read from Codex's history; once you send it, it is your message, not supply, a run text or evidence of a run"})).collect::<Vec<_>>());
@@ -963,9 +1006,16 @@ pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, t
     Err(format!("more than {MAX_PAGES} pages of items"))
 }
 /// The text elements of a turn's first user message (the one carrying
-/// `client` when given, else the first), as TT-9 reads them.
+/// `client` when given, else the first), as TT-9 reads them. A turn that holds
+/// items but no user message is final, not "not yet": its input did not arrive
+/// as a user message, so it cannot be checked (`INPUT_ENCRYPTED` when an item
+/// shows Codex's inter-agent task with encrypted content, else
+/// `INPUT_NOT_A_USER_MESSAGE`). A turn with no items yet is "not yet".
 fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>, String> {
     let messages: Vec<&Value> = items.iter().filter(|i| i["type"] == "userMessage").collect();
+    if messages.is_empty() && !items.is_empty() {
+        return Err(if items.iter().any(inter_agent_task) { INPUT_ENCRYPTED } else { INPUT_NOT_A_USER_MESSAGE }.into());
+    }
     let chosen = client
         .and_then(|c| messages.iter().find(|m| m["clientId"] == c).copied())
         .or_else(|| messages.first().copied())
@@ -980,6 +1030,32 @@ fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>
 }
 const NOT_YET_TURN: &str = "the sub-agent has no turn in Codex's history yet";
 const NOT_YET_MESSAGE: &str = "the turn holds no user message yet";
+/// TT-9: a sub-agent input the App cannot read. Each starts with
+/// `NOT_CHECKABLE`, and a read that ends so is final: reading again reads the
+/// same, so it is not offered as pending.
+const NOT_CHECKABLE: &str = "not checkable: ";
+pub(crate) const INPUT_ENCRYPTED: &str =
+    "not checkable: the sub-agent's task arrived as an encrypted inter-agent message (Codex 0.160.0 delivers a spawned sub-agent's task this way), not as a user message, so the App cannot read what it was given";
+pub(crate) const INPUT_NOT_A_USER_MESSAGE: &str =
+    "not checkable: the sub-agent's first turn holds no user message, so the App cannot read what it was given (at Codex 0.160.0 a spawned sub-agent's task arrives as an encrypted inter-agent message)";
+pub(crate) fn not_checkable(cause: &str) -> bool {
+    cause.starts_with(NOT_CHECKABLE)
+}
+/// An item showing Codex's inter-agent task message rather than a user
+/// message: an agent message whose content carries `encrypted_content`, or
+/// whose readable header names a new task (the shape of the 0.160.0 rollout's
+/// `agent_message` with author and recipient).
+fn inter_agent_task(item: &Value) -> bool {
+    let kind = item["type"].as_str().unwrap_or_default();
+    if !matches!(kind, "agentMessage" | "agent_message") {
+        return false;
+    }
+    let content = || item["content"].as_array().into_iter().flatten();
+    let encrypted = content().any(|e| e["type"] == "encrypted_content" || e.get("encrypted_content").is_some());
+    let header = |t: &str| t.trim_start().starts_with("Message Type: NEW_TASK");
+    let headed = item["text"].as_str().is_some_and(header) || content().any(|e| e["text"].as_str().is_some_and(header));
+    encrypted || headed
+}
 /// TT-9's read of a child's (or a clean trial's) first user message.
 fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, turn: Option<&str>, client: Option<&str>, by: &Value) -> Result<Vec<String>, String> {
     let turn = match turn {
@@ -1226,6 +1302,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     if let Some(child) = linked {
         let reading = match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
             Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
+            Err(cause) if not_checkable(&cause) => FidelityReading::NotChecked { limits: vec![cause] },
             Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the sub-agent's first turn could not be read: {cause}")] },
         };
         let observation = TrialObservation::Fidelity { read_thread: Some(child), reading, limits: vec!["read again at the person's request".into()] };
@@ -1234,6 +1311,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     }
     let marker = text.begin_marker();
     let mut unread = vec![];
+    let mut not_checkable_children = vec![];
     for child in candidates {
         match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
             Ok(texts) if texts.iter().any(|t| t.contains(&marker)) => {
@@ -1249,10 +1327,16 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
                 results.push(root.trials.record_observation(reference, TrialObservation::Fidelity { read_thread: Some(child), reading, limits: vec!["read at the person's request".into()] })?);
             }
             Ok(_) => {}
+            Err(cause) if not_checkable(&cause) => {
+                if let Some(s) = root.lock().unwrap().trial_desk.sent.get_mut(reference) {
+                    s.read.insert(child.clone(), Err((cause.clone(), String::new())));
+                }
+                not_checkable_children.push(json!({"thread":child,"reading":cause}));
+            }
             Err(cause) => unread.push(json!({"thread":child,"limit":cause})),
         }
     }
-    Ok(json!({"reference":reference,"recorded":results,"inputNotRead":unread}))
+    Ok(json!({"reference":reference,"recorded":results,"inputNotRead":unread,"inputNotCheckable":not_checkable_children}))
 }
 
 /// The source a bring-back or Compare reads: conversation and its turn range.

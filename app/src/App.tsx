@@ -311,6 +311,15 @@ function NativeConfirmationContent() {
   </section>;
 }
 
+/** The status line under the workflow panel after a press. A trial or
+ * bring-back result is not echoed: its pre-filled or sent state is shown,
+ * current, by the conversation panel and the draft list, and a copy here would
+ * go stale (trial witness 2026-10-10 (d)). Other results are shown as before. */
+export function workflowActionMessage(command: string, result: Json): string {
+  if (command.startsWith("workflow_trial_") || command.includes("bring_back")) return "";
+  return JSON.stringify(result);
+}
+
 export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
@@ -319,7 +328,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
   // Resolves to the host's result, or undefined when the command failed (the message shows why).
-  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));
+  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{setBusy(true);try{const result=await act(command,args);setMessage(workflowActionMessage(command,result));
     // An App-made draft is listed again by the host (WR SQ-D D-2).
     if(command==="workflow_create_draft"||command==="workflow_refine_registered"){await act("workflow_observe_drafts",{}).catch(()=>undefined);}
     return result;

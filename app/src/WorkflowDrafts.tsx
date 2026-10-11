@@ -38,8 +38,12 @@ export function attributionWords(attribution: Json): string {
   }
 }
 
-/** TT-9: the three fidelity readings, in the design's words. */
+/** TT-9: the three fidelity readings, in the design's words. A "not checked"
+ * reading the host marks `checkable: false` shows the host's reason (for
+ * example, a sub-agent's task that arrived as an encrypted inter-agent
+ * message), so it does not read as a read still to make. */
 export function fidelityWords(fidelity: Json, kind?: string): string {
+  if (fidelity?.state === "not checked" && fidelity?.checkable === false) return text(fidelity.reading) || "not checkable";
   switch (fidelity?.state) {
     case "verbatim": return `workflow given verbatim${fidelity.header_present === true ? " (trial header present)" : fidelity.header_present === false ? " (trial header not present)" : ""}`;
     case "differs": return `${kind === "clean" ? "the trial conversation's input" : "the sub-agent's input"} differs from the run text${fidelity.difference ? `: ${text(fidelity.difference)}` : ""}`;
@@ -66,12 +70,16 @@ type Update = (patch: Partial<DraftsState>) => void;
 function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: DraftAct }) {
   const sub = trial.subAgent;
   if (!sub) return <>sub-agent not linked</>;
+  // A sub-agent already linked to this trial is never offered as a candidate for it.
+  const linked = sub.state === "linked" ? text(sub.thread) : "";
+  const candidate = (child: Json) => !!text(child) && text(child) !== linked;
+  const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button>;
   return <>
     {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (linked ${text(sub.linkedBy)})` : ""}{" "}
       <button disabled={busy} onClick={() => { void act("workflow_trial_unlink", { reference: trial.reference, childThread: sub.thread }); }}>Unlink</button></> : "sub-agent not linked"}
-    {list(sub.alsoGiven).length > 0 && <> · also given this trial's workflow: {list(sub.alsoGiven).map(text).join(", ")}</>}
-    {list(sub.unread).map((child: Json) => <span key={text(child)}> · sub-agent {text(child)} started in the trial turn (input not read){" "}
-      <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button></span>)}
+    {list(sub.alsoGiven).filter(candidate).length > 0 && <> · also given this trial's workflow: {list(sub.alsoGiven).filter(candidate).map(text).join(", ")}</>}
+    {list(sub.unread).filter(candidate).map((child: Json) => <span key={text(child)}> · sub-agent {text(child)} started in the trial turn (input not read){" "}{linkButton(child)}</span>)}
+    {list(sub.notCheckable).filter((c: Json) => candidate(c?.thread)).map((c: Json) => <span key={text(c.thread)}> · sub-agent {text(c.thread)} started in the trial turn; its input is {text(c.reading) || "not checkable"}{" "}{linkButton(c.thread)}</span>)}
   </>;
 }
 
@@ -92,12 +100,14 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
     <div><small>Content {short(trial.content?.value)} ({versionWords(trial.version)}) · authoring conversation {conversationName(trial.authoringConversation)} · {trial.kind === "clean"
       ? <>trial conversation {trial.trialConversation ? conversationName(trial.trialConversation) : "not started"}</>
       : <SubAgent trial={trial} busy={busy} act={act} />}</small></div>
-    <div><small>Fidelity: {fidelityWords(fidelity, trial.kind)}{list(fidelity.limits).length ? ` (${list(fidelity.limits).map(text).join("; ")})` : ""}. Snapshot: {text(trial.snapshot?.reading) || "not read"}.
+    <div><small>Fidelity: {fidelityWords(fidelity, trial.kind)}{fidelity.checkable !== false && list(fidelity.limits).length ? ` (${list(fidelity.limits).map(text).join("; ")})` : ""}. Snapshot: {text(trial.snapshot?.reading) || "not read"}.
       {trial.filesOutsideWorkFolder ? ` ${text(trial.filesOutsideWorkFolder.reading)}.` : ""} Work folder <code>{text(trial.workFolder)}</code>.</small></div>
     <div><small>{list(trial.broughtBack).length ? `Brought back: ${list(trial.broughtBack).map((b: Json) => `${text(b.time)} to ${conversationName(b.to)}`).join("; ")}.` : "Not brought back."} {text(trial.standing)}</small></div>
     <div>
       <button disabled={busy} onClick={() => { void act("workflow_trial_again", { reference }); }}>Try again</button>{" "}
-      <button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}
+      {trial.readAgain?.offered === false
+        ? <small>Read again is not offered: {text(trial.readAgain.reason)}. </small>
+        : <><button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}</>}
       <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} />{" "}
       <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => update({ bbNative: { ...state.bbNative, [reference]: e.target.checked } })} /> include native items</label>{" "}
       <button disabled={busy || !!trial.live || !chosen} onClick={() => { void act("workflow_trial_bring_back", { reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring trial back</button>
