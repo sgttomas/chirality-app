@@ -28,7 +28,11 @@ writes records or operates the act control." `src-tauri/` holds that host;
    discloses expected model contact at thread start, before a turn; it does not
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations
-   read current bytes. Native child roles remain not supplied.
+   read current bytes. Native child roles remain not supplied by the App. The
+   opt-in [supplier child-carrier check](supplier_checks/child_roles.py) and its
+   [receiving account](../execution/PKG-02/DEL-02-04/Design/CHILD_ROLE_CARRIER_0.160.0.md)
+   observe per-thread TASK configuration and exact child guidance in scripted
+   stock-supplier execution; the App configuration/publication join remains open.
 3. The recorder validates package files, records source-faithful requests and
    separately states when the requester identity is unestablished.
 4. The host freezes the chosen alternative and all its consequences before

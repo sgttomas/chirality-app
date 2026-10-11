@@ -111,3 +111,5 @@ checks:
 - app/src-tauri/tests/role_lifecycle.rs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
+- app/supplier_checks/child_roles.py
+- app/tests/child_role_carrier_test.py
