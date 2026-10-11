@@ -20,7 +20,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
+PINS_SHA256 = '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71'
 FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
 LIMITS = [
@@ -136,10 +136,10 @@ def referenced(files, ref):
 
 class Receiver:
     def __init__(self):
-        raw = read_file(HERE / 'pins.stop-admission-lt09-v1.json')
+        raw = read_file(HERE / 'pins.build-selection-lt09-v1.json')
         require(sha(raw) == PINS_SHA256, 'receiver pins changed')
         self.pins = parse(raw)
-        require(sha(read_file(HERE / 'pins.lt12-combined-lt09-v1.json')) == self.pins['predecessor_pins_sha256'],
+        require(sha(read_file(HERE / 'pins.stop-admission-lt09-v1.json')) == self.pins['predecessor_pins_sha256'],
                 'historical predecessor pins changed')
         require(self.pins['reader']['namespaceAuthoritySourceSha256'] ==
                 self.pins['sources']['app/src-tauri/src/attachment_custody.rs'],

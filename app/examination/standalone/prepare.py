@@ -28,7 +28,7 @@ def digest(path):
 
 
 def verified_sources(root=ROOT):
-    lock = read_json(HERE / 'sources.json')
+    lock = read_json(HERE / 'sources.live-end-v1.json')
     for source in lock['sources']:
         path = root / source['path']
         if not path.is_file() or digest(path) != source['sha256']:

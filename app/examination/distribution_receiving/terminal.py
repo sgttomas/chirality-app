@@ -11,9 +11,9 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '828dd8c40a93d01606df58ebc4228c9fb80248e79025f72226c9a673813662e5'
+PINS_SHA256 = 'db04fa8c7ffb1df41c5868f082e5a86e6215a34b8bcb7106a3b4366b364886c8'
 FORMAT = 'group-b-s1-terminal-reader-exchange.v1'
-ADOPTION = 'B-S4-STOP-ADMISSION-TERMINAL-v1'
+ADOPTION = 'B-S4-BUILD-SELECTION-TERMINAL-v1'
 LIMITS = [
     'Exported LT09/LT23 pair file correspondence only; no native semantic reader reexecution.',
     'Pre-spawn observation is unchanged, not renewed terminal integrity, custody or descendant proof.',
@@ -32,7 +32,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = '6825032e6d30a1464e08189aa05ba6930346eca41df59e734ee4535195022d50'
+HELPER_SHA256 = '0216f2fa2f0127c1b20eef71b4d90331a47dbf6524b02abd6157a3eb12d0ed28'
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')
@@ -56,7 +56,7 @@ class PredecessorReceiver(base.Receiver):
 
 class TerminalReceiver:
     def __init__(self):
-        raw = base.read_file(HERE / 'pins.stop-admission-terminal-v1.json')
+        raw = base.read_file(HERE / 'pins.build-selection-terminal-v1.json')
         base.require(base.sha(raw) == PINS_SHA256, 'terminal pins changed')
         self.pins = base.parse(raw)
         for path, digest in self.pins['sources'].items():

@@ -18,7 +18,8 @@ LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source
 PREVIOUS_CURRENT = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
 COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_lt09_fixtures'
 STOP_PREDECESSOR = APP / 'tests/group_b_lt12_combined_lt09_fixtures'
-FIXTURES = APP / 'tests/group_b_stop_admission_lt09_fixtures'
+BUILD_SELECTION_PREDECESSOR = APP / 'tests/group_b_stop_admission_lt09_fixtures'
+FIXTURES = APP / 'tests/group_b_build_selection_lt09_fixtures'
 
 
 def load(name, path):
@@ -90,6 +91,7 @@ class DistributionReceivingTests(unittest.TestCase):
                     self.assertEqual(receiver.sha(raw), provenance['exchange_sha256'][case])
                 report = self.receiver.check(self.path, receiver.sha(raw), self.selection, receiver.sha(self.selection.read_bytes()))
                 self.assertTrue(report['file_correspondence_passed'])
+                self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-LT09-v1')
                 self.assertEqual(set(report['canonical_support']['existing_checks']), {'package', 'review', 'change'})
                 self.assertEqual(len(report['canonical_support']['existing_checks']['package']['reported_prerequisite_gaps']), 3)
                 self.assertEqual(report['application_candidate']['standing'], 'invented-consumer-fixture')
@@ -270,7 +272,7 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-STOP-ADMISSION-LT09-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
 
@@ -335,6 +337,16 @@ class DistributionReceivingTests(unittest.TestCase):
         self.exchange['actualLt09']['transitionId'] = 'LT-20'
         self.exchange['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(self.exchange['actualLt09'])
         self.rebind_publication(); self.refused('unsupported envelope')
+
+    def test_build_selection_source_refuses_previous_stop_cohort_even_with_rewritten_revision(self):
+        for case in ('selected', 'unselected'):
+            path = BUILD_SELECTION_PREDECESSOR / case / 'exchange.json'
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+        shutil.rmtree(self.case); shutil.copytree(BUILD_SELECTION_PREDECESSOR / 'selected', self.case)
+        self.path = self.case / 'exchange.json'; self.exchange = receiver.parse(self.path.read_bytes())
+        self.exchange['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
+        self.refused('reader identity differs')
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

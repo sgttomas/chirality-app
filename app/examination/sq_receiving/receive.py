@@ -11,7 +11,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '910c6f31291bc2efe9fa8025c8822fcaf3834c814763aa478fe701aaaf1e4eb0'
+PINS_SHA256 = '83c9b9a6e6671ec769fa3774d924b315993699ece82e7f54f91b64d12659c972'
 
 
 def sha(data):
@@ -34,7 +34,7 @@ def read_relative(root, name):
 
 class Receiver:
     def __init__(self):
-        raw = read_relative(HERE, 'pins.json')
+        raw = read_relative(HERE, 'pins.live-end-v1.json')
         if sha(raw) != PINS_SHA256:
             raise ValueError('SQ reader pins changed')
         self.pins = json.loads(raw)

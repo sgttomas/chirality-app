@@ -1,0 +1,90 @@
+{
+  "source_basis_revision": "c05655e314ad31bc93f99e51ecf9be834b63974a",
+  "sources": [
+    {
+      "role": "step_map",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
+      "sha256": "sha256:92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee"
+    },
+    {
+      "role": "sq_design",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "sha256": "sha256:ad1db79bb586ea1168223a187d771617cec05ecd1ced984f679282312f266ef0"
+    },
+    {
+      "role": "sq_schema",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
+      "sha256": "sha256:16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
+    },
+    {
+      "role": "sq_rules",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
+      "sha256": "sha256:65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac"
+    },
+    {
+      "role": "sq_scope",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/ScopeOfWork.md",
+      "sha256": "sha256:64533cfdc825da17b41f3e1d754bf549e42d76488aabecfac85e74ee65aae878"
+    },
+    {
+      "role": "exp_design",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "sha256:ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "role": "exp_schema",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
+      "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    },
+    {
+      "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540"
+    },
+    {
+      "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "sha256": "sha256:9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322"
+    },
+    {
+      "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "sha256": "sha256:203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5"
+    },
+    {
+      "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "sha256": "sha256:ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60"
+    },
+    {
+      "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "sha256:9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7"
+    },
+    {
+      "role": "DEL-01-04/APP_ACT_CONTROL.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "sha256": "sha256:bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d"
+    },
+    {
+      "role": "DEL-04-03/RECORD_SEMANTICS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "sha256": "sha256:52648d8599808c41351df9cedcb1a3df184be51ca9844c84e6ef54b48b0cdf68"
+    },
+    {
+      "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4"
+    },
+    {
+      "role": "DEL-01-01/HOSTING_BOUNDARY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b"
+    },
+    {
+      "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036"
+    }
+  ]
+}

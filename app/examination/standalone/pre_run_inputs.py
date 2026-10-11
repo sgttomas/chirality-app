@@ -14,7 +14,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = 'a88b28bb7dea665c6e380a17a9599f21a128cd0898b28b2543f95f9da6decd51'
+PINS_SHA256 = '90307cc6e74c5938b9020e35e6e9d691941dad8b1da3c08465dc16077829e58f'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',
@@ -82,7 +82,7 @@ def load_module(name, path):
 
 class PreRunInputs:
     def __init__(self):
-        pins_bytes = read_file(HERE / 'pre_run_inputs.pins.json')
+        pins_bytes = read_file(HERE / 'pre_run_inputs.live-end-v1.pins.json')
         require(sha(pins_bytes) == PINS_SHA256, 'pre-run source pins changed')
         self.pins = parse(pins_bytes)
         self.captured = {}

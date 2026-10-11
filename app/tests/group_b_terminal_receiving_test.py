@@ -15,7 +15,8 @@ APP = Path(__file__).resolve().parents[1]
 PREVIOUS_CURRENT = APP / 'tests/group_b_terminal_receiving_fixtures'
 COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_terminal_fixtures'
 STOP_PREDECESSOR = APP / 'tests/group_b_lt12_combined_terminal_fixtures'
-FIXTURES = APP / 'tests/group_b_stop_admission_terminal_fixtures'
+BUILD_SELECTION_PREDECESSOR = APP / 'tests/group_b_stop_admission_terminal_fixtures'
+FIXTURES = APP / 'tests/group_b_build_selection_terminal_fixtures'
 
 
 def load(name, path):
@@ -75,6 +76,7 @@ class TerminalReceivingTests(unittest.TestCase):
             self.assertEqual(base.sha(raw), provenance['exchange_sha256'][case])
             report = self.receiver.check(self.path, base.sha(raw), self.selection, base.sha(self.selection.read_bytes()))
             self.assertTrue(report['terminal_pair_file_correspondence_passed'])
+            self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-TERMINAL-v1')
             self.assertEqual(report['exported_event_pair'], ['LT-09', 'LT-23'])
             self.assertEqual(set(report['predecessor_canonical_join']['canonical_support']['existing_checks']), {'package', 'review', 'change'})
             for key in ('native_reference_authority', 'namespace_authority_authenticated', 'terminal_integrity_established',
@@ -186,6 +188,16 @@ class TerminalReceivingTests(unittest.TestCase):
             self.select('selected'); event = self.exchange[role][key]; event['transitionId'] = 'LT-20'
             self.exchange[role]['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(event)
             self.rebind(role); self.refused('unsupported envelope|unsupported terminal event')
+
+    def test_build_selection_source_refuses_previous_stop_cohort_even_with_rewritten_revision(self):
+        for case in ('selected', 'unselected'):
+            path = BUILD_SELECTION_PREDECESSOR / case / 'exchange.json'
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, base.sha(path.read_bytes()), self.selection, base.sha(self.selection.read_bytes()))
+        shutil.rmtree(self.case); shutil.copytree(BUILD_SELECTION_PREDECESSOR / 'selected', self.case)
+        self.path = self.case / 'exchange.json'; self.exchange = base.parse(self.path.read_bytes())
+        self.exchange['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
+        self.refused('reader identity differs')
 
     def test_terminal_source_guard_and_cli(self):
         original = base.relative

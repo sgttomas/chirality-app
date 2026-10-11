@@ -12,7 +12,7 @@ ROOT = HERE.parents[4]
 
 
 def consumer(root=ROOT):
-    lock = json.loads((HERE / 'sources.json').read_text())
+    lock = json.loads((HERE / 'sources.live-end-v1.json').read_text())
     for item in lock['sources']:
         if hashlib.sha256((root / item['path']).read_bytes()).hexdigest() != item['sha256']:
             raise ValueError('standalone consumer source drift: ' + item['path'])

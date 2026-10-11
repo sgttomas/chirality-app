@@ -1304,7 +1304,10 @@ changed.
   are checked byte-for-byte against Design by `schemas/sync.py`.
   CI-27 stays OPEN: the production bundle still needs an explicit resource
   mapping for `distribution-reference/` (DEL-01-06), installed custody (S5/OI-011),
-  changed-source receiving adoption (S4) and the actual packaged witness (S5).
+  actual packaged witness (S5). The S4 file receivers now select fresh synthetic
+  exports of the reviewed build-selection source through named fixed cohorts;
+  their exact-byte joins retain historical-source and authority refusals. This
+  restores receiving checks, without supplying actual native/package reliance.
   Reference comparison alone supplies none of those claims.
 
 ## CI-28 SQ J-2 omitted its already required ST-4 stimulus

@@ -9,11 +9,11 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = '641ec30789a9554371bb5fa3d2271e6b20db2468dc41115e87863900f70771c7'
+PINS_SHA256 = '2b279e40d2e3a554d35e446192161b26bf4816518ba3efe2e5378392f828fdf1'
 
 
 def consumer():
-    data = (HERE / 'pre_run_form.pins.json').read_bytes()
+    data = (HERE / 'pre_run_form.live-end-v1.pins.json').read_bytes()
     if hashlib.sha256(data).hexdigest() != PINS_SHA256:
         raise ValueError('pre-run form dependency pins changed')
     pins = json.loads(data)

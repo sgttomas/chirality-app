@@ -1,21 +1,28 @@
 # Staged S4 file receiving
 
-Current source: [Stop-admission renewal](STOP_ADMISSION_SOURCE_ADOPTION.md) at127d.
-Existing LT09 and LT09/LT23 contracts remain fixed; earlier cohort descriptions
-below are historical.
+Current source is `b5dbfbbdf300b993f34fc87924146073bb017877`, the reviewed
+CI-27 compiled build-selection implementation. The fixed selections are
+`pins.build-selection-lt09-v1.json` (`B-S4-BUILD-SELECTION-LT09-v1`) and
+`pins.build-selection-terminal-v1.json` (`B-S4-BUILD-SELECTION-TERMINAL-v1`).
+They receive fresh clean committed-source synthetic LT09 and LT09→LT23 exports
+in `tests/group_b_build_selection_lt09_fixtures` and
+`tests/group_b_build_selection_terminal_fixtures`, respectively. Packet and
+fixture provenance bind the actual source, executable, command, feature set
+and exact exchange bytes. An identical executable copy and scratch roots at
+neutral temporary paths keep personal workspace paths out of public fixtures.
 
-Current source: [combined-source renewal](LT12_COMBINED_SOURCE_ADOPTION.md) at2377.
-It preserves existing LT09 and LT09/LT23 contracts; preceding cohort descriptions
-below remain historical.
+This named build-selection source adoption renews preflight/closure/store and
+Host source bindings after S2 and the live run-end repairs. Existing native
+reader semantics, closed schemas, canonical six-record join and row restrictions
+are unchanged; matching selected development now records reference comparison
+passes with custody missing and still has `unverifiable` standing. Terminal
+pins bind the final renewed standalone helper bytes. Earlier pin files, exports
+and adoption documents stay historical. Prior cohorts are refused, including
+when their producer revision is rewritten to this source; no fallback is added.
 
-Current two-cohort source selection: [LT12-source adoption](LT12_SOURCE_ADOPTION.md)
-at938d20ef4b. It preserves standalone LT09 and terminal LT09/LT23 restrictions.
-Earlier active-source descriptions below are historical.
-
-Current standalone source selection: [B-S4-TERMINAL-SOURCE-LT09-v1](TERMINAL_SOURCE_LT09_ADOPTION.md),
-with pins.terminal-source-lt09-v1.json and fresh9af LT09 fixtures. Earlier active-cohort
-descriptions below are historical. The separate [terminal receiver](TERMINAL_RECEIVING.md)
-checks completed LT09/LT23 exported pairs under its own fixed contract.
+This supplies existing bounded file correspondence only. The actual App
+candidate, namespace/reference authority, producer history, S3 custody, native
+examination, package witness, owner gates and release remain unestablished.
 
 `receive.py` joins a specifically selected synthetic Host export to the existing
 canonical EXP/PKG six-record cohort. A successful report means exact exported

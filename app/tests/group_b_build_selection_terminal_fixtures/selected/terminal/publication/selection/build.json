@@ -1,0 +1,1 @@
+{"attestation":{"path":"reference/attestation.json","sha256":"0a6c60bc428108897a5fdccf6005ed380a2da0d2730ff897241a522f28e35172"},"expected":{"path":"reference/expected.json","sha256":"ddd297bfd3835b885489d2dc81da4c33be510060eaf75d43ff4632312a1336b3"},"format":"build-selection.s2","method":"codex-vendor-tree-v1","schema_ids":["expected-reference.s1","adoption-attestation.s1"]}

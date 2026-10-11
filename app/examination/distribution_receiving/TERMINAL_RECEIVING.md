@@ -1,3 +1,9 @@
+Current source selection is `B-S4-BUILD-SELECTION-TERMINAL-v1` in
+`pins.build-selection-terminal-v1.json`, with the reviewed build-selection source
+and fresh actual synthetic exports described in [README](README.md).
+Earlier source/cohort descriptions below are historical; LT09→LT23 restrictions
+and all authority/qualification limits remain fixed.
+
 # B-S4-TERMINAL-RECEIVING-v1
 
 Separate fixed file-consumer contract for actual synthetic completed LT09/LT23
