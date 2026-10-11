@@ -1,4 +1,4 @@
-//! CI-20 (d): DEL-02-03's REC run tag (EXEC A-2, §2.7; RECOVERY §4.1) and the
+//! EXEC §2.7 / RECOVERY §4.1: DEL-02-03's REC run tag (EXEC A-2, §2.7; RECOVERY §4.1) and the
 //! startup writer of RS's "App-restart interruption" limit (RS §14.1 row
 //! "Relaunch with a run interrupted"; §14.3 FC-9; EXEC RE-4, AE-6).
 //!
@@ -7,7 +7,7 @@
 //! therefore name a run whose `run_opened` was never written; the limit writer
 //! then establishes no current run); the limit writer runs from the startup closure,
 //! never on a web-view request. Neither writes `run_ended`: RE-4's run-owner end
-//! "interruption not recovered" is not written automatically (CI-20 (d)).
+//! "interruption not recovered" is not written automatically (EXEC §2.7 / RECOVERY §4.1).
 use serde_json::{json, Value};
 
 /// The REC tag owner token of DEL-02-03's run starter (RECOVERY §4.1, EXEC §2.7).
@@ -27,7 +27,7 @@ pub(crate) fn tag_run(
     home.host.tag_conversation(&scope.generation, &scope.conversation, class, RUN_TAG_OWNER, &scope.run)
 }
 
-/// CI-20 (c): the App-owned home class (H-acct, H-key) of a conversation the
+/// WR TX-5 / SQ-END: the App-owned home class (H-acct, H-key) of a conversation the
 /// record names, for an end made after a relaunch. From, in order: a REC restart
 /// fact naming the conversation; the run's own REC tag; the conversation's REC
 /// index rows (one home only). Otherwise the home is not established and no end
@@ -163,5 +163,5 @@ pub(crate) fn startup(homes: &[std::sync::Arc<crate::runtime_session::HomeSessio
         outcomes.extend(write_restart_limits(project, &events, &home.host.recovery_entries()));
     }
     json!({"state":"run at startup","at":crate::util::now_rfc3339(),"outcomes":outcomes,"limits":limits,
-        "standing":"RS 'App-restart interruption' limits written by the host at startup; no run_ended is written automatically (RE-4's 'interruption not recovered' is not implemented, CI-20 (d))"})
+        "standing":"RS 'App-restart interruption' limits written by the host at startup; no run_ended is written automatically (RE-4's 'interruption not recovered' is not implemented, EXEC §2.7 / RECOVERY §4.1)"})
 }

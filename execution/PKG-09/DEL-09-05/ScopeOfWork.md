@@ -18,12 +18,12 @@ The following source keys identify the grounded basis throughout this contract:
 | Key | Source and relevant locus |
 |---|---|
 | S1 | [Accepted Group3 decision](../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md); its canonical Deliverables.csv row DEL-09-05, Packages.csv row PKG-09, ScopeLedger.csv rows SOW-198/SOW-243 and Objectives.csv rows OBJ-006/OBJ-008. Presentation-time pending labels remain historical under the actual acceptance. |
-| S2 | [Original examination](../../_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md), V4-EXM-13; [accepted HTML](../../_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html), decisions 03/05 and decision 05 recovery detail; [later owner directions](../../_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md), J–O. Read original wording within this composite, qualified by later decisions. |
+| S2 | [Original examination](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md), V4-EXM-13; [accepted HTML](../../_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html), decisions 03/05 and decision 05 recovery detail; [later owner directions](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md), J–O. Read original wording within this composite, qualified by later decisions. |
 | S3 | [Current PRD](../../../docs/PRD.md), §0, V4-PM-01…06, V4-EXE-01…04, V4-AUT-03…05 and §9. |
 | S4 | [Current examination](../../../docs/EXAMINATION.md), §§1–2, V4-EXM-13 and §7; [architecture](../../../docs/ARCHITECTURE.md), §3 recovery properties. |
 | S5 | [Operating method](../../../docs/OPERATING_METHOD.md), V4-OPS-02, V4-OPS-30…34; [host integration](../../../docs/HOST_INTEGRATION.md), §11. |
 | S6 | S1 canonical Deliverables.csv rows DEL-01-03, DEL-04-01, DEL-04-03, DEL-06-01, DEL-06-02, DEL-09-01, DEL-09-11, DEL-09-12 and DEL-11-03; canonical Open_Issues.csv and current [open issues](../../_Decomposition/Open_Issues.csv), especially OI-001/002/005/006/012/016/021; canonical and current [external dependencies](../../_Decomposition/External_Dependencies.csv). |
-| S7 | [Approved coordination](../../_Coordination/_COORDINATION.md) and this deliverable's _CONTEXT.md, _REFERENCES.md and _STATUS.md. |
+| S7 | [Approved coordination](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md) and this deliverable's _CONTEXT.md, _REFERENCES.md and _STATUS.md. |
 
 ## Deliverable Definition — Ontology
 

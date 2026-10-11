@@ -1,4 +1,4 @@
-// CI-20 (c), (d), (j) restart residuals. Included in `workflow_root_tests`
+// WR TX-5 / SQ-END, (d), (j) restart residuals. Included in `workflow_root_tests`
 // (runtime_session.rs), so the Peer fixture and its helpers are in scope.
 
 /// The WR run-start `run_text` record of `run` in the fixture project.
@@ -15,11 +15,11 @@ fn index_row(thread:&str,tags:Value)->Value{
 }
 fn limits_named(peer:&Peer,run:&str,label:&str)->Vec<Value>{rs_for(peer,run).into_iter().filter(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]==label).collect()}
 
-// CI-20 (d), EXEC A-2, RECOVERY §4.1: when run_opened is recorded the run's conversation is
+// EXEC §2.7 / RECOVERY §4.1, EXEC A-2, RECOVERY §4.1: when run_opened is recorded the run's conversation is
 // tagged with the run reference in the REC ledger; tags are ordered, a later run's tag is
 // appended and the earlier run's tag is kept; `look up` finds the conversation of a tag.
 #[test]
-fn ci20d_run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
+fn run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     let owner=crate::run_restart::RUN_TAG_OWNER;
     let peer=Peer::with_recovery();let mut root=peer.fixture.registered();
     let a=open_run(&peer,&mut root,"thread");
@@ -40,10 +40,10 @@ fn ci20d_run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     assert_eq!(crate::recovery::look_up(&rows,owner,&b),[("H-acct".to_string(),"thread".to_string())]);
     assert!(crate::recovery::tags_of(&rows,"H-acct","thread","DEL-01-04").is_empty(),"tags of one owner only");
 }
-// CI-20 (d), RECOVERY §4.1 failure column: a tag that cannot be stored lives in memory only
+// EXEC §2.7 / RECOVERY §4.1, RECOVERY §4.1 failure column: a tag that cannot be stored lives in memory only
 // and never blocks the run: no ledger, or a ledger that refuses the append.
 #[test]
-fn ci20d_run_tag_not_stored_keeps_the_run_going(){
+fn run_tag_not_stored_keeps_the_run_going(){
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let a=open_run(&peer,&mut root,"thread");
     let view=root.runs[&a].lock().unwrap().view(&a);
@@ -61,14 +61,14 @@ fn ci20d_run_tag_not_stored_keeps_the_run_going(){
     assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_opened"));
     assert!(peer.home.host.tags_of("H-acct","thread",crate::run_restart::RUN_TAG_OWNER).is_empty());
 }
-// CI-20 (d), RS "Relaunch with a run interrupted", FC-9, EXEC RE-4: one "App-restart
+// EXEC §2.7 / RECOVERY §4.1, RS "Relaunch with a run interrupted", FC-9, EXEC RE-4: one "App-restart
 // interruption" limit on the run current in the conversation at the end (picked from the
 // ordered run tags and the RS records), never twice for the same run and fact; an earlier
 // ended run is untouched; no run_ended is written; without a stored tag the run is found by
 // run_opened.conversationRef and the limit says so; a conversation whose last run had
 // ended gets no limit.
 #[test]
-fn ci20d_restart_limit_written_once_on_the_current_run(){
+fn restart_limit_written_once_on_the_current_run(){
     let label=crate::run_restart::RESTART_LABEL;
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let a=open_run(&peer,&mut root,"thread");root.runs[&a].lock().unwrap().end_run(None,None).unwrap();
@@ -101,12 +101,12 @@ fn ci20d_restart_limit_written_once_on_the_current_run(){
     assert!(limits_named(&peer,&c,label).is_empty());
     assert!(!rs_for(&peer,&c).iter().any(|e|e["kind"]=="run_ended"&&e["body"]["stoppedBy"]!="the person"));
 }
-// CI-20 (c), WR TX-5 / SQ-END: an end the person makes after a relaunch gets its end notice,
+// WR TX-5 / SQ-END, WR TX-5 / SQ-END: an end the person makes after a relaunch gets its end notice,
 // composed from the person's end plus the run's recorded run-start run_text (checked against
 // its run_opened); the next ordinary turn carries it first, exactly once; until then a run
-// start in that conversation is held back (CI-20 (f)).
+// start in that conversation is held back (EXEC CH-2 / RE-7).
 #[test]
-fn ci20c_end_after_relaunch_notice_from_recorded_run_text_carried_once(){
+fn end_after_relaunch_notice_from_recorded_run_text_carried_once(){
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
     let ended=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,Some(peer.home.clone())).unwrap();
@@ -128,10 +128,10 @@ fn ci20c_end_after_relaunch_notice_from_recorded_run_text_carried_once(){
     let view=root.lock().unwrap().reopened_end(&a).unwrap().lock().unwrap().view();assert!(view["endNotice"]["state"].as_str().unwrap().starts_with("sent once"),"{view}");
     assert!(root.lock().unwrap().prepare_run(peer.home.clone(),&peer.generation,"thread","next".into(),peer.project()).is_ok(),"after the notice went, a new start is allowed");
 }
-// CI-20 (c): with the recorded run text missing, or not matching the run's run_opened, no
+// WR TX-5 / SQ-END: with the recorded run text missing, or not matching the run's run_opened, no
 // notice is sent and the reason is given; the person's end is still recorded.
 #[test]
-fn ci20c_end_after_relaunch_refuses_a_notice_without_a_matching_record(){
+fn end_after_relaunch_refuses_a_notice_without_a_matching_record(){
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let t2=peer.second_thread();let b=open_run(&peer,&mut root,&t2);
     let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
@@ -152,10 +152,10 @@ fn ci20c_end_after_relaunch_refuses_a_notice_without_a_matching_record(){
     let root=Mutex::new(fresh);
     assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"no notice is sent");
 }
-// CI-20 (c) with V10 G-5/R-4: an unwritable notice record sends nothing; the person may
+// WR TX-5 / SQ-END with V10 G-5/R-4: an unwritable notice record sends nothing; the person may
 // retry it or send without it, and that choice is recorded in the run's log first.
 #[test]
-fn ci20c_reopened_notice_record_failure_offers_retry_or_recorded_skip(){
+fn reopened_notice_record_failure_offers_retry_or_recorded_skip(){
     use std::os::unix::fs::PermissionsExt;
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
@@ -172,11 +172,11 @@ fn ci20c_reopened_notice_record_failure_offers_retry_or_recorded_skip(){
     assert!(limit["body"]["detail"].as_str().unwrap().contains("not supplied"));
     assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none());assert_eq!(peer.turn_starts(),starts);
 }
-// CI-20 (j), RS W-1/W-2: an R3 whose reserved identity is held by a different entry can
+// RS §14.1 Permanent refusals, RS W-1/W-2: an R3 whose reserved identity is held by a different entry can
 // never be written; it is not held: a "record write failed" limit names it as never
 // written, and the later run_ended and R3 are written in order.
 #[test]
-fn ci20j_permanently_refused_r3_gets_its_limit_and_later_records_proceed(){
+fn permanently_refused_r3_gets_its_limit_and_later_records_proceed(){
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
@@ -200,11 +200,11 @@ fn ci20j_permanently_refused_r3_gets_its_limit_and_later_records_proceed(){
     assert_eq!(run.view(&reference)["checks"][0]["r3"]["state"],"unavailable");
     assert!(!run.has_pending_records());
 }
-// CI-20 (j): a nonconformant lifecycle entry (W-1 (a)) is refused permanently too: its limit
+// RS §14.1 Permanent refusals: a nonconformant lifecycle entry (W-1 (a)) is refused permanently too: its limit
 // is written in its place and the run_ended behind it is written; a transient failure still
 // holds every later entry in strict order.
 #[test]
-fn ci20j_nonconformant_entry_is_refused_but_transient_failure_keeps_strict_order(){
+fn nonconformant_entry_is_refused_but_transient_failure_keeps_strict_order(){
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
     let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
@@ -223,10 +223,10 @@ fn ci20j_nonconformant_entry_is_refused_but_transient_failure_keeps_strict_order
     assert!(limit["body"]["detail"].as_str().unwrap().contains("nonconformant"));
     assert!(run.entries.iter().any(|e|e.record_id==bad_id&&e.refused.is_some()));
 }
-// CI-20 (d): the startup entry writes nothing without an explicit project or a configured
+// EXEC §2.7 / RECOVERY §4.1: the startup entry writes nothing without an explicit project or a configured
 // REC projection, and says why (shown by workflow_reopen).
 #[test]
-fn ci20d_startup_writer_states_why_it_did_not_run(){
+fn startup_writer_states_why_it_did_not_run(){
     let peer=Peer::new();
     assert_eq!(crate::run_restart::startup(&[peer.home.clone()],None)["state"],"not run");
     let out=crate::run_restart::startup(&[peer.home.clone()],peer.project());
@@ -235,11 +235,11 @@ fn ci20d_startup_writer_states_why_it_did_not_run(){
     let mut root=WorkflowRootSession::default();root.set_restart_limits(out.clone());
     assert_eq!(root.reopen(&peer.fixture.root,&[]).unwrap()["restartLimits"],out);
 }
-// CI-20 (j): permanence is classified conservatively: an identity conflict found while
+// RS §14.1 Permanent refusals: permanence is classified conservatively: an identity conflict found while
 // part of the record set cannot be read is not a definite refusal, so the entry stays held.
 #[test]
-fn ci20j_identity_conflict_in_an_incomplete_record_set_is_not_a_permanent_refusal(){
-    let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("ci20j-").unwrap());std::fs::create_dir_all(&root).unwrap();
+fn identity_conflict_in_an_incomplete_record_set_is_not_a_permanent_refusal(){
+    let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("permanent-refusal-").unwrap());std::fs::create_dir_all(&root).unwrap();
     let id="rec:app:held-identity";let body=json!({"label":"record write failed","subjectRef":"x","detail":"d"});
     crate::records::append_with_id(&crate::storage::project_log(&root,None,"conflict-fixture"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),id).unwrap();
     let refusal=|| crate::records::supply::permanent_refusal(&root,"run:x","evidence_limit",id,&body,"2026-10-10T00:00:00Z");
@@ -481,11 +481,11 @@ fn live_end_unconfirmed_start_is_refused_beside_an_incomplete_log(){
         assert!(!own_log(&peer,&a).iter().any(|e|e["kind"]=="run_opened"||e["kind"]=="run_ended"));
     }
 }
-// CI-20 (j) review B1, RS W-2: the never-written limit takes the refused record's own
+// RS §14.1 Permanent refusals review B1, RS W-2: the never-written limit takes the refused record's own
 // observation time, so a check observed after the next lifecycle entry is not written
 // before the limit or before that entry.
 #[test]
-fn ci20j_never_written_limit_keeps_observation_order_with_a_later_check(){
+fn never_written_limit_keeps_observation_order_with_a_later_check(){
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
@@ -507,10 +507,10 @@ fn ci20j_never_written_limit_keeps_observation_order_with_a_later_check(){
     assert!(limit<ended&&ended<check2,"W-2 observation order: limit {limit}, run_ended {ended}, check 2 {check2}: {:?}",log_order(&peer,&reference));
     assert!(log[limit]["observedAt"].as_str().unwrap()<=log[ended]["observedAt"].as_str().unwrap(),"the limit keeps the refused record's observation time, before run_ended's");
 }
-// CI-20 (c) review M1: the home of a recorded conversation comes from the App's recovery
+// WR TX-5 / SQ-END review M1: the home of a recorded conversation comes from the App's recovery
 // ledger (restart fact, the run's own tag, or a single home in the index), never a guess.
 #[test]
-fn ci20c_conversation_home_comes_from_the_ledger_or_is_refused(){
+fn conversation_home_comes_from_the_ledger_or_is_refused(){
     let home=|rows:&[Value],events:&[Value]|crate::run_restart::conversation_home_class(rows,events,"thread","run:a");
     let mut key_fact=restart_fact("cev:x","thread");key_fact["home"]=json!("H-key");
     assert_eq!(home(&[],&[key_fact]).unwrap(),"H-key");
@@ -522,11 +522,11 @@ fn ci20c_conversation_home_comes_from_the_ledger_or_is_refused(){
     assert!(home(&[other,key_row],&[]).unwrap_err().contains("more than one"));
     assert!(home(&[],&[]).unwrap_err().contains("does not say"),"no active-home fallback");
 }
-// CI-20 (d) review M3: a conversation whose last REC run tag names a run with no run_opened
+// EXEC §2.7 / RECOVERY §4.1 review M3: a conversation whose last REC run tag names a run with no run_opened
 // (tagged when run_opened was queued, never written) gets no limit: the current run is not
 // established.
 #[test]
-fn ci20d_last_tag_naming_an_unrecorded_run_writes_no_limit(){
+fn last_tag_naming_an_unrecorded_run_writes_no_limit(){
     let peer=Peer::new();let mut root=peer.fixture.registered();
     let b=open_run(&peer,&mut root,"thread");drop(root);
     let owner=crate::run_restart::RUN_TAG_OWNER;
@@ -535,10 +535,10 @@ fn ci20d_last_tag_naming_an_unrecorded_run_writes_no_limit(){
     assert_eq!(out[0]["outcome"],"not written","{out:?}");assert!(out[0]["detail"].as_str().unwrap().contains("has no run_opened"),"{out:?}");
     assert!(limits_named(&peer,&b,crate::run_restart::RESTART_LABEL).is_empty());
 }
-// CI-20 (c) review M3: a choice to send without the end notice that cannot be recorded is
+// WR TX-5 / SQ-END review M3: a choice to send without the end notice that cannot be recorded is
 // refused; the notice stays pending and nothing is sent.
 #[test]
-fn ci20c_unrecordable_skip_is_refused_and_the_notice_stays_pending(){
+fn unrecordable_skip_is_refused_and_the_notice_stays_pending(){
     use std::os::unix::fs::PermissionsExt;
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);

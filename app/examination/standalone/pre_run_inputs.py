@@ -14,7 +14,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = 'a88b28bb7dea665c6e380a17a9599f21a128cd0898b28b2543f95f9da6decd51'
+PINS_SHA256 = '0f10150b954b0337f63f6f2150040e221f3b9dbed5e0a0620957bc059dfad66b'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',
@@ -73,23 +73,53 @@ def relative_file(root, relative):
     return read_file(Path(root) / relative)
 
 
-def load_module(name, path):
+def load_module(name, path, raw=None):
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
-    exec(compile(read_file(path), str(path), 'exec'), module.__dict__)
+    exec(compile(read_file(path) if raw is None else raw, str(path), 'exec'), module.__dict__)
     return module
 
 
 class PreRunInputs:
-    def __init__(self):
+    def __init__(self, current_documentary_root=None, original_support_root=None):
         pins_bytes = read_file(HERE / 'pre_run_inputs.pins.json')
         require(sha(pins_bytes) == PINS_SHA256, 'pre-run source pins changed')
         self.pins = parse(pins_bytes)
+        producer_path = 'projects/chirality-app-v4/app/examination/standalone/prepare.py'
+        producer_bytes = relative_file(ROOT, producer_path)
+        require(sha(producer_bytes) == self.pins['sources'][producer_path], 'pre-run source drift: preparation helper')
+        projection = load_module('_pre_run_source_projection', ROOT / producer_path, producer_bytes)
+        support_path = 'projects/chirality-app-v4/app/examination/support_identity/support_identity.py'
+        support_bytes = relative_file(ROOT, support_path)
+        require(sha(support_bytes) == self.pins['sources'][support_path], 'pre-run source drift: support helper')
+        publication = load_module('_pre_run_publication_sources', ROOT / support_path, support_bytes)
+        declaration_path = 'projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json'
+        declaration_bytes = relative_file(ROOT, declaration_path)
+        require(sha(declaration_bytes) == self.pins['sources'][declaration_path], 'pre-run source drift: declaration')
+        original_declaration = publication.parse(declaration_bytes)
+        original_root = ROOT if original_support_root is None else Path(original_support_root)
+        original_sources = {name: publication.frozen_publication_source(original_root, ('projects/chirality-app-v4/' + name if original_support_root is None else name), digest)
+                            for name, digest in original_declaration['sources'].items()}
         self.captured = {}
         for relative, expected in self.pins['sources'].items():
-            data = relative_file(ROOT, relative)
-            require(sha(data) == expected, 'pre-run source drift: ' + relative)
+            data = (publication.publication_source(ROOT, relative, expected)
+                    if relative.endswith('.md') and isinstance(expected, str)
+                    else relative_file(ROOT, relative))
+            selected = projection.source_input(expected, data) if isinstance(expected, dict) else data
+            digest = expected['sha256'] if isinstance(expected, dict) else expected
+            require(sha(selected) == digest, 'pre-run source drift: ' + relative)
             self.captured[relative] = data
+        canonical_pins = parse(self.captured['projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json'])
+        for name, digest in canonical_pins['sources'].items():
+            if name.endswith('.md'):
+                original_sources[name] = publication.publication_source(original_root, ('projects/chirality-app-v4/' + name if original_support_root is None else name), digest)
+        condition_path = 'projects/chirality-app-v4/app/examination/documentary_condition.py'
+        condition = load_module('_pre_run_current_documentary', ROOT / condition_path, self.captured[condition_path])
+        manifest = self.captured['projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+        current_root = ROOT / 'projects/chirality-app-v4' if current_documentary_root is None else Path(current_documentary_root)
+        current_documents, self.documentary_condition = condition.Condition(current_root, manifest, publication.relative_file).capture('sq')
+        self.captured.update({'original-support/' + name: data for name, data in original_sources.items()})
+        self.captured.update({'current-documentary-inputs/' + name: data for name, data in current_documents.items()})
         # Each selected package is exactly the maintained two-file fixture;
         # additional companion files or directories are not silently omitted.
         fixture_root = 'projects/chirality-app-v4/app/examination/standalone/fixtures'
@@ -128,7 +158,8 @@ class PreRunInputs:
             self.producer = load_module('_b7_pre_run_producer', app / 'examination/standalone/prepare.py')
             self.forms = load_module('_b7_pre_run_blank_forms', app / 'examination/native_forms/native_form.py')
             canonical = load_module('_b7_pre_run_support', app / 'examination/support_identity/canonical.py')
-            self.support = canonical.CanonicalSupport()
+            self.support = canonical.CanonicalSupport(original_root=self.snapshot / 'original-support',
+                                                      documentary_root=self.snapshot / 'current-documentary-inputs')
         except Exception:
             self.close(); raise
 

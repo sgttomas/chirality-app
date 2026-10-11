@@ -84,7 +84,7 @@ until an enforceable exclusion mechanism and its examination are selected.
 ## 3. Write-once commit and failure behavior
 
 Validate the declared account against its exact 0.1 or 0.2 schema before
-writing. Format 0.2's CI-29 rule is checkable: no source reads requires no
+writing. CFB-v0.3's wholly unavailable sources rule (format 0.2) is checkable: no source reads requires no
 facts or supported conclusions, and nonempty gaps/unsupported conclusions.
 The matching schema also checks required identity fields, prohibited values
 and performed-duty evidence-field presence. This placement writer does not

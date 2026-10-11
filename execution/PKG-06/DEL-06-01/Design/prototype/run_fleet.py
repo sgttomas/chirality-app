@@ -4,7 +4,7 @@ Prototype only, not product code; invented subject matter; no act was performed.
 Usage: python3 -B run_fleet.py [scratch] [--write-fixture]
   Builds fixture FX-FL1 in scratch through the writer, checks it, and (with --write-fixture) copies it to
   fixtures/FX-FL1/ beside this file, with MANIFEST.sha256. Exit 0 only if every expectation held.
-Decision needs read the RS records of the early-path fixture FX-DP1 (run APP-V4-DESIGN-PASS-4-20261003, E/).
+Decision needs read the maintained App test fixture FX-DP1, whose bytes match the original early-path fixture.
 """
 
 import copy
@@ -19,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from fleet_store import Writer, Reader, Refused, file_identity, schema, validate, EXECUTION  # noqa: E402
 
-FX_DP1 = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "E", "fixtures", "FX-DP1")
+FX_DP1 = os.path.join(EXECUTION, "..", "app", "tests", "fixtures", "FX-DP1")
 RS_LOG = os.path.join(FX_DP1, "records", "coordination.rs.jsonl")
 U = "FX-U1"
 PIN = "0.158.0 (definition pin; same at 0.160.0 for these surfaces: VC F16 types unchanged)"

@@ -1,4 +1,4 @@
-// CI-27 A-IN-S2: real Host wiring with invented trees, plus read-only stock comparison.
+// S1 Design — Compiled build-selection implementation: real Host wiring with invented trees, plus read-only stock comparison.
 use super::*;
 
 fn fixture() -> Fixture {

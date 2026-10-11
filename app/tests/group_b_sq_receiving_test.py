@@ -234,10 +234,16 @@ class SQReceivingTests(unittest.TestCase):
         original=reader.read_relative
         def changed(root,name):
             data=original(root,name)
-            return data+b'\n' if name.endswith('/sq-exp-receiving-v1/RECEIVING.md') else data
+            return data+b'\n' if name.endswith('/prototype/check_sq.py') else data
         with patch.object(reader,'read_relative',changed):
             with self.assertRaisesRegex(ValueError,'selected source changed'):
                 reader.Receiver()
+
+    def test_full_frozen_documentary_closure_still_matches_original_hashes(self):
+        for name, data in self.consumer.sources.items():
+            if name.endswith('.md'):
+                with self.subTest(source=name):
+                    self.assertEqual(sha(data), self.consumer.pins['sources'][name])
 
     def test_boolean_target_cannot_be_integer(self):
         self.selected['review']['evidence'][0]['target']={'dossier':1};self.refused('invalid evidence target flag')

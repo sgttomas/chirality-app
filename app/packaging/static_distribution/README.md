@@ -24,19 +24,14 @@ stdout: exit 0 for consistent or explicitly incomplete support reports, 1 for
 mismatch, 2 for refusal. Exit 0 is
 never qualification, release registration, or runtime verification.
 
-## CI-27 build-selection source adoption
+## Build-selection scanner compatibility
 
-The static consumer's runtime-source guard now binds the CI-27 compiled
-build-selection preflight. The consumed `scan` and `equal` algorithms and the
-`distribution-static` CLI are unchanged; the source diff adds the compiled
-S3 selection and mismatch explanation helper and removes an unused reference
-constructor. Static support still consumes only the caller's digest-bound
-inputs and never constructs a production `Selected` or executes a supplier.
-The guard's exact source hash is in `sources.json`; its `basis_revision`
-continues to identify the unchanged canonical S1 Design cohort. Every canonical
-Design/model pin and the standard preparation producer guard stays unchanged.
-The connected fixture suite checks this renewed scanner/source basis; this
-adoption supplies no runtime, custody or packaging qualification.
+The opt-in build-selection preflight adds the compiled S3 selection and
+mismatch explanation helper. The consumed `scan`/`equal` algorithms and
+`distribution-static` CLI remain the same. Static support checks the selected
+scanner executable's exact bytes and its actual operational inputs; unread
+Rust source and Design text are not reader inputs. The connected fixture suite
+uses the built scanner and preserves the canonical S1 comparison behavior.
 
 ## Exact input contract
 
@@ -71,8 +66,11 @@ content is never opened or interpreted as another dependency.
 
 ## Claims and limits
 
-The new private `sources.json` selects the canonical S1 Design cohort and its
-actual legacy/schema/model dependencies. It does not repin the old producer.
+The private `sources.json` selects the canonical publication, model, schemas
+and actual imported/data dependencies. Unread Design prose, Rust preflight
+source and model test code are not operational inputs to this command. The
+selected scanner executable has its own exact byte identity. The frozen
+canonical publication and old producer are unchanged.
 Guarded source code and all selected inputs are copied to a private snapshot;
 the canonical model executes against those copies. Originals and scanner bytes
 are rechecked, and measured trees rescanned, before the report is returned.

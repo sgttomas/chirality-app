@@ -74,7 +74,7 @@ choices with evidence and consequences.
 ## Records
 
 The run record at
-[`../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/)
+[`../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925)
 keeps the opening brief, each delegated brief and return verbatim, and their
 timing and model. [`WORKING_RECORD.md`](WORKING_RECORD.md) keeps position,
 open work and next steps. Git history carries the rest.

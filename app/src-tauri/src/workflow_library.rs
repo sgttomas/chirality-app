@@ -449,7 +449,7 @@ impl LibraryOwner {
 /// that slot", or the base's derived-from lineage reaches one. The first tuple in
 /// that lineage naming this slot must be a revision the ledger registered in it;
 /// otherwise the lineage is not established (DS-3), shown as ID-4's "lineage
-/// incomplete at ‹tuple›". The App-kept record is a claim, not proof (CI-21).
+/// incomplete at ‹tuple›". The App-kept record is a claim, not proof (WR §3 / RB-3).
 fn lineage_reaches(
     base: Option<&WorkflowIdentity>,
     target: &WorkflowIdentity,
@@ -1454,7 +1454,7 @@ impl HotRegistrationAttempt {
         line["reason"] = json!(reason);
         super::wr_validate("library_entry", &line)?;
         // V15 F1: a re-confirmation's *not completed* line must satisfy RC-9 too;
-        // otherwise nothing is appended and the attempt stays pending (CI-25).
+        // otherwise nothing is appended and the attempt stays pending (WR G-1R / RC-9).
         rc9_guard(&self.session.root, rows, &line)?;
         self.progress[index] = Progress::Intended(line.clone());
         append_line(&self.session.root, &line)?;
@@ -1944,7 +1944,7 @@ fn sync_package(path: &Path) -> Result<(), String> {
 }
 
 /// Where App-kept draft bases live under the App user-data root (WR §3 names the
-/// App data folder; this sub-path is the implementation's, CONTRACT_ISSUES CI-21).
+/// App data folder; this sub-path is the implementation's, WR §3 / RB-3).
 pub(crate) const BASE_STORE: &str = "runtime/wr/draft-bases";
 
 /// WR §3 "Draft bases": written by the App only, keyed by draft key

@@ -5,6 +5,23 @@ Design supplements in DEL-09-02 and DEL-09-01. It checks an explicitly selected
 SQ dossier, its recorded direct EXP results and primary review against fixed
 source bytes. The existing six-record canonical route is unchanged.
 
+The full documentary closure remains mandatory by its original exact hashes.
+Those frozen bytes may be captured from the reader's fixed Git object revision
+when today's Design files differ. Unavailable objects or differing bytes refuse;
+no fetch or caller-selected revision is used. The worker still runs against the
+complete checked snapshot. This is selected frozen-support correspondence,
+not a claim that the current App or Design has been examined.
+
+Current-producer selections also use the owner-approved documentary successor
+condition. Its manifest binds the cited case definitions and their governing
+clauses, excluding implementation-result cells and unrelated notes. The parent
+captures checked current documents under `current-documentary-inputs/` and
+original full support under `original-support/` in the private worker snapshot.
+The worker uses those distinct roots, preserving the original publication tuple
+and validator bytes. The report names the successor check at that read; it does
+not attribute that condition to an old producer. Historical selections keep the
+original full-source route.
+
 From the App directory, using the existing Python/jsonschema environment:
 
 ```sh

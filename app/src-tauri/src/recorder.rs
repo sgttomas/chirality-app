@@ -141,7 +141,7 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
         if already {
             continue;
         }
-        // CONTRACT_ISSUES CI-3: no rule says how the recorder establishes which agent wrote a
+        // RS §13.6 requester identity: no rule says how the recorder establishes which agent wrote a
         // file it finds; the skeleton records the requester kind without an identity.
         let body = request_from_file(
             &pkg,

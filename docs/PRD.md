@@ -1,7 +1,7 @@
 # Chirality v4 — Product Requirements
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;
-independent substantive fidelity review [completed](../execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** Prepared by HELPS_HUMANS after the
+independent substantive fidelity review [completed](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** Prepared by HELPS_HUMANS after the
 owner's act recorded as **APP-V4-BASIS-20260926**. The accepted subject is the
 composite identified in the [acceptance record][B-ACCEPT], not a claim that
 the human previously examined these newly consolidated bytes. Acceptance
@@ -519,7 +519,7 @@ historical implementation choices into mandatory v4 requirements. The
 original author's historical handoff remains available; its old pending
 acceptance position is superseded by B-ACCEPT, not erased from history.
 
-[B-ACCEPT]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
+[B-ACCEPT]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
 [B-HTML]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
-[B-OWNER]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
-[B-DEC45]: ../execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md
+[B-OWNER]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
+[B-DEC45]: https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md

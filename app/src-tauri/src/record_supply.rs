@@ -169,7 +169,7 @@ pub struct PendingRunEntry {
     pub observed_at: String,
     pub failure: Option<String>,
     pub written: Option<Value>,
-    /// CI-20 (j), RS W-2: the writer refuses this entry permanently (every retry
+    /// RS §14.1 Permanent refusals, RS W-2: the writer refuses this entry permanently (every retry
     /// would be refused the same way); it is never written, and a "record write
     /// failed" limit names it so later entries proceed.
     pub refused: Option<String>,
@@ -191,7 +191,7 @@ impl PendingRunEntry {
         self.written.is_none() && self.refused.is_none()
     }
 }
-/// CI-20 (j), RS W-1/W-2: whether a write refusal of a reserved entry is one that
+/// RS §14.1 Permanent refusals, RS W-1/W-2: whether a write refusal of a reserved entry is one that
 /// every retry would repeat. Conservative: only definite, deterministic refusals
 /// count — the entry is nonconformant (W-1 (a)), or its reserved identity is held
 /// by a different entry in a complete record set. Anything else (I/O, an
@@ -241,7 +241,7 @@ pub(crate) fn permanent_refusal_in(
 pub(crate) fn never_written_limit(kind: &str, record_id: &str, reason: &str, observed_at: &str) -> Result<PendingRunEntry, String> {
     PendingRunEntry::new(
         "evidence_limit",
-        json!({"label":"record write failed","subjectRef":record_id,"detail":format!("{kind} {record_id} can never be written: {reason}. It is not in the record; later entries of this run were written after it (RS W-2, CI-20 (j))")}),
+        json!({"label":"record write failed","subjectRef":record_id,"detail":format!("{kind} {record_id} can never be written: {reason}. It is not in the record; later entries of this run were written after it (RS W-2, RS §14.1 Permanent refusals)")}),
         observed_at.to_owned(),
     )
 }

@@ -464,11 +464,11 @@
               "type": "string"
             },
             "evidence": {
-              "description": "CC-R CI-3: observed supplier item or host-origin evidence linking this identity to the package path and identified bytes. Absent when identity is not established.",
+              "description": "CC-R RS §13.6 requester provenance: observed supplier item or host-origin evidence linking this identity to the package path and identified bytes. Absent when identity is not established.",
               "$ref": "#/$defs/evidenceRef"
             }
           },
-          "description": "CC-R CI-3: identity only from an observed source linking the writer to the package path and identified bytes; otherwise absent, with an RS evidence_limit requester identity not established. Fixture identities are test values, never author provenance."
+          "description": "CC-R RS §13.6 requester provenance: identity only from an observed source linking the writer to the package path and identified bytes; otherwise absent, with an RS evidence_limit requester identity not established. Fixture identities are test values, never author provenance."
         },
         "form": {
           "description": "How the request was observed (EXEC RC-5; RS §13.6). Never agent message text (RC-5; RW-1).",

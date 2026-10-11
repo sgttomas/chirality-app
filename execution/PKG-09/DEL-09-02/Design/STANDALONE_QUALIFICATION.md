@@ -482,3 +482,23 @@ See the named change's source basis, consumer account and check results in
 `execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/changes/CC-SQ-J2-ST4/`
 (relative to the App v4 project). Earlier prototype results above remain
 historical.
+
+## Current implementation conditions
+
+**Open recording and source correspondence conditions.** DEL-01-01's
+`CAPTURE_ST5_NV04_0.160.0.md` supplies development captures of ST-5 (X-09 with
+X-10 recovery read) and NV-04. Neither is at an App candidate's pin, so the
+`st5_recording` and `st4_route_or_recording` missing inputs remain. The ST-4
+"none exists yet" wording above and in the J-2 step-map counterpart predates
+those development captures; it has not been received as candidate evidence.
+Whether to cite them here and whether a candidate-pin rerun of
+`prototype/st5/st5_harness.py` fulfills U-SQ-6/ST-4 remain open with the SQ owner.
+No case criterion, stimulus count/order or qualification rule changes here.
+
+Examination source/basis labels that name the revision first inspected rather
+than the currently bound bytes still need truthful correspondence. Historical
+distribution/terminal file-correspondence cohorts receive verified operational
+inputs separately from frozen producer provenance. Their passing packet checks
+supply historical correspondence, not a current candidate or native witness.
+The owning receiving inputs bind the meaning tested without turning unrelated
+Design or Host edits into renewed qualification claims.

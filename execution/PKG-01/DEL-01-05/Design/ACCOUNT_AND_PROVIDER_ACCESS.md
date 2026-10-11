@@ -725,7 +725,7 @@ sign-in; DECISION-L L-3; R18-3):**
 
 | Start-up or thread-start traffic | What stops it at 0.158.0 | App action | Standing |
 |---|---|---|---|
-| Model destination at `thread/start` (Responses websocket prewarm before a turn; default provider: `wss://api.openai.com/v1/responses`, 401 without credentials) | Provider-dependent; no general stop setting established | Show as model traffic, `phase: thread-start`, before a turn; preserve the person's provider/model and Codex policy choices | observed@0.158.0 (2026-10-04, CI-8; graph-closure EVIDENCE N-1); local configured-provider probe saw no internet socket within sampling limits |
+| Model destination at `thread/start` (Responses websocket prewarm before a turn; default provider: `wss://api.openai.com/v1/responses`, 401 without credentials) | Provider-dependent; no general stop setting established | Show as model traffic, `phase: thread-start`, before a turn; preserve the person's provider/model and Codex policy choices | observed@0.158.0 (2026-10-04, ACCESS §9 thread-start observation; graph-closure EVIDENCE N-1); local configured-provider probe saw no internet socket within sampling limits |
 | Featured-plugins request to chatgpt.com (401 without sign-in) | `[features] plugins = false` (O-7 v1, v6–v8) | **Follows the person's plugin setting** (L-3 A): plugins on → happens, shown and recorded; plugins off → does not happen. Under the link the person's own file carries the setting, so the App adds nothing; in the fallback (own configuration) the App passes `plugins = false` as a session flag when the person's setting is off | `observed (OBS-2 O-7)` |
 | Plugin repository check or fetch, `github.com/openai/plugins` (`ls-remote` warm; ≈24 MB fetch on a fresh home) | `[features] plugins = false` (v1, v8: no `.tmp/` created on a cold home) | As above (L-3 A) | `observed (OBS-2 O-7)` |
 | Remote-control loop for `chatgpt.com/backend-api/` | No configuration key: `remote_control` is a `removed` feature with no effect (v5); `remote_plugin`, `apps`, `tool_suggest` have none (v2, v3, v6). Only the internal environment variable `CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED=1` stops it (v4) | **Not turned off** (R18-3: an internal variable is not a setting). Shown as observed: without sign-in the loop retries locally about once a second and opens **no socket**; `remoteControl/status/changed` reported `disabled` at start. With a sign-in: not observed (DECISION-L L-6) | `observed (OBS-2 O-7)`; signed-in behaviour not observed |
@@ -749,7 +749,7 @@ connection was observed" and the record carries the same (schema `pluginsSetting
 
 **CC-H disclosure.** Thread start may contact the chosen model destination
 before a turn. This appears as model traffic in the network view, with
-expected-at-pin and App-observed sources kept distinct. CI-8 is a reported
+expected-at-pin and App-observed sources kept distinct. ACCESS §9 thread-start observation is a reported
 observation, not a new observation by this author or a universal guarantee.
 A socket establishes contact, not prompt content or a turn. The local-provider
 probe's absence of an internet socket is limited to its sampling window.
@@ -870,6 +870,15 @@ person edits the provider's `base_url` or adds a second local provider
 completes, with tool calling checked separately (L-3); a failure is recorded
 as such, never hidden by a switch.
 
+**Open native access witnesses.** Synthetic method-aware transient/redacted
+request, response, journal, snapshot and diagnostic checks, including repaired
+malformed-auth reflections, establish only those vectors. The owner's signed-in
+ChatGPT development walkthrough on stock 0.160.0 is recorded in DEL-01-02
+`NATIVE_WITNESS_2026-10-10.md`: account type without details, identity not
+verified, model turns through `openai`. API-key, device and logout journeys and
+complete access qualification remain unwitnessed; that one account home does
+not establish other-home/provider or credential-separation behavior.
+
 ## 13. Receivers and register rows
 
 | Row (DAG-003 layer) | Direction | Other end | Where this file holds it |
@@ -985,7 +994,7 @@ are unchanged in regenerated native types. The 0.158.0 rows below remain
 dated supplier observations, not new observations at 0.160.0. VERSION_ADVANCE
 0.160.0's retained observation supports only its stated checks; plugins-on
 traffic, adapter delegation/MCP route, timing and supplier-descendant gaps
-remain unqualified. CI-8's default-provider prewarm is still labelled
+remain unqualified. ACCESS §9 thread-start observation's default-provider prewarm is still labelled
 observed@0.158.0 until separately observed at the new pin; no universal
 network claim follows. The per-pin expected list must preserve that evidence
 version separately from the current child version, not relabel old sockets.

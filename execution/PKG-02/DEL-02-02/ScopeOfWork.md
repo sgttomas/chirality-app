@@ -104,9 +104,9 @@ Source keys below are repository-local evidence locators. The author return reco
 [E1]: ../../../../docs/EXAMINATION.md
 [O1]: ../../../../docs/OPERATING_METHOD.md
 [D1]: ../../../_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
-[D2]: ../../../_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
-[C1]: ../../../_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
-[Q1]: ../../../_Coordination/_COORDINATION.md
+[D2]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
+[C1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
+[Q1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md
 
 ## Output and Evaluation Matrix
 

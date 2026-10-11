@@ -6,7 +6,7 @@ Supported keywords (the subset the DEL-04-0x schemas use):
   $schema, $id, $defs, $ref, $comment, title, description, examples (annotations or
   structure); type, enum, const, required, properties, additionalProperties
   (boolean or schema), items (single schema), minItems, minLength, pattern,
-  minimum, oneOf, anyOf, allOf, not.
+  minimum, oneOf, anyOf, allOf, not, if, then, else.
 
 Any other keyword makes the schema itself fail with "unsupported keyword", so a
 schema cannot silently rely on something this validator ignores.
@@ -29,6 +29,7 @@ ANNOTATIONS = {"$schema", "$id", "$defs", "$comment", "title", "description", "e
 ASSERTIONS = {
     "$ref", "type", "enum", "const", "required", "properties", "additionalProperties",
     "items", "minItems", "minLength", "pattern", "minimum", "oneOf", "anyOf", "allOf", "not",
+    "if", "then", "else",
 }
 SUPPORTED = ANNOTATIONS | ASSERTIONS
 
@@ -84,7 +85,7 @@ def check_supported(node, where="schema", path="#"):
         if key in ("$defs", "properties"):
             for k, sub in val.items():
                 check_supported(sub, where, f"{path}/{key}/{k}")
-        elif key in ("items", "additionalProperties", "not") and not isinstance(val, bool):
+        elif key in ("items", "additionalProperties", "not", "if", "then", "else") and not isinstance(val, bool):
             check_supported(val, where, f"{path}/{key}")
         elif key in ("oneOf", "anyOf", "allOf"):
             for i, sub in enumerate(val):
@@ -97,9 +98,17 @@ def _pointer(doc, frag):
     if not frag.startswith("#/"):
         raise SchemaError(f"unsupported fragment {frag!r}")
     node = doc
-    for part in frag[2:].split("/"):
-        part = part.replace("~1", "/").replace("~0", "~")
-        node = node[part]
+    try:
+        for part in frag[2:].split("/"):
+            part = part.replace("~1", "/").replace("~0", "~")
+            if isinstance(node, list):
+                if not part.isdigit() or (part != "0" and part.startswith("0")):
+                    raise ValueError("non-canonical array index")
+                node = node[int(part)]
+            else:
+                node = node[part]
+    except (KeyError, IndexError, TypeError, ValueError) as error:
+        raise SchemaError(f"unresolved reference fragment {frag!r}") from error
     return node
 
 
@@ -107,15 +116,31 @@ TYPES = {
     "object": lambda v: isinstance(v, dict),
     "array": lambda v: isinstance(v, list),
     "string": lambda v: isinstance(v, str),
-    "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+    "integer": lambda v: (isinstance(v, int) and not isinstance(v, bool))
+                         or (isinstance(v, float) and v.is_integer()),
     "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
     "boolean": lambda v: isinstance(v, bool),
     "null": lambda v: v is None,
 }
 
 
+def json_equal(left, right):
+    """JSON equality: booleans differ from numbers, including inside containers."""
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if isinstance(left, dict) or isinstance(right, dict):
+        return (isinstance(left, dict) and isinstance(right, dict)
+                and left.keys() == right.keys()
+                and all(json_equal(left[key], right[key]) for key in left))
+    if isinstance(left, list) or isinstance(right, list):
+        return (isinstance(left, list) and isinstance(right, list)
+                and len(left) == len(right)
+                and all(json_equal(a, b) for a, b in zip(left, right)))
+    return left == right
+
+
 def validate(instance, schema, registry, root=None, path="$"):
-    """Return a list of error strings (empty when valid)."""
+    """Return instance errors; unavailable schema references raise SchemaError."""
     root = root if root is not None else schema
     errors = []
     if schema is True:
@@ -134,7 +159,7 @@ def validate(instance, schema, registry, root=None, path="$"):
             elif ":" not in base and (target_root := registry.resolve_file(base, root)) is not None:
                 pass
             else:
-                return [f"{path}: unresolved $ref {ref}"]
+                raise SchemaError(f"{path}: unresolved $ref {ref}")
             target = _pointer(target_root, "#" + frag if frag else "#")
         errors += validate(instance, target, registry, target_root, path)
 
@@ -143,9 +168,9 @@ def validate(instance, schema, registry, root=None, path="$"):
         if not any(TYPES[t](instance) for t in types):
             return errors + [f"{path}: expected type {types}, got {type(instance).__name__}"]
 
-    if "const" in schema and instance != schema["const"]:
+    if "const" in schema and not json_equal(instance, schema["const"]):
         errors.append(f"{path}: expected const {schema['const']!r}")
-    if "enum" in schema and instance not in schema["enum"]:
+    if "enum" in schema and not any(json_equal(instance, value) for value in schema["enum"]):
         errors.append(f"{path}: {instance!r} not in enum")
 
     if isinstance(instance, str):
@@ -177,6 +202,11 @@ def validate(instance, schema, registry, root=None, path="$"):
         if "items" in schema:
             for i, item in enumerate(instance):
                 errors += validate(item, schema["items"], registry, root, f"{path}[{i}]")
+
+    if "if" in schema:
+        branch = "else" if validate(instance, schema["if"], registry, root, path) else "then"
+        if branch in schema:
+            errors += validate(instance, schema[branch], registry, root, path)
 
     for sub in schema.get("allOf", []):
         errors += validate(instance, sub, registry, root, path)

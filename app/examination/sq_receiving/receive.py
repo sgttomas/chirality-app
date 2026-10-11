@@ -2,6 +2,7 @@
 """Fixed-source SQ file receiving. No examination or qualification is performed."""
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import stat
@@ -11,7 +12,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '910c6f31291bc2efe9fa8025c8822fcaf3834c814763aa478fe701aaaf1e4eb0'
+PINS_SHA256 = 'c2e2f6f90634d4f33beeb1441a21767cf3eced14d4c63d0a3223acc334e30068'
 
 
 def sha(data):
@@ -39,19 +40,59 @@ class Receiver:
             raise ValueError('SQ reader pins changed')
         self.pins = json.loads(raw)
         self.sources = {}
+        helper = 'app/examination/support_identity/support_identity.py'
+        data = read_relative(PROJECT, helper)
+        if sha(data) != self.pins['sources'][helper]:
+            raise ValueError('selected source changed: ' + helper)
+        spec = importlib.util.spec_from_file_location('_sq_publication_sources', PROJECT / helper)
+        source_reader = importlib.util.module_from_spec(spec)
+        exec(compile(data, str(PROJECT / helper), 'exec'), source_reader.__dict__)
+        self.source_reader = source_reader
+        self.sources[helper] = data
         for name, expected in self.pins['sources'].items():
-            data = read_relative(PROJECT, name)
+            data = self.sources.get(name)
+            if data is None:
+                data = source_reader.publication_source(PROJECT, name, expected) if name.endswith('.md') else read_relative(PROJECT, name)
             if sha(data) != expected:
                 raise ValueError('selected source changed: ' + name)
             self.sources[name] = data
+        original_declaration = source_reader.parse(self.sources['app/examination/support_identity/declaration.v1.json'])
+        self.original_sources = {name: source_reader.frozen_publication_source(PROJECT, name, digest)
+                                 for name, digest in original_declaration['sources'].items()}
+        self.original_sources.update({name: data for name, data in self.sources.items() if name.endswith('.md')})
 
     def check(self, selection, digest):
+        selected_raw = read_relative(Path(selection).absolute().parent, Path(selection).name)
+        if sha(selected_raw) != digest:
+            raise ValueError('selection digest mismatch')
+        purpose = self.source_reader.parse(selected_raw)['purpose']
+        if purpose not in ('current_producer_declaration', 'historical_correspondence'):
+            raise ValueError('unsupported purpose')
+        current_documents = {}
+        source_condition = {'method': 'original-frozen-source/v1',
+                            'standing': 'original full-byte correspondence; current documentary meaning not checked',
+                            'authority_authenticated': False}
+        if purpose == 'current_producer_declaration':
+            path = 'app/examination/documentary_condition.py'
+            spec = importlib.util.spec_from_file_location('_sq_documentary_condition', PROJECT / path)
+            module = importlib.util.module_from_spec(spec)
+            exec(compile(self.sources[path], str(PROJECT / path), 'exec'), module.__dict__)
+            manifest = self.sources['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+            current_documents, source_condition = module.Condition(PROJECT, manifest, read_relative).capture('sq')
         # Run only captured, pinned Python validators in a private source snapshot.
         # This is not native execution or hostile-filesystem custody.
         with tempfile.TemporaryDirectory(prefix='sq-receiving-') as temp:
             root = Path(temp)
             for name, data in self.sources.items():
                 target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+            for name, data in current_documents.items():
+                target = root / 'current-documentary-inputs' / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+            for name, data in self.original_sources.items():
+                target = root / 'original-support' / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             (root / 'reader-pins.json').write_text(json.dumps(self.pins))
@@ -62,6 +103,7 @@ class Receiver:
                 raise ValueError('captured SQ checker could not run')
             report = json.loads(job.stdout)
             report.update(reader_pins_sha256=PINS_SHA256, tool_sha256=sha(Path(__file__).read_bytes()))
+            report['source_condition'] = source_condition
             return report
 
 

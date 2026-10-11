@@ -75,4 +75,4 @@ The archive inventory, access rule, and content digests are in
 |---|---|
 | Working root | `projects/chirality-app-v4/` |
 | Branch | `claude/chirality-app-v4-architecture-9f35c4` (worktree `chirality-app-v4-architecture-9f35c4`) |
-| Run record | [`execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/) |
+| Run record | [`execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925) |

@@ -254,6 +254,13 @@ this deliverable; this is a proposal to it, not an edit of HOSTING.
 tree's relative layout, so the sibling resources stay where the binary
 expects them. Running from the bundle is observed at FP-2.
 
+**Open default-bundle native witness.** Default `bundle.resources` now maps
+instructions and workflows to P-3/P-2, guarded by
+`app/src-tauri/src/bundle_resources_tests.rs`. An offline default-configuration
+debug bundle carried byte-equal trees, but its native start has not been witnessed.
+The distribution-successor vendor/reference trees and synthetic-anchor namespace
+remain supplied by their own selected overlays.
+
 ### 4.2 Interfaces
 
 | Interface | Direction | Arc (DAG-004) | Contribution | If it fails |
@@ -317,7 +324,9 @@ of every regular file of the tree, ordered by the relative path's UTF-8
 bytes (C collation), each line ending in one newline, the last included;
 equal to `find . -type f | sed 's|^./||' | LC_ALL=C sort | xargs shasum -a
 256 | shasum -a 256` run in the tree, and to `read_tree.py <tree>
---manifest`. At 0.160.0 it is `327effb9…8d12` (§2.1).
+--manifest`.
+
+At 0.160.0 it is `327effb9…8d12` (§2.1).
 
 ### 5.3 Where records live
 

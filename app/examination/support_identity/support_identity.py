@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""CI-26 staged exact-byte support bindings; publication is never established."""
+"""EXP support-identity-v1/METHOD.md staged exact-byte support bindings; publication is never established."""
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -16,18 +17,19 @@ from referencing import Registry
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 DECLARATION_SHA256 = 'c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92'
-SCHEMA_SHA256 = 'aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0'
+SCHEMA_SHA256 = 'b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394'
 KINDS = {'before': 'result', 'after': 'result', 'rerun': 'result',
          'review': 'review', 'change': 'change', 'package': 'package'}
 RECORD_KINDS = {'result': 'exam_result', 'review': 'exam_review',
                 'change': 'exam_change_impact', 'package': 'package_identity'}
+DOCUMENTARY_SOURCE_COMMIT = '6fbd4c8722c9454981ae9518b39cafe4e6ece7c4'
 LIMITS = [
     'Exact-byte identity and supplied file relationships only; origin and actual observations are unverified.',
     'Frozen candidate declaration is not canonical publication or adoption. A record writer cannot publish support.',
     'Caller-selected artifact/basis digest is a technical freeze, not authorization or an authenticated authority.',
     'No actual review independence, repair, native execution, signatures, qualification, acceptance or release established.',
     'Filesystem link checks are best effort; hostile concurrent filesystem isolation and authenticated custody are not established.',
-    'CI-26 canonical disposition and consumer adoption remain with the owning Design loops.',
+    'EXP support-identity-v1/METHOD.md canonical disposition and consumer adoption remain with the owning Design loops.',
 ]
 
 
@@ -77,8 +79,53 @@ def relative_file(root, relative):
     return current.read_bytes()
 
 
+def publication_source(root, path, expected):
+    """Same full frozen bytes; today's documentary checkout is not publication."""
+    try:
+        data = relative_file(root, path)
+    except FileNotFoundError:
+        if not path.endswith('.md'):
+            raise
+        data = None
+    if data is not None and sha(data) == expected:
+        return data
+    require(path.endswith('.md'), 'frozen source changed: ' + path)
+    # Fixed raw Git objects only. Never follow a branch, fetch a missing object,
+    # or let a caller select another support publication.
+    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
+    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
+    try:
+        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
+                                cwd=root, env=env, capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('frozen documentary source unavailable: ' + path) from error
+    require(result.returncode == 0 and sha(result.stdout) == expected,
+            'frozen documentary source missing or changed: ' + path)
+    return result.stdout
+
+
+def frozen_publication_source(root, path, expected):
+    """Original declaration selects immutable validator/data bytes, not main."""
+    try:
+        raw = relative_file(root, path)
+    except FileNotFoundError:
+        raw = None
+    if raw is not None and sha(raw) == expected:
+        return raw
+    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
+    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
+    try:
+        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
+                                cwd=root, env=env, capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('frozen publication source unavailable: ' + path) from error
+    require(result.returncode == 0 and sha(result.stdout) == expected,
+            'frozen source changed or unavailable: ' + path)
+    return result.stdout
+
+
 class SupportIdentity:
-    def __init__(self):
+    def __init__(self, frozen_sources=None):
         # No caller-supplied declaration, source manifest, schema or publication flag.
         declaration = (HERE / 'declaration.v1.json').read_bytes()
         require(sha(declaration) == DECLARATION_SHA256, 'frozen declaration changed')
@@ -92,8 +139,11 @@ class SupportIdentity:
         # Snapshot every frozen source before any record processing. Existing
         # checkers run from these bytes, so rereads cannot select a different basis.
         self.sources = {}
+        if frozen_sources is not None:
+            exact(frozen_sources, self.declaration['sources'], 'original publication sources')
         for path, expected in self.declaration['sources'].items():
-            data = relative_file(PROJECT, path)
+            data = (frozen_publication_source(PROJECT, path, expected) if frozen_sources is None
+                    else frozen_sources[path])
             require(sha(data) == expected, 'frozen source changed: ' + path)
             self.sources[path] = data
         for kind, filename in [('result', 'exam.result-record.schema.json'),

@@ -12,7 +12,7 @@ Git history keeps earlier states.
 | Owner | Ryan Tufts (the human accountable for acceptance) |
 | Active role | HELPS_HUMANS (Type 1), engaged directly by the owner |
 | Selected workflow | `chirality-root:bundled:workflow:reverse-engineer-software` (bundled; no project or user workflow of that name exists, so no collision) |
-| Brief | [Opening brief](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md), 2026-09-25; directions in [`DECISIONS.md`](DECISIONS.md) |
+| Brief | [Opening brief](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md), 2026-09-25; directions in [`DECISIONS.md`](DECISIONS.md) |
 | Host | Claude Code desktop, model Claude Opus 5.5; worktree `chirality-app-v4-architecture-9f35c4`, branch `claude/chirality-app-v4-architecture-9f35c4` |
 | Working root | `projects/chirality-app-v4/` (did not exist before 2026-09-25) |
 | First completion boundary | An independently reviewed seed set presented for acceptance (OD-12) |
@@ -40,7 +40,7 @@ host's native subagent mechanism (Claude Code background agents; parent:
 this HELPS_HUMANS session). Each brief stated a read-only boundary; the
 boundary was instruction-asserted, not host-enforced (the children had the
 host's general tools). Briefs and returns are preserved verbatim in
-[`tasks/`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/),
+[`tasks/`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks),
 extracted programmatically from the host's transcripts.
 
 | Task | Subject | Model | Dispatched → returned (UTC) |
@@ -104,7 +104,7 @@ Notes on the returns:
    object `47fc49e96c2931ba18090f1a82d56a49f230b3ee`. Pushed the branch.
 8. Folded T7 (supplier landscape) into Q-02, Q-04, Q-05 and a new Q-15.
 9. Received the owner's answers; preserved them exactly
-   ([`OWNER_ANSWERS_2026-09-25.md`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OWNER_ANSWERS_2026-09-25.md))
+   ([`OWNER_ANSWERS_2026-09-25.md`](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OWNER_ANSWERS_2026-09-25.md))
    and recorded D-01…D-15 in [`DECISIONS.md`](DECISIONS.md); added
    dispositions to [`QUESTIONS.md`](QUESTIONS.md).
 10. Q-13: made the protective APFS clone of the archives, verified it against
@@ -218,4 +218,4 @@ record the answers; select Stage E work.
 
 ## Current continuation — 2026-09-26, after author handoff
 
-The owner's later acts accept the identified composite seed basis and authorize App v4 decomposition/project definition. See [acceptance](../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md) and exact later messages J–O. Earlier Draft1/pending/checklist and Next statements above preserve their historical position;they do not undo later acceptance. The new session preserves all76 handoff files before changing current working surfaces. The five seed documents were consolidated after the act and passed [independent substantive source-fidelity review](../execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md). Their administrative completion headers received a separate bounded backcheck; edit ownership has transferred to WORKING_ITEMS for integration. Group1 normalization remains a separate upcoming checkpoint;no structural/decomposition acceptance is inferred. Current work is owned in the [project-definition graph](../execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md). The withdrawn HX01 and unrun E1 remain unrun. SWB implementation stays outside this undertaking and coordination is relayed by the human.
+The owner's later acts accept the identified composite seed basis and authorize App v4 decomposition/project definition. See [acceptance](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md) and exact later messages J–O. Earlier Draft1/pending/checklist and Next statements above preserve their historical position;they do not undo later acceptance. The new session preserves all76 handoff files before changing current working surfaces. The five seed documents were consolidated after the act and passed [independent substantive source-fidelity review](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md). Their administrative completion headers received a separate bounded backcheck; edit ownership has transferred to WORKING_ITEMS for integration. Group1 normalization remains a separate upcoming checkpoint;no structural/decomposition acceptance is inferred. Current work is owned in the [project-definition graph](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md). The withdrawn HX01 and unrun E1 remain unrun. SWB implementation stays outside this undertaking and coordination is relayed by the human.

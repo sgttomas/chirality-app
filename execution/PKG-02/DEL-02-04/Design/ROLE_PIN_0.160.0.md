@@ -112,10 +112,15 @@ candidate:
 The witness captured no supplier-side bytes, so native supply for these cases
 remains unobserved as stated above.
 
-Native child carrier remains **not-supplied**; U-R3 stays open at0.160.0.
-Per-thread/session-flags carrier, effective user role-name collisions and actual
-fresh-child common+TASK bytes need their own evidence. Historical0.158.0 adapter
-child mechanism observations remain at their actual version and limitations.
+The separate [current child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md)
+now observes per-thread TASK configuration and complete common+TASK bytes with
+clean and full-history delegation, using scripted stock-supplier execution and
+HTTP400 captures. A scratch person-defined TASK is exposed by `config/read`
+and preserved when its App override is withheld. These findings are independent
+of the primary sample above. App child supply remains **not-supplied**; U-R3
+stays open for actual App configuration, content-bound file publication and
+child-role reconciliation. Historical0.158.0 adapter child observations retain
+their actual version and limitations.
 Current availability and controls are read from the acting route, not inferred
 from the pin, generated fields, carried tools or this primary-role sample.
 

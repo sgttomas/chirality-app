@@ -118,6 +118,12 @@ replaced (C-04; J-2) and the goals surface placed (G-3; J-10).
 
 ---
 
+**Open receiving condition — full generation across homes.** HOSTING H5's
+complete {App session, App-owned home, spawn counter} identity is adopted.
+Standalone consumers of this deliverable still need cross-home receiving
+checks; equal spawn counters in different homes or sessions are different
+generations. Existing current-host checks do not establish those consumers.
+
 ## 3. Item scope and the split with DEL-01-04 and DEL-01-02 (B-5; PROPOSED)
 
 | §8.4 group | Native kinds (supplier names) | Rendered by | DEL-01-03's part |
@@ -480,6 +486,13 @@ OBS-1 OB-1). Whether Codex's `namespaceTools` reads false for such a
 custom provider is not observed (U-P8); delegation items, if any arrive,
 are always shown.
 
+**Open source correspondence.** The native development walkthrough on
+2026-10-10 observed stock 0.160.0 delegation (DEL-01-02's
+`NATIVE_WITNESS_2026-10-10.md`, items 11–12). The adapter-only descriptions in
+this section and §14.1 do not account for that observation. SQ-1's reads on
+opening a conversation also remain to be compared with the App's on-demand
+reads. These are source-fit conditions, not supplier qualification.
+
 ### 7.2 Identity model
 
 | Element | Source (supplier names) | Standing |
@@ -793,6 +806,14 @@ candidate only.
 | NV-09 Fixture provenance | VER-007, AC-007 | §15.1 records | Pin, output identity, standing, candidate/date/outcome | Review only |
 | NV-10 Delegation availability | VER-003; C-04 | `model/list`, capabilities, configuration variants | §7.1 readings | Model only (PC-16) |
 | NV-11 Run boundaries | R19-2 | Two runs chained in one conversation | Run in force shown per turn; identities unchanged | Model only (PC-18) |
+
+**Open candidate counterpart condition — NV-04.** Development captures of
+NV-04 and ST-5 at stock 0.160.0 are described in DEL-01-01
+`CAPTURE_ST5_NV04_0.160.0.md`. They show a development observation, not the
+candidate-pin counterpart required by SQ §3.4. NV-04's "not observed" and
+U-P4's "a later observation" wording have not yet received that distinction.
+Whether a candidate-pin rerun meets SQ U-SQ-6 and the ST-4 counterpart remains
+with DEL-09-02; the candidate-pin missing inputs remain open.
 
 ### 15.3 Prototype (R17-1; R12-3)
 

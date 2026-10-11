@@ -8,7 +8,7 @@ discussion, not a v4 requirement. Revised as the conversation proceeds.
 Sources are paths at the investigation revision `2b0572fe0` unless marked
 `ORIG/` (the original checkout's Git-ignored archives). `T1`–`T6` are the
 preserved TASK returns in the run record
-([`tasks/`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/)),
+([`tasks/`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks)),
 which cite line-level locations. Evidence labels: **owner** (the owner's
 recorded words), **executed** (a recorded run or check), **implemented**
 (code exists), **described** (documented design), **unrealised** (intended,

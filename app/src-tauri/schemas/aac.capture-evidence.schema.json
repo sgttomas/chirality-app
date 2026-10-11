@@ -217,7 +217,7 @@
     "scope": {
       "type": "string",
       "minLength": 1,
-      "description": "A16 CC-A / CI-4 (owner-selected explicit absence label): nonempty package scope copied unchanged; absent or empty package scope represented exactly as \"not named by the package\", never inferred. Offer/native confirmation/capture/RS copy the same wording. Non-string package scope is invalid, not absent. Other act kinds retain their own authoritative scope rules."
+      "description": "A16 CC-A / AAC §4.1a scope handoff (owner-selected explicit absence label): nonempty package scope copied unchanged; absent or empty package scope represented exactly as \"not named by the package\", never inferred. Offer/native confirmation/capture/RS copy the same wording. Non-string package scope is invalid, not absent. Other act kinds retain their own authoritative scope rules."
     },
     "purpose": {
       "type": "string",

@@ -10,6 +10,25 @@ pins the new canonical Design declaration, binding schema, EXP method and PKG
 receiving supplement in `canonical-pins.v1.json`. The writer cannot replace
 those pins or select publication through an input field.
 
+Frozen documentary sources retain every original full-byte hash. If today's
+checkout has moved, the reader obtains the same bytes with `git cat-file blob`
+from the fixed commit named in `DOCUMENTARY_SOURCE_COMMIT`. Missing objects or
+different bytes refuse; lazy fetching and replacement objects are disabled.
+Exact private source snapshots need no Git access. Current operational inputs
+still refuse drift; original declaration objects retain their full selected
+hashes and fixed version independently of today's checkout. These reads identify the selected frozen support,
+not adoption of today's governing Design or evidence about today's candidate.
+
+The owner-approved `selected-documentary-source-condition/v2` additionally
+checks current-producer emission and receiving against the fixed documentary
+manifest's case rows and governing clauses. Implementation-result cells and
+unrelated notes are excluded. Receiving reports identify the method, manifest
+digest and checked extent at that read. Existing sidecars keep their original
+full tuple; they do not attest that an earlier producer used this condition.
+Historical correspondence remains checkable against the original full sources
+when today's clauses differ. Original declared validators/data are captured by
+their original full hashes, separately from current operational helper pins.
+
 ```sh
 python3 -B app/examination/support_identity/canonical.py bind review review.json \
   --purpose current_producer_declaration
@@ -51,14 +70,15 @@ python3 -B -m unittest discover -s app/tests -p 'group_b_support_identity_canoni
 
 ## Preserved proposed v1 checker
 
-The following documents the original proposed checker, whose code, declaration,
-schema and source locks are byte-preserved. It remains unpublished and does not
-silently become the canonical method.
+The following documents the original proposed checker. Its declaration, schema
+and declared validator/data snapshot retain their original exact identities;
+the current wrapper and operational helpers are separately pinned. This route
+remains unpublished and does not silently become the canonical method.
 
 This offline tool checks a frozen technical selection of EXP result, review,
 change-impact and PKG records against complete EXP §4.4 identity: version,
 three schema IDs and prototype SHA-256. It preserves existing record bytes and
-schemas. CI-26 canonical publication and consumer adoption remain unresolved.
+schemas. EXP support-identity-v1/METHOD.md canonical publication and consumer adoption remain unresolved.
 A passing report establishes supplied file consistency only.
 
 `declaration.v1.json` freezes exact accepted source, rule and existing checker

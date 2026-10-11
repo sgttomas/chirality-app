@@ -1595,7 +1595,7 @@ impl PreparedRunText {
 }
 /// TX-5's end-notice line and its `run_text` record (purpose *run end notice*)
 /// for one run: the live end's notice and, after a relaunch, the notice
-/// composed from the run's recorded identity facts (CI-20 (c)) use this one form.
+/// composed from the run's recorded identity facts (WR TX-5 / SQ-END) use this one form.
 fn end_notice_parts(
     workflow: &WorkflowIdentity,
     run: &str,

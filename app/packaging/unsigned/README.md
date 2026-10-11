@@ -57,8 +57,8 @@ witness. Do not insert a synthetic anchor. FP-1(b), FP-2/W-4, FP-3/4/5, SIGN-1,
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
-The default `tauri.conf.json` maps the same P2 and P3 trees (CI-31 in
-`../../CONTRACT_ISSUES.md`), so a bundle built without this overlay carries
+The default `tauri.conf.json` maps the same P2 and P3 trees (the governing
+PKG §4.1 P-2/P-3), so a bundle built without this overlay carries
 them too; the overlay repeats the mapping so this route reads whole. The test
 `bundle_resources_tests` fails if the default host reads a `resource_dir()`
 path the default configuration does not declare.
