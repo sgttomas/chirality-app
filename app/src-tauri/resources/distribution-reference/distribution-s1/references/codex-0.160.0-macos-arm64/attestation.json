@@ -1,0 +1,32 @@
+{
+  "format": "adoption-attestation.s1",
+  "expected_reference": {
+    "path": "distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+    "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37"
+  },
+  "author": "Claude Opus 5.5, App v4 WORKING_ITEMS dispatched by HELP_HUMAN (branch codex/app-v4-supplier-reference-0160)",
+  "independent_reviewer": "Claude Opus 5.5, App v4 TASK independent reviewer dispatched by HELP_HUMAN (separate agent context)",
+  "reviewed_revision": "b616fe3db0fe52fcd834236afbfa689b89596e61",
+  "review_evidence": {
+    "path": "distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+    "sha256": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146"
+  },
+  "adoption": {
+    "actor": "HELP_HUMAN (Agent 0) for the App implementation owner, 2026-10-10, under the owner's direction in chat \"You can pursue the supplier artifact\" (2026-10-10)",
+    "through_help_human": {
+      "path": "distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "sha256": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841"
+    },
+    "decision": "adopt-for-supplier-reference",
+    "evidence": {
+      "path": "distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "sha256": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841"
+    }
+  },
+  "limits": [
+    "Reviewer limit note 2: the version-advance equality in generation-correspondence.json rests on 16-hex prefixes, because VERSION_ADVANCE_0.160.0.md records only prefixes. Full equality of the generated output comes from V0-SUP1, which regenerated it completely from the same bin/codex digest.",
+    "Directory modes (0755) come from the extraction umask 022, not from the archive. An installed tree must reproduce them to compare equal.",
+    "This attestation qualifies the supplier reference only. It is not App candidate or package qualification, R23-22 candidate pin selection, build selection, signature or notarisation validity, installed custody, FP-2/W-4 or release.",
+    "Selection is by a trusted App build recipe binding this attestation's exact SHA-256; this file does not contain its own digest."
+  ]
+}

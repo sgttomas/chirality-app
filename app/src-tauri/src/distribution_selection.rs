@@ -216,6 +216,7 @@ pub(crate) fn fixture_files(source: &Path, inventory: &Value, expected_path: &st
     e["inventory"] = inventory.clone();
     e["pin"] = json!(crate::hosting::DECLARED_PIN);
     e["generated"]["pin"] = json!(crate::hosting::DECLARED_PIN);
+    e["generated"]["manifest_sha256"] = json!(crate::hosting::GENERATED_MANIFEST_SHA256);
     let ep = [
         "/label_evidence",
         "/generation_correspondence",

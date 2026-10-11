@@ -7,7 +7,7 @@ fn compiled_anchor_disabled_never_resolves_resources_in_any_native_mode() {
             ["standing"],
         "disabled"
     );
-    assert!(!crate::distribution_preflight::production_available());
+    assert!(crate::distribution_preflight::production_available());
 }
 #[cfg(all(feature = "synthetic-distribution-anchor", debug_assertions))]
 mod active {
@@ -54,7 +54,7 @@ mod active {
         assert_eq!(snapshot["outcome"], "compiled-bytes-matched");
         assert_eq!(snapshot["standing"], "development-unverifiable");
         assert_eq!(snapshot["currentTrust"], false);
-        assert!(!crate::distribution_preflight::production_available());
+        assert!(crate::distribution_preflight::production_available());
         std::fs::write(f.resource("expected.json"), b"changed").unwrap();
         assert_eq!(
             snapshot["outcome"], "compiled-bytes-matched",

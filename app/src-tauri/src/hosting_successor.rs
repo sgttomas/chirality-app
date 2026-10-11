@@ -1,7 +1,9 @@
-//! Explicit staged successor route. No S3 issuer or installed-custody verifier
-//! exists yet, so production always refuses. Development checks never qualify.
-use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN};
-use crate::distribution_preflight::{self as tree, Inventory, LaunchPlan};
+//! Explicit staged successor route. The compiled A-IN-S2 build selection names
+//! the A-IN-S3 attested reference, and a supplied tree is compared with it in
+//! full before any supplier execution. No installed-custody issuer exists, so
+//! `verified` stays unavailable: production refuses and development never qualifies.
+use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
+use crate::distribution_preflight::{self as tree, selection::Selected, Inventory, LaunchPlan};
 use serde_json::{json, Value};
 use std::io::Read;
 use std::os::fd::AsRawFd;
@@ -39,6 +41,17 @@ impl Distribution {
         })
     }
 }
+/// Debug development builds read the committed reference closure from this
+/// source tree. The location is not trust: every byte is accepted only through
+/// the compiled build-selection digest, exactly as for packaged resources.
+#[cfg(debug_assertions)]
+pub(crate) fn development_reference_root() -> Result<PathBuf, String> {
+    Ok(Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/distribution-reference"))
+}
+#[cfg(not(debug_assertions))]
+pub(crate) fn development_reference_root() -> Result<PathBuf, String> {
+    Err("development reference closure is available to debug builds only".into())
+}
 /// Called only by native setup with Tauri's resource directory. Public legacy
 /// binary/assertion/development fields cannot replace this production root.
 pub(crate) fn production_config(
@@ -51,10 +64,61 @@ pub(crate) fn production_config(
     cfg.distribution = Some(Distribution::Production { resources });
     cfg
 }
+/// The compiled reference this attempt may compare against. It comes only from
+/// the configured Store's compiled selection, never from a caller.
+pub(crate) enum Reference<'a> {
+    Selected(&'a Selected),
+    Unavailable(&'a str),
+    None,
+}
+impl Reference<'_> {
+    fn gap(&self) -> String {
+        match self {
+            Self::Selected(_) => String::new(),
+            Self::Unavailable(reason) => format!("compiled reference closure unavailable: {reason}"),
+            Self::None => "no compiled reference closure configured for this attempt".into(),
+        }
+    }
+}
+fn launcher() -> Value {
+    json!({"kind":"direct-vendor","relative_executable":"bin/codex","path_prefix_relative":"codex-path","removed_wrapper_variables":["CODEX_MANAGED_PACKAGE_ROOT","CODEX_MANAGED_BY_NPM"]})
+}
+/// DISTRIBUTION_IDENTITY "Verifier obligations": the complete actual tree is
+/// compared with every expected value before the label probe. A known
+/// contradiction refuses with a `mismatch:` reason and no supplier execution.
+fn compare_to_reference(selected: &Selected, actual: &Inventory) -> Result<Value, String> {
+    let e = selected.expected()?;
+    let (pin, platform) = (e["pin"].as_str().unwrap_or("?"), e["platform"].as_str().unwrap_or("?"));
+    if pin != DECLARED_PIN || e["generated"]["pin"] != DECLARED_PIN {
+        return Err(format!("mismatch: selected reference pin {pin} is not the declared pin {DECLARED_PIN}"));
+    }
+    if e["launcher"] != launcher() {
+        return Err("mismatch: selected reference launcher convention differs from direct-vendor".into());
+    }
+    let expected: Inventory = serde_json::from_value(e["inventory"].clone())
+        .map_err(|x| format!("mismatch: selected reference inventory unreadable: {x}"))?;
+    if !tree::equal(&expected, actual) {
+        let diff = tree::differences(&expected, actual);
+        let more = diff.len().saturating_sub(6);
+        return Err(format!(
+            "mismatch: distribution tree differs from the attested {pin} {platform} reference: {}{}",
+            diff.into_iter().take(6).collect::<Vec<_>>().join("; "),
+            if more > 0 { format!("; {more} more") } else { String::new() }
+        ));
+    }
+    if e["generated"]["manifest_sha256"] != GENERATED_MANIFEST_SHA256 {
+        return Err("mismatch: compiled generated-output identity differs from the attested reference".into());
+    }
+    Ok(json!({"outcome":"equal","pin":pin,"platform":platform,"expectedReference":selected.expected_ref(),
+        "adoptionAttestation":selected.attestation_ref(),"manifestSha256":expected.manifest_sha256,
+        "entries":expected.entries.len(),"generated":e["generated"],
+        "limit":"Complete tree, reference and generated identity agree at this preflight; installed integrity/stable custody issuer unavailable, so not verified"}))
+}
 pub(crate) struct Prepared {
     pub plan: LaunchPlan,
     root: PathBuf,
     inventory: Inventory,
+    comparison: Option<Value>,
     pub label: String,
     pub verification: Value,
     pub status: Value,
@@ -70,11 +134,16 @@ impl Prepared {
             "k12_flags":cfg.session_flags,"secret_redactions":CREDENTIAL_VARS});
         let facts=json!({"format":"distribution-preflight-facts.s3","generation":g,"inventory":self.inventory,"raw_version_label":self.status["rawVersionLabel"],"configuration":configuration,"limit":"Bounded source observations; no installed integrity/custody issuer or qualification"});
         let check=|outcome:&str,reason:&str|json!({"outcome":outcome,"evidence":null,"reason":reason});
+        let checks=match &self.comparison {
+            Some(_) => json!({"tree":check("pass","Complete no-follow inventory equals the selected attested reference inventory"),"label":check("pass","Exact isolated raw label corresponds to declared pin"),"generated":check("pass","Compiled generated-output manifest equals the selected reference's generated identity"),"custody":check("missing","Installed integrity/stable custody issuer unavailable"),"reference":check("pass","Compiled build selection resolved the reviewed, adopted reference and attestation by exact bytes")}),
+            None => json!({"tree":check("unverifiable","Complete local inventory observed; qualified installed reference/custody unavailable"),"label":check("pass","Exact isolated raw label corresponds to declared pin"),"generated":check("missing","Compiled generated bytes checked, but S3 provenance/version-advance evidence absent"),"custody":check("missing","Installed integrity/stable custody issuer unavailable"),"reference":check("missing","No compiled S3 selection available to this attempt; any private selected fixture is not qualification")}),
+        };
+        let generated=self.comparison.as_ref().map(|c|c["generated"].clone()).unwrap_or(Value::Null);
         let observation=json!({"format":"observed-verification.s1","expected_reference":null,"adoption_attestation":null,
             "pin":DECLARED_PIN,"platform":"macOS arm64","observed_label":DECLARED_PIN,"raw_version_label":self.status["rawVersionLabel"],
-            "generated":null,"inventory":self.inventory,"launcher":{"kind":"direct-vendor","relative_executable":"bin/codex","path_prefix_relative":"codex-path","removed_wrapper_variables":self.plan.removed},
+            "generated":generated,"inventory":self.inventory,"launcher":{"kind":"direct-vendor","relative_executable":"bin/codex","path_prefix_relative":"codex-path","removed_wrapper_variables":self.plan.removed},
             "configuration":configuration,"generation":g,"at":crate::util::now_rfc3339(),"phase":"pre-spawn",
-            "checks":{"tree":check("unverifiable","Complete local inventory observed; qualified installed reference/custody unavailable"),"label":check("pass","Exact isolated raw label corresponds to declared pin"),"generated":check("missing","Compiled generated bytes checked, but S3 provenance/version-advance evidence absent"),"custody":check("missing","Installed integrity/stable custody issuer unavailable"),"reference":check("missing","No production S3 selection available; any private selected fixture is not qualification")},
+            "checks":checks,
             "outcome":"unverifiable","limits":["Development observation only; no installed integrity/custody issuer","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"],"candidate_subject":null});
         (observation,facts)
     }
@@ -118,20 +187,39 @@ pub(crate) fn prepare(
     distribution: &Distribution,
     cfg: &HostConfig,
     generation: &Value,
+    reference: Reference<'_>,
 ) -> Result<Prepared, String> {
     let root = match distribution {
         Distribution::Production { resources } => {
-            // Verify the compiled association before any supplier execution.
-            // Even future matching reference bytes cannot fabricate trust.
-            tree::production_reference(&resources.join("distribution-reference"))?;
-            return Err(
-                "installed integrity/stable custody issuer unavailable; production refused".into(),
-            );
+            // Resolve the compiled association and compare the complete bundled
+            // tree before any supplier execution. Without an installed-custody
+            // issuer and without LT-24, production can only refuse; equality is
+            // reported, never promoted to verified.
+            let owned;
+            let selected = match reference {
+                Reference::Selected(selected) => selected,
+                _ => {
+                    owned = Selected::production(&resources.join("distribution-reference"))?;
+                    &owned
+                }
+            };
+            let root = resources.join("codex");
+            isolated(&root, cfg)?;
+            let inventory = tree::scan(&root).map_err(|e| format!("mismatch: {e}"))?;
+            let comparison = compare_to_reference(selected, &inventory)?;
+            return Err(format!(
+                "installed integrity/stable custody issuer unavailable; production refused before supplier execution (complete tree equals the attested {} {} reference)",
+                comparison["pin"].as_str().unwrap_or("?"), comparison["platform"].as_str().unwrap_or("?")
+            ));
         }
         Distribution::Development { root } => root,
     };
     isolated(root, cfg)?;
     let inventory = tree::scan(root).map_err(|e| format!("mismatch: {e}"))?;
+    let comparison = match &reference {
+        Reference::Selected(selected) => Some(compare_to_reference(selected, &inventory)?),
+        _ => None,
+    };
     let inherited = std::env::var_os("PATH")
         .map(|p| p.into_string().map_err(|_| "non UTF-8 inherited PATH"))
         .transpose()?;
@@ -153,17 +241,40 @@ pub(crate) fn prepare(
     if label.strip_suffix('\n').unwrap_or(&label) != format!("codex-cli {DECLARED_PIN}") {
         return Err("mismatch: observed version label".into());
     }
+    let (reason, reference_limit, comparison_status) = match &comparison {
+        Some(c) => (
+            format!(
+                "complete tree equals the attested Codex {} {} reference (expected {}, attestation {}); label and generated identity agree; installed custody issuer unavailable",
+                c["pin"].as_str().unwrap_or("?"), c["platform"].as_str().unwrap_or("?"),
+                short(&c["expectedReference"]["sha256"]), short(&c["adoptionAttestation"]["sha256"])
+            ),
+            "Compiled S3 reference selected and matched; no installed integrity/custody issuer",
+            c.clone(),
+        ),
+        None => {
+            let gap = reference.gap();
+            (
+                format!("staged successor development; {gap}; installed custody unavailable"),
+                "No compiled S3 reference compared and no installed integrity/custody issuer",
+                json!({"outcome":"unavailable","reason":gap}),
+            )
+        }
+    };
     let status = json!({"format":"host-successor-attempt.s2","verificationGeneration":generation,"inventory":inventory,
-        "standing":"unverified-development","resolvedExecutable":plan.executable,"pathPrefix":root.join("codex-path"),
-        "rawVersionLabel":label,"limits":["No S3-qualified reference or installed integrity/custody issuer","S1 observation and LT-09 evidence require a configured protected store; other lifecycle envelopes unavailable","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"]});
+        "standing":"unverified-development","referenceComparison":comparison_status,"resolvedExecutable":plan.executable,"pathPrefix":root.join("codex-path"),
+        "rawVersionLabel":label,"limits":[reference_limit,"S1 observation and LT-09 evidence require a configured protected store; other lifecycle envelopes unavailable","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"]});
     Ok(Prepared {
         plan,
         root: root.clone(),
         inventory,
+        comparison,
         label: label.trim_end_matches('\n').into(),
-        verification: json!({"result":"unverifiable","reason":"staged successor development; qualified reference and installed custody unavailable"}),
+        verification: json!({"result":"unverifiable","reason":reason}),
         status,
     })
+}
+fn short(sha: &Value) -> String {
+    sha.as_str().map(|s| format!("{}…", &s[..s.len().min(8)])).unwrap_or_else(|| "?".into())
 }
 pub(crate) fn terminate(child: &mut Child) {
     // Spawned by this module/Host in its own process group; never a user process.
@@ -553,10 +664,11 @@ for line in sys.stdin:
         cfg.allow_unverified_dev = true;
         cfg.expected_sha256 = Some(tree::digest(&std::fs::read(&cfg.codex_bin).unwrap()));
         let host = Arc::new(Host::new());
-        assert!(host
-            .start(&cfg, "fixture")
-            .unwrap_err()
-            .contains("compiled selection absent"));
+        // The compiled selection now exists (A-IN-S2), but this fixture root holds
+        // no reference closure: resolution refuses before any scan or probe.
+        let error = host.start(&cfg, "fixture").unwrap_err();
+        assert!(error.contains("no-follow open refused"), "{error}");
+        assert!(!error.contains("complete tree equals"));
         assert!(host.snapshot()["generation"].is_null());
         assert_eq!(host.snapshot()["state"], "refused");
         assert!(host.child.lock().unwrap().is_none());

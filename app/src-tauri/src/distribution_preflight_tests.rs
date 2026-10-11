@@ -109,7 +109,7 @@ fn connected_synthetic_start_is_never_verified() {
     let r = f.run().unwrap();
     assert_eq!(r["outcome"], "unverifiable");
     assert_eq!(r["generation"]["spawnCounter"], 1);
-    assert!(!production_available());
+    assert!(production_available());
 }
 #[test]
 fn modes_empty_directories_and_bytes_are_identity() {

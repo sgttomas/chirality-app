@@ -1113,8 +1113,19 @@ impl Host {
             self.successor_prospective(&i, cfg).map(Some)
         } else { Ok(None) };
         let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
+        // The only reference source is the configured Store's compiled selection,
+        // so the comparison and the published observation share one closure.
+        let reference_store = self.distribution_store.lock().unwrap().clone();
+        let reference = match &reference_store {
+            Some(Ok(store)) => match (store.selected(), store.reference_limit()) {
+                (Some(selected), _) => successor::Reference::Selected(selected),
+                (None, Some(limit)) => successor::Reference::Unavailable(limit),
+                (None, None) => successor::Reference::None,
+            },
+            _ => successor::Reference::None,
+        };
         let prepared = if let Some(distribution) = &cfg.distribution {
-            match successor::prepare(distribution, cfg, prospective.as_ref().unwrap()) {
+            match successor::prepare(distribution, cfg, prospective.as_ref().unwrap(), reference) {
                 Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
             }
         } else { None };
@@ -3285,9 +3296,11 @@ fn network_disclosure() -> Value {
     })
 }
 
+/// SHA-256 of the maintained 0.160.0 generated-output MANIFEST compiled into this App.
+pub(crate) const GENERATED_MANIFEST_SHA256: &str = "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be";
 fn generated_outputs_match() -> bool {
     [
-        (include_bytes!("../resources/supplier/0.160.0/MANIFEST.sha256").as_slice(), "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be"),
+        (include_bytes!("../resources/supplier/0.160.0/MANIFEST.sha256").as_slice(), GENERATED_MANIFEST_SHA256),
         (include_bytes!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json").as_slice(), "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5"),
         (include_bytes!("../resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json").as_slice(), "e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c"),
     ].iter().all(|(bytes, expected)| sha256_hex(bytes) == *expected)

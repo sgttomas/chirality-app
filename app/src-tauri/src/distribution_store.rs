@@ -40,6 +40,8 @@ pub(crate) struct Store {
     #[cfg(test)]
     reviewer_before_reopen: std::sync::Mutex<Option<Box<dyn FnOnce()+Send>>>,
     selected: Option<crate::distribution_preflight::selection::Selected>,
+    /// Why a development Store holds no compiled selection; reported, never trust.
+    reference_limit: Option<String>,
     #[cfg(test)]
     before_audit: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
@@ -278,11 +280,23 @@ impl Store {
             #[cfg(test)]
             reviewer_before_reopen: std::sync::Mutex::new(None),
             selected: None,
+            reference_limit: None,
             #[cfg(test)]
             before_audit: std::sync::Mutex::new(None),
         });
         store.guard(&store.authority.lease()?)?;
         Ok(store)
+    }
+    /// The compiled selection this Store mirrors, if any. Prepare compares a
+    /// tree only against this same instance, so comparison and publication agree.
+    pub(crate) fn selected(&self)->Option<&crate::distribution_preflight::selection::Selected>{self.selected.as_ref()}
+    pub(crate) fn reference_limit(&self)->Option<&str>{self.reference_limit.as_deref()}
+    /// Development Store whose compiled selection could not be resolved: the
+    /// reason is carried to the attempt; the Store stays unselected.
+    pub(crate) fn with_reference_limit(mut store:Arc<Self>,limit:String)->Result<Arc<Self>,String>{
+        let s=Arc::get_mut(&mut store).ok_or("Store already shared before reference limit")?;
+        if s.selected.is_some(){return Err("selected Store cannot carry a reference limit".into());}
+        s.reference_limit=Some(limit);Ok(store)
     }
     pub(crate) fn with_authority(mut store:Arc<Self>,authority:Arc<NamespaceAuthority>)->Result<Arc<Self>,String>{
         {let lease=authority.lease()?;store.preflight_binding(&lease)?;}

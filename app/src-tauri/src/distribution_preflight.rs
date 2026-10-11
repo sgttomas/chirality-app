@@ -290,6 +290,35 @@ pub fn equal(expected: &Inventory, actual: &Inventory) -> bool {
         && a.len() == actual.entries.len()
         && e == a
 }
+/// Bounded, ordered statement of how an actual inventory departs from the
+/// expected one, for refusal reasons. Empty exactly when `equal` holds.
+pub fn differences(expected: &Inventory, actual: &Inventory) -> Vec<String> {
+    let mut out = Vec::new();
+    if expected.method != actual.method || expected.algorithm != actual.algorithm {
+        out.push("inventory method/algorithm differs".to_owned());
+    }
+    let e: BTreeMap<&str, &Entry> = expected.entries.iter().map(|x| (x.path.as_str(), x)).collect();
+    let a: BTreeMap<&str, &Entry> = actual.entries.iter().map(|x| (x.path.as_str(), x)).collect();
+    if e.len() != expected.entries.len() || a.len() != actual.entries.len() {
+        out.push("duplicate inventory path".to_owned());
+    }
+    for (path, x) in &e {
+        match a.get(path) {
+            None => out.push(format!("missing {path}")),
+            Some(y) if x.kind != y.kind => out.push(format!("{path}: type {} not {}", y.kind, x.kind)),
+            Some(y) if x.mode != y.mode => out.push(format!("{path}: mode {:o} not {:o}", y.mode, x.mode)),
+            Some(y) if x.size != y.size || x.sha256 != y.sha256 => out.push(format!("{path}: content differs")),
+            _ => (),
+        }
+    }
+    for path in a.keys().filter(|p| !e.contains_key(*p)) {
+        out.push(format!("extra {path}"));
+    }
+    if out.is_empty() && expected.manifest_sha256 != actual.manifest_sha256 {
+        out.push("file manifest differs".to_owned());
+    }
+    out
+}
 /// Re-enumerates instead of caching an earlier match. This is preflight only.
 pub fn revalidate(path: &Path, expected: &Inventory) -> Result<Inventory, String> {
     let actual = scan(path)?;
@@ -317,8 +346,15 @@ struct Selection {
     expected: Artifact,
     attestation: Artifact,
 }
-// No S3-qualified selection exists. Only source-reviewed compilation can change this.
-const PRODUCTION_SELECTION: Option<(&str, &str)> = None;
+// A-IN-S2 build selection of the A-IN-S3 attested Codex 0.160.0 macOS arm64
+// reference: `resources/distribution-reference/build-selection.s2.json`, which
+// names `expected.json` 754eebae… and `attestation.json` 09e1fae9…. Only
+// source-reviewed compilation can change this; no runtime value selects it.
+// Selection is not installed custody: `verified` stays unavailable.
+const PRODUCTION_SELECTION: Option<(&str, &str)> = Some((
+    "build-selection.s2.json",
+    "49df30f500af353c5cc141bf939515a21ab9438c92d2fd61ed435c831bcd0fea",
+));
 pub fn production_available() -> bool {
     PRODUCTION_SELECTION.is_some()
 }
@@ -488,13 +524,6 @@ fn staged_start(
     Ok(
         serde_json::json!({"format":"staged-preflight.s2","outcome":"unverifiable","inventory":observed,"generation":generation,"verification_generation":verification_generation,"build_selection":anchor,"raw_version_label":raw,"expected_reference":selection.expected,"adoption_attestation":selection.attestation,"resolved_executable":plan.executable,"removed_environment_names":plan.removed,"limits":["Synthetic adapter only; S3 qualification, native custody, installed integrity and lifecycle successor publication absent","Residual check-to-exec race; no production verification claim"]}),
     )
-}
-
-/// Production trust can only originate in reviewed compiled source. No runtime
-/// parameter selects the anchor. Resolution alone never establishes custody.
-pub(crate) fn production_reference(base: &Path) -> Result<serde_json::Value, String> {
-    let (path, sha256) = PRODUCTION_SELECTION.ok_or("S3-qualified compiled selection absent")?;
-    resolve(base, &Artifact { path: path.into(), sha256: sha256.into() })
 }
 
 #[path = "distribution_selection.rs"]
