@@ -371,7 +371,12 @@ fn read_packaged_instruction(_root: &std::path::Path, _relative: &str) -> Result
 /// Create initial editable copies without overwriting any human edits.
 /// Failure has no alternate storage location and is shown by the entry surface.
 pub fn seed_instructions(root: &std::path::Path) -> Result<(), String> {
-    use std::io::Write;
+    seed_instructions_with(root, || {})
+}
+fn seed_instructions_with(root: &std::path::Path, after_directories: impl FnOnce()) -> Result<(), String> {
+    seed_instructions_with_admission(root, || {}, after_directories)
+}
+fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl FnOnce(), after_directories: impl FnOnce()) -> Result<(), String> {
     crate::role_supply::bundled_role_set()?;
     if COMMON_DEFAULT.is_empty() {
         return Err("reviewed v4 product instruction basis not supplied".into());
@@ -387,54 +392,31 @@ pub fn seed_instructions(root: &std::path::Path) -> Result<(), String> {
     if !initial {
         // First seed is distinct from repairing a known existing user store.
         // Missing, unreadable, non-UTF8 or linked copies are errors, never fallback.
-        crate::role_supply::Guidance::read_seeded(
-            root,
-            "AGENTS.md",
-            INSTRUCTION_RELEASE,
-            COMMON_DEFAULT,
-        )?;
-        for role in crate::role_supply::Role::ALL {
-            crate::role_supply::Guidance::read_seeded(
-                root,
-                &format!("agents/AGENT_{}.md", role.name()),
-                INSTRUCTION_RELEASE,
-                role_default(role),
-            )?;
-        }
-        return Ok(());
+        return validate_instruction_copies(root);
     }
-    for directory in [root.to_path_buf(), root.join("agents")] {
-        std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-        if std::fs::symlink_metadata(&directory)
-            .map_err(|e| e.to_string())?
-            .file_type()
-            .is_symlink()
-        {
-            return Err("instruction directory is a symbolic link".into());
-        }
-    }
+    after_absence();
     let defaults = std::iter::once(("AGENTS.md".into(), COMMON_DEFAULT)).chain(
         crate::role_supply::Role::ALL
             .into_iter()
             .map(|r| (format!("agents/AGENT_{}.md", r.name()), role_default(r))),
-    );
-    for (path, bytes) in defaults {
-        match std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(root.join(path))
-        {
-            Ok(mut file) => {
-                file.write_all(bytes)
-                    .and_then(|_| file.sync_all())
-                    .map_err(|e| e.to_string())?;
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(e) => return Err(e.to_string()),
-        }
+    ).collect::<Vec<_>>();
+    crate::instruction_store::seed(root, &defaults, after_directories)?;
+    // A racing create is preserved, then checked as an existing user copy.
+    // A failed/partial first seed remains explicit; it is never repaired here.
+    validate_instruction_copies(root)
+}
+fn validate_instruction_copies(root: &std::path::Path) -> Result<(), String> {
+    crate::role_supply::Guidance::read_seeded(root, "AGENTS.md", INSTRUCTION_RELEASE, COMMON_DEFAULT)?;
+    for role in crate::role_supply::Role::ALL {
+        crate::role_supply::Guidance::read_seeded(root, &format!("agents/AGENT_{}.md", role.name()),
+            INSTRUCTION_RELEASE, role_default(role))?;
     }
     Ok(())
 }
+
+#[cfg(all(test, unix))]
+#[path = "instruction_seed_tests.rs"]
+mod instruction_seed_tests;
 pub fn compose_role(
     root: &std::path::Path,
     role: Option<crate::role_supply::Role>,

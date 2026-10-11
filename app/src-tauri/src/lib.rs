@@ -50,6 +50,7 @@ pub mod records;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
+mod instruction_store;
 pub(crate) mod run_offers;
 pub(crate) mod run_restart;
 pub mod runtime_session;

@@ -704,6 +704,26 @@ exercise this boundary; they establish no native supplier uptake or cold
 provenance. Metadata and name rechecks expose persistent changes; they do
 not establish an atomic snapshot of a hostile filesystem. No new guidance
 size policy or fallback is introduced.
+
+### 9.2 Initial-copy writes
+
+The current initial-copy implementation retains the selected existing
+ancestor and each created parent/root/role-folder descriptor before creating
+leaves. Managed entries use no-follow directory-relative creates and exclusive
+file creates, with file/directory sync and directory identity rechecks. A
+store for which root creation returns AlreadyExists is validated without
+adding copies; known existing stores are never repaired. A racing regular
+copy is preserved and checked. Failures can leave partial copies in the
+originally opened store; they remain explicit and are not silently repaired
+on a later start. These are bounded filesystem observations, not an atomic
+hostile-filesystem snapshot, a seed-history custody warrant or native uptake.
+Directory creation and descriptor acquisition are separate operations. A
+normal directory replacing a newly made entry before `openat` can be acquired
+as that entry; the rechecks do not establish its creation custody. Protection
+against redirection begins with the retained objects and does not make that
+acquisition atomic. The separate seed-record obligation above is not completed
+by these copies.
+
 ## 10. Prototype (R17-1)
 
 `Design/prototype/` rewritten for v0.2 (README there). Python 3 standard
