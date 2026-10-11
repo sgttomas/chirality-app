@@ -27,6 +27,9 @@ export function RecoveryCustodyDetails({ data }: { data: Json }) {
     <h3>Restart observations derived from persisted prior-session facts</h3>
     {(custody.restartEvents ?? []).length === 0 && <p>No restart interruption is established by the available persisted facts.</p>}
     {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
+    <h3>Requests ended unanswered after an App restart</h3>
+    <p>These are recorded endings of earlier requests. They cannot be answered in this App session.</p>
+    {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>Ended unanswered: {event.entry.method} · {text(event.entry.subject?.threadId)} · recorded {event.at}</summary>{detail(event)}</details>)}
     <h3>Persisted conversation pointer history</h3>
     <p>{data.historicalScope}</p>
     {(custody.historicalConversations ?? []).map((row: Json, i: number) => <article key={i}>

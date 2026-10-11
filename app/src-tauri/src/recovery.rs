@@ -8,6 +8,10 @@ use std::path::PathBuf;
 use std::sync::{Arc,OnceLock};
 use crate::hosting::attachment_custody::NativeNamespaceBindings;
 
+#[cfg(test)]
+#[path = "recovery_startup_request_tests.rs"]
+mod startup_request_tests;
+
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     VALIDATOR
@@ -273,6 +277,7 @@ pub struct RecoveryLedger {
     path: PathBuf,
     entries: Vec<Value>,
     namespaces:Option<Arc<NativeNamespaceBindings>>,
+    startup_requires_reopen: bool,
 }
 pub(crate) struct PreparedNamespaceBinding<'a>{ledger:&'a mut RecoveryLedger,binding:Arc<NativeNamespaceBindings>}
 impl PreparedNamespaceBinding<'_>{pub(crate) fn commit(self){self.ledger.namespaces=Some(self.binding);}}
@@ -311,7 +316,7 @@ impl RecoveryLedger {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(format!("App history unavailable: {e}")),
         }
-        Ok(Self { path, entries, namespaces })
+        Ok(Self { path, entries, namespaces, startup_requires_reopen: false })
     }
     pub(crate) fn preflight_namespaces(&self,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
         Self::preflight_path(&self.path,binding)
@@ -330,6 +335,9 @@ impl RecoveryLedger {
         validator()?.validate(entry).map_err(|e|format!("execution pointer schema refused: {e}"))
     }
     pub fn append(&mut self, entry: Value) -> Result<(), String> {
+        if self.startup_requires_reopen {
+            return Err("recovery startup append was not confirmed; reopen the ledger before writing".into());
+        }
         if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
         validator()?
             .validate(&entry)
@@ -366,6 +374,30 @@ impl RecoveryLedger {
         validator()?.validate(&entry).map_err(|_|"App session end pointer metadata shape invalid; no end append".to_string())?;Ok(entry)
     }
     pub fn start_session(&mut self, session: &str, candidate: &str) -> Result<(), String> {
+        if self.startup_requires_reopen {
+            return Err("recovery startup append was not confirmed; reopen the ledger before retrying".into());
+        }
+        let result = self.start_session_inner(session, candidate);
+        if result.is_err() {
+            // An append can land bytes before its sync fails. Do not retry from
+            // stale memory; actual Host initialization discards this writer.
+            self.startup_requires_reopen = true;
+        }
+        result
+    }
+    fn start_session_inner(&mut self, session: &str, candidate: &str) -> Result<(), String> {
+        if let Some(last) = self.entries.iter().rev().find(|e| e["kind"] == "session_started") {
+            if last["session"] == session {
+                if last["candidate"] != candidate || self.entries.iter().any(|e| e["kind"] == "session_ended" && e["session"] == session) {
+                    return Err("startup session identity already has a different candidate or an end record".into());
+                }
+                // A reopened retry after a partial startup keeps the original
+                // prior-session link and never appends a self-linked marker.
+                self.close_earlier_listed_requests(session)?;
+                self.close_earlier_stop_requests(session);
+                return Ok(());
+            }
+        }
         let previous = self
             .entries
             .iter()
@@ -399,7 +431,17 @@ impl RecoveryLedger {
             entry["previousSession"] = json!(id);
         }
         self.append(entry)?;
+        self.close_earlier_listed_requests(session)?;
         self.close_earlier_stop_requests(session);
+        Ok(())
+    }
+    /// RQ-06 includes pending closures from an interrupted startup batch. A
+    /// later session marker never makes those earlier listed requests live.
+    fn close_earlier_listed_requests(&mut self, session: &str) -> Result<(), String> {
+        let (pending, _) = startup_request_closures(&self.entries, session);
+        for entry in pending {
+            self.append(entry).map_err(|e| format!("RQ-06 request ending not confirmed: {e}"))?;
+        }
         Ok(())
     }
     /// AS-02 / SQ-R R-2: SR-08 for each stop request an earlier session left
@@ -1019,6 +1061,70 @@ mod reviewed_later_error_adoption_tests {
 /// no Deserialize/JSON constructor or conversion to a live source capability.
 #[derive(Clone, Debug)]
 pub struct RecoveryCustodyView { document: Value }
+
+fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<String>) {
+    use std::collections::{BTreeMap, BTreeSet};
+    let known: BTreeSet<_> = rows.iter().filter(|r| r["kind"] == "session_started")
+        .filter_map(|r| r["session"].as_str()).collect();
+    let ended: BTreeSet<_> = rows.iter().filter(|r| r["kind"] == "session_ended")
+        .filter_map(|r| r["session"].as_str()).collect();
+    let mut latest = BTreeMap::new();
+    let mut closed = BTreeSet::new();
+    for row in rows.iter().filter(|r| r["kind"] == "register_entry_summary") {
+        let (Some(g), Some(id)) = (row["generation"].as_str(), row["requestIdentity"].as_str()) else { continue; };
+        let key = (g, id);
+        if row["state"] == "closed" { closed.insert(key); }
+        latest.insert(key, row);
+    }
+    let mut pending = Vec::new(); let mut limits = BTreeSet::new();
+    for (key, row) in latest {
+        if row["state"] != "listed" { continue; }
+        if closed.contains(&key) {
+            limits.insert("A historical closed request has a later listed summary; no new ending inferred".to_string());
+            continue;
+        }
+        let Ok(generation) = generation_from_ref(key.0) else {
+            limits.insert("Historical listed request lacks a canonical full generation; no startup ending inferred".to_string());
+            continue;
+        };
+        let source = generation["appSession"].as_str().unwrap();
+        if source == session || ended.contains(source) { continue; }
+        if !known.contains(source) {
+            limits.insert("Historical listed request source session start is unavailable; no startup ending inferred".to_string());
+            continue;
+        }
+        let mut entry = row.clone();
+        entry["session"] = json!(session);
+        entry["at"] = json!(now_rfc3339());
+        entry["state"] = json!("closed");
+        entry["transition"] = json!("RQ-06");
+        entry["endedAs"] = json!("ended-unanswered(process-exit)");
+        entry["context"] = json!("app-ended-without-record");
+        // Identity, subject and any reply/ack observation are copied exactly.
+        pending.push(entry);
+    }
+    (pending, limits.into_iter().collect())
+}
+
+fn recorded_startup_request_events(rows: &[Value]) -> Vec<Value> {
+    rows.iter().filter(|r| r["kind"] == "register_entry_summary"
+        && r["transition"] == "RQ-06" && r["state"] == "closed"
+        && r["endedAs"] == "ended-unanswered(process-exit)"
+        && r["context"] == "app-ended-without-record")
+        .filter_map(|row| {
+            let generation = row["generation"].as_str()?;
+            generation_from_ref(generation).ok()?;
+            let key = json!([row["session"], row["generation"], row["requestIdentity"]]);
+            let identity = crate::distribution_preflight::digest(&serde_json::to_vec(&key).ok()?);
+            let mut entry = json!({"generation":row["generation"],
+                "requestIdentity":row["requestIdentity"],"method":row["method"]});
+            if let Some(subject) = row.get("subject") { entry["subject"] = subject.clone(); }
+            Some(json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq06:{identity}"),
+                "appSession":row["session"],"at":row["at"],"standing":"App-observed",
+                "entry":entry,"context":row["context"]}))
+        }).collect()
+}
+
 impl RecoveryCustodyView {
     pub fn snapshot(&self)->Value {self.document.clone()}
     pub(crate) fn from_owner(session:&str,ledger:Option<&Value>,live:Value,pending:usize,error:Option<&str>)->Self {
@@ -1027,6 +1133,12 @@ impl RecoveryCustodyView {
         if ledger.is_none(){limits.push("App history unavailable; no cold execution custody established".into());}
         if pending>0{limits.push("Captured pointer observations remain unpersisted; restart coverage is incomplete".into());}
         if let Some(error)=error{limits.push(error.into());}
+        let (pending_requests, request_limits) = startup_request_closures(&rows, session);
+        limits.extend(request_limits);
+        if !pending_requests.is_empty() {
+            limits.push("Historical listed requests still lack confirmed startup endings".into());
+        }
+        let request_end_events = recorded_startup_request_events(&rows);
         let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
         let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
         let prior=current.and_then(|r|r["previousSession"].as_str());
@@ -1075,6 +1187,6 @@ impl RecoveryCustodyView {
             }).collect::<Vec<_>>();
             historical.push(json!({"index":row,"metadataIndex":metadata.get(&key).map(|(_,_,r)|r),"executionGeneration":source,"standing":"Last persisted App execution pointer observation; metadataIndex preserves latest append provenance separately; neither is current Codex state or live authority","openItemAssociations":associations,"openItemCorrelation":"Per-item known/unknown from persisted turnId only; never backfilled from liveTurn, selection, tags or native history.","nativeHistory":"read separately from Codex; not supplied by this projection"}));
         }
-        Self{document:json!({"live":live,"restartEvents":events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
+        Self{document:json!({"live":live,"restartEvents":events,"requestEndEvents":request_end_events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
     }
 }
