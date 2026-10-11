@@ -1022,6 +1022,12 @@ governed checkpoints.
   it is of the required kind and the content it was made on is still current
   (for A12, its established setting is still in force).
   - The record cites the earlier act and its time.
+  - Before the arrival, the latest decision of the required kind on the
+    current content governs (owner, 2026-10-11: "Latest decision wins").
+    If it is an act, the arrival is performed by earlier act; if it is a
+    decline, the arrival is resolved negatively (EXEC CE-8). Earlier
+    decisions of that kind on that content are superseded. A decline counts
+    only on the arrival's current content.
   - An earlier act whose content is no longer current, or whose kind
     differs, is shown **"prior act not counted"**, recorded with that
     reason. This is the one wording of the label (R12-10; RS-v0.8 L-13):

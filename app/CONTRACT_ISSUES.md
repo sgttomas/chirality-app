@@ -620,8 +620,8 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
     "after arrival" (both App-written RFC 3339 times; equal times are "after
     arrival"; a record with another time form is not counted).
   - Before the arrival, the latest decision of the required kind on the
-    current content governs (an implementation reading where the Design is
-    silent, chosen as the more cautious one): an act makes the arrival *performed* "by earlier act"
+    current content governs (owner decision 2026-10-11, "Latest decision
+    wins (Recommended)", amending K1-2 in DEL-04-01 §4.5): an act makes the arrival *performed* "by earlier act"
     (SP-6), a decline resolves it negatively (CE-8), and earlier decisions of
     that kind on that content are superseded. A decline counts only on the
     arrival's current content (its capture's content), before or after the
