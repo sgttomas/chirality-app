@@ -6,40 +6,25 @@
 
 ## Abstract
 
-A general agent can produce substantial work without understanding its purpose
-in the same committed sense as the person who will rely on it. More capable
-reckoning therefore increases both what a person can undertake and the
-importance of how the agent participates. A conversational interface alone does
-not establish which application objects the agent means, what an action changed,
-whether its outcome is known or what the person has accepted.
+An application can make general agent capability useful by connecting it to
+meaningful objects, actions and consequences. The person remains engaged in
+judgment; the agent contributes inquiry and action; reusable methods carry
+learning between undertakings.
 
-This thesis argues that an application can make agent capability practically
-useful by sustaining a relation among purpose, meaningful objects, possible
-actions and inspectable consequences. The person remains engaged in judgment
-throughout that relation. The application contributes access and operations;
-the agent contributes inquiry and action; reusable methods carry learning from
-one undertaking into another. None of these contributions alone determines a
-usable result.
+The Chirality App begins with method itself. A person and an agent develop a
+way of working through conversation, try it, examine its effects and make it
+available for further use. Workflow authoring makes methods accessible to
+inquiry without turning them into exhaustive orchestration.
 
-The Chirality App is the first exemplar because its subject is method itself.
-A person and an agent can develop a way of working through conversation, try it,
-examine its effects and make it available for further use. The method becomes
-an object of work without becoming an exhaustive orchestration. This gives the
-framework a concrete application before it enters the more demanding semantics
-of an engineering product such as SWBPIPE.
+App v4 gives this approach concrete form through native supplier hosting,
+workflow trials, explicit human acts and recovery that distinguishes intent
+from observed outcome. Actual use also exposes its limits: interrupting a turn
+may leave a command running, a faithful trial may exercise a poor method, and
+a recorded approval may tell little about the person's engagement.
 
-App v4 tests this argument through native supplier hosting, workflow identity
-and trials, explicit human acts, and recovery that distinguishes intent,
-acknowledgment and observed outcome. The implementation also supplies
-counterexamples to easy claims of completeness: a turn interrupted while its
-command continued, trial fidelity that does not establish method quality, and
-records whose existence does not establish human engagement. These cases help
-explain the architecture without proving its overall effectiveness.
-
-The thesis proposes a route to proliferation through shared meanings and
-host-specific operations. It does not establish a universally reusable runtime,
-automatic application generation or general professional adequacy. Its
-practical claims remain open to use, failure and comparison with simpler means.
+Shared meanings and host-specific operations offer a route into domain
+applications. Their value depends on useful participation and the effort
+required to achieve it.
 
 ## 1. The problem behind the application
 
@@ -57,22 +42,9 @@ was examined. A result must be understood under the conditions that produced
 it. If an agent and a person act through different versions of those meanings,
 they can appear to collaborate while changing different things.
 
-The research question is therefore: **why and under what conditions should an
+**why and under what conditions should an
 application enable a general agent to participate in its work, and why should
 workflow authoring be the first exemplar of that participation?**
-
-The question concerns the reasons for building the application. It is broader
-than how to embed a model and narrower than a theory of every possible agent.
-The product requirements state what App v4 is to provide. This thesis examines
-why those provisions belong together, what their implementation teaches, and
-where the reasoning remains unproved.
-
-The [PRD's purpose][A1] is to make a capable general agent act within and for an
-application. Its objects, tools and workflows give the general capability a
-particular field of action. The standalone App, where people create workflows,
-is the exemplar. Engineering hosts supply their own domain reality and
-operations. The distinction matters: an exemplar can show a pattern, while
-each receiving application must establish what that pattern means in its work.
 
 One objection is that a strong coding agent with files and a command line may
 already be sufficient. For many development tasks that is a serious alternative.
@@ -83,27 +55,10 @@ Chirality's case depends on those practical benefits becoming observable.
 
 ## 2. Shared orientation, particular subject
 
-The [Root thesis][R1] concerns the shared environment through which methods,
-tools and applications can be developed. The App takes up a more particular
-question: how that orientation becomes an environment someone can use to make
-and carry out methods. SWBPIPE takes it into piping design and stress-model
-authoring, where an apparently successful operation can yield a plausible but
-wrong engineering result.
-
-The three inquiries share a philosophical origin. [Appendix D][D1] preserves
-the formal argument with shared definitions and concise commentary. C names
-temporal dependence; the necessary meaning at issue is S's recognition of the necessity of contingency; N names
-existential affirmation. G remains undefined. The conjecture is not expanded
-here into a derivation of software mechanisms. Its place in the undertaking's
-origin does not require a reader to assent to it before examining the practical
-argument.
-
-The four perspectives give that practical argument connected questions.
-**Ontology** asks what the work concerns and which distinctions its
-representations must preserve. **Epistemology** asks what supports an account
-of the work and what is still unknown. **Praxeology** asks how purpose becomes
-effective action through investigation and correction. **Axiology** asks why
-that action matters and whether the means justify their costs.
+Four perspectives meet in application work. **Ontology** concerns its objects
+and relationships. **Epistemology** concerns grounds and uncertainty.
+**Praxeology** concerns effective action and correction. **Axiology** concerns
+purpose, consequences and the costs of the means.
 
 In an application these questions meet in an ordinary operation. A request
 concerns an identifiable object; its proposed effect rests on a reading of
@@ -111,19 +66,14 @@ that object; execution changes what can happen next; the person cares about
 the consequences. Separating these questions analytically helps expose a
 failure. Treating them as separate procedural duties would miss their relation.
 
-The framework calls sophisticated agent inquiry and action **reckoning**.
-This includes analysis, planning, criticism, comparison and adaptive execution.
-**Judgment** is the person's situated, committed engagement with what the work
-means, what matters and what they will stand behind. Judgment shapes the
-question and the decision to pursue it before any final acceptance occurs.
-An approval record can evidence an act; it does not contain or guarantee that
-engagement. These terms follow the account developed in the [Root framework][R2].
+Agent inquiry and action are **reckoning**: analysis, planning, criticism,
+comparison and adaptive execution. **Judgment** is the person's situated,
+committed engagement with what the work means, what matters and what they will
+stand behind. It shapes the question before any final acceptance occurs.[R2]
 
-This distinction permits extensive agent action. Reserving human judgment does
-not imply that a person must issue every next command. Continuing authority
-can give an agent room to investigate and repair while keeping the purpose and
-consequential choices attributable. The difficult design problem is deciding
-which boundaries make that arrangement workable for a particular activity.
+Continuing authority gives an agent room to investigate and repair while
+keeping consequential choices attributable. The appropriate boundary depends
+on the activity.
 
 ## 3. Why making methods is the first exemplar
 
@@ -147,19 +97,9 @@ for reuse. When a later undertaking reveals a limitation, the method can be
 corrected rather than merely supplemented with another instruction in an
 ever-growing conversation.
 
-This is why the App comes first in the explanatory sequence. It makes the
-human–agent method accessible to its own inquiry. The agent contributes to
-forming the conditions of its subsequent work, while the person remains able
-to examine and decide upon that formation. The App's value lies in making this
-cycle practicable, not in demonstrating that agents can generate workflow
-text.
-
-The example is also bounded enough to examine. A workflow has identifiable
-source content, a draft and a use. A change in the draft can be compared with a
-change in behaviour. The person can ask whether the method expresses the
-intended purpose and whether its trial actually exercised that expression.
-Those relations can be studied before the App supplies an agent with the
-authority to change an engineering model.
+The App comes first because it makes the method available to its own inquiry.
+The agent helps form the conditions of subsequent work, and the person can
+examine and decide upon that formation.
 
 There is a cost to this starting point. A method-authoring tool can become
 absorbed in its own machinery. Elaborate registration and governance can make
@@ -184,10 +124,9 @@ differ because they identify the trial's own subject. A source test compares
 those texts and checks the permitted differences. Preparation also detects a
 draft changed during reading, and refuses to silently try another version.[I1]
 
-This is an epistemic improvement through a concrete operation. It makes one
-question answerable: was the intended method supplied in the relevant form?
-It does not answer whether the method is good, whether the model attended to
-every part or whether another use will succeed.
+Trial fidelity answers whether the intended method was supplied in the relevant
+form. Method quality and the model's use of that material require further
+examination.
 
 Two trial situations retain different value. A delegated trial can remain in
 the context of authoring and return findings to that conversation. A clean
@@ -195,12 +134,8 @@ trial can expose dependence on context the author has taken for granted.
 Neither context is universally superior. The author needs to understand what
 was tried and why its result bears on intended use.
 
-At the source revision examined here, both trial phases are implemented,
-including linking, fidelity readings, comparison and bringing a trial or a real
-run back to authoring. The native witness of both kinds remains open, and the
-App does not yet read the supplier's delegation-availability signals. The source
-thus supports an implementation account, with constructed examinations, rather
-than a claim of fully demonstrated authoring practice.[A2][I2]
+Both trial phases are implemented. Native witnesses of both kinds and live
+reads of delegation-availability signals remain open.[A2][I2]
 
 ## 4. Methods should guide action without replacing inquiry
 
@@ -224,13 +159,9 @@ undertaking may benefit from a manager or from parallel contributors; another
 may be carried through by the person and one agent. Flexibility in arrangement
 does not remove responsibility for bringing the result together.
 
-Within App v4, this reasoning also leads to a concrete distinction: HELP_HUMAN,
-HELPS_HUMANS and WORKING_ITEMS may be selected as conversation roles, while
-TASK remains a bounded delegated role. Role choice can make an intended
-contribution visible without establishing what the host permits it to do.
-Repository authorization and product enforcement are separate subjects. A
-permission granted to agents developing this repository does not silently alter
-the App's runtime role settings or a receiving host's operation policy.[A1]
+App v4 offers HELP_HUMAN, HELPS_HUMANS and WORKING_ITEMS as conversation roles;
+TASK remains delegated. Role choice does not grant permission. Repository
+assignments and the App's runtime settings govern different activities.[A1]
 
 The native witness supplies a caution against treating a role arrangement as
 an accomplished coordination system. It observed a manager spawning a child,
@@ -240,11 +171,8 @@ activity appeared without the full prompt or relationship information needed
 to establish receipt, review and integration. The App showed those limits
 rather than inferring completed coordination from the child's existence.[O1]
 
-This suggests a criterion for useful orchestration: it should make actual
-responsibilities and returns easier to manage. A display of a team is not
-evidence that the team has established a usable result. Native delegation can
-provide considerable capability while leaving integration to an agent and a
-person who remain engaged with the undertaking.
+Useful orchestration makes responsibilities and returns easier to manage.
+A display of a team cannot establish that its contributions form a usable whole.
 
 ## 5. Meaningful perception and action
 
@@ -281,13 +209,6 @@ a subject. Professional reliance concerns another relation again. Combining
 them in a single “success” indicator would make the interface simpler by making
 its meaning less dependable.
 
-This remains a transfer hypothesis for engineering hosts. The inspected App
-source does not establish a qualified end-to-end App-to-SWBPIPE activity. Nor
-does a common catalog prove that one declaration automatically generates a
-good interface, tool and external adapter. The contract explicitly retains the
-question of generated surfaces and remaining adapter work. That work must be
-examined through an actual extension before claiming savings.[A3]
-
 ## 6. Preserving human judgment without multiplying gates
 
 An agent can prepare a decision so well that the person has little additional
@@ -301,18 +222,13 @@ consequences, preserve the grounds and distinguish what was observed from what
 was inferred. It can also prevent an automated rule from being recorded as an
 actual human act. These are valuable contributions with limited claims.
 
-The inspected permission code illustrates a narrower enforceable boundary.
-Answers must conform to the native request and may not widen the requested
-permissions. A constructed test rejects an affirmative answer attributed to an
-App rule rather than permitted interaction. This supports claims about request
-handling. It does not establish that a person's permission was informed or that
-the resulting action was professionally adequate.[I3]
+Native request handling refuses answers that widen the requested permissions.
+A constructed test also rejects an affirmative answer attributed to an App rule
+rather than permitted interaction.[I3] These checks concern request handling;
+the person must still understand what they permit.
 
-The same distinction limits claims about records of file checking, approval or
-reliance. Identifying the content and act can preserve what was said and done.
-The record does not turn a mistaken assessment into a correct one. Trustworthy
-cold replay and native authenticity have additional implementation and
-examination requirements that remain open in the current App account.[A4]
+Trustworthy cold replay and native authenticity still need further
+implementation and examination.[A4]
 
 Preserving judgment also requires room for delegated action. Requiring a new
 human act for every ordinary step can interrupt inquiry and consume the
@@ -322,11 +238,8 @@ that need acceptance and acts reserved to the person. The appropriate classes
 belong to the host's actual work and adopted policy. The general framework
 does not settle them for every application.[A3]
 
-Checkpoint declarations make a further limit explicit. In the current phase
-they guide the person and agents; software holding at checkpoints is deferred.
-An interface can state an intended boundary without having enforced it. The
-thesis must preserve that distinction rather than treating a declared workflow
-as evidence of automatic governance.[A1][A3]
+Workflow checkpoints currently guide the person and agents; software holding
+at checkpoints is deferred.[A1][A3]
 
 The values involved include user control, useful production, privacy and the
 cost of attention. These can conflict. A stricter control can prevent one
@@ -355,12 +268,6 @@ now run in their own host loops; the periodic status read writes no record.
 Closing observation is therefore not designed to be the event that decides
 whether recording continues.[A5][I4]
 
-That source arrangement supports a property; it does not prove every failure
-mode has been handled. Persistent replay, process loss, operating-system
-behaviour and native use need their own evidence. The implementation explicitly
-retains outstanding recovery and authenticity work rather than treating a
-successful local reopen as a complete proof.[A4]
-
 ### 7.1 A counterexample supplied by the running application
 
 In the first native witness, the person interrupted a turn running `sleep 90`.
@@ -368,23 +275,14 @@ The App observed the turn ending as interrupted, while the command had no live
 completion item. After restarting Codex, supplier history reported the command
 completed with exit zero and a duration of approximately ninety seconds.[O1]
 
-The important finding is the divergence between ending a turn and establishing
-that its work has stopped. This one observation cannot establish every
-configuration's behaviour. It is nevertheless enough to defeat a universal
-assumption that an interrupt necessarily stops every running command.
+In this configuration, ending the turn did not establish that its work had
+stopped. The distinction mattered to what the person could safely do next.
 
 The App's display retained the live observation and later history separately.
 Its label did not claim that the command had been prevented from completing.
 The observation also showed a usability limit: nothing had told the person
 that the command continued. Correctly bounded data can still leave the person
 without the practical understanding they need.
-
-This is the four perspectives working together. The distinction between turn
-and command becomes ontologically consequential; the observations have
-different grounds; continuation requires an appropriate action; the person
-needs useful control rather than a technically defensible but insufficient
-label. Actual use can expose a failure that no amount of consistency among
-design documents settles.
 
 ## 8. Native capability and the application's contribution
 
@@ -406,18 +304,9 @@ Different suppliers may support different activities. Avoiding a generic
 vocabulary does not remove the need for interpretation in the display. The
 application still decides what to emphasize and how to expose a limitation.
 
-The native witness makes those limits concrete. It observed delegation through
-the selected supplier, but some activity did not supply the prompt and status
-information needed for stronger claims. Preserving native capability allowed
-the work to occur. It did not make every event fully observable or turn a
-reported relationship into established integration.[O1]
-
-The evidence favours examining the actual supplier path before constructing an
-abstraction around assumptions. It does not prove that every abstraction or
-separate service is harmful. The architecture itself acknowledges that earlier
-supplier-host repairs combined several changes; their outcomes do not isolate
-topology as the cause. Native hosting remains a hypothesis whose value depends
-on maintained functionality and total cost.[A5]
+Earlier supplier-host repairs combined several changes, so their outcomes do
+not isolate topology as the cause. Native hosting must be judged by maintained
+functionality and total cost.[A5]
 
 ## 9. Re-derivation carries learning, not merely requirements
 
@@ -450,10 +339,8 @@ exact-text input attributes and a conversation-specific role-header key. The
 observation records that the repairs had automated checks but had not themselves
 been witnessed natively.[O1][I5]
 
-These are modest defects compared with the architectural claims, but they
-matter to the argument. An application exists for someone to use. An incorrect
-model identifier or misleading role display can defeat the intended activity
-before the wider framework becomes relevant. Lived lessons must remain capable
+An incorrect identifier or misleading role display can defeat the activity
+before the wider framework becomes relevant. Experience must remain capable
 of correcting the application at every scale.
 
 ## 10. Proliferation through particular applications
@@ -480,13 +367,6 @@ physical arrangement. A persuasive explanation cannot compensate for incorrect
 solver inputs. The host must connect perception, change and result to its
 domain engine, while the professional remains responsible for reliance.
 
-This makes the proposed connected activity more informative than another
-general connector demonstration. It asks whether the pattern survives contact
-with a particular practice and its consequences. Domains may later improve
-research context, but retrieval does not establish a source's standing or
-applicability. The App can support the encounter with evidence without deciding
-the engineering authority of what was retrieved.[A1][A3]
-
 There are several ways this proliferation could fail. Host-specific adapters
 may require so much work that shared contracts provide little economic benefit.
 The catalog may be too generic to express consequential operations, or too
@@ -495,33 +375,15 @@ administrative burden. A common interface may conceal differences that should
 remain explicit. Transfer may depend so heavily on the originating owner's
 translation that others cannot reproduce it.
 
-These possibilities define tests of the thesis, not reasons to abandon the
-attempt. The first question is whether a host activity becomes useful and
-dependable. The next is what another operation, practitioner or application
-requires to obtain that benefit. Counting exposed tools or shared schemas
-would establish neither.
+A complete App–SWBPIPE activity remains to be demonstrated.[A3] Its usefulness
+and the effort needed to add another operation will establish more than counts
+of exposed tools or shared schemas.
 
 ## 11. Discussion: what the case supports
 
-The argument has three kinds of support. Product documents state adopted
-purposes and design choices. Source inspection shows mechanisms through which
-those choices are being realized. The dated native witness shows what occurred
-in one actual configuration, including behaviour the prior account did not
-fully anticipate. They support different claims and must remain distinguishable.
-
-The most important result is a set of examinable connections. Workflow trials
-connect a method's identity to the content supplied. Host operations connect
-an action to its subject and basis. Recovery connects claims about completion
-to observed outcomes. Human-act handling connects a recorded act to its content
-without claiming that the record contains judgment. These mechanisms make the
-thesis more than an aspiration.
-
-Their presence does not establish that the App is fit for all its intended
-work. The [examination account][A6] distinguishes verification of a candidate
-from validation through realistic practitioner use. It also distinguishes
-defined tests, historical passes and actual execution. This thesis has inspected
-selected implementation and tests; it has not rerun the product or treated test
-definitions as new passing evidence.
+The [examination account][A6] distinguishes verification of a candidate from
+validation through realistic use. Source inspection and constructed tests leave
+several native-use questions open.
 
 The principal practitioner and architectural author remain the owner. That
 provides sustained purpose and unusually direct correction, but limits claims
@@ -547,46 +409,27 @@ read? Such observations would strengthen or qualify the design hypotheses.
 
 ## 12. Conclusion
 
-General agent capability becomes application capability through a relation to
-what the application means and does. Useful participation requires accessible
-objects, relevant context, meaningful operations and inspectable consequences.
-The person's judgment shapes that participation throughout, while agent
-reckoning can carry substantial inquiry and action within authority.
+General capability becomes application capability through a relation to what
+the application means and does. Accessible objects, useful operations and
+inspectable consequences let agents carry work forward while the person's
+judgment continues to shape its purpose.
 
-Workflow authoring is a fitting first exemplar because it makes the means of
-work into something the person and agent can examine together. A method can be
-formed through use, tried in an identified form and revised through its effects.
-Its reuse carries learning without settling every subsequent undertaking in
-advance. The App's purpose is to make that relationship usable.
+Workflow authoring makes the means of work available for examination. A method
+can develop through conversation, be tried in an identified form and change
+through its effects. Reuse carries that learning into another undertaking
+without determining it in advance.
 
-App v4 gives the argument concrete form through native supplier capability,
-workflow identity and trials, explicit human-act distinctions and outcome-aware
-recovery. Its actual observations also discipline the argument. A completed
-turn need not mean a stopped command. A faithful trial need not establish a good
-method. A recorded act does not guarantee judgment. A coherent architecture
-does not ensure a useful interface.
-
-The same orientation can proliferate through applications when shared meanings
-support the host's own reality. SWBPIPE tests that proposition against engineering
-objects, numerical consequences and professional use. Its success cannot be
-inferred from the App, and the App's success cannot be inferred from Root.
-Each has a particular subject and needs appropriate evidence.
-
-The central claim is accordingly conditional: an application can make general
-agents more useful by enabling meaningful participation while preserving the
-person's relation to purpose, evidence and commitment. How well it does so is a
-question of use, including failures and control costs. The capacity to revise
-the means while preserving that purpose is part of the thesis itself.
+The approach can proliferate where it serves a host's own objects and practices.
+SWBPIPE tests it against engineering meaning and numerical consequences.
+Success depends on how well people can use and revise those means, including
+what they cost in attention, effort and control.
 
 ## Source basis and reading
 
-This explanatory thesis uses repository revision
-`a602024416ace9652f61bb2043889c307fd4e09d` for App requirements, implementation
-and dated observations. Links name current files for convenient reading; a
-later revision can change implementation standing. No source here is cited as
-fresh verification of an external supplier. The historical foundation under
-`foundation/thesis/` remains unchanged. The thesis creates no product requirement,
-permission, acceptance or qualification.
+Implementation and observations are examined at
+`a602024416ace9652f61bb2043889c307fd4e09d`. Tests were inspected rather than
+rerun; source links may reflect later development. Product requirements retain
+their authority. App v4's frozen foundation is unchanged.
 
 - **R1:** [Root thesis: A Generative Environment for Human–Agent Work][R1].
 - **R2:** [The Chirality Framework][R2], especially knowledge, reckoning and
