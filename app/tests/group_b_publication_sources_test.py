@@ -50,3 +50,13 @@ class PublicationSourceTests(unittest.TestCase):
             for path in ('link.md', '../Design.md'):
                 with self.subTest(path=path), self.assertRaises(ValueError):
                     subject.publication_source(self.root, path, self.digest)
+
+    def test_original_declared_validator_objects_remain_whole_and_exact(self):
+        original = b'Original frozen validator bytes.\n'
+        digest = subject.sha(original)
+        (self.root / 'validator.py').write_bytes(b'Unrelated current implementation')
+        with patch.object(subject.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, original, b'')):
+            self.assertEqual(subject.frozen_publication_source(self.root, 'validator.py', digest), original)
+        with patch.object(subject.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'wrong object bytes', b'')):
+            with self.assertRaisesRegex(ValueError, 'frozen source changed or unavailable'):
+                subject.frozen_publication_source(self.root, 'validator.py', digest)

@@ -317,7 +317,9 @@ of every regular file of the tree, ordered by the relative path's UTF-8
 bytes (C collation), each line ending in one newline, the last included;
 equal to `find . -type f | sed 's|^./||' | LC_ALL=C sort | xargs shasum -a
 256 | shasum -a 256` run in the tree, and to `read_tree.py <tree>
---manifest`. At 0.160.0 it is `327effb9…8d12` (§2.1).
+--manifest`.
+
+At 0.160.0 it is `327effb9…8d12` (§2.1).
 
 ### 5.3 Where records live
 

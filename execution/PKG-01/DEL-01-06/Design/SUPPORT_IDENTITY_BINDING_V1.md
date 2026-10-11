@@ -5,6 +5,11 @@ DEL-01-06 adopts the additive full-support binding defined by DEL-09-01
 CC-EXP-SUPPORT-IDENTITY-01, effective at its independently reviewed merge.
 Before that merge this receiving supplement is an adoption candidate.
 
+The current documentary input condition follows the owner-approved successor
+in DEL-09-01 `support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md`. It leaves
+the original full-byte publication tuple and historical correspondence intact;
+current receiving reports identify the separately checked documentary extent.
+
 The existing PKG-v0.2 protocol, schema, prototype, records and source locks remain
 unchanged. The current package record's `support_revision` retains EXP-v0.2.
 For the canonical full-identity cohort, keep its exact bytes and add the

@@ -15,7 +15,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'ebf2d27dda688a54deafdcd1a82df39fec70ccf1388320ea10c78eb5f5c3def0'
+PINS_SHA256 = 'bcce4b71bcfbffcabf016600c56ab93901d6d36abd7baff2179408ce9dc9e86b'
 METHOD = 'EXP-SUPPORT-BINDING-v1'
 PURPOSES = ('current_producer_declaration', 'historical_correspondence')
 LIMITS = [
@@ -33,7 +33,9 @@ def sha(data):
 
 
 class CanonicalSupport:
-    def __init__(self):
+    def __init__(self, documentary_root=None, original_root=None):
+        self.documentary_root = PROJECT if documentary_root is None else Path(documentary_root)
+        original_root = PROJECT if original_root is None else Path(original_root)
         pins_bytes = (HERE / 'canonical-pins.v1.json').read_bytes()
         if sha(pins_bytes) != PINS_SHA256:
             raise ValueError('canonical reader pins changed')
@@ -51,13 +53,17 @@ class CanonicalSupport:
             data = self.captured.get(path)
             if data is None:
                 try:
-                    data = self.legacy.publication_source(PROJECT, path, expected)
+                    source_root = original_root if path.endswith('.md') else PROJECT
+                    data = self.legacy.publication_source(source_root, path, expected)
                 except ValueError as error:
                     raise ValueError('canonical selected source changed: ' + path) from error
             if sha(data) != expected:
                 raise ValueError('canonical selected source changed: ' + path)
             self.captured[path] = data
-        self.support = self.legacy.SupportIdentity()
+        original_declaration = self.legacy.parse(self.captured['app/examination/support_identity/declaration.v1.json'])
+        self.original_sources = {path: self.legacy.frozen_publication_source(original_root, path, digest)
+                                 for path, digest in original_declaration['sources'].items()}
+        self.support = self.legacy.SupportIdentity(self.original_sources)
         self.declaration_bytes = self.captured[self.pins['declaration']]
         self.declaration = self.legacy.parse(self.declaration_bytes)
         self.declaration_sha256 = sha(self.declaration_bytes)
@@ -74,8 +80,22 @@ class CanonicalSupport:
         Draft202012Validator.check_schema(schema)
         self.validator = Draft202012Validator(schema, registry=Registry())
 
+    def source_condition(self, purpose, group='canonical'):
+        if purpose == 'historical_correspondence':
+            return {}, {'method': 'original-frozen-source/v1',
+                        'standing': 'original full-byte correspondence; current documentary meaning not checked',
+                        'authority_authenticated': False}
+        self.legacy.require(purpose == 'current_producer_declaration', 'unknown binding purpose')
+        path = 'app/examination/documentary_condition.py'
+        spec = importlib.util.spec_from_file_location('_exp_documentary_condition', PROJECT / path)
+        module = importlib.util.module_from_spec(spec)
+        exec(compile(self.captured[path], str(PROJECT / path), 'exec'), module.__dict__)
+        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+        return module.Condition(self.documentary_root, manifest, self.legacy.relative_file).capture(group)
+
     def binding(self, kind, data, purpose):
         self.legacy.require(purpose in PURPOSES, 'unknown binding purpose')
+        self.source_condition(purpose)
         binding = self.support.binding(kind, data)
         binding.pop('standing')
         binding.update(format='exp-support-binding.canonical.v1', binding_method=METHOD,
@@ -97,6 +117,7 @@ class CanonicalSupport:
                        and selected['binding_method'] == METHOD, 'unknown canonical method/selection version')
         purpose = selected['binding_purpose']
         legacy.require(purpose in PURPOSES, 'unknown binding purpose')
+        _, source_condition = self.source_condition(purpose)
         legacy.require(selected['declaration_sha256'] == self.declaration_sha256,
                        'caller-selected publication refused')
         legacy.exact(selected['artifacts'], legacy.KINDS, 'canonical artifacts')
@@ -139,6 +160,7 @@ class CanonicalSupport:
             report = self.support.check(root / 'selection.json', sha(payload))
         # Report original canonical inputs, never internal temporary adapter refs.
         return {'canonical_consistency_passed': report['identity_consistency_passed'],
+                'source_condition': source_condition,
                 'errors': report['errors'], 'binding_method': METHOD, 'binding_purpose': purpose,
                 'fixed_support_selection': {'declaration_sha256': self.declaration_sha256,
                                             'publication_reference': self.declaration['publication_reference'],

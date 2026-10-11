@@ -38,6 +38,11 @@ preparation requires a reviewed source-basis update, not editing an output to
 claim readiness. Source locks identify the actual supplier files read here;
 they do not adopt revisions beyond SQ's historical design pins.
 
+Supplier-case projections bind their normative definition cells, excluding
+implementation-result/status cells. Inline historical observations in RS/EXEC
+expected cells are separated by their declared markers. The reviewed documentary
+successor manifest also binds the governing clauses those cited cases depend on.
+
 Before the examiner declares the actual pre-run case definition, bind actual
 invented workflow/collision bytes and fixtures, receive the named inputs,
 identify one executable candidate and configuration, and retain ST-5's real

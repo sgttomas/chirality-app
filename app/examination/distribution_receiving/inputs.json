@@ -1,6 +1,6 @@
 {
-  "app/examination/support_identity/canonical.py": "8ed4c1d2266f9b36b96d577193d868e64ddd7aa32ceec69fade21ec207121198",
-  "app/examination/support_identity/canonical-pins.v1.json": "ebf2d27dda688a54deafdcd1a82df39fec70ccf1388320ea10c78eb5f5c3def0",
+  "app/examination/support_identity/canonical.py": "ff8b2006d1582f2d5e8d2c95e798fd4d4a073937a0b07ba82cadf487e2d5e959",
+  "app/examination/support_identity/canonical-pins.v1.json": "bcce4b71bcfbffcabf016600c56ab93901d6d36abd7baff2179408ce9dc9e86b",
   "app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
   "app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
   "app/src-tauri/resources/distribution-successor/distribution-closure-transport.s3.schema.json": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"

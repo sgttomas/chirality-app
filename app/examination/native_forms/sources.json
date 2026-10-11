@@ -3,11 +3,11 @@
   "sources": [
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/prepare.py",
-      "sha256": "4dc065e02954b2d564ba18c27c6e01bb0d5bd51127c54729f8555deb3f06580c"
+      "sha256": "05e44be5850ae204da5d6876a10bd67348370330fe353541744126fe8d621b06"
     },
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/sources.json",
-      "sha256": "923f55626354837b7ed5c90cdda093bec7f3d6205ab692ddb86dac70353037c4"
+      "sha256": "28a46bd631365616490c514ad7853301bf743365258e71c3c6310ead102568d3"
     },
     {
       "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",

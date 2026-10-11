@@ -118,13 +118,23 @@ class StandalonePreparationTest(unittest.TestCase):
                 continue
             original = (prep.ROOT / source['path']).read_bytes()
             for selector in source['selectors']:
-                key = selector.get('heading', selector.get('case'))
+                key = selector.get('heading', selector.get('case', selector.get('paragraphPrefix')))
                 with self.subTest(source=source['role'], clause=key):
                     text = original.decode()
                     line = next(line for line in text.splitlines(keepends=True)
                                 if (line.rstrip('\r\n') == key if 'heading' in selector
-                                    else line.startswith('| ' + key)))
-                    changed = text.replace(line, line.rstrip('\r\n') + ' CHANGED MEANING\n', 1).encode()
+                                    else line.startswith('| ' + key) if 'case' in selector
+                                    else line.startswith(key)))
+                    if 'heading' in selector:
+                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
+                    elif 'case' in selector:
+                        cells = line.split('|')
+                        column = selector.get('columns', [0])[0]
+                        cells[column + 1] += ' CHANGED MEANING '
+                        changed_line = '|'.join(cells)
+                    else:
+                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
+                    changed = text.replace(line, changed_line, 1).encode()
                     if 'heading' in selector:
                         with self.assertRaisesRegex(ValueError, 'source changed'):
                             prep.source_input(source, changed)

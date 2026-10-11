@@ -10,6 +10,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
+DOCUMENTARY_SHA256 = 'd6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf'
 
 
 def read_json(path):
@@ -32,32 +33,21 @@ def digest(path):
 
 
 def source_input(source, raw):
-    """Exact selected documentary passages, distinct from artifact identities."""
+    """Exact selected documentary meaning, separate from artifact identity."""
     if 'selectors' not in source:
         return raw
-    text = raw.decode('utf-8')
-    lines = text.splitlines(keepends=True)
-    result = b''
-    for selector in source['selectors']:
-        if 'heading' in selector:
-            heading = selector['heading']
-            starts = [i for i, line in enumerate(lines) if line.rstrip('\r\n') == heading]
-            if len(starts) != 1:
-                raise ValueError('source changed: heading missing or repeated: ' + heading)
-            start = starts[0]
-            level = len(heading) - len(heading.lstrip('#'))
-            end = next((i for i in range(start + 1, len(lines))
-                        if re.match(r'^#{1,' + str(level) + r'} ', lines[i])), len(lines))
-            selected = ''.join(lines[start:end])
-        else:
-            key = selector['case']
-            matches = [line for line in lines if re.match(r'^\| ' + re.escape(key) + r'\b', line)]
-            if len(matches) != selector['count']:
-                raise ValueError('source changed: case missing or repeated: ' + key)
-            selected = ''.join(matches)
-        data = selected.encode('utf-8')
-        result += len(data).to_bytes(8, 'big') + data
-    return result
+    import importlib.util
+    path = HERE.parent / 'documentary_condition.py'
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != DOCUMENTARY_SHA256:
+        raise ValueError('source changed: documentary projection helper')
+    spec = importlib.util.spec_from_file_location('_b7_documentary_projection', path)
+    module = importlib.util.module_from_spec(spec)
+    exec(compile(data, str(path), 'exec'), module.__dict__)
+    try:
+        return module.project(raw, source['selectors'])
+    except ValueError as error:
+        raise ValueError('source changed: ' + str(error)) from error
 
 
 def verified_sources(root=ROOT, captured=None):

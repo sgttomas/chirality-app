@@ -9,13 +9,13 @@
     "app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
     "app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
-    "app/examination/sources.json": "ad2893c1566bd31a55d3f8f03bef3158b472cd8057cf7f2437d555ccf2fef6d1",
-    "app/examination/sq_receiving/worker.py": "b6f9a436cedc697aa3b2ddd1e81c293f902796da8d876d0041b0c0dccb3cf6cf",
+    "app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
+    "app/examination/sq_receiving/worker.py": "67421a4b42d78bb79921b9f7620a473e6ee0662d66848e8c0abf1ca379fbe806",
     "app/examination/support_identity/binding.v1.schema.json": "aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0",
-    "app/examination/support_identity/canonical-pins.v1.json": "ebf2d27dda688a54deafdcd1a82df39fec70ccf1388320ea10c78eb5f5c3def0",
-    "app/examination/support_identity/canonical.py": "8ed4c1d2266f9b36b96d577193d868e64ddd7aa32ceec69fade21ec207121198",
+    "app/examination/support_identity/canonical-pins.v1.json": "bcce4b71bcfbffcabf016600c56ab93901d6d36abd7baff2179408ce9dc9e86b",
+    "app/examination/support_identity/canonical.py": "ff8b2006d1582f2d5e8d2c95e798fd4d4a073937a0b07ba82cadf487e2d5e959",
     "app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
-    "app/examination/support_identity/support_identity.py": "8f68d7057a262b91566b19bde6c235e64f0882dace437bbc77031cc3824bf8e2",
+    "app/examination/support_identity/support_identity.py": "9db92395093787fc2f46893822b8b76814207151d021b693090a2064e8a5bd47",
     "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": "23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
     "execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md": "ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60",
     "execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md": "c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540",
@@ -44,6 +44,8 @@
     "execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py": "65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac",
     "execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md": "10e5392e0f8354dd29209260fd05adb2e89357882761627290603a2f3abf8cfe",
     "execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6",
-    "execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee"
+    "execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
+    "app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
+    "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "119b2cf4d8b025080efe5f17ad7081d178e42a3adbaa3c85f2dd305a6dfc7fe4"
   }
 }

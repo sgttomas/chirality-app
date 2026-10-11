@@ -45,6 +45,14 @@ with fewer roles satisfies that unchanged contract.
 
 ## S1: fixed sources, exact files, explicit citations
 
+For the maintained successor current-producer reader, DEL-09-01's
+`support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md` governs documentary
+inputs. Its fixed manifest binds the cited case rows and governing clauses,
+excluding implementation notes and observed-result columns. The original
+full-byte support snapshot remains separately checked and available to the
+unchanged validators and historical correspondence. Schemas, step map,
+validators, helpers, records and candidate identities retain exact bindings.
+
 All fields below are **new receiving-contract selections**, not fields to insert
 in SQ-v0.2 or EXP-v0.2 records. The separately implemented reader must pin SQ protocol/schema,
 step map/prototype and their supplier-case source closure, plus the existing

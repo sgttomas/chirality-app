@@ -104,8 +104,28 @@ def publication_source(root, path, expected):
     return result.stdout
 
 
+def frozen_publication_source(root, path, expected):
+    """Original declaration selects immutable validator/data bytes, not main."""
+    try:
+        raw = relative_file(root, path)
+    except FileNotFoundError:
+        raw = None
+    if raw is not None and sha(raw) == expected:
+        return raw
+    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
+    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
+    try:
+        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
+                                cwd=root, env=env, capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('frozen publication source unavailable: ' + path) from error
+    require(result.returncode == 0 and sha(result.stdout) == expected,
+            'frozen source changed or unavailable: ' + path)
+    return result.stdout
+
+
 class SupportIdentity:
-    def __init__(self):
+    def __init__(self, frozen_sources=None):
         # No caller-supplied declaration, source manifest, schema or publication flag.
         declaration = (HERE / 'declaration.v1.json').read_bytes()
         require(sha(declaration) == DECLARATION_SHA256, 'frozen declaration changed')
@@ -119,8 +139,11 @@ class SupportIdentity:
         # Snapshot every frozen source before any record processing. Existing
         # checkers run from these bytes, so rereads cannot select a different basis.
         self.sources = {}
+        if frozen_sources is not None:
+            exact(frozen_sources, self.declaration['sources'], 'original publication sources')
         for path, expected in self.declaration['sources'].items():
-            data = publication_source(PROJECT, path, expected)
+            data = (frozen_publication_source(PROJECT, path, expected) if frozen_sources is None
+                    else frozen_sources[path])
             require(sha(data) == expected, 'frozen source changed: ' + path)
             self.sources[path] = data
         for kind, filename in [('result', 'exam.result-record.schema.json'),

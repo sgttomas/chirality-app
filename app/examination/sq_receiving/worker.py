@@ -23,7 +23,8 @@ LIMITS = [
 
 
 def check(selection_path, expected):
-    canonical = CanonicalSupport()
+    canonical = CanonicalSupport(documentary_root=PROJECT / 'current-documentary-inputs',
+                                 original_root=PROJECT / 'original-support')
     api = canonical.legacy
     exact, require, parse = api.exact, api.require, api.parse
     pins = parse((PROJECT / 'reader-pins.json').read_bytes())

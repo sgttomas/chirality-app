@@ -14,7 +14,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = '34fa6043657c563225f3837de7018a3431246151ff51aef160cc48ad268a7a1f'
+PINS_SHA256 = '5ef0edbcdc70fb8e5dbb6b25a1f851e6f20534e001d67b932b699021397e0b40'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',
@@ -81,7 +81,7 @@ def load_module(name, path, raw=None):
 
 
 class PreRunInputs:
-    def __init__(self):
+    def __init__(self, current_documentary_root=None, original_support_root=None):
         pins_bytes = read_file(HERE / 'pre_run_inputs.pins.json')
         require(sha(pins_bytes) == PINS_SHA256, 'pre-run source pins changed')
         self.pins = parse(pins_bytes)
@@ -93,6 +93,13 @@ class PreRunInputs:
         support_bytes = relative_file(ROOT, support_path)
         require(sha(support_bytes) == self.pins['sources'][support_path], 'pre-run source drift: support helper')
         publication = load_module('_pre_run_publication_sources', ROOT / support_path, support_bytes)
+        declaration_path = 'projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json'
+        declaration_bytes = relative_file(ROOT, declaration_path)
+        require(sha(declaration_bytes) == self.pins['sources'][declaration_path], 'pre-run source drift: declaration')
+        original_declaration = publication.parse(declaration_bytes)
+        original_root = ROOT if original_support_root is None else Path(original_support_root)
+        original_sources = {name: publication.frozen_publication_source(original_root, ('projects/chirality-app-v4/' + name if original_support_root is None else name), digest)
+                            for name, digest in original_declaration['sources'].items()}
         self.captured = {}
         for relative, expected in self.pins['sources'].items():
             data = (publication.publication_source(ROOT, relative, expected)
@@ -102,6 +109,17 @@ class PreRunInputs:
             digest = expected['sha256'] if isinstance(expected, dict) else expected
             require(sha(selected) == digest, 'pre-run source drift: ' + relative)
             self.captured[relative] = data
+        canonical_pins = parse(self.captured['projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json'])
+        for name, digest in canonical_pins['sources'].items():
+            if name.endswith('.md'):
+                original_sources[name] = publication.publication_source(original_root, ('projects/chirality-app-v4/' + name if original_support_root is None else name), digest)
+        condition_path = 'projects/chirality-app-v4/app/examination/documentary_condition.py'
+        condition = load_module('_pre_run_current_documentary', ROOT / condition_path, self.captured[condition_path])
+        manifest = self.captured['projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+        current_root = ROOT / 'projects/chirality-app-v4' if current_documentary_root is None else Path(current_documentary_root)
+        current_documents, self.documentary_condition = condition.Condition(current_root, manifest, publication.relative_file).capture('sq')
+        self.captured.update({'original-support/' + name: data for name, data in original_sources.items()})
+        self.captured.update({'current-documentary-inputs/' + name: data for name, data in current_documents.items()})
         # Each selected package is exactly the maintained two-file fixture;
         # additional companion files or directories are not silently omitted.
         fixture_root = 'projects/chirality-app-v4/app/examination/standalone/fixtures'
@@ -140,7 +158,8 @@ class PreRunInputs:
             self.producer = load_module('_b7_pre_run_producer', app / 'examination/standalone/prepare.py')
             self.forms = load_module('_b7_pre_run_blank_forms', app / 'examination/native_forms/native_form.py')
             canonical = load_module('_b7_pre_run_support', app / 'examination/support_identity/canonical.py')
-            self.support = canonical.CanonicalSupport()
+            self.support = canonical.CanonicalSupport(original_root=self.snapshot / 'original-support',
+                                                      documentary_root=self.snapshot / 'current-documentary-inputs')
         except Exception:
             self.close(); raise
 

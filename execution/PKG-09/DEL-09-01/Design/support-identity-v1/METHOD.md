@@ -91,6 +91,13 @@ Filesystem link checks are best effort, not hostile concurrent-filesystem custod
 
 ## Effective cohort and propagation
 
+The owner-approved successor documentary condition is defined in
+`DOCUMENTARY_SOURCE_CONDITION.md`. For current-producer reads, that condition
+binds today's cited rows and governing clauses; the original publication tuple
+remains a separate exact frozen-source check. Historical correspondence retains
+the original full-byte method. The receiving report identifies the additional
+condition at that read; an existing sidecar never proves its producer used it.
+
 The canonical `app/examination/support_identity/canonical.py` CLI/API and PKG's
 receiving supplement form this method's initial full-identity cohort. Producers
 using this route freeze their selected basis and retain both original record and
