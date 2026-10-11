@@ -6,6 +6,9 @@ Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
 Design and dependency conditions. Consult `docs/PRD.md` and its companions for
 requirements and interfaces involved in this slice, not as a compulsory census.
 
+Find the current manuals through the [manual index](../../../docs/alignment-manual/README.md).
+Consult the relevant sections when the work needs them; no full-manual reading is required.
+
 From the repository root:
 
 ```sh
