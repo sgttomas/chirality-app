@@ -721,8 +721,32 @@ Directory creation and descriptor acquisition are separate operations. A
 normal directory replacing a newly made entry before `openat` can be acquired
 as that entry; the rechecks do not establish its creation custody. Protection
 against redirection begins with the retained objects and does not make that
-acquisition atomic. The separate seed-record obligation above is not completed
-by these copies.
+acquisition atomic.
+
+### 9.3 Initial seed history and remaining source attribution
+
+After the copies are synced and current guidance validation succeeds, the App
+creates `.seed-record.json` exclusively through the retained instruction root.
+`chirality.instruction-seed-record/1` names the compiled release and the exact
+default content identities of files this call created. Preserved racing paths,
+even when byte-equal to a default, are separate with origin *unknown*. The two
+lists partition the five guidance paths; the App never rewrites this record.
+A store whose creation was preempted is validation-only and gets no invented
+history.
+
+Record creation is a direct exclusive write, not an atomic transaction. A
+write/sync failure can leave partial record bytes and partial guidance copies;
+the call reports failure. A colliding record is preserved and refused. Later
+known-store calls validate guidance only and never repair or recreate history.
+This record is mutable by anyone with file access and supplies no authenticated
+creation custody, native uptake or adoption.
+
+**Open source-history receiving condition.** Production guidance reads still
+receive the compiled release/default reference from the caller; they do not
+consume this history artifact. The source schema's *App release whose default
+was seeded* attribution therefore remains unestablished for older or changed
+stores. Initial record publication does not close that receiving gap or select
+GS-6/U-R9 release-update behavior.
 
 ## 10. Prototype (R17-1)
 

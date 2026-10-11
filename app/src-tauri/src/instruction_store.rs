@@ -4,7 +4,9 @@
 pub(crate) fn seed(
     root: &std::path::Path,
     sources: &[(String, &[u8])],
+    release: &str,
     after_directories: impl FnOnce(),
+    validate: impl FnOnce() -> Result<(), String>,
 ) -> Result<(), String> {
     use std::{
         ffi::{CString, OsString},
@@ -61,6 +63,7 @@ pub(crate) fn seed(
     }
     // Validate every leaf before creating anything. Inputs are the compiled
     // common/four-role defaults, never a generic path publication interface.
+    let mut names = std::collections::BTreeSet::new();
     for (path, _) in sources {
         if path != "AGENTS.md"
             && !crate::role_supply::Role::ALL
@@ -69,6 +72,12 @@ pub(crate) fn seed(
         {
             return Err("instruction source name is not allowed".into());
         }
+        if !names.insert(path) {
+            return Err("duplicate instruction source name".into());
+        }
+    }
+    if names.len() != crate::role_supply::Role::ALL.len() + 1 || release.is_empty() {
+        return Err("complete instruction defaults and release are required".into());
     }
     let leaf = match root.components().next_back() {
         Some(Component::Normal(value)) => value.to_owned(),
@@ -130,7 +139,8 @@ pub(crate) fn seed(
     if !created {
         // Another actor established the store after initial absence admission.
         // The wrapper validates it without adding or repairing any copies.
-        return verify(&opened, &links);
+        verify(&opened, &links)?;
+        return validate();
     }
     links.push(leaf);
     opened.push(store);
@@ -141,6 +151,8 @@ pub(crate) fn seed(
     links.push(agents_name);
     opened.push(agents);
     after_directories();
+    let mut created_files = Vec::new();
+    let mut preserved_files = Vec::new();
     for (path, bytes) in sources {
         verify(&opened, &links)?;
         let (parent, leaf) = match path.strip_prefix("agents/") {
@@ -160,6 +172,7 @@ pub(crate) fn seed(
         if fd < 0 {
             let error = std::io::Error::last_os_error();
             if error.kind() == std::io::ErrorKind::AlreadyExists {
+                preserved_files.push(serde_json::json!({"path": path, "origin": "unknown"}));
                 continue;
             }
             return Err(error.to_string());
@@ -173,7 +186,29 @@ pub(crate) fn seed(
             .map_err(|e| e.to_string())?;
         parent.sync_all().map_err(|e| e.to_string())?;
         verify(&opened, &links)?;
+        created_files.push(serde_json::json!({"path": path,
+            "defaultContent": crate::role_supply::content(bytes)}));
     }
+    validate()?;
+    verify(&opened, &links)?;
+    let record = serde_json::json!({"format": "chirality.instruction-seed-record/1",
+        "release": release, "created": created_files, "preserved": preserved_files});
+    let mut raw = serde_json::to_vec(&record).map_err(|e| e.to_string())?;
+    raw.push(b'\n');
+    let leaf = name(std::ffi::OsStr::new(".seed-record.json"))?;
+    let fd = unsafe { libc::openat(opened[root_index].as_raw_fd(), leaf.as_ptr(),
+        libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW
+            | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY, 0o666) };
+    if fd < 0 {
+        return Err(format!("instruction seed record was not created: {}",
+            std::io::Error::last_os_error()));
+    }
+    // Publication is exclusive, not transactional: a failed write/sync may
+    // leave partial record bytes. No later call silently repairs that artifact.
+    let mut record_file = unsafe { File::from_raw_fd(fd) };
+    record_file.write_all(&raw).and_then(|_| record_file.sync_all())
+        .map_err(|e| format!("instruction seed record publication failed: {e}"))?;
+    opened[root_index].sync_all().map_err(|e| e.to_string())?;
     verify(&opened, &links)
 }
 
@@ -181,7 +216,9 @@ pub(crate) fn seed(
 pub(crate) fn seed(
     _: &std::path::Path,
     _: &[(String, &[u8])],
+    _: &str,
     _: impl FnOnce(),
+    _: impl FnOnce() -> Result<(), String>,
 ) -> Result<(), String> {
     Err("directory-bound instruction seeding is unavailable on this target".into())
 }

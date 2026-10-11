@@ -400,10 +400,10 @@ fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl 
             .into_iter()
             .map(|r| (format!("agents/AGENT_{}.md", r.name()), role_default(r))),
     ).collect::<Vec<_>>();
-    crate::instruction_store::seed(root, &defaults, after_directories)?;
     // A racing create is preserved, then checked as an existing user copy.
     // A failed/partial first seed remains explicit; it is never repaired here.
-    validate_instruction_copies(root)
+    crate::instruction_store::seed(root, &defaults, INSTRUCTION_RELEASE,
+        after_directories, || validate_instruction_copies(root))
 }
 fn validate_instruction_copies(root: &std::path::Path) -> Result<(), String> {
     crate::role_supply::Guidance::read_seeded(root, "AGENTS.md", INSTRUCTION_RELEASE, COMMON_DEFAULT)?;

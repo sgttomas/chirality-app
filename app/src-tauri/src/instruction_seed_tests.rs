@@ -186,4 +186,104 @@ fn failed_first_copy_leaves_partial_store_and_later_calls_do_not_repair_it() {
         fs::read(root.join("AGENTS.md")).unwrap(),
         b"person's partial-store edit"
     );
+    assert!(!root.join(".seed-record.json").exists());
+}
+
+fn seed_record(root: &std::path::Path) -> serde_json::Value {
+    serde_json::from_slice(&fs::read(root.join(".seed-record.json")).unwrap()).unwrap()
+}
+
+#[test]
+fn initial_record_names_only_defaults_this_call_created_and_is_never_rewritten() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    seed_instructions(&root).unwrap();
+    let record = seed_record(&root);
+    assert_eq!(record["format"], "chirality.instruction-seed-record/1");
+    assert_eq!(record["release"], super::INSTRUCTION_RELEASE);
+    let created = record["created"].as_array().unwrap();
+    assert_eq!(created.len(), 5);
+    assert!(record["preserved"].as_array().unwrap().is_empty());
+    for entry in created {
+        let bytes = fs::read(root.join(entry["path"].as_str().unwrap())).unwrap();
+        assert_eq!(entry["defaultContent"], crate::role_supply::content(&bytes));
+    }
+    let history = fs::read(root.join(".seed-record.json")).unwrap();
+    fs::write(root.join("AGENTS.md"), b"person's later edit").unwrap();
+    seed_instructions(&root).unwrap();
+    assert_eq!(fs::read(root.join(".seed-record.json")).unwrap(), history);
+}
+
+#[test]
+fn even_byte_equal_racing_copies_have_unknown_seed_origin() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    seed_instructions_with(&root, || {
+        fs::write(root.join("AGENTS.md"), COMMON_DEFAULT).unwrap();
+    }).unwrap();
+    let record = seed_record(&root);
+    assert_eq!(record["created"].as_array().unwrap().len(), 4);
+    assert_eq!(record["preserved"], serde_json::json!([{"path":"AGENTS.md","origin":"unknown"}]));
+    assert!(record["created"].as_array().unwrap().iter().all(|entry| entry["path"] != "AGENTS.md"));
+}
+
+#[test]
+fn invalid_preserved_guidance_refuses_before_creating_a_seed_record() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    assert!(seed_instructions_with(&root, || {
+        fs::write(root.join("AGENTS.md"), [0xff]).unwrap();
+    }).is_err());
+    assert!(!root.join(".seed-record.json").exists());
+    assert_eq!(fs::read(root.join("AGENTS.md")).unwrap(), [0xff]);
+}
+
+#[test]
+fn seed_record_collision_preserves_bytes_and_later_calls_do_not_repair_it() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    let partial = b"{\"format\":";
+    assert!(seed_instructions_with(&root, || {
+        fs::write(root.join(".seed-record.json"), partial).unwrap();
+    }).is_err());
+    assert_eq!(fs::read(root.join(".seed-record.json")).unwrap(), partial);
+    // Guidance validation is independent of this history artifact. It cannot
+    // reconstruct or silently replace an earlier seed record.
+    seed_instructions(&root).unwrap();
+    assert_eq!(fs::read(root.join(".seed-record.json")).unwrap(), partial);
+}
+
+#[test]
+fn a_complete_store_preempting_initial_creation_gets_no_invented_record() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    seed_instructions_with_admission(&root, || {
+        fs::create_dir_all(root.join("agents")).unwrap();
+        fs::write(root.join("AGENTS.md"), COMMON_DEFAULT).unwrap();
+        for role in crate::role_supply::Role::ALL {
+            fs::write(root.join(format!("agents/AGENT_{}.md", role.name())), role_default(role)).unwrap();
+        }
+    }, || panic!("preempting store entered publication")).unwrap();
+    assert!(!root.join(".seed-record.json").exists());
+}
+
+#[test]
+fn root_replacement_during_validation_cannot_redirect_record_publication() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    let outside = f.0.join("outside");
+    fs::create_dir(&outside).unwrap();
+    let sources = std::iter::once(("AGENTS.md".into(), COMMON_DEFAULT)).chain(
+        crate::role_supply::Role::ALL.into_iter().map(|role|
+            (format!("agents/AGENT_{}.md", role.name()), role_default(role))))
+        .collect::<Vec<_>>();
+    let result = crate::instruction_store::seed(&root, &sources, super::INSTRUCTION_RELEASE, || {}, || {
+        super::validate_instruction_copies(&root)?;
+        fs::rename(&root, f.0.join("held")).unwrap();
+        std::os::unix::fs::symlink(&outside, &root).unwrap();
+        Ok(())
+    });
+    assert!(result.is_err());
+    assert!(!outside.join(".seed-record.json").exists());
+    assert!(!f.0.join("held/.seed-record.json").exists());
 }
