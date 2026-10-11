@@ -1408,7 +1408,7 @@ changed.
     `9f88209d…`. It sits inside an attested reference, so it was not
     rewritten; a later reference refresh carries the current bytes.
 
-## CI-34 App quit and window close: what the platform does not let the App hold
+## CI-35 App quit and window close: what the platform does not let the App hold
 
 Found 2026-10-10 while implementing DEL-01-02 DEF-6/SQ-Q and SQ-W (RECOVERY
 §5 "In the App" readings). The sequences are implemented as written; these
