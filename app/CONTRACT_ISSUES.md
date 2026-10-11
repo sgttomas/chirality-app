@@ -1227,7 +1227,7 @@ changed.
   DEL-01-06 conditional package contract are unchanged. Exact source/custody
   records: AgentRuns/APP-V4-GROUP-B-20261008/sq-result-receiver-adoption.
 
-## CI-31 App bundle resources: the default configuration carries none
+## CI-31 App bundle resources: the default configuration carried none (fixed)
 
 - **Found:** the [native witness of 2026-10-10](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md), item 1. A bundle built
   with `tauri build --debug --bundles app` and `bundle.active` overridden to
@@ -1242,10 +1242,21 @@ changed.
   `resources/instructions/` and `resources/production_workflows/`, so a bundle
   built without that overlay carries neither. The refusal is the designed
   fail-closed result; the gap is in packaging.
-- **Open (DEL-01-06 packaging; Group B B4 package preparation):** the product
-  bundle must carry the instruction and workflow resources. Either the default
-  configuration declares them, or a bundle build without them fails instead of
-  producing an App that refuses every start. Not fixed in this change.
+- **Fixed (2026-10-10):** `src-tauri/tauri.conf.json` `bundle.resources` maps
+  `resources/instructions/` to `instructions/` and
+  `resources/production_workflows/` to `workflows/` (DEL-01-06 P-3 and P-2),
+  the two paths the default host reads from `resource_dir()`. A debug bundle
+  built offline with the default configuration and `bundle.active` overridden
+  (`tauri build --debug --bundles app`) carried both trees, 11 files,
+  byte-equal to their sources. The `bundle_resources_tests` test fails if
+  either mapping is missing or if the host gains a `resource_dir()` read that
+  is not one of them or a named feature-gated reader. `bundle.active`, signing
+  and release settings are unchanged.
+- **Still supplied by overlays:** the `distribution-successor` feature's P-1
+  `codex/` vendor tree and `distribution-reference/`, and the
+  `synthetic-distribution-anchor` namespace, come from their own packaging
+  overlays (`packaging/unsigned/`), not the default configuration. A start
+  from a default-configuration bundle has not been witnessed again natively.
 
 ## CI-32 WR §16.2 files line: run start names a placeholder folder
 

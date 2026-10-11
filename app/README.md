@@ -542,7 +542,9 @@ debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
 It qualifies nothing. Attachments and the run-end notice, workflow runs and A15,
 approval cards, delegation beyond that run, quit, the WebKit/Chromium matrix and a packaged
 build remain unwitnessed. It also found that an interrupted turn's running
-command can still complete (see the note), and the bundle gap CI-31.
+command can still complete (see the note), and the bundle gap CI-31 (since
+fixed: the default configuration declares the instruction and workflow
+resources).
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.
 

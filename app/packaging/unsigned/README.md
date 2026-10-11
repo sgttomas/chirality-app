@@ -1,8 +1,7 @@
 # Complete-content development App bundle route
 
 This explicit overlay maps the received production workflow candidate and role
-resources into an unsigned development bundle. It leaves the default Tauri
-configuration unchanged. Physical content does not establish package_complete,
+resources into an unsigned development bundle. Physical content does not establish package_complete,
 qualification, runnable LS-5/LS-8 registration, signing or release.
 
 Use an isolated copy of the exact App source, existing approved offline npm
@@ -58,9 +57,11 @@ witness. Do not insert a synthetic anchor. FP-1(b), FP-2/W-4, FP-3/4/5, SIGN-1,
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
-Without this overlay a bundle carries no `instructions/` or `workflows/`, and
-every conversation start is refused with "role-set-invalid". The default
-`tauri.conf.json` declares no bundle resources (CI-31 in `../../CONTRACT_ISSUES.md`).
+The default `tauri.conf.json` maps the same P2 and P3 trees (CI-31 in
+`../../CONTRACT_ISSUES.md`), so a bundle built without this overlay carries
+them too; the overlay repeats the mapping so this route reads whole. The test
+`bundle_resources_tests` fails if the default host reads a `resource_dir()`
+path the default configuration does not declare.
 
 
 A separate [compiled synthetic-selection route](SYNTHETIC_SELECTION.md) is
