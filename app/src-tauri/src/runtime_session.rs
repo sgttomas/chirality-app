@@ -4980,6 +4980,12 @@ impl WorkflowRootSession {
         if !own_limits.is_empty() {
             return Err(format!("The run's own record is incomplete, so its end cannot be appended to it (RS W-1); nothing recorded: {own_limits:?}"));
         }
+        // Only an opened run is ended: a start never confirmed (no run_opened)
+        // must not gain a run_ended, which would leave it unknown (RE-7) once
+        // the other logs are complete again.
+        if !own.iter().any(|e| e["kind"] == "run_opened" && e["runId"] == run) {
+            return Err("There is no run_opened in the run's own record, so there is nothing to end; nothing recorded".into());
+        }
         // CE-17 from the run's own record (RC-10): its arrivals still waiting
         // there, with any readable entry naming the run in another log.
         let (recorded, _) = crate::storage::read_all(project);
@@ -9555,6 +9561,26 @@ for line in sys.stdin:
         let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
         assert_eq!(crate::records::supply::read_project_runs(&project,&[]).runs[0].lifecycle,crate::records::supply::RecordedLifecycle::StartNotConfirmed);
         assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project()).is_ok());
+    }
+    // PR #1269 review: after a relaunch, a start never confirmed (no run_opened) cannot be
+    // "ended" while another log is torn; nothing is written, and once that log is repaired
+    // the run reads as not confirmed and a new start is allowed.
+    #[test]
+    fn j3_relaunch_end_of_an_unconfirmed_start_beside_a_torn_log_is_refused(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","error");
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        assert!(root.runs[&a].lock().unwrap().send().is_err());
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let refused=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None);
+        assert!(refused.as_ref().is_err_and(|e|e.contains("no run_opened")&&e.contains("nothing to end")),"{refused:?}");
+        let (own,_)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,&a));
+        assert!(own.iter().all(|e|e["kind"]!="run_ended"),"nothing written: {own:?}");
+        std::fs::remove_dir_all(&torn).unwrap();
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let reading=crate::records::supply::read_project_runs(&project,&[]);
+        assert_eq!(reading.runs.iter().find(|r|r.run==a).unwrap().lifecycle,crate::records::supply::RecordedLifecycle::StartNotConfirmed);
+        assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project()).is_ok());
     }
     // Reopen keeps unknowns unknown: an incomplete record set never yields "ended" or "open"
     // for a run whose closing entry could be in the unreadable part.

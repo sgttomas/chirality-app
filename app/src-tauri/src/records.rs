@@ -41,7 +41,8 @@ pub(crate) enum RecordSet {
     /// detected (CC-ID). Every append but the one below.
     Complete,
     /// Other logs may be incomplete: the new identity is checked against every
-    /// readable entry; an unread line cannot be checked. Used only for the
+    /// readable entry (only the owning log's if discovery itself fails); an
+    /// unread line cannot be checked. Used only for the
     /// person's explicit end after a relaunch (EXEC A-11), whose entries carry
     /// freshly minted identities (CC-ID) and, where the act records cannot be
     /// read, an evidence limit naming them.
@@ -444,8 +445,9 @@ fn append_reserved(
         if !limits.is_empty() && set == RecordSet::Complete {
             return Err(format!("record-set conflict/incomplete: {limits:?}"));
         }
-        // The owning log's entries stay checked even when discovery fails;
-        // readable entries of incomplete logs are checked too.
+        // Readable entries of incomplete logs are checked too. If discovery
+        // itself fails, `read_all` returns no entries, and in the tolerant mode
+        // only the owning log's entries are checked.
         all.extend(discovered);
     }
     if all

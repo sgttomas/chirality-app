@@ -268,6 +268,21 @@ fn writer_record_set_modes_beside_an_incomplete_log(){
     assert!(append("rec:app:b",ReadableBesideIncomplete).is_err_and(|e|e.contains("partial line")),"an incomplete owning log refuses");
     std::fs::remove_dir_all(root).unwrap();
 }
+// PR #1269 review: in `Complete` mode the supply writer refuses beside an incomplete set
+// before it reads anything, so even an already-written entry is not recognised there; the
+// relaunch end's mode recognises it from the readable entries (idempotent, W-2).
+#[test]
+fn supply_complete_mode_refuses_before_recognising_a_written_entry_beside_a_torn_log(){
+    use crate::records::RecordSet::{Complete,ReadableBesideIncomplete};
+    let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("rs-supply-").unwrap());std::fs::create_dir_all(&root).unwrap();
+    let mut entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),"2026-10-11T00:00:00Z".into()).unwrap();
+    let mut again=entry.clone();let mut third=entry.clone();
+    crate::records::supply::append_run_entry(&root,"run:x",&mut entry).unwrap();
+    let torn=crate::storage::project_log(&root,None,"torn-writer");std::fs::create_dir_all(torn.parent().unwrap()).unwrap();std::fs::write(&torn,b"{\"torn").unwrap();
+    assert!(crate::records::supply::append_run_entry_in(&root,"run:x",&mut again,Complete).is_err_and(|e|e.contains("RS record set incomplete")));
+    assert_eq!(crate::records::supply::append_run_entry_in(&root,"run:x",&mut third,ReadableBesideIncomplete).unwrap()["recordId"],entry.record_id.as_str());
+    std::fs::remove_dir_all(root).unwrap();
+}
 // CI-20 (j) review B1, RS W-2: the never-written limit takes the refused record's own
 // observation time, so a check observed after the next lifecycle entry is not written
 // before the limit or before that entry.
