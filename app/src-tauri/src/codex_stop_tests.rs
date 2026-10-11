@@ -507,9 +507,9 @@ for line in sys.stdin:
         f.home.host.close_to_new_turns(&f.generation).unwrap();
         let wire = f.wire();
         let start = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(start.contains("Stop Codex was confirmed") && start.contains("turn/start"), "{start}");
+        assert!(start.contains("Stop Codex or Quit was confirmed") && start.contains("turn/start"), "{start}");
         let steer = f.home.host.turn_steer_text(&f.generation, "thread", "turn-1", "late steer").unwrap_err();
-        assert!(steer.contains("Stop Codex was confirmed") && steer.contains("turn/steer"), "{steer}");
+        assert!(steer.contains("Stop Codex or Quit was confirmed") && steer.contains("turn/steer"), "{steer}");
         assert_eq!(f.wire(), wire, "nothing written for a refused turn or steer");
         let written = f.home.host.turn_interrupt_begin(&f.generation, "thread", "turn-1", crate::stop_records::Cause::CodexStop, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
         assert!(f.home.host.turn_interrupt_acknowledgment(&written, Duration::from_secs(2)).is_ok());
@@ -729,7 +729,10 @@ for line in sys.stdin:
         assert_eq!(ids.len(), 1);
         assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
         assert_eq!(f.home.host.snapshot()["state"], "ready", "the process is stopped on exit, not before");
-        let end = crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
+        assert!(late.contains("Quit was confirmed"), "confirmed quit closes the process to new turns: {late}");
+        assert_eq!(f.wire().last().unwrap(), "turn/interrupt", "nothing new written");
+        let end =crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
         assert_eq!(end["write"], "confirmed");
         assert_eq!(f.home.host.snapshot()["state"], "stopped");
         let stop = f.home.host.lifecycle_events().into_iter().find(|e| e["transitionId"] == "LT-17").expect("deliberate stop");
