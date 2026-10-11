@@ -178,7 +178,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
     can link, unlink or read again. At Codex 0.160.0 a sub-agent's task
     arrives as an encrypted inter-agent message, not a user message, so the
     row reads "not checkable" with that reason, the sub-agent stays offered for
-    the person to link, and Read again is not offered (WR TT-9). Each draft lists its trials newest first,
+    the person to link, and Read again is not offered when an encrypted inter-agent task is seen; a first turn that merely shows no user message stays open to reading again (WR TT-9). Each draft lists its trials newest first,
     with **Try again**, **Bring trial back** (a transcript read from Codex's
     history, pre-filled unsent in the authoring conversation; *brought back*
     is recorded on acknowledgment) and **Compare** (two trials, or a trial and

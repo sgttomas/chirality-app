@@ -216,6 +216,17 @@ test('a sub-agent whose task is not readable reads "not checkable", stays linkab
   assert.equal(fidelityWords({state:'not checked'}),'not checked','an ordinary not checked reading is unchanged');
 });
 
+// Review of #1260 (1, 3): an open not-checkable verdict keeps Read again, and a failed read shows its reason.
+test('an open not-checkable reading keeps Read again, and an unread sub-agent shows why it was not read (TT-9)',()=>{
+  const open=trial({subAgent:{state:'sub-agent not linked',unread:['child-u'],unreadReasons:[{thread:'child-u',reason:'fixture unreadable child'}],
+    notCheckable:[{thread:'child-n',reading:'not checkable: no user message as read; Read again reads it again',final:false}]},readAgain:{offered:true}});
+  const shown=trialHtml(open);
+  assert.match(shown,/sub-agent child-u started in the trial turn \(input not read: fixture unreadable child\)/);
+  assert.match(shown,/sub-agent child-n started in the trial turn; its input is not checkable: no user message as read/);
+  const r=trialTree(open);button(r.tree,'Read again').props.onClick();
+  assert.deepEqual(r.calls,[['workflow_trial_read',{reference:'trial:1'}]]);
+});
+
 test('Bring trial back targets the authoring conversation by default, another the person picks, and waits while a turn is live (TT-10)',()=>{
   let r=trialTree(trial());
   const b=button(r.tree,'Bring trial back');

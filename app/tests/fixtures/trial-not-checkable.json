@@ -17,12 +17,14 @@
       "alsoGiven": [],
       "notCheckable": [
         {
+          "final": true,
           "reading": "not checkable: the sub-agent's task arrived as an encrypted inter-agent message (Codex 0.160.0 delivers a spawned sub-agent's task this way), not as a user message, so the App cannot read what it was given",
           "thread": "child-s"
         }
       ],
       "state": "sub-agent not linked",
-      "unread": []
+      "unread": [],
+      "unreadReasons": []
     }
   },
   "linked": {
@@ -47,7 +49,8 @@
       "notCheckable": [],
       "state": "linked",
       "thread": "child-s",
-      "unread": []
+      "unread": [],
+      "unreadReasons": []
     }
   }
 }

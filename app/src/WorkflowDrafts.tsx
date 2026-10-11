@@ -73,12 +73,14 @@ function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: Draft
   // A sub-agent already linked to this trial is never offered as a candidate for it.
   const linked = sub.state === "linked" ? text(sub.thread) : "";
   const candidate = (child: Json) => !!text(child) && text(child) !== linked;
+  // Why a read failed, as the host reports it, so the person can judge Read again.
+  const unreadReason = (child: Json) => text(list(sub.unreadReasons).find((r: Json) => text(r?.thread) === text(child))?.reason);
   const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button>;
   return <>
     {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (linked ${text(sub.linkedBy)})` : ""}{" "}
       <button disabled={busy} onClick={() => { void act("workflow_trial_unlink", { reference: trial.reference, childThread: sub.thread }); }}>Unlink</button></> : "sub-agent not linked"}
     {list(sub.alsoGiven).filter(candidate).length > 0 && <> · also given this trial's workflow: {list(sub.alsoGiven).filter(candidate).map(text).join(", ")}</>}
-    {list(sub.unread).filter(candidate).map((child: Json) => <span key={text(child)}> · sub-agent {text(child)} started in the trial turn (input not read){" "}{linkButton(child)}</span>)}
+    {list(sub.unread).filter(candidate).map((child: Json) => <span key={text(child)}> · sub-agent {text(child)} started in the trial turn (input not read{unreadReason(child) ? `: ${unreadReason(child)}` : ""}){" "}{linkButton(child)}</span>)}
     {list(sub.notCheckable).filter((c: Json) => candidate(c?.thread)).map((c: Json) => <span key={text(c.thread)}> · sub-agent {text(c.thread)} started in the trial turn; its input is {text(c.reading) || "not checkable"}{" "}{linkButton(c.thread)}</span>)}
   </>;
 }

@@ -157,6 +157,11 @@ test('the workflow panel shows no raw or stale trial result after a trial press'
   await press('Try in a fresh conversation');
   assert.doesNotMatch(container.textContent,/\{"ok":true\}|pre-filled"/,'a trial press leaves no earlier result standing');
   await React.act(()=>root.unmount());
+  // Only pre-fill results are hidden (review of #1260 (3)): Read again's reasons and a real run brought back still show.
+  const {workflowActionMessage}=loadSrc('App');
+  for(const c of ['workflow_trial_prepare','workflow_trial_again','workflow_trial_bring_back'])assert.equal(workflowActionMessage(c,prefilled),'',c);
+  assert.match(workflowActionMessage('workflow_trial_read',{inputNotRead:[{thread:'child-1',limit:'fixture unreadable child'}]}),/fixture unreadable child/);
+  assert.match(workflowActionMessage('workflow_run_bring_back',{id:'bb-run'}),/bb-run/);
 });
 
 test('mounting and updating the composers sends nothing (no automatic send)',async()=>{

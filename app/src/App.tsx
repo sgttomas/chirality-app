@@ -311,12 +311,14 @@ function NativeConfirmationContent() {
   </section>;
 }
 
-/** The status line under the workflow panel after a press. A trial or
- * bring-back result is not echoed: its pre-filled or sent state is shown,
- * current, by the conversation panel and the draft list, and a copy here would
- * go stale (trial witness 2026-10-10 (d)). Other results are shown as before. */
+/** The status line under the workflow panel after a press. The result of
+ * pre-filling a trial or a trial bring-back is not echoed: its pre-filled or
+ * sent state is shown, current, by the conversation panel and the draft list,
+ * and a copy here would go stale (trial witness 2026-10-10 (d)). Every other
+ * result, including Read again and a real run brought back, is shown as before. */
+const PREFILL_RESULTS = new Set(["workflow_trial_prepare", "workflow_trial_again", "workflow_trial_bring_back"]);
 export function workflowActionMessage(command: string, result: Json): string {
-  if (command.startsWith("workflow_trial_") || command.includes("bring_back")) return "";
+  if (PREFILL_RESULTS.has(command)) return "";
   return JSON.stringify(result);
 }
 

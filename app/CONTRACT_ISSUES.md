@@ -1371,7 +1371,20 @@ changed.
     child's own history can carry `subAgentActivity` naming its parent. The
     App no longer infers a parent from an item that names the containing
     thread itself, the root agent (`agentPath` "/root"), or a known ancestor
-    of the containing thread. Add that qualification.
+    of the containing thread. A `subAgentActivity` of kind `started` names
+    the thread the containing thread spawned. It overrides an earlier
+    inference made in the wrong arrival order, at any depth, and drops the
+    inverted inference; it never overrides `collabAgentToolCall.senderThreadId`.
+    Add that qualification. Limits:
+    - Without a `started` row (for example, a history read that has not
+      reached the parent's spawn turn), an inference made from a descendant's
+      activity seen first still stands.
+    - `NativeActivity.tsx` hides a "Descendant of" line that names one of the
+      conversation's own descendants. Where the data still holds such a cycle
+      (C under P beside an inverted P under C that no `started` row
+      corrected), P shows no inverted line, but C's real "Descendant of P"
+      line is hidden too. The `started` correction removes the cycle once that
+      row is seen.
 - **OI-008 ruling (2026-10-10).** The owner decided process placement for the
   whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
   §11 and NIR §1.1 were also edited, since their pins were already stale. Five

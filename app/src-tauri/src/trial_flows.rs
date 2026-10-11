@@ -629,6 +629,7 @@ impl WorkflowRootSession {
                 // A child already linked to this trial is never offered as a
                 // candidate for it again (Link as trial ‹n›).
                 let mut unread = vec![];
+                let mut unread_reasons = vec![];
                 let mut not_checkable_children = vec![];
                 for (child, read) in &sent.read {
                     let Err((cause, _)) = read else { continue };
@@ -638,13 +639,15 @@ impl WorkflowRootSession {
                     if linked.as_deref() == Some(child.as_str()) {
                         linked_cause = Some(cause.clone());
                     } else if not_checkable(cause) {
-                        not_checkable_children.push(json!({"thread":child,"reading":cause}));
+                        not_checkable_children.push(json!({"thread":child,"reading":cause,"final":not_checkable_final(cause)}));
                     } else {
                         unread.push(json!(child));
+                        unread_reasons.push(json!({"thread":child,"reason":cause}));
                     }
                 }
                 row["subAgent"]["alsoGiven"] = json!(sent.also_given.iter().filter(|c| linked.as_deref() != Some(c.as_str())).collect::<Vec<_>>());
                 row["subAgent"]["unread"] = json!(unread);
+                row["subAgent"]["unreadReasons"] = json!(unread_reasons);
                 row["subAgent"]["notCheckable"] = json!(not_checkable_children);
             }
             // TT-9: a fidelity that cannot be checked reads so, from the latest
@@ -661,8 +664,9 @@ impl WorkflowRootSession {
                 }
                 let candidates_not_checkable = linked.is_none()
                     && row["subAgent"]["unread"].as_array().is_none_or(|u| u.is_empty())
-                    && row["subAgent"]["notCheckable"].as_array().is_some_and(|n| !n.is_empty());
-                row["readAgain"] = if row["fidelity"]["checkable"] == false {
+                    && row["subAgent"]["notCheckable"].as_array().is_some_and(|n| !n.is_empty() && n.iter().all(|c| c["final"] == true));
+                let final_reading = row["fidelity"]["reading"].as_str().is_some_and(not_checkable_final);
+                row["readAgain"] = if row["fidelity"]["checkable"] == false && final_reading {
                     json!({"offered":false,"reason":"reading again would read the same: the sub-agent's input is not checkable"})
                 } else if candidates_not_checkable {
                     json!({"offered":false,"reason":"reading again would read the same: no sub-agent's input here is checkable; link the one that ran the trial"})
@@ -833,7 +837,7 @@ impl WorkflowRootSession {
                             None if child_started(view, &child) => {}
                             // A first turn not yet in Codex's history is read again
                             // once the view shows new activity of the child.
-                            Some(Err((cause, seen))) if (cause == NOT_YET_TURN || cause == NOT_YET_MESSAGE) && *seen != signature => {}
+                            Some(Err((cause, seen))) if (cause == NOT_YET_TURN || cause == NOT_YET_MESSAGE || cause == INPUT_NOT_A_USER_MESSAGE) && *seen != signature => {}
                             _ => continue,
                         }
                         // Marked before the read runs: one automatic read per observed state.
@@ -1006,14 +1010,16 @@ pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, t
     Err(format!("more than {MAX_PAGES} pages of items"))
 }
 /// The text elements of a turn's first user message (the one carrying
-/// `client` when given, else the first), as TT-9 reads them. A turn that holds
-/// items but no user message is final, not "not yet": its input did not arrive
-/// as a user message, so it cannot be checked (`INPUT_ENCRYPTED` when an item
-/// shows Codex's inter-agent task with encrypted content, else
-/// `INPUT_NOT_A_USER_MESSAGE`). A turn with no items yet is "not yet".
+/// `client` when given, else the first), as TT-9 reads them. For a sub-agent
+/// (no `client`), a first turn holding items but no user message reads "not
+/// checkable": `INPUT_ENCRYPTED`, final, when an item shows Codex's
+/// inter-agent task with encrypted content; else `INPUT_NOT_A_USER_MESSAGE`,
+/// which is read again on new activity and by Read again, since a user message
+/// may still be listed. A clean trial's turn (with `client`) and a turn with no
+/// items yet read "not yet".
 fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>, String> {
     let messages: Vec<&Value> = items.iter().filter(|i| i["type"] == "userMessage").collect();
-    if messages.is_empty() && !items.is_empty() {
+    if client.is_none() && messages.is_empty() && !items.is_empty() {
         return Err(if items.iter().any(inter_agent_task) { INPUT_ENCRYPTED } else { INPUT_NOT_A_USER_MESSAGE }.into());
     }
     let chosen = client
@@ -1031,15 +1037,20 @@ fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>
 const NOT_YET_TURN: &str = "the sub-agent has no turn in Codex's history yet";
 const NOT_YET_MESSAGE: &str = "the turn holds no user message yet";
 /// TT-9: a sub-agent input the App cannot read. Each starts with
-/// `NOT_CHECKABLE`, and a read that ends so is final: reading again reads the
-/// same, so it is not offered as pending.
+/// `NOT_CHECKABLE`. Only `INPUT_ENCRYPTED` is final (reading again reads the
+/// same, so Read again is not offered); `INPUT_NOT_A_USER_MESSAGE` rests on
+/// the absence of a user message and stays open to reading again.
 const NOT_CHECKABLE: &str = "not checkable: ";
 pub(crate) const INPUT_ENCRYPTED: &str =
     "not checkable: the sub-agent's task arrived as an encrypted inter-agent message (Codex 0.160.0 delivers a spawned sub-agent's task this way), not as a user message, so the App cannot read what it was given";
 pub(crate) const INPUT_NOT_A_USER_MESSAGE: &str =
-    "not checkable: the sub-agent's first turn holds no user message, so the App cannot read what it was given (at Codex 0.160.0 a spawned sub-agent's task arrives as an encrypted inter-agent message)";
+    "not checkable: the sub-agent's first turn, as read, holds no user message, so the App cannot read what it was given (at Codex 0.160.0 a spawned sub-agent's task arrives as an encrypted inter-agent message); Read again reads it again";
 pub(crate) fn not_checkable(cause: &str) -> bool {
     cause.starts_with(NOT_CHECKABLE)
+}
+/// A not-checkable reading that reading again cannot change.
+pub(crate) fn not_checkable_final(cause: &str) -> bool {
+    cause == INPUT_ENCRYPTED
 }
 /// An item showing Codex's inter-agent task message rather than a user
 /// message: an agent message whose content carries `encrypted_content`, or
@@ -1333,7 +1344,12 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
                 }
                 not_checkable_children.push(json!({"thread":child,"reading":cause}));
             }
-            Err(cause) => unread.push(json!({"thread":child,"limit":cause})),
+            Err(cause) => {
+                if let Some(s) = root.lock().unwrap().trial_desk.sent.get_mut(reference) {
+                    s.read.insert(child.clone(), Err((cause.clone(), String::new())));
+                }
+                unread.push(json!({"thread":child,"limit":cause}));
+            }
         }
     }
     Ok(json!({"reference":reference,"recorded":results,"inputNotRead":unread,"inputNotCheckable":not_checkable_children}))
