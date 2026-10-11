@@ -1693,13 +1693,21 @@ library only; nothing installed; no network.
   concurrency between two writers on one log (S-A gives each writer its own
   log); a candidate writer or reader.
 
-**Open prototype validation condition.** `RS_RECORD.schema.json`
-`#/$defs/suppliedGuidance/allOf/2` uses `if`, which the Design `minischema`
-validator does not support. RS `run_prototype.py` and WR `wrproto.py` therefore
-stop with "unsupported keyword 'if'" before running checks; their current
-runs are not evidence. The App's `jsonschema` validator is unaffected. RS owns
-whether to express the rule with supported keywords or add conditional support;
-the App copy must remain corresponding either way.
+**Conditional and reference handling.** `minischema.py` implements the
+existing `suppliedGuidance/allOf/2` rule through `if`/`then`/`else`: evaluate
+the predicate, then only the applicable branch. Assertion failure selects
+`else`; an unavailable URI/file or missing fragment raises `SchemaError`,
+never a false predicate. Unsupported keywords refuse admission even within
+an unselected conditional subschema. Record schemas and examples retain their
+bytes; no rule is rewritten to fit the subset.
+
+The same predicate assertions preserve JSON type semantics: booleans differ
+from numbers in `const`/`enum`, including nested values, and integral numeric
+values such as `1.0` satisfy `type: integer`. RS consumers register its declared
+AS settings and EXEC checkpoint schemas before checking entries. The maintained
+`prototype/test_minischema.py` guards conditional branches, the native-turn
+rule, references and these value distinctions; with the installed standard
+validator it also compares their outcomes. These remain Design rehearsals.
 
 ## UNRESOLVED
 

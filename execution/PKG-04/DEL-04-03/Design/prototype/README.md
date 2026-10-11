@@ -8,7 +8,8 @@ writer and reader failure behaviour of RS-v0.9 §14. It selects no placement
 
 | File | What it is |
 |---|---|
-| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `$ref` (local pointers, `$id` URNs through a registry, and relative file paths resolved against the referring schema's directory — how RS references EXEC's CE bodies, R14-1; a standard validator needs the same retrieval rule, RS §13), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
+| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `if`/`then`/`else`, `$ref` (local pointers, `$id` URNs through a registry, and relative file paths resolved against the referring schema's directory — how RS references EXEC's CE bodies, R14-1; a standard validator needs the same retrieval rule, RS §13), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
+| `test_minischema.py` | Conditional/value/reference regressions. Runs with the standard library; also compares outcomes with installed `jsonschema` when available. |
 | `record_store.py` | The prototype writer (W-0 open, W-1 append, W-2 late write after a failure, W-3 correction) and reader (R-1…R-8) of RS §14 |
 | `run_prototype.py` | Loads the three schemas (ACT, AS, RS), validates every valid and invalid example beside them, round-trips each valid RS example log through the writer and reader, and runs the failure cases FC-1…FC-7 ; then runs `exec_to_rs.py`'s checks |
 | `exec_to_rs.py` | R14-1: RS format 0.1 is the one container. Checks that each of EXEC's 19 CE bodies has an RS kind that references it, writes EXEC's valid recorder outputs (DEL-02-03 `checkpoint-record-entries.example.valid.json`) through the writer as RS entries and reads them back, then does the same for EXEC's other CH scripts and one sample of each remaining kind. Every entry must be valid and none without a kind |
@@ -76,3 +77,16 @@ package discovered without writer identity and its separate RS evidence limit.
 `referencing` packages to check the standard URI registry (no network or
 installation); the standard-library prototype checks remain available without
 those packages. RS W-1 still requires validation in the product host writer.
+
+## Conditional regression check
+
+```text
+python3 -m unittest discover -s . -p 'test_minischema.py'
+```
+
+Ordinary assertion failures select `else`; unresolved schema references raise
+`SchemaError`. An unselected branch is not evaluated, but every subschema is
+checked for unsupported keywords at admission. `const` and `enum` distinguish
+booleans from numbers recursively, and integral floats satisfy `integer`.
+RS consumers load its declared AS/EXEC dependencies; no network resolver is
+used. The App's maintained schemas and Rust validator are separate consumers.

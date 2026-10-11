@@ -412,6 +412,7 @@ def rs_chain(recs):
     import record_store                                          # noqa: E402
     reg = minischema.Registry()
     w4 = rs_proto.parents[2]
+    reg.load(str(w4.parent / "PKG-02" / "DEL-02-03" / "Design" / "checkpoint-record-entries.schema.json"))
     for d, f in (("DEL-04-01", "ACT_POLICY_CLASS_RECORD.schema.json"), ("DEL-04-02", "AS_SETTINGS_IN.schema.json"),
                  ("DEL-04-03", "RS_RECORD.schema.json")):
         reg.load(str(next(w4.glob(d)) / "Design" / f))
