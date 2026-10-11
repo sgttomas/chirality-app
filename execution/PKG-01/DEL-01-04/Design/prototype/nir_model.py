@@ -241,7 +241,7 @@ def app_prose(card):
 # NIR §4.4  Register double: HOSTING §6.2.1 RT-01...RT-13, U-26 refusal order
 # ---------------------------------------------------------------------------
 
-# CC-H/CI-2 consumer fixture: invented complete H5 identity, not host observation.
+# CC-H (HOSTING H5) consumer fixture: invented complete H5 identity, not host observation.
 FIXTURE_GENERATION = {"appSession": "aac-fixture-session", "home": "account", "spawnCounter": 1}
 
 def generation_key(generation):

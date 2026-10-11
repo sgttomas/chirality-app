@@ -1,4 +1,4 @@
-# Connector fallback CFB-v0.3 — CI-29 successor
+# Connector fallback CFB-v0.3 — wholly unavailable sources successor
 
 Status: PROPOSED source successor, subject to independent review. This named
 change consists of CFB-v0.2 `CONNECTOR_FALLBACK.md` at sha256
@@ -8,7 +8,7 @@ plus this amendment. All provisions of that basis remain except the explicit
 remain unchanged and usable by consumers pinned to them. This is no automatic
 consumer adoption, product acceptance or persistence authorization.
 
-## CI-29: wholly unavailable sources
+## Wholly unavailable sources
 
 CFB §4 sources are successful reads only. Use route-account format 0.2 and
 `connector.route-account.v0.2.schema.json` for this successor. Its schema ID is
@@ -40,9 +40,16 @@ Domains, fleet and examination owners receive the impact account in the
 Group C C3 treatment; later research-to-design also pins the historical CFB.
 No sibling contract is re-pinned by this contribution.
 
-CFB §9's O-D placement question remains open. This definition may be checked
+Current placement is governed by `CONNECTOR_ROUTE_PLACEMENT_v0.3.md`. This definition may be checked
 in memory without deciding a user-project target. Persistent account writing
 and its placement remain held pending the named placement treatment.
+
+**Open source and connected receiving conditions.** The selected empty-source
+representation and project-local persistence backend provide shape/custody for
+caller-supplied accounts. They do not reconstruct real source truth, perform
+assigned duties, wire providers or establish actual native/UI/connected witness
+behavior. Those conditions remain with their receiving owners; prepared account
+fixtures do not supply them.
 
 ## Maintained source check
 

@@ -122,3 +122,4 @@ needs:
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
 - execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py
+- app/src-tauri/tests/attested_reference_packaging.rs

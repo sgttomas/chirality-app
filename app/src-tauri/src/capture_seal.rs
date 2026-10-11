@@ -1,5 +1,5 @@
 //! Host-held capture seal (DEL-01-04 AAC §6.3 SEAL-C, selected 2026-10-11 for
-//! CI-20 (h) review finding R-1).
+//! AAC §6.3 / EXEC §2.4–2.5 review finding R-1).
 //!
 //! The Rust act control seals each App-file act or decline capture it writes
 //! with HMAC-SHA-256 under a per-installation key kept in the App data folder,

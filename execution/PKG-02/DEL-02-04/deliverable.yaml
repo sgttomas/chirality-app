@@ -101,12 +101,17 @@ needs:
   gating: false
   evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/instruction_store.rs
 - app/src-tauri/src/conversation_roles.rs
 - app/src-tauri/src/role_lifecycle.rs
 - app/src-tauri/src/role_supply.rs
 - app/src/ConversationRoles.tsx
 checks:
+- app/src-tauri/src/instruction_seed_tests.rs
+- app/src-tauri/src/role_guidance_reads_tests.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/tests/role_lifecycle.rs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
+- app/supplier_checks/child_roles.py
+- app/tests/child_role_carrier_test.py

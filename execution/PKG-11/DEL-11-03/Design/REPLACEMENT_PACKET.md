@@ -309,6 +309,13 @@ At RP-v0.3 (fixture FX-RP1-3), `check_rp.py` was **65/65**:
 | OI-013/014 residue (App candidate's role in V4-EXM-20) | Shared contract owner with the SWB owner | Before the CIR's App element is fixed for CA/E | Carried |
 | Remote re-check of REFERENCES §2 | DEL-11-03 coordinator | When a real package is prepared for the owner | `remote_rechecked: false` until then |
 
+**Open SQ receiving assessment.** SQ's corrected J-2 includes the already
+required ST-4 with counts, order and semantics unchanged. DEL-11-03 has not yet
+assessed its pinned SQ prose/example receiving identities against that
+correction. Any actual existing dossier needs EXP §6.2's affected-claim
+assessment; frozen historical fixtures do not automatically adopt current SQ
+or establish an examination.
+
 ## 10. Changes
 
 | Version | Change |

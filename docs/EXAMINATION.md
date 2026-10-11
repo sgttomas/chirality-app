@@ -1,7 +1,7 @@
 # Chirality v4 — Examination
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;
-independent substantive fidelity review [completed](../execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** Companion to the [PRD](PRD.md),
+independent substantive fidelity review [completed](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** Companion to the [PRD](PRD.md),
 prepared after acceptance of composite **APP-V4-BASIS-20260926**, including
 open matters and external dependencies. [PRD §0](PRD.md#0-basis-chronology-and-reading-this-set)
 identifies the actual accepted sources; no earlier human hash-review of

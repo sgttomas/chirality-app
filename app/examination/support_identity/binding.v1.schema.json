@@ -91,5 +91,5 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:staged:exp-support-binding:1",
-  "description": "CI-26 proposed offline binding only; no publication, adoption or qualification."
+  "description": "EXP support-identity-v1/METHOD.md proposed offline binding only; no publication, adoption or qualification."
 }

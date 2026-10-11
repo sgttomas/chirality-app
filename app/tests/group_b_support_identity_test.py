@@ -127,7 +127,7 @@ class SupportIdentityTests(unittest.TestCase):
 
     def test_source_freeze_cannot_be_replaced_by_writer_or_missing_sources(self):
         with patch.object(identity, 'PROJECT', self.root):
-            with self.assertRaises(OSError): identity.SupportIdentity()
+            with self.assertRaisesRegex(ValueError, 'frozen source changed or unavailable'): identity.SupportIdentity()
         for relative, data in self.support.sources.items():
             p = self.root / relative; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(data)
         changed = self.root / 'app/examination/admission/sources.json'

@@ -6,7 +6,7 @@
 
 HELP_HUMAN reported the actual request_user_input_async exchange:
 
-> Do you confirm the [revised Group 1 package](/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP1-20260927/READER.md)—candidate APP-V4-GROUP1-20260927-CANDIDATE-2, with 234 included, 15 excluded and 13 unresolved scope items, its vocabulary and ten objectives—as the basis for Package and Deliverable proposals, retaining its recorded open matters and external dependencies? This supersedes the earlier Group 1 proposal and does not ask you to accept the seeds again.
+> Do you confirm the [revised Group 1 package](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP1-20260927/READER.md)—candidate APP-V4-GROUP1-20260927-CANDIDATE-2, with 234 included, 15 excluded and 13 unresolved scope items, its vocabulary and ten objectives—as the basis for Package and Deliverable proposals, retaining its recorded open matters and external dependencies? This supersedes the earlier Group 1 proposal and does not ask you to accept the seeds again.
 
 Exact answer:
 

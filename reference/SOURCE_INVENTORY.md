@@ -5,7 +5,7 @@ undertaking examined, where it is, and what each source can and cannot
 support. Paths are at the investigation revision `2b0572fe0` unless marked
 `ORIG/` (Git-ignored archives, see [`archives/ARCHIVES.md`](archives/ARCHIVES.md))
 or given as a GitHub reference. "Examined by" names the preserved TASK return
-([`tasks/`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/))
+([`tasks/`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks))
 or HELPS_HUMANS directly (HH). Pinned revisions are in
 [`REFERENCES.md`](REFERENCES.md).
 
@@ -26,7 +26,7 @@ or HELPS_HUMANS directly (HH). Pinned revisions are in
 
 | Source | What it is | Examined by |
 |---|---|---|
-| Opening brief, 2026-09-25 ([`OPENING_BRIEF.md`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md)) | The v4 assignment and directions OD-01…OD-13 | HH |
+| Opening brief, 2026-09-25 ([`OPENING_BRIEF.md`](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md)) | The v4 assignment and directions OD-01…OD-13 | HH |
 | `plans/evidence/2026-08-01_accountability_thesis.md` §1 | Owner theses: bedrock claim, build/run governance asymmetry, alignment by presence, release stance, background | HH, T1 |
 | `plans/evidence/2026-09-19_owner_words_four_graph_structures.md` | Owner's four-structure claim and attention measure, hash-bound | T1 |
 | `plans/steers/chirality_app_v3_codex_host_replatform_direction_2026-09-11.md` | Owner's v3 replatform direction, including the embedding intent (2026-09-12) | HH, T3 |

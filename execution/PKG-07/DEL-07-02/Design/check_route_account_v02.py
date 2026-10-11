@@ -1,4 +1,4 @@
-"""Constructed CI-29 schema checks; no source/provider or performed-act claim."""
+"""Constructed CFB-v0.3 wholly unavailable-source schema checks; no source/provider or performed-act claim."""
 import copy
 import json
 from pathlib import Path
@@ -50,4 +50,4 @@ for field in ("revision", "sha256", "path"):
 expect(read, False, legacy)
 read["formatVersion"] = "0.1"; expect(read, True, legacy); expect(read, False)
 bad = copy.deepcopy(account); bad["formatVersion"] = "0.1"; expect(bad, False, legacy)
-print(f"CI-29 constructed schema checks: {checks} passed")
+print(f"CFB-v0.3 wholly unavailable-source constructed schema checks: {checks} passed")

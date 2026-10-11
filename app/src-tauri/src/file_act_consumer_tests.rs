@@ -237,7 +237,7 @@ fn connected_file_act_reader_does_not_upgrade_missing_or_mismatched_capture() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-/// CI-20 (h): when this installation's seal keys are unavailable the person's
+/// AAC §6.3 / EXEC §2.4–2.5: when this installation's seal keys are unavailable the person's
 /// act is still captured and recorded, saying it is not sealed, and it is never
 /// counted as an evidenced act.
 #[test]

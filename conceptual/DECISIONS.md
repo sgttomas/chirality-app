@@ -13,7 +13,7 @@ later direction supersedes an earlier one explicitly.
 
 Source: the owner's opening message to HELPS_HUMANS in the session that
 created this working root (preserved verbatim in the run record,
-[`OPENING_BRIEF.md`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md)).
+[`OPENING_BRIEF.md`](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md)).
 The quotations below are exact; the grouping and IDs are the agent's.
 
 | ID | Subject | Owner's words |
@@ -35,7 +35,7 @@ The quotations below are exact; the grouping and IDs are the agent's.
 ## Decisions — owner's answers of 2026-09-25
 
 Source: the owner's reply in session, preserved exactly in
-[`OWNER_ANSWERS_2026-09-25.md`](../execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OWNER_ANSWERS_2026-09-25.md).
+[`OWNER_ANSWERS_2026-09-25.md`](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OWNER_ANSWERS_2026-09-25.md).
 The question text and option wording referred to are in
 [`QUESTIONS.md`](QUESTIONS.md) as of commit `866897631`. "Settles" states
 only which option the owner's words select; where the words select no

@@ -101,7 +101,7 @@ pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
         return Err("Capture identity mismatch".into());
     }
     // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
-    // holds is the App act control's capture (CI-20 (h), R-1).
+    // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
     crate::capture_seal::verify(root, &capture)?;
     Ok(capture)
 }

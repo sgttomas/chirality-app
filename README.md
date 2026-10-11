@@ -1,44 +1,49 @@
 # Chirality App v4
 
-[App v4 thesis](docs/thesis/README.md) develops the reasons for the application's
-form and purpose. It is explanatory research, separate from the product requirements
-and the preserved [foundation thesis](foundation/thesis/README.md).
+Chirality makes a general agent act within and for a host application. Its
+workflow-authoring App is the exemplar. [App v4 thesis](docs/thesis/README.md)
+develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
+its companions and the deliverable Scopes of Work and Designs.
 
-Working root for the accepted App v4 composite basis and its decomposition/project definition. The consolidated PRD and companion documents express that basis after the owner's act, with independent source-fidelity review.
+Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
+in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
+criteria, `Design/` holds contracts and open implementation conditions, and
+`deliverable.yaml` states needs and code/check pointers. Query their inputs and
+consumers with the [deliverables tools](../../tools/deliverables/README.md).
+The [App README](app/README.md) describes the current product path and checks.
 
-**Position (2026-10-04): the owner accepted the 60% gate; development continues through the [App v4 loop](loop/LOOP_INIT.md), by the development groups recorded with that decision, with the accepted project DAG ([pointer](execution/_DAG/_LATEST.md)) directing the work.** The gate record is in [OWNER_DECISIONS.md](execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md). The earlier history follows. The owner accepted the revised seed basis on 2026-09-26, including its stated open matters and external dependencies. The exact [composite acceptance](execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md) identifies original drafts, accepted recommendations and later directions. Consolidated docs are prepared after that act and independently checked for fidelity; no claim is made that future bytes were previously reviewed. The owner confirmed Group1 and approved Group2 with all five recommendations and the discussed Codex/exemplar clarifications. The owner accepted the final Group3 decomposition for downstream use. The owner approved the [setup proposal](execution/_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md); [_COORDINATION.md](execution/_Coordination/_COORDINATION.md) records the actual rules. The published fallback remains v3.0.1 until its separate replacement decision.
+The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
+applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
+retains its undelivered and unadopted standing. New contract gaps belong in their
+owning Design; PR descriptions carry the history of their fixes.
 
-## How to read this folder
+## Basis and history
 
-Every file states its standing in its opening lines. The four kinds of
-content are kept apart:
+The owner accepted the revised composite basis on 2026-09-26, including its open
+matters and external dependencies, and accepted the 60% gate on 2026-10-04. The
+[composite acceptance](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md),
+[Group1](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md),
+[Group2](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md),
+[final decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md),
+[project DAG](execution/_DAG/_LATEST.md) and
+[gate decision](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md)
+identify those acts and their subjects. The published fallback remains v3.0.1
+until the separate replacement decision.
 
-| Standing | What it means | Where |
-|---|---|---|
-| Source evidence | Pinned, preserved, or identified material from the reference project and foundation | [`foundation/thesis/`](foundation/thesis/) (preserved unchanged), [`reference/`](reference/), agent returns in the run record |
-| Interpretation | The agents' accounts of what the sources show: exemplars, lessons, tensions | [`conceptual/`](conceptual/) working files, marked as interpretation |
-| Pending decision | Retained open matters and later concrete project-DAG decisions | [`conceptual/QUESTIONS.md`](conceptual/QUESTIONS.md) as history; current [`execution/_Decomposition/`](execution/_Decomposition/) |
-| Accepted commitment | Original conceptual choices plus later accepted amendments, qualifications and continuation | [`conceptual/DECISIONS.md`](conceptual/DECISIONS.md) and [APP-V4-BASIS-20260926](execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), with [Group1](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md), [Group2](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md) and [final Group3](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md) decisions |
+Old setup logs, handoffs, work graphs, acceptance packets and implementation
+register history are recoverable at
+[`archive/app-v4-pre-contract-register-retirement-20261011`](https://github.com/sgttomas/chirality/tree/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4).
+Earlier AgentRuns are in
+[`archive/pre-efficiency-cleanup-2026-10-09`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
+These are historical sources, not a standing development backlog.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| [`conceptual/`](conceptual/) | Working surface of the conceptual undertaking: [working record](conceptual/WORKING_RECORD.md), [investigation plan](conceptual/INVESTIGATION_PLAN.md), [product questions](conceptual/QUESTIONS.md), [owner directions and decisions](conceptual/DECISIONS.md), [exemplars and lessons](conceptual/EXEMPLARS_AND_LESSONS.md), [discussion of open items](conceptual/DISCUSSION_2026-09-25.md), [maintainability analysis](conceptual/MAINTAINABILITY_ANALYSIS.md), [seed set plan](conceptual/SEED_SET_PLAN.md) |
-| [`foundation/`](foundation/) | The thesis carried forward unchanged, with a companion recording the transfer |
-| [`reference/`](reference/) | Pinned revisions and releases, the source inventory, and the Git-ignored archive inventory with its digest check |
-| [`docs/`](docs/) | Consolidated expression of the accepted composite: [PRD](docs/PRD.md), [architecture](docs/ARCHITECTURE.md), [host integration](docs/HOST_INTEGRATION.md), [examination](docs/EXAMINATION.md), [operating method](docs/OPERATING_METHOD.md) |
-| [`execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/`](execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/) | Run record: the opening brief, delegated briefs and returns |
-
-The human governs this undertaking; the three manuals supply its selected core practice. Root remains shared conceptual/organisational context, and its applicable repository instructions still bound this run. Product commitments flow through the accepted basis into SoWs and derivatives. Old choices do not become v4 requirements automatically. Development undertakings enter through [`init/dev-loop-init-prompt.md`](init/dev-loop-init-prompt.md) and [`loop/LOOP_INIT.md`](loop/LOOP_INIT.md); each undertaking's work graph under `execution/_Coordination/WorkGraphs/` carries its state. The [project-definition work graph](execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md) is history.
-
-Current correction: [scoped clarification account](execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md). The [26 September reader](execution/_Coordination/Reviews/APP-V4-GROUP1-20260926/READER.md) remains the prior unconfirmed proposal, superseded by the actual revised Group1 decision. The [PEC comparison](execution/_Coordination/PEC_UPSTREAM_COMPARISON_2026-09-27.md) and [workflow comparison](execution/_Coordination/WORKFLOW_UPSTREAM_COMPARISON_2026-09-27.md) are complete for the current checkpoint. The [accepted Group1 pointer](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md) identifies the frozen basis and actual act. The [accepted Group2 pointer](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md) binds the 11-Package/41-Deliverable structure and faithful clarification consolidation. The [final accepted pointer](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md) identifies the exact final decision package and actual act; relevant cleanup/provider inputs remain at their points of need.
-
-The [initial harness and implementation-sourcing clarification](execution/_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md) confirms Codex initially, makes native authentication explicit and permits selective exemplar reuse within the retained boundaries. That clarification was followed by the separate actual Group2 approval; the frozen decision records both acts without claiming prior owner hash review of newly consolidated bytes.
-
-The [current execution basis](execution/_Coordination/CURRENT_EXECUTION_BASIS.md) records selected manual/method pins for this definition run. The [local contract index](execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/WORK_ITEMS.csv) locates all41 source-grounded, independently checked Scopes of Work. INITIALIZED denotes contract maturity; product implementation, supplied external inputs and accepted project DAG remain separate.
-
-
-## Current execution-definition review
-
-The [actual graph-basis decision](execution/_DAG/_Candidates/DAG-001/BASIS_DECISION.md) confirms full contribution coverage and characterized unresolved SCCs for later work. The [final 30% review package](execution/_DAG/_Candidates/DAG-001/GATE_READER.md) presents the qualified initial graph, checked definition evidence, limitations and proposed continuation. The owner's future approval will accept the graph and pass 30%; no such final approval, product implementation or release is inferred here. [Current work graph](execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md) records actual progress; [SWB/Domain interface relay](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md) retains its undelivered/unadopted standing.
+| [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
+| [app/](app/) | Rust host, web view and maintained product checks |
+| [execution/](execution/) | Deliverable contracts, Designs and dependency conditions |
+| [conceptual/](conceptual/) | Source interpretation and the original conceptual choices |
+| [reference/](reference/) | Identified source revisions and inventories |
+| [foundation/](foundation/) | Preserved thesis and its transfer account |

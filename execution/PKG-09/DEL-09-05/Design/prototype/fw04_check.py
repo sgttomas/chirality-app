@@ -9,6 +9,9 @@ DEL-06-02's decision_view.py (a second derivation, DAC §4.3).
 Python 3 standard library, plus `jsonschema` only to validate the EXP result
 records it writes against DEL-09-01's schema (given by --exp-schema).
 Reads the fixture and observation read-only; writes only under --out.
+RS validation registers its AS and EXEC dependencies. `--exec-design` selects
+the EXEC folder for a relocated input tree; otherwise it is the selected
+project tree's sibling DEL-02-03 Design folder.
 
 Usage:
   python3 -B fw04_check.py --fixture <FX-DP1 dir> \
@@ -124,6 +127,7 @@ def main():
     ap.add_argument('--out', required=True)
     ap.add_argument('--rs-design', required=True, help="DEL-04-03's Design folder (RS_RECORD.schema.json and prototype/minischema.py, read-only)")
     ap.add_argument('--as-design', required=True, help="DEL-04-02's Design folder (AS_SETTINGS_IN.schema.json, which RS references)")
+    ap.add_argument('--exec-design', help="DEL-02-03's Design folder; defaults to the sibling in the selected project tree")
     a = ap.parse_args()
     fx = a.fixture; os.makedirs(a.out, exist_ok=True)
     results = []  # (part, expectation, held, note)
@@ -147,6 +151,9 @@ def main():
     from minischema import Registry, validate as ms_validate
     reg = Registry(); rs_schema = reg.by_id[reg.load(os.path.join(a.rs_design, 'RS_RECORD.schema.json'))]
     reg.load(os.path.join(a.as_design, 'AS_SETTINGS_IN.schema.json'))
+    exec_design = a.exec_design or os.path.normpath(os.path.join(
+        a.rs_design, '..', '..', '..', 'PKG-02', 'DEL-02-03', 'Design'))
+    reg.load(os.path.join(exec_design, 'checkpoint-record-entries.schema.json'))
     def rs_errors(rec):
         return ms_validate(rec, rs_schema, reg)
     bad_fx = [(r['recordId'], rs_errors(r)[:1]) for r in records if rs_errors(r)]

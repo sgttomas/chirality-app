@@ -1,15 +1,5 @@
 # Blank N-1 forms from standalone preparation
 
-The current live-end source adoption uses the Record Semantics bytes from
-merged source `c05655e314ad31bc93f99e51ecf9be834b63974a`. Its only change from
-the previously pinned RS source is the explicit-end implementation account in
-§13.7: ordered live flushing, owning-log receipts and ambiguity limits. No SQ
-criterion, schema, step map, model or qualification rule changes. The named
-`live-end-v1` source locks bind that RS input and the updated helper/lock chain;
-all earlier locks remain historical. Source-drift refusals remain active.
-Preparation and file correspondence continue to establish only their bounded
-results; native observation, human acts and qualification remain unestablished.
-
 From `app/`, use the actual B7 preparation producer, then this consumer:
 
 ```sh

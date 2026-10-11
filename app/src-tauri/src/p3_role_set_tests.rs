@@ -5,6 +5,84 @@ use crate::runtime_session::{
 use crate::util::sha256_hex;
 use serde_json::{json, Value};
 
+// Documentary correspondence is separate from the exact identities of the
+// shipped role set and guidance. Each selected passage is length framed.
+fn documentary_input(bytes: &[u8], selectors: &Value) -> Result<Vec<u8>, String> {
+    let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+    let mut output = Vec::new();
+    for selector in selectors.as_array().ok_or("missing selectors")? {
+        let selected = if let Some(heading) = selector["heading"].as_str() {
+            let lines: Vec<&str> = text.split_inclusive('\n').collect();
+            let starts: Vec<usize> = lines
+                .iter()
+                .enumerate()
+                .filter_map(|(i, line)| {
+                    (line.trim_end_matches(['\r', '\n']) == heading).then_some(i)
+                })
+                .collect();
+            if starts.len() != 1 {
+                return Err("heading missing or repeated".into());
+            }
+            let level = heading.chars().take_while(|c| *c == '#').count();
+            let start = starts[0];
+            let end = (start + 1..lines.len())
+                .find(|i| {
+                    let count = lines[*i].chars().take_while(|c| *c == '#').count();
+                    count > 0 && count <= level && lines[*i].as_bytes().get(count) == Some(&b' ')
+                })
+                .unwrap_or(lines.len());
+            lines[start..end].concat()
+        } else {
+            let prefix = selector["linePrefix"]
+                .as_str()
+                .ok_or("missing line prefix")?;
+            let lines: Vec<&str> = text
+                .split_inclusive('\n')
+                .filter(|line| line.starts_with(prefix))
+                .collect();
+            if lines.len() != 1 {
+                return Err("clause missing or repeated".into());
+            }
+            if prefix.starts_with("- **REQ-") {
+                // These declared inputs are single-line list items. A new
+                // continuation is changed meaning, not an excluded note.
+                let following = text
+                    .split_inclusive('\n')
+                    .skip_while(|line| !line.starts_with(prefix))
+                    .skip(1);
+                for line in following {
+                    if line.starts_with("- ") || line.starts_with('#') {
+                        break;
+                    }
+                    if !line.trim().is_empty() {
+                        return Err("requirement continuation needs a new selector".into());
+                    }
+                }
+            }
+            if let Some(columns) = selector["columns"].as_array() {
+                let cells: Vec<&str> = lines[0]
+                    .trim_end_matches(['\r', '\n'])
+                    .trim_matches('|')
+                    .split('|')
+                    .collect();
+                let values: Result<Vec<&str>, String> = columns
+                    .iter()
+                    .map(|column| {
+                        let i = column.as_u64().ok_or("invalid column")? as usize;
+                        cells.get(i).copied().ok_or_else(|| "missing column".into())
+                    })
+                    .collect();
+                values?.join("|")
+            } else {
+                lines[0].to_owned()
+            }
+        };
+        output.extend_from_slice(&(selected.len() as u64).to_be_bytes());
+        output.extend_from_slice(selected.as_bytes());
+    }
+    Ok(output)
+}
+
 #[test]
 fn p3_exact_role_set_refuses_malformed_supply_for_every_selection() {
     let common = Guidance::seeded(
@@ -143,7 +221,12 @@ fn p3_production_binding_matches_current_guidance_and_sources() {
         .unwrap();
     for source in binding["sources"].as_array().unwrap() {
         let bytes = std::fs::read(repo.join(source["repositoryPath"].as_str().unwrap())).unwrap();
-        assert_eq!(source["sha256"], sha256_hex(&bytes));
+        let input = if source.get("selectors").is_some() {
+            documentary_input(&bytes, &source["selectors"]).unwrap()
+        } else {
+            bytes
+        };
+        assert_eq!(source["sha256"], sha256_hex(&input));
     }
     for source in binding["guidance"].as_array().unwrap() {
         let path = source["path"].as_str().unwrap();
@@ -160,6 +243,41 @@ fn p3_production_binding_matches_current_guidance_and_sources() {
         assert_eq!(source["sha256"], sha256_hex(bytes));
         assert_eq!(source["byteLength"], bytes.len());
     }
+}
+
+#[test]
+fn p3_documentary_binding_ignores_unread_notes_and_refuses_changed_role_meaning() {
+    let text = "# Design\n\n### 4.1 Role set\n\nExactly four roles.\n\n### 4.2 Notes\n\nOld implementation note.\n";
+    let selectors = json!([{"heading":"### 4.1 Role set"}]);
+    let basis = documentary_input(text.as_bytes(), &selectors).unwrap();
+    assert_eq!(
+        basis,
+        documentary_input(
+            text.replace("Old implementation note.", "New implementation note.")
+                .as_bytes(),
+            &selectors
+        )
+        .unwrap()
+    );
+    assert_ne!(
+        basis,
+        documentary_input(
+            text.replace("Exactly four", "Exactly five").as_bytes(),
+            &selectors
+        )
+        .unwrap()
+    );
+    assert!(documentary_input(
+        text.replace("### 4.1 Role set", "### 4.1 Renamed")
+            .as_bytes(),
+        &selectors
+    )
+    .is_err());
+    assert!(documentary_input(
+        format!("{text}\n### 4.1 Role set\nDuplicate\n").as_bytes(),
+        &selectors
+    )
+    .is_err());
 }
 
 #[test]

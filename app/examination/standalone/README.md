@@ -1,15 +1,5 @@
 # Standalone case preparation
 
-The current live-end source adoption uses the Record Semantics bytes from
-merged source `c05655e314ad31bc93f99e51ecf9be834b63974a`. Its only change from
-the previously pinned RS source is the explicit-end implementation account in
-§13.7: ordered live flushing, owning-log receipts and ambiguity limits. No SQ
-criterion, schema, step map, model or qualification rule changes. The named
-`live-end-v1` source locks bind that RS input and the updated helper/lock chain;
-all earlier locks remain historical. Source-drift refusals remain active.
-Preparation and file correspondence continue to establish only their bounded
-results; native observation, human acts and qualification remain unestablished.
-
 From `projects/chirality-app-v4/app`, using Python's standard library only:
 
 ```sh
@@ -33,7 +23,13 @@ list describes this preparation's entry, not a live discovery of external
 systems. Historical Group A evidence supplies no new candidate outcome.
 
 `check` compares the complete preparation with its regenerated, hash-bound
-basis. It fails closed on changed sources, altered order/counting, omissions,
+basis. Documentary inputs bind the exact SQ sections and supplier-case rows
+listed in `sources.json`, using length-framed passages. Missing or repeated
+selectors refuse. Whole-file hashes retained as `basis_file_sha256` and
+`historical_provenance` identify the inspected sources; they do not require an
+unread implementation note to remain unchanged. The complete step map and
+local missing/invented input JSON remain exact inputs. It fails closed on
+changed selected passages, altered order/counting, omissions,
 substitute routes, fabricated readiness/results and extra fields, including
 `examination_opened`. A successful check means only preparation fidelity.
 This deliberately strict checker accepts no future executed dossier: use the
@@ -41,6 +37,11 @@ accepted SQ/EXP schema and rules for that separate artifact. Updating this
 preparation requires a reviewed source-basis update, not editing an output to
 claim readiness. Source locks identify the actual supplier files read here;
 they do not adopt revisions beyond SQ's historical design pins.
+
+Supplier-case projections bind their normative definition cells, excluding
+implementation-result/status cells. Inline historical observations in RS/EXEC
+expected cells are separated by their declared markers. The reviewed documentary
+successor manifest also binds the governing clauses those cited cases depend on.
 
 Before the examiner declares the actual pre-run case definition, bind actual
 invented workflow/collision bytes and fixtures, receive the named inputs,
@@ -63,7 +64,10 @@ retain its revision and bytes. No examination outcome follows from the correctio
 unchanged B7 plan, captures the fixed source basis and full canonical EXP support
 selection, and binds all 13 explicit maintained fixture roles by exact bytes.
 It introduces no EXP sidecar, dossier schema, result record or ready state.
-Historical preparation and canonical source locks remain unchanged.
+Frozen EXP publication/source identities remain unchanged; operational helper
+pins track this capture implementation. The snapshot manifest applies
+the same documentary selectors as preparation; executable helpers, canonical
+support sources and all maintained fixture roles retain exact byte identities.
 
 From `app/`, first generate the ordinary plan, calculate its exact file digest,
 and supply that digest explicitly:

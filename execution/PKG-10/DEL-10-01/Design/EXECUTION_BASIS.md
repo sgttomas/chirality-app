@@ -8,7 +8,9 @@ Field Book v2 and Agent User Manual v4. The repository manual index provides
 stable discovery links. The detailed edition/hash account below preserves the
 original definition run; it does not reinstate retired lifecycle, receipt or
 work-graph maintenance duties. Its frozen prototype input set remains a
-historical reproduction, not a current-manual loader. The new editions guide
+historical reproduction, not a current-manual loader. Reproduce `eb1_check.py`
+and `make_input_set.py` only in the [archived source tree](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4),
+where their original Coordination inputs still exist. The new editions guide
 practice without changing the product's accepted output obligations.
 
 

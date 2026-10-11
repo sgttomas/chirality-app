@@ -15,8 +15,7 @@ APP = Path(__file__).resolve().parents[1]
 PREVIOUS_CURRENT = APP / 'tests/group_b_terminal_receiving_fixtures'
 COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_terminal_fixtures'
 STOP_PREDECESSOR = APP / 'tests/group_b_lt12_combined_terminal_fixtures'
-BUILD_SELECTION_PREDECESSOR = APP / 'tests/group_b_stop_admission_terminal_fixtures'
-FIXTURES = APP / 'tests/group_b_build_selection_terminal_fixtures'
+FIXTURES = APP / 'tests/group_b_stop_admission_terminal_fixtures'
 
 
 def load(name, path):
@@ -76,13 +75,65 @@ class TerminalReceivingTests(unittest.TestCase):
             self.assertEqual(base.sha(raw), provenance['exchange_sha256'][case])
             report = self.receiver.check(self.path, base.sha(raw), self.selection, base.sha(self.selection.read_bytes()))
             self.assertTrue(report['terminal_pair_file_correspondence_passed'])
-            self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-TERMINAL-v1')
             self.assertEqual(report['exported_event_pair'], ['LT-09', 'LT-23'])
             self.assertEqual(set(report['predecessor_canonical_join']['canonical_support']['existing_checks']), {'package', 'review', 'change'})
             for key in ('native_reference_authority', 'namespace_authority_authenticated', 'terminal_integrity_established',
                         'terminal_authority_authenticated', 'semantic_reader_reexecuted', 'producer_history_authenticated',
                         'application_build_authenticated', 'qualification_established'):
                 self.assertFalse(report[key])
+
+    def test_explicit_build_selection_cohort_preserves_raw_pairs_and_cli(self):
+        fixtures = APP / 'tests/group_b_build_selection_terminal_fixtures'
+        provenance = base.parse((fixtures / 'provenance.json').read_bytes())
+        selected = subject.TerminalReceiver('build-selection')
+        for case in ('selected', 'unselected'):
+            path = fixtures / case / 'exchange.json'; raw = path.read_bytes()
+            self.assertEqual(base.sha(raw), provenance['exchange_sha256'][case])
+            exchange = base.parse(raw)
+            self.assertEqual(exchange['producer'], provenance['producer'])
+            selection = records.write(self.root / 'records', selected.canonical, exchange['applicationCandidate'])
+            report = selected.check(path, base.sha(raw), selection, base.sha(selection.read_bytes()))
+            self.assertEqual(report['receiving_adoption'], 'B-S4-BUILD-SELECTION-TERMINAL-v1')
+            self.assertTrue(report['terminal_pair_file_correspondence_passed'])
+            self.assertFalse(report['terminal_integrity_established'])
+            self.assertFalse(report['qualification_established'])
+            self.assertFalse(report['producer_history_authenticated'])
+            command = [sys.executable, '-B', str(APP / 'examination/distribution_receiving/terminal.py'),
+                       str(path), '--exchange-sha256', base.sha(raw), '--selection', str(selection),
+                       '--selection-sha256', base.sha(selection.read_bytes())]
+            default = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(default.returncode, 2, default.stdout + default.stderr)
+            result = subprocess.run(command + ['--cohort', 'build-selection'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(base.parse(result.stdout)['receiving_adoption'], report['receiving_adoption'])
+
+    def test_named_cohorts_refuse_crossed_or_rewritten_producer_pairs(self):
+        for cohort, other in [('stop-admission', 'build-selection'), ('build-selection', 'stop-admission')]:
+            selected = subject.TerminalReceiver(cohort)
+            folder = 'group_b_build_selection_terminal_fixtures' if other == 'build-selection' else 'group_b_stop_admission_terminal_fixtures'
+            fixtures = APP / 'tests' / folder
+            for case in ('selected', 'unselected'):
+                path = fixtures / case / 'exchange.json'
+                with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                    selected.check(path, base.sha(path.read_bytes()), self.selection, base.sha(self.selection.read_bytes()))
+            shutil.rmtree(self.case); shutil.copytree(fixtures / 'selected', self.case)
+            self.exchange = base.parse(self.path.read_bytes())
+            self.exchange['producer']['sourceRevision'] = selected.pins['producer_source_revision']
+            self.path.write_bytes(encoded(self.exchange))
+            with self.assertRaisesRegex(ValueError, 'reader identity differs'):
+                selected.check(self.path, base.sha(self.path.read_bytes()), self.selection, base.sha(self.selection.read_bytes()))
+
+    def test_build_selection_profile_refuses_unknown_cohort_and_pin_drift(self):
+        with self.assertRaisesRegex(ValueError, 'unsupported receiving cohort'):
+            subject.TerminalReceiver('../pins.json')
+        read = base.read_file
+        for name in ('pins.build-selection-terminal-v1.json', 'pins.stop-admission-terminal-v1.json'):
+            def changed_pins(path):
+                raw = read(path)
+                return raw + b'\n' if Path(path).name == name else raw
+            with patch.object(base, 'read_file', changed_pins):
+                with self.assertRaisesRegex(ValueError, 'pins changed'):
+                    subject.TerminalReceiver('build-selection')
 
     def test_every_original_publication_and_source_byte_is_bound(self):
         for role in ('predecessor', 'terminal'):
@@ -189,23 +240,21 @@ class TerminalReceivingTests(unittest.TestCase):
             self.exchange[role]['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(event)
             self.rebind(role); self.refused('unsupported envelope|unsupported terminal event')
 
-    def test_build_selection_source_refuses_previous_stop_cohort_even_with_rewritten_revision(self):
-        for case in ('selected', 'unselected'):
-            path = BUILD_SELECTION_PREDECESSOR / case / 'exchange.json'
-            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
-                self.receiver.check(path, base.sha(path.read_bytes()), self.selection, base.sha(self.selection.read_bytes()))
-        shutil.rmtree(self.case); shutil.copytree(BUILD_SELECTION_PREDECESSOR / 'selected', self.case)
-        self.path = self.case / 'exchange.json'; self.exchange = base.parse(self.path.read_bytes())
-        self.exchange['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
-        self.refused('reader identity differs')
-
     def test_terminal_source_guard_and_cli(self):
         original = base.relative
         def changed(root, path):
+            self.assertFalse(path.endswith('.rs'), 'historical exporter was read from the live checkout')
             raw = original(root,path)
-            return raw+b'\n' if path.endswith('hosting_terminal_export.rs') else raw
+            return raw
         with patch.object(base,'relative',changed):
-            with self.assertRaisesRegex(ValueError,'terminal selected source changed'):subject.TerminalReceiver()
+            self.assertEqual(subject.TerminalReceiver().pins['reader'], self.receiver.pins['reader'])
+        for input_path in base.CURRENT_INPUTS:
+            with self.subTest(input=input_path):
+                def changed_input(root, path):
+                    raw = original(root, path)
+                    return raw + b'\n' if path == input_path else raw
+                with patch.object(base, 'relative', changed_input):
+                    with self.assertRaisesRegex(ValueError, 'selected source changed'): subject.TerminalReceiver()
         result = subprocess.run([sys.executable,'-B',str(APP/'examination/distribution_receiving/terminal.py'),str(self.path),
                                  '--exchange-sha256',base.sha(self.path.read_bytes()),'--selection',str(self.selection),
                                  '--selection-sha256',base.sha(self.selection.read_bytes())],capture_output=True,text=True)

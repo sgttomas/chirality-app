@@ -430,7 +430,7 @@ fn envelope(kind: &str, recorder: &Recorder, body: Value, id: String, seq: u64, 
     }
     entry
 }
-/// CI-20 (j), RS W-1 (a): why the App writer's entry for this reserved
+/// RS §14.1 Permanent refusals, RS W-1 (a): why the App writer's entry for this reserved
 /// observation would be refused as nonconformant on every write. None when it
 /// conforms, or when validation itself is unavailable (not a definite refusal).
 pub(crate) fn nonconformance(kind: &str, body: &Value, id: &str, run: &str, observed_at: &str) -> Option<String> {

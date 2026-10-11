@@ -75,7 +75,7 @@ fn confirm_with_adapter(
     // The statement is bounded inside freeze_file_native, before the offer is
     // frozen or Presented (V14 F3). File acts keep [act] [decline] [Cancel]:
     // the owner excluded them from the three-button layout because an aborted
-    // dialog maps to the third slot, which here would be a decline (CI-22).
+    // dialog maps to the third slot, which here would be a decline (AAC §6.2 native statement and default key).
     let (text, digest, kind) = control.freeze_file_native(offer, &actor, &context)?;
     let result = choose(text, kind);
     let choice = match result {

@@ -172,7 +172,7 @@ def convert_more(scratch, reg):
                 w.append(o["kind"], o["body"], f"rec:app:{name}:e{i:02d}", extra={"observedAt": o["observedAt"]})
             except NonConformant as exc:
                 problems.append(str(exc))
-            # CC-R CI-3: this file-discovery fixture observes no writer. The RS
+            # CC-R RS §13.6 requester provenance: this file-discovery fixture observes no writer. The RS
             # recorder records the limit separately; EXEC's CE bodies stay CE bodies.
             if o["kind"] == "act_request" and o["body"].get("form") == "decision package file" and "identity" not in o["body"]["requester"]:
                 total += 1

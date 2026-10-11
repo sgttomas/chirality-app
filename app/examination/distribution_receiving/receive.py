@@ -20,9 +20,23 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71'
+PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
+COHORTS = {
+    'stop-admission': ('pins.stop-admission-lt09-v1.json', PINS_SHA256,
+                       'pins.lt12-combined-lt09-v1.json'),
+    'build-selection': ('pins.build-selection-lt09-v1.json',
+                        '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71',
+                        'pins.stop-admission-lt09-v1.json'),
+}
 FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
+CURRENT_INPUTS = (
+    'app/examination/support_identity/canonical.py',
+    'app/examination/support_identity/canonical-pins.v1.json',
+    *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
+      for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
+)
+INPUTS_SHA256 = 'b40f5c73ea43ff7a9b474e34709f0e2f38f51fad3c2439b151f4d7a1c0b0d67e'
 LIMITS = [
     'Exact exported file correspondence only; native S1 semantics are not reexecuted.',
     'Serialized readback is a producer report, not authenticated history or a native-held reference capability.',
@@ -134,26 +148,42 @@ def referenced(files, ref):
     return files[ref['path']]
 
 
+def current_inputs():
+    raw = read_file(HERE / 'inputs.json')
+    require(sha(raw) == INPUTS_SHA256, 'operational input pins changed')
+    pins = parse(raw)
+    exact(pins, CURRENT_INPUTS, 'operational inputs')
+    captured = {}
+    for path, expected in pins.items():
+        data = relative(PROJECT, path)
+        require(sha(data) == expected, 'selected source changed: ' + path)
+        captured[path] = data
+    return captured
+
+
 class Receiver:
-    def __init__(self):
-        raw = read_file(HERE / 'pins.build-selection-lt09-v1.json')
-        require(sha(raw) == PINS_SHA256, 'receiver pins changed')
+    def __init__(self, cohort='stop-admission'):
+        require(cohort in COHORTS, 'unsupported receiving cohort')
+        pins_name, pins_sha, predecessor_name = COHORTS[cohort]
+        raw = read_file(HERE / pins_name)
+        require(sha(raw) == pins_sha, 'receiver pins changed')
         self.pins = parse(raw)
-        require(sha(read_file(HERE / 'pins.stop-admission-lt09-v1.json')) == self.pins['predecessor_pins_sha256'],
+        require(sha(read_file(HERE / predecessor_name)) == self.pins['predecessor_pins_sha256'],
                 'historical predecessor pins changed')
         require(self.pins['reader']['namespaceAuthoritySourceSha256'] ==
                 self.pins['sources']['app/src-tauri/src/attachment_custody.rs'],
                 'namespace authority source identity differs')
         self.schemas = {}
-        for path, expected in self.pins['sources'].items():
-            require(sha(relative(PROJECT, path)) == expected, 'selected source changed: ' + path)
+        self.current_inputs = current_inputs()
+        # The remaining sources identify the immutable producer receipt and
+        # exported packet, not code this Python file-correspondence reader runs.
         for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3'):
-            schema = parse(relative(PROJECT, 'app/src-tauri/resources/distribution-successor/' + name + '.schema.json'))
+            schema = parse(self.current_inputs['app/src-tauri/resources/distribution-successor/' + name + '.schema.json'])
             self.schemas[name] = Draft202012Validator(schema, registry=Registry())
         path = PROJECT / 'app/examination/support_identity/canonical.py'
         spec = importlib.util.spec_from_file_location('_s4_canonical', path)
         module = importlib.util.module_from_spec(spec)
-        exec(compile(read_file(path), str(path), 'exec'), module.__dict__)
+        exec(compile(self.current_inputs['app/examination/support_identity/canonical.py'], str(path), 'exec'), module.__dict__)
         self.canonical = module.CanonicalSupport()
 
     def check(self, exchange_path, exchange_sha256, selection_path, selection_sha256):
@@ -308,9 +338,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('exchange'); parser.add_argument('--exchange-sha256', required=True)
     parser.add_argument('--selection', required=True); parser.add_argument('--selection-sha256', required=True)
+    parser.add_argument('--cohort', choices=tuple(COHORTS), default='stop-admission')
     args = parser.parse_args(argv)
     try:
-        report = Receiver().check(args.exchange, args.exchange_sha256, args.selection, args.selection_sha256)
+        report = Receiver(args.cohort).check(args.exchange, args.exchange_sha256, args.selection, args.selection_sha256)
         print(json.dumps(report, indent=2)); return 0
     except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.TimeoutExpired) as error:
         print(json.dumps({'file_correspondence_passed': False, 'input_error': str(error),

@@ -254,6 +254,13 @@ this deliverable; this is a proposal to it, not an edit of HOSTING.
 tree's relative layout, so the sibling resources stay where the binary
 expects them. Running from the bundle is observed at FP-2.
 
+**Open default-bundle native witness.** Default `bundle.resources` now maps
+instructions and workflows to P-3/P-2, guarded by
+`app/src-tauri/src/bundle_resources_tests.rs`. An offline default-configuration
+debug bundle carried byte-equal trees, but its native start has not been witnessed.
+The distribution-successor vendor/reference trees and synthetic-anchor namespace
+remain supplied by their own selected overlays.
+
 ### 4.2 Interfaces
 
 | Interface | Direction | Arc (DAG-004) | Contribution | If it fails |
@@ -317,7 +324,9 @@ of every regular file of the tree, ordered by the relative path's UTF-8
 bytes (C collation), each line ending in one newline, the last included;
 equal to `find . -type f | sed 's|^./||' | LC_ALL=C sort | xargs shasum -a
 256 | shasum -a 256` run in the tree, and to `read_tree.py <tree>
---manifest`. At 0.160.0 it is `327effb9…8d12` (§2.1).
+--manifest`.
+
+At 0.160.0 it is `327effb9…8d12` (§2.1).
 
 ### 5.3 Where records live
 
@@ -543,3 +552,16 @@ and content identities are placeholders, labelled in `limits`.
 | PKG-v0.1 (2026-10-03) | First Design file: signing decision B with fallback A, composition, identity record (M2), witness, terms record; two PROPOSED schemas; prototype 36/0 incl. FP-0 at 0.160.0 |
 | PKG-v0.2 (2026-10-03) | Repair for RV2-PKG-U2. PKG-R1: witness, FP-2 and FP-4 start from a quarantined installer (W-0, `xattr -l`, child cdhash); G-7. PKG-R2: signing path SP-1…SP-4 with bundler signing disabled and outer signing without `--deep`; FP-1(a)/(b); OUT-001 configuration CF-1…CF-8 (§4.3); configuration space CS-1…CS-4 (§7.2); P-1 is the published vendor directory incl. `codex-package.json`. PKG-R3: decision rule by recorded cause (§7.3). PKG-R4: FP-0 checks the Developer ID authority; `read_tree.py` records directory links, link targets and modes and compares them. PKG-R5: every Mach-O listed (PK-R6); `present`/`missing` bundle items and `complete` (PK-R8); option A carries the escalation ruling and space tried (PK-R7); role set; manifest defined (§5.2) and computed by `read_tree.py --manifest`; record placement (§5.3). PKG-R6: I-6 `not-run`; FP-0/1/3 in the identity record, FP-2/4/5 and the witness as EXP records (§7.1). PKG-R7: I-4 same team and bundle id across releases; SIGN-3 names SEAL-2's possible entitlement (G-8). PKG-R8: U-PKG-3 per R23-22. PKG-R9: I-3 is a build-time input. PKG-R10: SIGN-1 under R23-26. PKG-R11: SIGN-1 reason 2 reworded. Schemas `…:0.2`, records `PKG-v0.2`. Prototype 64/0 |
 | PKG-v0.2, in place (2026-10-03) | RV2 confirmation items: PKG-R12 Gatekeeper refusal is `fail` (§8, FP-4); PKG-R13 B not relied on until FP-1/FP-3 pass, PK-R9 limit (§3, §5.4); PKG-R14 FP-0 label counts 42 files and 10 directories. Prototype 66/0 |
+
+## Current implementation conditions
+
+**Explicit attested-reference resource placement.** The opt-in
+`app/packaging/unsigned/tauri.attested-reference.conf.json` maps the twelve-file
+compiled S3 closure to `resource_dir/distribution-reference`, preserving its
+paths and exact digest-bound edges. `attested_reference_packaging.rs` exercises
+Tauri's actual resource mapper and checks the staged closure. The development
+build command is in `app/packaging/unsigned/ATTESTED_REFERENCE.md`; SDK placement
+and a physical unsigned bundle remain distinct from the package/native witness.
+Installed custody and the actual H3B runtime witness remain open under
+DEL-01-01's `Design/distribution-s1/README.md`. This overlay supplies no custody
+issuer, signing evidence or qualification result.
