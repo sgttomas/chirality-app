@@ -62,6 +62,25 @@ test('Try with the authoring agent prepares a delegated trial in the chosen auth
   assert.deepEqual(calls,[['workflow_trial_prepare',{name:'load-check',kind:'delegated',generation:g,threadId:'auth'}]]);
 });
 
+test('Try with the authoring agent follows the authoring conversation’s delegation reading (NPTD §7.1)',()=>{
+  const reading=(r)=>({...conversations[0],delegation:r});
+  // Missing: the control is absent; the first reason is shown with the fresh-conversation trial.
+  const missing=reading({reading:'missing',reason:'the provider reports namespaceTools false, so Codex sends no delegation tools (NPTD §7.1 (3))'});
+  const {tree}=row(draft(),{authoring:missing});
+  assert.equal(find(tree,n=>n.type==='button'&&label(n).includes('Try with the authoring agent')).length,0,'hidden when missing');
+  assert.equal(button(tree,'Try in a fresh conversation').props.disabled,false);
+  assert.match(html(draft(),{authoring:missing}),/Try with the authoring agent is not available: the provider reports namespaceTools false, so Codex sends no delegation tools \(NPTD §7\.1 \(3\)\)\. Use Try in a fresh conversation\./);
+  // Not established: still offered, with the note.
+  const unread=reading({reading:'not established',reason:'effective configuration not read: no response (NPTD §7.1 (4))'});
+  const offered=row(draft(),{authoring:unread});
+  assert.equal(button(offered.tree,'Try with the authoring agent').props.disabled,false);
+  assert.match(html(draft(),{authoring:unread}),/Delegation not established: effective configuration not read: no response \(NPTD §7\.1 \(4\)\)\./);
+  // Present: offered, no note.
+  const present=html(draft(),{authoring:reading({reading:'present',reason:null})});
+  assert.match(present,/Try with the authoring agent/);
+  assert.doesNotMatch(present,/Delegation not established|not available/);
+});
+
 test('Try with the authoring agent is disabled without a chosen conversation, pointing to the fresh-conversation trial',()=>{
   const {tree}=row(draft());
   assert.equal(button(tree,'Try with the authoring agent').props.disabled,true);
@@ -237,6 +256,11 @@ test('Compare renders the host’s result readably: sides, endings, commands, fi
   const limited={...compareFixture,difference:{...compareFixture.difference,files:[{...workflow,lines:null,limit:'too large for a line difference (more than 4000 lines)'}]}};
   assert.match(renderToStaticMarkup(React.createElement(CompareResult,{result:limited})),/WORKFLOW.md<\/b>: changed .* · too large for a line difference \(more than 4000 lines\)/);
   assert.match(renderToStaticMarkup(React.createElement(CompareResult,{result:{...compareFixture,difference:{limit:'version bytes not available for one side; no difference shown'}}})),/version bytes not available for one side/);
+  // A file whose text flag the host did not report is not called a non-text file.
+  const unflagged={...compareFixture,difference:{...compareFixture.difference,files:[{path:'odd.bin',change:'changed',before:logo.before,after:logo.after}]}};
+  const u=renderToStaticMarkup(React.createElement(CompareResult,{result:unflagged}));
+  assert.ok(u.includes('<b>odd.bin</b>: changed')&&u.includes('text/binary not reported: size and digest only'),u);
+  assert.doesNotMatch(u,/not a text file/);
   // A side with no version established.
   assert.deepEqual(cells(renderToStaticMarkup(React.createElement(CompareResult,{result:{...compareFixture,right:{...compareFixture.right,version:null}}})),'Version')[1],'version not established');
 });

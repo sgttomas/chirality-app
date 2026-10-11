@@ -418,6 +418,13 @@ fn trial_links_are_create_once_survive_relaunch_and_list_per_draft_with_observat
     assert_eq!(rows[1]["fidelity"]["header_present"], true);
     assert_eq!(rows[2]["kind"], "earlier attachment trial");
     assert_eq!(rows[2]["link"], earlier);
+    // I-4: with the draft's current content not established, no trial is
+    // called earlier (or current): each reads "version not established".
+    let unknown = reopened.trials_for_draft(&first.key, None);
+    assert_eq!(unknown.len(), 3);
+    for row in &unknown {
+        assert_eq!(row["version"], "version not established", "{row}");
+    }
     // Memory only without an App data folder, and says so.
     let mut memory = TrialLinks::default();
     memory.record_sent(&first, &sent(TrialKind::Delegated)).unwrap();

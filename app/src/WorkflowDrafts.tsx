@@ -109,6 +109,11 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
 export function DraftRow({ draft, authoring, conversations = [], pending = [], busy, act, state = initialDraftsState, update = () => undefined }: { draft: Json; authoring: Json | null; conversations?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state?: DraftsState; update?: Update }) {
   const trials = list(draft.trials);
   const mine = list(pending).filter((p: Json) => p?.draftName === draft.name);
+  // NPTD §7.1 as the host read it for the authoring conversation: missing
+  // hides Try with the authoring agent with the first reason; not established
+  // keeps it offered with the note.
+  const delegation = authoring?.delegation;
+  const delegationMissing = delegation?.reading === "missing";
   return <article aria-label={`Draft ${text(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
     <h4>{text(draft.name)} · {draftStateWords(draft.state, draft.content)}</h4>
     <p>Content {draft.content?.value ? `${short(draft.content.value)} (${text(draft.content.method)})` : `not established: ${text(draft.content?.not_established)}`}{draft.fileCount !== undefined && draft.fileCount !== null ? ` · ${text(draft.fileCount)} files` : ""}. Attribution: {attributionWords(draft.attribution)}.</p>
@@ -117,10 +122,12 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
     {draft.slot?.identicalTo !== undefined && draft.slot?.identicalTo !== null && <p>Same bytes as registered revision {text(draft.slot.identicalTo)} of this library.</p>}
     <p><small>{text(draft.standing)}</small></p>
     <div>
-      <button disabled={busy || !!draft.tryLimit || !authoring} onClick={() => { void act("workflow_trial_prepare", { name: draft.name, kind: "delegated", generation: authoring?.generation, threadId: authoring?.threadId }); }}>Try with the authoring agent</button>{" "}
+      {!delegationMissing && <><button disabled={busy || !!draft.tryLimit || !authoring} onClick={() => { void act("workflow_trial_prepare", { name: draft.name, kind: "delegated", generation: authoring?.generation, threadId: authoring?.threadId }); }}>Try with the authoring agent</button>{" "}</>}
       <button disabled={busy || !!draft.tryLimit} onClick={() => { void act("workflow_trial_prepare", { name: draft.name, kind: "clean", generation: authoring?.generation ?? null, threadId: authoring?.threadId ?? null }); }}>Try in a fresh conversation</button>
       <p><small>Either pre-fills a trial message for you to read and send; nothing is sent until you press Send. A trial is not a workflow run, registration, checking or acceptance. The fresh-conversation trial is optional.</small></p>
       {!authoring && !draft.tryLimit && <p role="note"><small>Choose an authoring conversation above to try with the authoring agent, or try in a fresh conversation.</small></p>}
+      {delegationMissing && <p role="note"><small>Try with the authoring agent is not available: {text(delegation.reason)}. Use Try in a fresh conversation.</small></p>}
+      {authoring && delegation?.reading === "not established" && <p role="note"><small>Delegation not established: {text(delegation.reason)}.</small></p>}
     </div>
     {draft.tryLimit && <p role="note">{text(draft.tryLimit)}</p>}
     {mine.map((p: Json) => <p key={text(p.reference)}><small>Trial {text(p.sequence)} ({text(p.kind)}) is pre-filled, not sent: {text(p.state)}. Send or remove it in the conversation panel.</small></p>)}
@@ -179,7 +186,7 @@ export function CompareResult({ result }: { result: Json }) {
         <b>{text(f.path)}</b>: {valueWords(f.change, "change not reported")} · before {fileSideWords(f.before)} · after {fileSideWords(f.after)}
         {f.text === true
           ? f.limit ? <> · {text(f.limit)}</> : Array.isArray(f.lines) ? <pre style={{ whiteSpace: "pre-wrap" }}>{f.lines.map((l: Json) => valueWords(l, "")).join("\n")}</pre> : <> · line difference not reported</>
-          : <> · not a text file: size and digest only</>}
+          : f.text === false ? <> · not a text file: size and digest only</> : <> · text/binary not reported: size and digest only</>}
       </li>)}</ul>
       {difference.unchanged !== undefined && <p><small>Unchanged files: {valueWords(difference.unchanged, "not reported")}.</small></p>}
       {difference.standing && <p><small>{text(difference.standing)}</small></p>}

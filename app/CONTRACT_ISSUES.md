@@ -1302,11 +1302,30 @@ changed.
   handle. Since CC-WR-TRIALS a trial reaches its agent as the trial text (WR
   TT-3, TT-8), not as draft attachments, and WR §17 step 8 (phase 2) removed
   the attachment pre-fill. Reword it with the re-freeze. Phase 2 also edited
-  WR TT-3a, TT-3b, TT-9, TT-10, §5.5, §11, §12 and §17, so the WR pin moves
+  WR §3, TT-2, TT-3a, TT-3b, TT-9, TT-10, TT-11, §5.5, §11, §12 and §17, so the WR pin moves
   further from the frozen hash. The WR Design itself
   changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
   handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
   from the frozen hash.
+- **Delegation availability read at the 0.160.0 pin (2026-10-10).** The App
+  now reads NPTD §7.1's signals in the Rust host (WR TT-3a and §17 state how).
+  Three readings at the pin are not in the pinned texts, which still match
+  their pins and were left unchanged. Add them at the re-freeze to DEL-01-03
+  `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.1 (and its §18 row), DEL-02-03
+  `EXECUTION_COMPATIBILITY.md` §3.4 EV-3a `agent-delegation`, and DEL-02-01
+  `WORKFLOW_DECLARATION.md` §4.2.5 `agent-delegation`:
+  - `modelProvider/capabilities/read` takes no parameters and answers for the
+    home's configured provider. Its `namespaceTools` counts for a
+    conversation only when the effective configuration's `model_provider` is
+    the conversation's reported `modelProvider`; otherwise it reads *not
+    read*, so the reading is *not established*.
+  - The generated `Config` types no `features` field. `features.multi_agent`
+    is read as an additional property of `config/read`'s `config`, with the
+    conversation's `cwd`. A configuration that was read and has no such
+    property sets nothing, so it is read, not unread.
+  - `Model.multiAgentVersion` is that of the `model/list` entry whose `model`
+    or `id` is the conversation's reported model, read over every page with
+    hidden models included. A model that is not listed reads *not read*.
 - **OI-008 ruling (2026-10-10).** The owner decided process placement for the
   whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
   §11 and NIR §1.1 were also edited, since their pins were already stale. Five

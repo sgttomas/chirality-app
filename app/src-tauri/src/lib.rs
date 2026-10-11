@@ -54,6 +54,7 @@ pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
 pub(crate) mod workflow_trial_transcript;
 pub(crate) mod host_tick;
+pub(crate) mod delegation_availability;
 pub(crate) mod execution_compatibility;
 pub(crate) mod a15_native;
 pub mod schema_validation;
@@ -64,6 +65,7 @@ pub mod util;
 
 use act_control::{ActControl, InputSource};
 use hosting::{Host, HostConfig};
+use runtime_session::trial_flows::SendRefusal;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -185,6 +187,10 @@ fn host_status(state: State<'_, AppState>) -> Value {
             thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
         }
     }
+    // NPTD §7.1: each conversation's delegation reading, as this home's host
+    // last read it (the reads run on the host tick and when Try with the
+    // authoring agent is pressed; host_status reads nothing from Codex).
+    delegation_availability::annotate_threads(&mut s["threads"], &home.host.delegation_readings());
     // ROLE §6.2 LA-4: the limits shown where a role is chosen, as handed.
     s["roleLimits"] = conversation_roles::limit_account(root.as_deref().ok());
     let generation = s["generation"].clone();
@@ -1013,13 +1019,15 @@ fn workflow_observe_drafts(state:State<'_,AppState>)->Result<Value,String>{
 fn workflow_trial_prepare(state:State<'_,AppState>,name:String,kind:String,generation:Option<Value>,thread_id:Option<String>)->Result<Value,String>{
     let home=match &generation{Some(g)=>Some(state.homes.lock().unwrap().for_generation(g)?),None=>None};
     let authoring=generation.as_ref().zip(thread_id.as_deref());
-    state.workflows.lock().unwrap().prepare_trial(&kind,&name,authoring,home.as_deref(),state.workspace.as_deref())
+    // NPTD §7.1, read at run time (R19-5) as the delegated composer is prepared.
+    let signals=runtime_session::trial_flows::delegation_signals_for(&kind,home.as_deref(),authoring);
+    state.workflows.lock().unwrap().prepare_trial_with(&kind,&name,authoring,home.as_deref(),state.workspace.as_deref(),signals.as_ref())
 }
 /// WR TT-11 Try again: a new trial of the draft's current version.
 #[tauri::command(async)]
 fn workflow_trial_again(state:State<'_,AppState>,reference:String)->Result<Value,String>{
     let home=trial_home(&state,&reference).unwrap_or_else(|_|state.homes.lock().unwrap().active());
-    state.workflows.lock().unwrap().trial_again(&reference,Some(&home),state.workspace.as_deref())
+    runtime_session::trial_flows::trial_again(&state.workflows,&reference,&home,state.workspace.as_deref())
 }
 /// WR §5.5: removing the trial card cancels the trial; nothing is recorded.
 #[tauri::command]
@@ -1028,49 +1036,27 @@ fn workflow_trial_cancel(state:State<'_,AppState>,reference:String)->Result<Valu
 /// sends the pre-filled trial message; the trial link is written on Codex's
 /// acknowledgment (TT-4).
 #[tauri::command(async)]
-fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Value,thread_id:String,person_text:String)->Result<Value,SendRefusal>{
+    let home=state.homes.lock().unwrap().for_generation(&generation).map_err(SendRefusal::kept)?;
     runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,&generation,&thread_id,&person_text)
 }
 /// WR FT-3, FT-4: the person sends a clean trial: a new conversation starts
 /// with the role and model the person chose (no handoff, no `continuedFrom`),
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
-    state.workflows.lock().unwrap().begin_clean_start(&reference)?;
-    // From here every outcome releases or withdraws the pre-fill (H-2).
-    let started=match start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None){
-        Ok(started)=>started,
-        Err(error)=>{
-            // The start may have reached Codex: the pre-fill is withdrawn so a
-            // second press cannot start a second conversation; Try again makes a new trial.
-            state.workflows.lock().unwrap().withdraw_clean_start(&reference);
-            return Err(format!("{error}. The trial conversation was not started (or its start was not acknowledged); the pre-filled trial was withdrawn and nothing was recorded; press Try again"));
-        }
-    };
-    let generation=started["startGeneration"].clone();
-    let Some(thread)=started["result"]["thread"]["id"].as_str().map(str::to_owned) else {
-        state.workflows.lock().unwrap().withdraw_clean_start(&reference);
-        return Err("The new conversation's identity was not reported; the pre-filled trial was withdrawn and nothing was sent or recorded; press Try again".into());
-    };
-    state.workflows.lock().unwrap().mark_clean_started(&reference,&generation,&thread);
-    let sent=runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,&generation,&thread,&person_text);
-    match sent {
-        Ok(mut value)=>{value["conversation"]=json!({"generation":generation,"threadId":thread});value["thread"]=value["conversation"].clone();Ok(value)}
-        Err(error)=>Err(format!("The trial conversation {thread} started (it stays trial-only), but the trial message was not acknowledged: {error}")),
-    }
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String)->Result<Value,SendRefusal>{
+    let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class).map_err(SendRefusal::kept)?).map_err(SendRefusal::kept)?;
+    runtime_session::trial_flows::start_clean_trial(&state.workflows,&reference,
+        ||start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None),
+        |generation,thread|runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,generation,thread,&person_text))
 }
 /// WR TT-9, H-5: the Codex home holding `thread` now (the trial's own home).
 fn home_of_thread(state:&AppState,thread:&str)->Option<Arc<runtime_session::HomeSession>>{
-    state.homes.lock().unwrap().entries().into_iter().find(|home|{
-        let snapshot=home.host.snapshot();
-        snapshot["threads"].as_array().into_iter().flatten().any(|t|t["threadId"]==thread&&t["generation"]==snapshot["generation"])
-    })
+    runtime_session::trial_flows::home_holding(&state.homes.lock().unwrap().entries(),thread)
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
-    let thread=state.workflows.lock().unwrap().trial_home_thread(reference).ok_or_else(||format!("No trial link {reference}"))?;
-    home_of_thread(state,&thread).ok_or_else(||format!("The trial's conversation {thread} is not loaded in a Codex home now; nothing read or recorded"))
+    let entries=state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::trial_home(&state.workflows,&entries,reference)
 }
 /// WR TT-9: Link as trial ‹n› / unlink, by the person.
 #[tauri::command]
@@ -1103,8 +1089,8 @@ fn workflow_run_bring_back(state:State<'_,AppState>,run_ref:String,generation:Va
 fn workflow_bring_back_cancel(state:State<'_,AppState>,id:String)->Result<Value,String>{runtime_session::trial_flows::cancel_bring_back(&state.workflows,&id)}
 /// WR SQ-BB BB-5: the person sends the transcript; *brought back* on acknowledgment.
 #[tauri::command(async)]
-fn workflow_bring_back_send(state:State<'_,AppState>,id:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+fn workflow_bring_back_send(state:State<'_,AppState>,id:String,generation:Value,thread_id:String,person_text:String)->Result<Value,SendRefusal>{
+    let home=state.homes.lock().unwrap().for_generation(&generation).map_err(SendRefusal::kept)?;
     runtime_session::trial_flows::send_bring_back(&state.workflows,&home,&id,&generation,&thread_id,&person_text)
 }
 /// WR TT-11 Compare: side by side, with the version difference; records nothing.

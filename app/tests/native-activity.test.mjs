@@ -102,6 +102,29 @@ test('a completed parent turn says nothing about a running descendant',()=>{
   assert.ok(html.includes('<option value="C">descendant C</option>'));
 });
 
+test('the delegation view follows the host’s NPTD §7.1 reading, and arrived descendants are always shown',()=>{
+  const empty={...view(),descendants:[]};
+  const withReading=(v,delegation)=>renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'T',delegation}));
+  const present={reading:'present',reason:null,readAt:'2026-10-10T00:00:00Z'};
+  const missing={reading:'missing',reason:'the effective configuration sets features.multi_agent = false (NPTD §7.1 (2))',readAt:'2026-10-10T00:00:00Z'};
+  const unread={reading:'not established',reason:'namespaceTools not read: no response (NPTD §7.1 (4))'};
+  // Present: shown, empty or not.
+  assert.match(withReading(empty,present),/Delegation available \(read 2026-10-10T00:00:00Z\); no descendants observed\./);
+  assert.ok(withReading(view(),present).includes('<h4>Descendants</h4>'));
+  // Missing: absent, with the first reason; descendants that arrive anyway are shown.
+  const hidden=withReading(empty,missing);
+  assert.match(hidden,/Delegation not available: the effective configuration sets features\.multi_agent = false \(NPTD §7\.1 \(2\)\)/);
+  assert.doesNotMatch(hidden,/<h4>Descendants<\/h4>|no descendants observed/);
+  const arrived=withReading(view(),missing);
+  assert.ok(arrived.includes('<h4>Descendants</h4>')&&arrived.includes('Descendants that arrived anyway are shown below.'));
+  // Not established: shown only when delegation items arrive.
+  const quiet=withReading(empty,unread);
+  assert.doesNotMatch(quiet,/Delegation availab|Delegation not available|<h4>Descendants/);
+  const shown=withReading(view(),unread);
+  assert.ok(shown.includes('<h4>Descendants</h4>')&&shown.includes('Delegation availability not established: namespaceTools not read'));
+  assert.doesNotMatch(withReading(empty,undefined),/Delegation availab|Delegation not available|<h4>Descendants/,'no reading: nothing claimed');
+});
+
 test('empty and unselected states stay explicit',()=>{
   assert.ok(render(view(),null).includes('Select a conversation'));
   assert.ok(render({items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]},'T').includes('No activity observed'));

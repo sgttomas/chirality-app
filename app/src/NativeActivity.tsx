@@ -297,7 +297,20 @@ export function StopLabel({ stop }: { stop: Json | null }) {
   return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[] }) {
+// NPTD §7.1: the delegation view by the host's reading for this conversation.
+// Present: the view is shown, with "none observed" when empty. Missing: the
+// view is absent and one line says why. Not established: shown only when
+// delegation items arrive. Items that arrive are always shown (the list
+// below), whatever the reading.
+export function DelegationLine({ delegation, descendants }: { delegation: Json; descendants: number }) {
+  const at = delegation?.readAt ? ` (read ${text(delegation.readAt)})` : "";
+  if (delegation?.reading === "present") return descendants > 0 ? null : <p><small>Delegation available{at}; no descendants observed.</small></p>;
+  if (delegation?.reading === "missing") return <p role="note"><small>Delegation not available: {text(delegation.reason)}{at}.{descendants > 0 ? " Descendants that arrived anyway are shown below." : ""}</small></p>;
+  if (descendants > 0 && delegation?.reading === "not established") return <p><small>Delegation availability not established: {text(delegation.reason)}.</small></p>;
+  return null;
+}
+
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json }) {
   const [shown, setShown] = useState<string>("");
   // WR TT-2, TT-4: the host's trial labels (worded by the host) on the turn
   // that carried a trial message and on a linked sub-agent's row. Display only.
@@ -339,6 +352,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}
       {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
     </section>)}
+    <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
     {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></>}
   </div>;
 }

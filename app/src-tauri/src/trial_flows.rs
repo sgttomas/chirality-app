@@ -34,33 +34,120 @@ const MAX_PAGES: usize = 100;
 /// Linking reads done per tick at most; the rest wait for the next tick.
 const READS_PER_TICK: usize = 4;
 
-/// NPTD §7.1 (R21-1's order) for the authoring conversation: `signals` are
-/// `model_multi_agent_version` (`model/list`), `effective_config`
-/// (`config/read`) and `provider_capabilities` (`modelProvider/capabilities/read`).
-/// The App reads none of these yet, so in the App the reading is *not
-/// established*; Try with the authoring agent is then offered with that note.
+/// NPTD §7.1 (R21-1's order) for the authoring conversation, from the signals
+/// the host read for it (`delegation_availability::signals`): *missing*
+/// refuses Try with the authoring agent with the first reason; *not
+/// established* offers it with that note.
 pub(crate) fn delegation_availability(signals: Option<&Value>) -> Value {
-    const UNREAD: &str = "not established: this App does not read the model's multiAgentVersion (model/list), the provider's namespaceTools (modelProvider/capabilities/read) or features.multi_agent (config/read) yet (NPTD §7.1); the authoring agent may be unable to start a sub-agent";
-    let Some(s) = signals else {
-        return json!({"reading":"not established","reason":UNREAD});
+    crate::delegation_availability::evaluate(signals)
+}
+/// The signals for a delegated trial's authoring conversation, read now from
+/// its Codex home (R19-5: at run time, as the composer is prepared). Nothing is
+/// read for a clean trial or without an authoring conversation.
+pub(crate) fn delegation_signals_for(kind: &str, home: Option<&HomeSession>, authoring: Option<(&Value, &str)>) -> Option<Value> {
+    match (kind, home, authoring) {
+        ("delegated", Some(home), Some((generation, thread))) => Some(home.host.delegation_signals_read(generation, thread, person_read())),
+        _ => None,
+    }
+}
+
+/// A trial or bring-back send the host refused or could not complete, with
+/// whether the message is still pre-filled (so the view offers to send it
+/// again only then).
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SendRefusal {
+    pub message: String,
+    pub prefill_kept: bool,
+}
+impl SendRefusal {
+    /// Refused with the message still pre-filled.
+    pub fn kept(message: impl Into<String>) -> Self {
+        Self { message: message.into(), prefill_kept: true }
+    }
+    /// Refused with nothing pre-filled to send again (withdrawn, sent, absent or in flight).
+    pub fn not_kept(message: impl Into<String>) -> Self {
+        Self { message: message.into(), prefill_kept: false }
+    }
+}
+impl std::ops::Deref for SendRefusal {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.message
+    }
+}
+impl std::fmt::Display for SendRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+/// WR TT-9, H-5: the home among `homes` whose current generation holds `thread`.
+pub(crate) fn home_holding(homes: &[std::sync::Arc<HomeSession>], thread: &str) -> Option<std::sync::Arc<HomeSession>> {
+    homes
+        .iter()
+        .find(|home| {
+            let snapshot = home.host.snapshot();
+            snapshot["threads"].as_array().into_iter().flatten().any(|t| t["threadId"] == thread && t["generation"] == snapshot["generation"])
+        })
+        .cloned()
+}
+/// WR TT-9, H-5: the home holding the trial's own conversation (a clean
+/// trial's conversation, a delegated trial's authoring conversation), where
+/// Read again, Try again and Compare go.
+pub(crate) fn trial_home(root: &Mutex<WorkflowRootSession>, homes: &[std::sync::Arc<HomeSession>], reference: &str) -> Result<std::sync::Arc<HomeSession>, String> {
+    let thread = root.lock().unwrap().trial_home_thread(reference).ok_or_else(|| format!("No trial link {reference}"))?;
+    home_holding(homes, &thread).ok_or_else(|| format!("The trial's conversation {thread} is not loaded in a Codex home now; nothing read or recorded"))
+}
+
+/// TT-11 Try again in the host: the delegation signals of a delegated trial's
+/// authoring conversation are read first (no App lock held while Codex
+/// answers), then the trial is pre-filled.
+pub(crate) fn trial_again(root: &Mutex<WorkflowRootSession>, reference: &str, home: &HomeSession, project: Option<&std::path::Path>) -> Result<Value, String> {
+    let authoring = root.lock().unwrap().trials.link(reference).and_then(|l| (l["trial"]["kind"] == "delegated").then(|| l["trial"]["authoring_conversation"].as_str().map(str::to_owned)).flatten());
+    let generation = home.host.snapshot()["generation"].clone();
+    let signals = authoring.as_deref().and_then(|thread| delegation_signals_for("delegated", Some(home), Some((&generation, thread))));
+    root.lock().unwrap().trial_again_with(reference, Some(home), project, signals.as_ref())
+}
+
+/// SQ-FT FT-3, FT-4 (H-2): the person sends a clean trial. `start` starts the
+/// new conversation; every outcome after the press releases or withdraws the
+/// pre-fill. A start that failed, or whose thread id was not reported, may
+/// still have reached Codex, so the pre-fill is withdrawn (a second press
+/// cannot start a second conversation). The trial conversation's generation
+/// is the one the start result reports, and `send` sends the trial message there.
+pub(crate) fn start_clean_trial(
+    root: &Mutex<WorkflowRootSession>,
+    reference: &str,
+    start: impl FnOnce() -> Result<Value, String>,
+    send: impl FnOnce(&Value, &str) -> Result<Value, SendRefusal>,
+) -> Result<Value, SendRefusal> {
+    root.lock().unwrap().begin_clean_start(reference).map_err(SendRefusal::not_kept)?;
+    let started = match start() {
+        Ok(started) => started,
+        Err(error) => {
+            root.lock().unwrap().withdraw_clean_start(reference);
+            return Err(SendRefusal::not_kept(format!("{error}. The trial conversation was not started (or its start was not acknowledged); the pre-filled trial was withdrawn and nothing was recorded; press Try again")));
+        }
     };
-    let version = &s["model_multi_agent_version"];
-    let config = &s["effective_config"];
-    let caps = &s["provider_capabilities"];
-    if version == "disabled" {
-        return json!({"reading":"missing","reason":"the selected model's multiAgentVersion is disabled (NPTD §7.1 (1)); use Try in a fresh conversation"});
+    let generation = started["startGeneration"].clone();
+    let thread = started["result"]["thread"]["id"].as_str().map(str::to_owned).filter(|_| crate::recovery::generation_ref(&generation).is_ok());
+    let Some(thread) = thread else {
+        root.lock().unwrap().withdraw_clean_start(reference);
+        return Err(SendRefusal::not_kept("The new conversation's identity or generation was not reported; the pre-filled trial was withdrawn and nothing was sent or recorded; press Try again"));
+    };
+    root.lock().unwrap().mark_clean_started(reference, &generation, &thread);
+    match send(&generation, &thread) {
+        Ok(mut value) => {
+            value["conversation"] = json!({"generation":generation,"threadId":thread});
+            value["thread"] = value["conversation"].clone();
+            Ok(value)
+        }
+        Err(error) => Err(SendRefusal {
+            message: format!("The trial conversation {thread} started (it stays trial-only), but the trial message was not acknowledged: {error}"),
+            prefill_kept: error.prefill_kept,
+        }),
     }
-    if config["features"]["multi_agent"] == false {
-        return json!({"reading":"missing","reason":"the effective configuration sets features.multi_agent = false (NPTD §7.1 (2)); use Try in a fresh conversation"});
-    }
-    if caps["namespaceTools"] == false {
-        return json!({"reading":"missing","reason":"the provider reports namespaceTools false, so Codex sends no delegation tools (NPTD §7.1 (3)); use Try in a fresh conversation"});
-    }
-    let version_read = version == "v1" || version == "v2";
-    if !version_read || !config.is_object() || caps["namespaceTools"] != true {
-        return json!({"reading":"not established","reason":"not established: one of multiAgentVersion, the effective configuration or namespaceTools was not read (NPTD §7.1 (4))"});
-    }
-    json!({"reading":"present","reason":null})
 }
 
 fn kind_text(kind: TrialKind) -> &'static str {
@@ -267,7 +354,7 @@ impl WorkflowRootSession {
             }
             let reading = delegation_availability(delegation_signals);
             if reading["reading"] == "missing" {
-                return Err(format!("Try with the authoring agent is not available: {}. Nothing pre-filled", reading["reason"].as_str().unwrap_or_default()));
+                return Err(format!("Try with the authoring agent is not available: {}; use Try in a fresh conversation. Nothing pre-filled", reading["reason"].as_str().unwrap_or_default()));
             }
             delegation = Some(reading);
         }
@@ -306,7 +393,7 @@ impl WorkflowRootSession {
     }
     /// TT-11 Try again: a new trial of the draft's current version, same kind
     /// and authoring conversation by default.
-    pub fn trial_again(&mut self, reference: &str, home: Option<&HomeSession>, project: Option<&std::path::Path>) -> Result<Value, String> {
+    pub fn trial_again_with(&mut self, reference: &str, home: Option<&HomeSession>, project: Option<&std::path::Path>, delegation_signals: Option<&Value>) -> Result<Value, String> {
         let (link, library) = self.link_and_library(reference)?;
         if self.active_library.as_deref() != Some(library.reference.as_str()) {
             return Err("Open the library holding this draft first; nothing pre-filled".into());
@@ -324,7 +411,7 @@ impl WorkflowRootSession {
         if kind == "delegated" && authoring.is_none() {
             return Err("The authoring conversation of that trial is not loaded now; choose an authoring conversation and press Try with the authoring agent. Nothing pre-filled".into());
         }
-        self.prepare_trial(&kind, &name, authoring, home, project)
+        self.prepare_trial_with(&kind, &name, authoring, home, project, delegation_signals)
     }
     /// §5.5: removing the trial card cancels the trial; nothing is recorded.
     pub fn cancel_trial(&mut self, reference: &str) -> Result<Value, String> {
@@ -914,10 +1001,16 @@ pub(crate) fn perform_trial_reads(home: &HomeSession, reads: Vec<TrialRead>) -> 
 }
 
 const IN_PROGRESS: &str = "read in progress";
-/// The child's descendant node as the view shows it now (its last native call,
-/// activity, status and thread read), compared to decide a re-read.
+/// The child as the view shows it now, compared to decide a re-read: its
+/// descendant node (last native call, activity, status, thread read) and the
+/// counts of its own items and turns (H-7). A node first seen through
+/// `subAgentActivity` is built once and does not change, so the child's own
+/// rows are what show its new activity.
 fn node_signature(view: &Value, child: &str) -> String {
-    view["descendants"].as_array().into_iter().flatten().find(|d| d["threadId"] == child).map(Value::to_string).unwrap_or_default()
+    let node = view["descendants"].as_array().into_iter().flatten().find(|d| d["threadId"] == child).map(Value::to_string).unwrap_or_default();
+    let items = view["items"].as_array().into_iter().flatten().filter(|r| r["threadId"] == child).count();
+    let turns = view["turns"].as_array().into_iter().flatten().filter(|t| t["threadId"] == child).count();
+    format!("{node}|items:{items}|turns:{turns}")
 }
 /// The view shows the child past its spawn: an item or turn of its own, a
 /// status other than `pendingInit`, or a subagent activity row. Its first turn
@@ -977,31 +1070,43 @@ fn files_outside(view: &Value, thread: &str, work: &str) -> usize {
 /// Host refused before writing leaves the trial pre-filled; a written send
 /// whose outcome is not established leaves no link and is never resent. No
 /// App lock is held while Codex answers.
-pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, reference: &str, generation: &Value, thread: &str, person_text: &str) -> Result<Value, String> {
-    let home_key = generation["home"].as_str().ok_or("generation home required")?.to_owned();
-    current_conversation(&home.host.snapshot(), generation, thread).map_err(|e| format!("{e}; nothing sent"))?;
+pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, reference: &str, generation: &Value, thread: &str, person_text: &str) -> Result<Value, SendRefusal> {
+    // A refusal before anything is written leaves the trial as it was: still
+    // pre-filled unless it was absent or another send of it is under way.
+    let still = |root: &WorkflowRootSession| root.trial_desk.pending.get(reference).is_some_and(|p| !p.in_flight);
+    let refuse = |root: &WorkflowRootSession, message: String| SendRefusal { prefill_kept: still(root), message };
+    let Some(home_key) = generation["home"].as_str().map(str::to_owned) else {
+        return Err(refuse(&root.lock().unwrap(), "generation home required; nothing sent".into()));
+    };
+    if let Err(e) = current_conversation(&home.host.snapshot(), generation, thread) {
+        return Err(refuse(&root.lock().unwrap(), format!("{e}; nothing sent")));
+    }
     // Runtime before Root (host_status's lock order).
     let baseline = all_descendants(&home.runtime.lock().unwrap().native_view());
     let (elements, client, kind) = {
         let mut root = root.lock().unwrap();
-        if root.pending_notice_for(&home_key, thread)?.is_some() {
-            return Err("A workflow run ended in this conversation and its end notice goes first with the next message (WR TX-5); send that message first, then send the trial. Nothing sent; the trial stays pre-filled".into());
+        match root.pending_notice_for(&home_key, thread) {
+            Err(e) => return Err(refuse(&root, format!("{e}; nothing sent"))),
+            Ok(Some(_)) => return Err(refuse(&root, "A workflow run ended in this conversation and its end notice goes first with the next message (WR TX-5); send that message first, then send the trial. Nothing sent; the trial stays pre-filled".into())),
+            Ok(None) => {}
         }
         let clean_here = root.trial_conversation(thread);
-        let p = root.trial_desk.pending.get_mut(reference).ok_or_else(|| format!("No pre-filled trial {reference}; press Try again"))?;
+        let Some(p) = root.trial_desk.pending.get_mut(reference) else {
+            return Err(SendRefusal::not_kept(format!("No pre-filled trial {reference}; press Try again")));
+        };
         if p.in_flight {
-            return Err("This trial message is being sent now; nothing sent again".into());
+            return Err(SendRefusal::not_kept("This trial message is being sent now; nothing sent again"));
         }
         match p.kind {
             TrialKind::Delegated => {
                 if clean_here.is_some() {
-                    return Err("A delegated trial is sent in an authoring conversation, not in a trial conversation. Nothing sent".into());
+                    return Err(SendRefusal::kept("A delegated trial is sent in an authoring conversation, not in a trial conversation. Nothing sent"));
                 }
                 p.authoring = Some((generation.clone(), thread.to_owned()));
             }
             TrialKind::Clean => match &p.clean {
                 Some((g, t)) if g == generation && t == thread => {}
-                _ => return Err("A clean trial is sent in its own new conversation: start it with Send in the new trial conversation. Nothing sent".into()),
+                _ => return Err(SendRefusal::kept("A clean trial is sent in its own new conversation: start it with Send in the new trial conversation. Nothing sent")),
             },
         }
         p.in_flight = true;
@@ -1021,14 +1126,14 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
             if let Some(p) = root.trial_desk.pending.get_mut(reference) {
                 p.in_flight = false;
             }
-            return Err(format!("{reason}. No trial link was written; the trial stays pre-filled (WR §5.5)"));
+            return Err(SendRefusal::kept(format!("{reason}. No trial link was written; the trial stays pre-filled (WR §5.5)")));
         }
         Err(reason) => {
             root.trial_desk.pending.remove(reference);
-            return Err(format!("{reason}. The send's outcome is not established: no trial link was written and nothing is resent (WR TT-4); press Try again for a new trial"));
+            return Err(SendRefusal::not_kept(format!("{reason}. The send's outcome is not established: no trial link was written and nothing is resent (WR TT-4); press Try again for a new trial")));
         }
     };
-    let p = root.trial_desk.pending.remove(reference).ok_or("pre-filled trial lost while sending")?;
+    let p = root.trial_desk.pending.remove(reference).ok_or_else(|| SendRefusal::not_kept("pre-filled trial lost while sending"))?;
     let (authoring, clean) = match kind {
         TrialKind::Delegated => (thread.to_owned(), None),
         TrialKind::Clean => (p.authoring.as_ref().map(|(_, t)| t.clone()).unwrap_or_else(|| "none chosen".into()), Some(thread.to_owned())),
@@ -1068,7 +1173,7 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
     );
     match link {
         Ok(link) => Ok(json!({"reference":reference,"turn":turn,"link":link,"standing":"trial message sent by the person; trial link written on Codex's acknowledgment. Not a run, registration, checking or acceptance"})),
-        Err(cause) => Err(format!("The trial message was sent (turn {}) but its trial link could not be written: {cause}. Nothing is resent", turn.unwrap_or_else(|| "not named".into()))),
+        Err(cause) => Err(SendRefusal::not_kept(format!("The trial message was sent (turn {}) but its trial link could not be written: {cause}. Nothing is resent", turn.unwrap_or_else(|| "not named".into())))),
     }
 }
 
@@ -1299,17 +1404,27 @@ pub(crate) fn cancel_bring_back(root: &Mutex<WorkflowRootSession>, id: &str) -> 
 /// SQ-BB BB-5: the person sends the prompt and the transcript; a trial's
 /// *brought back* observation is written on Codex's acknowledgment. A real
 /// run brought back has no trial link, so nothing is recorded for it.
-pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSession, id: &str, generation: &Value, thread: &str, person_text: &str) -> Result<Value, String> {
-    current_conversation(&home.host.snapshot(), generation, thread).map_err(|e| format!("{e}; nothing sent"))?;
-    let home_key = generation["home"].as_str().ok_or("generation home required")?.to_owned();
+pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSession, id: &str, generation: &Value, thread: &str, person_text: &str) -> Result<Value, SendRefusal> {
+    let still = |root: &WorkflowRootSession| root.trial_desk.bring_backs.get(id).is_some_and(|b| !b.in_flight);
+    let refuse = |root: &WorkflowRootSession, message: String| SendRefusal { prefill_kept: still(root), message };
+    if let Err(e) = current_conversation(&home.host.snapshot(), generation, thread) {
+        return Err(refuse(&root.lock().unwrap(), format!("{e}; nothing sent")));
+    }
+    let Some(home_key) = generation["home"].as_str().map(str::to_owned) else {
+        return Err(refuse(&root.lock().unwrap(), "generation home required; nothing sent".into()));
+    };
     let (elements, client) = {
         let mut root = root.lock().unwrap();
-        if root.pending_notice_for(&home_key, thread)?.is_some() {
-            return Err("A workflow run ended in this conversation and its end notice goes first with the next message (WR TX-5); send that message first. Nothing sent; the transcript stays pre-filled".into());
+        match root.pending_notice_for(&home_key, thread) {
+            Err(e) => return Err(refuse(&root, format!("{e}; nothing sent"))),
+            Ok(Some(_)) => return Err(refuse(&root, "A workflow run ended in this conversation and its end notice goes first with the next message (WR TX-5); send that message first. Nothing sent; the transcript stays pre-filled".into())),
+            Ok(None) => {}
         }
-        let b = root.trial_desk.bring_backs.get_mut(id).ok_or_else(|| format!("No pre-filled transcript {id}"))?;
+        let Some(b) = root.trial_desk.bring_backs.get_mut(id) else {
+            return Err(SendRefusal::not_kept(format!("No pre-filled transcript {id}")));
+        };
         if b.in_flight {
-            return Err("This transcript is being sent now; nothing sent again".into());
+            return Err(SendRefusal::not_kept("This transcript is being sent now; nothing sent again"));
         }
         b.in_flight = true;
         b.target = (generation.clone(), thread.to_owned());
@@ -1320,14 +1435,14 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
     let mut root = root.lock().unwrap();
     match outcome {
         Ok(response) => {
-            let b = root.trial_desk.bring_backs.remove(id).ok_or("pre-filled transcript lost while sending")?;
+            let b = root.trial_desk.bring_backs.remove(id).ok_or_else(|| SendRefusal::not_kept("pre-filled transcript lost while sending"))?;
             let turn = response["result"]["turn"]["id"].clone();
             let recorded = match &b.trial {
                 Some(reference) => Some(root.trials.record_observation(reference, TrialObservation::BroughtBack { target_conversation: thread.to_owned(), transcript: b.transcript.clone(), shortenings: b.shortenings.clone() })),
                 None => None,
             };
             match recorded {
-                Some(Err(cause)) => Err(format!("The transcript was sent (turn {turn}) but its brought-back observation could not be written: {cause}. Nothing is resent")),
+                Some(Err(cause)) => Err(SendRefusal::not_kept(format!("The transcript was sent (turn {turn}) but its brought-back observation could not be written: {cause}. Nothing is resent"))),
                 Some(Ok(observation)) => Ok(json!({"id":id,"turn":turn,"observation":observation})),
                 None => Ok(json!({"id":id,"turn":turn,"observation":null,"limit":"a real run brought back has no trial link; nothing is recorded for it"})),
             }
@@ -1336,11 +1451,11 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
             if let Some(b) = root.trial_desk.bring_backs.get_mut(id) {
                 b.in_flight = false;
             }
-            Err(format!("{reason}. Nothing recorded; the transcript stays pre-filled"))
+            Err(SendRefusal::kept(format!("{reason}. Nothing recorded; the transcript stays pre-filled")))
         }
         Err(reason) => {
             root.trial_desk.bring_backs.remove(id);
-            Err(format!("{reason}. The send's outcome is not established; nothing is recorded or resent"))
+            Err(SendRefusal::not_kept(format!("{reason}. The send's outcome is not established; nothing is recorded or resent")))
         }
     }
 }
@@ -1368,10 +1483,10 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) 
             let name = link["draft"]["name"].as_str().unwrap_or_default().to_owned();
             let content = link["content"]["value"].as_str().unwrap_or_default().to_owned();
             let folder = package_copy::content_folder(&library.root, TRIAL_AREA, &name, &content);
-            let (snapshot, files) = match package_copy::copy_standing(&folder, &content) {
-                CopyStanding::Current => (json!({"state":"current"}), Snapshot::capture(&folder).ok().map(|s| s.files().clone())),
-                CopyStanding::Changed(cause) => (json!({"state":"changed","reading":format!("trial snapshot changed after the trial: {cause}")}), None),
-                CopyStanding::NotAvailable(_) => (json!({"state":"not available","reading":"version bytes not available"}), None),
+            let standing = package_copy::copy_standing(&folder, &content);
+            let files = match standing {
+                CopyStanding::Current => Snapshot::capture(&folder).ok().map(|s| s.files().clone()),
+                _ => None,
             };
             let trial = &link["trial"];
             return Ok(Side {
@@ -1379,8 +1494,8 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) 
                 label: format!("trial {} of draft {name}", trial["sequence"]),
                 kind: trial["kind"].as_str().unwrap_or_default().into(),
                 version: link["content"].clone(),
-                conversation: json!({"authoring":trial["authoring_conversation"],"trial":trial["clean_conversation"],"subAgent":root.linked_child(reference)}),
-                snapshot,
+                conversation: transcript::trial_conversation(&trial["authoring_conversation"], &trial["clean_conversation"], root.linked_child(reference).as_deref()),
+                snapshot: transcript::trial_snapshot(&standing),
                 files,
                 slot: format!("{}:{name}", library.origin),
                 source: root.trial_source(reference),
@@ -1389,7 +1504,7 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) 
         if let Some(run_ref) = spec["run"].as_str() {
             let (source, files, slot) = root.run_source(run_ref)?;
             let run = root.runs.get(run_ref).and_then(|r| r.try_lock().ok().map(|r| json!({"method":r.prepared().workflow().revision_method,"value":r.prepared().workflow().revision}))).unwrap_or(Value::Null);
-            return Ok(Side { home_thread: Some(source.thread.clone()), label: format!("run {run_ref} of {slot}"), kind: "registered run".into(), version: run, conversation: json!({"run":source.thread}), snapshot: json!({"state":"revision store","reading":"read from the revision this run selected"}), files: Some(files), slot, source: Ok(source) });
+            return Ok(Side { home_thread: Some(source.thread.clone()), label: format!("run {run_ref} of {slot}"), kind: "registered run".into(), version: run, conversation: transcript::run_conversation(&source.thread), snapshot: transcript::run_snapshot(), files: Some(files), slot, source: Ok(source) });
         }
         Err("Each side of Compare is a trial or a run".into())
     };

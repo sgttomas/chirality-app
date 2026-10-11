@@ -6822,7 +6822,7 @@ for line in sys.stdin:
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
  elif method=='thread/start':
   starts[0]+=1
-  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':f['params'].get('model') or 'fixture-model','modelProvider':f['params'].get('modelProvider') or 'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif method=='turn/start':
   # Publish-before-send witness: the WR records the peer can see when the turn arrives.
   with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
@@ -6850,6 +6850,32 @@ for line in sys.stdin:
    emit({'method':'item/completed','params':{'threadId':f['params']['threadId'],'turnId':result['turn']['id'],'item':item}})
    continue
  elif method=='collaborationMode/list':result={'data':[{'name':'Plan','mode':'plan'},{'name':'Default','mode':'default'}]}
+ elif method=='model/list':
+  # NPTD §7.1 signal 1: each model's multiAgentVersion from 'mav-<model>' (default v2; 'absent' unlisted; 'null').
+  if mode('models-mode')=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture model/list refused'}});continue
+  def entry(m):
+   e={'id':m,'model':m,'displayName':m,'description':'fixture','hidden':False,'isDefault':m=='fixture-model','defaultReasoningEffort':'medium','supportedReasoningEfforts':[{'reasoningEffort':'medium','description':'fixture'}]}
+   v=mode('mav-'+m) or 'v2'
+   e['multiAgentVersion']=None if v=='null' else v
+   return e
+  models=[entry(m) for m in ['fixture-model','other-model'] if mode('mav-'+m)!='absent']
+  if mode('models-mode')=='paged' and f['params'].get('cursor') is None:result={'data':[],'nextCursor':'models-2'}
+  else:result={'data':models,'nextCursor':None}
+ elif method=='config/read':
+  # Signal 2: features.multi_agent from 'config-multi-agent' ('' sets nothing); model_provider from 'config-provider'.
+  m=mode('config-multi-agent')
+  if m=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture config/read refused'}});continue
+  p=mode('config-provider') or 'fixture-provider'
+  config={'model_provider':None if p=='none' else p,'developer_instructions':'fixture private configuration text'}
+  if m in ('true','false'):config['features']={'multi_agent':m=='true'}
+  result={'config':config,'origins':{}}
+ elif method=='modelProvider/capabilities/read':
+  m=mode('namespace-tools')
+  if m=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture capabilities refused'}});continue
+  result={'imageGeneration':False,'namespaceTools':m!='false','webSearch':False}
  elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list' and f['params'].get('threadId','').startswith('child'):
   if mode('child-mode')=='error':
@@ -7490,6 +7516,219 @@ for line in sys.stdin:
         peer.set_mode("child-mode","given");
         let recorded=tick_reads(&peer,&root,&node("running",json!({"kind":"activity"})));
         assert_eq!(recorded[0]["observation"],"sub-agent linked");
+    }
+    // H-7 (#1247 review): a child first seen through subAgentActivity has a
+    // node that never changes; its own items and turns are what show new
+    // activity, so a "not yet in history" read is repeated when they arrive.
+    #[test]
+    fn a_child_first_seen_by_its_activity_is_read_again_when_its_own_rows_arrive(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
+        // As native_items builds it once from subAgentActivity: activity set at first sight, no status.
+        let view=|items:Vec<Value>,turns:Vec<Value>|json!({"home":g["home"],"generation":g,"items":items,"turns":turns,
+            "descendants":[{"threadId":"child-s","parentThreadId":"thread","parentSource":"subAgentActivity containing thread (inference)","lastNativeActivity":{"type":"subAgentActivity","agentThreadId":"child-s"},"guidance":"not-known","observationEnded":false}]});
+        let count=|p:&Peer|p.wire().iter().filter(|f|f["params"]["threadId"]=="child-s").count();
+        peer.set_mode("child-mode","noturn");
+        assert!(tick_reads(&peer,&root,&view(vec![],vec![])).is_empty());
+        let first=count(&peer);assert!(first>0,"read at first sight");
+        assert!(tick_reads(&peer,&root,&view(vec![],vec![])).is_empty());
+        assert_eq!(count(&peer),first,"the same view is not read again");
+        peer.set_mode("child-mode","given");
+        let own_turn=json!({"threadId":"child-s","id":"child-turn","status":"inProgress"});
+        let recorded=tick_reads(&peer,&root,&view(vec![],vec![own_turn.clone()]));
+        assert!(count(&peer)>first,"the child's own turn is new activity");
+        assert_eq!(recorded[0]["observation"],"sub-agent linked","{recorded:?}");
+        // A child's own item is new activity too (a second child, not yet linked to anything).
+        let mut v=view(vec![],vec![]);v["descendants"][0]["threadId"]=json!("child-t");v["descendants"][0]["lastNativeActivity"]["agentThreadId"]=json!("child-t");
+        peer.set_mode("child-mode","noturn");tick_reads(&peer,&root,&v);
+        let reads=item_reads(&peer)+peer.wire().iter().filter(|f|f["method"]=="thread/turns/list").count();
+        tick_reads(&peer,&root,&v);
+        assert_eq!(item_reads(&peer)+peer.wire().iter().filter(|f|f["method"]=="thread/turns/list").count(),reads);
+        v["items"]=json!([{"threadId":"child-t","turnId":"t","native":{"id":"i","type":"agentMessage","text":"working"},"displayState":"inProgress"}]);
+        tick_reads(&peer,&root,&v);
+        assert!(item_reads(&peer)+peer.wire().iter().filter(|f|f["method"]=="thread/turns/list").count()>reads,"the child's own item is new activity");
+    }
+    // ---- Delegation availability (NPTD §7.1; R19-5: read at run time in the host) ----
+    const DELEGATION_MODES:[&str;6]=["models-mode","mav-fixture-model","mav-other-model","config-multi-agent","config-provider","namespace-tools"];
+    fn delegation_reading(peer:&Peer,thread:&str)->Value{
+        crate::delegation_availability::evaluate(Some(&peer.home.host.delegation_signals_read(&peer.generation,thread,json!({"kind":"person-directed"}))))
+    }
+    fn reset_delegation(peer:&Peer){for m in DELEGATION_MODES{peer.set_mode(m,"");}}
+    #[test]
+    fn delegation_availability_is_read_from_codex_in_r21_1_order(){
+        let peer=Peer::new();
+        let read=||delegation_reading(&peer,"thread");
+        let present=read();
+        assert_eq!(present["reading"],"present","{present}");assert!(present["readAt"].is_string());
+        // The three reads: every model page with hidden models, the effective
+        // configuration at the conversation's folder, the provider's capabilities.
+        let wire=peer.wire();
+        assert_eq!(wire.iter().rev().find(|f|f["method"]=="model/list").unwrap()["params"]["includeHidden"],true);
+        assert_eq!(wire.iter().rev().find(|f|f["method"]=="config/read").unwrap()["params"]["cwd"],peer.home.host.snapshot()["threads"][0]["cwd"]);
+        assert!(wire.iter().any(|f|f["method"]=="modelProvider/capabilities/read"));
+        // (1) disabled decides first, then (2) multi_agent = false, then (3) namespaceTools false.
+        peer.set_mode("mav-fixture-model","disabled");peer.set_mode("config-multi-agent","false");peer.set_mode("namespace-tools","false");
+        let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("multiAgentVersion disabled"),"{r}");
+        peer.set_mode("mav-fixture-model","v1");
+        let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("features.multi_agent = false"),"{r}");
+        peer.set_mode("config-multi-agent","");
+        let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("namespaceTools false"),"{r}");
+        peer.set_mode("namespace-tools","");assert_eq!(read()["reading"],"present","v1, nothing set, namespaceTools true");
+        peer.set_mode("config-multi-agent","true");assert_eq!(read()["reading"],"present");
+        // A missing reading wins over a signal not read.
+        reset_delegation(&peer);peer.set_mode("models-mode","error");peer.set_mode("config-multi-agent","false");
+        assert_eq!(read()["reading"],"missing");
+        // Each signal not read: not established, naming the cause.
+        for (name,value,cause) in [("models-mode","error","multiAgentVersion not read"),("mav-fixture-model","absent","lists no model"),("mav-fixture-model","null","reports none"),
+            ("config-multi-agent","error","effective configuration not read"),("namespace-tools","error","namespaceTools not read"),
+            ("config-provider","other","home's configured provider (other), not the conversation's (fixture-provider)"),("config-provider","none","none named in the effective configuration")]{
+            reset_delegation(&peer);peer.set_mode(name,value);
+            let r=read();assert_eq!(r["reading"],"not established","{name}={value}: {r}");
+            assert!(r["reason"].as_str().unwrap().contains(cause),"{name}={value}: {r}");
+        }
+        // A model list of several pages is read to the model's page.
+        reset_delegation(&peer);peer.set_mode("models-mode","paged");assert_eq!(read()["reading"],"present");
+        // A conversation not loaded in this generation is not read.
+        let r=delegation_reading(&peer,"thread-unknown");
+        assert_eq!(r["reading"],"not established");assert!(r["reason"].as_str().unwrap().contains("not loaded"));
+        // Nothing of the configuration but features.multi_agent is kept.
+        assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
+    }
+    #[test]
+    fn delegation_is_read_per_conversation_model_and_per_home_once_on_the_tick(){
+        let a=Peer::new();let b=Peer::new();
+        let cfg=a.home.host_config.as_ref().unwrap().clone();
+        a.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"other-model","fixture-provider","existing role unchanged").unwrap();
+        a.set_mode("mav-other-model","disabled");b.set_mode("namespace-tools","false");
+        let model_lists=|p:&Peer|p.wire().iter().filter(|f|f["method"]=="model/list").count();
+        // One conversation per home per tick; each model, provider and folder read once.
+        assert_eq!(crate::host_tick::delegation_tick_home(&a.home),1);
+        assert_eq!(crate::host_tick::delegation_tick_home(&a.home),1);
+        assert_eq!(crate::host_tick::delegation_tick_home(&a.home),0,"nothing is read again on later ticks");
+        assert_eq!(model_lists(&a),2);
+        assert_eq!(crate::host_tick::delegation_tick_home(&b.home),1);
+        assert_eq!(model_lists(&b),1);
+        assert!(a.home.host.client_requests().iter().filter(|r|r["method"]=="model/list").all(|r|r["initiator"]==json!({"kind":"app-rule","name":"delegation-availability-read"})));
+        let shown=|p:&Peer|{let mut threads=p.home.host.snapshot()["threads"].clone();crate::delegation_availability::annotate_threads(&mut threads,&p.home.host.delegation_readings());threads};
+        let threads=shown(&a);
+        let of=|threads:&Value,t:&str|threads.as_array().unwrap().iter().find(|r|r["threadId"]==t).unwrap()["delegation"].clone();
+        assert_eq!(of(&threads,"thread")["reading"],"present","fixture-model in home A");
+        let other=of(&threads,"thread-2");
+        assert_eq!(other["reading"],"missing","other-model in home A: {other}");assert!(other["reason"].as_str().unwrap().contains("disabled"));
+        let r=of(&shown(&b),"thread");
+        assert_eq!(r["reading"],"missing","the same model in home B, whose provider reports namespaceTools false: {r}");
+        assert!(r["reason"].as_str().unwrap().contains("namespaceTools false"));
+        // A new conversation with a model not yet read is due on the next tick.
+        a.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
+        assert_eq!(crate::host_tick::delegation_tick_home(&a.home),0,"the same model, provider and folder answer for the new conversation");
+        assert_eq!(of(&shown(&a),"thread-3")["reading"],"present");
+    }
+    #[test]
+    fn try_with_the_authoring_agent_reads_delegation_when_pressed(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let press=|root:&mut WorkflowRootSession|{
+            let signals=trial_flows::delegation_signals_for("delegated",Some(&peer.home),Some((&g,"thread")));
+            root.prepare_trial_with("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project(),signals.as_ref())
+        };
+        let view=press(&mut root).unwrap();
+        assert_eq!(view["delegation"]["reading"],"present","{}",view["delegation"]);
+        root.cancel_trial(view["reference"].as_str().unwrap()).unwrap();
+        peer.set_mode("config-multi-agent","false");
+        let refused=press(&mut root).unwrap_err();
+        assert!(refused.contains("features.multi_agent = false")&&refused.contains("Try in a fresh conversation")&&refused.contains("Nothing pre-filled"),"{refused}");
+        peer.set_mode("config-multi-agent","");peer.set_mode("namespace-tools","error");
+        let view=press(&mut root).unwrap();
+        assert_eq!(view["delegation"]["reading"],"not established","offered with the note");
+        assert!(view["delegation"]["reason"].as_str().unwrap().contains("namespaceTools not read"));
+        assert!(trial_flows::delegation_signals_for("clean",Some(&peer.home),Some((&g,"thread"))).is_none(),"a clean trial reads nothing");
+        let caps=|p:&Peer|p.wire().iter().filter(|f|f["method"]=="modelProvider/capabilities/read").count();
+        // Try again reads the authoring conversation's signals again.
+        let reference=view["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
+        peer.set_mode("namespace-tools","false");let before=caps(&peer);
+        let again=trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap_err();
+        assert!(again.contains("namespaceTools false"),"{again}");assert_eq!(caps(&peer),before+1);
+        peer.set_mode("namespace-tools","");
+        assert_eq!(trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap()["delegation"]["reading"],"present");
+    }
+    // ---- #1247 review leftovers H-2, H-5 and the send refusals' prefillKept ----
+    fn pending_refs(root:&Mutex<WorkflowRootSession>)->Vec<String>{
+        let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
+        status["pendingTrials"].as_array().unwrap().iter().filter_map(|p|p["reference"].as_str().map(str::to_owned)).collect()
+    }
+    #[test]
+    fn a_clean_start_that_fails_or_names_no_thread_withdraws_the_prefill_and_the_start_names_the_generation(){
+        let peer=Peer::new();let root=Mutex::new(trial_root(&peer));
+        let prepare=||root.lock().unwrap().prepare_trial("clean",DRAFT,None,Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let starts=peer.turn_starts();
+        // The start failed: withdrawn, nothing sent.
+        let r1=prepare();
+        let err=trial_flows::start_clean_trial(&root,&r1,||Err("thread/start refused".into()),|_,_|panic!("nothing is sent")).unwrap_err();
+        assert!(!err.prefill_kept&&err.contains("withdrawn"),"{err}");
+        assert!(!pending_refs(&root).contains(&r1),"a failed start withdraws the pre-fill");
+        assert!(root.lock().unwrap().cancel_trial(&r1).is_err());
+        // The start named no thread id: withdrawn.
+        let r2=prepare();
+        let err=trial_flows::start_clean_trial(&root,&r2,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{}}})),|_,_|panic!("nothing is sent")).unwrap_err();
+        assert!(!err.prefill_kept);assert!(!pending_refs(&root).contains(&r2),"no thread id withdraws the pre-fill");
+        // The start named no generation: withdrawn.
+        let r3=prepare();
+        assert!(trial_flows::start_clean_trial(&root,&r3,||Ok(json!({"result":{"thread":{"id":"thread-x"}}})),|_,_|panic!("nothing is sent")).is_err());
+        assert!(!pending_refs(&root).contains(&r3));
+        assert_eq!(peer.turn_starts(),starts);
+        // The trial is sent in the conversation and generation the start reports.
+        let r4=prepare();let thread=peer.second_thread();let mut seen=None;
+        let sent=trial_flows::start_clean_trial(&root,&r4,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{"id":thread}}})),
+            |generation,t|{seen=Some((generation.clone(),t.to_owned()));trial_flows::send_trial(&root,&peer.home,&r4,generation,t,"")}).unwrap();
+        assert_eq!(seen,Some((peer.generation.clone(),thread.clone())));
+        assert_eq!(sent["conversation"],json!({"generation":peer.generation,"threadId":thread}));
+        assert_eq!(links(&peer).link(&r4).unwrap()["trial"]["clean_conversation"],thread.as_str());
+        // A second press of a started trial starts nothing.
+        assert!(trial_flows::start_clean_trial(&root,&r4,||panic!("no second start"),|_,_|panic!("nothing is sent")).is_err());
+    }
+    #[test]
+    fn trial_reads_route_to_the_home_holding_the_trial_conversation(){
+        let a=Peer::new();let b=Peer::new();let root=Mutex::new(trial_root(&a));
+        // A clean trial authored in A's "thread"; its conversation starts in home B (which also holds a "thread").
+        let reference=root.lock().unwrap().prepare_trial("clean",DRAFT,Some((&a.generation,"thread")),Some(&a.home),a.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let thread=b.second_thread();
+        trial_flows::start_clean_trial(&root,&reference,||Ok(json!({"startGeneration":b.generation,"result":{"thread":{"id":thread}}})),|g,t|trial_flows::send_trial(&root,&b.home,&reference,g,t,"")).unwrap();
+        let homes=vec![a.home.clone(),b.home.clone()];
+        let home=trial_flows::trial_home(&root,&homes,&reference).unwrap();
+        assert!(Arc::ptr_eq(&home,&b.home),"the trial's own conversation is in B, not the authoring conversation's home");
+        let turn_lists=|p:&Peer|p.wire().iter().filter(|f|f["method"]=="thread/turns/list"||f["method"]=="thread/items/list").count();
+        let (a0,b0)=(turn_lists(&a),turn_lists(&b));
+        trial_flows::read_trial_again(&root,&home,&reference,&json!({})).unwrap();
+        assert_eq!(turn_lists(&a),a0,"Read again reads nothing in A");assert!(turn_lists(&b)>b0,"Read again reads B");
+        let (a1,b1)=(turn_lists(&a),turn_lists(&b));
+        trial_flows::compare(&root,&|t|trial_flows::home_holding(&homes,t),&json!({"trial":reference}),&json!({"trial":reference})).unwrap();
+        assert_eq!(turn_lists(&a),a1,"Compare reads nothing in A");assert!(turn_lists(&b)>b1,"Compare reads B");
+        let again=trial_flows::trial_again(&root,&reference,&home,a.project()).unwrap();
+        assert_eq!(again["kind"],"clean");assert_eq!(again["authoring"]["generation"],b.generation,"Try again takes the trial's home");
+    }
+    #[test]
+    fn send_refusals_say_whether_the_trial_stays_pre_filled(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let (clean_ref,clean_thread)=started_clean(&peer,&mut root);
+        let delegated=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);
+        // Refused before anything was written: kept.
+        for (reference,thread) in [(&delegated,clean_thread.as_str()),(&clean_ref,"thread"),(&delegated,"thread-unknown")]{
+            let err=trial_flows::send_trial(&root,&peer.home,reference,&g,thread,"x").unwrap_err();
+            assert!(err.prefill_kept,"{err}");
+            assert!(pending_refs(&root).contains(reference));
+        }
+        let err=trial_flows::send_trial(&root,&peer.home,"trial:none",&g,"thread","x").unwrap_err();assert!(!err.prefill_kept,"{err}");
+        // Codex refused: kept. Outcome unknown: withdrawn, not kept.
+        peer.set_mode("turn-mode","error");
+        assert!(trial_flows::send_trial(&root,&peer.home,&delegated,&g,"thread","x").unwrap_err().prefill_kept);
+        peer.set_mode("turn-mode","exit");
+        let err=trial_flows::send_trial(&root,&peer.home,&delegated,&g,"thread","x").unwrap_err();
+        assert!(!err.prefill_kept,"{err}");assert!(!pending_refs(&root).contains(&delegated));
+        // The serialized refusal carries the flag for the view.
+        assert_eq!(serde_json::to_value(&err).unwrap()["prefillKept"],false);
+        assert_eq!(serde_json::to_value(trial_flows::SendRefusal::kept("m")).unwrap(),json!({"message":"m","prefillKept":true}));
     }
     // H-10: a trial turn's activity records no checkpoint arrival for the run in force.
     #[test]
