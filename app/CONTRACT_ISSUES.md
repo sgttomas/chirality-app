@@ -1339,9 +1339,11 @@ changed.
     homes) both server-provider reads name no provider, so the reading is
     *not established* for every conversation, even for a `disabled` model.
     The App does not infer Codex's default provider from that absence (it is
-    not in the 0.160.0 types; OBS-2's observation is of 0.158.0). This holds
-    until the native witness observes what 0.160.0's `config/read` and
-    capabilities report for an unconfigured home; the witness run settles it.
+    not in the 0.160.0 types; OBS-2's observation is of 0.158.0). The trial
+    witness of 2026-10-10 observed this natively at 0.160.0 in an App-only
+    home: the app-server's configuration named no provider, both signals read
+    *not read*, the reading was *not established*, and Try with the authoring
+    agent stayed offered.
   - Not verifiable from the App: a `config.toml` edited after the app-server
     started may make `config/read` (read from the files now) and the
     parameterless reads (the server's loaded configuration) diverge. The
@@ -1359,6 +1361,17 @@ changed.
     reads are; NPTD §5.1 names the receiver DEL-01-03. Say which at the
     re-freeze. The tick's reads are journalled as the App rule
     `delegation-availability-read`.
+- **Trial witness (2026-10-10 evening;
+  `execution/PKG-02/DEL-02-02/Design/TRIAL_WITNESS_2026-10-10.md`).** WR TT-3a,
+  TT-9, TT-12, DT-5, §12 WR-VC-22, §15 U-WR-25 and §17 were edited, so the WR
+  pin moves further from the frozen hash. Pinned texts that still match their
+  pins were left unchanged; apply this at the re-freeze:
+  - DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.2, the `parentThreadId`
+    row ("else the thread of a `subAgentActivity` item (inference)"): a
+    child's own history can carry `subAgentActivity` naming its parent. The
+    App no longer infers a parent from an item that names the containing
+    thread itself, the root agent (`agentPath` "/root"), or a known ancestor
+    of the containing thread. Add that qualification.
 - **OI-008 ruling (2026-10-10).** The owner decided process placement for the
   whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
   §11 and NIR §1.1 were also edited, since their pins were already stale. Five
