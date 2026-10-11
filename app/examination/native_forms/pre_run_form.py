@@ -9,7 +9,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = 'ad4d5e1ceab36dce64396eff9828082e3401ecc7d221bf679995f5a5676333f2'
+PINS_SHA256 = '89ed4d3418f384b7f6100dce71018a4451f772a6b60d57f183e81acb4f3ebc0f'
 
 
 def consumer():

@@ -581,10 +581,11 @@ next needed.
 
 App-file act and decline captures are sealed with this installation's key,
 kept in the App user-data `capture-seal/keys.json` (owner-only), and only a
-capture whose seal verifies there counts (AAC §6.3 SEAL-C; CI-20 (h)); anything
-that can read that file can seal. Trustworthy persistent cold replay and
-SEAL-2's OS key store and entry seal remain unfinished under CI-10 and
-I3-CUST. Current code refuses unverified replay while preserving evidence.
+capture whose seal verifies there counts (AAC §6.3 SEAL-C; CI-20 (h)). This
+narrows R-1 but does not close it: anything that can read that file, including
+an agent under Codex's default read access, can seal. Trustworthy persistent
+cold replay remains unfinished under CI-10 and I3-CUST, and SEAL-2 stays
+deferred. Current code refuses unverified replay while preserving evidence.
 Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;

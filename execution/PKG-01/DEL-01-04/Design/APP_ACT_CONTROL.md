@@ -547,7 +547,12 @@ governance-phase matter. The capture-evidence schema carries the optional
 captures; CI-20 (h) review finding R-1).** The owner chose "Merge, track the
 fix (Recommended)", whose next slice was to "either keep captures and act
 records out of reach of agents, or sign them with a key the host holds". SEAL-C
-is SEAL-2's capture half, with the key in the App data folder:
+is that owner-chosen host-key fix. It is separate from SEAL-2, which stays
+deferred ("Keep SEAL-2 deferred; continue other work"; CI-10): SEAL-C uses the
+capture schema's optional `seal` element with a key in the App data folder, and
+adopts no OS key store, no entry seal and no signing. **It narrows R-1; it does
+not close it** (see *Limits*; whether to accept the residual is an owner
+decision, pending):
 
 - *Seal.* The Rust act control seals each A4/A6/A7 act or decline capture before
   its first publication: the capture schema's `seal` is
@@ -587,8 +592,10 @@ is SEAL-2's capture half, with the key in the App data folder:
   project would change RS §13.7's owner-selected allocation and DEL-04-03's
   "ordinary project files" (REQ-001), which are the owner's; SEAL-C changes
   neither, adds no RS entry element and leaves format 0.1, R-7 and R11 as they
-  are (RS FR-08's entry seal stays conditional). It does not depend on the
-  person's sandbox or approval setting (D3).
+  are (RS FR-08's entry seal stays conditional). The App does not choose or
+  force the person's sandbox or approval setting (D3), but its protection
+  against an agent does depend on it: an agent whose sandbox can read the App
+  data folder can read the key.
 - *Limits.* Anything that can read the key file can seal: any process running
   as the same OS user, and a Codex agent whose sandbox lets it read the App
   data folder (Codex's default read access does). SEAL-C shows a capture was
@@ -596,9 +603,12 @@ is SEAL-2's capture half, with the key in the App data folder:
   acted nor who (K1-4), and it is not native-origin proof for cold replay
   (§5.2a; CI-10 stays open). The backlink is not sealed, so a writer of the
   project's files can still make a genuine act uncounted (for example by
-  editing the backlink or adding a second record on its capture, R-8), but
-  cannot make a new one count. A15 and A16 captures are not sealed; neither is
-  counted through this rule.
+  editing the backlink or adding a second record on its capture, R-8); a
+  writer without read access to the key cannot make a new one count. A sealed
+  capture copied, with its record, into an enclosing project counts there only
+  for the same act on the same content, since its subject, content and time
+  are sealed. A15 and A16 captures are not sealed; neither is counted through
+  this rule.
 
 ### 6.4 Limits that no placement removes (stated, not hidden)
 
@@ -660,7 +670,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 |---|---|---|---|
 | U-AAC-1 P-2/Rust capture allocation | Owner selected for Group A, this run OWNER_DECISIONS (CC-P-A) | Product adoption after independent backcheck | §6.2 selected; native custody/durability witnesses still required; no global OI closure |
 | U-AAC-2 *Closed (DECISION-L L-5):* no per-act OS check now | — | — | P-3 not adopted |
-| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | SEAL-C selected for App-file act captures (§6.3, 2026-10-11); SEAL-2's OS key store and entry seal remain PROPOSED; J-R4 |
+| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | Separately, SEAL-C (the owner's 2026-10-11 R-1 host-key fix, §6.3) seals App-file act captures; SEAL-2 itself stays deferred and PROPOSED; J-R4 |
 | U-AAC-4 *Closed (R18-1 C-22):* record at capture, registration after, outcome beside the act, as WR | — | — | §4.2 |
 | U-AAC-5 Home of "the name set in the App" | Integrator | Node F | Assigned here |
 | U-AAC-6 Codex account of a signed-in home | DEL-01-05; observation only with a new owner answer (L-6) | Before act-control implementation | §7: O-6 filled in part |

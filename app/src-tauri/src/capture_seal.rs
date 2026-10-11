@@ -133,15 +133,20 @@ fn uid() -> u32 {
 }
 /// Read the keyring; `Ok(None)` only when no key file exists yet.
 fn load(folder: &Path) -> Result<Option<Keyring>, String> {
+    use std::io::Read;
     let path = folder.join(KEY_FILE);
-    let meta = match std::fs::symlink_metadata(&path) {
-        Ok(m) => m,
+    // Open without following a link and judge the opened file itself (fstat),
+    // so nothing can be swapped in between the check and the read.
+    let mut file = match std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&path) {
+        Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) if e.raw_os_error() == Some(libc::ELOOP) => return Err("capture-seal keys are a link, not a regular file in a folder; not used".into()),
         Err(e) => return Err(format!("capture-seal keys not readable: {e}")),
     };
+    let meta = file.metadata().map_err(|e| format!("capture-seal keys not readable: {e}"))?;
     let dir = std::fs::symlink_metadata(folder).map_err(|e| format!("capture-seal key folder not readable: {e}"))?;
-    if !meta.file_type().is_file() || !dir.file_type().is_dir() {
-        return Err("capture-seal keys are not a regular file in a folder; not used".into());
+    if !meta.file_type().is_file() || !dir.file_type().is_dir() || crate::storage::check_path(folder).is_err() {
+        return Err("capture-seal keys are a link, not a regular file in a folder; not used".into());
     }
     if meta.uid() != uid() || dir.uid() != uid() {
         return Err("capture-seal keys are owned by another user; not used".into());
@@ -149,8 +154,9 @@ fn load(folder: &Path) -> Result<Option<Keyring>, String> {
     if meta.mode() & 0o077 != 0 || dir.mode() & 0o077 != 0 {
         return Err("capture-seal keys are open to other users; not used".into());
     }
-    let raw: Value = serde_json::from_slice(&std::fs::read(&path).map_err(|e| format!("capture-seal keys not readable: {e}"))?)
-        .map_err(|e| format!("capture-seal keys not readable: {e}"))?;
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).map_err(|e| format!("capture-seal keys not readable: {e}"))?;
+    let raw: Value = serde_json::from_slice(&bytes).map_err(|e| format!("capture-seal keys not readable: {e}"))?;
     let bad = || "capture-seal keys not in their format; not used".to_owned();
     if raw["format"] != KEYRING_FORMAT || raw["formatVersion"] != "1" {
         return Err(bad());
@@ -211,8 +217,10 @@ fn load_or_create(folder: &Path) -> Result<Keyring, String> {
 /// under them still verify here. Returns the new key identity.
 pub fn rotate() -> Result<String, String> {
     let folder = folder()?;
-    let ring = load_or_create(&folder)?;
+    load_or_create(&folder)?; // takes and releases the lock itself
     let _lock = crate::storage::lock(&folder.join(".keys.lock"))?;
+    // Read the keyring under the lock, so a concurrent rotation is not lost.
+    let ring = load(&folder)?.ok_or("capture-seal keys not readable for rotation")?;
     let (key, entry) = new_key()?;
     let mut raw = ring.raw.clone();
     raw["keys"].as_array_mut().ok_or("capture-seal keys not in their format")?.push(entry);
@@ -265,7 +273,9 @@ mod tests {
         std::fs::canonicalize(dir).unwrap()
     }
     fn capture() -> Value {
-        json!({"captureId":"cap:x","choice":"act","actKind":"A6","boundSubject":["/p/a"],"capturedAt":"2026-10-11T00:00:00.000Z","answers":{"n":1}})
+        json!({"captureId":"cap:x","choice":"act","actKind":"A6","boundSubject":["/p/a"],"capturedAt":"2026-10-11T00:00:00.000Z","answers":{"n":1},
+            "boundContent":[{"method":"m","value":"v"}],"scope":"the file","purpose":"rely","actor":{"osAccount":"fixture","identityVerified":false},
+            "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)}})
     }
     #[test]
     fn hmac_matches_rfc_4231_case_2() {
@@ -281,7 +291,10 @@ mod tests {
         let mut linked = c.clone();
         linked["recordId"] = json!("rec:app:1");
         verify(&project, &linked).unwrap();
-        for (member, other) in [("actKind", json!("A7")), ("capturedAt", json!("2026-10-12T00:00:00.000Z")), ("boundSubject", json!(["/p/b"])), ("choice", json!("decline"))] {
+        for (member, other) in [("actKind", json!("A7")), ("capturedAt", json!("2026-10-12T00:00:00.000Z")), ("boundSubject", json!(["/p/b"])), ("choice", json!("decline")),
+            ("boundContent", json!([{"method":"m","value":"other"}])), ("scope", json!("other scope")), ("purpose", json!("other purpose")),
+            ("actor", json!({"osAccount":"someone-else","identityVerified":false})), ("captureId", json!("cap:y")),
+            ("offerDigest", json!({"method":"aac-offer-digest/0.1","value":"1".repeat(64)}))] {
             let mut changed = c.clone();
             changed[member] = other;
             assert!(verify(&project, &changed).unwrap_err().contains("does not verify"), "{member}");
@@ -308,6 +321,29 @@ mod tests {
         assert!(verify(&project, &c).unwrap_err().contains("open to other users"));
         assert!(seal(&project, &mut capture()).is_err());
         std::fs::set_permissions(folder.join(KEY_FILE), std::fs::Permissions::from_mode(0o600)).unwrap();
+        verify(&project, &c).unwrap();
+        // A folder open to other users is not used either.
+        std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o750)).unwrap();
+        assert!(verify(&project, &c).unwrap_err().contains("open to other users"));
+        std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o700)).unwrap();
+        verify(&project, &c).unwrap();
+        // A linked key file, or a linked key folder, is not used.
+        let moved = keys.join("real-keys.json");
+        std::fs::rename(folder.join(KEY_FILE), &moved).unwrap();
+        std::os::unix::fs::symlink(&moved, folder.join(KEY_FILE)).unwrap();
+        assert!(verify(&project, &c).unwrap_err().contains("a link"));
+        std::fs::remove_file(folder.join(KEY_FILE)).unwrap();
+        std::fs::rename(&moved, folder.join(KEY_FILE)).unwrap();
+        verify(&project, &c).unwrap();
+        let linked_folder = keys.join("linked-folder");
+        std::os::unix::fs::symlink(&folder, &linked_folder).unwrap();
+        set_folder_for_test(Some(Some(linked_folder)));
+        assert!(verify(&project, &c).unwrap_err().contains("a link"));
+        set_folder_for_test(Some(Some(folder.clone())));
+        // A key folder containing the project is never used.
+        set_folder_for_test(Some(Some(project.parent().unwrap().to_path_buf())));
+        assert!(verify(&project, &c).unwrap_err().contains("inside this project (or contains it)"));
+        set_folder_for_test(Some(Some(folder.clone())));
         verify(&project, &c).unwrap();
         // A key folder inside the project is never used, also when it is not
         // made yet and named through a link (/var is a link on macOS).

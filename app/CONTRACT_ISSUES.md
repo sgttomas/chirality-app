@@ -26,7 +26,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-17 | CC-REC-ITEM-TURN-CUSTODY adopted (ledger schema 0.3, optional actual `turnId`) and implemented with cold-tuple tests; actual native quit/relaunch evidence and PI-6 mapping remain open. |
 | CI-18 | Corrected in code, no Design change: Root `prepare_run` refuses development selections under TT-1/TX-1. A development standing would need a named WR change; a registered-selection native witness is still needed. |
 | CI-19 | Open Design questions on EXEC report representation (unrecognized elements, revision method, App-only host facts, R14 without a report, strictness); the code refuses publication rather than inventing facts. |
-| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, R-1 capture forgery fixed by AAC SEAL-C (host-held key), residuals open. |
+| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, R-1 capture forgery narrowed by AAC SEAL-C (host-held key); R-1 stays open for agents that can read the App data folder (owner decision on that residual pending). |
 | CI-21 | App-kept draft bases implemented in the App data folder with exact ledger causes; (b) closed by CC-WR-RECONFIRM adoption. The base location and base freshness under RB-3 await WR owner confirmation. |
 | CI-22 | Bounded A15 statement, digest-named App display and the owner's three-button layout are implemented ahead of AAC adoption; the AAC adoption text is still needed. |
 | CI-23 | RS `if` stops the DEL-04-03 and WR prototypes under `minischema`; the App's `jsonschema` is unaffected. Open with DEL-04-03 (RS). |
@@ -222,7 +222,7 @@ consumer/native/qualification work. CI-10 custody and CI-11 native supplier rece
 - **Where:** app act_control.rs `recover_pending`/`write_pending`, AAC §5.2a no-matching-record replay against NA-1/HA-10, AAC §6.3 SEAL-1/SEAL-2 and §6.4 writable-file limits.
 - **Found:** schema-valid matching pending and capture files in the writable project store can trigger `decision_view` to append a new `human_act`; inputSource text alone does not establish a native event. A file-drop/watch-folder route cannot create a person's act.
 - **Disposition:** required fail-closed repair and named AAC/RS prerequisite clarification CC-CUST-A/CC-CUST-R: trusted hot-process original capture may retry; an existing valid matching RS entry may repair its backlink without upgrading provenance; cold unverified files retain facts and a visible limit, with no new human_act. Fail-closed repair and source/code backchecks passed (V0-CUST, V1-ACT-R2).
-- **Unfinished required work:** trustworthy persistent replay and protected capture-origin proof remain in Group A I3. The owner explicitly decided “Keep SEAL-2 deferred; continue other work”; no seal/schema/keychain/signing adoption follows. CAPTURE_CUSTODY_DECISION.md remains preparation, not acceptance. Packaging/signing qualification stays with Group B at its actual point of need; deferral or moving the obligation does not complete it.
+- **Unfinished required work:** trustworthy persistent replay and protected capture-origin proof remain in Group A I3. The owner explicitly decided “Keep SEAL-2 deferred; continue other work”; SEAL-2 stays deferred, and no OS key store, entry seal or signing is adopted. Separately, under the owner's 2026-10-11 R-1 decision (CI-20 (h)), AAC §6.3 SEAL-C uses the capture schema's optional `seal` element for App-file act captures with an App-data-folder key; it does not establish native origin for cold replay and does not close this item. CAPTURE_CUSTODY_DECISION.md remains preparation, not acceptance. Packaging/signing qualification stays with Group B at its actual point of need; deferral or moving the obligation does not complete it.
 
 ## CI-11 Native userVerification receiving route is not supplied
 
@@ -573,8 +573,8 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   R-1: anyone who can write `.chirality/` could forge a record together with
   its capture. The owner chose "Merge, track the fix (Recommended)"
   (2026-10-11): keep captures and act records out of reach of agents, or sign
-  them with a key the host holds. **Fixed 2026-10-11 by AAC §6.3 SEAL-C**
-  (`capture_seal.rs`): the act control seals each App-file act or decline
+  them with a key the host holds. **Narrowed 2026-10-11 by AAC §6.3 SEAL-C,
+  not fixed** (`capture_seal.rs`): the act control seals each App-file act or decline
   capture with HMAC-SHA-256 under a per-installation key in the App data
   folder, and a capture counts here and in `file_act_view` only when its seal
   verifies under a key this installation holds and its backlink, if any, names
@@ -584,12 +584,16 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   reference" limit with that reason. Moving the files out of the project was
   not chosen: it would change RS §13.7's owner-selected allocation and
   DEL-04-03 REQ-001; the OS key store waits for the signed App (AAC §6.3).
-  Residual: anything that can read the key file can seal, including any
-  same-user process and a Codex agent whose sandbox can read the App data
-  folder (Codex's default read access can); the seal is not proof that a
-  person acted, nor native-origin proof for cold replay (CI-10); a writer of
-  the project's files can still make a genuine act uncounted, but not make a
-  new one count. Each arrival's limits say so.
+  **R-1 stays open** for any writer that can also read the App data folder:
+  anything that can read the key file can seal a forged capture that counts.
+  That includes any same-user process and a Codex agent under Codex's
+  default read access, so against an agent the protection depends on the
+  person's sandbox read setting (D3), which the App does not choose. Whether
+  to accept that residual for now is an owner decision, pending. Other
+  residuals: the seal is not proof that a person acted, nor native-origin
+  proof for cold replay (CI-10); a writer of the project's files can still
+  make a genuine act uncounted, and a writer without read access to the key
+  cannot make a new one count. Each arrival's limits say so.
   `run_ended` lists every recorded arrival whose latest disposition is
   *waiting* (CE-17), after counting the acts recorded since the last
   observation; after a relaunch (`end_recorded_run`) the acts are counted from
