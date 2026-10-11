@@ -91,8 +91,8 @@ authoring, where an apparently successful operation can yield a plausible but
 wrong engineering result.
 
 The three inquiries share a philosophical origin. [Appendix D][D1] preserves
-the formal argument and its prose. C names temporal dependence; the necessary
-meaning at issue is S's recognition of the necessity of contingency; N names
+the formal argument with shared definitions and concise commentary. C names
+temporal dependence; the necessary meaning at issue is S's recognition of the necessity of contingency; N names
 existential affirmation. G remains undefined. The conjecture is not expanded
 here into a derivation of software mechanisms. Its place in the undertaking's
 origin does not require a reader to assent to it before examining the practical

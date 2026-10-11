@@ -18,7 +18,7 @@ re-derivation and transfer to domain applications. Its evidence distinguishes
 requirements, inspected code, defined tests and observations of actual use.
 
 The [shared conjecture](appendix_d_framework_s.md) preserves the formal argument
-and its prose. The necessary meaning at issue is S's recognition of the
+with shared definitions and revised interpretation. The necessary meaning at issue is S's recognition of the
 necessity of contingency; contingency means temporal dependence. N is
 existential affirmation, and G remains undefined. This is the shared origin of
 the three theses, without requiring assent to the conjecture to examine their

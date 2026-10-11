@@ -1,7 +1,7 @@
 # Appendix D — Shared Conjecture on the Nature of Being and Knowing
 
 This thesis carries the same kernel as the [Root thesis](../../../../docs/thesis/README.md).
-The formal argument and its interpretation below are preserved. Definitions
+The formal argument is preserved. Its definitions and concise interpretation
 reflect the owner's clarification of temporal contingency. The extended origin
 and philosophical commentary remain in [Root Appendix D](../../../../docs/thesis/appendix_d_framework_s.md#d4-connection-to-the-chirality-framework).
 The practical account of the application does not require accepting the conjecture.
@@ -51,31 +51,46 @@ undefined.
 
 ## D.2 Interpretation
 
-### Knowledge of Self (Premise 1)
+### Meaning and the Self (Premise 1)
 
-S is the existential Self defined only through relations to M, C, and N. It is not identical with the empirical person who persists regardless of the framework. From □(S → M): for S, meaning is already given. With E, S encounters C; M is not produced by C.
+Premise 1 begins with S in relation to meaning. S names the existential self
+considered through these relations. Meaning is already encountered; the act of
+affirmation does not manufacture it.
 
-### The Fork (Premises 2–3)
+### Contingency and Recognition (Premises 2–3)
 
-When an event occurs, S encounters both contingency and meaning. Contingency presents a fork: either meaning is present but not necessarily necessary (left disjunct: ¬(M ∧ □M)), or meaning is present and S affirms it as necessary (right disjunct: M ∧ N). The fork is underdetermined by causes — more facts do not pick a side.
+With E, S encounters temporal succession: each state depends upon what preceded
+it. The necessary meaning at issue is S's recognition of the necessity of this
+contingency.
 
-### The Decisive Locus (Premise 4)
+Premise 3 concerns S's response to that meaning. N names the affirmation that M
+is necessary. Recognition and affirmation remain distinguishable; N expresses
+commitment rather than modal necessity.
 
-Facts cannot enact commitment. N is a stance, not a fact. The infinite chain of causal "whys" stays inside C and never produces N. The route to G requires (M ∧ N), and therefore S must supply N by affirmation, or the route remains closed.
+### Affirmation and the Relation to G (Premises 4–5)
+
+An explanation can trace preceding conditions. Further understanding can inform
+S's affirmation, but does not perform it on S's behalf. N is the stance S takes.
+Premises 4–5 relate S, meaning and affirmation to G, while leaving G undefined.
 
 ### The Double Commitment (Thesis 6)
 
-- **Inner ⊢:** S ⊢ (M ∧ N) — S affirms meaning as necessary, selecting the right disjunct of premise 3.
-- **Outer ⊢:** S ⊢ (S ⊢ (M ∧ N)) — S affirms itself as bound to that stance, stabilizing S as defined here.
+- **Inner ⊢:** S affirms M together with N: meaning and the affirmation of its
+  necessity.
+- **Outer ⊢:** S affirms itself as bound to that affirmation.
 
-The chain: premise 2 places S in contingency with meaning → premise 3 presents the fork → the inner ⊢ picks (M ∧ N) → the outer ⊢ stabilizes S → by premise 4 the route to G opens. If absent, G is blocked and premise 5 reports the failure. Thesis 6 encodes this as the condition for G.
+The double commitment concerns both the stance and S's acknowledgment of itself
+as committed to it.
 
 ---
 
 ## D.3 G Is Undefined Yet May Be Found
 
-G remains intentionally undefined. It may emerge only relationally and existentially from S's necessary engagement with M, C, and N.
+G remains intentionally undefined. The conjecture points toward its possible
+encounter through S's lived engagement with M, C and N.
 
-G does not appear by proof. If it appears, it does so through lived consistency of experience, commitment, and response. That is S ⊢ (S ⊢ (M ∧ N)) being lived, not merely thought.
+The double affirmation is expressed through experience, commitment and response.
+The notation gives this relation a concise form; it does not exhaust what may
+be encountered through living it.
 
 ---
