@@ -190,10 +190,18 @@ class TerminalReceivingTests(unittest.TestCase):
     def test_terminal_source_guard_and_cli(self):
         original = base.relative
         def changed(root, path):
+            self.assertFalse(path.endswith('.rs'), 'historical exporter was read from the live checkout')
             raw = original(root,path)
-            return raw+b'\n' if path.endswith('hosting_terminal_export.rs') else raw
+            return raw
         with patch.object(base,'relative',changed):
-            with self.assertRaisesRegex(ValueError,'terminal selected source changed'):subject.TerminalReceiver()
+            self.assertEqual(subject.TerminalReceiver().pins['reader'], self.receiver.pins['reader'])
+        for input_path in base.CURRENT_INPUTS:
+            with self.subTest(input=input_path):
+                def changed_input(root, path):
+                    raw = original(root, path)
+                    return raw + b'\n' if path == input_path else raw
+                with patch.object(base, 'relative', changed_input):
+                    with self.assertRaisesRegex(ValueError, 'selected source changed'): subject.TerminalReceiver()
         result = subprocess.run([sys.executable,'-B',str(APP/'examination/distribution_receiving/terminal.py'),str(self.path),
                                  '--exchange-sha256',base.sha(self.path.read_bytes()),'--selection',str(self.selection),
                                  '--selection-sha256',base.sha(self.selection.read_bytes())],capture_output=True,text=True)

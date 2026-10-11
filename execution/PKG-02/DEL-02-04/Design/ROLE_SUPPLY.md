@@ -293,20 +293,6 @@ authoring convention, not a supply condition).
   reason (RC-08, RC-09); the App never substitutes the shipped default
   without the person's restore.
 
-  The App reader opens the instruction root and role folder as no-follow
-  directory descriptors, then opens the selected file relative to that folder
-  with no-follow and non-blocking flags. It accepts regular files only; FIFOs,
-  directories and devices cannot supply guidance or make it wait for a writer.
-  Reading is bounded by the opened file's observed length plus one detection
-  byte. It checks file mutation/replacement and root/role-folder replacement
-  before accepting the exact buffer. Relative roots and existing ancestor
-  aliases retain their prior meaning; static root, role-folder and leaf links
-  refuse. Ordinary hard-linked regular files remain readable. The focused
-  `role_guidance_reads_tests.rs` cases and public `role_lifecycle` FIFO case
-  exercise this boundary; they establish no native supplier uptake or cold
-  provenance. Metadata and name rechecks expose persistent changes; they do
-  not establish an atomic snapshot of a hostile filesystem. No new guidance
-  size policy or fallback is introduced.
 - **GS-6 New release.** For each file: if the copy still equals the default
   that was seeded, it takes the new default (`release-default-applied`); if
   the person modified it, it is kept and flagged "a new default is available"
@@ -691,6 +677,22 @@ requires, since the role file replaces the parent's text. v3's pins of
 `-c` overrides at process start (inference from the code); for v4 that is
 CR-1a's fallback carrier, unobserved at 0.158.0.
 
+### 9.1 Guidance reader implementation observations
+
+The App reader opens the instruction root and role folder as no-follow
+directory descriptors, then opens the selected file relative to that folder
+with no-follow and non-blocking flags. It accepts regular files only; FIFOs,
+directories and devices cannot supply guidance or make it wait for a writer.
+Reading is bounded by the opened file's observed length plus one detection
+byte. It checks file mutation/replacement and root/role-folder replacement
+before accepting the exact buffer. Relative roots and existing ancestor
+aliases retain their prior meaning; static root, role-folder and leaf links
+refuse. Ordinary hard-linked regular files remain readable. The focused
+`role_guidance_reads_tests.rs` cases and public `role_lifecycle` FIFO case
+exercise this boundary; they establish no native supplier uptake or cold
+provenance. Metadata and name rechecks expose persistent changes; they do
+not establish an atomic snapshot of a hostile filesystem. No new guidance
+size policy or fallback is introduced.
 ## 10. Prototype (R17-1)
 
 `Design/prototype/` rewritten for v0.2 (README there). Python 3 standard

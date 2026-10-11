@@ -23,6 +23,13 @@ PROJECT = HERE.parents[2]
 PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
 FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
+CURRENT_INPUTS = (
+    'app/examination/support_identity/canonical.py',
+    'app/examination/support_identity/canonical-pins.v1.json',
+    *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
+      for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
+)
+INPUTS_SHA256 = 'b004325cc8a1fab4224e58b6b56ebc9f5437c79631183af67d05806118b49e6a'
 LIMITS = [
     'Exact exported file correspondence only; native S1 semantics are not reexecuted.',
     'Serialized readback is a producer report, not authenticated history or a native-held reference capability.',
@@ -134,6 +141,19 @@ def referenced(files, ref):
     return files[ref['path']]
 
 
+def current_inputs():
+    raw = read_file(HERE / 'inputs.json')
+    require(sha(raw) == INPUTS_SHA256, 'operational input pins changed')
+    pins = parse(raw)
+    exact(pins, CURRENT_INPUTS, 'operational inputs')
+    captured = {}
+    for path, expected in pins.items():
+        data = relative(PROJECT, path)
+        require(sha(data) == expected, 'selected source changed: ' + path)
+        captured[path] = data
+    return captured
+
+
 class Receiver:
     def __init__(self):
         raw = read_file(HERE / 'pins.stop-admission-lt09-v1.json')
@@ -145,15 +165,16 @@ class Receiver:
                 self.pins['sources']['app/src-tauri/src/attachment_custody.rs'],
                 'namespace authority source identity differs')
         self.schemas = {}
-        for path, expected in self.pins['sources'].items():
-            require(sha(relative(PROJECT, path)) == expected, 'selected source changed: ' + path)
+        self.current_inputs = current_inputs()
+        # The remaining sources identify the immutable producer receipt and
+        # exported packet, not code this Python file-correspondence reader runs.
         for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3'):
-            schema = parse(relative(PROJECT, 'app/src-tauri/resources/distribution-successor/' + name + '.schema.json'))
+            schema = parse(self.current_inputs['app/src-tauri/resources/distribution-successor/' + name + '.schema.json'])
             self.schemas[name] = Draft202012Validator(schema, registry=Registry())
         path = PROJECT / 'app/examination/support_identity/canonical.py'
         spec = importlib.util.spec_from_file_location('_s4_canonical', path)
         module = importlib.util.module_from_spec(spec)
-        exec(compile(read_file(path), str(path), 'exec'), module.__dict__)
+        exec(compile(self.current_inputs['app/examination/support_identity/canonical.py'], str(path), 'exec'), module.__dict__)
         self.canonical = module.CanonicalSupport()
 
     def check(self, exchange_path, exchange_sha256, selection_path, selection_sha256):

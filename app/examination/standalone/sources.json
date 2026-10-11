@@ -9,8 +9,328 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:ad1db79bb586ea1168223a187d771617cec05ecd1ced984f679282312f266ef0"
+      "sha256": "sha256:17b622abee4ba9fa9049885e38999cdb7360177bd0e2a8bf774073af40a4191c",
+      "basis_file_sha256": "sha256:ad1db79bb586ea1168223a187d771617cec05ecd1ced984f679282312f266ef0",
+      "selectors": [
+        {
+          "heading": "## 2. Interfaces"
+        },
+        {
+          "heading": "## 3. Case definitions (OUT-001; the step map)"
+        },
+        {
+          "heading": "## 4. Route, configuration and evidence"
+        },
+        {
+          "heading": "## 6. States and sequence"
+        },
+        {
+          "heading": "## 7. Failure behaviour"
+        },
+        {
+          "heading": "## 9. What the person must do, and what is never automated"
+        },
+        {
+          "heading": "## 12. UNRESOLVED"
+        }
+      ]
     },
+    {
+      "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "sha256": "sha256:3280d45b97357ae95efc47aafa92e36284942cbba8c5879024aea67cec11a50d",
+      "basis_file_sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540",
+      "selectors": [
+        {
+          "case": "NV-01",
+          "count": 1
+        },
+        {
+          "case": "NV-02",
+          "count": 1
+        },
+        {
+          "case": "NV-03",
+          "count": 1
+        },
+        {
+          "case": "NV-04",
+          "count": 1
+        },
+        {
+          "case": "NV-07",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "sha256": "sha256:1157b4f99bdc1c088bc8e35f78f689bc9a48e56f9daace31a7e5172a95e3729b",
+      "basis_file_sha256": "sha256:9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322",
+      "selectors": [
+        {
+          "case": "WR-VC-01",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-02",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-03",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-05",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-06",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-08",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-09",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-12",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-21",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-22",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-23",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-24",
+          "count": 1
+        },
+        {
+          "case": "WR-VC-25",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "sha256": "sha256:b8e152324c13c9eee58b1f6ac71a901f3a68d3b9b9757e5595c1da57d40f0e07",
+      "basis_file_sha256": "sha256:203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5",
+      "selectors": [
+        {
+          "case": "VC-NIR-01",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-04",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-05",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-10",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-11",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-12",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-14",
+          "count": 1
+        },
+        {
+          "case": "VC-NIR-16",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "sha256": "sha256:8367b12349c3716b73d0a364f26e847dedc9b152cef66e2de84590ab340eb69a",
+      "basis_file_sha256": "sha256:ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60",
+      "selectors": [
+        {
+          "case": "VC-R-01",
+          "count": 1
+        },
+        {
+          "case": "VC-R-02",
+          "count": 1
+        },
+        {
+          "case": "VC-R-03",
+          "count": 1
+        },
+        {
+          "case": "VC-R-04",
+          "count": 1
+        },
+        {
+          "case": "VC-R-06",
+          "count": 1
+        },
+        {
+          "case": "VC-R-14",
+          "count": 1
+        },
+        {
+          "case": "VC-R-15",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "sha256:186f1a1eb6f2784d86ddda6d7095878d8d0be64e81ff30afbc8121c798755f60",
+      "basis_file_sha256": "sha256:9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
+      "selectors": [
+        {
+          "case": "VC-13",
+          "count": 1
+        },
+        {
+          "case": "VC-28",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-04/APP_ACT_CONTROL.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "sha256": "sha256:74d2e6beefc5ff1d55771553096936d7f7162f3f444dedcafe876a3fa553b81d",
+      "basis_file_sha256": "sha256:bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d",
+      "selectors": [
+        {
+          "case": "VC-AAC-03",
+          "count": 1
+        },
+        {
+          "case": "VC-AAC-07",
+          "count": 1
+        },
+        {
+          "case": "VC-AAC-08",
+          "count": 1
+        },
+        {
+          "case": "VC-AAC-13",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-04-03/RECORD_SEMANTICS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "sha256": "sha256:8d8e2296f9e9021e096ffac99d13217027d329fbfae3b4faad31de68600c53a0",
+      "basis_file_sha256": "sha256:9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858",
+      "selectors": [
+        {
+          "case": "VC-37",
+          "count": 1
+        },
+        {
+          "case": "VC-40",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "sha256": "sha256:3b1ad2fbfd119d4d9be72f3c9b4ef6566a53c161c4398b354912cdff16379d99",
+      "basis_file_sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4",
+      "selectors": [
+        {
+          "case": "VC-E-17",
+          "count": 2
+        },
+        {
+          "case": "VC-E-18",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-01/HOSTING_BOUNDARY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "sha256": "sha256:7989cb7c9e9b604fadaa0ca20fad0b39481d4f2425677edb198188c1bb791736",
+      "basis_file_sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
+      "selectors": [
+        {
+          "case": "X-09",
+          "count": 1
+        },
+        {
+          "case": "X-10",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "sha256": "sha256:b264b10e5bf0888d73563cac3f021745e26b1354bdcd26bceb40e89ea2aec5b2",
+      "basis_file_sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036",
+      "selectors": [
+        {
+          "case": "VC-A01",
+          "count": 1
+        },
+        {
+          "case": "VC-A02",
+          "count": 1
+        },
+        {
+          "case": "VC-A03",
+          "count": 1
+        },
+        {
+          "case": "VC-A04",
+          "count": 1
+        },
+        {
+          "case": "VC-A12",
+          "count": 1
+        },
+        {
+          "case": "VC-A13",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "role": "missing-inputs.json",
+      "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",
+      "sha256": "sha256:b86d2e34e3ad4c2748d871015a3605e222e51b9c5b8ca8143693d2e42cbdc215"
+    },
+    {
+      "role": "invented-inputs.json",
+      "path": "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json",
+      "sha256": "sha256:2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24"
+    }
+  ],
+  "historical_provenance": [
     {
       "role": "sq_schema",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
@@ -35,56 +355,7 @@
       "role": "exp_schema",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
       "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
-    },
-    {
-      "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540"
-    },
-    {
-      "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
-      "sha256": "sha256:9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322"
-    },
-    {
-      "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
-      "sha256": "sha256:203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5"
-    },
-    {
-      "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
-      "sha256": "sha256:ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60"
-    },
-    {
-      "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
-      "sha256": "sha256:9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7"
-    },
-    {
-      "role": "DEL-01-04/APP_ACT_CONTROL.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
-      "sha256": "sha256:bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d"
-    },
-    {
-      "role": "DEL-04-03/RECORD_SEMANTICS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
-      "sha256": "sha256:9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858"
-    },
-    {
-      "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
-      "sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4"
-    },
-    {
-      "role": "DEL-01-01/HOSTING_BOUNDARY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
-      "sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b"
-    },
-    {
-      "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036"
     }
-  ]
+  ],
+  "documentary_binding_method": "selected-passages.u64be-length-framed.sha256/v1"
 }

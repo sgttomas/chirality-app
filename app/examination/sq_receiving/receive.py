@@ -2,6 +2,7 @@
 """Fixed-source SQ file receiving. No examination or qualification is performed."""
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import stat
@@ -11,7 +12,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '910c6f31291bc2efe9fa8025c8822fcaf3834c814763aa478fe701aaaf1e4eb0'
+PINS_SHA256 = '399ba5e54f9e8b432f2b65250c449ddbe9e4f0b4b88ba9376e86cab0d74a9941'
 
 
 def sha(data):
@@ -39,8 +40,18 @@ class Receiver:
             raise ValueError('SQ reader pins changed')
         self.pins = json.loads(raw)
         self.sources = {}
+        helper = 'app/examination/support_identity/support_identity.py'
+        data = read_relative(PROJECT, helper)
+        if sha(data) != self.pins['sources'][helper]:
+            raise ValueError('selected source changed: ' + helper)
+        spec = importlib.util.spec_from_file_location('_sq_publication_sources', PROJECT / helper)
+        source_reader = importlib.util.module_from_spec(spec)
+        exec(compile(data, str(PROJECT / helper), 'exec'), source_reader.__dict__)
+        self.sources[helper] = data
         for name, expected in self.pins['sources'].items():
-            data = read_relative(PROJECT, name)
+            data = self.sources.get(name)
+            if data is None:
+                data = source_reader.publication_source(PROJECT, name, expected) if name.endswith('.md') else read_relative(PROJECT, name)
             if sha(data) != expected:
                 raise ValueError('selected source changed: ' + name)
             self.sources[name] = data

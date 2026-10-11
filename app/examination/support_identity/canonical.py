@@ -15,7 +15,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '29543c5ef6a3efd9b0cd063359c52f4b08ad6e867add2ac76c10684d8eae0c37'
+PINS_SHA256 = 'ebf2d27dda688a54deafdcd1a82df39fec70ccf1388320ea10c78eb5f5c3def0'
 METHOD = 'EXP-SUPPORT-BINDING-v1'
 PURPOSES = ('current_producer_declaration', 'historical_correspondence')
 LIMITS = [
@@ -39,17 +39,24 @@ class CanonicalSupport:
             raise ValueError('canonical reader pins changed')
         self.pins = json.loads(pins_bytes)
         self.captured = {}
+        path = 'app/examination/support_identity/support_identity.py'
+        raw = (PROJECT / path).read_bytes()
+        if sha(raw) != self.pins['sources'][path]:
+            raise ValueError('canonical selected source changed: ' + path)
+        spec = importlib.util.spec_from_file_location('_exp_support_canonical_adapter', PROJECT / path)
+        self.legacy = importlib.util.module_from_spec(spec)
+        exec(compile(raw, str(PROJECT / path), 'exec'), self.legacy.__dict__)
+        self.captured[path] = raw
         for path, expected in self.pins['sources'].items():
-            data = (PROJECT / path).read_bytes()
+            data = self.captured.get(path)
+            if data is None:
+                try:
+                    data = self.legacy.publication_source(PROJECT, path, expected)
+                except ValueError as error:
+                    raise ValueError('canonical selected source changed: ' + path) from error
             if sha(data) != expected:
                 raise ValueError('canonical selected source changed: ' + path)
             self.captured[path] = data
-        # Load the captured, pinned legacy module without executing an unrelated
-        # module from sys.path and without changing its bytes or historical API.
-        path = 'app/examination/support_identity/support_identity.py'
-        spec = importlib.util.spec_from_file_location('_exp_support_canonical_adapter', PROJECT / path)
-        self.legacy = importlib.util.module_from_spec(spec)
-        exec(compile(self.captured[path], str(PROJECT / path), 'exec'), self.legacy.__dict__)
         self.support = self.legacy.SupportIdentity()
         self.declaration_bytes = self.captured[self.pins['declaration']]
         self.declaration = self.legacy.parse(self.declaration_bytes)

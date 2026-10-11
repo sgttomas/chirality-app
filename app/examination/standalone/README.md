@@ -23,7 +23,13 @@ list describes this preparation's entry, not a live discovery of external
 systems. Historical Group A evidence supplies no new candidate outcome.
 
 `check` compares the complete preparation with its regenerated, hash-bound
-basis. It fails closed on changed sources, altered order/counting, omissions,
+basis. Documentary inputs bind the exact SQ sections and supplier-case rows
+listed in `sources.json`, using length-framed passages. Missing or repeated
+selectors refuse. Whole-file hashes retained as `basis_file_sha256` and
+`historical_provenance` identify the inspected sources; they do not require an
+unread implementation note to remain unchanged. The complete step map and
+local missing/invented input JSON remain exact inputs. It fails closed on
+changed selected passages, altered order/counting, omissions,
 substitute routes, fabricated readiness/results and extra fields, including
 `examination_opened`. A successful check means only preparation fidelity.
 This deliberately strict checker accepts no future executed dossier: use the
@@ -53,7 +59,10 @@ retain its revision and bytes. No examination outcome follows from the correctio
 unchanged B7 plan, captures the fixed source basis and full canonical EXP support
 selection, and binds all 13 explicit maintained fixture roles by exact bytes.
 It introduces no EXP sidecar, dossier schema, result record or ready state.
-Historical preparation and canonical source locks remain unchanged.
+Frozen EXP publication/source identities remain unchanged; operational helper
+pins track this capture implementation. The snapshot manifest applies
+the same documentary selectors as preparation; executable helpers, canonical
+support sources and all maintained fixture roles retain exact byte identities.
 
 From `app/`, first generate the ordinary plan, calculate its exact file digest,
 and supply that digest explicitly:

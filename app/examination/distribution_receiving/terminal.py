@@ -32,7 +32,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = '6825032e6d30a1464e08189aa05ba6930346eca41df59e734ee4535195022d50'
+HELPER_SHA256 = '2c37d9aa0939b39642e892809a1e8811ea91b3d5d6a919d4632f0a26649a1114'
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')
@@ -44,14 +44,15 @@ class PredecessorReceiver(base.Receiver):
 
     No historical pin file/initializer is changed or represented as passing.
     """
-    def __init__(self, pins):
+    def __init__(self, pins, current_inputs):
         self.pins = pins
+        self.current_inputs = current_inputs
         self.schemas = {}
         for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3'):
-            schema = base.parse(base.relative(PROJECT, 'app/src-tauri/resources/distribution-successor/' + name + '.schema.json'))
+            schema = base.parse(current_inputs['app/src-tauri/resources/distribution-successor/' + name + '.schema.json'])
             self.schemas[name] = base.Draft202012Validator(schema, registry=base.Registry())
         path = PROJECT / 'app/examination/support_identity/canonical.py'
-        self.canonical = load('_terminal_canonical', path, base.read_file(path)).CanonicalSupport()
+        self.canonical = load('_terminal_canonical', path, current_inputs['app/examination/support_identity/canonical.py']).CanonicalSupport()
 
 
 class TerminalReceiver:
@@ -59,9 +60,8 @@ class TerminalReceiver:
         raw = base.read_file(HERE / 'pins.stop-admission-terminal-v1.json')
         base.require(base.sha(raw) == PINS_SHA256, 'terminal pins changed')
         self.pins = base.parse(raw)
-        for path, digest in self.pins['sources'].items():
-            base.require(base.sha(base.relative(PROJECT, path)) == digest, 'terminal selected source changed: ' + path)
-        self.predecessor = PredecessorReceiver(self.pins)
+        current_inputs = base.current_inputs()
+        self.predecessor = PredecessorReceiver(self.pins, current_inputs)
         self.canonical = self.predecessor.canonical
 
     def check(self, path, expected_sha, selection, selection_sha):

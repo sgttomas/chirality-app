@@ -10,6 +10,14 @@ pins the new canonical Design declaration, binding schema, EXP method and PKG
 receiving supplement in `canonical-pins.v1.json`. The writer cannot replace
 those pins or select publication through an input field.
 
+Frozen documentary sources retain every original full-byte hash. If today's
+checkout has moved, the reader obtains the same bytes with `git cat-file blob`
+from the fixed commit named in `DOCUMENTARY_SOURCE_COMMIT`. Missing objects or
+different bytes refuse; lazy fetching and replacement objects are disabled.
+Exact private source snapshots need no Git access. Executable/schema inputs
+still refuse current drift. These reads identify the selected frozen support,
+not adoption of today's governing Design or evidence about today's candidate.
+
 ```sh
 python3 -B app/examination/support_identity/canonical.py bind review review.json \
   --purpose current_producer_declaration

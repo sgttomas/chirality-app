@@ -224,11 +224,13 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'PINS_SHA256', '0' * 64):
             with self.assertRaisesRegex(ValueError, 'pins changed'): receiver.Receiver()
         original = receiver.relative
-        def changed(root, path):
-            raw = original(root, path)
-            return raw + b'\n' if path.endswith('distribution_s1.rs') else raw
-        with patch.object(receiver, 'relative', changed):
-            with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+        for input_path in receiver.CURRENT_INPUTS:
+            with self.subTest(input=input_path):
+                def changed(root, path):
+                    raw = original(root, path)
+                    return raw + b'\n' if path == input_path else raw
+                with patch.object(receiver, 'relative', changed):
+                    with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
 
     def test_historical_cohort_is_preserved_but_not_active(self):
         provenance = receiver.parse((HISTORICAL / 'provenance.json').read_bytes())
@@ -265,10 +267,12 @@ class DistributionReceivingTests(unittest.TestCase):
     def test_namespace_source_guard_and_non_authority_report(self):
         original = receiver.relative
         def changed(root, path):
+            self.assertFalse(path.endswith('.rs'), 'historical producer source was read from the live checkout')
             raw = original(root, path)
-            return raw + b'\n' if path.endswith('attachment_custody.rs') else raw
+            return raw
         with patch.object(receiver, 'relative', changed):
-            with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+            historical_reader = receiver.Receiver()
+            self.assertEqual(historical_reader.pins['reader'], self.receiver.pins['reader'])
         report = self.check()
         self.assertEqual(report['receiving_adoption'], 'B-S4-STOP-ADMISSION-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])

@@ -1,6 +1,16 @@
 # Staged S4 file receiving
 
-Current source: [Stop-admission renewal](STOP_ADMISSION_SOURCE_ADOPTION.md) at127d.
+Current historical packet cohort: [Stop-admission renewal](STOP_ADMISSION_SOURCE_ADOPTION.md) at127d.
+
+The Python receivers verify current bytes only for the schemas and canonical
+helper they execute (`CURRENT_INPUTS` in `receive.py`). Other source hashes in
+the immutable pins remain historical producer provenance. The exact producer
+revision, serialized full reader receipt and selected publication/source-member
+bytes remain checked; the packet does not carry every archived Host-source byte.
+Today's unrelated Host implementation is not an input to
+this historical file-correspondence check. A pass does not examine today's App
+candidate or reexecute the native semantic reader. The canonical EXP support
+subclosure retains its adopted full-source condition.
 Existing LT09 and LT09/LT23 contracts remain fixed; earlier cohort descriptions
 below are historical.
 

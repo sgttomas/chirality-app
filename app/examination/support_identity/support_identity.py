@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -21,6 +22,7 @@ KINDS = {'before': 'result', 'after': 'result', 'rerun': 'result',
          'review': 'review', 'change': 'change', 'package': 'package'}
 RECORD_KINDS = {'result': 'exam_result', 'review': 'exam_review',
                 'change': 'exam_change_impact', 'package': 'package_identity'}
+DOCUMENTARY_SOURCE_COMMIT = '6fbd4c8722c9454981ae9518b39cafe4e6ece7c4'
 LIMITS = [
     'Exact-byte identity and supplied file relationships only; origin and actual observations are unverified.',
     'Frozen candidate declaration is not canonical publication or adoption. A record writer cannot publish support.',
@@ -77,6 +79,31 @@ def relative_file(root, relative):
     return current.read_bytes()
 
 
+def publication_source(root, path, expected):
+    """Same full frozen bytes; today's documentary checkout is not publication."""
+    try:
+        data = relative_file(root, path)
+    except FileNotFoundError:
+        if not path.endswith('.md'):
+            raise
+        data = None
+    if data is not None and sha(data) == expected:
+        return data
+    require(path.endswith('.md'), 'frozen source changed: ' + path)
+    # Fixed raw Git objects only. Never follow a branch, fetch a missing object,
+    # or let a caller select another support publication.
+    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
+    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
+    try:
+        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
+                                cwd=root, env=env, capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('frozen documentary source unavailable: ' + path) from error
+    require(result.returncode == 0 and sha(result.stdout) == expected,
+            'frozen documentary source missing or changed: ' + path)
+    return result.stdout
+
+
 class SupportIdentity:
     def __init__(self):
         # No caller-supplied declaration, source manifest, schema or publication flag.
@@ -93,7 +120,7 @@ class SupportIdentity:
         # checkers run from these bytes, so rereads cannot select a different basis.
         self.sources = {}
         for path, expected in self.declaration['sources'].items():
-            data = relative_file(PROJECT, path)
+            data = publication_source(PROJECT, path, expected)
             require(sha(data) == expected, 'frozen source changed: ' + path)
             self.sources[path] = data
         for kind, filename in [('result', 'exam.result-record.schema.json'),

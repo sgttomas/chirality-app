@@ -13,6 +13,10 @@ ROOT = HERE.parents[4]
 
 
 def read_json(path):
+    return parse_json(path.read_bytes())
+
+
+def parse_json(raw):
     def unique(pairs):
         obj = {}
         for key, value in pairs:
@@ -20,19 +24,53 @@ def read_json(path):
                 raise ValueError(f"duplicate JSON key: {key}")
             obj[key] = value
         return obj
-    return json.loads(path.read_text(), object_pairs_hook=unique)
+    return json.loads(raw, object_pairs_hook=unique)
 
 
 def digest(path):
     return 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def verified_sources(root=ROOT):
+def source_input(source, raw):
+    """Exact selected documentary passages, distinct from artifact identities."""
+    if 'selectors' not in source:
+        return raw
+    text = raw.decode('utf-8')
+    lines = text.splitlines(keepends=True)
+    result = b''
+    for selector in source['selectors']:
+        if 'heading' in selector:
+            heading = selector['heading']
+            starts = [i for i, line in enumerate(lines) if line.rstrip('\r\n') == heading]
+            if len(starts) != 1:
+                raise ValueError('source changed: heading missing or repeated: ' + heading)
+            start = starts[0]
+            level = len(heading) - len(heading.lstrip('#'))
+            end = next((i for i in range(start + 1, len(lines))
+                        if re.match(r'^#{1,' + str(level) + r'} ', lines[i])), len(lines))
+            selected = ''.join(lines[start:end])
+        else:
+            key = selector['case']
+            matches = [line for line in lines if re.match(r'^\| ' + re.escape(key) + r'\b', line)]
+            if len(matches) != selector['count']:
+                raise ValueError('source changed: case missing or repeated: ' + key)
+            selected = ''.join(matches)
+        data = selected.encode('utf-8')
+        result += len(data).to_bytes(8, 'big') + data
+    return result
+
+
+def verified_sources(root=ROOT, captured=None):
     lock = read_json(HERE / 'sources.json')
     for source in lock['sources']:
         path = root / source['path']
-        if not path.is_file() or digest(path) != source['sha256']:
+        if not path.is_file():
             raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
+        raw = path.read_bytes()
+        if ('sha256:' + hashlib.sha256(source_input(source, raw)).hexdigest()) != source['sha256']:
+            raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
+        if captured is not None:
+            captured[source['role']] = raw
     return lock
 
 
@@ -43,10 +81,10 @@ def section(text, heading):
 
 
 def prepare(root=ROOT):
-    lock = verified_sources(root)
-    by_role = {x['role']: root / x['path'] for x in lock['sources']}
-    step_map = read_json(by_role['step_map'])
-    sq = by_role['sq_design'].read_text()
+    captured = {}
+    lock = verified_sources(root, captured)
+    step_map = parse_json(captured['step_map'])
+    sq = captured['sq_design'].decode('utf-8')
     operations = {}
     for line in sq.splitlines():
         match = re.match(r'^\| ((?:J-|S11-|M12-)\d+R?) \|', line)
@@ -64,8 +102,7 @@ def prepare(root=ROOT):
                         source_action_observation=operations[step['step']])
             for case in step['supplier_cases']:
                 key = case['deliverable'] + '/' + case['file']
-                supplier = by_role[key]
-                if not re.search(r'^\| ' + re.escape(case['case_id']) + r'\b', supplier.read_text(), re.M):
+                if not re.search(r'^\| ' + re.escape(case['case_id']) + r'\b', captured[key].decode('utf-8'), re.M):
                     raise ValueError(f"missing supplier case: {key} {case['case_id']}")
             prepared.append(step)
         scenarios.append({'scenario': name, 'run_label': 'RUN-B' if name == 'V4-EXM-12' else 'RUN-A',
@@ -89,8 +126,8 @@ def prepare(root=ROOT):
             'homes': {'chatgpt_account': 'H-acct', 'api_key': 'H-key'},
             'distinct_conversations': 3, 'configured_together': True,
             'substitute_mode_satisfies': False},
-        'missing_inputs': read_json(HERE / 'missing-inputs.json'),
-        'invented_material': read_json(HERE / 'invented-inputs.json'),
+        'missing_inputs': parse_json(captured['missing-inputs.json']),
+        'invented_material': parse_json(captured['invented-inputs.json']),
         'boundary': 'No candidate named, examination opened, run attempted, result recorded, '
                     'supplier check qualified, or qualification handed over. Source revision is not build identity.',
     }
