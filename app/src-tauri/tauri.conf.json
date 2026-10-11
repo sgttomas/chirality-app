@@ -17,6 +17,10 @@
   },
   "bundle": {
     "active": false,
-    "icon": ["icons/icon.png"]
+    "icon": ["icons/icon.png"],
+    "resources": {
+      "resources/instructions/": "instructions/",
+      "resources/production_workflows/": "workflows/"
+    }
   }
 }

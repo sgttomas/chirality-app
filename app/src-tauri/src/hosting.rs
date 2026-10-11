@@ -263,8 +263,8 @@ impl SourceRequest {
         let Some(e) = i.source_requests.get(&self.frame["id"].to_string()) else { return json!({"outcome":"source-record-unavailable"}); };
         let record = &i.client_requests[e.index];
         json!({"generation":self.generation,"home":self.generation["home"],"requestIdentity":self.frame["id"],"requestRef":self.request_ref,
-            "frameEvidence":if e.auth_projection{"explicit redacted account projection; not original wire bytes"}else{"original source frame"},"sensitiveFieldsRedacted":e.auth_projection,"authPolicyStanding":e.auth_policy_standing,"authResponseShapeValid":e.auth_response_shape,"attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeAttemptInProgress":e.write_attempt_in_progress,"effectiveWriteOutcome":if e.write_attempt_in_progress {"unknown while actual write is in progress"}else if e.written{"complete source write observed"}else{"no complete source write observed"},"lastClientObservation":record,"writeResult":if e.write_attempt_in_progress {"write-in-progress"}else if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else if record["writeResult"]=="not-attempted"{"last-prewrite-observation"}else{"reserved/no complete write observation"},"actualWriteAttemptObserved":e.attempt_position.is_some(),"noAttemptCause":if e.attempt_position.is_none(){e.source_limit.as_ref()}else{None},"canonicalProjectionAvailable":record.is_object()&&e.source_limit.is_none()&&!(e.write_error.is_some()&&e.response.is_some()),"sourceLimit":e.source_limit,
-            "outcome":if e.write_attempt_in_progress{json!("unknown/in-progress")}else if e.write_error.is_some()&&e.response.is_some(){json!("native response and failed write both observed; canonical projection unavailable")}else if e.written&&e.response.is_some()&&e.source_limit.is_some(){json!(if e.response.as_ref().unwrap().get("result").is_some(){"response-observed-result"}else{"response-observed-error"})}else if record.is_object(){record["outcome"].clone()}else if e.written&&e.response.is_some(){json!(if e.response.as_ref().unwrap().get("result").is_some(){"response-observed-result"}else{"response-observed-error"})}else{json!("reserved/canonical projection unavailable; outcome unknown")},
+            "frameEvidence":if e.auth_projection{"explicit redacted account projection; not original wire bytes"}else if e.response.as_ref().is_some_and(is_delegation_withheld){"original source frame; its reply is kept reduced to its outcome (delegation-availability read, NPTD §7.1), not as received"}else{"original source frame"},"responseReduced":e.response.as_ref().is_some_and(is_delegation_withheld),"sensitiveFieldsRedacted":e.auth_projection,"authPolicyStanding":e.auth_policy_standing,"authResponseShapeValid":e.auth_response_shape,"attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeAttemptInProgress":e.write_attempt_in_progress,"effectiveWriteOutcome":if e.write_attempt_in_progress {"unknown while actual write is in progress"}else if e.written{"complete source write observed"}else{"no complete source write observed"},"lastClientObservation":record,"writeResult":if e.write_attempt_in_progress {"write-in-progress"}else if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else if record["writeResult"]=="not-attempted"{"last-prewrite-observation"}else{"reserved/no complete write observation"},"actualWriteAttemptObserved":e.attempt_position.is_some(),"noAttemptCause":if e.attempt_position.is_none(){e.source_limit.as_ref()}else{None},"canonicalProjectionAvailable":record.is_object()&&e.source_limit.is_none()&&!(e.write_error.is_some()&&e.response.is_some()),"sourceLimit":e.source_limit,
+            "outcome":if e.write_attempt_in_progress{json!("unknown/in-progress")}else if e.write_error.is_some()&&e.response.is_some(){json!("native response and failed write both observed; canonical projection unavailable")}else if e.written&&e.response.is_some()&&e.source_limit.is_some(){json!(observed_response_outcome(e.response.as_ref().unwrap()))}else if record.is_object(){record["outcome"].clone()}else if e.written&&e.response.is_some(){json!(observed_response_outcome(e.response.as_ref().unwrap()))}else{json!("reserved/canonical projection unavailable; outcome unknown")},
             "waitingEnded":record.get("waitingEnded").and_then(Value::as_bool).or_else(||e.observation_base.get("waitingEnded").and_then(Value::as_bool)).unwrap_or(false),"response":e.response,"writeError":e.write_error,
             "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
     }
@@ -512,8 +512,20 @@ const DELEGATION_READ_METHODS: [&str; 3] = ["model/list", "config/read", "modelP
 /// What is kept of a delegation read's reply: its id and outcome, and an
 /// error as Codex sent it; never the result body.
 fn delegation_withheld(frame: &Value) -> Value {
-    json!({"id":frame.get("id"),"outcome":if frame.get("error").is_some(){"error"}else if frame.get("result").is_some(){"result"}else{"other"},
-        "error":frame.get("error"),"resultWithheld":"delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses"})
+    let mut kept = json!({"outcome":if frame.get("error").is_some(){"error"}else if frame.get("result").is_some(){"result"}else{"other"},
+        "resultWithheld":DELEGATION_RESULT_WITHHELD});
+    // Only what Codex sent: no id or error is written where there was none.
+    for field in ["id", "error"] { if let Some(value) = frame.get(field) { kept[field] = value.clone(); } }
+    kept
+}
+const DELEGATION_RESULT_WITHHELD: &str = "delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses";
+/// Whether a kept reply is a delegation read's reduced form (`delegation_withheld`).
+fn is_delegation_withheld(response: &Value) -> bool { response.get("resultWithheld").and_then(Value::as_str) == Some(DELEGATION_RESULT_WITHHELD) }
+/// The outcome a kept reply shows: a result or an error. A reduced delegation
+/// reply carries its outcome, not its result body.
+fn observed_response_outcome(response: &Value) -> &'static str {
+    let result = if is_delegation_withheld(response) { response["outcome"] == "result" } else { response.get("result").is_some() };
+    if result { "response-observed-result" } else { "response-observed-error" }
 }
 /// Wall-clock milliseconds, for a delegation reading's age.
 fn delegation_now_ms() -> u64 {
@@ -2541,6 +2553,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             sent.borrow_mut().push(request.request_id().to_string());
             let response = self.wait_source_response(&request, wait).map_err(|e| {
                 if e.contains("within the wait limit") { silent.set(true); }
+                // Any failure ends this reading's wait: a later reply is kept
+                // as its outcome only (`on_line`).
+                self.delegation_wait_ended(&request);
                 e
             })?;
             if let Some(error) = response.get("error") { return Err(format!("{method} answered with an error: {error}")); }
@@ -2637,6 +2652,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             }
         }
         due
+    }
+    /// A delegation read's wait ended without its reply (any failure, not
+    /// only the wait limit): its request is marked so a later reply is kept
+    /// reduced to its outcome.
+    fn delegation_wait_ended(&self, request: &SourceRequest) {
+        let mut i = self.inner.0.lock().unwrap();
+        let key = request.request_id().to_string();
+        let Some(idx) = i.source_requests.get(&key).map(|e| e.index) else { return };
+        if i.client_requests[idx].is_object() { i.client_requests[idx]["waitingEnded"] = json!(true); }
+        if let Some(e) = i.source_requests.get_mut(&key) { e.observation_base["waitingEnded"] = json!(true); }
     }
     /// Test view: every reply body the request evidence keeps, and its count.
     #[cfg(test)]
@@ -2922,10 +2947,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // kept as its outcome only; a reply still awaited is kept whole
                 // until the reading takes its fields (`delegation_signals_read`).
                 let waiting_ended = i.client_requests[idx]["waitingEnded"] == true || i.source_requests.get(&key).is_some_and(|e| e.observation_base["waitingEnded"] == true);
+                // Nobody waits on the channel then either: it holds the reduced form too.
                 let kept = if delegation_reply && waiting_ended { delegation_withheld(&frame) } else { frame.clone() };
-                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
                 Self::stop_request_response(&mut i, &gen, &frame);
-                let _ = tx.send(frame.clone());
+                let _ = tx.send(kept);
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame.clone() };
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
@@ -2936,8 +2962,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 self.flush_recovery_observations();
                 return;
             }
-            // Uncorrelated response: surfaced, never dropped (§5).
-            let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
+            // Uncorrelated response: surfaced, never dropped (§5). A reply to a
+            // delegation read no longer pending (its write failed) is surfaced
+            // as its outcome only.
+            let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame };
+            let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
             if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
             return;
         }
@@ -4292,3 +4321,7 @@ mod recovery_root_tests;
 #[cfg(test)]
 #[path = "stop_records_host_tests.rs"]
 mod stop_records_host_tests;
+
+#[cfg(test)]
+#[path = "hosting_delegation_reply_tests.rs"]
+mod hosting_delegation_reply_tests;

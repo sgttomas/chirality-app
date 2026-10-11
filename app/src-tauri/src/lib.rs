@@ -485,6 +485,14 @@ fn role_set_metadata() -> Value {
         Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
     }
 }
+/// The App resources a non-dev build reads from `resource_dir()` in its
+/// default configuration (CI-31): `tauri.conf.json` `bundle.resources` maps
+/// each from `resources/` (see `bundle_resources_tests`). Feature-gated
+/// readers (`distribution-successor`'s `codex/` and `distribution-reference/`,
+/// `synthetic-distribution-anchor`'s namespace) are supplied by their own
+/// overlays.
+const RESOURCE_INSTRUCTIONS: &str = "instructions";
+const RESOURCE_WORKFLOWS: &str = "workflows";
 /// Native build mode chooses the source, never file existence or a failed package check.
 fn prepare_role_entry(
     root: &std::path::Path,
@@ -547,7 +555,7 @@ fn start_conversation(
     let prepared = (|| {
         let root = state.instructions_root.lock().unwrap().clone()?;
         prepare_role_entry(&root, role, tauri::is_dev(), || {
-            app.path().resource_dir().map(|path| path.join("instructions"))
+            app.path().resource_dir().map(|path| path.join(RESOURCE_INSTRUCTIONS))
                 .map_err(|error| format!("Production instruction resource directory unavailable: {error}"))
         })
     })();
@@ -973,7 +981,7 @@ fn noted_selection(state:&AppState,view:&Value,select:impl FnOnce(&mut runtime_s
 }
 #[tauri::command(async)]
 fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
-    let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join("workflows");
+    let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
     let view=active_native_view(&state);
     noted_selection(&state,&view,|workflows|workflows.select_production_bundle(root,&name))
 }
@@ -1696,6 +1704,44 @@ mod group_b_fixture_consumer;
 #[cfg(test)]
 #[path = "p3_role_entry_tests.rs"]
 mod p3_role_entry_tests;
+
+// CI-31: a bundle built from the default configuration carries every resource
+// the default host reads from `resource_dir()`, at the place it reads it.
+#[cfg(test)]
+mod bundle_resources_tests {
+    use super::*;
+    use std::path::Path;
+    fn manifest() -> &'static Path { Path::new(env!("CARGO_MANIFEST_DIR")) }
+    #[test]
+    fn every_default_resource_read_is_declared_in_bundle_resources() {
+        let config: Value = serde_json::from_slice(&std::fs::read(manifest().join("tauri.conf.json")).unwrap()).unwrap();
+        let declared = config["bundle"]["resources"].as_object().expect("tauri.conf.json declares bundle.resources as a source-to-destination map");
+        for (read, source, required) in [(RESOURCE_INSTRUCTIONS, "resources/instructions/", "roles.json"), (RESOURCE_WORKFLOWS, "resources/production_workflows/", "MANIFEST.json")] {
+            assert_eq!(declared.get(source).and_then(Value::as_str), Some(format!("{read}/").as_str()), "{source} must be bundled as {read}/");
+            assert!(manifest().join(source).join(required).is_file(), "{source}{required} is the source tree");
+        }
+        assert_eq!(declared.len(), 2, "the default bundle carries only what the default host reads: {declared:?}");
+        // The packaged instructions are what the host verifies against.
+        runtime_session::verify_production_instructions_root(&manifest().join("resources/instructions")).unwrap();
+        // Every `resource_dir()` read in the host names one of those, or is a
+        // feature-gated reader supplied by its own packaging overlay.
+        let gated = ["let resources = app.path().resource_dir()", "compiled_development_selection::observe_startup(|| app.path().resource_dir()"];
+        let mut reads = 0;
+        for entry in std::fs::read_dir(manifest().join("src")).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|e| e != "rs") { continue; }
+            for line in std::fs::read_to_string(&path).unwrap().lines() {
+                let code = line.trim_start();
+                if code.starts_with("mod bundle_resources_tests") { break; }
+                if code.starts_with("//") || !code.contains(".resource_dir()") { continue; }
+                reads += 1;
+                assert!(code.contains("RESOURCE_INSTRUCTIONS") || code.contains("RESOURCE_WORKFLOWS") || gated.iter().any(|g| code.contains(g)),
+                    "{}: resource read not declared in bundle.resources: {code}", path.display());
+            }
+        }
+        assert!(reads >= 4, "the known resource reads were scanned: {reads}");
+    }
+}
 
 #[cfg(all(test,unix))]
 mod connector_git_guard_tests {
