@@ -360,7 +360,6 @@ fn envelope(kind: &str, recorder: &Recorder, body: Value, id: String, seq: u64, 
 /// observation would be refused as nonconformant on every write. None when it
 /// conforms, or when validation itself is unavailable (not a definite refusal).
 pub(crate) fn nonconformance(kind: &str, body: &Value, id: &str, run: &str, observed_at: &str) -> Option<String> {
-    if kind.is_empty() { return None; }
     let validator = crate::schema_validation::bundled().ok()?;
     let entry = envelope(kind, &APP_WRITER, body.clone(), id.to_owned(), 1, Some(run), Some(observed_at));
     validator.validate(&entry).err()

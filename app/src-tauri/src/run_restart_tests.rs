@@ -34,6 +34,9 @@ fn ci20d_run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     let ledger=crate::recovery::RecoveryLedger::open(peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap().snapshot();
     let rows=ledger["entries"].as_array().unwrap().clone();
     assert_eq!(crate::recovery::tags_of(&rows,"H-acct","thread",owner),tags);
+    // The conversation's latest index row itself still carries the earlier run's tag.
+    let latest=rows.iter().rev().find(|r|r["kind"]=="conversation_index"&&r["threadId"]=="thread").unwrap();
+    assert_eq!(crate::recovery::tags_of(std::slice::from_ref(latest),"H-acct","thread",owner),tags,"an earlier run's tag is never replaced");
     assert_eq!(crate::recovery::look_up(&rows,owner,&b),[("H-acct".to_string(),"thread".to_string())]);
     assert!(crate::recovery::tags_of(&rows,"H-acct","thread","DEL-01-04").is_empty(),"tags of one owner only");
 }
