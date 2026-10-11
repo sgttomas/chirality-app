@@ -133,7 +133,7 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
 
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
-export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string; detail?: string };
+export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string; detail?: string; prefillKept?: boolean };
 export async function attemptSend(send: (text: string) => Promise<boolean>, draft: string): Promise<SendState> {
   try {
     return (await send(draft)) ? { state: "sent" } : { state: "failed", failure: "The message was not accepted; see the App message below." };

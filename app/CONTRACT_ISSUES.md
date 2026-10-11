@@ -1302,11 +1302,52 @@ changed.
   handle. Since CC-WR-TRIALS a trial reaches its agent as the trial text (WR
   TT-3, TT-8), not as draft attachments, and WR §17 step 8 (phase 2) removed
   the attachment pre-fill. Reword it with the re-freeze. Phase 2 also edited
-  WR TT-3a, TT-3b, TT-9, TT-10, §5.5, §11, §12 and §17, so the WR pin moves
+  WR §3, TT-2, TT-3a, TT-3b, TT-9, TT-10, TT-11, §5.5, §11, §12 and §17, so the WR pin moves
   further from the frozen hash. The WR Design itself
   changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
   handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
   from the frozen hash.
+- **Delegation availability read at the 0.160.0 pin (2026-10-10).** The App
+  now reads NPTD §7.1's signals in the Rust host (WR TT-3a and §17 state how).
+  Three readings at the pin are not in the pinned texts, which still match
+  their pins and were left unchanged. Add them at the re-freeze to DEL-01-03
+  `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.1 (and its §18 row), DEL-02-03
+  `EXECUTION_COMPATIBILITY.md` §3.4 EV-3a `agent-delegation`, and DEL-02-01
+  `WORKFLOW_DECLARATION.md` §4.2.5 `agent-delegation`:
+  - `modelProvider/capabilities/read` and `model/list` take no provider and
+    answer for the provider the app-server resolves for itself, which a
+    conversation's project-folder configuration or start may differ from.
+    The host reads that server provider as `config/read`'s `model_provider`
+    with no folder and with the app-server's own working folder. Only when
+    the two agree and name the conversation's reported `modelProvider` do
+    `namespaceTools` and `multiAgentVersion` count for the conversation;
+    otherwise both read *not read*, so the reading is *not established*
+    (never *present* or *missing* from another provider's answers).
+    `features.multi_agent` is read with the conversation's `cwd`.
+  - With no `model_provider` configured (the common case, and the App's own
+    homes) both server-provider reads name no provider, so the reading is
+    *not established* for every conversation, even for a `disabled` model.
+    The App does not infer Codex's default provider from that absence (it is
+    not in the 0.160.0 types; OBS-2's observation is of 0.158.0). This holds
+    until the native witness observes what 0.160.0's `config/read` and
+    capabilities report for an unconfigured home; the witness run settles it.
+  - Not verifiable from the App: a `config.toml` edited after the app-server
+    started may make `config/read` (read from the files now) and the
+    parameterless reads (the server's loaded configuration) diverge. The
+    reading then rests on `config/read` and may be wrong until the server is
+    restarted.
+  - The generated `Config` types no `features` field. `features.multi_agent`
+    is read as an additional property of `config/read`'s `config`, with the
+    conversation's `cwd`. A configuration that was read and has no such
+    property sets nothing, so it is read, not unread.
+  - `Model.multiAgentVersion` is that of the `model/list` entry whose `model`
+    or `id` is the conversation's reported model, read over every page with
+    hidden models included. A model that is not listed reads *not read*.
+  - The reads made when the person presses Try with the authoring agent or
+    Try again are journalled `person-directed`, as `collaborationMode/list`
+    reads are; NPTD §5.1 names the receiver DEL-01-03. Say which at the
+    re-freeze. The tick's reads are journalled as the App rule
+    `delegation-availability-read`.
 - **OI-008 ruling (2026-10-10).** The owner decided process placement for the
   whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
   §11 and NIR §1.1 were also edited, since their pins were already stale. Five

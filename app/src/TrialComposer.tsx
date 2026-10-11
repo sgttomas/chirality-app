@@ -33,8 +33,20 @@ export function ConversationSelect({ label, conversations, value, setValue, disa
   </select></label>;
 }
 
-/** The host's error message as given (Tauri rejects with the host's string). */
-export const hostMessage = (error: unknown): string => error instanceof Error ? error.message : text(error);
+/** The host's error message as given: Tauri rejects with the host's string,
+ * or with a send refusal `{message, prefillKept}`. */
+export const hostMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  const refusal = error as Json;
+  if (refusal && typeof refusal === "object" && typeof refusal.message === "string") return refusal.message;
+  return text(error);
+};
+/** Whether the host said the refused message is still pre-filled (its
+ * `prefillKept` flag); anything else, including a plain string, is "no". */
+export const prefillKept = (error: unknown): boolean => {
+  const refusal = error as Json;
+  return !!refusal && typeof refusal === "object" && !(error instanceof Error) && refusal.prefillKept === true;
+};
 
 /** Calls a host command for the person's press and turns the outcome into a
  * send state: "sent" only when the host resolved with a result, worded by
@@ -46,7 +58,7 @@ export function pressSend(act: TrialAct, command: string, args: Record<string, u
   try { call = Promise.resolve(act(command, args)); } catch (error) { call = Promise.reject(error); }
   void call.then(
     result => setOutcome(result === undefined ? { state: "failed", failure: "The host did not report the send's outcome; see the App message." } : { state: "sent", detail: sentWords(result) }),
-    error => setOutcome({ state: "failed", failure: hostMessage(error) }));
+    error => setOutcome({ state: "failed", failure: hostMessage(error), prefillKept: prefillKept(error) }));
 }
 
 /** Success words for each trial send (WR SQ-DT DT-4, SQ-FT FT-4, SQ-BB BB-5). */
@@ -55,15 +67,15 @@ export const cleanSentWords = (threadId: Json) => `Sent in the new trial convers
 export const bringBackSentWords = (threadId: Json) => `Transcript sent to conversation ${text(threadId)}`;
 
 /** A trial or bring-back send's outcome in its own words. A failure shows the
- * host's message as given (it says whether the message stays pre-filled or was
- * withdrawn because the send's outcome is unknown); "You can send it again" is
- * added only when the host's message says it stays pre-filled. */
+ * host's message as given; "You can send it again" is added only when the
+ * host's refusal carries `prefillKept: true` (the message is still pre-filled),
+ * never from the message's wording. */
 export function TrialSendOutcome({ outcome }: { outcome: SendState }) {
   if (outcome.state === "sending") return <p role="status"><small>Sending; waiting for Codex's acknowledgment.</small></p>;
   if (outcome.state === "sent") return <p role="status"><small>{text(outcome.detail)}.</small></p>;
   if (outcome.state === "failed") {
     const failure = text(outcome.failure);
-    return <p role="alert"><small>{failure}{/stays pre-filled/i.test(failure) ? " You can send it again." : ""}</small></p>;
+    return <p role="alert"><small>{failure}{outcome.prefillKept === true ? " You can send it again." : ""}</small></p>;
   }
   return null;
 }

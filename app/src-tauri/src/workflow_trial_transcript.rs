@@ -583,6 +583,30 @@ pub(crate) struct CompareSide {
     pub summary: Value,
 }
 
+/// A trial side's `conversation`: its authoring conversation, its clean trial
+/// conversation and its linked sub-agent, each a thread id or null.
+/// `trial_flows::compare` and the fixture test both build it here.
+pub(crate) fn trial_conversation(authoring: &Value, trial: &Value, sub_agent: Option<&str>) -> Value {
+    serde_json::json!({"authoring":authoring,"trial":trial,"subAgent":sub_agent})
+}
+/// A run side's `conversation`: the run's conversation.
+pub(crate) fn run_conversation(thread: &str) -> Value {
+    serde_json::json!({"run":thread})
+}
+/// A trial side's `snapshot`: the trial snapshot's standing (TT-8).
+pub(crate) fn trial_snapshot(standing: &crate::workflow_workspace::package_copy::CopyStanding) -> Value {
+    use crate::workflow_workspace::package_copy::CopyStanding;
+    match standing {
+        CopyStanding::Current => serde_json::json!({"state":"current"}),
+        CopyStanding::Changed(cause) => serde_json::json!({"state":"changed","reading":format!("trial snapshot changed after the trial: {cause}")}),
+        CopyStanding::NotAvailable(_) => serde_json::json!({"state":"not available","reading":"version bytes not available"}),
+    }
+}
+/// A run side's `snapshot`: its version is read from the revision store.
+pub(crate) fn run_snapshot() -> Value {
+    serde_json::json!({"state":"revision store","reading":"read from the revision this run selected"})
+}
+
 /// TT-11's Compare result: the two sides as read and the version difference
 /// (`version_difference`'s output, or `{limit}` when bytes were not
 /// available). The web view (`CompareResult`) renders exactly these fields;

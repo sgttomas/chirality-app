@@ -16,7 +16,7 @@ import { NativeRequestCard, WaitingRequestsIndicator, answerable, requestThread 
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
-import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor } from "./TrialComposer";
+import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, hostMessage } from "./TrialComposer";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -110,7 +110,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
       if (result === undefined) setError(`${label} did not complete; see the message below.`);
       else if (command === "workflow_trial_start_clean" && result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
       return result;
-    } catch (e) { setError(`${label}: ${String(e)}`); throw e; }
+    } catch (e) { setError(`${label}: ${hostMessage(e)}`); throw e; }
     finally { setBusy(""); }
   };
   const workflowRoot = host?.workflowRoot;
@@ -143,7 +143,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
     {composers.delegated.map((pending: Json) => <DelegatedTrialComposer key={`trial:${selected?.threadId}:${pending.reference}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
     {composers.bringBacks.map((pending: Json) => <BringBackComposer key={`bring-back:${selected?.threadId}:${pending.id}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
     <NativeActivityView key={`activity:${selected?.threadId ?? ""}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
-      trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren}
+      trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div aria-label="Requests from Codex in this conversation">

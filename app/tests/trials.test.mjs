@@ -177,12 +177,24 @@ test('a successful send is worded for its trial kind (I-6)',async()=>{
     assert.doesNotMatch((await pressIn(kind,ok)).html,/Sent once as an ordinary message|see the new conversation/,'not the handoff wording');
 });
 
+// The host's send refusal (trial_flows::SendRefusal) as Tauri rejects with it.
+const refusal=(message,prefillKept)=>({message,prefillKept});
 test('a failed send is never shown as sent; the host’s message is shown as given (I-6, I-9)',async()=>{
   for(const kind of ['delegated','clean','clean-started']){
-    let r=await pressIn(kind,async()=>{throw STAYS;});
+    let r=await pressIn(kind,async()=>{throw refusal(STAYS,true);});
     assert.equal(r.last.state,'failed',kind);
     assert.ok(r.html.includes(`${STAYS} You can send it again.`),kind);
     assert.doesNotMatch(r.html,/Sent (to|in)/,kind);
+    // The hint follows the host's flag, not the message's words.
+    r=await pressIn(kind,async()=>{throw STAYS;});
+    assert.ok(r.html.includes(STAYS)&&!r.html.includes('send it again'),`${kind}: a plain message saying "stays pre-filled" carries no flag`);
+    r=await pressIn(kind,async()=>{throw refusal(STAYS,false);});
+    assert.doesNotMatch(r.html,/send it again/,kind);
+    r=await pressIn(kind,async()=>{throw refusal('conversation selection is stale; nothing sent',true);});
+    assert.ok(r.html.includes('conversation selection is stale; nothing sent You can send it again.'),`${kind}: a kept refusal whatever its words`);
+    r=await pressIn(kind,async()=>{throw refusal(WITHDRAWN,false);});
+    assert.ok(r.html.includes(WITHDRAWN.replace(/'/g,'&#x27;')),kind);
+    assert.doesNotMatch(r.html,/send it again/,kind);
     r=await pressIn(kind,async()=>{throw new Error(WITHDRAWN);});
     assert.equal(r.last.state,'failed',kind);
     assert.ok(r.html.includes(WITHDRAWN.replace(/'/g,'&#x27;')),kind);
@@ -195,8 +207,10 @@ test('a failed send is never shown as sent; the host’s message is shown as giv
     r=await pressIn(kind,()=>{throw STAYS;});
     assert.equal(r.last.state,'failed',kind);
   }
-  let r=await pressIn('bring-back',async()=>{throw BB_STAYS;});
+  let r=await pressIn('bring-back',async()=>{throw refusal(BB_STAYS,true);});
   assert.ok(r.html.includes(`${BB_STAYS} You can send it again.`));
+  r=await pressIn('bring-back',async()=>{throw BB_STAYS;});
+  assert.doesNotMatch(r.html,/send it again/);
   assert.doesNotMatch(r.html,/Transcript sent/);
   r=await pressIn('bring-back',async()=>{throw BB_UNKNOWN;});
   assert.ok(r.html.includes(BB_UNKNOWN.replace(/'/g,'&#x27;')));

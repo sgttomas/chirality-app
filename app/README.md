@@ -157,8 +157,17 @@ writes records or operates the act control." `src-tauri/` holds that host;
     agent** pre-fills, in the conversation chosen as authoring conversation,
     the person's editable message and then the trial text as a removable card;
     the message asks the authoring agent to run the trial through one
-    sub-agent and report. The App does not read the delegation signals yet,
-    so availability reads "not established" with that note. **Try in a fresh
+    sub-agent and report. The host reads delegation availability (NPTD §7.1:
+    the model's `multiAgentVersion`, `features.multi_agent`, the provider's
+    `namespaceTools`) for each conversation's model and provider when Try is
+    pressed and on its tick when needed (once per conversation model, and again
+    for a *missing* reading after two minutes); readings from Codex's
+    provider-wide reads count only when the app-server's own provider is the
+    conversation's. With no `model_provider` configured (the usual case) the
+    reading is therefore *not established* until the native witness settles
+    what Codex 0.160.0 reports for an unconfigured home; *missing* hides the
+    button with the reason,
+    *not established* offers it with that note. **Try in a fresh
     conversation** is optional: a new-conversation panel takes the person's
     role and model, puts the trial text first, then the editable inputs
     message; that conversation offers no workflow run, and neither does a fork

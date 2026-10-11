@@ -143,6 +143,7 @@ code_paths:
 - app/src-tauri/src/native_items.rs
 - app/src/NativeActivity.tsx
 - app/src/PlanMode.tsx
+- app/src-tauri/src/delegation_availability.rs
 checks:
 - app/tests/native-activity.test.mjs
 - app/tests/plan-mode.test.mjs

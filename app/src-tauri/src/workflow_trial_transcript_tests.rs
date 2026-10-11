@@ -580,16 +580,17 @@ fn compare_result_matches_the_web_view_fixture() {
         label: "trial 3 of draft review-brief".into(),
         kind: "delegated".into(),
         version: json!({"method":"chirality.app.workflow-package.sha256/v1","value":"0123456789abcdef0123456789abcdef"}),
-        conversation: json!({"authoring":"thr-auth","trial":null,"subAgent":"thr-sub"}),
-        snapshot: json!({"state":"current"}),
+        // The same builders `trial_flows::compare` uses, so the fixture pins what it builds.
+        conversation: trial_conversation(&json!("thr-auth"), &Value::Null, Some("thr-sub")),
+        snapshot: trial_snapshot(&crate::workflow_workspace::package_copy::CopyStanding::Current),
         summary: activity_summary(&left_turns, None),
     };
     let right = CompareSide {
         label: "run run-7 of project:review-brief".into(),
         kind: "registered run".into(),
         version: json!({"method":"chirality.app.workflow-package.sha256/v1","value":"fedcba9876543210fedcba9876543210"}),
-        conversation: json!({"run":"thr-run"}),
-        snapshot: json!({"state":"revision store","reading":"read from the revision this run selected"}),
+        conversation: run_conversation("thr-run"),
+        snapshot: run_snapshot(),
         summary: activity_summary(&right_turns, Some("thread/turns/list page 3 failed")),
     };
     let result = compare_result(&left, &right, difference);

@@ -6,7 +6,8 @@
 //! - the record tick receives every home's native frames and lets the
 //!   checkpoint recorder record what the view shows of the open runs (EXEC §2.4);
 //! - the trial tick, on its own thread so that a slow Codex read never delays
-//!   the record tick, makes the trial reads that are due (WR TT-9).
+//!   the record tick, makes the trial reads that are due (WR TT-9) and the
+//!   delegation readings of conversations not read yet (NPTD §7.1).
 //!
 //! `host_status` only reads (`workflow_status`, `tick_state`).
 use crate::runtime_session::{record_run_observations, trial_flows, HomeRouter, HomeSession, WorkflowRootSession};
@@ -55,11 +56,37 @@ pub(crate) fn trial_tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRoot
     workflows.lock().unwrap().apply_trial_reads(results)
 }
 
-/// The trial tick for every home the App holds.
+/// Delegation readings (NPTD §7.1, read at run time per R19-5) taken per tick
+/// per home at most. The tick reads only on need: a conversation model,
+/// provider and folder with no reading yet, or a *missing* reading older than
+/// `DELEGATION_MISSING_REFRESH`. Try with the authoring agent and Try again
+/// read their conversation at the press.
+pub(crate) const DELEGATION_READS_PER_TICK: usize = 1;
+/// A *missing* reading's age after which the tick reads it again (it hides
+/// the press that would re-read it). Other readings are not refreshed here.
+pub(crate) const DELEGATION_MISSING_REFRESH: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// The delegation reads due in one home: conversations whose model became
+/// known (started, resumed or forked) and have no reading, or a stale
+/// *missing* one. Holds no App lock.
+pub(crate) fn delegation_tick_home(home: &HomeSession) -> usize {
+    delegation_tick_home_aged(home, DELEGATION_MISSING_REFRESH)
+}
+pub(crate) fn delegation_tick_home_aged(home: &HomeSession, max_age: std::time::Duration) -> usize {
+    let due = home.host.delegation_reads_due(DELEGATION_READS_PER_TICK, max_age);
+    for (generation, thread) in &due {
+        home.host.delegation_signals_read(generation, thread, json!({"kind":"app-rule","name":"delegation-availability-read"}));
+    }
+    due.len()
+}
+
+/// The trial tick for every home the App holds (TT-9 reads, then the
+/// delegation readings, which also wait on Codex).
 pub(crate) fn trial_tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) {
     let entries = homes.lock().unwrap().entries();
     for home in entries {
         trial_tick_home(&home, workflows);
+        delegation_tick_home(&home);
     }
 }
 

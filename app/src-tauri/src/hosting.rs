@@ -190,6 +190,12 @@ struct Inner {
     declared_capabilities: Option<Value>,
     /// Last `collaborationMode/list` result read for a generation (EX-2/EX-3).
     collaboration_modes: Value,
+    /// NPTD §7.1 delegation readings of this home: one per generation, model,
+    /// provider and working folder (`delegation_availability::key`).
+    delegation_readings: Vec<Value>,
+    /// The app-server process's own working folder (its `current_dir`), for
+    /// the provider it resolves for the parameterless reads (NPTD §7.1).
+    server_cwd: Option<String>,
     /// Collaboration modes this App requested on `turn/start`, per generation/thread.
     requested_modes: Vec<Value>,
     configuration_identity: Option<Value>,
@@ -496,6 +502,23 @@ impl AppRuntimeCustody {
     }
 }
 
+/// One delegation reading's whole wait (NPTD §7.1; the trial tick's reads
+/// of later homes wait behind it).
+pub const DELEGATION_READ_BUDGET: Duration = Duration::from_secs(15);
+/// The reads delegation availability makes (NPTD §7.1). No other part of the
+/// App sends them. Their result bodies are neither journalled nor kept as
+/// request evidence once the reading has taken its fields.
+const DELEGATION_READ_METHODS: [&str; 3] = ["model/list", "config/read", "modelProvider/capabilities/read"];
+/// What is kept of a delegation read's reply: its id and outcome, and an
+/// error as Codex sent it; never the result body.
+fn delegation_withheld(frame: &Value) -> Value {
+    json!({"id":frame.get("id"),"outcome":if frame.get("error").is_some(){"error"}else if frame.get("result").is_some(){"result"}else{"other"},
+        "error":frame.get("error"),"resultWithheld":"delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses"})
+}
+/// Wall-clock milliseconds, for a delegation reading's age.
+fn delegation_now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
 pub struct Host {
     recovery_writer: Arc<Mutex<()>>,
     runtime_custody:Mutex<Option<Arc<AppRuntimeCustody>>>,
@@ -1187,6 +1210,7 @@ impl Host {
             i.held.clear();
             i.child_pid = Some(pid);
             i.stop_record = None;
+            i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
@@ -2477,6 +2501,156 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(Self::plan_mode_availability(&i))
     }
 
+    /// NPTD §7.1 (R19-5): reads the delegation signals for one loaded
+    /// conversation of `generation` and keeps the reading for its model,
+    /// provider and folder. `config/read` is read with the conversation's
+    /// working folder (`features.multi_agent` as the conversation sees it) and
+    /// twice more for the provider the app-server resolves for itself: with
+    /// no folder and with its own working folder. `model/list` and
+    /// `modelProvider/capabilities/read` take no provider and answer for that
+    /// server provider, so `delegation_availability::signals` counts them only
+    /// when it is the conversation's provider. Reads only. One reading waits
+    /// at most `DELEGATION_READ_BUDGET` in all (each request at most ten
+    /// seconds); after a request gets no response nothing further is sent. A
+    /// signal not read is never guessed.
+    pub fn delegation_signals_read(&self, generation: &Value, thread_id: &str, initiator: Value) -> Value {
+        self.delegation_signals_read_within(generation, thread_id, initiator, DELEGATION_READ_BUDGET)
+    }
+    pub(crate) fn delegation_signals_read_within(&self, generation: &Value, thread_id: &str, initiator: Value, budget: Duration) -> Value {
+        const WAIT: Duration = Duration::from_secs(10);
+        const MODEL_PAGES: usize = 20;
+        let (conversation, server_cwd) = {
+            let i = self.inner.0.lock().unwrap();
+            (i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread_id).cloned(), i.server_cwd.clone())
+        };
+        let Some(conversation) = conversation else {
+            let cause = || Err::<Value, String>("the conversation is not loaded in this Codex generation".into());
+            let mut signals = crate::delegation_availability::signals(&json!({"threadId":thread_id}), cause(), cause(), cause(), cause());
+            signals["readAt"] = json!(crate::util::now_rfc3339());
+            signals["readAtMs"] = json!(delegation_now_ms());
+            return signals;
+        };
+        let deadline = std::time::Instant::now() + budget;
+        let silent = std::cell::Cell::new(false);
+        let sent = std::cell::RefCell::new(Vec::<String>::new());
+        let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
+            if silent.get() { return Err(format!("{method} not sent: an earlier read of this reading got no response")); }
+            let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
+            if wait.is_zero() { return Err(format!("{method} not sent: the reading's time limit was reached")); }
+            let request = self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))?;
+            sent.borrow_mut().push(request.request_id().to_string());
+            let response = self.wait_source_response(&request, wait).map_err(|e| {
+                if e.contains("within the wait limit") { silent.set(true); }
+                e
+            })?;
+            if let Some(error) = response.get("error") { return Err(format!("{method} answered with an error: {error}")); }
+            let result = response.get("result").cloned().ok_or_else(|| format!("{method} returned no result"))?;
+            Self::validate_native_result(schema, &result)?;
+            Ok(result)
+        };
+        let model = match conversation["model"].as_str() {
+            None => Err("the conversation's model was not reported".to_owned()),
+            Some(model) => (|| {
+                let mut cursor: Option<String> = None;
+                for _ in 0..MODEL_PAGES {
+                    let mut params = json!({"includeHidden":true});
+                    if let Some(c) = &cursor { params["cursor"] = json!(c); }
+                    let page = read("model/list", params, "ModelListResponse")?;
+                    if let Some(entry) = page["data"].as_array().into_iter().flatten().find(|m| m["model"] == model || m["id"] == model) {
+                        return Ok(entry.clone());
+                    }
+                    match page["nextCursor"].as_str() {
+                        Some("") => return Err("model/list returned an empty page cursor".to_owned()),
+                        Some(next) if cursor.as_deref() == Some(next) => return Err("model/list repeated a page cursor".to_owned()),
+                        Some(next) => cursor = Some(next.to_owned()),
+                        None => return Ok(Value::Null),
+                    }
+                }
+                Err(format!("model/list did not end within {MODEL_PAGES} pages"))
+            })(),
+        };
+        let config_at = |cwd: Option<&str>| {
+            let mut params = json!({"includeLayers":false});
+            if let Some(cwd) = cwd { params["cwd"] = json!(cwd); }
+            read("config/read", params, "ConfigReadResponse")
+        };
+        let config = config_at(conversation["cwd"].as_str());
+        // The provider the server resolves for its parameterless reads: its
+        // configuration without a folder and at its own folder must agree.
+        let server = match server_cwd.as_deref() {
+            None => Err("the app-server's working folder is not known to this App".to_owned()),
+            Some(server_cwd) => match (config_at(None), config_at(Some(server_cwd))) {
+                (Ok(bare), Ok(own)) if bare["config"]["model_provider"] == own["config"]["model_provider"] => Ok(bare["config"]["model_provider"].clone()),
+                (Ok(bare), Ok(own)) => Err(format!(
+                    "the app-server's configuration names provider {} without a folder and {} at its own folder",
+                    bare["config"]["model_provider"].as_str().unwrap_or("none"),
+                    own["config"]["model_provider"].as_str().unwrap_or("none")
+                )),
+                (Err(cause), _) | (_, Err(cause)) => Err(cause),
+            },
+        };
+        let capabilities = read("modelProvider/capabilities/read", json!({}), "ModelProviderCapabilitiesReadResponse");
+        let mut signals = crate::delegation_availability::signals(&conversation, model, config, server, capabilities);
+        signals["readAt"] = json!(crate::util::now_rfc3339());
+        signals["readAtMs"] = json!(delegation_now_ms());
+        let key = crate::delegation_availability::key(&conversation);
+        let mut i = self.inner.0.lock().unwrap();
+        // The reading has taken its fields: the request evidence keeps the
+        // reply's outcome only (a reply arriving after the reading stopped
+        // waiting is kept as its outcome on arrival, in `on_line`).
+        for id in sent.borrow().iter() {
+            if let Some(e) = i.source_requests.get_mut(id) {
+                if let Some(frame) = e.response.as_ref() { e.response = Some(delegation_withheld(frame)); }
+            }
+        }
+        // A reading of a generation no longer current is not kept: keeping it
+        // would replace the current generation's readings.
+        if i.generation == *generation {
+            i.delegation_readings.retain(|r| r["key"] != key && r["key"]["generation"] == *generation);
+            i.delegation_readings.push(json!({"key":key,"signals":signals}));
+        }
+        signals
+    }
+    /// The loaded conversations of the current generation the host tick reads
+    /// (at most `limit`): those whose model, provider and folder have no
+    /// reading yet (read once, when the conversation's model is known), and
+    /// those whose reading is *missing* and older than `missing_age`
+    /// (*missing* hides the press that would read it again). A present or not
+    /// established reading is read again only at the person's press.
+    pub fn delegation_reads_due(&self, limit: usize, missing_age: Duration) -> Vec<(Value, String)> {
+        let i = self.inner.0.lock().unwrap();
+        if i.state != "ready" { return vec![]; }
+        let now = delegation_now_ms();
+        let fresh = |key: &Value| i.delegation_readings.iter().any(|r| r["key"] == *key && {
+            let missing = crate::delegation_availability::evaluate(Some(&r["signals"]))["reading"] == "missing";
+            let young = r["signals"]["readAtMs"].as_u64().is_some_and(|at| now.saturating_sub(at) < missing_age.as_millis() as u64);
+            !missing || young
+        });
+        let mut keys = vec![];
+        let mut due = vec![];
+        for t in i.threads.iter().filter(|t| t["generation"] == i.generation) {
+            let key = crate::delegation_availability::key(t);
+            if due.len() >= limit || keys.contains(&key) || fresh(&key) { continue; }
+            if let Some(thread) = t["threadId"].as_str() {
+                keys.push(key);
+                due.push((i.generation.clone(), thread.to_owned()));
+            }
+        }
+        due
+    }
+    /// Test view: every reply body the request evidence keeps, and its count.
+    #[cfg(test)]
+    pub(crate) fn kept_replies(&self) -> (usize, String) {
+        let i = self.inner.0.lock().unwrap();
+        let replies: Vec<&Value> = i.source_requests.values().filter_map(|e| e.response.as_ref()).collect();
+        (i.source_requests.len(), serde_json::to_string(&replies).unwrap_or_default())
+    }
+    /// The delegation readings kept for the current generation.
+    pub fn delegation_readings(&self) -> Vec<Value> {
+        let i = self.inner.0.lock().unwrap();
+        i.delegation_readings.iter().filter(|r| r["key"]["generation"] == i.generation).cloned().collect()
+    }
+
     /// PS-1/PS-2/PS-5: plain text with an explicit collaboration mode. The mode
     /// settings carry the conversation's reported model and reasoning effort
     /// (null when Codex reported none) and null developer instructions, so
@@ -2670,8 +2844,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let (frame,projected)=match parsed{Some(frame)if frame.is_object()&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
             auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
         },_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)};
+        // NPTD §7.1 delegation reads: their result bodies (whole model
+        // catalogues, whole configurations) are never journalled.
+        let delegation_reply = correlated_method.as_deref().is_some_and(|m| DELEGATION_READ_METHODS.contains(&m)) && frame.get("method").is_none();
         if &i.generation != generation || i.server_requests.is_closed(generation) {
-            i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}}));return;
+            let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame };
+            i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
@@ -2740,11 +2918,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                         }
                     }
                 }
-                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(frame.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
+                // A delegation read's reply after its reading stopped waiting is
+                // kept as its outcome only; a reply still awaited is kept whole
+                // until the reading takes its fields (`delegation_signals_read`).
+                let waiting_ended = i.client_requests[idx]["waitingEnded"] == true || i.source_requests.get(&key).is_some_and(|e| e.observation_base["waitingEnded"] == true);
+                let kept = if delegation_reply && waiting_ended { delegation_withheld(&frame) } else { frame.clone() };
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(frame.clone());
                 // Responses are also journaled, with their metadata beside the native frame (H6).
-                let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
+                let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame.clone() };
+                let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
                 if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
                 drop(i);
@@ -3567,7 +3751,7 @@ mod conversation_transport_tests {
             let reference={let mut w=workflows.lock().unwrap();w.set_app_user_data(root.join("app-data"));w.open_library(library.clone(),"project",None,Arc::new(Mutex::new(None))).unwrap();w.observe_drafts(&json!([])).unwrap();
                 w.prepare_trial("delegated","solo-draft",Some((&g,"thread")),Some(&home),Some(&library)).unwrap()["reference"].as_str().unwrap().to_owned()};
             let response=if acknowledged{json!({"result":{"turn":complete_turn()}})}else{json!({"error":{"code":-32600,"message":"synthetic refusal"}})};
-            let (result,outbound)=shared_text_exchange(&host,&g,response,||crate::runtime_session::trial_flows::send_trial(&workflows,&home,&reference,&g,"thread","please try this draft"));
+            let (result,outbound)=shared_text_exchange(&host,&g,response,||crate::runtime_session::trial_flows::send_trial(&workflows,&home,&reference,&g,"thread","please try this draft").map_err(|e|e.message));
             assert_eq!(outbound["params"]["input"][0]["text"],"please try this draft");
             assert!(outbound["params"]["input"][1]["text"].as_str().unwrap().starts_with("[Chirality] Workflow trial 1 of draft project:solo-draft"));
             let links=crate::workflow_workspace::registration::drafts::TrialLinks::open(&root.join("app-data"));
