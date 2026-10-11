@@ -1387,8 +1387,11 @@ changed.
   candidate's pin.
 - **Stale wording.** SQ §3.4's ST-4 row and `sq.step-map.json` J-2
   `replay_counterpart` say that no delegation recording "exists yet". A
-  development one now exists, but not at a candidate pin. These sources are
-  pinned and were left unedited.
+  development one now exists, but not at a candidate pin. The same applies
+  to DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md`: its NV-04 verification row
+  still reads "not observed", and U-P4 still waits for "a later
+  observation". These sources are pinned and were left unedited; they are
+  for the next re-freeze.
 - **Open (SQ owner).**
   - Should SQ cite the development recordings?
   - Once a candidate names its pin, does rerunning

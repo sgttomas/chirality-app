@@ -7,7 +7,8 @@ Not product code and not an App candidate: this script stands in for the App sid
 and records it. Python 3 standard library only. No download, no sign-in, no credential, never `~/.codex`:
 every Codex home and workspace is made with `tempfile.mkdtemp`. The model provider is
 `stub_provider.py` on 127.0.0.1 (invented content); plugins and analytics are off in the scratch
-`config.toml`. Any non-loopback socket of the Codex process group stops the run.
+`config.toml`. A 0.25 s lsof watch of the Codex process group stops the run if it sees a non-loopback
+peer; it is a sample, not a guarantee (isolation rests on plugins off and no sign-in, HOSTING OB2-9).
 
 Scenarios
   st5     generation 1: initialize, thread/start, turn/start; the stub asks for one shell command; Codex
@@ -204,6 +205,7 @@ class Harness:
         sys.stderr.write("[%8.1f] %s %s\n" % (rec["t_ms"], kind, json.dumps(kw)[:300]))
 
     def watch_sockets(self, done):
+        """Sample the process group's sockets every 0.25 s; a sample, not network isolation."""
         while not done.is_set():
             for g in self.gens:
                 if g.proc.poll() is not None:
@@ -536,10 +538,14 @@ def main():
         for g in h.gens:
             if g.proc.poll() is None:
                 os.killpg(g.pgid, signal.SIGKILL)
+        if h.stop_reason or sys.exc_info()[0] is not None:
+            shutil.rmtree(h.scratch, ignore_errors=True)
     if h.stop_reason:
         raise SystemExit("stopped: " + h.stop_reason)
-    print(write_outputs(h, a.scenario, info))
-    shutil.rmtree(h.scratch, ignore_errors=True)
+    try:
+        print(write_outputs(h, a.scenario, info))
+    finally:
+        shutil.rmtree(h.scratch, ignore_errors=True)
 
 
 if __name__ == "__main__":

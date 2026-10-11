@@ -14,9 +14,10 @@
 - **Setup:** scratch Codex home and workspace made with `mkdtemp`, never
   `~/.codex`. No sign-in, credential or download. Plugins and analytics are
   off. The model provider is a scripted loopback Responses stub
-  (`prototype/st5/stub_provider.py`, 127.0.0.1 only, invented output). The
-  harness stops the run if any socket of the Codex process group has a
-  non-loopback peer; no run stopped.
+  (`prototype/st5/stub_provider.py`, 127.0.0.1 only, invented output). A
+  0.25 s `lsof` watch of the Codex process group saw no non-loopback peer.
+  That watch is a sample, not a guarantee; isolation rests on plugins off and
+  no sign-in (HOSTING §10.2 OB2-9).
 - **Files:** `prototype/st5/st5_harness.py` (method; rerun from that folder
   with `--binary`, `--codex-path`, `--out` and a scenario name).
   `prototype/st5/recordings/`:
@@ -61,8 +62,9 @@ request ends unanswered (X-09).
 
 **Variant without the freeze (`st5-race`).** Here the answer and client
 request were written and SIGKILL followed at once. In four runs, no
-`serverRequest/resolved` or response arrived before the exit. The committed
-recording is the last of those runs. The frozen form is the method of record
+`serverRequest/resolved` or response arrived before the exit. Only the last
+run's recording is committed; the other three are uncommitted observations
+(the harness reruns them with `st5-race`). The frozen form is the method of record
 because its outcome does not depend on timing.
 
 **X-10: restart and recovery read (generation 2, same home).**
@@ -92,7 +94,8 @@ assumptions was found.
 Two supplier facts were seen again:
 - `approval_policy = "untrusted"` in `config.toml` is still refused at start
   (81 bytes on stderr, before `initialize`), as at 0.158.0 (HOSTING §10.1
-  OB-5).
+  OB-5). This was seen while developing the harness; it is an uncommitted
+  observation, not a harness scenario.
 - The harness therefore uses `on-request` with an escalation request.
 
 ## NV-04: the primary turn completes while a descendant is still active
@@ -117,6 +120,9 @@ follow-up at once and held the child's model response open for 8 s.
 Other observations:
 - No `thread/started` was sent for the child (RECOVERY §3.4).
 - `thread/loaded/list` then listed both threads.
+- Codex wrote 348 bytes to stderr. On a rerun these were two lines near
+  shutdown, `ERROR codex_core::session: failed to record rollout items:
+  thread <primary thread id> not found`.
 
 **Against the Design.** This is NPTD NV-04's condition, recorded on the stock
 supplier: the primary turn's completion says nothing about the child, which
