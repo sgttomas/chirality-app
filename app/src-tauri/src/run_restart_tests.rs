@@ -248,6 +248,26 @@ fn ci20j_identity_conflict_in_an_incomplete_record_set_is_not_a_permanent_refusa
     assert!(refusal().is_none(),"an unreadable log leaves the conflict indefinite: stays held");
     std::fs::remove_dir_all(root).unwrap();
 }
+// RS W-1 / §13.7 and CC-ID: every append but the relaunch end needs the whole record set
+// complete. The relaunch end's mode accepts other incomplete logs, still refuses an
+// incomplete owning log, and still refuses an identity held by a readable entry.
+#[test]
+fn writer_record_set_modes_beside_an_incomplete_log(){
+    use crate::records::RecordSet::{Complete,ReadableBesideIncomplete};
+    let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("rs-set-").unwrap());std::fs::create_dir_all(&root).unwrap();
+    let held="rec:app:held-elsewhere";
+    crate::records::append_with_id(&crate::storage::project_log(&root,None,"other-writer"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),held).unwrap();
+    let torn=crate::storage::project_log(&root,None,"torn-writer");std::fs::write(&torn,b"{\"torn").unwrap();
+    let body=json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"});
+    let append=|id:&str,set|crate::records::append_project_reserved_in(&root,"run:x","w","evidence_limit",&crate::records::APP_WRITER,body.clone(),id,"2026-10-11T00:00:00Z",set);
+    assert!(append("rec:app:a",Complete).is_err_and(|e|e.contains("record-set conflict/incomplete")),"the default still needs the whole set");
+    assert!(append("rec:app:a",ReadableBesideIncomplete).is_ok(),"the relaunch end's mode writes beside it");
+    assert!(append(held,ReadableBesideIncomplete).is_err_and(|e|e.contains("identity conflict")),"a readable identity is still checked");
+    let own=crate::storage::project_log(&root,Some("run:x"),"w");
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();
+    assert!(append("rec:app:b",ReadableBesideIncomplete).is_err_and(|e|e.contains("partial line")),"an incomplete owning log refuses");
+    std::fs::remove_dir_all(root).unwrap();
+}
 // CI-20 (j) review B1, RS W-2: the never-written limit takes the refused record's own
 // observation time, so a check observed after the next lifecycle entry is not written
 // before the limit or before that entry.

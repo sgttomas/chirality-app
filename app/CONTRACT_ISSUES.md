@@ -605,9 +605,12 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   the run's own record first. While an arrival waits and the act records
   cannot be read, the person's end still ends the run (A-11): an
   "unresolvable reference" limit naming the unread act records and why is
-  written before `run_ended`, live and after a relaunch. (After a relaunch an
-  incomplete record set still refuses the end as before, since nothing can
-  be appended to it, RS W-1.) Readings where EXEC is silent, chosen in
+  written before `run_ended`, live and after a relaunch. After a relaunch the
+  end is refused only when the run's own log is incomplete, since `run_ended`
+  cannot be appended to it (RS W-1, §13.7). Other incomplete project logs do
+  not refuse it: the writer checks the new identities against every readable
+  entry (CC-ID), and while an arrival waits the limit above names the unread
+  records. Readings where EXEC is silent, chosen in
   implementation:
   - An App-content act is on an arrival's subject when its bound subject
     names the arrival's file; that binding is taken as covering the referent

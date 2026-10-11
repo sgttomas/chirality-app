@@ -4972,19 +4972,27 @@ impl WorkflowRootSession {
             return Err("The record does not show this run open, or in an unknown state, in this conversation; nothing recorded".into());
         }
         let cause = if completed { "completed" } else { "ended by the person" };
-        // CE-17 from the run's own record (RC-10): its arrivals still waiting there.
-        let (recorded, limits) = crate::storage::read_all(project);
-        if !limits.is_empty() {
-            return Err(format!("The run record is incomplete, so its waiting arrivals cannot be read; nothing recorded: {limits:?}"));
+        // RS W-1 and §13.7: run_ended is appended to the run's own log, so only
+        // that log's incompleteness refuses the end. Incomplete other logs do not
+        // (EXEC A-11): where an arrival waits, the act records then cannot be
+        // read and end_counting writes the limit naming them before run_ended.
+        let (own, own_limits) = crate::records::read_log(&crate::records::supply::run_log(project, run));
+        if !own_limits.is_empty() {
+            return Err(format!("The run's own record is incomplete, so its end cannot be appended to it (RS W-1); nothing recorded: {own_limits:?}"));
         }
-        let mut run_entries: Vec<Value> = recorded.into_iter().filter(|e| e["runId"] == run).collect();
+        // CE-17 from the run's own record (RC-10): its arrivals still waiting
+        // there, with any readable entry naming the run in another log.
+        let (recorded, _) = crate::storage::read_all(project);
+        let own_ids: std::collections::HashSet<String> = own.iter().filter_map(|e| e["recordId"].as_str().map(str::to_owned)).collect();
+        let mut run_entries: Vec<Value> = own;
+        run_entries.extend(recorded.into_iter().filter(|e| e["runId"] == run && e["recordId"].as_str().is_none_or(|id| !own_ids.contains(id))));
         let opened_workflow = run_entries.iter().find(|e| e["kind"] == "run_opened").map(|e| e["body"]["workflow"].clone()).unwrap_or(Value::Null);
         // CE-5/CE-6/CE-8 from the run's own record (RC-10): acts recorded while the
         // run was interrupted are counted before its waiting arrivals are listed. As
         // for a live end, unreadable act records give a limit, not a refusal (A-11).
         for (kind, body) in end_counting(&run_entries, project) {
             let mut entry = crate::records::supply::PendingRunEntry::new(kind, body.clone(), crate::util::now_rfc3339())?;
-            crate::records::supply::append_run_entry(project, run, &mut entry)
+            crate::records::supply::append_run_entry_in(project, run, &mut entry, crate::records::RecordSet::ReadableBesideIncomplete)
                 .map_err(|e| format!("A counted act could not be recorded, so the run was not ended: {e}"))?;
             run_entries.push(json!({"kind":kind,"body":body}));
         }
@@ -4994,7 +5002,7 @@ impl WorkflowRootSession {
             json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":waiting}),
             crate::util::now_rfc3339(),
         )?;
-        crate::records::supply::append_run_entry(project, run, &mut entry)?;
+        crate::records::supply::append_run_entry_in(project, run, &mut entry, crate::records::RecordSet::ReadableBesideIncomplete)?;
         let notice = match home {
             None => json!({"state":"not composed: no Codex home for this conversation in this process; no end notice is sent for this end"}),
             Some(home) => match self.hold_reopened_notice(&records, run, thread, &opened_workflow, home) {
@@ -9200,6 +9208,79 @@ for line in sys.stdin:
         assert!(log.iter().any(|e|e["kind"]=="disposition_change"&&e["body"]["disposition"]=="performed"));
         assert_eq!(log.iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["waitingArrivals"],json!([]));
     }
+    /// The run's own log as written (read directly: other logs may be incomplete).
+    fn own_log(peer:&Peer,run:&str)->Vec<Value>{
+        let (entries,limits)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,run));assert!(limits.is_empty(),"{limits:?}");entries
+    }
+    fn act_records_limit(e:&Value)->bool{e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]=="the project's act records"}
+    // RS W-1 after relaunch: run_ended goes to the run's own log, so an incomplete own log
+    // refuses the person's end with that reason, and nothing is written.
+    #[test]
+    fn end_after_relaunch_is_refused_when_the_runs_own_log_is_incomplete(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let mut fresh=WorkflowRootSession::default();drop(root);
+        let log=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&log).unwrap();
+        let mut f=std::fs::OpenOptions::new().append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":").unwrap();drop(f);
+        let torn=std::fs::read(&log).unwrap();
+        let refused=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None);
+        assert!(refused.as_ref().is_err_and(|e|e.contains("run's own record is incomplete")&&e.contains("RS W-1")),"{refused:?}");
+        assert_eq!(std::fs::read(&log).unwrap(),torn,"nothing written to the run's log");
+        std::fs::write(&log,&before).unwrap();
+        assert!(!own_log(&peer,&a).iter().any(|e|e["kind"]=="run_ended"),"the run stays open");
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).expect("once the own log is complete the end is taken");
+    }
+    // EXEC A-11 after relaunch: another project log incomplete does not refuse the end. While
+    // an arrival waits, the unread act records are named in a limit written before run_ended.
+    #[test]
+    fn end_after_relaunch_with_another_log_incomplete_ends_with_the_limit_first(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let mut fresh=WorkflowRootSession::default();drop(root);
+        let (act_log,before)=break_act_log(&peer);
+        let ended=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).expect("the person's end is not refused");
+        assert_eq!(ended["state"],"ended by the person");
+        let log=own_log(&peer,&a);
+        let limit=log.iter().position(act_records_limit).expect("the unread act records are named");
+        let end=log.iter().position(|e|e["kind"]=="run_ended").expect("run_ended written");
+        assert!(limit<end,"the limit precedes run_ended");
+        let detail=log[limit]["body"]["detail"].as_str().unwrap();
+        assert!(detail.contains("could not be read")&&detail.contains("partial entry at end"),"{detail}");
+        assert!(detail.contains(&*act_log.file_name().unwrap().to_string_lossy()),"the unread log is named: {detail}");
+        assert_eq!(log[end]["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
+        std::fs::write(&act_log,before).unwrap();
+        let reading=crate::records::supply::read_project_runs(&crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap(),&[]);
+        assert!(!reading.possibly_live_in("thread").iter().any(|r|r.run==a),"the run is recorded ended");
+    }
+    // A-11 parity with the live end: with nothing waiting, an incomplete other log neither
+    // refuses the end nor adds a limit (nothing is counted, so nothing is read).
+    #[test]
+    fn end_after_relaunch_with_another_log_incomplete_and_nothing_waiting_ends_plainly(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        let mut fresh=WorkflowRootSession::default();drop(root);
+        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();
+        let log=own_log(&peer,&a);
+        assert!(!log.iter().any(act_records_limit));
+        assert_eq!(log.iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["waitingArrivals"],json!([]));
+    }
+    // With every log complete the end is as before: acts are read, no limit, run_ended lists
+    // the arrival still waiting.
+    #[test]
+    fn end_after_relaunch_with_a_complete_record_set_writes_no_limit(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let mut fresh=WorkflowRootSession::default();drop(root);
+        let entries_before=rs_for(&peer,&a).len();
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();
+        let log=rs_for(&peer,&a);
+        assert_eq!(log.len(),entries_before+1,"only run_ended is added, no limit: {log:?}");
+        assert_eq!(log.last().unwrap()["kind"],"run_ended");
+        assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
+    }
     // CE-4 through the actual run and RS writer: a person-input request while an arrival waits
     // is written with RS's separate "requester identity not established" limit (CC-R CI-3).
     #[test]
@@ -9692,10 +9773,9 @@ for line in sys.stdin:
         let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
         let refused=fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
         assert!(refused.as_ref().is_err_and(|e|e.contains("unknown")&&e.contains(&a)&&e.contains("End")),"{refused:?}");
-        // The end route: it names the incomplete record while the record stays incomplete...
-        let blocked=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None);assert!(blocked.as_ref().is_err_and(|e|e.contains("incomplete")),"{blocked:?}");
-        // ...and, once the record is complete, the person's explicit end permits a new start.
-        std::fs::remove_dir_all(&torn).unwrap();fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();
+        // The end route: the run's own log is complete, so the person's explicit end is taken
+        // although another log is not (A-11), and then permits a new start.
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();std::fs::remove_dir_all(&torn).unwrap();
         assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).is_ok());
     }
     fn log_order(peer:&Peer,run:&str)->Vec<String>{

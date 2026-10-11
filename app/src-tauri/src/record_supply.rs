@@ -217,11 +217,25 @@ pub(crate) fn append_run_entry(
     run: &str,
     entry: &mut PendingRunEntry,
 ) -> Result<Value, String> {
+    append_run_entry_in(root, run, entry, crate::records::RecordSet::Complete)
+}
+/// The run's own log for the App's lifecycle entries (`append_run_entry`).
+pub(crate) fn run_log(root: &std::path::Path, run: &str) -> std::path::PathBuf {
+    crate::storage::project_log(root, Some(run), LIVE_WRITER)
+}
+/// As `append_run_entry`, with what the writer requires of the project's other
+/// logs (`RecordSet`). The run's own log must be complete either way.
+pub(crate) fn append_run_entry_in(
+    root: &std::path::Path,
+    run: &str,
+    entry: &mut PendingRunEntry,
+    set: crate::records::RecordSet,
+) -> Result<Value, String> {
     if let Some(written) = &entry.written {
         return Ok(written.clone());
     }
     let (entries, limits) = crate::storage::read_all(root);
-    if !limits.is_empty() {
+    if !limits.is_empty() && set == crate::records::RecordSet::Complete {
         let error = format!("RS record set incomplete; nothing written: {limits:?}");
         entry.failure.get_or_insert(error.clone());
         return Err(error);
@@ -244,7 +258,7 @@ pub(crate) fn append_run_entry(
                 entry.record_id
             ))
         }
-        None => match crate::records::append_project_reserved(
+        None => match crate::records::append_project_reserved_in(
             root,
             run,
             LIVE_WRITER,
@@ -253,6 +267,7 @@ pub(crate) fn append_run_entry(
             entry.body.clone(),
             &entry.record_id,
             &entry.observed_at,
+            set,
         ) {
             Ok(written) => written,
             Err(error) => {
@@ -262,6 +277,8 @@ pub(crate) fn append_run_entry(
         },
     };
     if let Some(failure) = &entry.failure {
+        // A late write (W-2) still needs the complete set to find an existing
+        // "record write failed" limit; the relaunch end never retries an entry.
         crate::records::note_project_late_write(
             root,
             run,
