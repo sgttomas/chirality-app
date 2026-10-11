@@ -1429,6 +1429,22 @@ reopens the owning log, not a new capture. Product implementation must exercise
 discovery, duplicate/disagreement, failure, torn write and portable-library
 reopen behavior before claiming this allocation implemented.
 
+**App explicit-end implementation (EXEC A-11; CI-20 (h)).** After the person
+ends a live run, its ordered W-2 flush checks reserved identities against
+readable project entries even when unrelated logs are incomplete. Earlier
+pending observations, supply-check R3s and late-write limits settle before
+`run_ended`; held successor steps retain their original release order. Open
+runs keep the complete-set guard. Each unresolved append or reconciliation
+checks the owning path and complete owning log; a matching uncertain write
+is synced before it is settled, and its late-write limit belongs to that
+writer's log. Owning-target failures keep the hot end's records pending.
+Readable different-content collisions without a matching owning receipt are
+permanent refusals under §14.1. A matching owning receipt with a duplicate or
+conflicting identity, or an exact copy found only in another log, stays pending
+with its reason; it is not settled or called never written. Unread lines cannot
+be checked and remain a limit, never evidence of completeness.
+The end after relaunch retains its own-log and confirmed-start guards.
+
 ## 14. Writer and reader sequences, with failure behaviour (RS 7; PROPOSED)
 
 ### 14.1 Writer

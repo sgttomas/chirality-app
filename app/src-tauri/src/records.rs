@@ -32,6 +32,46 @@ pub const APP_INTERFACE: Recorder<'static> = Recorder {
     identity: "app-interface:local",
 };
 
+/// What the writer requires of the project's other logs before an append. The
+/// owning log must always be complete (W-0/W-1; RS §13.7: an unreadable or
+/// unwritable owning target refuses new recording).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RecordSet {
+    /// Every discovered log is complete, so an identity collision anywhere is
+    /// detected (CC-ID). The default for recording outside an explicit end.
+    Complete,
+    /// Other logs may be incomplete: the new identity is checked against every
+    /// readable entry (only the owning log's if discovery itself fails); an
+    /// unread line cannot be checked. Used only for the
+    /// person's explicit end (EXEC A-11), including the live run's ordered
+    /// pending observations and late-write limits. Their reserved identities
+    /// are writer-minted (CC-ID); unread act records are named by a limit.
+    ReadableBesideIncomplete,
+}
+
+/// Reconciliation before an unresolved append. In end mode the owning log is
+/// checked separately: discovery can fail before returning even its readable
+/// entries, and a matching prefix must not hide an incomplete owning target.
+pub(crate) fn append_record_set(root: &Path, log: &Path, set: RecordSet) -> Result<(Vec<Value>, Vec<Value>), String> {
+    let (mut entries, limits) = crate::storage::read_all(root);
+    if set == RecordSet::Complete && !limits.is_empty() {
+        return Err(format!("RS record set incomplete; nothing written: {limits:?}"));
+    }
+    crate::storage::check_path(log)?;
+    let (own, own_limits) = read_log(log);
+    if !own_limits.is_empty() {
+        return Err(format!("RS owning log incomplete; nothing written: {own_limits:?}"));
+    }
+    if set == RecordSet::ReadableBesideIncomplete {
+        for entry in &own {
+            if !entries.contains(&entry) {
+                entries.push(entry.clone());
+            }
+        }
+    }
+    Ok((entries, own))
+}
+
 /// R-2: entries in written order; an unreadable line is kept as a limit, never used.
 pub fn read_log(path: &Path) -> (Vec<Value>, Vec<String>) {
     let mut entries = Vec::new();
@@ -121,7 +161,7 @@ fn append_minted(
     identity: Result<String, String>,
     validation: Result<&crate::schema_validation::RecordValidator, String>,
 ) -> Result<Value, String> {
-    append_reserved(log, kind, recorder, body, identity?, None, None, validation)
+    append_reserved(log, kind, recorder, body, identity?, None, None, RecordSet::Complete, validation)
 }
 
 pub fn append_with_id(
@@ -139,6 +179,7 @@ pub fn append_with_id(
         id.to_owned(),
         None,
         None,
+        RecordSet::Complete,
         crate::schema_validation::bundled(),
     )
 }
@@ -161,6 +202,7 @@ pub fn append_project(
         crate::util::opaque_id("rec:app:")?,
         run,
         None,
+        RecordSet::Complete,
         crate::schema_validation::bundled(),
     )
 }
@@ -178,6 +220,21 @@ pub(crate) fn append_project_reserved(
     id: &str,
     observed_at: &str,
 ) -> Result<Value, String> {
+    append_project_reserved_in(root, run, writer, kind, recorder, body, id, observed_at, RecordSet::Complete)
+}
+/// As `append_project_reserved`, with what the writer requires of the other logs.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn append_project_reserved_in(
+    root: &Path,
+    run: &str,
+    writer: &str,
+    kind: &str,
+    recorder: &Recorder,
+    body: Value,
+    id: &str,
+    observed_at: &str,
+    set: RecordSet,
+) -> Result<Value, String> {
     if run.is_empty() || id.is_empty() || observed_at.is_empty() {
         return Err("run, reserved identity and original observation time required".into());
     }
@@ -189,6 +246,7 @@ pub(crate) fn append_project_reserved(
         id.to_owned(),
         Some(run),
         Some(observed_at),
+        set,
         crate::schema_validation::bundled(),
     )
 }
@@ -200,25 +258,40 @@ pub(crate) fn note_project_late_write(
     writer: &str,
     subject: &str,
     detail: &str,
+    set: RecordSet,
 ) -> Result<(), String> {
-    let (entries, limits) = crate::storage::read_all(root);
-    if !limits.is_empty() {
-        return Err(format!("late-write evidence record set incomplete: {limits:?}"));
-    }
-    if entries.iter().any(|e| {
+    let log = crate::storage::project_log(root, Some(run), writer);
+    let (all, own) = append_record_set(root, &log, set)?;
+    let entries = if set == RecordSet::ReadableBesideIncomplete {
+        // Only this writer's own limit settles its uncertain late append.
+        &own
+    } else {
+        &all
+    };
+    if let Some(limit) = entries.iter().find(|e| {
         e["kind"] == "evidence_limit"
             && e["body"]["label"] == "record write failed"
             && e["body"]["subjectRef"] == subject
+            && (set == RecordSet::Complete || e["runId"] == run)
     }) {
+        if set == RecordSet::ReadableBesideIncomplete {
+            if all.iter().filter(|e| e["recordId"] == limit["recordId"]).count() > 1 {
+                return Err(format!("late-write limit identity {} has readable duplicate or conflicting content; owning limit cannot be reconciled", limit["recordId"]));
+            }
+            crate::storage::sync_publication(&log)?;
+        }
         return Ok(());
     }
-    append_project(
-        root,
-        Some(run),
-        writer,
+    append_reserved(
+        &log,
         "evidence_limit",
         &APP_WRITER,
         json!({"label":"record write failed","subjectRef":subject,"detail":detail}),
+        crate::util::opaque_id("rec:app:")?,
+        Some(run),
+        None,
+        set,
+        crate::schema_validation::bundled(),
     )?;
     Ok(())
 }
@@ -305,6 +378,7 @@ pub(crate) fn append_capture_submission(
         rid.into(),
         None,
         Some(observed),
+        RecordSet::Complete,
         crate::schema_validation::bundled(),
     )
 }
@@ -372,6 +446,7 @@ fn append_reserved(
     id: String,
     run: Option<&str>,
     observed_at: Option<&str>,
+    set: RecordSet,
     validation: Result<&crate::schema_validation::RecordValidator, String>,
 ) -> Result<Value, String> {
     let validator =
@@ -405,10 +480,13 @@ fn append_reserved(
         .and_then(|r| r.parent())
     {
         let (discovered, limits) = crate::storage::read_all(root);
-        if !limits.is_empty() {
+        if !limits.is_empty() && set == RecordSet::Complete {
             return Err(format!("record-set conflict/incomplete: {limits:?}"));
         }
-        all = discovered;
+        // Readable entries of incomplete logs are checked too. If discovery
+        // itself fails, `read_all` returns no entries, and in the tolerant mode
+        // only the owning log's entries are checked.
+        all.extend(discovered);
     }
     if all
         .iter()
