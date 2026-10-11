@@ -7,7 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
+const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
@@ -97,6 +97,29 @@ test('recorded arrivals are shown from the run record, as information that holds
   // Listed with no arrival yet.
   const quiet=h(RunPanel,{run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),listedAccept,listedCheck]}})});
   assert.ok(quiet.includes('No arrival recorded in this run.'));
+});
+
+test('counted and not-counted acts, requests, declines and declaration findings are shown from the record (CE-2, CE-4…CE-6, CE-8)',()=>{
+  const a=arrival('CP-rely',1,'item:thread/turn/f1','output summary: file out/summary.md');
+  const at={checkpoint:'CP-rely',arrivalOrdinal:1};
+  const act=(id,kind,time)=>({recordId:id,actKind:kind,capturedAt:time,capturingSurface:'app_act_control'});
+  const all=[a,disposition('CP-rely',1,'waiting'),
+    entry('act_request',{requester:{kind:'agent'},form:'supplier person-input request',actKind:'not named by the request',subject:'not named by the request',purpose:'not named by the request',association:'associated with the current arrival',arrival:at,evidence:{kind:'conversation item',ref:'server-request:1/2',resolutionAtWrite:'resolved'},time:'t'}),
+    entry('act_not_counted',{arrival:at,act:act('rec:app:old','A7','2026-09-21T13:00:00.000Z'),reason:'content no longer current',capturedBeforeArrival:true}),
+    entry('act_counted',{arrival:at,act:act('rec:app:rely','A7','2026-09-21T15:00:00.000Z'),relation:'after arrival',referents:['output summary: file out/summary.md']}),
+    disposition('CP-rely',1,'performed')];
+  const html=h(ArrivalRecord,{arrival:a,all});
+  assert.ok(html.includes('Arrival 1: performed.'),html);
+  assert.ok(html.includes('Request for the act observed: supplier person-input request from agent; act kind not named by the request. A request is not the act.'));
+  assert.ok(!html.includes('no request from the agent observed'));
+  assert.ok(html.includes('Act not counted: A7 rec:app:old, captured 2026-09-21T13:00:00.000Z: content no longer current (prior act not counted).'));
+  assert.ok(html.includes('Act counted: A7 rec:app:rely, captured 2026-09-21T15:00:00.000Z in the App act control, after the arrival.'));
+  const declined=h(ArrivalRecord,{arrival:a,all:[a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]});
+  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Declined by the person (rec:app:no).'));
+  const element={value:{...raw.checkpoints[0],name:'CP-bad',required_act:'A3'},reading:'invalid',findings:['FB-03: recognized act not permitted as checkpoint']};
+  const finding=entry('declaration_finding',{checkpoint:'CP-bad',finding:'invalid',code:'FB-03'});
+  const guidance=h(CheckpointGuidance,{element,run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),finding]}})});
+  assert.ok(guidance.includes('not listed: reported as a declaration finding (invalid, FB-03); no arrival is recorded for it (CE-2).'),guidance);
 });
 
 test('an arrival bound to an output is evidence of where it was put, never a standing',()=>{

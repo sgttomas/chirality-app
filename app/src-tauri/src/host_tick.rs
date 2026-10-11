@@ -23,7 +23,13 @@ pub(crate) fn receive_view(home: &HomeSession) -> Value {
     let mut runtime = home.runtime.lock().unwrap();
     let (generation, position) = runtime.cursor();
     let observation = home.host.observe(generation, position);
-    runtime.receive(&observation)["nativeView"].clone()
+    let mut view = runtime.receive(&observation)["nativeView"].clone();
+    // EXEC RC-5 / CE-4: the received server-request register, which the
+    // checkpoint recorder reads for person-input requests and elicitations.
+    if view.is_object() {
+        view["serverRequests"] = observation["snapshot"]["serverRequests"].clone();
+    }
+    view
 }
 
 /// The record tick for one home: receive, then record checkpoint

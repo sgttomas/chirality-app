@@ -85,6 +85,7 @@ const TIME_SOURCE: Record<string, string> = { supplier_item_time: "time Codex ga
 // limit (`writtenLate` on the live run, or the limit entry read from the record).
 const writtenNote = (r: Json, all: Json[]): string => r?.written === false ? `Not yet written to the run record: ${text(r.limit) || "the write did not complete"}.`
   : r?.writtenLate === true || all.some((e: Json) => e?.kind === "evidence_limit" && e?.body?.label === "record write failed" && e?.body?.subjectRef === r?.recordId) ? "Written late; the run record carries a “record write failed” limit for it." : "";
+const ACT_RELATION: Record<string, string> = { "after arrival": "after the arrival", "earlier act": "before the arrival, on content still current (an earlier act counts)" };
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
@@ -94,13 +95,19 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
   const name = text(b.checkpoint);
   const related = (kind: string) => all.filter((e: Json) => e?.kind === kind && sameArrival(e?.body?.arrival, name, b.arrivalOrdinal));
   const changes = related("disposition_change");
+  const requests = related("act_request");
   const latest = changes.length ? changes[changes.length - 1].body?.disposition : undefined;
   const time = b.event?.evidencedTime;
   const note = writtenNote(arrival, all);
   return <li>
     Arrival {text(b.arrivalOrdinal)}: {latest === undefined ? "disposition not recorded" : arrivalLabel(latest)}. Observed {text(b.event?.ref)}{time ? ` at ${text(time.value)} (${TIME_SOURCE[text(time.source)] ?? text(time.source)})` : ""}.
     {list(b.referents).map((r: Json, i: number) => line(`r${i}`, `Subject: ${text(r?.subject)}; content ${r?.content?.notObtainable ? `not obtainable: ${text(r.content.reason)}` : `${text(r?.content?.method)} ${text(r?.content?.value).slice(0, 12)}`}.`))}
-    {line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
+    {requests.length
+      ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
+      : line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
+    {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
+    {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, `Act not counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)}: ${text(c.body?.reason)}${c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.`))}
+    {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Declined by the person (${text(c.body?.declinedEventRef)}).`))}
     {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
     {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the act the run went on with ${text(c.body?.firstActionRef)}.`))}
     {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
@@ -119,6 +126,7 @@ export function CheckpointGuidance({ element, run }: { element: Json; run?: Json
   const arrivals = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && text(r?.body?.checkpoint) === name);
   const unread = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && typeof r?.body?.checkpoint !== "string").length;
   const evaluability = listing?.body?.evaluability;
+  const findings = all.filter((r: Json) => r?.kind === "declaration_finding" && text(r?.body?.checkpoint) === name);
   return <li>
     <b>{text(v.name) || "(unnamed checkpoint)"}</b>: {actLabel(v.required_act)} by {ACTOR[text(v.actor)] ?? text(v.actor)} on {SUBJECT[text(v.subject?.class)] ?? text(v.subject?.class)}{v.subject?.output ? ` (${text(v.subject.output)})` : ""}, {reachedWhen(v.reached_when)}.
     {invalid && <> <b>Declaration finding: invalid</b> ({list(element.findings).map(text).join("; ")}). It is listed as written and treated as nothing more.</>}
@@ -129,7 +137,7 @@ export function CheckpointGuidance({ element, run }: { element: Json; run?: Json
     {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
     {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
     <br /><small>The agent asks you for the act when its work reaches this point; the act is recorded only when you perform it.</small>
-    {run && line("record", `Run record: ${!listing ? (invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
+    {run && line("record", `Run record: ${!listing ? (findings.length ? `not listed: reported as a declaration finding (${findings.map((f: Json) => `${text(f.body?.finding)}, ${text(f.body?.code)}`).join("; ")}); no arrival is recorded for it (CE-2).` : invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
       : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
       : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
     {run && listing && (arrivals.length

@@ -278,26 +278,48 @@ writes records or operates the act control." `src-tauri/` holds that host;
     shown (PD-6, OV-3). **Checkpoint records (EXEC §2.4 first slice;
     DRAFT/PROPOSED Design text).** When a run opens, the App writes one
     `checkpoint_listed` (CE-1) per recognized checkpoint, saying whether it can
-    observe its arrival. Arrivals come only from native items observed live in
-    the run's conversation and turns: a completed agent message whose first
-    non-empty line is exactly the output's designating line (AW-6), or a
-    completed file change that adds or updates the declared path, or moves a
-    file onto it (AW-7 as this App reads it; a delete or a move away is not a
-    production). Each arrival
-    is written as `checkpoint_arrival` (CE-3), with the item, its time,
-    the bound subject and its limits, then a *waiting* `disposition_change`.
-    The agent's next own action (RC-9) records `continued_past` once (CE-12);
-    `run_resumed` (CE-11) is implemented but cannot occur until acts are
-    counted. Recording never sends, opens, pauses or ends anything (RC-4).
-    `run_ended` lists the arrivals still waiting (CE-17). Acts are not counted
-    yet, so an arrival stays waiting after its act, and `run_ended` can list it
-    (CI-20 (h), partly addressed). Each checkpoint
-    shows its listing, its arrivals with their labels and limits, and "no
-    request from the agent observed". A run record entry that cannot be
+    observe its arrival, and one `declaration_finding` (CE-2) per WD code of an
+    invalid or not-established checkpoint, which never arrives. Arrivals come
+    only from native items observed live in the run's conversation and turns:
+    a completed agent message whose first non-empty line is exactly the
+    output's designating line (AW-6); a completed file change that adds or
+    updates the declared path, or moves a file onto it (AW-7 as this App reads
+    it; a delete or a move away is not a production), bound to the file's
+    exact bytes as the App reads them when it observes the change; or the
+    start of each agent item of a harness capability's own kind for a kind (a)
+    checkpoint on that capability (AW-3; a name with no active presence rule,
+    and every host operation, stay not evaluable, AW-1, AW-2, AW-4). Each
+    arrival is written as `checkpoint_arrival` (CE-3), with the item, its
+    time, the bound subject and its limits, then a *waiting*
+    `disposition_change`. **Acts are counted** (CE-5, CE-6, CE-8) from the
+    human-act and act-declined records in the project's record set, which the
+    App act control writes: an act of the required kind whose bound subject is
+    the arrival's file and whose bound content equals it makes the arrival
+    *performed*, "by earlier act" when captured before the arrival (SP-6);
+    another kind, older content or other content is `act_not_counted` with
+    its reason; a decline of the required kind captured at or after the
+    arrival resolves it negatively. The first deciding act decides; later acts
+    are not recorded against a decided arrival. A record without resolved
+    capture evidence, a decision actor and direct capture is not counted. A
+    message arrival, or a subject the App cannot identify (a call's targets,
+    the objects an output concerns), binds no act and stays waiting. A
+    supplier person-input request or MCP elicitation received in the run while
+    an arrival waits is written as `act_request` (CE-4), associated only when
+    exactly one waits, with RS's "requester identity not established" limit.
+    The agent's next own action (RC-9) records `continued_past` once (CE-12),
+    and the first action evidenced as started after the deciding act records
+    `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
+    Recording never sends, opens, pauses or ends anything (RC-4). When the
+    person ends the run, acts recorded since the last observation are counted
+    first, also for a run ended after a relaunch, and `run_ended` lists the
+    arrivals still waiting (CE-17). Each checkpoint shows its listing or
+    finding, its arrivals with their labels, requests, counted and not-counted
+    acts and limits. A run record entry that cannot be
     written is shown on the run (A-12). It is written later, in order, with a
     "record write failed" limit (CE-19), and is never written elsewhere. The
-    App writes no tool-call, host-outcome or act-counting entries
-    (AW-1…AW-4, AW-8…AW-10, CE-2, CE-4…CE-7). A path is compared as text
+    App writes no host-outcome, A5 item or A12 entries (AW-8…AW-10, CE-7,
+    CE-9), and no lapse, observation-loss or after-end entries (CE-10,
+    CE-13…CE-16). A path is compared as text
     (U-E26). Recording follows the active home's view while the App
     refreshes, and when the person ends the run. Each declared output shows its
     promise apart from its standing facets (AS §8), which come only from the

@@ -26,7 +26,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-17 | CC-REC-ITEM-TURN-CUSTODY adopted (ledger schema 0.3, optional actual `turnId`) and implemented with cold-tuple tests; actual native quit/relaunch evidence and PI-6 mapping remain open. |
 | CI-18 | Corrected in code, no Design change: Root `prepare_run` refuses development selections under TT-1/TX-1. A development standing would need a named WR change; a registered-selection native witness is still needed. |
 | CI-19 | Open Design questions on EXEC report representation (unrecognized elements, revision method, App-only host facts, R14 without a report, strictness); the code refuses publication rather than inventing facts. |
-| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) partially addressed 2026-10-10. |
+| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, residuals open. |
 | CI-21 | App-kept draft bases implemented in the App data folder with exact ledger causes; (b) closed by CC-WR-RECONFIRM adoption. The base location and base freshness under RB-3 await WR owner confirmation. |
 | CI-22 | Bounded A15 statement, digest-named App display and the owner's three-button layout are implemented ahead of AAC adoption; the AAC adoption text is still needed. |
 | CI-23 | RS `if` stops the DEL-04-03 and WR prototypes under `minischema`; the App's `jsonschema` is unaffected. Open with DEL-04-03 (RS). |
@@ -558,21 +558,41 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
     run's own home and thread after the run's generation is checked as
     current. A missing binding stays `Unknown`.
   - No catalog edition is ever observed, so CK-3 is never evaluated.
-- **(h) `run_ended.waitingArrivals` (J3). Partially addressed 2026-10-10; open
-  with the EXEC design owner.** The App now has a first-slice checkpoint
-  recorder (EXEC §2.4, `checkpoint_recorder.rs`; EXEC is DRAFT/PROPOSED text).
-  `run_ended` lists every recorded arrival whose latest disposition is
-  *waiting* (CE-17). The list is read from the run's own entries, so an end
-  after relaunch (`end_recorded_run`) lists them too. Residual:
-  - **Acts are not counted** (CE-5/CE-6 absent). An arrival therefore stays
-    *waiting* after the person performed the act, and `waitingArrivals` can
-    durably list as waiting an arrival whose act was done. Each
-    `checkpoint_arrival` carries this limit. The `run_ended` body cannot:
-    `runEnded` admits no further properties.
-  - **Only output arrivals AW-6 (message) and AW-7 (file) are evaluated.**
-    Every other checkpoint's `checkpoint_listed` entry says *not evaluable*,
-    with its reason. An empty list therefore means only that no evaluated
-    arrival is recorded as waiting, not that no checkpoint was reached.
+- **(h) `run_ended.waitingArrivals` (J3). Addressed for App-content acts
+  2026-10-11; residuals open with the EXEC design owner.** The checkpoint
+  recorder (EXEC §2.4, `checkpoint_recorder.rs`; EXEC is DRAFT/PROPOSED text,
+  adopted as written for the parts implemented) now counts acts: CE-5, CE-6
+  and CE-8 from the human-act and act-declined records in the project's
+  record set, with CE-2, CE-4 and AW-3. `run_ended` lists every recorded
+  arrival whose latest disposition is *waiting* (CE-17), after counting the
+  acts recorded since the last observation; after a relaunch
+  (`end_recorded_run`) the acts are counted from the run's own record first.
+  Readings where EXEC is silent, chosen in implementation:
+  - An App-content act is on an arrival's subject when its bound subject
+    names the arrival's file; that binding is taken as covering the referent
+    (SP-5), since the declared scope is prose. AW-7's content identity is
+    read when the App observes the completed change, with that limit.
+  - The arrival's time and the act's capture time order "earlier act" against
+    "after arrival" (both App-written RFC 3339 times; a record with another
+    time form is not counted).
+  - A decline captured before the arrival does not resolve it (the transition
+    table consumes CE-8 only from *waiting*).
+  - CE-4's `time` is the App's observation time and its evidence a
+    "conversation item" reference to the server request; a person-input
+    request names no act kind, subject or purpose as structured elements.
+  - AW-3 takes `collabAgentToolCall` (not `subAgentActivity`) for
+    `agent-delegation`, and only agent items (RC-9).
+  Residual:
+  - **No App act binds an agent message.** An AW-6 arrival therefore stays
+    *waiting* and is listed at the end even when the person checked the
+    report elsewhere; each such arrival says so. EXEC CAP-1 binds App files;
+    whether an act on a reported message is wanted is the design owner's.
+  - Later acts on a decided arrival are not recorded (§4.6 says they are
+    recorded and shown); acts after the run end (CE-16), lapses (CE-10) and
+    observation loss (CE-13, CE-14) are not recorded.
+  - Arrivals for host operations and host outcomes stay not evaluable (no
+    host mapping, ADAPTER NM-2), so CE-7 never arises. An empty list still
+    means only that no evaluated arrival is waiting.
 - **(i) Notice dispatch is counted once (J3; corrected by V10 G-1).** TX-5 says
   "once".
   - When consumed: only when the Host observed a write attempt of the
