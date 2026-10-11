@@ -40,6 +40,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-31 | Fixed 2026-10-10: the default `bundle.resources` maps instructions and workflows, guarded by `bundle_resources_tests`; a default-configuration bundle start is not yet witnessed natively. |
 | CI-32 | CLOSED for the App's run start by WR §17 step 2 (CC-WR-TRIALS). |
 | CI-33 | Pins re-frozen on `codex/app-v4-ci33-refreeze`; basis labels, NPTD §7/§14.1, SQ-1, RECOVERY DEF-2 and the attested generation correspondence wait for the next reviewed re-freeze. |
+| CI-34 | OPEN. ST-5 and NV-04 recorded at 0.160.0 as development evidence; the candidate-pin missing inputs stay; SQ's ST-4 "none exists yet" wording waits for the SQ owner. |
 
 Canonical review and command evidence lives in this run's `changes/`,
 `reviews/` and `validation/`. The Group A work graph carries incomplete
@@ -1372,3 +1373,31 @@ changed.
     (U-SQ-1) still names `STANDALONE_QUALIFICATION.md` at its earlier hash
     `9f88209d…`. It sits inside an attested reference, so it was not
     rewritten; a later reference refresh carries the current bytes.
+
+## CI-34 ST-5 and ST-4 counterparts after the 0.160.0 development captures
+
+- **Found (2026-10-10).** DEL-01-01 now holds development recordings made
+  with the stock Codex 0.160.0 supplier: ST-5's condition in X-09 form with
+  the X-10 recovery read, and NPTD NV-04
+  (`execution/PKG-01/DEL-01-01/Design/CAPTURE_ST5_NV04_0.160.0.md`). Codex
+  behaved as RECOVERY RQ-05 and HOSTING §6.2.1 assume. No App candidate
+  exists and OI-012 is open, so neither recording is at a candidate's pin.
+- **Kept.** The `st5_recording` and `st4_route_or_recording` entries stay in
+  `examination/standalone/missing-inputs.json`, because both require the
+  candidate's pin.
+- **Stale wording.** SQ §3.4's ST-4 row and `sq.step-map.json` J-2
+  `replay_counterpart` say that no delegation recording "exists yet". A
+  development one now exists, but not at a candidate pin. These sources are
+  pinned and were left unedited.
+- **Open (SQ owner).**
+  - Should SQ cite the development recordings?
+  - Once a candidate names its pin, does rerunning
+    `prototype/st5/st5_harness.py` against that candidate meet U-SQ-6 and the
+    ST-4 counterpart?
+- **Re-frozen in the same change.** The HOSTING §9.4 pointer and the
+  DEL-09-02 TBD-002 wording moved
+  `examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
+  `pre_run_inputs.py`'s pin digest,
+  `examination/native_forms/{sources.json,pre_run_form.pins.json}` and
+  `pre_run_form.py`'s pin digest, and `examination/sq_receiving/pins.json`
+  and `receive.py`'s pin digest.

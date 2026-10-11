@@ -1764,6 +1764,17 @@ fixtures (no App candidate, no §7.2 step) but may seed a supplier double.
 | X-13 | Fresh-home start and deliberate stop with supplier descendants alive | recorded | Yes, but causes the L-4 network fetch (owner visibility) |
 | X-14 | Supplier-internal decision (`auto_review`) and `serverRequest/resolved` | recorded | No |
 
+**Development captures at 0.160.0 (2026-10-10).** "No" above means a live
+turn is needed, which a loopback stub provider also gives (§9.1). X-09, in
+the form ST-5 needs, and X-10 were captured that way without a credential,
+together with NPTD NV-04: `CAPTURE_ST5_NV04_0.160.0.md` and
+`prototype/st5/`. An answer was written, and the process was frozen and then
+killed before reading it. No `serverRequest/resolved` was observed, which
+matches the §6.2.1 reading and RECOVERY RQ-05. After a restart, the turn
+reads `interrupted`, the command item is absent from history, and the
+request is not raised again on resume. These are development evidence with
+no App candidate, not a qualification pin.
+
 ### 9.5 Deliberate-upgrade comparison procedure (SOW-100, REQ-006, VER-006)
 
 1. Name the current qualified pin *p* (none yet; 0.158.0 is the

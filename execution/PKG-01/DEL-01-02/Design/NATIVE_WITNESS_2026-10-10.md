@@ -106,9 +106,13 @@ integration. The limits:
   "observed through the adapter; absent on stock LM Studio". That now has a
   native stock observation, with the limits above: no spawn call item,
   inferred parent, and status not reported.
-- Still not observed: NV-04 (a primary turn completing while a descendant is
-  active); a TASK-role conversation that delegates (NV-05, K-10); interrupting
-  a child, or a cascade from the parent; Stop Codex or quit with a child.
+- Still not observed in the App: NV-04 (a primary turn completing while a
+  descendant is active); a TASK-role conversation that delegates (NV-05,
+  K-10); interrupting a child, or a cascade from the parent; Stop Codex or
+  quit with a child. NV-04 has since been recorded on the stock supplier,
+  without the App, on a local route through the `multi_agent_v1` namespace.
+  That route also emitted the `spawnAgent` item with its prompt. See DEL-01-01
+  `Design/CAPTURE_ST5_NV04_0.160.0.md`; it is development evidence only.
 
 ## Supplier observation at 0.160.0: an interrupt did not stop a running command
 
