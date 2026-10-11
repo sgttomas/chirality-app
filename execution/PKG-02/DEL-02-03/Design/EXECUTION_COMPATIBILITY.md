@@ -991,6 +991,21 @@ with all three read); `namespaceTools` false now reads *missing*, as in
 NPTD-v0.2 §7.1, where v0.7 gave *not established* with a delegation limit
 (§7.4).
 
+**Delegation availability at the 0.160.0 pin.** At the Codex 0.160.0 pin
+(2026-10-10) `model/list` and `modelProvider/capabilities/read` take no
+provider and answer for the provider the app-server resolves for itself, read
+as `config/read`'s `model_provider` with no folder and with the app-server's
+own working folder. `multiAgentVersion` and `namespaceTools` count for a
+conversation only when those two agree and name the conversation's reported
+`modelProvider`; otherwise both read *not read*, so the reading is never
+*present* (or *missing* from another provider's answers) and is *not
+established* unless the conversation's own `features.multi_agent = false`
+reads *missing*. `features.multi_agent` is read with the conversation's `cwd`.
+With no `model_provider` configured (the common case, and the App's own homes)
+the reading is *not established* for every conversation; the trial witness
+observed this natively at 0.160.0 (DEL-02-02 `TRIAL_WITNESS_2026-10-10.md`).
+NPTD §7.1 holds the full rules.
+
 **Role part of the check in App runs (v0.7; FE-19; ROLE-v0.2 SL-7; U-R10;
 the "no role" reading INTEGRATION by R20-4, F-40 closed; the rest
 PROPOSED (F-B)).** The role in force in the conversation, or "no role" (an

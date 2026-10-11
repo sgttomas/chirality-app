@@ -39,8 +39,10 @@ use std::time::{Duration, Instant};
 /// It bounds the interrupt acknowledgments and the wait for their turns to
 /// end; the HOSTING grace period (3 s) for the process tree follows it. At
 /// 0.158.0 an interrupt's acknowledgment came 21 ms after the request and the
-/// turn ended within a millisecond of it (RECOVERY §3.4, OBS-2 §4); 10 s leaves
-/// room for a running tool command to wind down while keeping the wait short.
+/// turn ended within a millisecond of it (RECOVERY §3.4, OBS-2 §4); 10 s keeps
+/// the wait short. An interrupt need not stop a running command: at 0.160.0
+/// one ran to completion after its turn ended (RECOVERY §3.4); the process
+/// stop that follows is what ends it.
 pub const STOP_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// Kept in memory for display; older outcomes are dropped first.
 pub const OUTCOMES_KEPT: usize = 20;

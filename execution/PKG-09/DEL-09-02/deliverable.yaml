@@ -226,8 +226,8 @@ needs:
 
 
     Notes: FACT: UPDATE 20261010: docs/ARCHITECTURE.md §3 and Open_Issues.csv OI-008 (RESOLVED_BY_OWNER_DECISION)
-    record the ruling. ScopeOfWork TBD-002 still reads OPEN because that file is hash-pinned by app/examination/standalone;
-    it is brought into line at the re-freeze listed in app/CONTRACT_ISSUES.md CI-33. For OI-008/OI-009
+    record the ruling. ScopeOfWork TBD-002 states it; it was brought into line with the reviewed re-freeze of
+    the app/examination pins (app/CONTRACT_ISSUES.md CI-33). For OI-008/OI-009
     the cited consumption sentence refers to both preceding named issues.
 
 

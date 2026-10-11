@@ -120,8 +120,10 @@ reliance.
   candidate is built.
 - **The App act control is DEL-01-04's** (SCA-V4-003 Q-5; AAC). Registration
   (J-6, J-8, J-9) is captured there.
-- **K-7:** only registered revisions run; a draft is tried in an ordinary
-  conversation (WR TT-2, TT-7). **L-1:** API-key conversations use a second
+- **K-7:** only registered revisions run; a draft is tried by a trial that
+  mirrors a run of its content, delegated to one sub-agent of the authoring
+  conversation or clean in a fresh conversation, and never a run (WR TT-2,
+  TT-3, TT-3a, TT-3b, TT-7; CC-WR-TRIALS). **L-1:** API-key conversations use a second
   App-owned home. **L-6:** no credentialed observation has been made; the
   first is this witness's own run (R23-14).
 
@@ -174,7 +176,7 @@ R23-19, R23-27).
 | J-1 | From an empty project folder, plan with the agent and revise the plan | Plan revisions (plan items if plan mode is on, K-5 of pass 3) | NPTD NV-01, NV-02; WR WR-VC-01 |
 | J-2 | Execute with substantive real tool use in an ordinary conversation; the agent also delegates one bounded sub-task (ST-4) | Tool outcomes as Codex reports them; request cards; the delegated child | NPTD NV-03; NIR VC-NIR-01, VC-NIR-10; RECOVERY VC-R-03 |
 | J-3 | Turn the work into a workflow draft | Draft listed with content identity; hygiene | WR WR-VC-02, WR-VC-08; NIR VC-NIR-14 |
-| J-4 | Try the draft in a conversation (not a run, K-7) | No run record; draft not selectable for a run | WR WR-VC-09 |
+| J-4 | Try the draft: a delegated trial with the authoring agent and, at the person's choice, a clean trial in a fresh conversation (not a run, K-7) | No run record; draft not selectable for a run; trial text mirrors the run text; trial links written on an acknowledged send; fidelity shown, not enforced; bring back and compare | WR WR-VC-09, WR-VC-21…WR-VC-25 |
 | J-5 | Review the draft; the same-name entry placed in another origin (ST-2) is present | Declared inputs, tools, checkpoints, outputs, evidence; the other-origin notice (WR SP-5); nothing overwritten | WR WR-VC-03, WR-VC-05; WD VC-13 |
 | J-6 | **The person registers it** at the act control (A15), after the unperformed-act negatives (ST-3) | Direct-capture record, actor ≠ recorder, bound bytes; no A15 from silence, timeout, the agent's claim or tool success | AAC VC-AAC-08, VC-AAC-13, VC-AAC-07, VC-AAC-03; NIR VC-NIR-16; RS VC-37; WR WR-VC-12, WR-VC-05 |
 | J-7 | Select the registered revision (an unqualified name offers both origins, ST-2) and run it on new inputs | Source-qualified identity; no rebinding to the other origin; per-run supply | WR WR-VC-06; EXEC VC-E-18; RS VC-40 |

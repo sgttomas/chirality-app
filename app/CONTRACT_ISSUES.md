@@ -1300,111 +1300,52 @@ changed.
   its snapshot through the same composer, so trials and runs name their
   other files alike; nothing of CI-32 remains open.
 
-## CI-33 Examination source pins need re-freezing
+## CI-33 Examination source pins need re-freezing (re-frozen)
 
-- The WR and NIR Design pins (and DEL-09-02's `STANDALONE_QUALIFICATION.md`
-  and `sq.step-map.json`, whose J-4 should add WR-VC-21…WR-VC-25) in
-  `app/examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
-  `app/examination/sq_receiving/pins.json` need a reviewed re-freeze before the
-  next examination dispatch run; the WR pin was already stale on `main`.
-- Pinned text that went stale with CC-WR-TRIALS (#1241) and is left unedited
-  until that re-freeze: `execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md`
-  line 757 still speaks of "AT-8 trial attachments" retaining WR's draft/source
-  handle. Since CC-WR-TRIALS a trial reaches its agent as the trial text (WR
-  TT-3, TT-8), not as draft attachments, and WR §17 step 8 (phase 2) removed
-  the attachment pre-fill. Reword it with the re-freeze. Phase 2 also edited
-  WR §3, TT-2, TT-3a, TT-3b, TT-9, TT-10, TT-11, §5.5, §11, §12 and §17, so the WR pin moves
-  further from the frozen hash. The WR Design itself
-  changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
-  handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
-  from the frozen hash.
-- **Delegation availability read at the 0.160.0 pin (2026-10-10).** The App
-  now reads NPTD §7.1's signals in the Rust host (WR TT-3a and §17 state how).
-  Three readings at the pin are not in the pinned texts, which still match
-  their pins and were left unchanged. Add them at the re-freeze to DEL-01-03
-  `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.1 (and its §18 row), DEL-02-03
-  `EXECUTION_COMPATIBILITY.md` §3.4 EV-3a `agent-delegation`, and DEL-02-01
-  `WORKFLOW_DECLARATION.md` §4.2.5 `agent-delegation`:
-  - `modelProvider/capabilities/read` and `model/list` take no provider and
-    answer for the provider the app-server resolves for itself, which a
-    conversation's project-folder configuration or start may differ from.
-    The host reads that server provider as `config/read`'s `model_provider`
-    with no folder and with the app-server's own working folder. Only when
-    the two agree and name the conversation's reported `modelProvider` do
-    `namespaceTools` and `multiAgentVersion` count for the conversation;
-    otherwise both read *not read*, so the reading is *not established*
-    (never *present* or *missing* from another provider's answers).
-    `features.multi_agent` is read with the conversation's `cwd`.
-  - With no `model_provider` configured (the common case, and the App's own
-    homes) both server-provider reads name no provider, so the reading is
-    *not established* for every conversation, even for a `disabled` model.
-    The App does not infer Codex's default provider from that absence (it is
-    not in the 0.160.0 types; OBS-2's observation is of 0.158.0). The trial
-    witness of 2026-10-10 observed this natively at 0.160.0 in an App-only
-    home: the app-server's configuration named no provider, both signals read
-    *not read*, the reading was *not established*, and Try with the authoring
-    agent stayed offered.
-  - Not verifiable from the App: a `config.toml` edited after the app-server
-    started may make `config/read` (read from the files now) and the
-    parameterless reads (the server's loaded configuration) diverge. The
-    reading then rests on `config/read` and may be wrong until the server is
-    restarted.
-  - The generated `Config` types no `features` field. `features.multi_agent`
-    is read as an additional property of `config/read`'s `config`, with the
-    conversation's `cwd`. A configuration that was read and has no such
-    property sets nothing, so it is read, not unread.
-  - `Model.multiAgentVersion` is that of the `model/list` entry whose `model`
-    or `id` is the conversation's reported model, read over every page with
-    hidden models included. A model that is not listed reads *not read*.
-  - The reads made when the person presses Try with the authoring agent or
-    Try again are journalled `person-directed`, as `collaborationMode/list`
-    reads are; NPTD §5.1 names the receiver DEL-01-03. Say which at the
-    re-freeze. The tick's reads are journalled as the App rule
-    `delegation-availability-read`.
-- **Trial witness (2026-10-10 evening;
-  `execution/PKG-02/DEL-02-02/Design/TRIAL_WITNESS_2026-10-10.md`).** WR TT-3a,
-  TT-9, TT-12, DT-5, §12 WR-VC-22, §15 U-WR-25 and §17 were edited, so the WR
-  pin moves further from the frozen hash. Pinned texts that still match their
-  pins were left unchanged; apply this at the re-freeze:
-  - DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.2, the `parentThreadId`
-    row ("else the thread of a `subAgentActivity` item (inference)"): a
-    child's own history can carry `subAgentActivity` naming its parent. The
-    App no longer infers a parent from an item that names the containing
-    thread itself, the root agent (`agentPath` "/root"), or a known ancestor
-    of the containing thread, or whose `agentPath` is an ancestor of the
-    containing thread's known path. A `subAgentActivity` of kind `started`
-    names the thread the containing thread spawned. Its parent gets its own
-    `parentSource` ("subAgentActivity started (spawning thread)"). It corrects
-    only a purely inferred parent: it drops an inverted inference and
-    re-parents an inferred node, at any depth, under the same ancestor guard.
-    A parent set by a `started` row or by `collabAgentToolCall.senderThreadId`
-    is never removed or moved. A descendant's own `started` row naming an
-    ancestor (forked context can copy its spawner's rows) changes nothing.
-    Add that qualification. Limits:
-    - Without a `started` row (for example, a history read that has not
-      reached the parent's spawn turn), an inference made from a descendant's
-      activity seen first still stands.
-    - `NativeActivity.tsx` hides a "Descendant of" line that names one of the
-      conversation's own descendants. Where the data still holds such a cycle
-      (C under P beside an inverted P under C that no `started` row
-      corrected), P shows no inverted line, but C's real "Descendant of P"
-      line is hidden too. The `started` correction removes the cycle once that
-      row is seen.
-- **OI-008 ruling (2026-10-10).** The owner decided process placement for the
-  whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
-  §11 and NIR §1.1 were also edited, since their pins were already stale. Five
-  texts that still match these pins were left unchanged, so they still read
-  OI-008 as open or proposed. Apply the ruling to each at the re-freeze:
-  - DEL-01-01 `HOSTING_BOUNDARY.md`: §1's note "Everything further is the
-    OI-008 proposal in §12", the §7 mention, the §11 row "Decide Rust/TS
-    allocation", §12 (its label and heading; OUT-003 should record the ruling,
-    REQ-004), U-02 and VC-11.
-  - DEL-01-02 `EXECUTION_AND_RECOVERY.md`: §0 ("a different OI-008 answer
-    moves code"), §4 "Placement (R17-5, PROPOSED)", the owners-table row that
-    names OI-008, and U-R8.
-  - DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md`: §1 "Placement (PROPOSED
-    under R17-5; OI-008 option O-1 …)" and U-P7.
-  - DEL-01-04 `APP_ACT_CONTROL.md`: "R17-5 (process division, PROPOSED)" in
-    its changes from v0.1.
-  - DEL-09-02 `ScopeOfWork.md` TBD-002 ("OI-008 remains OPEN"). Its
-    `deliverable.yaml` already records the ruling.
+- **Done (branch `codex/app-v4-ci33-refreeze`).** The pinned texts this issue
+  listed were brought current, and the pins re-frozen from the new bytes:
+  - OI-008 ruling (owner, 2026-10-10; `docs/ARCHITECTURE.md` §3) applied to
+    DEL-01-01 `HOSTING_BOUNDARY.md` (§1, §7, §11, §12 with OUT-003, U-02,
+    VC-11), DEL-01-02 `EXECUTION_AND_RECOVERY.md` (§0, §4.1 "Placement", §12
+    owners, U-R8), DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md` (§1, U-P7),
+    DEL-01-04 `APP_ACT_CONTROL.md` and DEL-09-02 `ScopeOfWork.md` TBD-002
+    (wording of the decided ruling only; no commitment or criterion changed).
+  - RECOVERY §7.1's "AT-8 trial attachments" reworded for the trial text (WR
+    TT-3, TT-8, §17 step 8).
+  - Delegation availability at the 0.160.0 pin in NPTD §7.1 and §18, EXEC
+    §3.4 EV-3a and WD §4.2.5; the journal kinds in NPTD §2 now match the code
+    (`person-directed` for reads the person's press causes, App rules
+    `delegation-availability-read` and `trial-linking-read` otherwise).
+  - NPTD §7.2 parent inference, with the `started` source, the
+    correct-only-inferred rule, the ancestor and `agentPath` guards and the
+    residual limits. `native_items.rs` now drops an inverted inference only
+    where the correction takes effect, so a forked `started` row naming a set
+    parent no longer drops the descendant (regression tests for that and the
+    `agentPath` guard).
+  - Interrupting a turn does not stop its running command (native witness
+    2026-10-10 item 8): RECOVERY §3.4, §9; NPTD §6.1, TI-15, §18, F-8; HOSTING
+    §6.2, HP-2, OB2-2.
+  - RECOVERY §4.1 and HOSTING §4.6 agree on the stop precondition
+    (`codex_stop.rs`); NPTD RV-1 ordinals describe the code's numbering;
+    FLEET §4 AS-2 states what is observable at 0.160.0.
+  - SQ J-4 (`sq.step-map.json`, `STANDALONE_QUALIFICATION.md`) adds
+    WR-VC-21…WR-VC-25 and describes the delegated and clean trials.
+  - Re-frozen: `examination/standalone/{sources.json,pre_run_inputs.pins.json}`
+    and `pre_run_inputs.py`'s pin digest, `examination/native_forms/{sources.json,pre_run_form.pins.json}`
+    and `pre_run_form.py`'s pin digest, `examination/sq_receiving/pins.json`
+    and `receive.py`'s pin digest; the WD hash in
+    `src-tauri/resources/instructions/{SOURCE_MAP.json,ROLE_SET_SOURCE_BINDING.json}`.
+- **Still open.**
+  - The `source_basis_revision`, `basis_revision`, `basis` and
+    `source_revision` labels in those pin files were not moved (as at the
+    flat-deliverable migration). They name the revision first inspected, not
+    the revision whose bytes are now pinned.
+  - NPTD §7 and §14.1 still describe delegation as observed through the
+    adapter only; the native witness of 2026-10-10 adds a stock observation
+    with limits. NPTD SQ-1's reads on opening a conversation were not checked
+    against the code's on-demand reads. RECOVERY DEF-2 still names "the O-1
+    arrangement". Editing any of these moves its pin again, so they wait for
+    the next reviewed re-freeze.
+  - The distribution and terminal receiving cohorts still fail on their
+    historical `hosting.rs` pins; that is separate from this issue (CI runs
+    them only on a broad Python run).

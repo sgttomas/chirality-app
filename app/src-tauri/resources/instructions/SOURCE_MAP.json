@@ -37,7 +37,7 @@
     {
       "id": "workflow_contract",
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
-      "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
+      "sha256": "9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
       "readExtent": "\u00a75.1\u20265.2; \u00a76 identity; \u00a77 Root is reuse source, not v4 authority",
       "origin": "current working checkout"
     },

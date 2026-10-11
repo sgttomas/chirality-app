@@ -45,7 +45,11 @@ counts), K1-3 (joint answer), K1-4 (the person's identity, "identity not
 verified"; the obligation proposed for DEL-01-04's contract). DECISION-K3 as
 revised, K-8: "Registration (A15) is performed through the person-only act
 control of DEL-01-04, bound to the exact reviewed bytes; a draft changed after
-review needs a new review." R17-5 (process division, PROPOSED), R17-6 (the act
+review needs a new review." R17-5 (process division; decided by the owner's
+OI-008 ruling of 2026-10-10, `docs/ARCHITECTURE.md` §3: "The Rust host owns
+everything that writes the person's files or the App's records, talks to Codex,
+or captures a person's act. The web view presents, and sends only what the
+person initiates. It never writes records or operates the act control."), R17-6 (the act
 control serves every reserved act kind including A15; standing facility, never
 raised by an arrival; identity per K1-4), R17-11 (an A15 names its subject by
 the reviewed draft content and, for a new revision, the prior revision), R17-12.
@@ -160,7 +164,7 @@ The prototype exercised AX-01…AX-15 (§8).
 | Step | Action | By | Record | Failure: what fails · who reports · record · next |
 |---|---|---|---|---|
 | 1 | The person opens the control (AK-a) and chooses kind and subject; or opens it from an arrival row (SD-3; NIR PD-5), which carries the arrival's declared kind, subject, scope and purpose | Person | — | — |
-| 2 | Compose: the host reads the subject's content identity and composes the offer from authoritative sources (never from agent-supplied text) | Host (R17-5) | — | Identity not obtainable · the control · nothing · not offered |
+| 2 | Compose: the host reads the subject's content identity and composes the offer from authoritative sources (never from agent-supplied text) | Host (R17-5; OI-008 ruling) | — | Identity not obtainable · the control · nothing · not offered |
 | 3 | Present in the host-owned native confirmation (§6.2) | Host | — | — |
 | 4 | The person confirms *act* or *decline*, or dismisses | Person | — | Dismissed · — · nothing · AC-5 |
 | 5 | Re-read the identity; compare with the offer | Host | — | Changed · the control · nothing · AC-6, "review again" |

@@ -71,7 +71,7 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
     // A node naming one of this conversation's own descendants as its parent
     // is an inverted inference (trial witness 2026-10-10 (c)); never shown.
     // In a cycle the host has not yet corrected, the child's real line is
-    // hidden too (app/CONTRACT_ISSUES.md CI-33).
+    // hidden too (DEL-01-03 NPTD §7.2, limit (c)).
     parent: list(view?.descendants).find((child: Json) => child?.threadId === threadId && !subtree.some((d: Json) => d?.threadId === child?.parentThreadId)) ?? null,
   };
 }

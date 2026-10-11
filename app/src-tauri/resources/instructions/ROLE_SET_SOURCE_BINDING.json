@@ -14,7 +14,7 @@
     },
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
-      "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
+      "sha256": "9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
       "readExtent": "5.1\u20135.2"
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "repositoryPath": "projects/chirality-app-v4/app/src-tauri/resources/instructions/SOURCE_MAP.json",
-      "sha256": "1ca424c0c8462cee9da1a493ce043d3b942186bfa91a459b5ea0ffe2ca6ffef6",
+      "sha256": "138aba1849de0fd39a4bcf75a69ffb82b8d59a2a0b02ff0790da9a44bfd66be6",
       "readExtent": "Historical source/output binding, unchanged"
     }
   ],

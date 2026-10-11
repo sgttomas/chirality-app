@@ -434,7 +434,8 @@ impl NativeView {
             // A `started` row is shown in the thread that spawned the named
             // one. It corrects only a purely inferred parent: it drops an
             // inverted inference of the containing thread under the named one
-            // and re-parents a node whose parent was inferred, whatever the
+            // (only where the named thread can then be placed under it) and
+            // re-parents a node whose parent was inferred, whatever the
             // arrival order (a grandchild's activity read before its
             // ancestors', as in history recovery). A parent set by a `started`
             // row or by `collabAgentToolCall.senderThreadId` is never removed
@@ -447,7 +448,15 @@ impl NativeView {
             let names_root = native["agentPath"].as_str() == Some("/root");
             if let Some(id) = native["agentThreadId"].as_str().filter(|id| *id != thread && !names_root && !self.path_names_ancestor(native, thread)) {
                 let started = native["kind"] == "started";
-                if started && self.descendants.get(thread).is_some_and(|n| n["parentThreadId"] == id && n["parentSource"] == INFERRED) {
+                // The inverted inference is dropped only where the correction
+                // then takes effect: the named thread is not yet a node, or its
+                // own parent is only inferred. Where its parent is set (by a
+                // `started` row or a collab call) the row is a forked copy and
+                // changes nothing, so the containing thread is kept (review of
+                // #1260: a grandchild inferred under its parent, whose forked
+                // history names that parent as started, was dropped).
+                let correctable = self.descendants.get(id).is_none_or(|n| n["parentSource"] == INFERRED);
+                if started && correctable && self.descendants.get(thread).is_some_and(|n| n["parentThreadId"] == id && n["parentSource"] == INFERRED) {
                     self.descendants.remove(thread);
                 }
                 if !self.is_ancestor(id, thread) {
@@ -889,6 +898,50 @@ mod tests {
         // A parent set by a `started` row is not moved by another thread's `started` row.
         frame(&mut v, 3, "item/completed", bare("s3", "other", "child"));
         assert_eq!(parents(&v), vec![("child".into(), "parent".into())]);
+    }
+    // Review of #1260 (leftovers). (a) A grandchild known only from its
+    // parent's non-`started` row, with no agentPath anywhere, whose forked
+    // history carries a `started` row naming that parent, is kept: the
+    // parent's own parent is set, so the row cannot be a correction.
+    // (b) The agentPath-prefix guard: a grandchild's `started` row naming the
+    // child by an ancestor path changes nothing, even where the child's parent
+    // is only inferred (so only the path guard stops the inversion).
+    #[test]
+    fn a_forked_started_row_naming_a_set_parent_keeps_the_descendant() {
+        let parents = |v: &NativeView| {
+            let mut pairs: Vec<(String, String)> = v.snapshot()["descendants"].as_array().unwrap().iter()
+                .map(|n| (n["threadId"].as_str().unwrap().to_owned(), n["parentThreadId"].as_str().unwrap().to_owned())).collect();
+            pairs.sort();
+            pairs
+        };
+        let row = |id: &str, at: &str, kind: &str, other: &str, path: Option<&str>| {
+            let mut item = json!({"id":id,"type":"subAgentActivity","kind":kind,"agentThreadId":other});
+            if let Some(path) = path {
+                item["agentPath"] = json!(path);
+            }
+            json!({"threadId":at,"turnId":"u","item":item})
+        };
+        let expected: Vec<(String, String)> = vec![("child".into(), "parent".into()), ("grandchild".into(), "child".into())];
+        // (a) No agentPath on any row.
+        let mut v = view();
+        frame(&mut v, 1, "item/completed", row("s1", "parent", "started", "child", None));
+        frame(&mut v, 2, "item/completed", row("i1", "child", "interacted", "grandchild", None));
+        frame(&mut v, 3, "item/completed", row("s2", "grandchild", "started", "child", None));
+        assert_eq!(parents(&v), expected);
+        // (b) As the review case states it: parent `started` child; child
+        // `interacted` grandchild at "/root/a/b"; grandchild `started` child at "/root/a".
+        let mut v = view();
+        frame(&mut v, 1, "item/completed", row("s1", "parent", "started", "child", None));
+        frame(&mut v, 2, "item/completed", row("i1", "child", "interacted", "grandchild", Some("/root/a/b")));
+        frame(&mut v, 3, "item/completed", row("s2", "grandchild", "started", "child", Some("/root/a")));
+        assert_eq!(parents(&v), expected);
+        // (b') The same with the child's parent only inferred: here the path
+        // guard alone keeps the child under its parent and the grandchild.
+        let mut v = view();
+        frame(&mut v, 1, "item/completed", row("i0", "parent", "interacted", "child", Some("/root/a")));
+        frame(&mut v, 2, "item/completed", row("i1", "child", "interacted", "grandchild", Some("/root/a/b")));
+        frame(&mut v, 3, "item/completed", row("s2", "grandchild", "started", "child", Some("/root/a")));
+        assert_eq!(parents(&v), expected);
     }
     #[test]
     fn streamed_deltas_are_previews_replaced_by_the_completed_item() {

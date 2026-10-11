@@ -8,7 +8,7 @@ identity. Historical 0.158.0 evidence below remains dated; qualification absent.
 - Phase (V4-WF-05 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1): holding a run at a checkpoint is phased to the governance layer, and in the current phase (Phase 1) neither the App nor a host's embedded loop enforces a hold. So no App run is holding at a checkpoint, and this boundary uses none of HP-3 or HP-4 for a checkpoint, makes no hold claim and issues no act request in an agent's place (§6.7). The §6.7 hold-point facts are kept as the **governance-phase definition (retained)**.
 - Model access (R8-9; DECISION-4 D4-3): local and cloud are options the person chooses among, with no default; a cloud model is reached by OAuth sign-in or an API key. V4-HOST-01 and V4-ARC-11, as amended by SCA-V4-001, state this for a host's agent. This boundary selects no default and carries the supplier's sign-in and API-key variants (§8.1 L-5; S-4).
 - Network destinations (R8-13; DECISION-5): V4-HOST-02 as amended by SCA-V4-001 (DECISION-5; host-agent network destinations) governs a **host's embedded agent only**. The App's own Codex keeps the person's Codex configuration, approval and sandbox choices (ARCH §4, closing sentence of the host-agent property; §2 note; Root AGENTS.md; D-GOV-43). This boundary adds no allow list, destination prompt or destination gate to the App's Codex.
-- Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, OI-008 *proposal*, local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
+- Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, the owner's OI-008 ruling with the earlier proposal (§12), local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
 - Basis: the accepted basis as amended by scope-change amendments SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`, accepted 2026-09-29) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), pinned by current bytes: `docs/PRD.md` sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, `docs/ARCHITECTURE.md` sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, `docs/HOST_INTEGRATION.md` sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f and `docs/EXAMINATION.md` sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (v0.6 pinned branch base `6e18505e3`, before both amendments; of the passages this file cites, the amendments changed ARCH §1 priority 3, the host-model line of the ARCH §2 diagram and ARCH §4); ScopeOfWork.md sha256 bbc81a8d31eeacab3497acf297c8c6eeac7b2f6febda5381f332ec14b8f65d02 (SCA-V4-003 revision; re-pinned at pass-4 closeout C1 under R23-5, was `9945e72b…cc75`; SCA-V4-003 blocks read: G-0101-01…04, none requiring a change to this file's design text); earlier revisions of the contract: (revised under SCA-V4-001, its AX-005, at `340ecf341`, and under SCA-V4-002, its AX-006, at `1efd4bcda`; v0.6 pinned the INIT contract eddd122c…4773); the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29), cited for the admitted or held layer of register rows; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
 - **v0.9 inputs (node F-A of run `APP-V4-DESIGN-PASS-3-20261001`; first-increment edits after the pass-3 design nodes).** Each sha256 recomputed with `shasum -a 256` in the working tree at this node (HEAD `e4e14d6ae6`); paths under `AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`: `BRIEFS.md` sha256 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("Common rules", "F — first-increment edits"); `F/F0_JOINS.md` sha256 e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§1.1 rows FH-01…FH-44, §1.14, §2, §7.7); `R17_RESOLUTIONS.md` sha256 b0af81bcbad9bc52fddc99119c42a19019a9b174677d5b92a0a2f5c8b4f8e198 (R17-3, R17-8, R17-9, R17-14); `R18_RESOLUTIONS.md` sha256 abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1…R18-9); `R19_RESOLUTIONS.md` sha256 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-1…R19-8; **where an F0 row conflicts with R19, R19 is applied**, and the change table says so); `OWNER_DECISIONS.md` sha256 ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-K3 as revised; DECISION-L L-1…L-7); `DECISIONS_PENDING_2.md` sha256 0ecbf87aae8d4350c6615ccf051e8808c828b285271574b6a48f4c6937b74f9b (read for the L options and the visibility list); `R20_RESOLUTIONS.md` sha256 516d0fe0d3cddb1ef98266e30b37f53067e94e467ad08313df6557a79f1fb1c3 (R20-3, R20-6 read for §8.2); the round-2 sections of `D/D1.md`, `D/D2.md`, `D/D4.md`, `D/D6.md` (§R2.3 join changes, applied at the coordinator's message). This file's own observation records, read and not edited: `OBS_2_0.158.0.md` sha256 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 and `OBS_3_0.158.0.md` sha256 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (§10.2, §10.3); `OBS_1_0.158.0.md` and `PIN_SPIKE_0.158.0.md` unchanged at the pins above. The pass-3 Design files of DEL-01-02…05, DEL-02-02 and DEL-02-04 are being stepped to v0.2 in parallel with this node; they are cited by their **v0.2 labels** and section only (RECOVERY-v0.2, NPTD-v0.2, NIR-v0.2, AAC-v0.2, ACCESS-v0.2, ACCOUNT-HOME-RECORD-v0.2, WR-v0.2, ROLE-v0.2), the section numbers as read in their working text at this node, to be checked by node F-E; their bytes are pinned in GUIDE's input table, which is re-pinned last. Reading note for owner names: by DECISION-L L-7 the App implementation owner is the Owner; this file keeps the role name "App implementation owner" where it names a point of decision.
 - **RP-3 repair inputs (repair node RP-3 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump).** Each sha256 recomputed with `shasum -a 256` in the working tree; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R14_RESOLUTIONS.md` sha256 c6a603303693f50e24ea27fcbc9f381a297434e4182f023fbcee941073623576 (R14-5; R14-7's R13-6 item for HOSTING); `R13_RESOLUTIONS.md` sha256 d0385313660e5820258b4089372313f382afcebc57d37265389274ca470a8d3a (R13-6); `BRIEFS.md` sha256 e3f98d1c8449292965dd244a0f2821b221bcd0f3b0294e592f73b8eaaaaf6321 ("RP — repairs from V18", row RP-3); `comparisons/V18-2.md` sha256 0b00e79b161bcdf1e83a3a207d71114e316421e3cdf2ed5231901c14b85fbdb7 (M-1, m-10, m-13); `comparisons/V18-3.md` sha256 68a067e26af7557b6d1cf1f2d7c2816a9f81dd451d8a95d8f48bdaf72e7261e1 (m-17, m-20); `comparisons/V18-1.md` sha256 fb07e07c66c1a0a3fb7c2d58e1595d2a40ffc0ff9a7913a3bdbe2a70655dec5f (m-13: RS's side of U-27; nothing changed here); `WAVE_B/OBS-1.md` sha256 622c86113a19900d550a6e868480719ea3e2628753cc7b3fb7d98084042626e9; `WAVE_B/OBS-1b.md` sha256 5eb680de32e225da2f1bd799a3282776292467cfed01b448a2f5c177238d5079; `DECISIONS_PENDING.md` sha256 f1e968fe9cc0d40a78841c61834c0e075409949c6b52e6f08dd70f2221d6a73e (Part 3) and `OWNER_DECISIONS.md` sha256 b2fa81871cbf44b978894c8d0512c66d55a66e3c50db21df56e00ddbf651e05b (DECISION-K1: "Parts 3 and 4 stand as presented"). This file's own record `OBS_1_0.158.0.md` (with the OBS-1b addendum) sha256 7b984b541edca0b14534d29115e77642c587a32f830bdf25a94a7ecca882cc43 (its current bytes, re-pinned at node H after node G's redaction of §B.7; was 85707703e97b4fd5ea4332785aae83f96850bedacad5219c8827c41297c26182 as read at RP-3) is read, not edited. Siblings by label and section: DEL-02-01/WD-v0.8 §4.2.5 (same repair node); EXEC-v0.6 AE-6, AW-12; ADAPTER-v0.6 CT-9, CT-10, S-7, S-8. The return file is `WAVE_B/RP-3.md`.
@@ -300,8 +300,12 @@ policy or human acts are produced (§11; REQ-007, REQ-008).
                                       │ supplier-started descendants (e.g. git)
 ```
 
-The Rust/TypeScript division drawn above is the fixed invariant only (ARC §3
-properties). Everything further is the OI-008 proposal in §12.
+The Rust/TypeScript division drawn above is the fixed invariant (ARC §3
+properties). The rest of the division is decided by the owner's OI-008 ruling
+of 2026-10-10 (`docs/ARCHITECTURE.md` §3; §12): the Rust host owns everything
+that writes the person's files or the App's records, talks to Codex, or
+captures a person's act, and the web view presents and sends only what the
+person initiates.
 
 ## 2. Governance context and its v4 standing
 
@@ -631,7 +635,7 @@ Each lifecycle event is one record of `hosting.lifecycle-event.schema.json`
 | Operation | Caller | Accepted in | Result | Failure behaviour |
 |---|---|---|---|---|
 | start | The person, or App start-up (actor `app-startup`) | `absent`, `stopped`; `refused` only on the person's explicit start | Events LT-01…LT-09; `ready(g)` with the version identity record and the declared capabilities, or `refused` with the verification result | Verification mismatch or unverifiable → `refused`, no child (LT-05); spawn or handshake failure → counted toward the restart bound (LT-07, LT-08, LT-10, LT-11). A start asked for in any other state changes nothing and the current state is reported |
-| stop (home, actor, reason) | The person, through DEF-5a (v0.9; RECOVERY-v0.2 §2): a confirmed App quit (DEF-6) or the person's "Stop Codex" / "Restart Codex" (DEL-01-04, R18-1 C-12). Never a turn interrupt (DEF-3), a run end (DEF-4) or a window event (DEF-1) | Every state except `absent`, `stopped` and `refused` | The stop record first, then `stopping` → `stopped` with exit facts and the descendant outcome (LT-17…LT-23); with no child, `stopped` directly (LT-20…LT-22). A restart is this stop followed by start | The polite end is ignored → the whole tree is ended after the grace period and `forcedAfterGrace` is recorded; surviving descendants are recorded, never assumed gone (H11); outstanding entries end `ended-unanswered(process-exit)`, with no App decline (RECOVERY-v0.2 §6 U-10) |
+| stop (home, actor, reason) | The person, through DEF-5a (v0.9; RECOVERY-v0.2 §2): a confirmed App quit (DEF-6) or the person's "Stop Codex" / "Restart Codex" (DEL-01-04, R18-1 C-12). Never a turn interrupt (DEF-3), a run end (DEF-4) or a window event (DEF-1) | Every state except `absent`, `stopped` and `refused`; in `stopping` a second stop is refused as already requested. For Stop/Restart Codex the stop names the generation the person chose, and a changed generation is refused with nothing stopped. Only the process stop has this wide precondition: the interrupts that precede it (RECOVERY-v0.2 §4.1), like every client request, are sent only while `ready` (§5.1 `refused-not-sent(not-ready)`), so outside `ready` nothing is sent and only the process is stopped | The stop record first, then `stopping` → `stopped` with exit facts and the descendant outcome (LT-17…LT-23); with no child, `stopped` directly (LT-20…LT-22). A restart is this stop followed by start | The polite end is ignored → the whole tree is ended after the grace period and `forcedAfterGrace` is recorded; surviving descendants are recorded, never assumed gone (H11); outstanding entries end `ended-unanswered(process-exit)`, with no App decline (RECOVERY-v0.2 §6 U-10) |
 | explicit restart | The person | `halted-after-repeated-failure` | LT-16, then verification and a new generation as for start | As start |
 | observe lifecycle (from a position) | DEL-01-02 (custody), DEL-01-03 (the `ready(g)` record, S-2), DEL-04-03 (evidence, S-7), DEL-02-03 (EXEC AE-6, AW-12: observation lost or recovered at supplier exit and restart), DEL-03-03 (ADAPTER CT-9, CT-10, S-7, S-8: channel status and in-flight submissions across supplier restart) | Any state | Lifecycle events in order | Observer loss loses nothing within a generation: the main process keeps a bounded in-memory journal per generation and replays it from the observer's position (RECOVERY-v0.2 §3.3 OA-01); a position outside the journal or in a **closed** generation gets a snapshot plus Codex history reads with a gap marker (OA-02). A closed generation's events are not re-readable; views rebuild from Codex history (v0.9; R18-1 C-03). Each window's observer re-attaches; the main process holds the journal (RECOVERY-v0.2 §4.1) |
 | read version identity and verification result | DEL-01-03, DEL-01-06, DEL-04-03 | After a verification | §7.1 record; §7.2 result | `unverifiable(<reason>)` is itself a result, never a pass |
@@ -883,7 +887,11 @@ v0.9):* with an approval request held unanswered, a client
 and `serverRequest/resolved` for that request arrived **after**
 `turn/completed`, with no answer from the client; a later answer to that
 identity was silently ignored (no error, no notification); the command
-item never received `item/completed` and is absent from history. So
+item, which never ran because its approval was what the interrupt resolved,
+never received `item/completed` and is absent from history. (A command
+already running at an interrupt is another case: at 0.160.0 one kept
+running, completed, and was later reported completed in history; RECOVERY
+§3.4 and DEL-01-02 `NATIVE_WITNESS_2026-10-10.md` item 8.) So
 `turn/interrupt` is one observed before-reply trigger of RT-10 (U-09
 narrowed); other triggers are not observed. The cause, when the supplier
 reports one, is recorded as observed; it is never inferred (the
@@ -1119,9 +1127,13 @@ that phase this boundary supplies only these facts and limits:
   was not observed. *Observed at OBS-2 (0.158.0, one pairing; O-1, O-3;
   §10.2):* the empty result came in about 21 ms; `turn/completed` with
   status `interrupted` followed; two deltas arrived after the request and
-  before its result; an open item never received `item/completed` and is
-  not kept in history; a pending approval was resolved by the supplier
-  (RT-10). For a hold nothing relies on it, and no receiver depends on it
+  before its result; the open reasoning item never received
+  `item/completed` and is not kept in history; a pending approval was
+  resolved by the supplier (RT-10), and its command item, which never ran,
+  likewise. That is not a rule for every item: at 0.160.0, observed once, an
+  interrupt did not stop a running unified-exec command, which ran to
+  completion and was later reported completed in history (DEL-01-02
+  `NATIVE_WITNESS_2026-10-10.md` item 8; RECOVERY §3.4). For a hold nothing relies on it, and no receiver depends on it
   (R4-2; EXEC-v0.7 §2.3 HP-2 "Not adopted"). The App sends it for another
   purpose: the person's interrupt of a turn (DEF-3) and the interrupts of a
   confirmed quit (DEF-6), each with a stop request written first
@@ -1326,8 +1338,11 @@ binary and has no such effect.
   other generator's output). At 0.158.0 the spike found **no** field absent
   from both outputs; the supplement is empty unless O-R2 is chosen.
 - The main process needs at minimum the familiar server-request set and the
-  answer-validity rules (R2/R5); how much of the type set the Rust side
-  carries is part of OI-008 (§12).
+  answer-validity rules (R2/R5). Since the owner's OI-008 ruling (§12) puts
+  every request to Codex in the Rust host, the Rust side composes every
+  request and validates every answer, so it needs the shapes of those
+  requests and answers; how they are derived from the chosen reference output
+  stays with U-15.
 
 ## 8. Seams to receivers
 
@@ -1979,7 +1994,7 @@ section's.
 | ID | Observation (record section) | Bearing on this file |
 |---|---|---|
 | OB2-1 `turn/interrupt` (O-1, §4) | Empty result in about 21 ms; `thread/status/changed` idle; `turn/completed` status `interrupted`; two deltas after the request and before its result; the open `reasoning` item never got `item/completed` and is not in history; Codex closed the provider stream | §6.7 HP-2; G-4: an item opened and never completed settles "not completed (turn ended)" in the receivers (NPTD, NIR, RECOVERY; R18-7); this boundary delivers what arrives (H6) |
-| OB2-2 Supplier resolution before a reply (O-3, §5.1) | With an approval held, `turn/interrupt` → `turn/completed` `interrupted`, then `serverRequest/resolved` for the request; a later answer silently ignored; the command item never completed and is absent from history. Side observation: a `cancel` answer ended the item `declined` and the turn `interrupted` | RT-10 provoked (§6.2); U-09 narrowed; §6.2.1 "Negative answers and the turn" |
+| OB2-2 Supplier resolution before a reply (O-3, §5.1) | With an approval held, `turn/interrupt` → `turn/completed` `interrupted`, then `serverRequest/resolved` for the request; a later answer silently ignored; the command item (never run: its approval was what the interrupt resolved) never completed and is absent from history. Side observation: a `cancel` answer ended the item `declined` and the turn `interrupted` | RT-10 provoked (§6.2); U-09 narrowed; §6.2.1 "Negative answers and the turn" |
 | OB2-3 Stop, restart, resume (O-2, §5.2) | Stop by closing input: exit 0 in about 21 ms; kill: signal 9. After both: `thread/read` before resume works (`notLoaded`); the turn `interrupted`; the pending request **not** raised again and no resolution sent; no model request on resume; a graceful stop writes a "user interrupted … on purpose" marker into history; `deprecationNotice` on full reads | §4.4 "Recovery reads"; §4.5 steps 2, 3; RECOVERY-v0.2 §5 |
 | OB2-4 Delegation on the stock pairing (O-4, §6.1) | Delegation tools travel only in a `namespace` tool (`multi_agent_v1`), dropped by LM Studio 0.4.16; no configuration sends them flat; `[features] multi_agent = false` removes them; `multi_agent_v2` gives namespace `collaboration` with other tools; `agents.<role>` adds `agent_type` to `spawn_agent` | §8.1 L-3; §8.4 HCG-A08; F-31; U-22 |
 | OB2-5 Delegation through the adapter (O-4, O-4a, §6.2) | `collabAgentToolCall` `spawnAgent`, `sendInput`, `wait`; child frames on the same connection, no `thread/started`; child readable with `parentThreadId`, `agentRole`, `agentNickname`, `source.subAgent`; children not in `thread/list`, in `thread/loaded/list`; the role file's `developer_instructions` replace the parent's for the child; the child had no delegation tools at default depth | §8.2 table; §8.4 HCG-A08; F-20 |
@@ -2019,7 +2034,7 @@ OB3-n are this section's.
 | Act | Owner | This boundary's contribution | Not performed here |
 |---|---|---|---|
 | Select the definition/generation pin | App implementation owner; owner decision D4 selected 0.158.0 | §7 record, §10 observations, §9.5 method | Qualification; re-examination before implementation |
-| Decide Rust/TS allocation | App implementation owner (OI-008) | §12 proposal | Decision |
+| Decide Rust/TS allocation | The owner, who is also the App implementation owner (OI-008); decided 2026-10-10 (`docs/ARCHITECTURE.md` §3) | §12 records the ruling and the earlier proposal | Decision |
 | Choose the reference generator output | App implementation owner (U-15) | §7.3 options | Decision |
 | Durable session/request custody, reconnect, relaunch, stop | DEL-01-02 (RECOVERY-v0.2) | §4, §6 interface, S-1 | Custody code, persistence, recovery |
 | Plan/tool/delegation presentation | DEL-01-03 (NPTD-v0.2) | S-2 | Views, registry, revision identity, checker |
@@ -2038,13 +2053,34 @@ No act in this table is a prerequisite for another unless its owner's own
 contract says so; no universal acceptance-before-checking or
 acceptance-before-reliance sequence is implied (AG-02).
 
-## 12. PROPOSAL for OI-008 — Rust/TypeScript division
+## 12. OI-008 — Rust/TypeScript division (decided by the owner, 2026-10-10)
 
-**Label: proposal by the DEL-01-01 drafting task for the App implementation
-owner, who decides (OI-008, SOW-131, REQ-004). Nothing here is selected.**
-Evaluation order: maintainability, then functionality, then local
-models/privacy (V4-CST-01, AX-001); few mainstream stacks, no
-release-candidate frameworks (M-6, SOW-101).
+**Decision (OUT-003, REQ-004).** On 2026-10-10 the owner, who is also the App
+implementation owner, ruled for the whole App: "The Rust host owns everything
+that writes the person's files or the App's records, talks to Codex, or
+captures a person's act. The web view presents, and sends only what the
+person initiates. It never writes records or operates the act control."
+(`docs/ARCHITECTURE.md` §3; DEL-01-01 TBD-001.) The ruling generalizes the
+owner's earlier rulings for the workflow draft workspace and the fleet
+records and keeps the fixed main-process invariants of §1. Where shared
+contracts and components live stays open (OI-014).
+
+**The earlier proposal, and how the ruling relates to it.** The options
+below were the DEL-01-01 drafting task's proposal to the App implementation
+owner, assessed in this order: maintainability, then functionality, then
+local models/privacy (V4-CST-01, AX-001); few mainstream stacks, no
+release-candidate frameworks (M-6, SOW-101). The ruling adopts O-1's Rust
+core: verification, spawn, process-tree lifecycle, framing, correlation,
+generation tagging, the register with R1–R9 and the recording tap are in the
+Rust host, and O-3 and O-4 stay set aside. Where O-1 differs, the ruling
+governs: O-1 had the interface compose typed requests with generated TS
+types through one generic request path. Under the ruling the Rust host
+composes and sends every request to Codex, and writes every record; the web
+view sends the host only what the person initiates (each of the person's
+presses is its own host operation), presents what the host reports, and
+neither writes records nor operates the act control. The interface still
+presents native items and submits the person's A14 answers through the
+host's register operations.
 
 | Option | Main process (Rust) | Interface (TypeScript) | Assessment |
 |---|---|---|---|
@@ -2053,13 +2089,14 @@ release-candidate frameworks (M-6, SOW-101).
 | O-3 Rust pipe relay, TS protocol client | Spawn and byte relay only | JSON-RPC client, correlation, register in the webview | **Violates** ARC §3 (register lost on reload, V4-EXE-01). Set aside |
 | O-4 Node helper in main process | Rust spawns Node running ported v3 client code | Presentation | Adds a runtime and process, resembles the excluded v3 service (V4-ARC-03, M-6). Set aside |
 
-**Open within O-1:** where thread/turn orchestration and guidance carriage
-live beyond the generic request path; how the familiar set and
-answer-validity rules are derived for Rust from the chosen reference output
-(U-15). Which interface component re-attaches after reload is answered by
-DEL-01-02 (v0.9): each window's observer re-attaches from its position and
-the main process holds the per-generation journal (RECOVERY-v0.2 §3.3, §4.1;
-PROPOSED placement under R17-5).
+**Left open by O-1, now answered:** thread/turn orchestration and guidance
+carriage are in the Rust host, since they talk to Codex (the ruling). Still
+open: how the familiar set and answer-validity rules are derived for Rust
+from the chosen reference output (U-15). Which interface component
+re-attaches after reload is answered by DEL-01-02 (v0.9): each window's
+observer re-attaches from its position and the main process holds the
+per-generation journal (RECOVERY-v0.2 §3.3, §4.1; placement under the
+ruling).
 
 **Optional-reuse assessment (REQ-004, AC-004, ARC §3 reuse candidates).**
 v3 code is evidence of behavior, not qualified v4 material.
@@ -2309,7 +2346,7 @@ v3 code is evidence of behavior, not qualified v4 material.
 | Item | Owner | Point of need | Effect on this definition |
 |---|---|---|---|
 | U-01 Qualification of the maintained supplier/App candidate (SUP1 owner advances development/definition pin to 0.160.0; historical D4 0.158.0 retained) | App implementation owner | Before qualification reliance | 0.160.0 adopted for definition/development under reviewed SUP1 propagation; expected qualified distribution identity and product qualification still absent |
-| U-02 `UNRESOLVED{OI-008}` Rust/TS division | App implementation owner | Before architecture production contracts | §12 is a proposal only |
+| U-02 *Closed 2026-10-10:* Rust/TS division (OI-008), decided by the owner's ruling (`docs/ARCHITECTURE.md` §3) | — | — | §12 records the ruling; where it differs from the earlier O-1 proposal, the ruling governs |
 | U-03 ~~`UNRESOLVED{OI-009}`~~ account home, incl. which home the label probe writes into (S-F-17). **Closed at choice level (v0.9)** by DECISION-K3 K-1 (option C) and DECISION-L L-1: App-owned homes sharing the person's configuration by a link, each with its own sign-in; a separate probe home (ACCOUNT-HOME-RECORD-v0.2; ACCESS-v0.2 §3) | Owner with App implementation owner (DEL-01-05) | Before account integration | Mechanism observed for configuration sharing (OBS-2 O-6 M1, M2; §4.2 step 3). Still open: separation of credentials with a credential present (M4, M5; not observed under DECISION-L L-6), and writes through the link |
 | U-04 *Closed by owner decision D3* (tool-permission/sandbox modes are the user's own Codex setting) | — | — | H9, R7 settled |
 | U-05 Restart bound values and grace period | App implementation owner with DEL-01-02 | Before implementation | Rules defined; numbers open |
@@ -2358,7 +2395,7 @@ rules run as written, not a VER pass.
 | VC-08 Native pass-through | X-01/X-02 | Compare delivered frames to recorded | Method, ids, payload and top-level supplier elements (`emittedAtMs`) unchanged; metadata beside | Partly: X-01 side from spike transcripts. **Ran 2026-09-30 (§9.6): pass (model)** for the X-01 side: delivered frame byte-identical to the recording, `emittedAtMs` included, metadata beside. X-02 needs a live turn (OBS-1) | VER-002 |
 | VC-09 Version identity to plan receiver | X-01/X-03 | Trace `ready(g)` record and plan updates to S-2 | Record complete; plan updates native, whole-plan, with generation/position; revision identity is DEL-01-03's (v0.9: NPTD-v0.2 §5.2 RV-1 plan-item revision, RV-2 checklist revision) | No (plan needs live turn). v0.9: at OBS-2 (0.158.0, O-8) plan mode produced a `plan` item via `item/plan/delta` and no `turn/plan/updated`, so only the RV-1 surface was seen; observation, not a run of this case | VER-003 |
 | VC-10 Label-only mismatch | X-11 | Same label, different content identity | `refused` with `mismatch(distribution content identity)` | Yes. **Ran 2026-09-30 (§9.6): pass (model)** with a constructed identity (the binary was not run): `refused` with `mismatch(distribution content identity)`, no child | VER-003, VER-006 |
-| VC-11 OI-008 review | §12 and the owner's decision | Review against ARC §3, priorities, M-6 | Decision source recorded; while OI-008 open the allocation criterion is **not met** | Review only | VER-004 |
+| VC-11 OI-008 review | §12 and the owner's decision | Review against ARC §3, priorities, M-6 | Decision source recorded: OI-008 is decided by the owner's ruling of 2026-10-10 (`docs/ARCHITECTURE.md` §3), which §12 records with the earlier proposal it governs. The review itself is not recorded here; no pass is claimed | Review only | VER-004 |
 | VC-12 Local-provider account | §8.1 | Compare claims to candidate observations | Rows labeled; L-4 observed; L-2/L-3 not observed; no substitution claimed | Partly (L-4 observed). At the RP-3 repair: L-2 and L-3 observed at one pair, MCP tools not delivered on that route (§10.1; F-31); L-4 widened by OB-9. Still no candidate and no substitution claim | VER-005 |
 | VC-13 Upgrade comparison | Two pins | Run §9.5 | Diffs incl. generator divergence and experimental status; no adoption | Yes, once a second pin is named | VER-006 |
 | VC-14 Settlement truthfulness | X-04/X-05/X-12 | Person answers; App rule declines; App rule attempts affirmative; second answer | Origins truthful; affirmative App-rule answer to an A14 or person-input kind refused `origin-not-permitted` (R9); App-rule content answer to `currentTime/read` accepted when the opt-in is declared; `already-settled`; write failure → `settle-write-failed` | Partly (X-12 with double). **Ran 2026-09-30 (§9.6): pass (model)** for `invalid-answer`, `origin-not-permitted`, the person's answer, `already-settled`, App-rule decline, `already-resolved`, `no-such-request`, `settle-write-failed` and `generation-closed`. X-04 and X-05 need a live turn | VER-001, VER-007 |

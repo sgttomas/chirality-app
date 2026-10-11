@@ -72,22 +72,30 @@ CLM-001; HOSTING H6). It does not start the Codex process, hold the request
 register, compose or send turns, answer requests, keep records or perform
 any act (§16).
 
-**Placement (PROPOSED under R17-5; OI-008 option O-1, which the phase review
-owns).** The Rust host owns the Codex process, the frame exchange, the
-request register and record writing (HOSTING §1, §12 O-1). DEL-01-03's views
-live in the interface: they compose and present native frames the host
-delivers with generation and receipt position beside each frame (HOSTING H6,
-§5 Order), plus reads made through the host's generic request path (HOSTING
-§5.1). The view state is derived and in memory only; DEL-01-03 keeps no file
-and no copy of Codex history (R17-4, ARCH §3).
+**Placement (OI-008, decided by the owner on 2026-10-10; ARCH §3).** "The
+Rust host owns everything that writes the person's files or the App's
+records, talks to Codex, or captures a person's act. The web view presents,
+and sends only what the person initiates. It never writes records or
+operates the act control." Where the earlier proposal (R17-5, option O-1)
+differs, the ruling governs. The Rust host owns the Codex process, the frame
+exchange, the request register and record writing (HOSTING §1), and makes
+every read these views use (generic request path, HOSTING §5.1), including
+the delegation availability reads (§7.1). Native frames carry generation and
+receipt position (HOSTING H6, §5 Order). In the merged App the host also
+derives the view state (plan revisions, tool rows, descendant nodes:
+`app/src-tauri/src/native_items.rs`; the §7.1 reading:
+`delegation_availability.rs`), and the web view presents it
+(`app/src/NativeActivity.tsx`). The view state is derived and in memory
+only; DEL-01-03 keeps no file and no copy of Codex history (R17-4, ARCH §3).
 
 ```text
- Interface: DEL-01-03 views ── plan view · tool activity · goal line · delegation view · version line
-     ▲ native frames + (generation, position)      ▲ runtime values handed in (not production inputs):
+ Web view (presents): DEL-01-03 views ── plan view · tool activity · goal line · delegation view · version line
+     ▲ view state from native frames (gen., pos.)  ▲ runtime values handed in (not production inputs):
      │ reads via the generic request path           │  register state of an item's request (DEL-01-02/01-04),
      │ ready(g) record, lifecycle events            │  K-10 limit label (DEL-02-04), run markers (DEL-02-03),
  Host (Rust): DEL-01-01 boundary + DEL-01-02       │  act records (DEL-04-03 via DEL-01-04's placement),
      custody, re-attachment, recovery reads         │  selected model (DEL-01-04's composer)
+     DEL-01-03 view state, §7.1 reads (OI-008)      │
      │ published JSON-RPC over stdio
  stock Codex App Server 0.158.0 (definition pin)
 ```
@@ -100,7 +108,7 @@ and no copy of Codex history (R17-4, ARCH §3).
 |---|---|---|
 | Version identity record with each `ready(g)` (§7.1) and the verification result (§7.2) | Version line (§8); fixture binding (§15.1) | Accepted as supplied |
 | Native plan items and plan updates "unchanged with generation and receipt position" | Plan revisions (§5): checklist revision identity is derived from generation and receipt position | Accepted. Within a generation, re-attachment by position is DEL-01-02's; after a generation closes the views rebuild from Codex history (R18-1 C-03), so S-2 needs nothing further |
-| Generic request path (§5.1) | `collaborationMode/list`, `model/list`, `modelProvider/capabilities/read`, `config/read`, `thread/goal/get`, thread reads; initiator `receiver:DEL-01-03`. Turns are sent by DEL-01-04 (`person-directed`) | Accepted |
+| Generic request path (§5.1) | `collaborationMode/list`, `model/list`, `modelProvider/capabilities/read`, `config/read`, `thread/goal/get`, thread reads. The host journals each read's initiator: `person-directed` for `collaborationMode/list`, for history reads (`thread/read`, `thread/turns/list`, `thread/items/list`, `thread/goal/get`) and for the §7.1 reads (`model/list`, `config/read`, `modelProvider/capabilities/read`) made when the person presses Try with the authoring agent or Try again; a named App rule where an App rule reads: the host tick's §7.1 reads as `delegation-availability-read`, WR TT-9's linking history reads as `trial-linking-read`. No `receiver:DEL-01-03` initiator is used. Turns are sent by DEL-01-04 (`person-directed`) | Accepted |
 | Declared capabilities with `ready(g)` (§4.2 step 4) | Whether the experimental opt-in is declared decides the plan-mode element (§4) | Accepted; K-5 means the App declares `experimentalApi` true (J-1) |
 | "each plan update carries the whole plan with no revision identity … plan mode is experimental-only" (S-F-13) | §5.1, §5.2 | Accepted; OBS-2 O-8 adds that plan mode produced no plan update at all at 0.158.0 |
 | Not supplied: revision identity, registry, storage, export, UI, checker (SOW-128) | §5.2; no registry (R17-4); §5.6, §7.7; §3–§9; no checker (TBD-002) | Taken here as stated |
@@ -185,9 +193,17 @@ only when set.
 
 - **RV-1 Plan-item revision.** Each completed `plan` item is one revision.
   Identity `pi:v2:E(threadId).E(turnId).E(itemId)`, from Codex identities only, so
-  the same identity is derived live and from history. Ordinal: position
-  among the thread's plan items in history order; live, the order of
-  `item/completed` receipt (expected equal; a disagreement is shown).
+  the same identity is derived live and from history. Ordinal: one sequence
+  per thread, in the order this App first receives each completed plan item,
+  live or from a history read (the number of that thread's plan-item
+  revisions already held, plus one); a revision received again keeps its
+  ordinal. A live plan's ordinal therefore counts plans already read from
+  history in the same view, and history pages read newest first, or across
+  pages, can interleave, so an ordinal is not a history position. The plan
+  row shows "revision n in this conversation" only for a `live-observed`
+  revision; a recovered one shows no number ("read from Codex history").
+  No comparison with history order is made or shown
+  (`app/src-tauri/src/native_items.rs`, `app/src/NativeActivity.tsx`).
 - **RV-2 Checklist revision.** Each `turn/plan/updated` received is one
   revision of that turn's checklist. Identity
   `cl:v2:E(appSession).E(home).spawnCounter.E(threadId).E(turnId).receiptPosition`; ordinal:
@@ -334,7 +350,7 @@ is a message, not shown here as a plan or a selection.
 | `in-progress` | `item/started` observed, no completion yet |
 | `waiting-on-request` | A server request for this item is outstanding in the register (runtime value). OBS-1b OB-3 saw the item announced in progress while its approval was pending |
 | `completed`, `failed`, `declined`, `interrupted` | `item/completed` observed with that native status. Kinds with no status element show `completed` meaning only "completion observed" |
-| `not-completed` | **New (G-4).** The item's turn ended and no `item/completed` came: shown "not completed (turn ended)". Observed at 0.158.0: an item open at an interrupt never completes and is absent from history (OBS-2 O-1, O-3, O-2) |
+| `not-completed` | **New (G-4).** The item's turn ended and no `item/completed` came: shown "not completed (turn ended)". It says only that no completion was observed live, never that the item stopped. Observed at 0.158.0 and 0.160.0: an open reasoning item, and a command whose approval the interrupt resolved (so it never ran), never completed and were absent from history (OBS-2 O-1, O-3, O-2). Not so for a running command: at 0.160.0 an interrupt did not stop a running unified-exec command (`sleep 90`); it ran to completion, and Codex history later showed it completed (exit 0, 90004 ms) while the live row read "not completed (turn ended)" (DEL-01-02 `NATIVE_WITNESS_2026-10-10.md` item 8; one sample, one configuration). History then governs (TI-15) |
 | `unknown` | No completion observed and the turn's end not known: the generation closed first, or a history read shows the item `inProgress`. Settles to `not-completed` when history shows its turn ended (TI-14). Never shown as failed or succeeded (V4-EXE-03; HOSTING H10) |
 
 The native status value is always shown beside the display state, unchanged.
@@ -408,12 +424,55 @@ EXEC EV-3a, its `_delegation` and WD §4.2.5 follow it):** (1)
 `features.multi_agent = false` → **missing**; (3) `namespaceTools` false →
 **missing**; (4) any of the three not read (the model entry or its version
 not read or null, the configuration not read, the capabilities not read or
-`namespaceTools` null) → **not established**; (5) otherwise **present**.
+`namespaceTools` null, or either not counting for the conversation under
+the server-provider gate below) → **not established**; (5) otherwise **present**.
 *Missing* hides the view with the first reason in that order; *not
 established* shows the view only if delegation items arrive. A configuration
 that was read and sets nothing is read, not unread (prototype PC-16, RV21). Reason
 (observed, OBS-2 §6.1): at 0.158.0 Codex sends the delegation tools only
 inside a `namespace` tool, and with `multi_agent = false` sends none.
+
+**Read at the 0.160.0 pin (2026-10-10; the Rust host reads, WR TT-3a and
+§17; `app/src-tauri/src/hosting.rs` `delegation_signals_read`,
+`delegation_availability.rs`):**
+- **Server-provider gate.** `model/list` and
+  `modelProvider/capabilities/read` take no provider and answer for the
+  provider the app-server resolves for itself, which a conversation's
+  project-folder configuration or start may differ from. The host reads that
+  server provider as `config/read`'s `model_provider` with no folder and
+  with the app-server's own working folder. Only when the two agree and name
+  the conversation's reported `modelProvider` do `multiAgentVersion` and
+  `namespaceTools` count for the conversation; otherwise both are *not
+  read*, so the reading is *not established* unless (2) applies (never
+  *present*, and never *missing* from another provider's answers). The gate
+  applies as the signals are read, before the readings above: a signal that
+  does not count is *not read*, so (1) and (3) cannot come from it; (2) is
+  read at the conversation's folder and is not gated.
+- **No provider configured** (the common case, and the App's own homes):
+  both server-provider reads name no provider, so `multiAgentVersion` and
+  `namespaceTools` are *not read* and the reading is *not established* for
+  every conversation, even for a model whose `multiAgentVersion` is
+  `disabled` (*missing* only if the configuration sets
+  `features.multi_agent = false`). The App does not infer Codex's default
+  provider from that absence (it is not in the 0.160.0 types; OBS-2's
+  observation is of 0.158.0). The trial witness of 2026-10-10 observed this
+  natively at 0.160.0 in an App-only home: the app-server's configuration
+  named no provider, both signals read *not read*, the reading was *not
+  established*, and Try with the authoring agent stayed offered (DEL-02-02
+  `TRIAL_WITNESS_2026-10-10.md` item 2).
+- **`features.multi_agent`** is read with the conversation's `cwd`. The
+  generated `Config` types no `features` field, so it is read as an
+  additional property of `config/read`'s `config`; a configuration that was
+  read and has no such property sets nothing, so it is read, not unread.
+- **`Model.multiAgentVersion`** is that of the `model/list` entry whose
+  `model` or `id` is the conversation's reported model, read over every page
+  with hidden models included (`includeHidden`). A model that is not listed
+  reads *not read*.
+- **Not verifiable from the App:** a `config.toml` edited after the
+  app-server started may make `config/read` (read from the files now) and
+  the parameterless reads (the server's loaded configuration) diverge. The
+  reading then rests on `config/read` and may be wrong until the server is
+  restarted.
 
 **Stock LM Studio 0.4.16 (observed):** it drops `namespace` tools, so
 delegation never reaches the model and the view stays absent (OBS-2 O-4;
@@ -426,10 +485,41 @@ are always shown.
 | Element | Source (supplier names) | Standing |
 |---|---|---|
 | threadId | `collabAgentToolCall.receiverThreadIds` (empty while the spawn is in progress, the child at completion); `subAgentActivity.agentThreadId`; `Thread.id`. No `thread/started` arrives for a child | Observed through an adapter (OBS-2), not stock behaviour |
-| parentThreadId | `Thread.parentThreadId` from `thread/read`; else `collabAgentToolCall.senderThreadId`; else the thread of a `subAgentActivity` item (**inference**, labelled) | As named in `parentSource` |
+| parentThreadId | `Thread.parentThreadId` from `thread/read`; else `collabAgentToolCall.senderThreadId`; else the thread of a `subAgentActivity` of kind `started`, which names the thread the containing thread spawned (`parentSource` "subAgentActivity started (spawning thread)"); else the thread of another `subAgentActivity` item (**inference**, labelled), under the guards and corrections below the table | As named in `parentSource` |
 | sessionId, agentNickname, agentRole, depth | `Thread` and `Thread.source.subAgent.thread_spawn` from `thread/read` (observed through the adapter: `agentRole` the role, nickname set, depth 1) | As stated |
 | spawnedBy; requested model, effort | The `spawnAgent` call item | observed-in-generated-types; seen through the adapter |
 | lastObserved {status, source, time} | `agentsStates[child].status` (OBS-2 saw `pendingInit` at spawn completion, `completed` with the child's final text at `wait`); `subAgentActivity.kind`; a child frame; `Thread.status` from a read | As named |
+
+**Parent from `subAgentActivity` (trial witness 2026-10-10, DEL-02-02
+`TRIAL_WITNESS_2026-10-10.md`; `app/src-tauri/src/native_items.rs`).** A
+child's own history can carry `subAgentActivity` naming its parent.
+- The App infers no parent from an item that names the containing thread
+  itself, the root agent (`agentPath` "/root") or a known ancestor of the
+  containing thread, or whose `agentPath` is an ancestor of the containing
+  thread's known path (the path on the containing thread's own node).
+- A `started` row corrects only a purely inferred parent, under the same
+  ancestor guard: it re-parents a node whose parent was inferred, at any
+  depth, and drops an inverted inference (the containing thread inferred as
+  a child of the named thread) only where the correction then takes effect,
+  that is, the named thread is not yet a node or its own parent is itself
+  only inferred. Where the named thread's parent was set by a `started` row
+  or by `collabAgentToolCall.senderThreadId`, the row changes nothing and
+  nothing is dropped.
+- A parent set by a `started` row or by `collabAgentToolCall.senderThreadId`
+  is never removed or moved. A descendant's own `started` row naming an
+  ancestor (forked context can copy its spawner's rows) changes nothing.
+- Limits: (a) without a `started` row (for example, a history read that has
+  not reached the parent's spawn turn), an inference made from a
+  descendant's activity seen first still stands. (b) Where every relation
+  involved is only inferred and no row carries an `agentPath`, a
+  descendant's forked `started` row naming its parent cannot be told from a
+  genuine inverted inference and is treated as one (the descendant can be
+  dropped and the named thread re-parented under it). (c) The interface
+  (`NativeActivity.tsx`) hides a "Descendant of" line that names one of the
+  conversation's own descendants. Where the data still holds such a cycle
+  (C under P beside an inverted P under C that no `started` row corrected),
+  P shows no inverted line, but C's real "Descendant of P" line is hidden
+  too. The `started` correction removes the cycle once that row is seen.
 
 Children are **not** in `thread/list`; they are in `thread/loaded/list` and
 readable by `thread/read` (OBS-2 O-4, adapter). After a relaunch the view
@@ -591,8 +681,8 @@ tables equal the model's. Any transition not listed is refused.
 | PL-01 | `absent` | item-started | `streaming` | Preview |
 | PL-02 | `absent` | plan-delta | `streaming` | Preview; "start not observed" |
 | PL-03 | `streaming` | plan-delta | `streaming` | Preview grows |
-| PL-04 | `streaming` | item-completed | `completed` | Revision n (RV-1); preview replaced |
-| PL-05 | `absent` | item-completed | `completed` | Revision n |
+| PL-04 | `streaming` | item-completed | `completed` | "revision n in this conversation" (RV-1 ordinal, live); preview replaced |
+| PL-05 | `absent` | item-completed | `completed` | As PL-04 |
 | PL-06 | `streaming` | turn-ended | `incomplete` | "not completed (turn ended)" (G-4) |
 | PL-07 | `streaming` | generation-closed | `incomplete` | "not completed when observation ended" |
 | PL-08 | `absent` | history-read | `completed` | Revision, "recovered from Codex history" |
@@ -629,14 +719,14 @@ tables equal the model's. Any transition not listed is refused.
 | TI-12 | `unknown` | history-read | `final` | As TI-11 |
 | TI-13 | `absent` | history-read-in-progress | `unknown` | "in progress at the read" |
 | TI-14 | `unknown` | history-turn-ended | `not-completed` | "turn <status> in Codex history; item not completed" (G-4; OBS-2 O-2) |
-| TI-15 | `not-completed` | history-read | `final` | History shows a completion after all: Codex's history governs (constructed case; not observed) |
+| TI-15 | `not-completed` | history-read | `final` | History shows a completion after all: Codex's history governs (observed at 0.160.0: a running command left `not-completed` at an interrupt read back completed from history after a restart, DEL-01-02 `NATIVE_WITNESS_2026-10-10.md` item 8) |
 
 **Descendant** (a parent's turn end is deliberately not an event here, DR-2):
 
 | ID | From | Event | To | Shown |
 |---|---|---|---|---|
 | DS-01 | `absent` | collab-call | `observed` | Node from the call item |
-| DS-02 | `absent` | subagent-activity | `observed` | Node; parent by inference (labelled) |
+| DS-02 | `absent` | subagent-activity | `observed` | Node; parent from a `started` row, or by inference (labelled), under §7.2's guards |
 | DS-03 | `observed` | child-observation | `observed` | Last observed updated |
 | DS-04 | `observed` | generation-closed | `observation-ended` | "observation ended" (DR-3) |
 | DS-05 | `observation-ended` | thread-read | `observed` | "read at <time>" |
@@ -668,7 +758,7 @@ tables equal the model's. Any transition not listed is refused.
 
 | v3 source (historical) | What it did | Assessment |
 |---|---|---|
-| `chirality-runtime/packages/core/src/native-plan-registry.ts` (35825fdaf339cc57) | Persisted completed plan items; per-session revision ordinal | **Not reused** (R17-4; V4-ARC-03); the ordinal survives as RV-1's, derived from history |
+| `chirality-runtime/packages/core/src/native-plan-registry.ts` (35825fdaf339cc57) | Persisted completed plan items; per-session revision ordinal | **Not reused** (R17-4; V4-ARC-03); the ordinal survives as RV-1's, numbered in the order this App receives plan items in a view, not persisted |
 | `chirality-app-dev/frontend/src/components/shell/native-plan-panel.tsx` (1983f82da6a62c5f) | Plan tab | **Layout reference only** |
 | `chirality-app-dev/frontend/src/lib/harness/plan-executions.ts` (221b8f9bbf6f2388) | Kept "which plan revision was sent for execution" in local storage | **Not reused** (R17-4) |
 | `…/tool-stream-view.tsx` (bcd08e4c01e7350e), `subagent-stream-view.tsx` (479a15366dcca2b9), `lib/shell/harness-event-views.ts` (d750848e05042820) | Rows from the translated `HarnessEvent` stream | **Patterns only** ("last observed", "Observation ended with the parent turn") |
@@ -787,10 +877,10 @@ proposed version-advance check (regenerate, diff, rerun OBS harnesses):
 | Plan mode is experimental-only; presets | Variant diff; O-8 | `collaborationMode/list` per generation |
 | Plan mode persists until `default` is sent; a non-null mode developer text replaces the built-in plan text | O-8; W-5 | No (behaviour) |
 | Plan item id `<turnId>-plan`; no `turn/plan/updated` | O-8 | No; checklists stay designed |
-| Delegation availability | O-4, O-8; generated types | Yes: `model/list`, `modelProvider/capabilities/read`, `config/read` |
+| Delegation availability | O-4, O-8; generated types. At 0.160.0: `model/list` and `modelProvider/capabilities/read` take no provider; the server-provider gate, the unconfigured-provider case (*not established*; observed by the 2026-10-10 trial witness), `features.multi_agent` as an untyped property and the edited-configuration limit (§7.1) | Yes: `model/list` (every page, hidden included), `modelProvider/capabilities/read`, `config/read` (conversation's `cwd`; no folder and the app-server's folder for its `model_provider`) |
 | Delegation item shapes; v1/v2 tool sets | Generated types; O-4 (adapter) | Items rendered as supplied |
 | Goal surface | Generated types; O-2 | `thread/goal/get` |
-| Items open at an interrupt never complete | O-1, O-3, O-2 | No; TI-07…TI-15 handle either way |
+| Items open at an interrupt never complete, except a running command, which an interrupt did not stop at 0.160.0 (it completed and history shows it completed) | O-1, O-3, O-2; at 0.160.0 DEL-01-02 `NATIVE_WITNESS_2026-10-10.md` item 8 | No; TI-07…TI-15 handle either way |
 | `multiAgentMode` deprecated | Generated descriptions | Not used |
 
 ---
@@ -811,7 +901,9 @@ proposed version-advance check (regenerate, diff, rerun OBS harnesses):
 - **F-7 Goals** are a native surface with no item kind; shown from
   notifications and reads (G-3).
 - **F-8 Items open at an interrupt never complete** and leave no history
-  (O-1, O-3, O-2); settled `not-completed` (G-4).
+  (O-1, O-3, O-2); settled `not-completed` (G-4). Not a running command: at
+  0.160.0 an interrupt did not stop one, and history later showed it
+  completed (DEL-01-02 `NATIVE_WITNESS_2026-10-10.md` item 8; TI-15).
 - **F-9 Delegation is unavailable on stock LM Studio 0.4.16** (namespace
   tools dropped); the view is absent there.
 
@@ -825,7 +917,7 @@ proposed version-advance check (regenerate, diff, rerun OBS harnesses):
 | U-P4 `turn/interrupt` on a child; primary completed while a child runs (NV-04) | A later observation | Before NV-04, DR-6 | DR-6 PROPOSED |
 | ~~U-P5~~ | Closed: no polling | — | — |
 | U-P6 Content-identity method (HOSTING U-08) | Owner with DEL-04-03 | Before records cite plan revisions | TEST VALUE |
-| U-P7 OI-008 placement | Owner (phase review) | Before allocation | §1 PROPOSED under O-1 |
+| ~~U-P7~~ | Closed: OI-008 decided by the owner on 2026-10-10 (ARCH §3) | — | §1 states the placement |
 | U-P8 Whether `namespaceTools` reads false for a provider that drops namespace tools | A later observation (needs `modelProvider/capabilities/read` on that route) | Before relying on "missing" for local providers | §7.1: items shown if they arrive |
 | U-P9 A goal tool call by the model: whether an item or only notifications appear | A later observation | Before goal fixtures | GO-1 from notifications |
 | HOSTING U-06 Development run of an unverified distribution | Owner | Before implementation | §8 covers it |

@@ -215,8 +215,19 @@ per VC):
     its status not reported.
   - An agent reached only its own spawn tree: `send_message` to another
     conversation's ID returned "not found".
-  - Until a spawn item is observed on a stock route, AS-2's input and AS-1's
-    carriage are not observable from the parent (§11).
+  - The child's input is not readable either ([trial witness
+    2026-10-10](../../../PKG-02/DEL-02-02/Design/TRIAL_WITNESS_2026-10-10.md);
+    WR U-WR-25). The spawn task reaches the child as an inter-agent
+    `agent_message` (author `/root`, recipient the child's path) whose payload,
+    after a readable header, is `encrypted_content`; no user message carries
+    it. The App's read of the child's first turn found no user message, and
+    reading again read the same.
+  - So at 0.160.0 the child thread and its parent are observable (from
+    `subAgentActivity`, the parent by inference), but the spawn prompt is
+    observable neither from the parent's items nor as the child's readable
+    input. AS-2's spawn item and `spawnPromptContent`
+    identity cannot be computed from Codex at this pin, and AS-1's carriage
+    of `brief:<briefId>` cannot be seen (§11).
 
 **Association rule (PROPOSED).** The App cannot tag a thread, so the brief
 travels in the spawn:
@@ -461,4 +472,4 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 | PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
 | Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3), now under the general OI-008 ruling:* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
 | Content-identity method: the prototype uses sha-256 of file bytes as a TEST VALUE (RS U-04) | Owner with DEL-04-03 | Before reliance |
-| Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. Whether another supplier surface (a child-thread read) supplies the prompt is open | A later observation | Before VER-003 on a candidate |
+| Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. The child-thread read does not supply it either: the trial witness found the spawn task delivered to the child as an inter-agent `agent_message` whose payload is `encrypted_content`, with no user message (§4; WR U-WR-25). So at 0.160.0 AS-2's prompt identity cannot be computed from Codex. Whether a later pin exposes a spawn item or the child's readable input is open | A later observation | Before VER-003 on a candidate |

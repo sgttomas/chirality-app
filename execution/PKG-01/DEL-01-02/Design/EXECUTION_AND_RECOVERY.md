@@ -66,9 +66,11 @@ prototype variants (U-R13).
 *generation*, *ledger*) are semantic names of this design, not wire fields,
 types, files or storage choices. Supplier method and field names are quoted
 as supplier facts at 0.158.0 and select nothing. "The App" means the App's
-main process (Rust host) unless the interface is named; the placement is
-R17-5's PROPOSED O-1 division, stated separately from the requirements so
-that a different OI-008 answer moves code, not obligations.
+main process (Rust host) unless the interface is named. The placement is
+decided: the owner's OI-008 ruling of 2026-10-10 (`docs/ARCHITECTURE.md` §3;
+§4.1 "Placement") puts in the Rust host everything that writes the person's
+files or the App's records, talks to Codex, or captures a person's act. The
+requirements are still stated separately from the placement.
 
 **What this file does not contain.** Product code, a persistence technology,
 wire fields of Chirality's own, timing numbers (the ScopeOfWork's Praxeology
@@ -376,11 +378,22 @@ observed".
 (`item/started`) that has no `item/completed` when the turn ends settles
 **"not completed (turn ended)"**: listed in the `turn_outcome` event and, for
 a stop request, in its record (`itemsNotCompleted`). The same holds for items
-in flight when a generation closed, once recovery finds the turn ended
-(observed at 0.158.0: the open reasoning item of an interrupted turn, and the
-command item of a request resolved by an interrupt, never completed and are
-absent from history; OBS-2 §4, §5.1, §5.2). "Not completed" says the App saw
-no completion; it says nothing about effects the item may have had.
+in flight when a generation closed, once recovery finds the turn ended.
+Observed at 0.158.0: the open reasoning item of an interrupted turn, and the
+command item of a request resolved by an interrupt (a command that therefore
+never ran), never completed and are absent from history (OBS-2 §4, §5.1,
+§5.2). That holds for those cases only. **Observed once at 0.160.0** (native
+witness 2026-10-10, `NATIVE_WITNESS_2026-10-10.md` item 8): interrupting a
+turn did not stop its running unified-exec command. The turn ended
+`interrupted` and the command row read "not completed (turn ended)", but
+`sleep 90` ran to completion, and Codex history later reported the command
+item completed (exit 0, 90004 ms). "Not completed (turn ended)" says only
+that the App saw no completion before the turn ended. It does not say the
+item stopped: a running command may keep running and complete after its turn
+ends, and history may then report it completed. The label says nothing
+about effects the item may have had. The live reading and the stop request's
+`itemsNotCompleted` keep what was seen live; a later history read that
+reports the item completed is Codex's report, read from history.
 
 **Descendants** (REQ-002: "primary-turn completion shall not imply every
 descendant has stopped"). At each settled outcome the record lists the
@@ -471,18 +484,25 @@ unselected (HOSTING §1). Each failure row says who is told and what is left.
 | **interrupt turn** (conversation, turn, actor) | DEL-01-04's stop control (the person's act); DEL-01-03's delegation view for a child thread | CV turn-live, the turn in progress in its home's ready generation; or a delegated child thread's turn observed live (the child recognized from the parent's `collabAgentToolCall` `receiverThreadIds`, §3.4; PROPOSED, not run in the prototype; interrupting a child was not observed at 0.158.0, OBS-2 §6) | A stop-request identity; SR transitions follow | Refused with a reason: `no-live-turn` (the turn already ended: its outcome is returned), `stop-already-requested` (SR-11), `conversation-not-loaded`, `supplier-not-ready`. Write fails → SR-03 |
 | **quit: assess, ask, answer** | The App shell; DEL-01-04 presents the question | AS running | Lists of live turns, listed entries and active children across every App-owned home (AS-03 or AS-04); the person's answer (AS-05, AS-06); then each home's process is stopped | Ledger write fails → the question is still asked and the quit proceeds on confirmation; the next start reads *ended-without-record* (truthful). The question has no timeout |
 | **assess live work** (homes, optional; the assessment half of the row above, on its own) | Any caller that must ask first with live work, as K-4 does: DEL-01-04 before Stop Codex or Restart Codex (C-12); DEL-01-05 before a sign-out or key removal (C-23) | Any state | The same three lists for the homes named (all by default), as a runtime value; nothing is recorded and nothing changes | — |
-| **stop Codex / restart Codex** (homes, restart, actor) | DEL-01-04's controls, after the person answered its live-work question (R18-1 C-12) | A selected home's process `ready` | L `codex_stop`; each live turn of those homes interrupted (SR-01, cause *codex-stop*); each process stopped (DEF-5a); for Restart, started again and its conversations recovered (CV-11, CV-13). The App session keeps running | As SQ-Q Q-4…Q-6 for those homes; a process not ready is reported, nothing is sent |
+| **stop Codex / restart Codex** (homes, restart, actor) | DEL-01-04's controls, after the person answered its live-work question (R18-1 C-12) | The home's current process (the generation the person chose; a changed one is refused, nothing stopped) in any lifecycle state that HOSTING §4.6 `stop` accepts: every state except `absent`, `stopped` and `refused`; `stopping` is refused as already under way. One Stop/Restart question at a time. Restart is refused before asking when Codex could not be started again there. Live work is assessed, and interrupts are sent, only while the process is `ready`; in any other accepted state the question says the process is not ready, nothing is sent to it, and only the process is stopped | L `codex_stop`; once confirmed, no new turn or steer is sent to that process (interrupts and answers stay possible) and the list is assessed again (a changed list is asked again); each observed live turn interrupted (SR-01, cause *codex-stop*; the person's interrupt guards apply); each process stopped (DEF-5a); for Restart, started again and its conversations recovered (CV-11, CV-13). The App session keeps running | As SQ-Q Q-4…Q-6 for those homes. An interrupt the host refuses (for example not ready) is reported as not sent and the stop proceeds. A refused stop is reported, the process is reopened to new turns, no turn gets a Stop label and Restart does not start Codex |
 | **resume conversation** (conversation) | DEL-01-04, on the person's choice | CV indexed; its home's process ready | CV-01. **No guidance input** is sent: a conversation's role is fixed for its life (R19-3), and at 0.158.0 `developerInstructions` on `thread/resume` is accepted and silently ignored, for a loaded thread and for one loaded by the resume (OBS-2 §7; R18-1 C-17). Nothing is overridden on `thread/resume` (one rule with ACCESS-v0.2 Q-11 and ROLE-v0.2 §5.5): whether a resume override is adopted by a loaded thread is not observed at 0.158.0, and a model the person chooses for the resumed conversation is sent per turn (`turn/start` `model`, ACCESS-v0.2 CS-18). A different role is a new conversation ("Continue as ‹role›", R19-8), which this file indexes through CV-21 like any other | `thread/resume` error → stays indexed, the error is shown. Not ready → refused `supplier-not-ready`. Never automatic; no prompt is re-sent (HOSTING §4.4) |
 | **recovery status / retry** (conversation) | DEL-01-04, DEL-01-03; retry by the person | Any; retry in unavailable | The CV state and the last `observation_recovered` | Retry fails → stays unavailable |
 | **tag / look up / tags of** (conversation, owner, opaque value) | A run starter (DEL-02-03's App writer, EXEC RE-4), DEL-03-03; NIR DEL-01-04 for opaque submission-project context (§7.1) | Any | Stored in the ledger, in order (`seq`), several per owner and conversation, so that runs that follow one another in one conversation each keep their tag (R19-2); `look up` returns the conversation of a tag, `tags of` a conversation's tags of one owner in order. DEL-01-02 never interprets a tag (R17-10) and does not know which run is current: the receiver decides that from its own run records | Ledger write fails → the tag lives in memory only; after relaunch the lookup returns nothing and the receiver falls back (EXEC RE-4 "interruption not recovered") |
 | **custody events** (stream) | DEL-04-03's writer (DEP-01-02-020), DEL-02-03's recorder, DEL-03-03, DEL-01-03, DEL-01-04 | Any | `recovery.custody-event` records (§8) | A receiver that misses events re-reads them from the stream position; events are App-observed facts, never authority for Codex's content |
 | **descendants** (conversation) | DEL-01-03, DEL-01-04 | Any | Child threads observed with a live turn; background terminals where the experimental opt-in is declared; HOSTING's process census (H11) | None observed is reported as "none observed", never "none" |
 
-**Placement (R17-5, PROPOSED).** The main process holds custody, the
-journal, stop requests, the ledger and recovery; the interface holds only
-its observer's position and what it renders. The stop control, the quit
-question and every display are DEL-01-04's. The act control is not involved:
-an interrupt and a quit are not reserved acts.
+**Placement (R17-5; OI-008 decided by the owner).** On 2026-10-10 the owner
+ruled for the whole App: "The Rust host owns everything that writes the
+person's files or the App's records, talks to Codex, or captures a person's
+act. The web view presents, and sends only what the person initiates. It
+never writes records or operates the act control." (`docs/ARCHITECTURE.md`
+§3.) So the main process (Rust host) holds custody, the journal, stop
+requests, the ledger and recovery, and sends every request to Codex; the
+interface holds only its observer's position and what it renders, and sends
+the person's own presses (interrupt, Stop or Restart Codex, resume) to the
+host. The stop control, the quit question and every
+display are DEL-01-04's. The act control is not involved: an interrupt and a
+quit are not reserved acts.
 
 ### 4.2 Consumed
 
@@ -754,8 +774,13 @@ context claim requires actual successful owning metadata persistence; otherwise
 state its limit. Ordinary text/attachments are not blanket-held by this context
 or the separate WR prefix/run join; existing NIR complete-list/HOST prewrite
 custody barriers still apply. Scope-bearing project-last-choice/run effects need their own explicit context.
-AT-8 trial attachments retain WR's own warranted draft/source handle; an unknown
-Root project alone is not a new blanket trial-attachment veto. ACCESS0.2 requires nonempty project and must not
+A draft trial reaches its agent as its trial text (NIR AT-8; WR TT-3), not as
+draft attachments: the trial text carries WR's own draft and trial references
+and names the trial snapshot folder for the draft's other files (WR TT-8), and
+WR §17 step 8 removed the earlier attachment pre-fill. An unknown Root project
+alone is not a new blanket veto on a trial. A draft's files that the person
+attaches as ordinary files are ordinary attachments with no draft standing
+(NIR AT-8). ACCESS0.2 requires nonempty project and must not
 be instantiated with null/temp/cwd/“unknown”; its owner separately defines an
 unknown view/path, without adding a model/provider default here.
 
@@ -860,7 +885,7 @@ ledger stores origin only and never re-attributes an answer (C-08).
 |---|---|---|
 | `turn/interrupt` {threadId, turnId}, empty result; stable | `observed` (OBS-2 §4, §5.1): `{}` in ≈21 ms, then `turn/completed` `interrupted`; the provider stream is closed | DEF-3; SR |
 | `TurnStatus` completed · interrupted · failed · inProgress; `turn/completed` carries the turn | Types; `completed` observed (OBS-1); `interrupted` observed (OBS-2 §4, §5) | CV-05, CV-06; SR-06, SR-07 |
-| An item opened and never completed when its turn is interrupted, and absent from history | `observed` (OBS-2 §4 reasoning item; §5.1 command item) | G-4 (§3.4) |
+| An item opened and never completed when its turn is interrupted, and absent from history: the open reasoning item, and the command item of an approval the interrupt resolved (a command that never ran). Not a rule for every item: a running command is another case | `observed` (OBS-2 §4 reasoning item; §5.1 command item). At 0.160.0, observed once (native witness 2026-10-10, item 8): an interrupt did not stop a running unified-exec command; it ran to completion and history later reported the item completed (exit 0, 90004 ms) | G-4 (§3.4) |
 | A `cancel` answer to an approval declines the item and interrupts the turn | `observed` (OBS-2 §5.1, stock O-4 run) | Outcome cause *cancel-answer* |
 | `ThreadStatus` notLoaded · idle · systemError · active{waitingOnApproval · waitingOnUserInput}; `thread/status/changed` | Types; `active` [waitingOnApproval] observed (OBS-1b OB-3) | CV-03, CV-16, CV-17 |
 | `thread/resume`: "If thread_id identifies a running thread, app-server rejoins that thread"; configuration overrides; `excludeTurns`; backwards cursors | Types; post-restart `observed` (OBS-2 §5.2): thread `idle`, the turn `interrupted`, no request re-raised, no model request; `developerInstructions` accepted and ignored (OBS-2 §7) | R-6; CV-01 |
@@ -977,7 +1002,8 @@ qualified.
 | Request cards, outcome views, the quit question's presentation, the stop control | DEL-01-04 | Offers state and operations |
 | Record format, writer and reader | DEL-04-03 | Offers custody facts |
 | Policy (P-04 routine tool permission) | DEL-04-01 (D3) | Consumes; no App rule answers A14 affirmatively |
-| Persistence technology, Rust/TypeScript division, timing numbers | App implementation owner (TBD-001, TBD-002, OI-008, U-05) | Requirements only |
+| Persistence technology, timing numbers | App implementation owner (TBD-002, U-05) | Requirements only |
+| Rust/TypeScript division | The owner, who is also the App implementation owner: decided 2026-10-10 (OI-008 ruling, `docs/ARCHITECTURE.md` §3; TBD-001) | States the placement that follows from it (§4.1) |
 | A4–A7, A12, A13, A15 | The person (reserved) | None; nothing here stands for any of them |
 
 ## 13. Findings
@@ -1076,7 +1102,7 @@ qualified.
 | U-R5 *Closed at G (R22-3):* more than one App window on one conversation. Each window is an observer and shows the interrupt control; the first press settles it, another window's press is refused and its control shows the turn's state (§3.3, SR-11; NIR-v0.2 §4.8 WI-5, beside WI-4) | — | — | — |
 | U-R6 *Closed at G (C1-A G-A1):* RS does not record a turn interrupt in format 0.1 (RS-v0.9 §10, DEL-01-02 row; §3, "Run-ended event" row) | — | — | §8.2 cites it |
 | U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects App-local UTF-8 JSON Lines pointer ledger under App-own user-data runtime; failure visible, no relocation. Retention/deletion U-R3 remains open; no product evidence claimed |
-| U-R8 OI-008 process division (O-1 PROPOSED, R17-5) | App implementation owner (phase review) | Before architecture production | Requirements stated apart from placement |
+| U-R8 *Closed 2026-10-10 (owner ruling on OI-008, `docs/ARCHITECTURE.md` §3):* the process division. The Rust host owns record writing, every request to Codex and the capture of a person's act; the web view presents and sends only what the person initiates (§0, §4.1 "Placement") | — | — | Requirements still stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
 | U-R13 Version advance (R19-5): every supplier statement here is about 0.158.0; a version-advance check (regenerate types, diff, rerun the OBS harnesses and this prototype's variants, list affected statements) is proposed as a later node, its scheduling open | Integrator / owner | Before relying on another version | Statements name 0.158.0 |
 | *Closed in v0.2:* U-R9 (C-12: DEL-01-04 offers Stop Codex and Restart Codex); U-R10 (C-03: closed generations are not re-read); U-R11 (C-19: owners keep their own App-kept logs) | — | — | — |
