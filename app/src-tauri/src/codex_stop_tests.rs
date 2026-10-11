@@ -684,4 +684,172 @@ for line in sys.stdin:
         let refused = stop_native_home(&f.home, &workflows, &f.generation, true, "fixture person", |_| panic!("not asked"), || panic!("no start")).unwrap_err();
         assert!(refused.contains("not running") && refused.contains("use Start Codex"));
     }
+
+    // ---- K-4 / SQ-Q App quit through the real Host (`app_quit`).
+
+    fn ledger_rows(f: &Fixture) -> Vec<Value> {
+        std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+    }
+    fn kinds(rows: &[Value]) -> Vec<String> {
+        rows.iter().map(|e| match e["kind"].as_str().unwrap() {
+            "stop_request" => format!("stop_request {} {}", e["record"]["transition"].as_str().unwrap(), e["record"]["cause"].as_str().unwrap()),
+            "quit_answered" => format!("quit_answered {}", e["answer"].as_str().unwrap()),
+            "session_ended" => format!("session_ended {}", e["how"].as_str().unwrap()),
+            other => other.to_owned(),
+        }).filter(|k| !matches!(k.as_str(), "conversation_index" | "lifecycle_ref" | "register_entry_summary")).collect()
+    }
+    fn quit(f: &Fixture, wait: Duration, answer: Result<bool, String>, shown: &mut Vec<Value>) -> crate::app_quit::Decision {
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let mut answer = Some(answer);
+        let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "R · OS account r", |view: &Value| { shown.push(view.clone()); answer.take().expect("asked once") });
+        crate::app_quit::quit_sequence(&mut ops, wait)
+    }
+    fn relaunch_reading(f: &Fixture) -> Value {
+        let mut ledger = crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
+        ledger.start_session("relaunch", "candidate").unwrap();
+        ledger.snapshot()["entries"].as_array().unwrap().iter().rev().find(|e| e["kind"] == "session_started").unwrap().clone()
+    }
+
+    /// AS-04, AS-06, Q-4…Q-7: asked first with the live turn listed; on Quit the
+    /// answer is recorded before the quit stop request (SR-01, cause *quit*),
+    /// the turn settles "interrupted by quit", each Codex process is stopped,
+    /// `session_ended` *quit* carries the stop request's state, and a relaunch
+    /// reads *quit-with-live-work* and the label back from the ledger.
+    #[test]
+    fn real_host_quit_asks_first_records_then_interrupts_and_ends_the_session() {
+        let f = Fixture::with_ledger();
+        f.live_turn("turn-1");
+        let mut shown = Vec::new();
+        let decision = quit(&f, Duration::from_secs(3), Ok(true), &mut shown);
+        assert_eq!(shown.len(), 1);
+        assert_eq!(shown[0]["observedLiveTurns"][0]["turnId"], "turn-1", "the question lists the live turn");
+        let app = crate::app_quit::AppQuit::default();
+        assert!(app.allow(&decision));
+        let ids = app.proceeding().unwrap();
+        assert_eq!(ids.len(), 1);
+        assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
+        assert_eq!(f.home.host.snapshot()["state"], "ready", "the process is stopped on exit, not before");
+        let end = crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        assert_eq!(end["write"], "confirmed");
+        assert_eq!(f.home.host.snapshot()["state"], "stopped");
+        let stop = f.home.host.lifecycle_events().into_iter().find(|e| e["transitionId"] == "LT-17").expect("deliberate stop");
+        assert_eq!((stop["actor"].as_str(), stop["stopRecord"]["reason"].as_str()), (Some("the person"), Some("App quit")));
+        let rows = ledger_rows(&f);
+        let k = kinds(&rows);
+        let at = |name: &str| k.iter().position(|x| x == name).unwrap_or_else(|| panic!("{name} missing: {k:?}"));
+        assert!(at("quit_requested") < at("quit_answered confirmed"), "{k:?}");
+        assert!(at("quit_answered confirmed") < at("stop_request SR-01 quit"), "the answer is recorded before any interrupt: {k:?}");
+        assert!(at("stop_request SR-06 quit") < at("session_ended quit"), "{k:?}");
+        let asked = rows.iter().find(|e| e["kind"] == "quit_requested").unwrap();
+        assert_eq!(asked["liveTurns"], json!([{"threadId":"thread","turnId":"turn-1"}]));
+        assert_eq!(asked["actor"]["identityStatus"], "identity not verified");
+        let settled = rows.iter().rev().find(|e| e["kind"] == "stop_request").unwrap();
+        assert_eq!(settled["record"]["outcomeLabel"], "interrupted by quit");
+        let ended = rows.iter().find(|e| e["kind"] == "session_ended").unwrap();
+        assert_eq!(ended["stopRequests"], json!([{"stopRequestId":ids[0],"state":"settled"}]));
+        assert_eq!(relaunch_reading(&f)["previousSessionEnd"], "quit-with-live-work");
+        let relaunched = Host::new();
+        relaunched.configure_recovery(f.ledger()).unwrap();
+        let back = relaunched.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().find(|r| r["turnId"] == "turn-1").unwrap().clone();
+        assert_eq!((back["label"].as_str(), back["cause"].as_str()), (Some("interrupted by quit"), Some("quit")));
+    }
+
+    /// AS-05: Keep running / Cancel records the answer and changes nothing:
+    /// nothing written to Codex, no stop, not closed to new turns.
+    #[test]
+    fn real_host_quit_keep_running_changes_nothing() {
+        let f = Fixture::with_ledger();
+        f.live_turn("turn-1");
+        let (wire, lifecycle) = (f.wire(), f.home.host.lifecycle_events().len());
+        let mut shown = Vec::new();
+        let decision = quit(&f, Duration::from_secs(3), Ok(false), &mut shown);
+        assert!(matches!(decision, crate::app_quit::Decision::Cancelled(_)));
+        assert!(!crate::app_quit::AppQuit::default().allow(&decision));
+        assert_eq!(f.wire(), wire, "nothing written to Codex");
+        assert_eq!(f.home.host.lifecycle_events().len(), lifecycle, "no stop transition");
+        assert_eq!(f.home.host.snapshot()["state"], "ready");
+        let k = kinds(&ledger_rows(&f));
+        assert!(k.contains(&"quit_requested".to_owned()) && k.contains(&"quit_answered cancelled".to_owned()), "{k:?}");
+        assert!(!k.iter().any(|x| x.starts_with("stop_request") || x.starts_with("session_ended")), "{k:?}");
+        let _ = f.home.host.turn_steer_text(&f.generation, "thread", "turn-1", "still open");
+        assert_eq!(f.wire().last().unwrap(), "turn/steer", "not closed to new turns");
+    }
+
+    /// AS-03: with nothing live nothing is asked; the session ends *clean*.
+    #[test]
+    fn real_host_quit_with_nothing_live_asks_nothing_and_ends_clean() {
+        let f = Fixture::with_ledger();
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "fixture person", |_: &Value| -> Result<bool, String> { panic!("nothing is asked") });
+        let decision = crate::app_quit::quit_sequence(&mut ops, Duration::from_secs(1));
+        drop(ops);
+        let app = crate::app_quit::AppQuit::default();
+        assert!(app.allow(&decision));
+        crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        let rows = ledger_rows(&f);
+        let asked = rows.iter().find(|e| e["kind"] == "quit_requested").unwrap();
+        assert_eq!((asked["liveTurns"].clone(), asked["outstandingEntries"].clone(), asked["activeDescendants"].clone()), (json!([]), json!([]), json!([])));
+        assert!(!rows.iter().any(|e| e["kind"] == "quit_answered"));
+        assert_eq!(relaunch_reading(&f)["previousSessionEnd"], "clean");
+    }
+
+    /// Q-5, Q-6: a turn Codex never reports ended waits only the quit wait
+    /// limit; the stop closes its generation (SR-08) and `session_ended`
+    /// carries *outcome-unknown*.
+    #[test]
+    fn real_host_quit_unsettled_turn_is_closed_by_the_stop_and_recorded_unknown() {
+        let f = Fixture::with_ledger();
+        std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
+        f.live_turn("turn-1");
+        let begin = Instant::now();
+        let decision = quit(&f, Duration::from_millis(400), Ok(true), &mut Vec::new());
+        assert!(begin.elapsed() < Duration::from_secs(3));
+        let app = crate::app_quit::AppQuit::default();
+        assert!(app.allow(&decision));
+        crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        let rows = ledger_rows(&f);
+        let ended = rows.iter().find(|e| e["kind"] == "session_ended").unwrap();
+        assert_eq!(ended["stopRequests"][0]["state"], "outcome-unknown");
+        assert!(kinds(&rows).contains(&"stop_request SR-08 quit".to_owned()));
+    }
+
+    /// AS-10: an exit with no decided quit (macOS `terminate:`, logout) writes
+    /// `session_ended` *system-terminated* and no quit records.
+    #[test]
+    fn real_host_exit_without_a_decided_quit_is_system_terminated() {
+        let f = Fixture::with_ledger();
+        f.live_turn("turn-1");
+        crate::app_quit::finish_exit(&[Arc::clone(&f.home)], None).unwrap();
+        let k = kinds(&ledger_rows(&f));
+        assert!(k.contains(&"session_ended system-terminated".to_owned()), "{k:?}");
+        assert!(!k.iter().any(|x| x.starts_with("quit_")), "{k:?}");
+        assert_eq!(relaunch_reading(&f)["previousSessionEnd"], "system-terminated");
+    }
+
+    /// AS-02 / R-2: a stop request left sent when the App ended without a
+    /// record gets SR-08 at the next start, once.
+    #[test]
+    fn real_host_unsettled_stop_request_of_a_crashed_session_is_closed_at_the_next_start() {
+        let f = Fixture::with_ledger();
+        std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
+        f.live_turn("turn-1");
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(1), |_| true, || Err("no start".into()));
+        // The process stop closed it in this session; the crash case is the
+        // ledger as it stood at the last `sent` record.
+        let rows = ledger_rows(&f);
+        let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
+        let crashed = f.root.join("crashed.ledger.jsonl");
+        std::fs::write(&crashed, rows[..=last_sent].iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
+        let mut ledger = crate::recovery::RecoveryLedger::open(crashed.clone()).unwrap();
+        ledger.start_session("relaunch", "candidate").unwrap();
+        let after: Vec<Value> = ledger.snapshot()["entries"].as_array().unwrap().clone();
+        assert_eq!(after.iter().rev().find(|e| e["kind"] == "session_started").unwrap()["previousSessionEnd"], "ended-without-record");
+        let closed: Vec<&Value> = after.iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").collect();
+        assert_eq!(closed.len(), 1);
+        assert_eq!((closed[0]["session"].as_str(), closed[0]["record"]["outcomeLabel"].as_str()), (Some("relaunch"), Some("interrupted by Stop Codex (final status not observed)")));
+        let mut again = crate::recovery::RecoveryLedger::open(crashed).unwrap();
+        again.start_session("relaunch-2", "candidate").unwrap();
+        assert_eq!(again.snapshot()["entries"].as_array().unwrap().iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").count(), 1, "closed once");
+    }
 }

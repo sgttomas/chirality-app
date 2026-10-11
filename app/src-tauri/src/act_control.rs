@@ -504,6 +504,66 @@ pub(crate) mod native_statement {
                 .join("\n")
         })
     }
+    /// Labels of the App quit question (K-4; DEL-01-04 §5.2), in the same
+    /// default-safe layout as Stop Codex: Return keeps the App running.
+    pub(crate) const KEEP_RUNNING: &str = "Keep running";
+    pub(crate) const QUIT_APP: &str = "Quit";
+    /// DEL-01-02 SQ-Q Q-2 / DEL-01-04 §5.2: the quit question, asked only with
+    /// live work, listing the live turns, waiting requests and delegated
+    /// agents across every App-owned home, with the workflow runs in force.
+    /// No timeout. As for Stop Codex, a list that does not fit is shown in
+    /// full in the App while the alert names it by digest.
+    pub(crate) fn quit_statement(view: &Value) -> Result<NativeStatement, String> {
+        let runs = &view["runsInForce"];
+        let mut head = vec![
+            "Quit Chirality while work is live?".to_owned(),
+            format!(
+                "Observed across {} App-owned Codex process(es): {} live turns, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                count(&view["homes"]),
+                count(&view["observedLiveTurns"]),
+                count(&view["observedOutstandingRequests"]),
+                count(&view["observedActiveChildren"]) + count(&view["knownChildActivityUnknown"]),
+                count(runs)
+            ),
+        ];
+        if view["changedWhileAsking"] == true {
+            head.push("Live work changed while this question was open; this is the current list.".into());
+        }
+        for h in rows(&view["homes"]) {
+            if let Some(note) = h["notReady"].as_str() {
+                head.push(format!("{}: {note}.", text_or(&h["modeHomeClass"], "home")));
+            }
+        }
+        let mut listed = live_work_lines(view);
+        for limit in rows(&view["assessmentLimits"]) {
+            listed.push(format!("Not assessed: {}", cell(limit)));
+        }
+        for r in rows(runs) {
+            listed.push(format!(
+                "Workflow run in force: {} (run {}) in {}",
+                text_or(&r["workflow"]["name"], "workflow not established"),
+                cell(&r["run"]),
+                cell(&r["conversation"])
+            ));
+        }
+        let tail = vec![
+            format!(
+                "Quit interrupts each live turn, waits up to {} s for Codex to report it ended, then stops every Codex process the App runs and closes the App.",
+                cell(&view["stopWaitLimitSeconds"])
+            ),
+            "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. After a relaunch the turns read \"interrupted by quit\" and nothing continues until you choose to.".into(),
+            "None observed is not none: coverage is not complete.".into(),
+            "This is your operational choice, not a recorded act. The App records the question, your answer and each interrupt in its recovery ledger before sending.".into(),
+            format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
+            format!("{QUIT_APP} proceeds; {KEEP_RUNNING} (the default) and Cancel change nothing."),
+        ];
+        let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
+        whole_or_in_app("Quit question", "live work at quit", whole, view, |digest| {
+            [head, vec![format!("Each item is listed in the assessment, {IN_APP}"), digest.to_owned()], tail]
+                .concat()
+                .join("\n")
+        })
+    }
     /// Native cancellation of a pending sign-in: the safe observation as lines.
     /// The observation is a fixed set of short fields, so it is shown whole or
     /// refused with its cause (reported as a refusal, V14 F4).

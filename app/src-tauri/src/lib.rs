@@ -13,6 +13,7 @@ pub mod canonical;
 pub mod catalog;
 mod checkpoint_recorder;
 pub mod codex_stop;
+mod app_quit;
 pub mod conversation_roles;
 pub mod connector_standing;
 pub mod connector_route_store;
@@ -102,6 +103,8 @@ pub struct AppState {
     codex_stops: Mutex<Vec<Value>>,
     /// Open "Continue as ‹role›" handoffs (NIR §5.8; ROLE §3.3), this process only.
     continue_as: Mutex<conversation_roles::Handoffs>,
+    /// The App quit question and whether the quit may proceed (K-4, SQ-Q).
+    app_quit: app_quit::AppQuit,
 }
 
 impl AppState {
@@ -472,6 +475,86 @@ fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Val
         |view| confirm_choice(&app, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act, &mut refused),
         || start_home(&state, &home, "the person: Restart Codex"));
     codex_stop::finish(&state.codex_stops, title, refused, result)
+}
+
+/// The App's own Quit menu item (K-4). The predefined Quit item sends
+/// `terminate:`, which ends the App without asking.
+const QUIT_MENU_ID: &str = "chirality-quit";
+/// Tauri's default menu with its predefined Quit replaced by the App's own,
+/// at the same place and with the same shortcut.
+fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{Menu, MenuItem, MenuItemKind, Submenu};
+    let menu = Menu::default(app)?;
+    let quit = MenuItem::with_id(app, QUIT_MENU_ID, format!("Quit {}", app.package_info().name), true, Some("CmdOrCtrl+Q"))?;
+    for top in menu.items()? {
+        let MenuItemKind::Submenu(sub) = top else { continue };
+        for (at, item) in sub.items()?.into_iter().enumerate() {
+            let MenuItemKind::Predefined(predefined) = item else { continue };
+            let text = predefined.text()?;
+            let text = text.trim_start_matches('&');
+            if text.starts_with("Quit") || text.starts_with("Exit") {
+                sub.remove_at(at)?;
+                sub.insert(&quit, at)?;
+                return Ok(menu);
+            }
+        }
+    }
+    menu.append(&Submenu::with_items(app, "File", true, &[&quit])?)?;
+    Ok(menu)
+}
+/// DEF-1 / SQ-W W-4: show the App's window again (the Dock click on macOS,
+/// or before the quit question so that content it names is visible).
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.webview_windows().into_values().next() {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+/// K-4 / SQ-Q: the person chose Quit. Runs off the main thread (the native
+/// question blocks); one question at a time; the web view takes no part.
+fn request_quit(app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        let state = app.state::<AppState>();
+        let Some(_question) = state.app_quit.gate() else { return };
+        if state.app_quit.proceeding().is_some() {
+            app.exit(0);
+            return;
+        }
+        let homes = state.homes.lock().unwrap().entries();
+        let active = state.homes.lock().unwrap().active();
+        let person = stop_person(&state, &active);
+        let shown = app.clone();
+        let mut ops = app_quit::HostQuit::new(homes, &state.workflows, &person, move |view: &Value| {
+            use act_control::native_statement as ns;
+            show_main_window(&shown);
+            let mut refused = None;
+            let chosen = confirm_choice(&shown, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP, &mut refused);
+            match refused { Some(cause) => Err(cause), None => Ok(chosen) }
+        });
+        let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
+        drop(ops);
+        if let app_quit::Decision::NotAsked(outcome) = &decision {
+            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
+        }
+        if state.app_quit.allow(&decision) {
+            app.exit(0);
+        }
+    });
+}
+/// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
+/// person, on the App's Dock icon, whether or not the window is shown.
+fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>) {
+    let state = app.state::<AppState>();
+    let snapshots: Vec<Value> = state.homes.lock().unwrap().entries().iter().map(|home| home.host.snapshot()).collect();
+    let count = app_quit::waiting_requests(&snapshots)["count"].as_i64().unwrap_or(0);
+    if *last != Some(count) {
+        if let Some(window) = app.webview_windows().into_values().next() {
+            if window.set_badge_count((count > 0).then_some(count)).is_ok() {
+                *last = Some(count);
+            }
+        }
+    }
 }
 
 fn role_set_metadata() -> Value {
@@ -1444,6 +1527,19 @@ pub fn run() {
     let workspace = std::env::var_os("CHIRALITY_WORKSPACE").map(PathBuf::from);
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .menu(app_menu)
+        .on_menu_event(|app, event| if event.id() == QUIT_MENU_ID { request_quit(app.clone()) })
+        // DEF-1, SQ-W: closing the window is not quit and stops nothing. The
+        // window is hidden (macOS; the Dock click shows it again) or minimized
+        // (platforms with no Dock), so the main process keeps observing and
+        // the web view re-reads the host's snapshot when it is shown.
+        .on_window_event(|window, event| if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            #[cfg(target_os = "macos")]
+            let _ = window.hide();
+            #[cfg(not(target_os = "macos"))]
+            let _ = window.minimize();
+        })
         .setup(move |app| {
     let host_config = if tauri::is_dev() || !cfg!(feature = "distribution-successor") {
         host_config_from_env(workspace.as_ref()).and_then(|mut cfg| {
@@ -1492,6 +1588,7 @@ pub fn run() {
         codex_stop_gate: Mutex::new(()),
         codex_stops: Mutex::new(Vec::new()),
         continue_as: Mutex::new(conversation_roles::Handoffs::default()),
+        app_quit: app_quit::AppQuit::default(),
     };
     let host = Arc::clone(&home.host);
             app.manage(state);
@@ -1569,6 +1666,15 @@ pub fn run() {
                     let state = handle.state::<AppState>();
                     host_tick::guarded("trial", || host_tick::trial_tick(&state.homes, &state.workflows));
                 }).map_err(|e| format!("trial tick thread not started: {e}"))?;
+                // C-24: the waiting-request indicator, kept by the host.
+                let handle = app.handle().clone();
+                std::thread::Builder::new().name("chirality-waiting-indicator".into()).spawn(move || {
+                    let mut last = None;
+                    loop {
+                        std::thread::sleep(host_tick::INTERVAL);
+                        host_tick::guarded("indicator", || show_waiting_indicator(&handle, &mut last));
+                    }
+                }).map_err(|e| format!("waiting indicator thread not started: {e}"))?;
             }
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
             if let Ok(cfg) = host_config {
@@ -1631,19 +1737,30 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building the Tauri application")
-        .run(|app, event| {
-            // A confirmed App quit is a deliberate stop (DEF-6 -> DEF-5a).
-            if let tauri::RunEvent::Exit = event {
+        .run(|app, event| match event {
+            // K-4: an exit nobody decided is held; the last window going away
+            // is DEF-1, not quit; a decided quit (AS-03 or confirmed) exits.
+            tauri::RunEvent::ExitRequested { code, api, .. } => {
                 let st: State<'_, AppState> = app.state();
-                let homes=st.homes.lock().unwrap().entries();
-                if let Some(account)=homes.iter().find(|home|home.class()==home_resources::HomeClass::Account){if let Ok(custody)=account.host.app_runtime_custody(){custody.close_distribution_publication();}}
-                for home in &homes { let _=home.host.stop("the person","App quit"); }
-                // DEF-5 native process-stop facts remain in each actual Host's
-                // lifecycle. They are not DEF-3 REC stopRequestId references.
-                // Empty here means no owned REC stop references supplied, not
-                // no interrupted work, child stop or successful termination.
-                if let Some(account)=homes.iter().find(|home|home.class()==home_resources::HomeClass::Account){if let Ok(custody)=account.host.app_runtime_custody(){let _=custody.record_app_session_end(&[]);}}
+                match app_quit::on_exit_requested(st.app_quit.proceeding().is_some(), code) {
+                    app_quit::ExitAction::Allow => {}
+                    app_quit::ExitAction::Keep => api.prevent_exit(),
+                    app_quit::ExitAction::AskQuit => { api.prevent_exit(); request_quit(app.clone()); }
+                }
             }
+            // SQ-W W-4: the Dock click shows the window again; the web view
+            // re-reads the host's snapshot.
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_main_window(app),
+            // Q-6, Q-7 (AS-08, AS-09) after a decided quit; AS-10 when the
+            // system ends the App without the question (macOS `terminate:`
+            // from the Dock's Quit, logout or shutdown).
+            tauri::RunEvent::Exit => {
+                let st: State<'_, AppState> = app.state();
+                let homes = st.homes.lock().unwrap().entries();
+                let _ = app_quit::finish_exit(&homes, st.app_quit.proceeding());
+            }
+            _ => {}
         });
 }
 
@@ -1656,7 +1773,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default())};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

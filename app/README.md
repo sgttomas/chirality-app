@@ -239,9 +239,32 @@ writes records or operates the act control." `src-tauri/` holds that host;
     reads *outcome unknown*, marked "(derived; not written)". *Limits:* SR records do
     not list the items or delegated agents at the outcome. A turn that ended
     after SR-01 but before the send is recorded as SR-03 *not-sent (not-ready)*
-    with the reason, a gap in the Design's send values. Quitting the App does
-    not ask first yet (K-4, SQ-Q Q-2): it stops each home's Codex on exit, as
-    before, and writes no quit stop requests.
+    with the reason, a gap in the Design's send values. At the next start the
+    App writes SR-08 for each stop request an earlier session left sent with
+    no final status (AS-02, R-2); RQ-06 for its listed requests is not written.
+22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
+    the App's own menu item (Cmd/Ctrl+Q). The host assesses live work across
+    every App-owned home and records `quit_requested` with the lists. With
+    nothing live it quits without asking. Otherwise a native question lists
+    the live turns, waiting requests, delegated agents and workflow runs in
+    force, with no time limit; **Keep running** is the default, and it and
+    Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
+    every ready home is closed to new turns and assessed again (a changed list
+    is recorded and asked again); then `quit_answered` *confirmed*, each live
+    turn's stop request (SR-01, cause *quit*) and its interrupt; the App waits
+    up to the stop wait limit for those turns to end, exits, stops each home's
+    Codex and writes `session_ended` *quit* with each quit stop request's
+    state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+    An exit nobody decided is held and asked as Quit. **Closing the window is
+    not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
+    it again) or minimizes it; work and requests continue, and the view
+    re-reads the host's snapshot when shown. The Dock icon shows the number of
+    supplier requests waiting for the person (C-24). *Limits:* on macOS the
+    Dock's Quit, logout and shutdown reach the App as `terminate:` and cannot
+    be held; they are recorded as `session_ended` *system-terminated* with no
+    question. The indicator gives a count only; the conversations are listed
+    in the window's request cards, and clicking the Dock icon opens the App,
+    not a particular conversation (WI-3). Quit has not been witnessed natively.
 23. **Run panel** (NIR §9 PD-1…PD-7, AS §4, §8, §9). The selected workflow and
     each run show the declared part readably, as the host read it from the
     revision's own bytes: inputs, tools, checkpoints, outputs, returned
@@ -340,6 +363,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
+| `src-tauri/src/app_quit.rs` | App quit asked first (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2): assessment across homes, `quit_requested`/`quit_answered`, quit interrupts (cause *quit*), the exit's process stops and `session_ended` (AS-09, AS-10); the DEF-1 exit rule; the C-24 waiting count |
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
@@ -521,9 +545,8 @@ dispositions (CE-2, CE-4…CE-7), or output records. Conversation roles (item 24
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 
-Stop and Restart Codex (item 22) still lack an ask-first App quit with its
-quit stop-request records (K-4) and the startup SR-08 write for an earlier
-session's open requests (shown derived for now). The Restart Codex question
+The ask-first App quit (item 22a) and the startup SR-08 write are
+implemented but not witnessed natively; RQ-06 at startup is not written. The Restart Codex question
 was witnessed natively once, on 2026-10-10, with nothing live: it listed nothing
 in force and showed its three buttons with Keep Codex running as the default.
 Restart Codex was pressed, and Cancel and Keep Codex running were not. The

@@ -529,6 +529,16 @@ quit are not reserved acts.
 Nothing in SQ-W writes to the supplier (HOSTING H2): the prototype counts
 zero frames sent across W-1…W-5 (C-01).
 
+**In the App (implementation reading, 2026-10-10).** The window's close
+control does not destroy the window: on macOS the window is hidden and the
+Dock icon shows it again (W-4); on platforms with no Dock it is minimized,
+so that a closed window can always be reopened. Either way the main process
+keeps observing and nothing is sent (W-1…W-3). When the window is shown
+again the view reads the host's current snapshot at once and replaces what
+it rendered (W-5); a reload does the same. The event loop's own "last
+window gone" exit request is refused (DEF-1, not quit). DEL-01-04's
+waiting-request indicator (W-3, C-24) is the count on the App's Dock icon.
+
 **SQ-I — The person interrupts a turn (REQ-002, AC-002; DEF-3).**
 
 | Step | Action | Record | Failure · who reports · record · next |
@@ -568,6 +578,29 @@ question had listed them (U-10, §6). Observed at 0.158.0, a pending approval
 does not survive the stop and is not raised again on resume (OBS-2 §5.2).
 The system may terminate the App without waiting (logout, shutdown): AS-10
 if a final write is possible, otherwise *ended-without-record*.
+
+**In the App (implementation reading, 2026-10-10; the sequence is adopted
+as written).** Quit is the App's own menu item (Cmd/Ctrl+Q), which replaces
+the platform's predefined Quit; an exit request the person did not decide
+is held and asked as Quit. The quit wait limit (U-R4) is the Stop Codex wait
+limit. The question is a native alert, which cannot update while it is
+open, so AS-07 is taken as Stop Codex takes it: on Quit every ready home is
+closed to new turns and live work is assessed again; a changed list is
+recorded (`quit_requested`) and asked again, and `quit_answered` records the
+answer to the final list. Work that only ended meanwhile is not asked again.
+Live work for AS-03/AS-04 also counts a child of unknown activity, an
+unresolved turn observation and a ready home that could not be assessed
+(none observed is not none); workflow runs in force are listed but alone ask
+nothing, since a quit ends no run. A question that cannot be shown records
+no answer and the App keeps running. A previous session's quit reads
+*quit-with-live-work* at the next start when its last `quit_requested` was
+not empty and the person confirmed. **Platform limit:** on macOS a quit that
+reaches the App as `terminate:` without passing its menu (the Dock's Quit,
+logout, shutdown) cannot be held; it is recorded as AS-10
+*system-terminated* (`session_ended`), each home's process is then stopped,
+and no question is asked. At the next start (AS-02, R-2) the App writes
+SR-08 for each stop request an earlier session left *sent*, *accepted* or
+*refused* with no final status; RQ-06 is not yet written.
 
 **Codex's graceful-stop history note (R18-7 G-5; observed at 0.158.0, OBS-2
 §5.2 run A).** When a process is stopped by closing its input while a turn is

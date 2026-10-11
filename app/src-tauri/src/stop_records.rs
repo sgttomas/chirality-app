@@ -37,18 +37,19 @@ pub(crate) fn validate(record: &Value) -> Result<(), String> {
         .map_err(|e| format!("stop-request schema refused the record: {e}"))
 }
 
-/// The three causes of a stop request (§3.4). The App offers no quit
-/// question yet (K-4), so it never writes cause *quit*; the label table
-/// still knows its words, for records read back.
+/// The three causes of a stop request (§3.4): the person's interrupt, a
+/// confirmed App quit (K-4, SQ-Q Q-4) and the person's Stop or Restart Codex.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cause {
     PersonInterrupt,
+    Quit,
     CodexStop,
 }
 impl Cause {
     pub fn token(self) -> &'static str {
         match self {
             Self::PersonInterrupt => "person-interrupt",
+            Self::Quit => "quit",
             Self::CodexStop => "codex-stop",
         }
     }
@@ -235,15 +236,53 @@ impl StopRequest {
     }
 }
 
-/// The ledger `codex_stop` entry (§7; C-12): the person, the home, restart or
-/// not, and the live turns and requests the App observed when the person
-/// confirmed. Validated by the ledger schema before it is queued.
-pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart: bool, material: &Value) -> Result<Value, String> {
-    let live_turns: Vec<Value> = material["observedLiveTurns"].as_array().into_iter().flatten()
+/// AS-02 / SQ-R R-2: SR-08 for a stop request an earlier App session left
+/// unsettled (sent, accepted or refused, with no final status and no SR-08):
+/// that session's generations are closed, so the turn's outcome stays
+/// *unknown*. `None` when the record needs no closing (already settled,
+/// outcome unknown, not sent, or only requested).
+pub(crate) fn closed_at_restart(record: &Value) -> Result<Option<Value>, String> {
+    validate(record)?;
+    let mut request = StopRequest { record: record.clone(), generation: Value::Null, request_identity: None, last_entry: None, note: None };
+    request.generation_closed()
+}
+
+/// K-4 (§3.1 AS-03, AS-04, AS-07; §7): the ledger `quit_requested` entry with
+/// the lists the person was shown (empty when nothing was asked). Live
+/// turns, outstanding entries by reference and delegated children observed
+/// active (or with activity unknown) across every App-owned home.
+pub(crate) fn quit_requested_entry(session: &str, actor: &Value, material: &Value) -> Result<Value, String> {
+    let rows = |key: &str| material[key].as_array().cloned().unwrap_or_default();
+    let live_turns: Vec<Value> = rows("observedLiveTurns").iter()
         .filter_map(|t| Some(json!({"threadId":t["threadId"].as_str()?,"turnId":t["turnId"].as_str()?})))
         .collect();
+    let outstanding = outstanding_refs(&rows("observedOutstandingRequests"))?;
+    let mut descendants = Vec::new();
+    for (key, status) in [("observedActiveChildren", "active"), ("knownChildActivityUnknown", "unknown")] {
+        for child in rows(key) {
+            if let Some(thread) = child["threadId"].as_str().filter(|s| !s.is_empty()) {
+                descendants.push(json!({"kind":"child-thread","ref":thread,"observedStatus":status}));
+            }
+        }
+    }
+    let entry = json!({"kind":"quit_requested","session":session,"at":crate::util::now_rfc3339(),"actor":actor,
+        "liveTurns":live_turns,"outstandingEntries":outstanding,"activeDescendants":descendants});
+    crate::recovery::RecoveryLedger::validate_pointer_entry(&entry)?;
+    Ok(entry)
+}
+
+/// K-4 (§3.1 AS-05, AS-06): the ledger `quit_answered` entry.
+pub(crate) fn quit_answered_entry(session: &str, actor: &Value, confirmed: bool) -> Result<Value, String> {
+    let entry = json!({"kind":"quit_answered","session":session,"at":crate::util::now_rfc3339(),
+        "answer":if confirmed {"confirmed"} else {"cancelled"},"actor":actor});
+    crate::recovery::RecoveryLedger::validate_pointer_entry(&entry)?;
+    Ok(entry)
+}
+
+/// Register entries by reference only (generation, identity, method, subject).
+fn outstanding_refs(requests: &[Value]) -> Result<Vec<Value>, String> {
     let mut outstanding = Vec::new();
-    for request in material["observedOutstandingRequests"].as_array().into_iter().flatten() {
+    for request in requests {
         let generation = crate::recovery::generation_ref(&request["generation"])?;
         let identity = serde_json::to_string(&request["requestIdentity"]).map_err(|e| e.to_string())?;
         let mut row = json!({"generation":generation,"requestIdentity":identity,"method":request["method"]});
@@ -255,6 +294,17 @@ pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart
         }
         outstanding.push(row);
     }
+    Ok(outstanding)
+}
+
+/// The ledger `codex_stop` entry (§7; C-12): the person, the home, restart or
+/// not, and the live turns and requests the App observed when the person
+/// confirmed. Validated by the ledger schema before it is queued.
+pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart: bool, material: &Value) -> Result<Value, String> {
+    let live_turns: Vec<Value> = material["observedLiveTurns"].as_array().into_iter().flatten()
+        .filter_map(|t| Some(json!({"threadId":t["threadId"].as_str()?,"turnId":t["turnId"].as_str()?})))
+        .collect();
+    let outstanding = outstanding_refs(material["observedOutstandingRequests"].as_array().map_or(&[][..], Vec::as_slice))?;
     let entry = json!({"kind":"codex_stop","session":session,"at":crate::util::now_rfc3339(),"actor":actor,
         "homes":[home],"restart":restart,"liveTurns":live_turns,"outstandingEntries":outstanding});
     crate::recovery::RecoveryLedger::validate_pointer_entry(&entry)?;

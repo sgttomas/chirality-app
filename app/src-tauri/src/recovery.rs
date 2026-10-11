@@ -329,8 +329,9 @@ impl RecoveryLedger {
         self.entries.push(entry);
         Ok(())
     }
-    pub(crate) fn session_end_entry(session:&str,stop_requests:&[Value])->Result<Value,String>{
-        let entry=json!({"kind":"session_ended","session":session,"at":now_rfc3339(),"how":"quit","stopRequests":stop_requests});
+    /// §3.1 AS-09 (`how` *quit*) or AS-10 (*system-terminated*).
+    pub(crate) fn session_end_entry(session:&str,how:&str,stop_requests:&[Value])->Result<Value,String>{
+        let entry=json!({"kind":"session_ended","session":session,"at":now_rfc3339(),"how":how,"stopRequests":stop_requests});
         validator()?.validate(&entry).map_err(|_|"App session end pointer metadata shape invalid; no end append".to_string())?;Ok(entry)
     }
     pub fn start_session(&mut self, session: &str, candidate: &str) -> Result<(), String> {
@@ -348,17 +349,49 @@ impl RecoveryLedger {
                 .rev()
                 .find(|e| e["kind"] == "session_ended" && e["session"] == id)
         });
+        // §3.1: *quit-with-live-work* when the person confirmed a quit whose
+        // last list (AS-04/AS-07) was not empty; *clean* after AS-03.
+        let quit_with_live_work = previous_id.as_deref().is_some_and(|id| {
+            let mine = || self.entries.iter().filter(move |e| e["session"] == id);
+            let asked = mine().filter(|e| e["kind"] == "quit_requested").last();
+            let confirmed = mine().any(|e| e["kind"] == "quit_answered" && e["answer"] == "confirmed");
+            confirmed && asked.is_some_and(|q| ["liveTurns", "outstandingEntries", "activeDescendants"].iter().any(|k| q[*k].as_array().is_some_and(|a| !a.is_empty())))
+        });
         let previous_end = match (previous_id.as_ref(), end) {
             (None, _) => "none",
             (_, None) => "ended-without-record",
             (_, Some(e)) if e["how"] == "system-terminated" => "system-terminated",
+            _ if quit_with_live_work => "quit-with-live-work",
             _ => "clean",
         };
         let mut entry = json!({"kind":"session_started","session":session,"at":now_rfc3339(),"previousSessionEnd":previous_end,"candidate":candidate});
         if let Some(id) = previous_id {
             entry["previousSession"] = json!(id);
         }
-        self.append(entry)
+        self.append(entry)?;
+        self.close_earlier_stop_requests(session);
+        Ok(())
+    }
+    /// AS-02 / SQ-R R-2: SR-08 for each stop request an earlier session left
+    /// sent with no final status (its generation is closed). Best effort: a
+    /// record the ledger does not accept is read back as before, labelled
+    /// derived from the session end. Returns the records written.
+    pub(crate) fn close_earlier_stop_requests(&mut self, session: &str) -> Vec<Value> {
+        let mut latest = std::collections::BTreeMap::<String, Value>::new();
+        for e in self.entries.iter().filter(|e| e["kind"] == "stop_request") {
+            if let Some(id) = e["record"]["stopRequestId"].as_str() {
+                latest.insert(id.to_owned(), e["record"].clone());
+            }
+        }
+        let mut written = Vec::new();
+        for record in latest.into_values().filter(|r| r["appSession"] != session) {
+            if let Ok(Some(closed)) = crate::stop_records::closed_at_restart(&record) {
+                if self.append(crate::stop_records::ledger_entry(session, &closed)).is_ok() {
+                    written.push(closed);
+                }
+            }
+        }
+        written
     }
     pub fn request_summary(&mut self, request: &Value) -> Result<(), String> {
         match Self::request_summary_entry(request, &self.entries)? {

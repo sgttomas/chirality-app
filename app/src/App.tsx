@@ -623,7 +623,12 @@ export function App() {
   useEffect(() => {
     refresh();
     const t = setInterval(() => invoke("host_status").then(setHost).catch(e => setMessage(String(e))), 1000);
-    return () => clearInterval(t);
+    // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
+    // closed (hidden; DEF-1), the view replaces what it rendered with the
+    // host's current snapshot at once. Nothing is sent to Codex.
+    const shown = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", shown);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
 
   const act = async (cmd: string, args?: Record<string, unknown>) => {

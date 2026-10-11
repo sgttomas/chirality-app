@@ -1353,3 +1353,30 @@ changed.
     (U-SQ-1) still names `STANDALONE_QUALIFICATION.md` at its earlier hash
     `9f88209d…`. It sits inside an attested reference, so it was not
     rewritten; a later reference refresh carries the current bytes.
+
+## CI-34 App quit and window close: what the platform does not let the App hold
+
+Found 2026-10-10 while implementing DEL-01-02 DEF-6/SQ-Q and SQ-W (RECOVERY
+§5 "In the App" readings). The sequences are implemented as written; these
+are the remaining limits, for the DEL-01-02 and DEL-01-04 design owners.
+
+- **(a) macOS `terminate:`.** The App replaces the predefined Quit menu item
+  with its own, so Cmd+Q asks first. The Dock's Quit, logout and shutdown send
+  `terminate:` straight to the application delegate (Tauri 2.11 / tao 0.35
+  implement no `applicationShouldTerminate:`), so the App gets only a final
+  notice: it records AS-10 *system-terminated* and stops each home's Codex,
+  with no question. Holding them would need a delegate hook outside the
+  vendored crates.
+- **(b) Closing the window.** The close control hides the window on macOS and
+  minimizes it elsewhere, so a closed window can always be reopened without a
+  Dock. REQ-001 is kept (work and requests continue); the web view is not
+  torn down, so W-4's re-attachment is the view re-reading the host snapshot
+  when shown (and on reload).
+- **(c) C-24 indicator.** The Dock badge gives the count of supplier requests
+  waiting (WI-1, WI-2). It does not name the conversations outside the window,
+  and clicking the Dock icon opens the App window, not a particular
+  conversation (WI-3). The badge is set through the window, which always
+  exists because closing only hides it.
+- **(d) RQ-06 at startup.** AS-02 now writes SR-08 for an earlier session's
+  unsettled stop requests; RQ-06 (*ended-unanswered*, context
+  *app-ended-without-record*) for its listed requests is still not written.

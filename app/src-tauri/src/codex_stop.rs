@@ -169,6 +169,54 @@ pub(crate) trait StopOps {
     fn start(&mut self) -> Result<Value, String>;
 }
 
+/// The interrupt half shared by Stop/Restart Codex and the App quit (SQ-Q
+/// Q-4, Q-5): write one interrupt per live turn, then wait for them.
+pub(crate) trait Interrupts {
+    type Pending;
+    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String>;
+    fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String>;
+    fn turn_reading(&mut self, turn: &Value) -> Option<Value>;
+}
+struct ViaStop<'a, O>(&'a mut O);
+impl<O: StopOps> Interrupts for ViaStop<'_, O> {
+    type Pending = O::Pending;
+    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
+        self.0.interrupt(turn)
+    }
+    fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
+        self.0.acknowledgment(pending, wait)
+    }
+    fn turn_reading(&mut self, turn: &Value) -> Option<Value> {
+        self.0.turn_reading(turn)
+    }
+}
+
+/// SR-01: every interrupt is written before any wait (and before any process
+/// stop); then one shared deadline, so an unanswered interrupt cannot starve
+/// the others. Q-5: waits until each turn is observed ended or the deadline
+/// passes. Returns each turn's interrupt request reading and its observed
+/// end (None: not observed ended).
+pub(crate) fn interrupt_and_wait<I: Interrupts>(ops: &mut I, live: &[Value], deadline: Instant) -> (Vec<Value>, Vec<Option<String>>) {
+    let pending: Vec<Result<I::Pending, String>> = live.iter().map(|turn| ops.interrupt(turn)).collect();
+    let mut turns = Vec::new();
+    for (turn, written) in live.iter().zip(&pending) {
+        let request = match written {
+            Err(error) => json!({"state":"not sent","reading":error}),
+            Ok(written) => match ops.acknowledgment(written, deadline.saturating_duration_since(Instant::now())) {
+                Ok(ack) => json!({"state":"acknowledged","reading":"Codex acknowledged the interrupt request. An acknowledgment is not the turn's end.","acknowledgment":ack.get("result").cloned().unwrap_or(Value::Null)}),
+                Err(error) => json!({"state":"sent; not acknowledged","reading":error}),
+            },
+        };
+        turns.push(json!({"generation":turn["generation"],"threadId":turn["threadId"],"turnId":turn["turnId"],"interruptRequest":request}));
+    }
+    let mut ends: Vec<Option<String>> = turns.iter().map(|t| observed_end(ops.turn_reading(t))).collect();
+    while ends.iter().any(Option::is_none) && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(25));
+        ends = turns.iter().map(|t| observed_end(ops.turn_reading(t))).collect();
+    }
+    (turns, ends)
+}
+
 /// The ask, close, interrupt, wait, stop and (for Restart) start sequence.
 /// `Ok` carries the outcome, also for a cancel; `Err` means nothing was
 /// interrupted or stopped.
@@ -206,27 +254,8 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
     // §3.1: L `codex_stop` on the person's answer, before the interrupts.
     let codex_stop_record = ops.record_confirmed(&confirmed.material);
     let deadline = Instant::now() + wait_limit;
-    // SR-01: every interrupt is written before any wait and before the stop.
     let live: Vec<Value> = confirmed.material["observedLiveTurns"].as_array().cloned().unwrap_or_default();
-    let pending: Vec<Result<O::Pending, String>> = live.iter().map(|turn| ops.interrupt(turn)).collect();
-    // One shared deadline: an unanswered interrupt cannot starve the others.
-    let mut turns = Vec::new();
-    for (turn, written) in live.iter().zip(&pending) {
-        let request = match written {
-            Err(error) => json!({"state":"not sent","reading":error}),
-            Ok(written) => match ops.acknowledgment(written, deadline.saturating_duration_since(Instant::now())) {
-                Ok(ack) => json!({"state":"acknowledged","reading":"Codex acknowledged the interrupt request. An acknowledgment is not the turn's end.","acknowledgment":ack.get("result").cloned().unwrap_or(Value::Null)}),
-                Err(error) => json!({"state":"sent; not acknowledged","reading":error}),
-            },
-        };
-        turns.push(json!({"generation":turn["generation"],"threadId":turn["threadId"],"turnId":turn["turnId"],"interruptRequest":request}));
-    }
-    // Q-5: wait until each turn is observed ended or the stop wait limit passes.
-    let mut ends: Vec<Option<String>> = turns.iter().map(|t| observed_end(ops.turn_reading(t))).collect();
-    while ends.iter().any(Option::is_none) && Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(25));
-        ends = turns.iter().map(|t| observed_end(ops.turn_reading(t))).collect();
-    }
+    let (mut turns, ends) = interrupt_and_wait(&mut ViaStop(ops), &live, deadline);
     let stop = ops.stop();
     let stopped = stop.is_ok();
     if !stopped {
