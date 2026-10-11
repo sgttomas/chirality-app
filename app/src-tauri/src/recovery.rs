@@ -380,13 +380,12 @@ impl RecoveryLedger {
                 .rev()
                 .find(|e| e["kind"] == "session_ended" && e["session"] == id)
         });
-        // §3.1: *quit-with-live-work* when the person confirmed a quit whose
-        // last list (AS-04/AS-07) was not empty; *clean* after AS-03.
+        // §3.1: *quit-with-live-work* when the person confirmed a quit they
+        // were asked about: the App asks only with live work (AS-04), counting
+        // what it could not resolve, which `quit_requested` cannot list. A
+        // quit nothing was asked about (AS-03) reads *clean*.
         let quit_with_live_work = previous_id.as_deref().is_some_and(|id| {
-            let mine = || self.entries.iter().filter(move |e| e["session"] == id);
-            let asked = mine().filter(|e| e["kind"] == "quit_requested").last();
-            let confirmed = mine().any(|e| e["kind"] == "quit_answered" && e["answer"] == "confirmed");
-            confirmed && asked.is_some_and(|q| ["liveTurns", "outstandingEntries", "activeDescendants"].iter().any(|k| q[*k].as_array().is_some_and(|a| !a.is_empty())))
+            self.entries.iter().any(|e| e["session"] == id && e["kind"] == "quit_answered" && e["answer"] == "confirmed")
         });
         let previous_end = match (previous_id.as_ref(), end) {
             (None, _) => "none",

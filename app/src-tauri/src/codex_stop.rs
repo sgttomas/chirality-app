@@ -312,6 +312,9 @@ pub(crate) struct HostStop<'a, C, S> {
     pub(crate) start: Option<S>,
     /// The person as the App observes them (K1-4), for the records.
     pub(crate) person: Value,
+    /// Whether this Stop/Restart closed the process to new turns (it reopens
+    /// only what it closed).
+    pub(crate) closed: bool,
 }
 impl<C, S> HostStop<'_, C, S> {
     fn home_class(&self) -> Result<&'static str, String> {
@@ -327,10 +330,15 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
         (self.confirm)(view)
     }
     fn close_to_new_turns(&mut self) -> Result<(), String> {
-        self.home.host.close_to_new_turns(self.generation)
+        if self.home.host.close_to_new_turns(self.generation)? {
+            self.closed = true;
+        }
+        Ok(())
     }
     fn reopen_to_new_turns(&mut self) {
-        self.home.host.reopen_to_new_turns(self.generation)
+        if std::mem::take(&mut self.closed) {
+            self.home.host.reopen_to_new_turns(self.generation)
+        }
     }
     fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
         let thread = turn["threadId"].as_str().ok_or("live turn without a conversation")?;
@@ -400,7 +408,7 @@ pub(crate) fn stop_native_home_within(
     confirm: impl FnMut(&Value) -> bool,
     start: impl FnOnce() -> Result<Value, String>,
 ) -> Result<Value, String> {
-    let mut ops = HostStop { home, workflows, generation, restart, confirm, start: Some(start), person: crate::stop_records::person(person) };
+    let mut ops = HostStop { home, workflows, generation, restart, confirm, start: Some(start), person: crate::stop_records::person(person), closed: false };
     stop_or_restart(&mut ops, restart, wait_limit)
 }
 
@@ -412,7 +420,7 @@ pub(crate) fn question_gate(gate: &Mutex<()>) -> Result<MutexGuard<'_, ()>, Stri
     match gate.try_lock() {
         Ok(guard) => Ok(guard),
         Err(TryLockError::Poisoned(poisoned)) => Ok(poisoned.into_inner()),
-        Err(TryLockError::WouldBlock) => Err("A Stop or Restart Codex question is already open; nothing else asked".into()),
+        Err(TryLockError::WouldBlock) => Err("A Stop or Restart Codex question, or the App quit, is already under way; nothing else asked".into()),
     }
 }
 

@@ -5989,7 +5989,7 @@ impl WorkflowCheckSlot {
                 Err(_) => {
                     let (id, body) = (pending.record_id().to_owned(), pending.body().clone());
                     let refusal = crate::records::supply::permanent_refusal(project.root(), pending.run(), "supplied_guidance", &id, &body, pending.observed_at())
-                        .and_then(|reason| crate::records::supply::never_written_limit("supplied_guidance", &id, &reason).ok().map(|limit| (reason, limit)));
+                        .and_then(|reason| crate::records::supply::never_written_limit("supplied_guidance", &id, &reason, pending.observed_at()).ok().map(|limit| (reason, limit)));
                     if let Some((reason, limit)) = refusal {
                         self.r3 = WorkflowR3::Unavailable(format!("never written: {reason}; a \"record write failed\" limit names {id} (CI-20 (j))"));
                         return Some(limit);
@@ -6261,7 +6261,7 @@ impl WorkflowRun {
                     Err(_) => {
                         let e = &self.entries[index];
                         let refusal = crate::records::supply::permanent_refusal(&self.project_root, &run, e.kind, &e.record_id, &e.body, &e.observed_at)
-                            .and_then(|reason| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason).ok().map(|limit| (reason, limit)));
+                            .and_then(|reason| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok().map(|limit| (reason, limit)));
                         match refusal {
                             Some((reason, limit)) => {
                                 self.entries[index].refused = Some(reason);

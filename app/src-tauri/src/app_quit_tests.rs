@@ -82,9 +82,31 @@ impl QuitOps for Double {
 fn nothing_live_records_empty_lists_asks_nothing_and_quits() {
     let mut d = Double::new(vec![material(&[], 0, 0)], vec![]);
     let Decision::Quit(out) = d.run() else { panic!("AS-03 quits") };
-    assert_eq!(d.log, ["assess", "quit_requested 0"], "AS-03: nothing asked, nothing sent");
+    assert_eq!(d.log, ["assess", "quit_requested 0", "close", "assess"], "AS-03: closed to new turns, assessed again, nothing asked or sent");
     assert_eq!(out["asked"], false);
     assert_eq!(out["stopRequests"], json!([]));
+}
+
+#[test]
+fn work_started_before_the_as03_close_is_asked() {
+    let mut d = Double::new(vec![material(&[], 0, 0), material(&["turn-1"], 0, 0), material(&["turn-1"], 0, 0)], vec![Ok(false)]);
+    assert!(matches!(d.run(), Decision::Cancelled(_)));
+    assert_eq!(d.log, ["assess", "quit_requested 0", "close", "assess", "reopen", "quit_requested 1", "ask", "reopen", "quit_answered cancelled"]);
+}
+
+#[test]
+fn quit_and_codex_stop_admit_one_another_only_when_neither_is_under_way() {
+    let (quit, stop_gate) = (AppQuit::default(), Mutex::new(()));
+    let restart = stop_gate.lock().unwrap();
+    assert!(admit_quit(&quit, &stop_gate).unwrap_err().contains("Stop or Restart Codex is under way"), "a quit during Stop/Restart is refused");
+    assert!(!quit.busy(), "a refused quit holds nothing");
+    drop(restart);
+    let held = admit_quit(&quit, &stop_gate).unwrap();
+    assert!(admit_codex_stop(&quit).is_err(), "Stop/Restart is refused while a quit is under way");
+    assert!(crate::codex_stop::question_gate(&stop_gate).is_err(), "and its gate is held");
+    assert!(admit_quit(&quit, &stop_gate).unwrap_err().contains("already open"));
+    drop(held);
+    assert!(admit_codex_stop(&quit).is_ok());
 }
 
 #[test]

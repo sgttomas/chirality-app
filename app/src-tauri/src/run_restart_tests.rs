@@ -248,3 +248,78 @@ fn ci20j_identity_conflict_in_an_incomplete_record_set_is_not_a_permanent_refusa
     assert!(refusal().is_none(),"an unreadable log leaves the conflict indefinite: stays held");
     std::fs::remove_dir_all(root).unwrap();
 }
+// CI-20 (j) review B1, RS W-2: the never-written limit takes the refused record's own
+// observation time, so a check observed after the next lifecycle entry is not written
+// before the limit or before that entry.
+#[test]
+fn ci20j_never_written_limit_keeps_observation_order_with_a_later_check(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+    let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+    let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+    std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+    let first=run.check_native_supply().unwrap()["check"].clone();let reserved=first["r3"]["recordId"].as_str().unwrap().to_owned();
+    run.end_run(None,None).unwrap();assert!(!run.entry_written("run_ended"),"run_ended held");
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    let second=run.check_native_supply().unwrap()["check"].clone();let later=second["r3"]["recordId"].as_str().unwrap().to_owned();
+    assert_ne!(reserved,later);
+    std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+    crate::records::append_with_id(&crate::storage::project_log(&peer.fixture.root,None,"conflict-fixture"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),&reserved).unwrap();
+    run.retry_records().unwrap();
+    let log=rs_for(&peer,&reference);
+    let at=|pred:&dyn Fn(&Value)->bool,what:&str|log.iter().position(|e|pred(e)).unwrap_or_else(||panic!("{what} missing: {log:?}"));
+    let limit=at(&|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==reserved.as_str(),"never-written limit");
+    let ended=at(&|e|e["kind"]=="run_ended","run_ended");
+    let check2=at(&|e|e["recordId"]==later.as_str(),"check 2's R3");
+    assert!(limit<ended&&ended<check2,"W-2 observation order: limit {limit}, run_ended {ended}, check 2 {check2}: {:?}",log_order(&peer,&reference));
+    assert!(log[limit]["observedAt"].as_str().unwrap()<=log[ended]["observedAt"].as_str().unwrap(),"the limit keeps the refused record's observation time, before run_ended's");
+}
+// CI-20 (c) review M1: the home of a recorded conversation comes from the App's recovery
+// ledger (restart fact, the run's own tag, or a single home in the index), never a guess.
+#[test]
+fn ci20c_conversation_home_comes_from_the_ledger_or_is_refused(){
+    let home=|rows:&[Value],events:&[Value]|crate::run_restart::conversation_home_class(rows,events,"thread","run:a");
+    let mut key_fact=restart_fact("cev:x","thread");key_fact["home"]=json!("H-key");
+    assert_eq!(home(&[],&[key_fact]).unwrap(),"H-key");
+    let mut tagged=index_row("thread",json!([{"owner":crate::run_restart::RUN_TAG_OWNER,"value":"run:a","seq":1}]));tagged["home"]=json!("H-key");
+    let mut other=index_row("thread",json!([]));other["home"]=json!("H-acct");
+    assert_eq!(home(&[other.clone(),tagged],&[]).unwrap(),"H-key","the run's own tag wins over other rows");
+    assert_eq!(home(std::slice::from_ref(&other),&[]).unwrap(),"H-acct");
+    let mut key_row=index_row("thread",json!([]));key_row["home"]=json!("H-key");
+    assert!(home(&[other,key_row],&[]).unwrap_err().contains("more than one"));
+    assert!(home(&[],&[]).unwrap_err().contains("does not say"),"no active-home fallback");
+}
+// CI-20 (d) review M3: a conversation whose last REC run tag names a run with no run_opened
+// (tagged when run_opened was queued, never written) gets no limit: the current run is not
+// established.
+#[test]
+fn ci20d_last_tag_naming_an_unrecorded_run_writes_no_limit(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let b=open_run(&peer,&mut root,"thread");drop(root);
+    let owner=crate::run_restart::RUN_TAG_OWNER;
+    let rows=vec![index_row("thread",json!([{"owner":owner,"value":b,"seq":1},{"owner":owner,"value":"run:workflow:never-recorded","seq":2}]))];
+    let out=crate::run_restart::write_restart_limits(&peer.fixture.root,&[restart_fact("cev:ghost","thread")],&rows);
+    assert_eq!(out[0]["outcome"],"not written","{out:?}");assert!(out[0]["detail"].as_str().unwrap().contains("has no run_opened"),"{out:?}");
+    assert!(limits_named(&peer,&b,crate::run_restart::RESTART_LABEL).is_empty());
+}
+// CI-20 (c) review M3: a choice to send without the end notice that cannot be recorded is
+// refused; the notice stays pending and nothing is sent.
+#[test]
+fn ci20c_unrecordable_skip_is_refused_and_the_notice_stays_pending(){
+    use std::os::unix::fs::PermissionsExt;
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+    fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,Some(peer.home.clone())).unwrap();
+    let root=Mutex::new(fresh);let starts=peer.turn_starts();
+    std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+    assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_err());
+    let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+    std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+    let end=root.lock().unwrap().reopened_end(&a).unwrap();
+    let refused=end.lock().unwrap().skip_end_notice().unwrap_err();assert!(refused.contains("stays pending"),"{refused}");
+    std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+    assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_err(),"the notice is still pending");
+    assert_eq!(peer.turn_starts(),starts,"nothing sent");
+    assert!(end.lock().unwrap().skip_end_notice().is_ok(),"the refused choice left the notice pending, so it can be made once recordable");
+    std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+}

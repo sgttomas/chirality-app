@@ -735,12 +735,17 @@ impl Host {
     /// match: a crashed, halted or verifying source (its generation already
     /// closed) can still be stopped, and no send begins there anyway, since
     /// every request requires `ready` (HOSTING §4.6 stop; CR-03).
-    pub fn close_to_new_turns(&self, generation: &Value) -> Result<(), String> {
+    /// Returns `true` only when this call closed it, `false` when it was
+    /// already closed (by a Stop/Restart or a quit under way): only the party
+    /// that closed a process may reopen it.
+    pub fn close_to_new_turns(&self, generation: &Value) -> Result<bool, String> {
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation{return Err("The Codex process in this view is no longer the current one; refresh and choose again. Nothing stopped".into());}
-        i.stop_confirmed=Some(generation.clone());Ok(())
+        if i.stop_confirmed.as_ref()==Some(generation){return Ok(false);}
+        i.stop_confirmed=Some(generation.clone());Ok(true)
     }
     /// Reopens `generation` to new turns when its confirmed stop was refused.
+    /// Callers reopen only what their own `close_to_new_turns` closed.
     pub fn reopen_to_new_turns(&self, generation: &Value) {
         let mut i=self.inner.0.lock().unwrap();
         if i.stop_confirmed.as_ref()==Some(generation){i.stop_confirmed=None;}
@@ -1412,7 +1417,7 @@ impl Host {
             }
         }
         let generation = i.generation.clone();
-        let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit") {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
+        let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
         Self::stop_requests_generation_closed(i,&generation);

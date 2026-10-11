@@ -199,12 +199,14 @@ pub(crate) fn permanent_refusal(
 }
 /// The "record write failed" limit for an entry the writer refuses permanently:
 /// it names the entry's reserved identity and says it can never be written, why,
-/// and that it is not in the record.
-pub(crate) fn never_written_limit(kind: &str, record_id: &str, reason: &str) -> Result<PendingRunEntry, String> {
+/// and that it is not in the record. It carries the refused record's own
+/// observation time, so the flush (ordered by observation) writes it where
+/// that record would have been, before anything observed later (W-2).
+pub(crate) fn never_written_limit(kind: &str, record_id: &str, reason: &str, observed_at: &str) -> Result<PendingRunEntry, String> {
     PendingRunEntry::new(
         "evidence_limit",
         json!({"label":"record write failed","subjectRef":record_id,"detail":format!("{kind} {record_id} can never be written: {reason}. It is not in the record; later entries of this run were written after it (RS W-2, CI-20 (j))")}),
-        crate::util::now_rfc3339(),
+        observed_at.to_owned(),
     )
 }
 /// W-1/W-2 for one lifecycle entry in the run's log: idempotent for an uncertain

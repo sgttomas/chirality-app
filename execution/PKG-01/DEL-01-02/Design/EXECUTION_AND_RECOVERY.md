@@ -487,7 +487,7 @@ unselected (HOSTING §1). Each failure row says who is told and what is left.
 | **stop Codex / restart Codex** (homes, restart, actor) | DEL-01-04's controls, after the person answered its live-work question (R18-1 C-12) | The home's current process (the generation the person chose; a changed one is refused, nothing stopped) in any lifecycle state that HOSTING §4.6 `stop` accepts: every state except `absent`, `stopped` and `refused`; `stopping` is refused as already under way. One Stop/Restart question at a time. Restart is refused before asking when Codex could not be started again there. Live work is assessed, and interrupts are sent, only while the process is `ready`; in any other accepted state the question says the process is not ready, nothing is sent to it, and only the process is stopped | L `codex_stop`; once confirmed, no new turn or steer is sent to that process (interrupts and answers stay possible) and the list is assessed again (a changed list is asked again); each observed live turn interrupted (SR-01, cause *codex-stop*; the person's interrupt guards apply); each process stopped (DEF-5a); for Restart, started again and its conversations recovered (CV-11, CV-13). The App session keeps running | As SQ-Q Q-4…Q-6 for those homes. An interrupt the host refuses (for example not ready) is reported as not sent and the stop proceeds. A refused stop is reported, the process is reopened to new turns, no turn gets a Stop label and Restart does not start Codex |
 | **resume conversation** (conversation) | DEL-01-04, on the person's choice | CV indexed; its home's process ready | CV-01. **No guidance input** is sent: a conversation's role is fixed for its life (R19-3), and at 0.158.0 `developerInstructions` on `thread/resume` is accepted and silently ignored, for a loaded thread and for one loaded by the resume (OBS-2 §7; R18-1 C-17). Nothing is overridden on `thread/resume` (one rule with ACCESS-v0.2 Q-11 and ROLE-v0.2 §5.5): whether a resume override is adopted by a loaded thread is not observed at 0.158.0, and a model the person chooses for the resumed conversation is sent per turn (`turn/start` `model`, ACCESS-v0.2 CS-18). A different role is a new conversation ("Continue as ‹role›", R19-8), which this file indexes through CV-21 like any other | `thread/resume` error → stays indexed, the error is shown. Not ready → refused `supplier-not-ready`. Never automatic; no prompt is re-sent (HOSTING §4.4) |
 | **recovery status / retry** (conversation) | DEL-01-04, DEL-01-03; retry by the person | Any; retry in unavailable | The CV state and the last `observation_recovered` | Retry fails → stays unavailable |
-| **tag / look up / tags of** (conversation, owner, opaque value) | A run starter (DEL-02-03's App writer, EXEC RE-4), DEL-03-03; NIR DEL-01-04 for opaque submission-project context (§7.1) | Any | Stored in the ledger, in order (`seq`), several per owner and conversation, so that runs that follow one another in one conversation each keep their tag (R19-2); `look up` returns the conversation of a tag, `tags of` a conversation's tags of one owner in order. DEL-01-02 never interprets a tag (R17-10) and does not know which run is current: the receiver decides that from its own run records. DEL-02-03's run starter uses the owner token `DEL-02-03`, with the run reference as the value, and tags when `run_opened` is recorded (CI-20 (d)) | Ledger write fails → the tag lives in memory only; after relaunch the lookup returns nothing and the receiver falls back (EXEC RE-4 "interruption not recovered") |
+| **tag / look up / tags of** (conversation, owner, opaque value) | A run starter (DEL-02-03's App writer, EXEC RE-4), DEL-03-03; NIR DEL-01-04 for opaque submission-project context (§7.1) | Any | Stored in the ledger, in order (`seq`), several per owner and conversation, so that runs that follow one another in one conversation each keep their tag (R19-2); `look up` returns the conversation of a tag, `tags of` a conversation's tags of one owner in order. DEL-01-02 never interprets a tag (R17-10) and does not know which run is current: the receiver decides that from its own run records. DEL-02-03's run starter uses the owner token `DEL-02-03`, with the run reference as the value, and tags when the App writer takes up `run_opened` for writing, before the write itself; a `run_opened` that is never written leaves a tag naming no recorded run, which the receiver treats as "current run not established" (CI-20 (d)) | Ledger write fails → the tag lives in memory only; after relaunch the lookup returns nothing and the receiver falls back (EXEC RE-4 "interruption not recovered") |
 | **custody events** (stream) | DEL-04-03's writer (DEP-01-02-020), DEL-02-03's recorder, DEL-03-03, DEL-01-03, DEL-01-04 | Any | `recovery.custody-event` records (§8) | A receiver that misses events re-reads them from the stream position; events are App-observed facts, never authority for Codex's content |
 | **descendants** (conversation) | DEL-01-03, DEL-01-04 | Any | Child threads observed with a live turn; background terminals where the experimental opt-in is declared; HOSTING's process census (H11) | None observed is reported as "none observed", never "none" |
 
@@ -537,7 +537,8 @@ keeps observing and nothing is sent (W-1…W-3). When the window is shown
 again the view reads the host's current snapshot at once and replaces what
 it rendered (W-5); a reload does the same. The event loop's own "last
 window gone" exit request is refused (DEF-1, not quit). DEL-01-04's
-waiting-request indicator (W-3, C-24) is the count on the App's Dock icon.
+waiting-request indicator (W-3, C-24) is the count on the App's Dock icon
+(macOS; where the platform has no badge it is not shown).
 
 **SQ-I — The person interrupts a turn (REQ-002, AC-002; DEF-3).**
 
@@ -582,7 +583,13 @@ if a final write is possible, otherwise *ended-without-record*.
 **In the App (implementation reading, 2026-10-10; the sequence is adopted
 as written).** Quit is the App's own menu item (Cmd/Ctrl+Q), which replaces
 the platform's predefined Quit; an exit request the person did not decide
-is held and asked as Quit. The quit wait limit (U-R4) is the Stop Codex wait
+is held and asked as Quit. Quit and Stop/Restart Codex are one operation at a
+time: a quit asked while Stop or Restart Codex is under way is refused with
+the reason (nothing recorded or asked), and Stop or Restart Codex is refused
+while a quit is open or under way. A process is reopened to new turns only by
+the operation that closed it. AS-03 closes every ready home to new turns and
+assesses again before the exit (work started meanwhile is asked); the HOSTING
+stop reason of AS-08 is "quit confirmed by the person". The quit wait limit (U-R4) is the Stop Codex wait
 limit. The question is a native alert, which cannot update while it is
 open, so AS-07 is taken as Stop Codex takes it: on Quit every ready home is
 closed to new turns and live work is assessed again; a changed list is
@@ -593,11 +600,13 @@ unresolved turn observation and a ready home that could not be assessed
 (none observed is not none); workflow runs in force are listed but alone ask
 nothing, since a quit ends no run. A question that cannot be shown records
 no answer and the App keeps running. A previous session's quit reads
-*quit-with-live-work* at the next start when its last `quit_requested` was
-not empty and the person confirmed. **Platform limit:** on macOS a quit that
+*quit-with-live-work* at the next start when the person confirmed a quit they
+were asked about: the question is asked only with live work, counting items
+that `quit_requested` cannot list (an unresolved turn observation, a home not
+assessed), so its lists may be empty. **Platform limit:** on macOS a quit that
 reaches the App as `terminate:` without passing its menu (the Dock's Quit,
 logout, shutdown) cannot be held; it is recorded as AS-10
-*system-terminated* (`session_ended`), each home's process is then stopped,
+*system-terminated* (`session_ended`, written first), each home's process is then stopped,
 and no question is asked. At the next start (AS-02, R-2) the App writes
 SR-08 for each stop request an earlier session left *sent*, *accepted* or
 *refused* with no final status; RQ-06 is not yet written.

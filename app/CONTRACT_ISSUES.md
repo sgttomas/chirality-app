@@ -467,7 +467,8 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   `tag / look up / tags of` (RECOVERY §4.1). On relaunch, RS writes the
   "App-restart interruption" `evidence_limit` on the run that was current.
   **Implemented 2026-10-10:**
-  - **Run tag.** When the App writer records `run_opened`, the host appends
+  - **Run tag.** When the App writer takes up `run_opened` for writing (before
+    the write itself), the host appends
     the conversation's REC `conversation_index` with a tag `{owner
     "DEL-02-03", value <run ref>, seq}` (`Host::tag_conversation`, the same
     mechanism as the NIR context tag). Tags are ordered, and an earlier run's
@@ -1478,7 +1479,8 @@ are the remaining limits, for the DEL-01-02 and DEL-01-04 design owners.
   torn down, so W-4's re-attachment is the view re-reading the host snapshot
   when shown (and on reload).
 - **(c) C-24 indicator.** The Dock badge gives the count of supplier requests
-  waiting (WI-1, WI-2). It does not name the conversations outside the window,
+  waiting (WI-1, WI-2). It is shown only where the platform badges the App
+  icon (the macOS Dock); elsewhere there is no indicator outside the window. It does not name the conversations outside the window,
   and clicking the Dock icon opens the App window, not a particular
   conversation (WI-3). The badge is set through the window, which always
   exists because closing only hides it.

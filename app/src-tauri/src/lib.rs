@@ -465,6 +465,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
 #[tauri::command(async)]
 fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Value, restart: bool) -> Result<Value, String> {
     let _question = codex_stop::question_gate(&state.codex_stop_gate)?;
+    app_quit::admit_codex_stop(&state.app_quit)?;
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
     if restart {
         codex_stop::restart_precheck(home.host_config.as_ref().map(|_| ()).map_err(Clone::clone), || state.validate_home_source(&home))?;
@@ -517,11 +518,21 @@ fn show_main_window(app: &tauri::AppHandle) {
 fn request_quit(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
-        let Some(_question) = state.app_quit.gate() else { return };
         if state.app_quit.proceeding().is_some() {
             app.exit(0);
             return;
         }
+        // One operation over the Codex processes at a time (Stop/Restart
+        // Codex or quit); a second Quit while the question is open is ignored.
+        let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
+            Ok(held) => held,
+            Err(reason) if reason.starts_with("The quit question") => return,
+            Err(reason) => {
+                show_main_window(&app);
+                let _ = app.dialog().message(reason).title("Quit Chirality").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+                return;
+            }
+        };
         let homes = state.homes.lock().unwrap().entries();
         let active = state.homes.lock().unwrap().active();
         let person = stop_person(&state, &active);
@@ -1343,20 +1354,23 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
 fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option<String>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing recorded and no fallback")?;
     let thread=thread_id.ok_or("The record names no conversation for this run; it cannot be ended from here")?;
-    let home=conversation_home(&state,&thread);
+    let home=conversation_home(&state,&thread,&run_id);
     // V10 G-7: a reopened run is ended only as the person's plain end (no completed).
-    // CI-20 (c): its end notice is composed from the run's recorded identity facts.
-    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,Some(home))
+    // CI-20 (c): its end notice is composed from the run's recorded identity facts,
+    // keyed to the conversation's own home; with no established home, none is sent.
+    let mut out=state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,home.as_ref().ok().cloned())?;
+    if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (CI-20 (c))")});}
+    Ok(out)
 }
-/// CI-20 (c): the Codex home of a conversation named by the record: the home a
-/// REC restart fact names for it, otherwise the active home.
-fn conversation_home(state:&State<'_,AppState>,thread:&str)->Arc<runtime_session::HomeSession>{
-    let homes=state.homes.lock().unwrap();
-    for home in homes.entries(){
-        let named=restart_events(&home.host.recovery_custody().snapshot()).iter().any(|e|e["threadId"]==thread);
-        if named{return home;}
-    }
-    homes.active()
+/// CI-20 (c): the Codex home of a conversation named by the record, from the
+/// App's recovery ledger (`run_restart::conversation_home_class`); never a guess.
+fn conversation_home(state:&State<'_,AppState>,thread:&str,run:&str)->Result<Arc<runtime_session::HomeSession>,String>{
+    let homes=state.homes.lock().unwrap().entries();
+    let (mut rows,mut events)=(Vec::new(),Vec::new());
+    for home in &homes{rows.extend(home.host.recovery_entries());events.extend(restart_events(&home.host.recovery_custody().snapshot()));}
+    let class=run_restart::conversation_home_class(&rows,&events,thread,run)?;
+    homes.into_iter().find(|home|stop_records::home_class(home.class().as_str())==Some(class.as_str()))
+        .ok_or_else(||format!("Codex home {class} of conversation {thread} is not available in this App process"))
 }
 /// CI-20 (c): "Retry the end-notice record" or "Send without the end notice" for a
 /// run the person ended after a relaunch (`action`: "retry" or "skip").
@@ -1707,8 +1721,12 @@ pub fn run() {
                 std::thread::Builder::new().name("chirality-restart-limits".into()).spawn(move || {
                     let state = handle.state::<AppState>();
                     let homes = state.homes.lock().unwrap().entries();
+                    // Held across the writer: the person's End of a recorded run
+                    // (end_recorded_run) takes the same lock, so a limit is never
+                    // written on a run the person has just ended.
+                    let mut workflows = state.workflows.lock().unwrap();
                     let outcome = run_restart::startup(&homes, state.workspace.as_deref());
-                    state.workflows.lock().unwrap().set_restart_limits(outcome);
+                    workflows.set_restart_limits(outcome);
                 }).map_err(|e| format!("restart-limit thread not started: {e}"))?;
             }
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).

@@ -3,7 +3,9 @@
 //! "Relaunch with a run interrupted"; §14.3 FC-9; EXEC RE-4, AE-6).
 //!
 //! OI-008 placement: both run in the Rust host. The tag is written when the App
-//! writer records `run_opened`; the limit writer runs from the startup closure,
+//! writer takes up `run_opened` for writing, before the write itself (a tag may
+//! therefore name a run whose `run_opened` was never written; the limit writer
+//! then establishes no current run); the limit writer runs from the startup closure,
 //! never on a web-view request. Neither writes `run_ended`: RE-4's run-owner end
 //! "interruption not recovered" is not written automatically (CI-20 (d)).
 use serde_json::{json, Value};
@@ -23,6 +25,28 @@ pub(crate) fn tag_run(
 ) -> Value {
     let class = crate::stop_records::home_class(home.class().as_str());
     home.host.tag_conversation(&scope.generation, &scope.conversation, class, RUN_TAG_OWNER, &scope.run)
+}
+
+/// CI-20 (c): the App-owned home class (H-acct, H-key) of a conversation the
+/// record names, for an end made after a relaunch. From, in order: a REC restart
+/// fact naming the conversation; the run's own REC tag; the conversation's REC
+/// index rows (one home only). Otherwise the home is not established and no end
+/// notice is keyed (never a guess such as the active home).
+pub(crate) fn conversation_home_class(rows: &[Value], restart_events: &[Value], thread: &str, run: &str) -> Result<String, String> {
+    if let Some(home) = restart_events.iter().find(|e| e["threadId"] == thread).and_then(|e| e["home"].as_str()) {
+        return Ok(home.to_owned());
+    }
+    if let Some((home, _)) = crate::recovery::look_up(rows, RUN_TAG_OWNER, run).into_iter().find(|(_, t)| t == thread) {
+        return Ok(home);
+    }
+    let mut homes: Vec<&str> = rows.iter().filter(|r| r["kind"] == "conversation_index" && r["threadId"] == thread).filter_map(|r| r["home"].as_str()).collect();
+    homes.sort_unstable();
+    homes.dedup();
+    match homes.as_slice() {
+        [home] => Ok((*home).to_owned()),
+        [] => Err(format!("the App's recovery ledger does not say which Codex home holds conversation {thread}")),
+        _ => Err(format!("the App's recovery ledger names conversation {thread} in more than one Codex home")),
+    }
 }
 
 /// RS "Relaunch with a run interrupted": for each REC `app_restart_interruption`

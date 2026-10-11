@@ -879,7 +879,9 @@ is current (R17-10). If the tag could not be stored, the lookup returns nothing 
 relaunch and RE-4's fallback applies. The recorder only reads what is
 delivered. **In the App (CI-20 (d)):** the run starter's tag owner token is
 `DEL-02-03`, and the value is the run reference. The tag is written when the
-App writer records `run_opened`. A tag that cannot be stored stays in the
+App writer takes up `run_opened` for writing, before the write itself; a
+`run_opened` never written leaves a tag naming no recorded run, and the
+startup writer then writes no limit ("current run not established"). A tag that cannot be stored stays in the
 run's memory only and never blocks the run. At startup the Rust host writes
 RS's "App-restart interruption" limit for each `app_restart_interruption` on
 the run picked as above, once per run and restart fact. When no tag is

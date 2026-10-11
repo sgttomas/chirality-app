@@ -259,7 +259,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view
     re-reads the host's snapshot when shown. The Dock icon shows the number of
-    supplier requests waiting for the person (C-24). *Limits:* on macOS the
+    supplier requests waiting for the person (C-24; macOS only). Quit and
+    Stop/Restart Codex refuse each other while one is under way. *Limits:* on macOS the
     Dock's Quit, logout and shutdown reach the App as `terminate:` and cannot
     be held; they are recorded as `session_ended` *system-terminated* with no
     question. The indicator gives a count only; the conversations are listed

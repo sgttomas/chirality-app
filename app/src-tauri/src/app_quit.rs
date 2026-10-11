@@ -117,8 +117,17 @@ pub(crate) fn quit_sequence<O: QuitOps>(ops: &mut O, wait_limit: Duration) -> De
     let mut asked = ops.assess();
     let mut records = vec![ops.record_requested(&asked.material)];
     if !has_live_work(&asked.material) {
-        // AS-03: nothing is asked.
-        return Decision::Quit(json!({"state":"quit","asked":false,"assessment":asked.view,"records":records,"turns":[],"stopRequests":[]}));
+        // AS-03: close every ready home to new turns, so that no turn starts
+        // between this assessment and the exit, and assess again. Still
+        // nothing live: nothing is asked. Work started meanwhile is asked.
+        ops.close_to_new_turns();
+        let current = ops.assess();
+        if !has_live_work(&current.material) {
+            return Decision::Quit(json!({"state":"quit","asked":false,"assessment":current.view,"records":records,"turns":[],"stopRequests":[]}));
+        }
+        ops.reopen_to_new_turns();
+        records.push(ops.record_requested(&current.material));
+        asked = current;
     }
     let mut changed = false;
     let confirmed = loop {
@@ -267,7 +276,9 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     fn close_to_new_turns(&mut self) {
         for home in &self.homes {
             let snapshot = home.host.snapshot();
-            if snapshot["state"] == "ready" && home.host.close_to_new_turns(&snapshot["generation"]).is_ok() {
+            // Only a process this quit closed is recorded, so the quit reopens
+            // only what it closed, never one a Stop/Restart closed.
+            if snapshot["state"] == "ready" && home.host.close_to_new_turns(&snapshot["generation"]) == Ok(true) {
                 self.closed.push((Arc::clone(home), snapshot["generation"].clone()));
             }
         }
@@ -306,6 +317,11 @@ impl AppQuit {
             Err(TryLockError::WouldBlock) => None,
         }
     }
+    /// True while a quit question is open or a quit is under way (Stop and
+    /// Restart Codex refuse meanwhile).
+    pub(crate) fn busy(&self) -> bool {
+        matches!(self.question.try_lock(), Err(TryLockError::WouldBlock))
+    }
     pub(crate) fn allow(&self, decision: &Decision) -> bool {
         match decision {
             Decision::Quit(outcome) => {
@@ -321,6 +337,28 @@ impl AppQuit {
         self.proceed.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
+
+/// One operation at a time over the Codex processes: a quit holds its own
+/// question gate and the Stop/Restart Codex gate until the App exits (or the
+/// person keeps it running). While Stop or Restart Codex is under way the quit
+/// is refused with the reason, and nothing is recorded or asked.
+pub(crate) fn admit_quit<'a>(quit: &'a AppQuit, stop_gate: &'a Mutex<()>) -> Result<(MutexGuard<'a, ()>, MutexGuard<'a, ()>), String> {
+    let question = quit.gate().ok_or("The quit question is already open.")?;
+    let stop = crate::codex_stop::question_gate(stop_gate)
+        .map_err(|_| "Stop or Restart Codex is under way, so Quit was not started. Choose Quit again when it has finished.".to_owned())?;
+    Ok((question, stop))
+}
+/// The Stop/Restart Codex side: refused while a quit is open or under way.
+pub(crate) fn admit_codex_stop(quit: &AppQuit) -> Result<(), String> {
+    if quit.busy() {
+        return Err("The App quit is under way; Stop or Restart Codex was not started".into());
+    }
+    Ok(())
+}
+
+/// The HOSTING stop reason for a confirmed quit (AS-08); the recovery
+/// projection reads it as cause *app-quit*.
+pub(crate) const QUIT_STOP_REASON: &str = "quit confirmed by the person";
 
 /// What to do with a request to exit the event loop (Tauri `ExitRequested`).
 #[derive(Debug, PartialEq, Eq)]
@@ -367,11 +405,17 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     if let Ok(custody) = &custody {
         custody.close_distribution_publication();
     }
-    let (actor, reason) = if proceeding.is_some() { ("the person", "App quit") } else { ("the system", "system termination") };
+    // AS-10: the system allows a final write; write it first, then stop each
+    // home's process as the system allows.
+    let early = if proceeding.is_none() { Some(custody.as_ref().map_err(Clone::clone).and_then(|c| c.record_app_session_end_as("system-terminated", &[]))) } else { None };
+    let (actor, reason) = if proceeding.is_some() { ("the person", QUIT_STOP_REASON) } else { ("the system", "system termination") };
     for home in homes {
         let _ = home.host.stop(actor, reason);
     }
     let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
+    if let Some(early) = early {
+        return early;
+    }
     let (how, stops) = session_end(proceeding, &records);
     custody?.record_app_session_end_as(how, &stops)
 }
