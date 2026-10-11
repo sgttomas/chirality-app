@@ -152,11 +152,14 @@ structural/source analysis is a separate warrant, not a rewritten PASS.
 review identities, source paths, custody and receiving limits. The generic
 field contract does not narrow permitted other-role/no-role composition, but
 this sample proves no other/no-role native supply. Rust Host/store/seeding joins,
-other primary roles, TASK-child supply, lifetime/resume/fork, child carrier,
-provider/model adoption, delegation availability/enforcement and qualification
-still require their own candidate evidence. Native child supply stays
-**not-supplied** until its actual carrier/custody/configuration evidence exists;
-0.158.0 adapter observations below remain historical. Runtime capability values
+other primary roles, lifetime/resume/fork, provider/model adoption,
+delegation availability/enforcement and qualification still require their own
+candidate evidence. The separately maintained
+[child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md) observes per-thread TASK
+configuration and exact child bytes in scripted stock-supplier execution with
+clean and full-history delegation. It does not establish App configuration,
+publication or child-role reconciliation. The current App still reports child
+roles **not-supplied**; 0.158.0 adapter observations below remain historical. Runtime capability values
 are read from the actual acting route, never inferred from0.160.0 or this sample.
 
 ## 3. Selection
@@ -407,10 +410,16 @@ instructions on resume or fork (RC-07, RC-11; schema IS-1, IS-6, IS-9).
 ### 5.3 Native child roles (R17-9 as amended by R18-4)
 
 **Current0.160.0 receiving standing:** the primary sample §2.1 does not establish
-the child carrier. The requirements and historical0.158.0 adapter mechanism
-below remain; current native children/config files are not reported supplied
-from field existence or primary-role carriage. User-defined role names and the
-person's native configuration remain untouched. U-R3 stays open.
+the child carrier. The [maintained supplier check](CHILD_ROLE_CARRIER_0.160.0.md)
+separately observes the per-thread dotted configuration carrier, exact
+common+TASK bytes and correlated child metadata. Its native child identity comes
+from completed `subAgentActivity(kind=started).agentThreadId`, not the
+historical CR-5 item shape. Missing/malformed role files and a person-defined
+TASK collision are checked separately. The requirements and historical
+0.158.0 adapter mechanism below remain; the App's actual configuration,
+content-bound file publication and child reconciliation are not supplied by
+this fixture. U-R3 remains open for that App implementation and evidence;
+there is no need to choose session flags for the observed per-thread route.
 
 - **CR-1** A conversation whose role offers child roles (§4.1) is started with
   additive `agents.<CHILD>.description` and `agents.<CHILD>.config_file`. The
