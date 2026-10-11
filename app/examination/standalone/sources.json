@@ -44,7 +44,7 @@
     {
       "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
       "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
-      "sha256": "sha256:bc8f88ea9f8fd15de0ac86ee0d85fc9710fbab59bf93c3cce040e9b4c5883366"
+      "sha256": "sha256:9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322"
     },
     {
       "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
@@ -54,7 +54,7 @@
     {
       "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
       "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
-      "sha256": "sha256:39d7d719b647414d04a03800a32403f51ea5130b2b51e936b255771dcfbf209b"
+      "sha256": "sha256:8d8646170af216ca82e30e7b9588c52dc99608a71750342e6681b3be8b1fdef6"
     },
     {
       "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
@@ -69,12 +69,12 @@
     {
       "role": "DEL-04-03/RECORD_SEMANTICS.md",
       "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
-      "sha256": "sha256:910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
+      "sha256": "sha256:9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858"
     },
     {
       "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
       "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
-      "sha256": "sha256:4fa8d0b0ac62f371c1f183fad73580c201e9b6f462f787e66654cda1a42aa3af"
+      "sha256": "sha256:7c514cc32caff6d85a36ad7c3b0c28280315f56c0f7f3afc0973eb6ebd357e31"
     },
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
