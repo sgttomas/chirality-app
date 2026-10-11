@@ -1,6 +1,6 @@
 {
   "format": "chirality.app.roles.source-binding/1",
-  "basisCommit": "979c96799242f4ad147d5ee3a3f263bb4d3baac4",
+  "basisCommit": "6dfa1ea1e4f4d97f710a4385943cd681d7c4a5de",
   "standing": "Production candidate; independent review pending; no release, supplier adoption or shared allocation claim",
   "roleSet": {
     "path": "roles.json",
