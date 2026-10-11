@@ -4683,6 +4683,7 @@ impl WorkflowRootSession {
             ended_after_turn: None,
             finished_report: None,
             checkpoints: None,
+            act_cache: None,
             run_tag: Value::Null,
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
@@ -4976,7 +4977,8 @@ impl WorkflowRootSession {
         if !limits.is_empty() {
             return Err(format!("The run record is incomplete, so its waiting arrivals cannot be read; nothing recorded: {limits:?}"));
         }
-        let acts: Vec<Value> = recorded.iter().filter(|e| matches!(e["kind"].as_str(), Some("human_act" | "act_declined"))).cloned().collect();
+        let acts = crate::checkpoint_recorder::project_act_records(project)
+            .map_err(|e| format!("The recorded acts cannot be read, so the arrivals still waiting cannot be listed; nothing recorded: {e}"))?;
         let mut run_entries: Vec<Value> = recorded.into_iter().filter(|e| e["runId"] == run).collect();
         let opened_workflow = run_entries.iter().find(|e| e["kind"] == "run_opened").map(|e| e["body"]["workflow"].clone()).unwrap_or(Value::Null);
         // CE-5/CE-6/CE-8 from the run's own record (RC-10): acts recorded while the
@@ -6075,6 +6077,9 @@ pub(crate) struct WorkflowRun {
     finished_report: Option<crate::run_offers::FinishedReport>,
     /// EXEC §2.4 checkpoint recorder, from the run's opening (CE-1) on.
     checkpoints: Option<crate::checkpoint_recorder::CheckpointRecorder>,
+    /// The project's verified act records with the fingerprint of the logs and
+    /// capture store they were read from; read again only when it changes.
+    act_cache: Option<(Vec<(String, u64, i64, i64)>, crate::checkpoint_recorder::ActRead)>,
     /// EXEC A-2 / RECOVERY §4.1: the REC run tag written at `run_opened` (durable,
     /// or held in this run's memory only, with the reason).
     run_tag: Value,
@@ -6609,7 +6614,18 @@ impl WorkflowRun {
         let start = self.start_in(view);
         let entries = self.recorded_bodies();
         let root = self.project_root.clone();
-        let mut acts = || crate::checkpoint_recorder::project_act_records(&root);
+        let cache = &mut self.act_cache;
+        let mut acts = || {
+            let fingerprint = crate::checkpoint_recorder::act_records_fingerprint(&root);
+            if let (Some(now), Some((then, read))) = (&fingerprint, cache.as_ref()) {
+                if now == then {
+                    return Ok(read.clone());
+                }
+            }
+            let read = crate::checkpoint_recorder::project_act_records(&root)?;
+            *cache = fingerprint.map(|f| (f, read.clone()));
+            Ok(read)
+        };
         let outputs = recorder.observe(view, &crate::checkpoint_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, project_root: &self.project_root }, &entries, &mut acts);
         self.checkpoints = Some(recorder);
         let held = self.entries.iter().any(|e| e.pending());
@@ -6645,9 +6661,12 @@ impl WorkflowRun {
             return Err("successor workflow name invalid; nothing ended".into());
         }
         // CE-5/CE-6/CE-8 for acts recorded since the last observation, then CE-17:
-        // the arrivals whose recorded disposition is still *waiting*. Acts that
-        // cannot be read leave the arrivals as recorded (nothing is inferred).
-        if let Ok(acts) = crate::checkpoint_recorder::project_act_records(&self.project_root) {
+        // the arrivals whose recorded disposition is still *waiting*. While an
+        // arrival waits and the act records cannot be read, the end is refused, as
+        // after a relaunch: its waiting list could name an arrival whose act was done.
+        if !crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies()).is_empty() {
+            let acts = crate::checkpoint_recorder::project_act_records(&self.project_root)
+                .map_err(|e| format!("The recorded acts cannot be read, so the arrivals still waiting cannot be listed; nothing recorded: {e}"))?;
             let counted = crate::checkpoint_recorder::count_acts(&self.recorded_bodies(), &acts, &self.project_root);
             self.push_recorder_outputs(counted, &crate::util::now_rfc3339());
         }
@@ -9064,14 +9083,18 @@ for line in sys.stdin:
         let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();
         assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]));
     }
-    /// A file act recorded through the App writer, shaped as the App act control's
-    /// direct capture of `rel` with `content` (RS §6).
+    /// A file act as the App act control leaves it: its capture object in the
+    /// capture store and its record, written by the capturing surface (RS §6).
     fn record_file_act(peer:&Peer,rel:&str,kind:&str,content:&[u8],time:&str)->String{
-        let path=std::fs::canonicalize(peer.fixture.root.join(rel)).unwrap();
-        let body=json!({"actKind":kind,"actClass":{"value":"reserved to the person"},"decisionActor":{"osAccount":"fixture","identityVerified":false},"recordingMode":"direct capture",
-            "boundSubject":[path.to_str().unwrap()],"boundContent":[{"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(content)}],"scope":"The summary file.","purpose":"You decide to rely on the summary.",
-            "captureEvidence":[{"kind":"capture evidence","ref":"cap:fixture","resolutionAtWrite":"resolved"}],"captureTime":time,"evidenceLimits":["identity not verified"]});
-        crate::records::append(&peer.fixture.root.join(crate::recorder::LOG),"human_act",&crate::records::APP_INTERFACE,body).unwrap()["recordId"].as_str().unwrap().to_owned()
+        let root=&peer.fixture.root;let path=std::fs::canonicalize(root.join(rel)).unwrap();let id=crate::util::opaque_id("cap:").unwrap();
+        let capture=json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
+            "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)},"choice":"act","actKind":kind,"actor":{"osAccount":"fixture","identityVerified":false},
+            "boundSubject":[path.to_str().unwrap()],"boundContent":[{"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(content)}],
+            "scope":"The summary file.","purpose":"You decide to rely on the summary.","capturedAt":time,"surface":"App interface","inputSource":"host-native-confirmation",
+            "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
+        crate::schema_validation::validate_capture(&capture).unwrap();
+        let store=crate::storage::capture_path(root,&id);std::fs::create_dir_all(store.parent().unwrap()).unwrap();std::fs::write(store,serde_json::to_vec(&capture).unwrap()).unwrap();
+        crate::records::append(&root.join(crate::recorder::LOG),"human_act",&crate::records::APP_INTERFACE,crate::act_control::act_body(&capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
     }
     fn summary_items()->[Value;2]{
         [json!({"id":"m1","type":"agentMessage","text":"Spacing report"}),json!({"id":"f1","type":"fileChange","status":"completed","changes":[{"path":"out/summary.md","kind":{"type":"add"},"diff":""}]})]
@@ -9091,6 +9114,38 @@ for line in sys.stdin:
         assert!(kinds.iter().position(|k|*k=="act_counted")<kinds.iter().position(|k|*k=="run_ended"),"counted before the end: {kinds:?}");
         let end=log.iter().find(|e|e["kind"]=="run_ended").unwrap();
         assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-check","arrivalOrdinal":1}]),"the performed file arrival is not listed; the message arrival, with no act, is");
+    }
+    // m-5: a live observation reads the act records again once the logs change, so an act
+    // recorded after the arrival is counted at the next observation.
+    #[test]
+    fn a_later_observation_counts_an_act_recorded_after_the_arrival(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        let view=recorder_view(&peer,&summary_items()[1..]);
+        run.lock().unwrap().observe_checkpoints(&view);
+        let unchanged=crate::checkpoint_recorder::act_records_fingerprint(&peer.fixture.root);
+        run.lock().unwrap().observe_checkpoints(&view);
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"));
+        record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        assert_ne!(crate::checkpoint_recorder::act_records_fingerprint(&peer.fixture.root),unchanged,"a new record changes the fingerprint");
+        run.lock().unwrap().observe_checkpoints(&view);
+        assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"),"counted at the next observation");
+    }
+    // m-4: while an arrival waits, an end whose act records cannot be read is refused, as after
+    // a relaunch; nothing is recorded and the run stays open.
+    #[test]
+    fn end_is_refused_while_an_arrival_waits_and_act_records_are_unreadable(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        let log=peer.fixture.root.join(crate::recorder::LOG);std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+        let before=std::fs::read(&log).unwrap_or_default();
+        let mut f=std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":").unwrap();
+        let err=run.lock().unwrap().end_run(None,None).unwrap_err();
+        assert!(err.contains("cannot be read"),"{err}");
+        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open);
+        std::fs::write(&log,before).unwrap();
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"));
     }
     // RC-10 after relaunch: an act recorded while the run was interrupted is counted from the
     // run's own record before its end lists the waiting arrivals.

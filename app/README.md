@@ -292,16 +292,19 @@ writes records or operates the act control." `src-tauri/` holds that host;
     arrival is written as `checkpoint_arrival` (CE-3), with the item, its
     time, the bound subject and its limits, then a *waiting*
     `disposition_change`. **Acts are counted** (CE-5, CE-6, CE-8) from the
-    human-act and act-declined records in the project's record set, which the
-    App act control writes: an act of the required kind whose bound subject is
-    the arrival's file and whose bound content equals it makes the arrival
-    *performed*, "by earlier act" when captured before the arrival (SP-6);
-    another kind, older content or other content is `act_not_counted` with
-    its reason; a decline of the required kind captured at or after the
-    arrival resolves it negatively. The first deciding act decides; later acts
-    are not recorded against a decided arrival. A record without resolved
-    capture evidence, a decision actor and direct capture is not counted. A
-    message arrival, or a subject the App cannot identify (a call's targets,
+    App-file act and decline records in the project's record set, each only
+    through the one capture object it cites: current after correction,
+    written by the capturing surface, its capture resolved, valid and saying
+    what the record says, one record per capture (SP-3, RS R-8). Any other
+    record naming the arrival's file adds an "unresolvable reference" limit
+    and is never an act. An act of the required kind on the arrival's file and
+    current content makes the arrival *performed*; before the arrival the
+    latest decision of that kind on that content governs ("by earlier act",
+    or a decline resolving it negatively); after it, a decline of that kind on
+    that content resolves it negatively; another kind, older content or
+    other content is `act_not_counted` with its reason, and another content
+    method is neither. The first deciding act decides; later acts are not
+    recorded against a decided arrival. A message arrival, or a subject the App cannot identify (a call's targets,
     the objects an output concerns), binds no act and stays waiting. A
     supplier person-input request or MCP elicitation received in the run while
     an arrival waits is written as `act_request` (CE-4), associated only when
@@ -311,8 +314,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, acts recorded since the last observation are counted
-    first, also for a run ended after a relaunch, and `run_ended` lists the
-    arrivals still waiting (CE-17). Each checkpoint shows its listing or
+    first, also for a run ended after a relaunch (an end is refused while an
+    arrival waits and the act records cannot be read), and `run_ended` lists
+    the arrivals still waiting (CE-17). Each checkpoint shows its listing or
     finding, its arrivals with their labels, requests, counted and not-counted
     acts and limits. A run record entry that cannot be
     written is shown on the run (A-12). It is written later, in order, with a

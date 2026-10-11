@@ -562,21 +562,43 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   2026-10-11; residuals open with the EXEC design owner.** The checkpoint
   recorder (EXEC §2.4, `checkpoint_recorder.rs`; EXEC is DRAFT/PROPOSED text,
   adopted as written for the parts implemented) now counts acts: CE-5, CE-6
-  and CE-8 from the human-act and act-declined records in the project's
-  record set, with CE-2, CE-4 and AW-3. `run_ended` lists every recorded
-  arrival whose latest disposition is *waiting* (CE-17), after counting the
-  acts recorded since the last observation; after a relaunch
-  (`end_recorded_run`) the acts are counted from the run's own record first.
-  Readings where EXEC is silent, chosen in implementation:
+  and CE-8 from the App-file act and decline records (A4, A6, A7) in the
+  project's record set, with CE-2, CE-4 and AW-3. A record counts only
+  through the one capture object it cites (SP-3, RS R-8): current after RS
+  correction relations, written by the App's capturing surface, its capture
+  resolved from the capture store, schema-valid and corresponding in kind,
+  choice, actor, subject, content, scope, purpose and time, and one record
+  per capture. Any other record that names an arrival's file is an
+  "unresolvable reference" limit, never an act (RS §13.7). A capture file is
+  a readable claim; native origin is not verified (as `file_act_view`).
+  `run_ended` lists every recorded arrival whose latest disposition is
+  *waiting* (CE-17), after counting the acts recorded since the last
+  observation; after a relaunch (`end_recorded_run`) the acts are counted from
+  the run's own record first. While an arrival waits and the act records
+  cannot be read, either end is refused with the reason. Readings where EXEC
+  is silent, chosen in implementation:
   - An App-content act is on an arrival's subject when its bound subject
     names the arrival's file; that binding is taken as covering the referent
     (SP-5), since the declared scope is prose. AW-7's content identity is
     read when the App observes the completed change, with that limit.
   - The arrival's time and the act's capture time order "earlier act" against
-    "after arrival" (both App-written RFC 3339 times; a record with another
-    time form is not counted).
-  - A decline captured before the arrival does not resolve it (the transition
-    table consumes CE-8 only from *waiting*).
+    "after arrival" (both App-written RFC 3339 times; equal times are "after
+    arrival"; a record with another time form is not counted).
+  - Before the arrival, the latest decision of the required kind on the
+    current content governs (design-owner choice for this implementation,
+    2026-10-11): an act makes the arrival *performed* "by earlier act"
+    (SP-6), a decline resolves it negatively (CE-8), and earlier decisions of
+    that kind on that content are superseded. A decline counts only on the
+    arrival's current content (its capture's content), before or after the
+    arrival.
+  - Content is compared only under the same method (SB-1): an act whose
+    content identity has another method is neither counted nor recorded as
+    "act on other content".
+  - Declared and reported paths are normalized the same way (`.` segments,
+    repeated separators; `..` never matches) and the arrival's file is
+    resolved in the project as the act control resolves its subjects, so a
+    linked directory binds the file it names. AW-7's content is read as one
+    non-blocking regular-file snapshot of at most 256 MiB.
   - CE-4's `time` is the App's observation time and its evidence a
     "conversation item" reference to the server request; a person-input
     request names no act kind, subject or purpose as structured elements.
@@ -590,6 +612,8 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   - Later acts on a decided arrival are not recorded (§4.6 says they are
     recorded and shown); acts after the run end (CE-16), lapses (CE-10) and
     observation loss (CE-13, CE-14) are not recorded.
+  - The act records are read again only when the record logs or the capture
+    store change (paths, sizes, modification times).
   - Arrivals for host operations and host outcomes stay not evaluable (no
     host mapping, ADAPTER NM-2), so CE-7 never arises. An empty list still
     means only that no evaluated arrival is waiting.

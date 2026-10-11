@@ -82,7 +82,9 @@ fn identity(v: &Value) -> ContentIdentity {
         value: v["value"].as_str().unwrap_or("").into(),
     }
 }
-fn capture(root: &Path, body: &Value) -> Result<Value, String> {
+/// The one capture object a file act or decline record cites, read from the
+/// capture store and schema-checked (SP-3, RS R-8). Shared with the checkpoint recorder.
+pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
     let refs = body["captureEvidence"]
         .as_array()
         .ok_or("Capture reference missing")?;
@@ -98,6 +100,27 @@ fn capture(root: &Path, body: &Value) -> Result<Value, String> {
         return Err("Capture identity mismatch".into());
     }
     Ok(capture)
+}
+/// Whether a file act or decline record says what its capture says: kind,
+/// choice, actor, subject, time and, for an act, content, scope, purpose and
+/// direct capture. Shared with the checkpoint recorder.
+pub(crate) fn corresponds(c: &Value, record: &Value) -> bool {
+    let b = &record["body"];
+    let decline = record["kind"] == "act_declined";
+    let kind = if decline { &b["declinedKind"] } else { &b["actKind"] };
+    c["actKind"] == *kind
+        && c["choice"] == if decline { "decline" } else { "act" }
+        && if decline {
+            c["actor"] == b["actor"] && c["boundSubject"] == b["subject"] && c["capturedAt"] == b["time"]
+        } else {
+            c["actor"] == b["decisionActor"]
+                && c["boundSubject"] == b["boundSubject"]
+                && c["boundContent"] == b["boundContent"]
+                && c["scope"] == b["scope"]
+                && c["purpose"] == b["purpose"]
+                && c["capturedAt"] == b["captureTime"]
+                && b["recordingMode"] == "direct capture"
+        }
 }
 // Read one nonblocking regular-file snapshot; preserve RS sequence and partial-line
 // limits before passing schema-readable claims to the shared correction projector.
@@ -193,23 +216,7 @@ pub(crate) fn read(root: &Path) -> Value {
         if let Err(e) = &found {
             row_limits.push(e.clone());
         }
-        let correspondence = captured.is_some_and(|c| {
-            c["actKind"] == *kind
-                && c["choice"] == if decline { "decline" } else { "act" }
-                && if decline {
-                    c["actor"] == b["actor"]
-                        && c["boundSubject"] == b["subject"]
-                        && c["capturedAt"] == b["time"]
-                } else {
-                    c["actor"] == b["decisionActor"]
-                        && c["boundSubject"] == b["boundSubject"]
-                        && c["boundContent"] == b["boundContent"]
-                        && c["scope"] == b["scope"]
-                        && c["purpose"] == b["purpose"]
-                        && c["capturedAt"] == b["captureTime"]
-                        && b["recordingMode"] == "direct capture"
-                }
-        });
+        let correspondence = captured.is_some_and(|c| corresponds(c, record));
         if !correspondence {
             row_limits.push(
                 "Capture correspondence unavailable or differs; no evidenced current act derived"

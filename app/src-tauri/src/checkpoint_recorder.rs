@@ -17,7 +17,8 @@
 //!   elicitation received in the run while an arrival waits (RC-5);
 //! - CE-5 `act_counted`, CE-6 `act_not_counted` and CE-8 `arrival_declined`
 //!   from the human-act and act-declined records in the project's record set
-//!   (RS §6, written by the App act control), with their CE-18 labels
+//!   (RS §6, written by the App act control), each verified against the one
+//!   capture object it cites ([`project_act_records`]), with their CE-18 labels
 //!   (SP-1…SP-8, SP-6 earlier acts included; [`count_acts`]);
 //! - CE-12 `continued_past` once per waiting arrival, for the first agent run
 //!   action (RC-9) the App received after the arrival, and CE-11
@@ -35,10 +36,10 @@ use std::path::Path;
 
 /// The App's exact-byte content method (RS §6.2a, CC-CONTENT-RX).
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
-const ACT_COUNTING: &str = "Acts are counted from the human-act and act-declined records in this project's record set (the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). Acts on host content and A12 control relations are not observed by this App.";
+const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). Acts on host content and A12 control relations are not observed by this App.";
 const MESSAGE_ACT_LIMIT: &str = "No App act control binds an act to an agent message (CAP-1 binds App files by content identity), so no act can be counted for this arrival.";
 const MESSAGE_LIMIT: &str = "The designating line marks where the agent put the output; it does not show that the content is what the declaration describes (AW-6).";
-const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path as text, after removing the project root from an absolute path; how Codex reports file paths is not observed (O-8, U-E26).";
+const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path after removing the project root from an absolute path and normalizing `.` segments and repeated separators on both sides; a path with `..` never matches; how Codex reports file paths is not observed (O-8, U-E26).";
 const FILE_READ_LIMIT: &str = "The file's content identity was read by the App when it observed the completed change; a later change made before that read is not distinguished (AW-7).";
 const CALL_LIMIT: &str = "arrival observed at call start; dispatch order not established";
 /// RC-9 run actions at the definition pin; agent messages, reasoning and plans are conversation.
@@ -138,7 +139,20 @@ pub(crate) struct CheckpointRecorder {
 /// One recorder output: the RS entry kind and its CE body.
 pub(crate) type Output = (&'static str, Value);
 /// The project's human-act and act-declined records, read only when needed.
-pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<Vec<Value>, String>;
+pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
+
+/// The project's App-file acts and declines as the recorder may count them.
+/// `acts` are `{record, capture}`: current (uncorrected) records written by
+/// the App's capturing surface whose one cited capture object resolves,
+/// validates and says what the record says (SP-3, RS R-8, HA-1).
+/// `unresolved` are `{record, reason}`: records that claim a file act but
+/// cannot be so verified; they never become acts (RS §13.7) and are shown as
+/// an "unresolvable reference" limit on an arrival whose file they name.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ActRead {
+    pub acts: Vec<Value>,
+    pub unresolved: Vec<Value>,
+}
 
 /// Where the run is, as the recorder needs it.
 pub(crate) struct RunScope<'a> {
@@ -294,7 +308,7 @@ impl CheckpointRecorder {
         events.sort_by(|a, b| a.0.cmp(&b.0));
         let mut written: Vec<Output> = Vec::new();
         // The act records, read at most once per observation and only while an arrival waits.
-        let mut records: Option<Vec<Value>> = None;
+        let mut records: Option<ActRead> = None;
         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         for (at, key, event) in events {
             match event {
@@ -339,6 +353,11 @@ impl CheckpointRecorder {
                                         if *time >= performed {
                                             arrival.resumed = true;
                                             written.push(("run_resumed", json!({"arrival":arrival.reference(),"firstActionRef":reference,"time":time})));
+                                        } else if !arrival.continued {
+                                            // Started before the act that answered: it went on past the
+                                            // checkpoint, although the act was counted first (PH-7).
+                                            arrival.continued = true;
+                                            written.push(("continued_past", json!({"arrival":arrival.reference(),"actionRef":reference,"actKind":arrival.act})));
                                         }
                                     }
                                     _ => arrival.resumed = true,
@@ -401,7 +420,7 @@ impl CheckpointRecorder {
     /// CE-5, CE-6, CE-8 for the arrivals still waiting, from the project's
     /// act records (read once, lazily). A read that fails counts nothing and
     /// is retried at the next observation; nothing is inferred (RC-2).
-    fn count(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<Vec<Value>, String>, records: &mut Option<Vec<Value>>) {
+    fn count(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) {
         let all: Vec<Value> = entries.iter().cloned().chain(written.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
         if waiting_arrivals(&all).is_empty() {
             return;
@@ -418,7 +437,9 @@ impl CheckpointRecorder {
                 }
             }
         }
-        written.extend(count_acts(&all, records.as_deref().unwrap_or_default(), root));
+        if let Some(read) = records.as_ref() {
+            written.extend(count_acts(&all, read, root));
+        }
     }
 
     /// Which listed checkpoints a completed row meets, each with its bound
@@ -441,7 +462,7 @@ impl CheckpointRecorder {
                     if !paths.iter().any(|p| same_path(p, path, scope.project_root)) {
                         continue;
                     }
-                    found.push((index, referents(listed, output, &format!("file {path}"), file_content(scope.project_root, path)), vec![FILE_LIMIT, FILE_READ_LIMIT]));
+                    found.push((index, referents(listed, output, &format!("file {}", normal(path).unwrap_or_else(|| path.clone())), file_content(scope.project_root, path)), vec![FILE_LIMIT, FILE_READ_LIMIT]));
                 }
                 _ => {}
             }
@@ -496,19 +517,60 @@ fn request_body(request: &Value, current: &[Value]) -> Option<Value> {
     Some(body)
 }
 
+/// The largest file whose content identity AW-7 reads.
+const FILE_READ_CAP: u64 = 256 * 1024 * 1024;
 /// AW-7's bound content: the exact bytes of the declared file in the project,
-/// read now; not obtainable when the file cannot be read inside the project.
+/// read now as one coherent snapshot (RS §6.2a): a regular file inside the
+/// project, opened without following a final link and without blocking,
+/// hashed as it streams, with its identity and times unchanged across the
+/// read. Anything else is not obtainable, so no act can count for it.
 fn file_content(root: &Path, declared: &str) -> Value {
-    let read = (|| -> Result<Vec<u8>, String> {
+    let read = (|| -> Result<String, String> {
+        use sha2::Digest;
+        use std::io::Read;
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
         let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
-        let file = std::fs::canonicalize(root.join(declared)).map_err(|e| format!("file not readable: {e}"))?;
-        if !file.starts_with(&root) {
+        let rel = normal(declared).ok_or("the declared path is not a plain project-relative path")?;
+        let file = std::fs::canonicalize(root.join(rel)).map_err(|e| format!("file not readable: {e}"))?;
+        if !file.starts_with(&root) || file == root {
             return Err("the declared path resolves outside the project".into());
         }
-        std::fs::read(&file).map_err(|e| format!("file not readable: {e}"))
+        let stamp = |m: &std::fs::Metadata| (m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec());
+        let named = std::fs::symlink_metadata(&file).map_err(|e| format!("file not readable: {e}"))?;
+        if !named.file_type().is_file() {
+            return Err("not a regular file".into());
+        }
+        let mut f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&file).map_err(|e| format!("file not readable: {e}"))?;
+        let before = f.metadata().map_err(|e| e.to_string())?;
+        if !before.is_file() || stamp(&before) != stamp(&named) {
+            return Err("not the regular file named by the path".into());
+        }
+        if before.len() > FILE_READ_CAP {
+            return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
+        }
+        let mut hasher = sha2::Sha256::new();
+        let mut buf = vec![0u8; 64 * 1024];
+        let mut total = 0u64;
+        loop {
+            let n = f.read(&mut buf).map_err(|e| format!("file not readable: {e}"))?;
+            if n == 0 {
+                break;
+            }
+            total += n as u64;
+            if total > FILE_READ_CAP {
+                return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
+            }
+            hasher.update(&buf[..n]);
+        }
+        let after = f.metadata().map_err(|e| e.to_string())?;
+        let named_after = std::fs::symlink_metadata(&file).map_err(|e| e.to_string())?;
+        if stamp(&before) != stamp(&after) || stamp(&after) != stamp(&named_after) {
+            return Err("the file changed while it was read".into());
+        }
+        Ok(format!("{:x}", hasher.finalize()))
     })();
     match read {
-        Ok(bytes) => json!({"method":EXACT_BYTES,"value":crate::util::sha256_hex(&bytes),"scope":"the file's bytes as the App read them after observing the completed change"}),
+        Ok(value) => json!({"method":EXACT_BYTES,"value":value,"scope":"the file's bytes as the App read them after observing the completed change"}),
         Err(reason) => json!({"notObtainable":true,"reason":format!("{reason}; no act can be counted for this referent (SP-4)")}),
     }
 }
@@ -521,29 +583,37 @@ fn comparable(time: &str) -> bool {
 }
 
 /// CE-5, CE-6, CE-8 (EXEC §2.4.3, §4.5 SP-1…SP-8, RC-7) over a run's
-/// entries (`kind`, `body`) and the project's act records (RS entries).
+/// entries (`kind`, `body`) and the project's verified acts ([`ActRead`]).
 /// Rebuildable (RC-10): an act already cited for an arrival is not read
 /// again, and only arrivals whose latest label is *waiting* are evaluated.
 ///
 /// An act is on an arrival's subject when the arrival's one referent is the
-/// declared file of a named output (AW-7) and the act's bound subject names
-/// that file in the project. Then, in capture order, until the arrival is
+/// declared file of a named output (AW-7) and the act's bound subject is that
+/// file as resolved in the project now. Content is compared only under the
+/// same method (SB-1); under another method it is incomparable and neither
+/// counts nor is said to differ. In capture order, until the arrival is
 /// decided (§4.6: the first decides):
-/// - an act-declined event of the required kind captured at or after the
-///   arrival event resolves it negatively (CE-8);
+/// - before the arrival, the latest decision of the required kind on the
+///   current content governs: an act makes the arrival *performed* "by
+///   earlier act" (SP-6); a decline resolves it negatively (CE-8); earlier
+///   decisions of that kind on that content are superseded;
+/// - at or after the arrival, a decline of the required kind on the current
+///   content resolves it negatively, and an act of the required kind on the
+///   current content counts (CE-5);
 /// - an act of another kind is not counted, "another act kind" (CE-6);
-/// - an act of the required kind whose bound content equals the referent's
-///   content counts (CE-5), "earlier act" when captured before the arrival
-///   event (SP-6), and the arrival is *performed*;
-/// - otherwise it is not counted: "content no longer current" when captured
-///   before the arrival, "act on other content" after it (CE-6).
+/// - an act of the required kind on other content is not counted: "content
+///   no longer current" before the arrival, "act on other content" after it.
 ///
-/// A referent whose content is not obtainable binds no act (A-5, SP-4). An
-/// act record without resolved capture evidence, a decision actor and direct
-/// capture is not an act for counting (SP-2, SP-3; PH-4).
-pub(crate) fn count_acts(entries: &[Value], records: &[Value], root: &Path) -> Vec<Output> {
+/// A referent whose content is not obtainable binds no act (A-5, SP-4). A
+/// record that claims an act on the arrival's file but cannot be verified
+/// against its capture adds an "unresolvable reference" limit, once.
+pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<Output> {
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let mut out: Vec<Output> = Vec::new();
+    let named = |record: &Value| -> Value {
+        let b = &record["body"];
+        if record["kind"] == "act_declined" { b["subject"].clone() } else { b["boundSubject"].clone() }
+    };
     for arrival_entry in entries.iter().filter(|e| e["kind"] == "checkpoint_arrival") {
         let body = &arrival_entry["body"];
         let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
@@ -553,67 +623,92 @@ pub(crate) fn count_acts(entries: &[Value], records: &[Value], root: &Path) -> V
         if !subject.starts_with("output ") || !comparable(arrived) {
             continue;
         }
-        let on_subject = |named: &Value| -> Option<usize> {
-            named.as_array()?.iter().position(|s| {
-                s.as_str().and_then(|p| Path::new(p).strip_prefix(&root).ok()).and_then(Path::to_str)
-                    .is_some_and(|rel| !rel.is_empty() && subject.ends_with(&format!(": file {rel}")))
-            })
+        // The arrival's file, resolved now as the act control resolves its subjects.
+        let files: Vec<std::path::PathBuf> = subject.match_indices(": file ")
+            .filter_map(|(i, m)| normal(&subject[i + m.len()..]))
+            .filter_map(|rel| std::fs::canonicalize(root.join(rel)).ok())
+            .filter(|f| f.starts_with(&root) && *f != root)
+            .collect();
+        if files.is_empty() {
+            continue;
+        }
+        let on_subject = |subjects: &Value| -> Option<usize> {
+            subjects.as_array()?.iter().position(|s| s.as_str().is_some_and(|p| files.iter().any(|f| Path::new(p) == f)))
         };
-        let mut candidates: Vec<(&str, &str, &Value, usize)> = records.iter().filter_map(|r| {
-            let id = r["recordId"].as_str()?;
-            let b = &r["body"];
-            let evidenced = b["captureEvidence"].as_array()?.iter().any(|e| e["kind"] == "capture evidence" && e["resolutionAtWrite"] == "resolved");
-            match r["kind"].as_str()? {
-                "human_act" if evidenced && b["recordingMode"] == "direct capture" && b["decisionActor"].is_object() => {
-                    let time = b["captureTime"].as_str().filter(|t| comparable(t))?;
-                    Some((time, id, r, on_subject(&b["boundSubject"])?))
-                }
-                "act_declined" if evidenced => {
-                    let time = b["time"].as_str().filter(|t| comparable(t))?;
-                    Some((time, id, r, on_subject(&b["subject"])?))
-                }
-                _ => None,
+        let pending = |out: &[Output]| -> Vec<Value> { out.iter().map(|(k, b)| json!({"kind":k,"body":b})).collect() };
+        if disposition(entries, &out, &arrival).as_deref() != Some("waiting") {
+            continue;
+        }
+        for unresolved in &read.unresolved {
+            let record = &unresolved["record"];
+            let Some(id) = record["recordId"].as_str() else { continue };
+            let shown = pending(&out);
+            let limited = entries.iter().chain(shown.iter()).any(|e| e["kind"] == "evidence_limit" && e["body"]["label"] == "unresolvable reference" && e["body"]["subjectRef"] == id);
+            if !limited && on_subject(&named(record)).is_some() {
+                out.push(("evidence_limit", json!({"label":"unresolvable reference","subjectRef":id,
+                    "detail":format!("{}; not counted as an act (RS §13.7)", unresolved["reason"].as_str().unwrap_or("capture evidence not resolved"))})));
+            }
+        }
+        // (time, record identity, record, kind, content) of each verified act or decline on this file.
+        let mut candidates: Vec<(&str, &str, &Value, &str, &Value)> = read.acts.iter().filter_map(|a| {
+            let record = &a["record"];
+            let b = &record["body"];
+            let id = record["recordId"].as_str()?;
+            let index = on_subject(&named(record))?;
+            if record["kind"] == "act_declined" {
+                Some((b["time"].as_str().filter(|t| comparable(t))?, id, record, b["declinedKind"].as_str()?, &a["capture"]["boundContent"][index]))
+            } else {
+                Some((b["captureTime"].as_str().filter(|t| comparable(t))?, id, record, b["actKind"].as_str()?, &b["boundContent"][index]))
             }
         }).collect();
         candidates.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
-        for (time, id, record, index) in candidates {
-            let pending: Vec<Value> = out.iter().map(|(k, b)| json!({"kind":k,"body":b})).collect();
-            let seen = |kind: &str, b: &Value| b["arrival"] == arrival && match kind {
+        // SB-1: Some(equal) under the same method; None when incomparable.
+        let same = |content: &Value| -> Option<bool> { (content["method"] == method).then(|| content["value"] == value) };
+        let governing = candidates.iter().filter(|c| c.0 < arrived && c.3 == required && same(c.4) == Some(true)).last().map(|c| c.1);
+        for (time, id, record, kind, content) in candidates {
+            let before = time < arrived;
+            if before && kind == required && same(content) == Some(true) && Some(id) != governing {
+                continue; // superseded by a later decision before the arrival
+            }
+            let shown = pending(&out);
+            let seen = |k: &str, b: &Value| b["arrival"] == arrival && match k {
                 "act_counted" | "act_not_counted" => b["act"]["recordId"] == id,
                 "arrival_declined" => b["declinedEventRef"] == id,
                 _ => false,
             };
-            if entries.iter().chain(pending.iter()).any(|e| seen(e["kind"].as_str().unwrap_or_default(), &e["body"])) {
+            if entries.iter().chain(shown.iter()).any(|e| seen(e["kind"].as_str().unwrap_or_default(), &e["body"])) {
                 continue;
             }
             if disposition(entries, &out, &arrival).as_deref() != Some("waiting") {
                 break;
             }
-            let b = &record["body"];
-            let before = time < arrived;
             if record["kind"] == "act_declined" {
-                if b["declinedKind"] == required && !before {
+                if kind == required && same(content) == Some(true) {
                     out.push(("arrival_declined", json!({"arrival":arrival,"declinedEventRef":id})));
                     out.push(("disposition_change", json!({"arrival":arrival,"disposition":"resolved negatively","annotations":[]})));
                 }
                 continue;
             }
-            let Some(kind) = b["actKind"].as_str().filter(|k| ACT_KINDS.contains(k)) else { continue };
+            if !ACT_KINDS.contains(&kind) {
+                continue;
+            }
             let act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
-            let content = &b["boundContent"][index];
             let reason = if kind != required {
                 "another act kind"
-            } else if content["method"] == method && content["value"] == value {
-                let ordinal = 1 + entries.iter().chain(pending.iter())
-                    .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival && e["body"]["disposition"] == "performed").count();
-                out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
-                let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
-                out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":[id],"annotations":annotations})));
-                continue;
-            } else if before {
-                "content no longer current"
             } else {
-                "act on other content"
+                match same(content) {
+                    None => continue, // incomparable methods (SB-1): neither counted nor said to differ
+                    Some(true) => {
+                        let ordinal = 1 + entries.iter().chain(shown.iter())
+                            .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival && e["body"]["disposition"] == "performed").count();
+                        out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
+                        let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
+                        out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":[id],"annotations":annotations})));
+                        continue;
+                    }
+                    Some(false) if before => "content no longer current",
+                    Some(false) => "act on other content",
+                }
             };
             out.push(("act_not_counted", json!({"arrival":arrival,"act":act,"reason":reason,"capturedBeforeArrival":before})));
             let annotations = match (before, reason) {
@@ -646,13 +741,25 @@ fn produced_path(change: &Value) -> Option<&str> {
         _ => None,
     }
 }
-/// AW-7: the change's path against the declared project-relative path.
+/// A project-relative path with `.` segments and repeated separators
+/// removed; None for an absolute path, an empty one or one with `..`.
+fn normal(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty() && *p != ".").collect();
+    (!path.starts_with('/') && !parts.is_empty() && !parts.contains(&"..")).then(|| parts.join("/"))
+}
+/// AW-7: the change's path against the declared project-relative path, both
+/// normalized the same way; an absolute path counts only inside the root.
 fn same_path(changed: &str, declared: &str, root: &std::path::Path) -> bool {
-    if changed == declared {
-        return true;
-    }
     let root = root.to_string_lossy();
-    changed.strip_prefix(root.as_ref()).and_then(|rest| rest.strip_prefix('/')).is_some_and(|rest| rest == declared)
+    let relative = if changed.starts_with('/') {
+        match changed.strip_prefix(root.as_ref()).and_then(|rest| rest.strip_prefix('/')) {
+            Some(rest) => rest,
+            None => return false,
+        }
+    } else {
+        changed
+    };
+    normal(relative).is_some_and(|r| Some(r) == normal(declared))
 }
 /// The bound subject (WD §4.3.6): the output itself for "named output";
 /// any other class names objects this App does not identify.
@@ -699,14 +806,89 @@ pub(crate) fn waiting_arrivals(entries: &[Value]) -> Vec<Value> {
         .filter(|arrival| disposition(entries, &[], arrival).as_deref() == Some("waiting"))
         .collect()
 }
-/// The human-act and act-declined records of a project's record set; an
-/// incomplete record set is not read (nothing is counted from part of it).
-pub(crate) fn project_act_records(root: &Path) -> Result<Vec<Value>, String> {
-    let (all, limits) = crate::storage::read_all(root);
-    if !limits.is_empty() {
+/// The project's App-file acts and declines (A4, A6, A7), each verified
+/// against the one capture object it cites, as `file_act_view` reads them:
+/// the record set read once with its correction relations (RS W-3, R-6), a
+/// corrected record skipped, the recorder the App's capturing surface (PH-4),
+/// the capture resolved from the capture store, schema-checked and
+/// corresponding in kind, choice, actor, subject, content, scope, purpose and
+/// time, and one record per capture (RS R-8). An incomplete record set is not
+/// read: nothing is counted from part of it.
+pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
+    let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
+    let paths = crate::storage::discover(&root)?;
+    let projected = crate::decision_view::record_relations::read_logs(&paths);
+    if let Some(limits) = projected["readLimits"].as_array().filter(|l| !l.is_empty()) {
         return Err(format!("the project's record set is incomplete: {limits:?}"));
     }
-    Ok(all.into_iter().filter(|e| matches!(e["kind"].as_str(), Some("human_act" | "act_declined"))).collect())
+    let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()
+        .filter(|d| d["state"] == "nonconformant").filter_map(|d| d["recordId"].as_str()).collect();
+    let mut read = ActRead::default();
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut by_capture: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    for claim in projected["claims"].as_array().into_iter().flatten() {
+        let record = &claim["record"];
+        let decline = record["kind"] == "act_declined";
+        let b = &record["body"];
+        let kind = if decline { &b["declinedKind"] } else { &b["actKind"] };
+        if !(decline || record["kind"] == "human_act") || !matches!(kind.as_str(), Some("A4" | "A6" | "A7")) {
+            continue;
+        }
+        let Some(id) = record["recordId"].as_str() else { continue };
+        if nonconformant.contains(id) || !seen.insert(id.to_owned()) {
+            continue;
+        }
+        if claim["correctedBy"].as_array().is_some_and(|c| !c.is_empty()) {
+            continue; // a corrected record is not current (RS R-6)
+        }
+        let verified: Result<Value, String> = if let Some(limit) = claim["relationLimit"].as_str() {
+            Err(format!("record relation not resolved: {limit}"))
+        } else if claim["identityResolution"] == "conflicting identity" {
+            Err("conflicting record identity".into())
+        } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
+            Err("not written by the App's capturing surface (PH-4)".into())
+        } else {
+            match crate::file_act_view::capture(&root, b) {
+                Err(e) => Err(format!("capture evidence not resolved: {e}")),
+                Ok(capture) if !crate::file_act_view::corresponds(&capture, record) => Err("the record differs from the capture it cites".into()),
+                Ok(capture) => Ok(capture),
+            }
+        };
+        match verified {
+            Ok(capture) => {
+                by_capture.entry(capture["captureId"].as_str().unwrap_or_default().to_owned()).or_default().push(id.to_owned());
+                read.acts.push(json!({"record":record,"capture":capture}));
+            }
+            Err(reason) => read.unresolved.push(json!({"record":record,"reason":reason})),
+        }
+    }
+    // RS R-8: one capture is one act; records sharing a capture are none of them acts.
+    let shared: BTreeSet<&String> = by_capture.values().filter(|ids| ids.len() > 1).flatten().collect();
+    if !shared.is_empty() {
+        let (kept, refused): (Vec<Value>, Vec<Value>) = read.acts.into_iter().partition(|a| a["record"]["recordId"].as_str().is_none_or(|id| !shared.contains(&id.to_owned())));
+        read.acts = kept;
+        read.unresolved.extend(refused.into_iter().map(|a| json!({"record":a["record"],"reason":"several records cite one capture (RS R-8)"})));
+    }
+    Ok(read)
+}
+/// A fingerprint of the project's record logs and capture store (paths,
+/// sizes and modification times): the act records are read again only when
+/// it changes.
+pub(crate) fn act_records_fingerprint(root: &Path) -> Option<Vec<(String, u64, i64, i64)>> {
+    use std::os::unix::fs::MetadataExt;
+    let mut paths = crate::storage::discover(root).ok()?;
+    let store = crate::storage::capture_path(root, "x");
+    if let Some(dir) = store.parent() {
+        paths.push(dir.to_path_buf());
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            paths.extend(entries.filter_map(|e| e.ok().map(|e| e.path())));
+        }
+    }
+    paths.sort();
+    Some(paths.into_iter().map(|p| {
+        let m = std::fs::metadata(&p).ok();
+        (p.to_string_lossy().into_owned(), m.as_ref().map_or(0, |m| m.len()), m.as_ref().map_or(0, |m| m.mtime()), m.as_ref().map_or(0, |m| m.mtime_nsec()))
+    }).collect())
 }
 
 #[cfg(test)]
