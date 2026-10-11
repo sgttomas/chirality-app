@@ -283,6 +283,204 @@ fn supply_complete_mode_refuses_before_recognising_a_written_entry_beside_a_torn
     assert_eq!(crate::records::supply::append_run_entry_in(&root,"run:x",&mut third,ReadableBesideIncomplete).unwrap()["recordId"],entry.record_id.as_str());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// The live end records without repairing unrelated logs, including when nothing
+// waits and there is no reason to read acts or invent an unread-act limit.
+#[test]
+fn live_end_beside_a_torn_log_with_nothing_waiting_is_recorded_plainly(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let (other,_)=break_act_log(&peer);let torn=std::fs::read(&other).unwrap();
+    let ended=root.runs[&a].lock().unwrap().end_run(None,None).unwrap();
+    assert_eq!(ended["recorded"],true,"{ended}");
+    let log=own_log(&peer,&a);
+    assert!(!log.iter().any(act_records_limit));
+    assert_eq!(log.last().unwrap()["kind"],"run_ended");
+    assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([]));
+    assert_eq!(std::fs::read(&other).unwrap(),torn,"the unrelated log is untouched");
+}
+
+// W-2: observations held while the run is open, including R3, drain at the
+// explicit end with their original identities/times and late-write limits.
+#[test]
+fn live_end_drains_pending_checkpoint_and_r3_before_its_end_beside_a_torn_log(){
+    let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+    std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+    let (other,_)=break_act_log(&peer);let torn=std::fs::read(&other).unwrap();
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();
+    run.observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+    peer.select_history();let check=run.check_native_supply().unwrap()["check"].clone();
+    assert_eq!(check["r3"]["state"],"pending write; missing in record","open runs retain Complete: {check}");
+    let r3=check["r3"]["recordId"].as_str().unwrap().to_owned();
+    let pending:Vec<_>=run.entries.iter().filter(|e|e.pending()).map(|e|(e.record_id.clone(),e.observed_at.clone())).collect();
+    assert!(!pending.is_empty());
+    let r3_at=match &run.checks.last().unwrap().r3 {WorkflowR3::Pending(p)=>p.observed_at().to_owned(),_=>panic!("R3 must be pending")};
+    run.end_run(None,None).unwrap();
+    assert!(!run.has_pending_records(),"{}",run.view(&a));
+    let log=own_log(&peer,&a);let end=log.iter().position(|e|e["kind"]=="run_ended").unwrap();
+    for (id,at) in pending.into_iter().chain(std::iter::once((r3,r3_at))) {
+        let written:Vec<_>=log.iter().enumerate().filter(|(_,e)|e["recordId"]==id.as_str()).collect();
+        assert_eq!(written.len(),1,"reserved identity written once");
+        let (pos,e)=written[0];assert_eq!(e["observedAt"],at.as_str());
+        let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==id.as_str()).unwrap();
+        assert!(pos<limit&&limit<end,"late observation, its limit, then end");
+    }
+    assert!(log.iter().position(act_records_limit).unwrap()<end);
+    let before=std::fs::read(crate::records::supply::run_log(&peer.fixture.root,&a)).unwrap();
+    run.retry_records().unwrap();
+    assert_eq!(std::fs::read(crate::records::supply::run_log(&peer.fixture.root,&a)).unwrap(),before,"retry duplicates nothing");
+    assert_eq!(std::fs::read(&other).unwrap(),torn);
+}
+
+// The person's hot end still ends the run when its owning target cannot be
+// written; the record stays pending and retries preserve the original end.
+#[test]
+fn live_end_own_torn_log_holds_writes_until_repair_even_beside_another_torn_log(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn=std::fs::read(&own).unwrap();let (other,_)=break_act_log(&peer);let other_bytes=std::fs::read(&other).unwrap();
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();let ended=run.end_run(None,None).unwrap();
+    assert_eq!(ended["recorded"],false);assert_eq!(run.lifecycle,RunLifecycle::Ended);assert!(run.has_pending_records());
+    let end=run.entries.iter().find(|e|e.kind=="run_ended").unwrap().clone();
+    run.retry_records().unwrap();assert_eq!(std::fs::read(&own).unwrap(),torn,"no append to the owning torn log");
+    std::fs::write(&own,before).unwrap();run.retry_records().unwrap();
+    assert!(!run.has_pending_records());let log=own_log(&peer,&a);
+    let written=log.iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(written["recordId"],end.record_id);assert_eq!(written["observedAt"],end.observed_at);
+    assert_eq!(log.last().unwrap()["body"]["subjectRef"],end.record_id);
+    assert_eq!(std::fs::read(&other).unwrap(),other_bytes);
+}
+
+// An uncertain landed entry is not reconciled from a matching prefix of an
+// incomplete own log, nor through a symlink. Failed discovery can still recover
+// a complete owning entry and its late limit without writing either twice.
+#[test]
+fn live_end_reconciles_uncertain_own_writes_when_discovery_fails_but_refuses_own_tails_and_aliases(){
+    use crate::records::RecordSet::ReadableBesideIncomplete;
+    let peer=Peer::new();let run="run:uncertain";
+    let mut original=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),"2026-10-11T00:00:00Z".into()).unwrap();
+    let mut pending=original.clone();pending.failure=Some("injected uncertain sync".into());
+    crate::records::supply::append_run_entry(&peer.fixture.root,run,&mut original).unwrap();
+    crate::records::append_project(&peer.fixture.root,Some(run),"other-writer","evidence_limit",&crate::records::APP_WRITER,
+        json!({"label":"record write failed","subjectRef":original.record_id,"detail":"another writer's claim cannot settle this writer's late limit"})).unwrap();
+    let own=crate::records::supply::run_log(&peer.fixture.root,run);let complete=std::fs::read(&own).unwrap();
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn=std::fs::read(&own).unwrap();
+    assert!(crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut pending,ReadableBesideIncomplete).is_err_and(|e|e.contains("owning log incomplete")));
+    assert!(pending.written.is_none());assert_eq!(std::fs::read(&own).unwrap(),torn);
+    std::fs::write(&own,complete).unwrap();
+    let alias=peer.fixture.root.join(".chirality/records/acts/discovery-alias.jsonl");std::fs::create_dir_all(alias.parent().unwrap()).unwrap();std::os::unix::fs::symlink(&own,&alias).unwrap();
+    assert!(!crate::storage::read_all(&peer.fixture.root).1.is_empty(),"discovery fails on alias");
+    let mut again=pending.clone();
+    crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut pending,ReadableBesideIncomplete).unwrap();
+    let settled=std::fs::read(&own).unwrap();
+    crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut again,ReadableBesideIncomplete).unwrap();
+    assert_eq!(std::fs::read(&own).unwrap(),settled,"landed entry and late limit each appear once");
+    let log=crate::records::read_log(&own).0;assert_eq!(log.len(),2);assert_eq!(log[1]["body"]["subjectRef"],original.record_id);
+    std::fs::remove_file(&alias).unwrap();
+    let relocated=peer.fixture.root.join("saved-own-log");std::fs::rename(&own,&relocated).unwrap();std::os::unix::fs::symlink(&relocated,&own).unwrap();
+    again.written=None;
+    assert!(crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut again,ReadableBesideIncomplete).is_err());
+    assert_eq!(std::fs::read(&relocated).unwrap(),settled);
+}
+
+// Readable duplicates cannot be hidden by an earlier exact matching entry.
+#[test]
+fn live_end_matching_own_entry_does_not_hide_readable_conflicting_content(){
+    for detail in ["different content","d"] {
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();
+        let pending=entry.clone();crate::records::supply::append_run_entry(&peer.fixture.root,&a,&mut entry).unwrap();
+        let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
+        let mut conflict=entry.written.clone().unwrap();conflict["body"]["detail"]=json!(detail);
+        let other=crate::storage::project_log(&peer.fixture.root,None,"duplicate-fixture");std::fs::create_dir_all(other.parent().unwrap()).unwrap();std::fs::write(&other,format!("{conflict}\n")).unwrap();
+        break_act_log(&peer);let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();run.entries.push(pending);
+        assert_eq!(run.end_run(None,None).unwrap()["recorded"],false);
+        let held=run.entries.iter().find(|e|e.record_id==entry.record_id).unwrap();assert!(held.pending()&&held.refused.is_none());
+        assert_eq!(std::fs::read(&own).unwrap(),before,"already-landed observation cannot be called never written");
+        std::fs::remove_file(&other).unwrap();run.retry_records().unwrap();assert!(!run.has_pending_records());
+        assert_eq!(own_log(&peer,&a).iter().filter(|e|e["recordId"]==entry.record_id).count(),1);
+    }
+}
+
+#[test]
+fn live_end_exact_foreign_copy_cannot_supply_an_owning_write_receipt(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let pending=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();let id=pending.record_id.clone();
+    crate::records::append_project_reserved(&peer.fixture.root,&a,"foreign-copy",pending.kind,&crate::records::APP_WRITER,pending.body.clone(),&id,&pending.observed_at).unwrap();
+    break_act_log(&peer);let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();run.entries.push(pending);
+    assert_eq!(run.end_run(None,None).unwrap()["recorded"],false);assert!(run.has_pending_records());
+    let held=run.entries.iter().find(|e|e.record_id==id).unwrap();assert!(held.pending()&&held.refused.is_none());
+    assert_eq!(std::fs::read(&own).unwrap(),before,"a foreign copy cannot settle the owning observation or let the end skip it");
+}
+
+#[test]
+fn live_end_conflicting_late_limit_keeps_its_already_landed_parent_pending(){
+    use crate::records::RecordSet::ReadableBesideIncomplete;
+    let peer=Peer::new();let run="run:late-limit";
+    let mut entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),"2026-10-11T00:00:00Z".into()).unwrap();entry.failure=Some("injected uncertain write".into());
+    let mut pending=entry.clone();crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut entry,ReadableBesideIncomplete).unwrap();
+    let own=crate::records::supply::run_log(&peer.fixture.root,run);let before=std::fs::read(&own).unwrap();let limit=crate::records::read_log(&own).0.last().unwrap().clone();
+    let other=crate::storage::project_log(&peer.fixture.root,None,"conflicting-limit");std::fs::create_dir_all(other.parent().unwrap()).unwrap();std::fs::write(&other,format!("{limit}\n")).unwrap();break_act_log(&peer);
+    assert!(crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut pending,ReadableBesideIncomplete).is_err_and(|e|e.contains("owning limit cannot be reconciled")));
+    assert!(pending.written.is_none());assert_eq!(std::fs::read(&own).unwrap(),before);
+    assert!(crate::records::supply::permanent_refusal_in(&peer.fixture.root,run,pending.kind,&pending.record_id,&pending.body,&pending.observed_at,ReadableBesideIncomplete).is_none());
+    std::fs::remove_file(&other).unwrap();crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut pending,ReadableBesideIncomplete).unwrap();
+    assert_eq!(std::fs::read(&own).unwrap(),before,"reconciliation adds no duplicate late limit");
+}
+
+// R3 uses the same guarded uncertain-write reconciliation as lifecycle entries.
+#[test]
+fn live_end_r3_matching_prefix_in_a_torn_own_log_stays_pending(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();peer.select_history();run.check_native_supply().unwrap();
+    let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+    let slot=run.checks.last_mut().unwrap();
+    slot.r3=WorkflowR3::Pending(crate::records::supply::prepare_live(&project,slot.published.as_ref().unwrap()).unwrap());
+    let pending=match &mut slot.r3 {WorkflowR3::Pending(p)=>p,_=>unreachable!()};
+    crate::records::supply::append_live(&project,slot.published.as_ref().unwrap(),pending,crate::records::RecordSet::Complete).unwrap();
+    let id=pending.record_id().to_owned();pending.hold("injected uncertain write");
+    let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn=std::fs::read(&own).unwrap();break_act_log(&peer);
+    run.end_run(None,None).unwrap();assert!(run.has_pending_records());
+    assert!(matches!(&run.checks.last().unwrap().r3,WorkflowR3::Pending(_)));assert_eq!(std::fs::read(&own).unwrap(),torn);
+    std::fs::write(&own,before).unwrap();run.retry_records().unwrap();
+    assert!(!run.has_pending_records());let log=own_log(&peer,&a);
+    assert_eq!(log.iter().filter(|e|e["recordId"]==id.as_str()).count(),1);
+    let late=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==id.as_str()).unwrap();let end=log.iter().position(|e|e["kind"]=="run_ended").unwrap();
+    assert!(late<end);
+}
+
+// A readable collision remains definite at an end even beside unreadable
+// unrelated lines. Its never-written limit precedes the end, rather than
+// dropping the conflict or holding the run forever.
+#[test]
+fn live_end_readable_collision_is_refused_with_a_limit_before_end(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();
+    let entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();let id=entry.record_id.clone();
+    crate::records::append_with_id(&crate::storage::project_log(&peer.fixture.root,None,"conflict-fixture"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),&id).unwrap();
+    run.entries.push(entry);let (other,_)=break_act_log(&peer);let torn=std::fs::read(&other).unwrap();
+    run.flush_records();assert!(run.entries.last().unwrap().pending(),"open-run policy keeps the incomplete set pending");
+    run.end_run(None,None).unwrap();assert!(!run.has_pending_records());
+    let log=own_log(&peer,&a);assert!(!log.iter().any(|e|e["recordId"]==id.as_str()));
+    let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==id.as_str()).unwrap();let end=log.iter().position(|e|e["kind"]=="run_ended").unwrap();
+    assert!(limit<end);assert!(log[limit]["body"]["detail"].as_str().unwrap().contains("already held"));
+    assert_eq!(std::fs::read(&other).unwrap(),torn);
+}
+
+#[test]
+fn live_end_unconfirmed_start_is_refused_beside_an_incomplete_log(){
+    for failure in ["error","exit"] {
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        peer.set_mode("turn-mode",failure);let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();assert!(run.send().is_err());
+        break_act_log(&peer);
+        assert!(run.end_run(None,None).is_err_and(|e|e.contains("Only an open run")));
+        assert!(!own_log(&peer,&a).iter().any(|e|e["kind"]=="run_opened"||e["kind"]=="run_ended"));
+    }
+}
 // CI-20 (j) review B1, RS W-2: the never-written limit takes the refused record's own
 // observation time, so a check observed after the next lifecycle entry is not written
 // before the limit or before that entry.

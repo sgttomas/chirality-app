@@ -612,7 +612,23 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   project logs do not refuse it. The writer checks the new identities against
   the readable entries (CC-ID): every readable entry when the logs can be
   discovered, and only the run's own log when discovery itself fails. While an
-  arrival waits, the limit above names the unread records. Readings where EXEC is silent, chosen in
+  arrival waits, the limit above names the unread records. The live end now
+  applies that same readable-entry policy to its ordered run flush, including
+  earlier pending observations, R3 checks and their late-write limits; it does
+  not skip them to write the end. Open runs retain the complete-set policy.
+  A live end with an incomplete owning target stays ended in memory with its
+  records pending (W-2); repair and retry retain the reserved identities and
+  original observation times. Unresolved matching writes are recognised only
+  after checking the owning path/log and re-establishing durability; a late
+  limit must be in the owning writer's log. Readable conflicting content is
+  permanently refused with its limit before later entries proceed (CI-20 (j))
+  when no matching owning receipt has landed. A matching owning receipt with
+  duplicate/conflicting identity, or an exact copy found only in another log,
+  stays pending with that reason; it is neither settled nor called never written.
+  An unread line elsewhere still cannot be checked for an identity collision;
+  writer-minted UUIDv4 identities provide CC-ID's probabilistic resistance.
+  No completeness or recovered lifecycle is inferred for the unrelated log.
+  Readings where EXEC is silent, chosen in
   implementation:
   - An App-content act is on an arrival's subject when its bound subject
     names the arrival's file; that binding is taken as covering the referent

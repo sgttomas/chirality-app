@@ -5996,6 +5996,7 @@ impl WorkflowCheckSlot {
         &mut self,
         project: &crate::workflow_workspace::publication::ProjectRecords,
         record_ready: bool,
+        set: crate::records::RecordSet,
     ) -> Option<crate::records::supply::PendingRunEntry> {
         if self.published.is_none() {
             match self.pending.publish(project) {
@@ -6020,11 +6021,11 @@ impl WorkflowCheckSlot {
             return None;
         }
         if let WorkflowR3::Pending(pending) = &mut self.r3 {
-            match crate::records::supply::append_live(project, published, pending) {
+            match crate::records::supply::append_live(project, published, pending, set) {
                 Ok(entry) => self.r3 = WorkflowR3::Recorded(entry),
                 Err(_) => {
                     let (id, body) = (pending.record_id().to_owned(), pending.body().clone());
-                    let refusal = crate::records::supply::permanent_refusal(project.root(), pending.run(), "supplied_guidance", &id, &body, pending.observed_at())
+                    let refusal = crate::records::supply::permanent_refusal_in(project.root(), pending.run(), "supplied_guidance", &id, &body, pending.observed_at(), set)
                         .and_then(|reason| crate::records::supply::never_written_limit("supplied_guidance", &id, &reason, pending.observed_at()).ok().map(|limit| (reason, limit)));
                     if let Some((reason, limit)) = refusal {
                         self.r3 = WorkflowR3::Unavailable(format!("never written: {reason}; a \"record write failed\" limit names {id} (CI-20 (j))"));
@@ -6267,12 +6268,20 @@ impl WorkflowRun {
     /// the writer refuses permanently (nonconformant, or its reserved identity held
     /// by a different entry) is not held: a "record write failed" limit names it as
     /// never written, and later entries proceed in order.
+    /// At an explicit end, unrelated incomplete logs no longer hold this run's
+    /// ordered writes (A-11). Its own target still must be complete; earlier
+    /// pending observations and their W-2 limits must settle before the end.
     fn flush_records(&mut self) {
         if self.held_end || self.hold_open_for.is_some() {
             return; // V10 G-2: written when the successor's start outcome is known
         }
         const HELD: &str = "held behind an earlier unwritten record of this run (W-2)";
         let run = self.prepared().scope().run.clone();
+        let set = if self.lifecycle == RunLifecycle::Ended {
+            crate::records::RecordSet::ReadableBesideIncomplete
+        } else {
+            crate::records::RecordSet::Complete
+        };
         let read_at = |slot: &WorkflowCheckSlot| slot.pending.body()["read_at"].as_str().unwrap_or("").to_owned();
         let mut stalled = false;
         loop {
@@ -6295,11 +6304,11 @@ impl WorkflowRun {
             }
             let Some((kind, index, _)) = next else { break };
             let progressed = match kind {
-                0 => match crate::records::supply::append_run_entry(&self.project_root, &run, &mut self.entries[index]) {
+                0 => match crate::records::supply::append_run_entry_in(&self.project_root, &run, &mut self.entries[index], set) {
                     Ok(_) => true,
                     Err(_) => {
                         let e = &self.entries[index];
-                        let refusal = crate::records::supply::permanent_refusal(&self.project_root, &run, e.kind, &e.record_id, &e.body, &e.observed_at)
+                        let refusal = crate::records::supply::permanent_refusal_in(&self.project_root, &run, e.kind, &e.record_id, &e.body, &e.observed_at, set)
                             .and_then(|reason| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok().map(|limit| (reason, limit)));
                         match refusal {
                             Some((reason, limit)) => {
@@ -6313,14 +6322,14 @@ impl WorkflowRun {
                 },
                 1 => {
                     let ready = self.entry_settled("run_opened");
-                    if let Some(limit) = self.checks[index].advance(&self.project, ready) {
+                    if let Some(limit) = self.checks[index].advance(&self.project, ready, set) {
                         self.insert_never_written_limit(limit);
                     }
                     self.checks[index].settled()
                 }
                 _ => {
                     let ready = self.entry_settled("run_ended");
-                    if let Some(limit) = self.notice_checks[index].advance(&self.project, ready) {
+                    if let Some(limit) = self.notice_checks[index].advance(&self.project, ready, set) {
                         self.insert_never_written_limit(limit);
                     }
                     self.notice_checks[index].settled()
@@ -6339,7 +6348,7 @@ impl WorkflowRun {
                 if !slot.settled() {
                     if slot.published.is_none() {
                         // WR publication of a later check does not wait for RS.
-                        let _ = slot.advance(&self.project, false);
+                        let _ = slot.advance(&self.project, false, set);
                     }
                     if let WorkflowR3::Pending(pending) = &mut slot.r3 {
                         pending.hold(HELD);
@@ -9175,15 +9184,14 @@ for line in sys.stdin:
         let (log,before)=break_act_log(&peer);
         run.lock().unwrap().end_run(None,None).expect("the person's end is not refused");
         assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Ended);
-        // The broken record set holds the entries back (RS W-1/W-2); once repaired they are written in order.
-        std::fs::write(&log,before).unwrap();
-        run.lock().unwrap().flush_records();
-        let log=rs_for(&peer,&a);
-        let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]=="the project's act records").expect("the unread act records are named");
-        let end=log.iter().position(|e|e["kind"]=="run_ended").expect("run_ended written");
+        let entries=own_log(&peer,&a);
+        let limit=entries.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]=="the project's act records").expect("the unread act records are named before repair");
+        let end=entries.iter().position(|e|e["kind"]=="run_ended").expect("run_ended written before repair");
         assert!(limit<end,"the limit precedes run_ended");
-        assert!(log[limit]["body"]["detail"].as_str().unwrap().contains("could not be read"));
-        assert_eq!(log[end]["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
+        assert!(entries[limit]["body"]["detail"].as_str().unwrap().contains("could not be read"));
+        assert_eq!(entries[end]["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
+        assert!(!run.lock().unwrap().has_pending_records());
+        std::fs::write(&log,before).unwrap();
     }
     // m-b after relaunch: the relaunch end's counting gives the same limit, not a refusal, when
     // the act records cannot be read while an arrival waits; with nothing waiting it reads nothing.

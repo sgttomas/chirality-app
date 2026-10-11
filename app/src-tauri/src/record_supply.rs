@@ -75,6 +75,7 @@ pub(crate) fn append_live(
     project: &ProjectRecords,
     published: &PublishedSupplyCheck,
     pending: &mut PendingSuppliedGuidance,
+    set: crate::records::RecordSet,
 ) -> Result<Value, String> {
     let root = project.root().to_owned();
     let current =
@@ -85,13 +86,25 @@ pub(crate) fn append_live(
     {
         return Err("R3 supplier joins changed since preparation; nothing written".into());
     }
-    let (entries, limits) = crate::storage::read_all(&root);
-    if !limits.is_empty() {
-        let error = format!("RS record set incomplete; nothing written: {limits:?}");
+    let (entries, own) = match crate::records::append_record_set(&root, &run_log(&root, &pending.run), set) {
+        Ok(entries) => entries,
+        Err(error) => { pending.failure.get_or_insert(error.clone()); return Err(error); }
+    };
+    if entries.iter().filter(|e| e["recordId"] == pending.record_id.as_str()).count() > 1
+        || entries.iter().any(|e| e["recordId"] == pending.record_id.as_str()
+        && !(e["kind"] == "supplied_guidance" && e["body"] == pending.body
+            && e["runId"] == pending.run.as_str() && e["observedAt"] == pending.observed_at.as_str())) {
+        let error = format!("R3 identity {} has readable duplicate or conflicting content; owning write cannot be reconciled", pending.record_id);
         pending.failure.get_or_insert(error.clone());
         return Err(error);
     }
-    let written = match entries
+    if own.iter().all(|e| e["recordId"] != pending.record_id.as_str())
+        && entries.iter().any(|e| e["recordId"] == pending.record_id.as_str()) {
+        let error = format!("R3 identity {} found outside its owning log; owning write not established", pending.record_id);
+        pending.failure.get_or_insert(error.clone());
+        return Err(error);
+    }
+    let written = match own
         .iter()
         .find(|e| e["recordId"].as_str() == Some(pending.record_id.as_str()))
     {
@@ -101,6 +114,12 @@ pub(crate) fn append_live(
                 && existing["runId"] == pending.run.as_str()
                 && existing["observedAt"] == pending.observed_at.as_str() =>
         {
+            if set == crate::records::RecordSet::ReadableBesideIncomplete {
+                if let Err(error) = crate::storage::sync_publication(&run_log(&root, &pending.run)) {
+                    pending.failure.get_or_insert(error.clone());
+                    return Err(error);
+                }
+            }
             existing.clone()
         }
         Some(_) => {
@@ -109,7 +128,7 @@ pub(crate) fn append_live(
                 pending.record_id
             ))
         }
-        None => match crate::records::append_project_reserved(
+        None => match crate::records::append_project_reserved_in(
             &root,
             &pending.run,
             LIVE_WRITER,
@@ -118,6 +137,7 @@ pub(crate) fn append_live(
             pending.body.clone(),
             &pending.record_id,
             &pending.observed_at,
+            set,
         ) {
             Ok(entry) => entry,
             Err(error) => {
@@ -133,6 +153,7 @@ pub(crate) fn append_live(
             LIVE_WRITER,
             &pending.record_id,
             &format!("supplied_guidance written after its original observation; first failure: {failure}"),
+            set,
         )?;
     }
     Ok(written)
@@ -176,6 +197,7 @@ impl PendingRunEntry {
 /// by a different entry in a complete record set. Anything else (I/O, an
 /// incomplete or unreadable record set, validation unavailable) is not permanent
 /// and stays held in order.
+#[cfg(test)]
 pub(crate) fn permanent_refusal(
     root: &std::path::Path,
     run: &str,
@@ -184,17 +206,31 @@ pub(crate) fn permanent_refusal(
     body: &Value,
     observed_at: &str,
 ) -> Option<String> {
+    permanent_refusal_in(root, run, kind, record_id, body, observed_at, crate::records::RecordSet::Complete)
+}
+pub(crate) fn permanent_refusal_in(
+    root: &std::path::Path,
+    run: &str,
+    kind: &str,
+    record_id: &str,
+    body: &Value,
+    observed_at: &str,
+    set: crate::records::RecordSet,
+) -> Option<String> {
     if let Some(reason) = crate::records::nonconformance(kind, body, record_id, run, observed_at) {
         return Some(format!("it is nonconformant (RS W-1 (a)): {reason}"));
     }
-    let (entries, limits) = crate::storage::read_all(root);
-    if !limits.is_empty() {
+    let (entries, own) = crate::records::append_record_set(root, &run_log(root, run), set).ok()?;
+    // An exact owning receipt may have landed before an uncertain sync. A
+    // later collision cannot make that observation truthfully "never written".
+    if own.iter().any(|e| e["recordId"] == record_id && e["kind"] == kind
+        && e["body"] == *body && e["runId"] == run && e["observedAt"] == observed_at) {
         return None;
     }
     entries
         .iter()
-        .find(|e| e["recordId"].as_str() == Some(record_id))
-        .filter(|e| !(e["kind"] == kind && e["body"] == *body && e["runId"] == run && e["observedAt"] == observed_at))
+        .find(|e| e["recordId"].as_str() == Some(record_id)
+            && !(e["kind"] == kind && e["body"] == *body && e["runId"] == run && e["observedAt"] == observed_at))
         .map(|e| format!("its reserved record identity {record_id} is already held by a different entry ({} in run {})", e["kind"], e["runId"]))
 }
 /// The "record write failed" limit for an entry the writer refuses permanently:
@@ -234,13 +270,25 @@ pub(crate) fn append_run_entry_in(
     if let Some(written) = &entry.written {
         return Ok(written.clone());
     }
-    let (entries, limits) = crate::storage::read_all(root);
-    if !limits.is_empty() && set == crate::records::RecordSet::Complete {
-        let error = format!("RS record set incomplete; nothing written: {limits:?}");
+    let (entries, own) = match crate::records::append_record_set(root, &run_log(root, run), set) {
+        Ok(entries) => entries,
+        Err(error) => { entry.failure.get_or_insert(error.clone()); return Err(error); }
+    };
+    if entries.iter().filter(|e| e["recordId"] == entry.record_id.as_str()).count() > 1
+        || entries.iter().any(|e| e["recordId"] == entry.record_id.as_str()
+        && !(e["kind"] == entry.kind && e["body"] == entry.body
+            && e["runId"] == run && e["observedAt"] == entry.observed_at.as_str())) {
+        let error = format!("RS identity {} has readable duplicate or conflicting content; owning write cannot be reconciled", entry.record_id);
         entry.failure.get_or_insert(error.clone());
         return Err(error);
     }
-    let written = match entries
+    if own.iter().all(|e| e["recordId"] != entry.record_id.as_str())
+        && entries.iter().any(|e| e["recordId"] == entry.record_id.as_str()) {
+        let error = format!("RS identity {} found outside its owning log; owning write not established", entry.record_id);
+        entry.failure.get_or_insert(error.clone());
+        return Err(error);
+    }
+    let written = match own
         .iter()
         .find(|e| e["recordId"].as_str() == Some(entry.record_id.as_str()))
     {
@@ -250,6 +298,12 @@ pub(crate) fn append_run_entry_in(
                 && existing["runId"] == run
                 && existing["observedAt"] == entry.observed_at.as_str() =>
         {
+            if set == crate::records::RecordSet::ReadableBesideIncomplete {
+                if let Err(error) = crate::storage::sync_publication(&run_log(root, run)) {
+                    entry.failure.get_or_insert(error.clone());
+                    return Err(error);
+                }
+            }
             existing.clone()
         }
         Some(_) => {
@@ -277,14 +331,14 @@ pub(crate) fn append_run_entry_in(
         },
     };
     if let Some(failure) = &entry.failure {
-        // A late write (W-2) still needs the complete set to find an existing
-        // "record write failed" limit; the relaunch end never retries an entry.
+        // W-2 uses the same end policy for the entry and its late-write limit.
         crate::records::note_project_late_write(
             root,
             run,
             LIVE_WRITER,
             &entry.record_id,
             &format!("{} written after its original observation; first failure: {failure}", entry.kind),
+            set,
         )?;
     }
     entry.written = Some(written.clone());
