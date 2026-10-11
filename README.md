@@ -1,5 +1,9 @@
 # Chirality App v4
 
+[App v4 thesis](docs/thesis/README.md) develops the reasons for the application's
+form and purpose. It is explanatory research, separate from the product requirements
+and the preserved [foundation thesis](foundation/thesis/README.md).
+
 Working root for the accepted App v4 composite basis and its decomposition/project definition. The consolidated PRD and companion documents express that basis after the owner's act, with independent source-fidelity review.
 
 **Position (2026-10-04): the owner accepted the 60% gate; development continues through the [App v4 loop](loop/LOOP_INIT.md), by the development groups recorded with that decision, with the accepted project DAG ([pointer](execution/_DAG/_LATEST.md)) directing the work.** The gate record is in [OWNER_DECISIONS.md](execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md). The earlier history follows. The owner accepted the revised seed basis on 2026-09-26, including its stated open matters and external dependencies. The exact [composite acceptance](execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md) identifies original drafts, accepted recommendations and later directions. Consolidated docs are prepared after that act and independently checked for fidelity; no claim is made that future bytes were previously reviewed. The owner confirmed Group1 and approved Group2 with all five recommendations and the discussed Codex/exemplar clarifications. The owner accepted the final Group3 decomposition for downstream use. The owner approved the [setup proposal](execution/_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md); [_COORDINATION.md](execution/_Coordination/_COORDINATION.md) records the actual rules. The published fallback remains v3.0.1 until its separate replacement decision.
