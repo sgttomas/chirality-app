@@ -14,11 +14,16 @@
 //!   `Config` has no typed `features` field at the pin; it is read as an
 //!   additional property, and a configuration that was read and sets nothing
 //!   is read, not unread;
-//! - `modelProvider/capabilities/read` → `namespaceTools`. Its params are empty
-//!   at the pin: it reads the home's configured provider, so the reading counts
-//!   for the conversation only when the effective configuration's
-//!   `model_provider` is the conversation's reported `modelProvider`; otherwise
-//!   `namespaceTools` is not read for that conversation.
+//! - `modelProvider/capabilities/read` → `namespaceTools`.
+//!
+//! `model/list` and `modelProvider/capabilities/read` take no provider at the
+//! pin: they answer for the provider the app-server resolves for itself, not
+//! for a conversation whose folder (project `.codex/` layers) or start chose
+//! another. The host reads that server provider as `config/read`'s
+//! `model_provider` without a folder and at the server's own working folder
+//! (both must agree). `multiAgentVersion` and `namespaceTools` count for a
+//! conversation only when that server provider is the conversation's
+//! reported `modelProvider`; otherwise both are not read for it.
 use serde_json::{json, Value};
 
 /// The reading's identity: a reading answers for one conversation's model,
@@ -27,66 +32,67 @@ pub(crate) fn key(conversation: &Value) -> Value {
     json!({"generation":conversation["generation"],"model":conversation["model"],"modelProvider":conversation["modelProvider"],"cwd":conversation["cwd"]})
 }
 
-/// The signals from the three reads, for `conversation` (a host thread row:
+/// The signals from the reads, for `conversation` (a host thread row:
 /// `model`, `modelProvider`, `cwd`). `model` is the `model/list` entry of the
 /// conversation's model (`Ok(Value::Null)` when it was not listed); `config`
-/// the `config/read` result; `capabilities` the
+/// the `config/read` result at the conversation's folder; `server` the
+/// provider the app-server resolves for itself (`config/read`'s
+/// `model_provider`, a string or null); `capabilities` the
 /// `modelProvider/capabilities/read` result. Only what §7.1 needs is kept.
-pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config: Result<Value, String>, capabilities: Result<Value, String>) -> Value {
+pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config: Result<Value, String>, server: Result<Value, String>, capabilities: Result<Value, String>) -> Value {
     let mut limits = vec![];
-    let version = match &model {
-        Ok(entry) if entry.is_null() => {
+    let conversation_provider = &conversation["modelProvider"];
+    // Why the parameterless reads do not answer for this conversation, if they do not.
+    let other_provider = match &server {
+        Ok(provider) if provider.is_string() && provider == conversation_provider => None,
+        Ok(provider) => Some(format!(
+            "it takes no provider at Codex 0.160.0 and answers for the app-server's provider ({}), not the conversation's ({})",
+            provider.as_str().unwrap_or("none named in the app-server's configuration"),
+            conversation_provider.as_str().unwrap_or("not reported")
+        )),
+        Err(cause) => Some(format!("it takes no provider at Codex 0.160.0 and the app-server's provider was not read ({cause})")),
+    };
+    let version = match (&model, &other_provider) {
+        (Err(cause), _) => {
+            limits.push(format!("multiAgentVersion not read: {cause}"));
+            Value::Null
+        }
+        (Ok(_), Some(why)) => {
+            limits.push(format!("multiAgentVersion not read for this conversation: model/list {why}"));
+            Value::Null
+        }
+        (Ok(entry), None) if entry.is_null() => {
             limits.push(format!("multiAgentVersion not read: model/list lists no model {}", conversation["model"]));
             Value::Null
         }
-        Ok(entry) => match entry.get("multiAgentVersion") {
+        (Ok(entry), None) => match entry.get("multiAgentVersion") {
             Some(v) if v == "disabled" || v == "v1" || v == "v2" => v.clone(),
             _ => {
                 limits.push(format!("multiAgentVersion not read: model/list reports none for {}", conversation["model"]));
                 Value::Null
             }
         },
+    };
+    let effective = match &config {
+        Ok(result) => match result["config"].get("features").and_then(|f| f.get("multi_agent")) {
+            Some(v) => json!({"features":{"multi_agent":v}}),
+            None => json!({}),
+        },
         Err(cause) => {
-            limits.push(format!("multiAgentVersion not read: {cause}"));
+            limits.push(format!("effective configuration not read: {cause}"));
             Value::Null
         }
     };
-    let (effective, configured_provider) = match &config {
-        Ok(result) => {
-            let features = result["config"].get("features").and_then(|f| f.get("multi_agent")).cloned();
-            let effective = match features {
-                Some(v) => json!({"features":{"multi_agent":v}}),
-                None => json!({}),
-            };
-            (effective, Some(result["config"]["model_provider"].clone()))
-        }
-        Err(cause) => {
-            limits.push(format!("effective configuration not read: {cause}"));
-            (Value::Null, None)
-        }
-    };
-    let capabilities = match (&capabilities, &configured_provider) {
+    let capabilities = match (&capabilities, &other_provider) {
         (Err(cause), _) => {
             limits.push(format!("namespaceTools not read: {cause}"));
             Value::Null
         }
-        (Ok(_), None) => {
-            limits.push("namespaceTools not read for this conversation: the configuration was not read, so the provider modelProvider/capabilities/read answered for is not known".into());
+        (Ok(_), Some(why)) => {
+            limits.push(format!("namespaceTools not read for this conversation: modelProvider/capabilities/read {why}"));
             Value::Null
         }
-        (Ok(result), Some(provider)) => {
-            let conversation_provider = &conversation["modelProvider"];
-            if provider.is_string() && provider == conversation_provider {
-                json!({"namespaceTools":result["namespaceTools"]})
-            } else {
-                limits.push(format!(
-                    "namespaceTools not read for this conversation: modelProvider/capabilities/read takes no provider at Codex 0.160.0 and answers for the home's configured provider ({}), not the conversation's ({})",
-                    provider.as_str().unwrap_or("none named in the effective configuration"),
-                    conversation_provider.as_str().unwrap_or("not reported")
-                ));
-                Value::Null
-            }
-        }
+        (Ok(result), None) => json!({"namespaceTools":result["namespaceTools"]}),
     };
     json!({"model_multi_agent_version":version,"effective_config":effective,"provider_capabilities":capabilities,"limits":limits,
         "conversation":{"model":conversation["model"],"modelProvider":conversation["modelProvider"],"cwd":conversation["cwd"]}})
@@ -160,7 +166,7 @@ mod tests {
         json!({"imageGeneration":false,"namespaceTools":namespace,"webSearch":false})
     }
     fn read(model: Result<Value, String>, config: Result<Value, String>, capabilities: Result<Value, String>) -> Value {
-        evaluate(Some(&signals(&conversation(), model, config, capabilities)))
+        evaluate(Some(&signals(&conversation(), model, config, Ok(json!("p")), capabilities)))
     }
     fn reading(v: &Value) -> &str {
         v["reading"].as_str().unwrap()
@@ -203,12 +209,25 @@ mod tests {
             assert_eq!(reading["reading"], "not established", "{reading}");
             assert!(reading["reason"].as_str().unwrap().contains(cause), "{reading} should name {cause}");
         }
-        // The capability read answers for the home's configured provider only.
-        let other = read(Ok(entry(Some("v2"))), Ok(config(None, Some("other"))), Ok(caps(true)));
-        assert_eq!(other["reading"], "not established");
-        assert!(other["reason"].as_str().unwrap().contains("home's configured provider (other), not the conversation's (p)"), "{other}");
-        let unnamed = read(Ok(entry(Some("v2"))), Ok(config(None, None)), Ok(caps(false)));
-        assert_eq!(unnamed["reading"], "not established", "namespaceTools false for another provider is not this conversation's: {unnamed}");
+        // B-1: model/list and the capability read answer for the app-server's
+        // provider, never for a conversation whose provider differs, whatever
+        // the conversation's folder configuration names.
+        let on = |server: Result<Value, String>, version: &str, namespace: bool| {
+            evaluate(Some(&signals(&conversation(), Ok(entry(Some(version))), Ok(config(None, Some("p"))), server, Ok(caps(namespace)))))
+        };
+        for server in [Ok(json!("other")), Ok(Value::Null), Err("config/read not sent".to_owned())] {
+            // The server's catalog and capabilities say present: not this conversation's.
+            let up = on(server.clone(), "v2", true);
+            assert_eq!(up["reading"], "not established", "{server:?}: {up}");
+            assert!(up["reason"].as_str().unwrap().contains("model/list it takes no provider"), "{up}");
+            assert!(up["reason"].as_str().unwrap().contains("modelProvider/capabilities/read it takes no provider"), "{up}");
+            // They say missing: not this conversation's either, so nothing is hidden.
+            assert_eq!(on(server.clone(), "disabled", true)["reading"], "not established", "{server:?}: a same-named model's disabled from another catalog");
+            assert_eq!(on(server.clone(), "v2", false)["reading"], "not established", "{server:?}: another provider's namespaceTools false");
+        }
+        assert!(on(Ok(json!("other")), "v2", true)["reason"].as_str().unwrap().contains("app-server's provider (other), not the conversation's (p)"));
+        assert_eq!(on(Ok(json!("p")), "disabled", true)["reading"], "missing");
+        assert_eq!(on(Ok(json!("p")), "v2", false)["reading"], "missing");
         // No reading at all.
         assert_eq!(evaluate(None)["reading"], "not established");
         // RV21 (R21-1): a configuration never read is not "nothing set", even
@@ -221,15 +240,15 @@ mod tests {
 
     #[test]
     fn a_configuration_read_that_sets_nothing_is_read() {
-        let s = signals(&conversation(), Ok(entry(Some("v2"))), Ok(config(None, Some("p"))), Ok(caps(true)));
+        let s = signals(&conversation(), Ok(entry(Some("v2"))), Ok(config(None, Some("p"))), Ok(json!("p")), Ok(caps(true)));
         assert_eq!(s["effective_config"], json!({}));
         assert_eq!(evaluate(Some(&s))["reading"], "present");
-        let unread = signals(&conversation(), Ok(entry(Some("v2"))), UNREAD(), Ok(caps(true)));
+        let unread = signals(&conversation(), Ok(entry(Some("v2"))), UNREAD(), Ok(json!("p")), Ok(caps(true)));
         assert!(unread["effective_config"].is_null());
         // Nothing of the configuration but features.multi_agent is kept.
         let mut full = config(Some(true), Some("p"));
         full["config"]["developer_instructions"] = json!("private text");
-        let kept = signals(&conversation(), Ok(entry(Some("v2"))), Ok(full), Ok(caps(true)));
+        let kept = signals(&conversation(), Ok(entry(Some("v2"))), Ok(full), Ok(json!("p")), Ok(caps(true)));
         assert!(!kept.to_string().contains("private text"));
     }
 
@@ -244,7 +263,7 @@ mod tests {
                     let got = read(v.clone(), c.clone(), k.clone());
                     let version = v.as_ref().ok().and_then(|e| e["multiAgentVersion"].as_str());
                     let multi = c.as_ref().ok().map(|c| c["config"]["features"]["multi_agent"].clone());
-                    let namespace = if c.is_ok() { k.as_ref().ok().map(|k| k["namespaceTools"].clone()) } else { None };
+                    let namespace = k.as_ref().ok().map(|k| k["namespaceTools"].clone());
                     let expected = if version == Some("disabled") || multi == Some(json!(false)) || namespace == Some(json!(false)) {
                         "missing"
                     } else if matches!(version, Some("v1" | "v2")) && multi.is_some() && namespace == Some(json!(true)) {
@@ -260,7 +279,7 @@ mod tests {
 
     #[test]
     fn thread_rows_take_the_reading_of_their_own_model_provider_and_folder() {
-        let present = signals(&conversation(), Ok(entry(Some("v2"))), Ok(config(None, Some("p"))), Ok(caps(true)));
+        let present = signals(&conversation(), Ok(entry(Some("v2"))), Ok(config(None, Some("p"))), Ok(json!("p")), Ok(caps(true)));
         let readings = vec![json!({"key":key(&conversation()),"signals":present})];
         let mut other_model = conversation();
         other_model["model"] = json!("n");

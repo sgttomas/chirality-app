@@ -193,6 +193,9 @@ struct Inner {
     /// NPTD §7.1 delegation readings of this home: one per generation, model,
     /// provider and working folder (`delegation_availability::key`).
     delegation_readings: Vec<Value>,
+    /// The app-server process's own working folder (its `current_dir`), for
+    /// the provider it resolves for the parameterless reads (NPTD §7.1).
+    server_cwd: Option<String>,
     /// Collaboration modes this App requested on `turn/start`, per generation/thread.
     requested_modes: Vec<Value>,
     configuration_identity: Option<Value>,
@@ -499,6 +502,13 @@ impl AppRuntimeCustody {
     }
 }
 
+/// One delegation reading's whole wait (NPTD §7.1; the trial tick's reads
+/// of later homes wait behind it).
+pub const DELEGATION_READ_BUDGET: Duration = Duration::from_secs(15);
+/// Wall-clock milliseconds, for a delegation reading's age.
+fn delegation_now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
 pub struct Host {
     recovery_writer: Arc<Mutex<()>>,
     runtime_custody:Mutex<Option<Arc<AppRuntimeCustody>>>,
@@ -1190,6 +1200,7 @@ impl Host {
             i.held.clear();
             i.child_pid = Some(pid);
             i.stop_record = None;
+            i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
@@ -2480,27 +2491,45 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(Self::plan_mode_availability(&i))
     }
 
-    /// NPTD §7.1 (R19-5): reads the three delegation signals for one loaded
-    /// conversation of `generation` — `model/list` for its model,
-    /// `config/read` with its working folder, `modelProvider/capabilities/read`
-    /// — and keeps the reading for its model, provider and folder. Reads
-    /// only; each request waits at most ten seconds, and a request
-    /// that fails leaves that signal not read (never a guess).
+    /// NPTD §7.1 (R19-5): reads the delegation signals for one loaded
+    /// conversation of `generation` and keeps the reading for its model,
+    /// provider and folder. `config/read` is read with the conversation's
+    /// working folder (`features.multi_agent` as the conversation sees it) and
+    /// twice more for the provider the app-server resolves for itself: with
+    /// no folder and with its own working folder. `model/list` and
+    /// `modelProvider/capabilities/read` take no provider and answer for that
+    /// server provider, so `delegation_availability::signals` counts them only
+    /// when it is the conversation's provider. Reads only. One reading waits
+    /// at most `DELEGATION_READ_BUDGET` in all (each request at most ten
+    /// seconds); after a request gets no response nothing further is sent. A
+    /// signal not read is never guessed.
     pub fn delegation_signals_read(&self, generation: &Value, thread_id: &str, initiator: Value) -> Value {
+        self.delegation_signals_read_within(generation, thread_id, initiator, DELEGATION_READ_BUDGET)
+    }
+    pub(crate) fn delegation_signals_read_within(&self, generation: &Value, thread_id: &str, initiator: Value, budget: Duration) -> Value {
         const WAIT: Duration = Duration::from_secs(10);
         const MODEL_PAGES: usize = 20;
-        let conversation = {
+        let (conversation, server_cwd) = {
             let i = self.inner.0.lock().unwrap();
-            i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread_id).cloned()
+            (i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread_id).cloned(), i.server_cwd.clone())
         };
         let Some(conversation) = conversation else {
             let cause = || Err::<Value, String>("the conversation is not loaded in this Codex generation".into());
-            let mut signals = crate::delegation_availability::signals(&json!({"threadId":thread_id}), cause(), cause(), cause());
+            let mut signals = crate::delegation_availability::signals(&json!({"threadId":thread_id}), cause(), cause(), cause(), cause());
             signals["readAt"] = json!(crate::util::now_rfc3339());
+            signals["readAtMs"] = json!(delegation_now_ms());
             return signals;
         };
+        let deadline = std::time::Instant::now() + budget;
+        let silent = std::cell::Cell::new(false);
         let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
-            let response = self.request_inner_scoped(method, params, initiator.clone(), WAIT, false, Some(generation))?;
+            if silent.get() { return Err(format!("{method} not sent: an earlier read of this reading got no response")); }
+            let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
+            if wait.is_zero() { return Err(format!("{method} not sent: the reading's time limit was reached")); }
+            let response = self.request_inner_scoped(method, params, initiator.clone(), wait, false, Some(generation)).map_err(|e| {
+                if e.contains("within the wait limit") { silent.set(true); }
+                e
+            })?;
             if let Some(error) = response.get("error") { return Err(format!("{method} answered with an error: {error}")); }
             let result = response.get("result").cloned().ok_or_else(|| format!("{method} returned no result"))?;
             Self::validate_native_result(schema, &result)?;
@@ -2518,22 +2547,43 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                         return Ok(entry.clone());
                     }
                     match page["nextCursor"].as_str() {
-                        Some(next) if !next.is_empty() && cursor.as_deref() != Some(next) => cursor = Some(next.to_owned()),
-                        Some(_) => return Err("model/list repeated a page cursor".to_owned()),
+                        Some("") => return Err("model/list returned an empty page cursor".to_owned()),
+                        Some(next) if cursor.as_deref() == Some(next) => return Err("model/list repeated a page cursor".to_owned()),
+                        Some(next) => cursor = Some(next.to_owned()),
                         None => return Ok(Value::Null),
                     }
                 }
                 Err(format!("model/list did not end within {MODEL_PAGES} pages"))
             })(),
         };
-        let mut config_params = json!({"includeLayers":false});
-        if let Some(cwd) = conversation["cwd"].as_str() { config_params["cwd"] = json!(cwd); }
-        let config = read("config/read", config_params, "ConfigReadResponse");
+        let config_at = |cwd: Option<&str>| {
+            let mut params = json!({"includeLayers":false});
+            if let Some(cwd) = cwd { params["cwd"] = json!(cwd); }
+            read("config/read", params, "ConfigReadResponse")
+        };
+        let config = config_at(conversation["cwd"].as_str());
+        // The provider the server resolves for its parameterless reads: its
+        // configuration without a folder and at its own folder must agree.
+        let server = match server_cwd.as_deref() {
+            None => Err("the app-server's working folder is not known to this App".to_owned()),
+            Some(server_cwd) => match (config_at(None), config_at(Some(server_cwd))) {
+                (Ok(bare), Ok(own)) if bare["config"]["model_provider"] == own["config"]["model_provider"] => Ok(bare["config"]["model_provider"].clone()),
+                (Ok(bare), Ok(own)) => Err(format!(
+                    "the app-server's configuration names provider {} without a folder and {} at its own folder",
+                    bare["config"]["model_provider"].as_str().unwrap_or("none"),
+                    own["config"]["model_provider"].as_str().unwrap_or("none")
+                )),
+                (Err(cause), _) | (_, Err(cause)) => Err(cause),
+            },
+        };
         let capabilities = read("modelProvider/capabilities/read", json!({}), "ModelProviderCapabilitiesReadResponse");
-        let mut signals = crate::delegation_availability::signals(&conversation, model, config, capabilities);
+        let mut signals = crate::delegation_availability::signals(&conversation, model, config, server, capabilities);
         signals["readAt"] = json!(crate::util::now_rfc3339());
+        signals["readAtMs"] = json!(delegation_now_ms());
         let key = crate::delegation_availability::key(&conversation);
         let mut i = self.inner.0.lock().unwrap();
+        // A reading of a generation no longer current is not kept: keeping it
+        // would replace the current generation's readings.
         if i.generation == *generation {
             i.delegation_readings.retain(|r| r["key"] != key && r["key"]["generation"] == *generation);
             i.delegation_readings.push(json!({"key":key,"signals":signals}));
@@ -2541,16 +2591,19 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         signals
     }
     /// The loaded conversations of the current generation whose model,
-    /// provider and folder have no reading yet (at most `limit`): the host
-    /// tick reads them once each (a conversation's model is then known).
-    pub fn delegation_reads_due(&self, limit: usize) -> Vec<(Value, String)> {
+    /// provider and folder have no reading, or one older than `max_age` (at
+    /// most `limit`): the host tick reads them, so a reading is taken once a
+    /// conversation's model is known and refreshed after `max_age`.
+    pub fn delegation_reads_due(&self, limit: usize, max_age: Duration) -> Vec<(Value, String)> {
         let i = self.inner.0.lock().unwrap();
         if i.state != "ready" { return vec![]; }
+        let now = delegation_now_ms();
+        let fresh = |key: &Value| i.delegation_readings.iter().any(|r| r["key"] == *key && r["signals"]["readAtMs"].as_u64().is_some_and(|at| now.saturating_sub(at) < max_age.as_millis() as u64));
         let mut keys = vec![];
         let mut due = vec![];
         for t in i.threads.iter().filter(|t| t["generation"] == i.generation) {
             let key = crate::delegation_availability::key(t);
-            if due.len() >= limit || keys.contains(&key) || i.delegation_readings.iter().any(|r| r["key"] == key) { continue; }
+            if due.len() >= limit || keys.contains(&key) || fresh(&key) { continue; }
             if let Some(thread) = t["threadId"].as_str() {
                 keys.push(key);
                 due.push((i.generation.clone(), thread.to_owned()));

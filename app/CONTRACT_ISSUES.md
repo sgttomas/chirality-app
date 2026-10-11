@@ -1314,11 +1314,16 @@ changed.
   `NATIVE_PLANS_TOOLS_DELEGATION.md` §7.1 (and its §18 row), DEL-02-03
   `EXECUTION_COMPATIBILITY.md` §3.4 EV-3a `agent-delegation`, and DEL-02-01
   `WORKFLOW_DECLARATION.md` §4.2.5 `agent-delegation`:
-  - `modelProvider/capabilities/read` takes no parameters and answers for the
-    home's configured provider. Its `namespaceTools` counts for a
-    conversation only when the effective configuration's `model_provider` is
-    the conversation's reported `modelProvider`; otherwise it reads *not
-    read*, so the reading is *not established*.
+  - `modelProvider/capabilities/read` and `model/list` take no provider and
+    answer for the provider the app-server resolves for itself, which a
+    conversation's project-folder configuration or start may differ from.
+    The host reads that server provider as `config/read`'s `model_provider`
+    with no folder and with the app-server's own working folder. Only when
+    the two agree and name the conversation's reported `modelProvider` do
+    `namespaceTools` and `multiAgentVersion` count for the conversation;
+    otherwise both read *not read*, so the reading is *not established*
+    (never *present* or *missing* from another provider's answers).
+    `features.multi_agent` is read with the conversation's `cwd`.
   - The generated `Config` types no `features` field. `features.multi_agent`
     is read as an additional property of `config/read`'s `config`, with the
     conversation's `cwd`. A configuration that was read and has no such
@@ -1326,6 +1331,11 @@ changed.
   - `Model.multiAgentVersion` is that of the `model/list` entry whose `model`
     or `id` is the conversation's reported model, read over every page with
     hidden models included. A model that is not listed reads *not read*.
+  - The reads made when the person presses Try with the authoring agent or
+    Try again are journalled `person-directed`, as `collaborationMode/list`
+    reads are; NPTD §5.1 names the receiver DEL-01-03. Say which at the
+    re-freeze. The tick's reads are journalled as the App rule
+    `delegation-availability-read`.
 - **OI-008 ruling (2026-10-10).** The owner decided process placement for the
   whole App (`docs/ARCHITECTURE.md` §3). The unpinned texts now state it. WR
   §11 and NIR §1.1 were also edited, since their pins were already stale. Five

@@ -122,7 +122,15 @@ pub(crate) fn start_clean_trial(
     start: impl FnOnce() -> Result<Value, String>,
     send: impl FnOnce(&Value, &str) -> Result<Value, SendRefusal>,
 ) -> Result<Value, SendRefusal> {
-    root.lock().unwrap().begin_clean_start(reference).map_err(SendRefusal::not_kept)?;
+    {
+        let mut root = root.lock().unwrap();
+        if let Err(message) = root.begin_clean_start(reference) {
+            // Refused before anything started: still pre-filled unless absent
+            // or another press is starting it now.
+            let prefill_kept = root.trial_desk.pending.get(reference).is_some_and(|p| !p.in_flight);
+            return Err(SendRefusal { message, prefill_kept });
+        }
+    }
     let started = match start() {
         Ok(started) => started,
         Err(error) => {
