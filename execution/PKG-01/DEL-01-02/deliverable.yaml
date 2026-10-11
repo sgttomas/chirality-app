@@ -15,11 +15,14 @@ needs:
     (SCA-V4-003 DX): R3-01-02-d: revised TBD-001 (G-0102-17) records that APP-V4-FIRST-INCREMENT-20260928-DECISION-1
     D4 selected Codex 0.158.0 as the definition and generation pin, not a qualification; the pin used
     for qualification remains open with the App implementation owner (also the Owner, DECISION-L L-7),
-    and OI-008''s main-process division is proposed as HOSTING §12 option O-1, not selected. Identity,
+    and OI-008''s main-process division was then proposed as HOSTING §12 option O-1, not selected (superseded
+    by the owner''s decision of 2026-10-10 below). Identity,
     direction, type, target, quote, maturity and closure unchanged. UPDATE 20261010: the owner decided
     OI-008 for the whole App: "The Rust host owns everything that writes the person''s files or the App''s
     records, talks to Codex, or captures a person''s act. The web view presents, and sends only what the
-    person initiates. It never writes records or operates the act control." TBD-001 now records it.
+    person initiates. It never writes records or operates the act control." The ruling is recorded in docs/ARCHITECTURE.md
+    §3 ("Process placement (OI-008)") and Open_Issues OI-008 reads RESOLVED_BY_OWNER_DECISION; TBD-001
+    now records it.
 
 
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'

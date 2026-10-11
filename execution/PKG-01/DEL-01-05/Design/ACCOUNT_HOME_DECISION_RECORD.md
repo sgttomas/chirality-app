@@ -6,8 +6,13 @@
 - Status: DECISION RECORDED AT CHOICE LEVEL (owner, DECISION-K3 K-1; the
   owner is also the App implementation owner, DECISION-L L-7). MECHANISM
   OBSERVED TO WORK AT CODEX 0.158.0 without a credential (OBS-2 O-6 M1);
-  separation of a real sign-in not observed (DECISION-L L-6: not now). Not
-  implemented, not accepted as a production contract.
+  separation of a real sign-in not observed (DECISION-L L-6: not now).
+  Implemented in the App host: configured account (`H-acct`) and explicitly
+  prepared API-key (`H-key`) homes are routed separately, with the person's
+  `config.toml`, global `AGENTS.md` and `skills/` linked
+  (`app/src-tauri/src/home_resources.rs`; `app/README.md`). The actual
+  OS/auth/provider journeys remain unqualified; not accepted as a production
+  contract.
 - Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001`; v0.1 on
   2026-10-01, v0.2 (D round 2) on 2026-10-02. Companion:
   [ACCOUNT_AND_PROVIDER_ACCESS.md](ACCOUNT_AND_PROVIDER_ACCESS.md)
@@ -15,10 +20,8 @@
   fact is at Codex 0.158.0 unless another version is named) apply here.
 - Serves: OUT-003 (account-home definition record), REQ-005, AC-005,
   VER-005; TBD-001; register constraint DEP-01-05-015.
-- **Not changed here:** `_Decomposition/Open_Issues.csv` still lists OI-009
-  OPEN, and the ScopeOfWork's TBD-001 still says OPEN. An executor does not
-  write them (BRIEFS common rules); the D4 return file proposes the change for
-  SCA-V4-003.
+- **Register:** `_Decomposition/Open_Issues.csv` lists OI-009 as
+  RESOLVED_BY_OWNER_DECISION (SCA-V4-003 Q-10), citing this record.
 
 ## Changes from v0.1
 
@@ -81,9 +84,9 @@ record therefore reads REQ-005 as "the Owner, who is also the App
 implementation owner (DECISION-L L-7)" (R19-4). The recommendation was
 HELP_HUMAN's (integrator).
 
-**Timing (AC-005).** Recorded before any account integration: no App
-candidate or account code exists in v4 (`_STATUS.md` of DEL-01-05:
-INITIALIZED).
+**Timing (AC-005).** Recorded before any account integration: when the
+choice was recorded, no App candidate or account code existed in v4
+(`_STATUS.md` of DEL-01-05 then read INITIALIZED).
 
 ## 4. Mechanism (observed at Codex 0.158.0)
 

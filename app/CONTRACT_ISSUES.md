@@ -21,6 +21,26 @@ qualification and later Group A consumers remain separate obligations.
 | CI-12 | Bounded current reader/control repair addressed through reviewed RS/DV change; incomparable claims remain explicit, public reads are pure, and request binding is rechecked. Downstream adoption remains open. |
 | CI-13 | Explicit App project/submission context uses the reviewed REC owning join; native cwd/home/run cannot supply it by inference. Reviewed known/unknown association and bounded native attachment consumer adopted; native/cold/other-home witnesses remain. |
 | CI-14 | Generic request/frame/response retention is unsafe for credential-bearing native account RPC; synthetic-only method-aware transient/redacted repair is underway. |
+| CI-15 | Open source/Design fit: `config/read` cannot establish child-role collision exclusion, and native `agents/` lies outside the M-A shared set (CC-ROLE-ACCESS-0160-FIT). Child supply remains not supplied; the 2026-10-10 native witness observed delegation only. |
+| CI-16 | WR §16.8 supplier envelopes and the RS opaque native-turn form are technically adopted after V6 review; consumer propagation, actual publication and the Root/R3 join remain in progress. |
+| CI-17 | CC-REC-ITEM-TURN-CUSTODY adopted (ledger schema 0.3, optional actual `turnId`) and implemented with cold-tuple tests; actual native quit/relaunch evidence and PI-6 mapping remain open. |
+| CI-18 | Corrected in code, no Design change: Root `prepare_run` refuses development selections under TT-1/TX-1. A development standing would need a named WR change; a registered-selection native witness is still needed. |
+| CI-19 | Open Design questions on EXEC report representation (unrecognized elements, revision method, App-only host facts, R14 without a report, strictness); the code refuses publication rather than inventing facts. |
+| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) partially addressed 2026-10-10. |
+| CI-21 | App-kept draft bases implemented in the App data folder with exact ledger causes; (b) closed by CC-WR-RECONFIRM adoption. The base location and base freshness under RB-3 await WR owner confirmation. |
+| CI-22 | Bounded A15 statement, digest-named App display and the owner's three-button layout are implemented ahead of AAC adoption; the AAC adoption text is still needed. |
+| CI-23 | RS `if` stops the DEL-04-03 and WR prototypes under `minischema`; the App's `jsonschema` is unaffected. Open with DEL-04-03 (RS). |
+| CI-24 | CC-WR-RECONFIRM and RF-1 implemented; X-2 implemented without an attempt journal (owner ruling 2026-10-10). Questions for the AAC and WR owners remain. |
+| CI-25 | The App appends no re-confirmation line its RC-9 reader would refuse and keeps the attempt pending; a WR owner ruling on G-1R against RC-9 is still needed. |
+| CI-26 | CC-EXP-SUPPORT-IDENTITY-01 merge closes the representational gap for its named consumer cohort; M1 qualification and other receivers keep their partial basis. |
+| CI-27 | OPEN. The A-IN-S3 expected reference for stock 0.160.0 is supplied and attested (2026-10-10); build selection and verification (S2), receiving joins (S4) and the packaged witness (S5) remain. |
+| CI-28 | CC-SQ-J2-ST4 reviewed and integrated: J-2 carries ST-4 with counts, order and semantics unchanged; DEL-11-03 receiving assessment remains. |
+| CI-29 | CFB-v0.3 route-account 0.2 (PR #1130) and the C3-P persistence backend (PR #1137) merged; no source truth, provider wiring or connected witness is claimed. |
+| CI-30 | CC-SQ-EXP-RECEIVING-01 Design and bounded connected receiver independently READY and merged (PR #1161); no actual examination, native witness or qualification is closed. |
+| CI-31 | Fixed 2026-10-10: the default `bundle.resources` maps instructions and workflows, guarded by `bundle_resources_tests`; a default-configuration bundle start is not yet witnessed natively. |
+| CI-32 | CLOSED for the App's run start by WR §17 step 2 (CC-WR-TRIALS). |
+| CI-33 | Pins re-frozen on `codex/app-v4-ci33-refreeze`; basis labels, NPTD §7/§14.1, SQ-1, RECOVERY DEF-2 and the attested generation correspondence wait for the next reviewed re-freeze. |
+| CI-34 | OPEN. ST-5 and NV-04 recorded at 0.160.0 as development evidence; the candidate-pin missing inputs stay; SQ's ST-4 "none exists yet" wording waits for the SQ owner. |
 
 Canonical review and command evidence lives in this run's `changes/`,
 `reviews/` and `validation/`. The Group A work graph carries incomplete
@@ -1407,6 +1427,37 @@ changed.
     (U-SQ-1) still names `STANDALONE_QUALIFICATION.md` at its earlier hash
     `9f88209d…`. It sits inside an attested reference, so it was not
     rewritten; a later reference refresh carries the current bytes.
+
+## CI-34 ST-5 and ST-4 counterparts after the 0.160.0 development captures
+
+- **Found (2026-10-10).** DEL-01-01 now holds development recordings made
+  with the stock Codex 0.160.0 supplier: ST-5's condition in X-09 form with
+  the X-10 recovery read, and NPTD NV-04
+  (`execution/PKG-01/DEL-01-01/Design/CAPTURE_ST5_NV04_0.160.0.md`). Codex
+  behaved as RECOVERY RQ-05 and HOSTING §6.2.1 assume. No App candidate
+  exists and OI-012 is open, so neither recording is at a candidate's pin.
+- **Kept.** The `st5_recording` and `st4_route_or_recording` entries stay in
+  `examination/standalone/missing-inputs.json`, because both require the
+  candidate's pin.
+- **Stale wording.** SQ §3.4's ST-4 row and `sq.step-map.json` J-2
+  `replay_counterpart` say that no delegation recording "exists yet". A
+  development one now exists, but not at a candidate pin. The same applies
+  to DEL-01-03 `NATIVE_PLANS_TOOLS_DELEGATION.md`: its NV-04 verification row
+  still reads "not observed", and U-P4 still waits for "a later
+  observation". These sources are pinned and were left unedited; they are
+  for the next re-freeze.
+- **Open (SQ owner).**
+  - Should SQ cite the development recordings?
+  - Once a candidate names its pin, does rerunning
+    `prototype/st5/st5_harness.py` against that candidate meet U-SQ-6 and the
+    ST-4 counterpart?
+- **Re-frozen in the same change.** The HOSTING §9.4 pointer and the
+  DEL-09-02 TBD-002 wording moved
+  `examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
+  `pre_run_inputs.py`'s pin digest,
+  `examination/native_forms/{sources.json,pre_run_form.pins.json}` and
+  `pre_run_form.py`'s pin digest, and `examination/sq_receiving/pins.json`
+  and `receive.py`'s pin digest.
 
 ## CI-35 App quit and window close: what the platform does not let the App hold
 

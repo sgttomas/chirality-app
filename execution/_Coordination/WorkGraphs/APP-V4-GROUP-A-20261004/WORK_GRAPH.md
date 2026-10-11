@@ -12,7 +12,7 @@
 
 ## Work — production history and closeout
 
-The I1–I5 and early V rows retain the state at their bounded production checkpoints. They are not currently dispatched agents or claims that their wider deliverable obligations are finished. C1 is the current comparison of the integrated result; F1 is the remaining node of this undertaking.
+The I1–I5 and early V rows retain the state at their bounded production checkpoints. They are not currently dispatched agents or claims that their wider deliverable obligations are finished. C1 is the current comparison of the integrated result; F1, the last node of this undertaking, merged as PR #1116.
 
 | ID / outcome | Deliverable, writes and owner | Needs | Completion check | State |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ The I1–I5 and early V rows retain the state at their bounded production checkp
 | V1 review/repair/integrate each slice | app/run; fresh TASK reviewer; manager integrates | Frozen implementation candidate | Independent software-code-review, meaningful offline tests | COMPLETE for the slices integrated through PR 1115; F1 separately reviews its own candidate head; wider residual product work is in C1 |
 | C1 bounded reconciliation | affected deliverables, run, graph; HELP_HUMAN | Integrated slices | Obligations mapped to produced code/evidence; residuals truthful | COMPLETE as a bounded comparison in `C1_RECONCILIATION.md`; broader obligations and owner rulings remain open |
 | M1 receipt/MEMORY | Run receipt, 18 affected MEMORY files; HELP_HUMAN | C1 | One receipt, terse local references | COMPLETE in `RECEIPT.md` and one new Runs pointer per Group A deliverable |
-| F1 final PR | HELP_HUMAN Git authority | C1/M1; review and required CI on actual head | Final PR merged; no gate acceptance implied | OPEN as [draft PR #1116](https://github.com/sgttomas/chirality/pull/1116); candidate-head independent review and required CI pending |
+| F1 final PR | HELP_HUMAN Git authority | C1/M1; review and required CI on actual head | Final PR merged; no gate acceptance implied | COMPLETE: [PR #1116](https://github.com/sgttomas/chirality/pull/1116) merged 2026-10-08 as `7b0170ed4d`; no gate acceptance implied |
 
 ## Relationships and readiness
 
@@ -92,7 +92,7 @@ GC-8 entry recovery inspected all pre-existing WorkGraphs; there are no active B
 
 The reviewed implementation and its evidence are integrated through PR 1115 (`0e62b8e36b`). The source-to-obligation comparison and limits are in C1; the single run receipt and local pointers are M1. Earlier handoffs, reviews, probes, failed vectors and validation remain in this run directory and Git history. They retain their original candidate scope. A passing unit test, an earlier READY review, a native witness, and the final merge are different warrants.
 
-**Next:** obtain an independent review covering draft PR #1116's actual head, wait for required CI, repair and recheck any blocking finding, then merge under Root's standing Git authorization. Report the produced candidate, residuals and actual merge to the owner for the owner's 90% decision. Do not add the optional V15-R1 R1-1 repair or re-witness observations as hidden F1 gates. No gate claim or product release follows from F1.
+**Next:** none in this graph. F1 merged as PR #1116 (`7b0170ed4d`, 2026-10-08). The 90% decision is the owner's; this graph records no gate claim or product release. Later receiving work (below) continues in the graphs it names.
 
 
 ## A-IN successor receiving notice — CC-HOSTING-DISTRIBUTION-01

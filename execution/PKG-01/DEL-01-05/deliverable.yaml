@@ -40,8 +40,8 @@ needs:
 
 
     Notes: FACT: required decision record/actual human act at the stated point of need; accountable participants
-    are Owner with App implementation owner. OI-009 remains OPEN; record path and choice are unresolved.
-    Root/v3 separation does not select the v4 account home. No blanket project hold or inferred approval
+    are Owner with App implementation owner. OI-009 is RESOLVED_BY_OWNER_DECISION (K-1; see UPDATE 20261003
+    below); the record path is Design/ACCOUNT_HOME_DECISION_RECORD.md. Root/v3 separation does not select the v4 account home. No blanket project hold or inferred approval
     sequence. UPDATE 20261003 (SCA-V4-003 DX): R3-01-05-c: re-quoted in place (REQ-005 now names the Owner
     as also the App implementation owner; the prior quote no longer occurs). TargetLocation TBD → the
     decision record TBD-001 names (Design/ACCOUNT_HOME_DECISION_RECORD.md); TargetName set to the Owner''s
