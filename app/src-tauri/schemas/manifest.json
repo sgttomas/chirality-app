@@ -82,6 +82,61 @@
       "file": "fixtures/decision-package-file.example.valid.json",
       "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/decision-package-file.example.valid.json",
       "sha256": "3ea08ff575698e769784e0c4788a21c01be81020ad0a3c0534114f5c87895fbe"
+    },
+    {
+      "file": "../resources/distribution-reference/VERSION_ADVANCE_0.160.0.md",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/VERSION_ADVANCE_0.160.0.md",
+      "sha256": "b58c75ce82f0d715091b585a58d9ed60740356db09adcbb8ccd37929644c4cd6"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "sha256": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+      "sha256": "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+      "sha256": "fcf292db0644b6e2f99c7e7bec0ac2161f51373b68f5e17db6a39bafa806427d"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+      "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+      "sha256": "3e5330ab122e1ba025a2b830f01bb8ab775e6737a67018ba9b310becbbde20a2"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+      "sha256": "1451412b412bfd0da38e2cc614c38bc020073e31edf25eba313d53674057feef"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+      "sha256": "cb05e9f0c9509219fec9e85ecaf77879032554e4ecd450b753a984077d3b8375"
+    },
+    {
+      "file": "../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+      "sha256": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146"
+    },
+    {
+      "file": "../resources/distribution-reference/generated/0.160.0/GENERATION.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/generated/0.160.0/GENERATION.json",
+      "sha256": "5774a783ea98c60cc7ceeabd61f86ca86685e6ade224123cfef3d5507dcbb544"
     }
   ]
 }

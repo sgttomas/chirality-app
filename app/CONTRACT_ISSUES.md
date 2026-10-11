@@ -33,7 +33,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-24 | CC-WR-RECONFIRM and RF-1 implemented; X-2 implemented without an attempt journal (owner ruling 2026-10-10). Questions for the AAC and WR owners remain. |
 | CI-25 | The App appends no re-confirmation line its RC-9 reader would refuse and keeps the attempt pending; a WR owner ruling on G-1R against RC-9 is still needed. |
 | CI-26 | CC-EXP-SUPPORT-IDENTITY-01 merge closes the representational gap for its named consumer cohort; M1 qualification and other receivers keep their partial basis. |
-| CI-27 | OPEN. The A-IN-S3 expected reference for stock 0.160.0 is supplied and attested (2026-10-10); build selection and verification (S2), receiving joins (S4) and the packaged witness (S5) remain. |
+| CI-27 | OPEN. The A-IN-S3 expected reference for stock 0.160.0 is supplied and attested (2026-10-10); compiled build selection and full-tree preflight are supplied; production custody/resource packaging (S2), receiving joins (S4) and the packaged witness (S5) remain. |
 | CI-28 | CC-SQ-J2-ST4 reviewed and integrated: J-2 carries ST-4 with counts, order and semantics unchanged; DEL-11-03 receiving assessment remains. |
 | CI-29 | CFB-v0.3 route-account 0.2 (PR #1130) and the C3-P persistence backend (PR #1137) merged; no source truth, provider wiring or connected witness is claimed. |
 | CI-30 | CC-SQ-EXP-RECEIVING-01 Design and bounded connected receiver independently READY and merged (PR #1161); no actual examination, native witness or qualification is closed. |
@@ -1292,9 +1292,20 @@ changed.
   review READY at `b616fe3db0` (`review.md`) and HELP_HUMAN's technical adoption
   for the App implementation owner (`adoption.json`) are bound in
   `attestation.json` (`adoption-attestation.s1`, SHA-256 `09e1fae9…3fe9`). A-IN-S3
-  is supplied. No App build selects it yet. CI-27 stays OPEN for build selection
-  and connected production verification (S2), receiving joins (S4) and the
-  packaged witness (S5).
+  is supplied. The App's compiled `build-selection.s2.json` now selects this exact
+  closure. The opt-in debug successor compares the complete no-follow tree,
+  declared pin, generated-output identity and launcher before its isolated label
+  probe; known mismatches, changed selected bytes and failed/required-missing
+  stores refuse before any supplier execution. Matching development trees publish
+  tree/reference/generated/label passes with custody missing and remain
+  `unverifiable` / `unverified-development` (LT-24). Production compares and
+  refuses before execution because no installed-custody issuer is available.
+  The accepted default legacy route is unchanged. The committed closure copies
+  are checked byte-for-byte against Design by `schemas/sync.py`.
+  CI-27 stays OPEN: the production bundle still needs an explicit resource
+  mapping for `distribution-reference/` (DEL-01-06), installed custody (S5/OI-011),
+  changed-source receiving adoption (S4) and the actual packaged witness (S5).
+  Reference comparison alone supplies none of those claims.
 
 ## CI-28 SQ J-2 omitted its already required ST-4 stimulus
 

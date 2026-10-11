@@ -1122,6 +1122,8 @@ impl Host {
                 (None, Some(limit)) => successor::Reference::Unavailable(limit),
                 (None, None) => successor::Reference::None,
             },
+            Some(Err(error)) if cfg.distribution.is_some() => return self.refuse_successor(attempt, error.clone()),
+            None if cfg.distribution.is_some() && cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {

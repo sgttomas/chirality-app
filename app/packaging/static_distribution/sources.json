@@ -3,7 +3,7 @@
   "basis_revision": "15f5c51818faa8053f1ae4b85deddac9b539d69b",
   "model": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/model.py",
   "sources": {
-    "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+    "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs": "1378acf26a9228acbea165dac7fc8a2e9529b040f5b1f752c15858aad282e006",
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/DISTRIBUTION_IDENTITY.md": "453fae75e6233347d62c903ea9a2a2d48512cdb436d78935b8916823e0451f6e",
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/PUBLICATION.json": "f60fee7d14fde037d3e45115ad9a890a8d35cfeee8de5e1722074cafb1e492b3",
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/README.md": "9fd96dc9b221ebb1b85426e42ef4f4c3fee161601003949be80afe98fa28608d",

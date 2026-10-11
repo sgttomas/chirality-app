@@ -1672,10 +1672,9 @@ pub fn run() {
                             },
                             // A supplied development tree is compared with the same compiled
                             // selection; an unresolvable closure is reported, never trusted.
-                            hosting::successor::Distribution::Development { .. } => match hosting::successor::development_reference_root().and_then(|root|distribution_preflight::selection::Selected::production(&root)) {
-                                Ok(selected) => crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected),
-                                Err(reason) => crate::distribution_store::Store::open(data,&vendor,namespaces.clone()?).and_then(|store|crate::distribution_store::Store::with_reference_limit(store,reason)),
-                            },
+                            hosting::successor::Distribution::Development { .. } => hosting::successor::development_reference_root()
+                                .and_then(|root|distribution_preflight::selection::Selected::production(&root))
+                                .and_then(|selected|crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)),
                         }?;
                         crate::distribution_store::Store::with_authority(store,namespace_authority.clone()?)
                     })();

@@ -24,6 +24,20 @@ stdout: exit 0 for consistent or explicitly incomplete support reports, 1 for
 mismatch, 2 for refusal. Exit 0 is
 never qualification, release registration, or runtime verification.
 
+## CI-27 build-selection source adoption
+
+The static consumer's runtime-source guard now binds the CI-27 compiled
+build-selection preflight. The consumed `scan` and `equal` algorithms and the
+`distribution-static` CLI are unchanged; the source diff adds the compiled
+S3 selection and mismatch explanation helper and removes an unused reference
+constructor. Static support still consumes only the caller's digest-bound
+inputs and never constructs a production `Selected` or executes a supplier.
+The guard's exact source hash is in `sources.json`; its `basis_revision`
+continues to identify the unchanged canonical S1 Design cohort. Every canonical
+Design/model pin and the standard preparation producer guard stays unchanged.
+The connected fixture suite checks this renewed scanner/source basis; this
+adoption supplies no runtime, custody or packaging qualification.
+
 ## Exact input contract
 
 The request is a closed JSON object with `format: "static-distribution-input/1"`:

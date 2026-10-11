@@ -87,6 +87,7 @@ fn launcher() -> Value {
 /// compared with every expected value before the label probe. A known
 /// contradiction refuses with a `mismatch:` reason and no supplier execution.
 fn compare_to_reference(selected: &Selected, actual: &Inventory) -> Result<Value, String> {
+    selected.recheck().map_err(|e| format!("mismatch: selected reference closure changed or unreadable: {e}"))?;
     let e = selected.expected()?;
     let (pin, platform) = (e["pin"].as_str().unwrap_or("?"), e["platform"].as_str().unwrap_or("?"));
     if pin != DECLARED_PIN || e["generated"]["pin"] != DECLARED_PIN {
@@ -384,6 +385,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    mod build_selection { include!("hosting_build_selection_tests.rs"); }
     mod stop_admission { include!("hosting_stop_admission_tests.rs"); }
     mod terminal_export { include!("hosting_terminal_export.rs"); }
     mod lt12 { include!("hosting_lt12_tests.rs"); }
@@ -705,15 +707,16 @@ for line in sys.stdin:
     }
     #[test]
     fn changed_counter_refuses_stale_attempt_without_consuming_another_counter() {
-        let f = Fixture::new(
-            "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close(); time.sleep(0.2)",
+        let mut f = Fixture::new(
+            "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close()\n while not os.path.exists(os.path.join(os.environ['CODEX_HOME'],'release')): time.sleep(0.005)",
         );
+        f.cfg.wait_limit = Duration::from_secs(5);
         let host = Arc::new(Host::new());
         let h = Arc::clone(&host);
         let cfg = f.cfg.clone();
         let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
         let begin = Instant::now();
-        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(1) {
+        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(5) {
             std::thread::sleep(Duration::from_millis(5));
         }
         assert!(f.root.join("probe/entered").exists());
@@ -725,6 +728,7 @@ for line in sys.stdin:
             let _guard = host.recovery_writer.lock().unwrap();
             host.spawn_counters.lock().unwrap().insert(home.clone(), 1);
         }
+        std::fs::write(f.root.join("probe/release"), b"counter changed").unwrap();
         assert!(worker
             .join()
             .unwrap()
