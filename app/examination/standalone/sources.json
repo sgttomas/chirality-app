@@ -24,7 +24,7 @@
     {
       "role": "sq_scope",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/ScopeOfWork.md",
-      "sha256": "sha256:cdd80e5e5609f05c1f4022d7d95f9b39b3085570b5252fc476973c6065e6dd3e"
+      "sha256": "sha256:64533cfdc825da17b41f3e1d754bf549e42d76488aabecfac85e74ee65aae878"
     },
     {
       "role": "exp_design",
@@ -79,7 +79,7 @@
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
       "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
-      "sha256": "sha256:497c1b62aeb4fda3d15700fe6495dd97a1d9c5b92659221e41a9e88191dd1aef"
+      "sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b"
     },
     {
       "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
