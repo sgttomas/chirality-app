@@ -550,9 +550,12 @@ records out of reach of agents, or sign them with a key the host holds". SEAL-C
 is that owner-chosen host-key fix. It is separate from SEAL-2, which stays
 deferred ("Keep SEAL-2 deferred; continue other work"; CI-10): SEAL-C uses the
 capture schema's optional `seal` element with a key in the App data folder, and
-adopts no OS key store, no entry seal and no signing. **It narrows R-1; it does
-not close it** (see *Limits*; whether to accept the residual is an owner
-decision, pending):
+adopts no OS key store, no entry seal and no signing. The owner confirmed this
+scope on 2026-10-11 ("Yes, within it (Recommended)"): the host-key fix is what
+the owner chose, and SEAL-2 stays deferred. **It narrows R-1; it does not close
+it** (see *Limits*). The owner accepted the residual until signing (2026-10-11:
+"Accept until signing (Recommended)"); R-1 stays open for agents that can read
+the App data folder, and the key moves to the OS keychain at signing (OI-011):
 
 - *Seal.* The Rust act control seals each A4/A6/A7 act or decline capture before
   its first publication: the capture schema's `seal` is
@@ -670,7 +673,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 |---|---|---|---|
 | U-AAC-1 P-2/Rust capture allocation | Owner selected for Group A, this run OWNER_DECISIONS (CC-P-A) | Product adoption after independent backcheck | §6.2 selected; native custody/durability witnesses still required; no global OI closure |
 | U-AAC-2 *Closed (DECISION-L L-5):* no per-act OS check now | — | — | P-3 not adopted |
-| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | Separately, SEAL-C (the owner's 2026-10-11 R-1 host-key fix, §6.3) seals App-file act captures; SEAL-2 itself stays deferred and PROPOSED; J-R4 |
+| U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | Separately, SEAL-C (the owner's 2026-10-11 R-1 host-key fix, §6.3) seals App-file act captures; the owner accepted its residual until signing (2026-10-11), R-1 stays open for agents that can read the App data folder, and the key moves to the OS keychain at signing (OI-011); SEAL-2 itself stays deferred and PROPOSED; J-R4 |
 | U-AAC-4 *Closed (R18-1 C-22):* record at capture, registration after, outcome beside the act, as WR | — | — | §4.2 |
 | U-AAC-5 Home of "the name set in the App" | Integrator | Node F | Assigned here |
 | U-AAC-6 Codex account of a signed-in home | DEL-01-05; observation only with a new owner answer (L-6) | Before act-control implementation | §7: O-6 filled in part |

@@ -26,7 +26,7 @@ qualification and later Group A consumers remain separate obligations.
 | CI-17 | CC-REC-ITEM-TURN-CUSTODY adopted (ledger schema 0.3, optional actual `turnId`) and implemented with cold-tuple tests; actual native quit/relaunch evidence and PI-6 mapping remain open. |
 | CI-18 | Corrected in code, no Design change: Root `prepare_run` refuses development selections under TT-1/TX-1. A development standing would need a named WR change; a registered-selection native witness is still needed. |
 | CI-19 | Open Design questions on EXEC report representation (unrecognized elements, revision method, App-only host facts, R14 without a report, strictness); the code refuses publication rather than inventing facts. |
-| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, R-1 capture forgery narrowed by AAC SEAL-C (host-held key); R-1 stays open for agents that can read the App data folder (owner decision on that residual pending). |
+| CI-20 | Open items (a)–(j) for the design owner or the owner on run supply and lifecycle (unknown start outcome, App-minted run identity, end notice and predecessor after relaunch, a held `run_ended`); (h) acts counted 2026-10-11, R-1 capture forgery narrowed by AAC SEAL-C (host-held key); the owner accepted the residual until signing (2026-10-11); R-1 stays open for agents that can read the App data folder; the key moves to the OS keychain at signing (OI-011). |
 | CI-21 | App-kept draft bases implemented in the App data folder with exact ledger causes; (b) closed by CC-WR-RECONFIRM adoption. The base location and base freshness under RB-3 await WR owner confirmation. |
 | CI-22 | Bounded A15 statement, digest-named App display and the owner's three-button layout are implemented ahead of AAC adoption; the AAC adoption text is still needed. |
 | CI-23 | RS `if` stops the DEL-04-03 and WR prototypes under `minischema`; the App's `jsonschema` is unaffected. Open with DEL-04-03 (RS). |
@@ -588,8 +588,13 @@ owner or the owner. No Design file was changed then. On 2026-10-10 items (c),
   anything that can read the key file can seal a forged capture that counts.
   That includes any same-user process and a Codex agent under Codex's
   default read access, so against an agent the protection depends on the
-  person's sandbox read setting (D3), which the App does not choose. Whether
-  to accept that residual for now is an owner decision, pending. Other
+  person's sandbox read setting (D3), which the App does not choose. The
+  owner accepted the residual until signing (2026-10-11: "Accept until
+  signing (Recommended)"); R-1 stays open for agents that can read the App
+  data folder, and the key moves to the OS keychain at signing (OI-011). The
+  owner also confirmed the scope (2026-10-11: "Yes, within it
+  (Recommended)"): the host-key fix is what the owner chose, and SEAL-2 stays
+  deferred. Other
   residuals: the seal is not proof that a person acted, nor native-origin
   proof for cold replay (CI-10); a writer of the project's files can still
   make a genuine act uncounted, and a writer without read access to the key
