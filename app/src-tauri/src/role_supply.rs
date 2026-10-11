@@ -150,23 +150,11 @@ impl Guidance {
         {
             return Err("guidance source path not allowed".into());
         }
-        let p = root.join(path);
-        for ancestor in [root.to_path_buf(), root.join("agents"), p.clone()] {
-            if ancestor == root.join("agents") && path == "AGENTS.md" {
-                continue;
-            }
-            if std::fs::symlink_metadata(&ancestor)
-                .map_err(|e| format!("guidance-file-unreadable: {e}"))?
-                .file_type()
-                .is_symlink()
-            {
-                return Err("guidance-file-unreadable: symbolic link".into());
-            }
-        }
         Self::seeded(
             path,
             release,
-            std::fs::read(p).map_err(|e| format!("guidance-file-unreadable: {e}"))?,
+            read_guidance(root, path, || {})
+                .map_err(|e| format!("guidance-file-unreadable: {e}"))?,
             default,
         )
     }
@@ -177,6 +165,109 @@ impl Guidance {
         &self.bytes
     }
 }
+
+#[cfg(unix)]
+fn read_guidance(
+    root: &std::path::Path,
+    path: &str,
+    after_open: impl FnOnce(),
+) -> Result<Vec<u8>, String> {
+    use std::{
+        ffi::CString,
+        fs::{File, Metadata, OpenOptions},
+        io::Read,
+        os::unix::{
+            fs::{MetadataExt, OpenOptionsExt},
+            io::{AsRawFd, FromRawFd},
+        },
+    };
+    fn directory(path: &std::path::Path) -> Result<File, String> {
+        OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+            .open(path)
+            .map_err(|e| e.to_string())
+    }
+    fn at(parent: &File, name: &str, directory: bool) -> Result<File, String> {
+        let name = CString::new(name).map_err(|_| "NUL in guidance name")?;
+        let flags = libc::O_RDONLY
+            | libc::O_NOFOLLOW
+            | libc::O_NONBLOCK
+            | libc::O_CLOEXEC
+            | libc::O_NOCTTY
+            | if directory { libc::O_DIRECTORY } else { 0 };
+        let fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        Ok(unsafe { File::from_raw_fd(fd) })
+    }
+    fn identity(file: &File) -> Result<(u64, u64), String> {
+        let m = file.metadata().map_err(|e| e.to_string())?;
+        Ok((m.dev(), m.ino()))
+    }
+    fn stamp(m: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
+        (
+            m.dev(),
+            m.ino(),
+            m.len(),
+            m.mtime(),
+            m.mtime_nsec(),
+            m.ctime(),
+            m.ctime_nsec(),
+        )
+    }
+    let opened_root = directory(root)?;
+    let (agents, name) = match path.strip_prefix("agents/") {
+        Some(name) => (Some(at(&opened_root, "agents", true)?), name),
+        None => (None, path),
+    };
+    let parent = agents.as_ref().unwrap_or(&opened_root);
+    let mut file = at(parent, name, false)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if !before.is_file() {
+        return Err("guidance source is not a regular file".into());
+    }
+    after_open();
+    // Bound by this opened file's length, rather than inventing a guidance
+    // size policy or chasing a concurrently appended stream indefinitely.
+    let bound = before
+        .len()
+        .checked_add(1)
+        .ok_or("guidance length overflow")?;
+    let mut bytes = Vec::new();
+    (&mut file)
+        .take(bound)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    let after = file.metadata().map_err(|e| e.to_string())?;
+    if stamp(&before) != stamp(&after) || bytes.len() as u64 != before.len() {
+        return Err("guidance source changed during read".into());
+    }
+    if identity(&directory(root)?)? != identity(&opened_root)? {
+        return Err("guidance root changed during read".into());
+    }
+    if let Some(agents) = &agents {
+        if identity(&at(&opened_root, "agents", true)?)? != identity(agents)? {
+            return Err("guidance role directory changed during read".into());
+        }
+    }
+    let current = at(parent, name, false)?;
+    let current_meta = current.metadata().map_err(|e| e.to_string())?;
+    if !current_meta.is_file() || stamp(&current_meta) != stamp(&after) {
+        return Err("guidance source replaced during read".into());
+    }
+    Ok(bytes)
+}
+
+#[cfg(not(unix))]
+fn read_guidance(_: &std::path::Path, _: &str, _: impl FnOnce()) -> Result<Vec<u8>, String> {
+    Err("no-follow guidance reading is unavailable on this target".into())
+}
+
+#[cfg(all(test, unix))]
+#[path = "role_guidance_reads_tests.rs"]
+mod guidance_reads;
 #[derive(Debug, Clone)]
 pub struct Composition {
     role_set_identity: Value,

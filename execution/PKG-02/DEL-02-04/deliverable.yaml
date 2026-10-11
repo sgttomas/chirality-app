@@ -106,6 +106,7 @@ code_paths:
 - app/src-tauri/src/role_supply.rs
 - app/src/ConversationRoles.tsx
 checks:
+- app/src-tauri/src/role_guidance_reads_tests.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/tests/role_lifecycle.rs
 - app/tests/conversation-roles.test.mjs

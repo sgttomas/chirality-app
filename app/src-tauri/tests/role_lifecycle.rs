@@ -389,6 +389,44 @@ impl Drop for TempDir {
     }
 }
 
+#[cfg(unix)]
+#[test]
+fn guidance_fifo_is_refused_without_waiting_for_a_writer() {
+    use std::io::Write;
+    use std::os::unix::{ffi::OsStrExt, fs::OpenOptionsExt};
+    use std::sync::mpsc;
+    use std::time::Duration;
+    let tmp = TempDir::new();
+    let fifo = tmp.0.join("AGENTS.md");
+    let c_path = std::ffi::CString::new(fifo.as_os_str().as_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(c_path.as_ptr(), 0o600) }, 0);
+    let root = tmp.0.clone();
+    let (tx, rx) = mpsc::channel();
+    let reader = std::thread::spawn(move || {
+        tx.send(Guidance::read_seeded(&root, "AGENTS.md", "fixture", b"default"))
+            .unwrap();
+    });
+    // A non-blocking writer can release the old blocking implementation,
+    // making this regression fail without leaving its test thread stuck.
+    let mut writer_needed = false;
+    let result = match rx.recv_timeout(Duration::from_secs(2)) {
+        Ok(result) => result,
+        Err(mpsc::RecvTimeoutError::Timeout) => {
+            let mut writer = std::fs::OpenOptions::new().write(true)
+            .custom_flags(libc::O_NONBLOCK).open(&fifo)
+                .expect("blocking guidance reader never opened the FIFO");
+            writer_needed = true;
+            writer.write_all(b"valid UTF8 from a FIFO").unwrap();
+            drop(writer);
+            rx.recv_timeout(Duration::from_secs(2)).expect("guidance read did not finish")
+        }
+        Err(error) => panic!("guidance reader disconnected: {error}"),
+    };
+    reader.join().unwrap();
+    assert!(result.is_err(), "a FIFO supplied guidance: writer was needed={writer_needed}");
+    assert!(!writer_needed, "refusal waited for a FIFO writer");
+}
+
 #[test]
 fn substituted_outbound_guidance_or_override_on_resume_cannot_bind() {
     let c = composition(Some(Role::HELP_HUMAN), "");
