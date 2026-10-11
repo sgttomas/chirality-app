@@ -1017,9 +1017,9 @@ pub(crate) fn read_items(home: &HomeSession, generation: &Value, thread: &str, t
 /// which is read again on new activity and by Read again, since a user message
 /// may still be listed. A clean trial's turn (with `client`) and a turn with no
 /// items yet read "not yet".
-fn first_user_texts(items: &[Value], client: Option<&str>) -> Result<Vec<String>, String> {
+fn first_user_texts(items: &[Value], client: Option<&str>, kind: TrialKind) -> Result<Vec<String>, String> {
     let messages: Vec<&Value> = items.iter().filter(|i| i["type"] == "userMessage").collect();
-    if client.is_none() && messages.is_empty() && !items.is_empty() {
+    if kind == TrialKind::Delegated && messages.is_empty() && !items.is_empty() {
         return Err(if items.iter().any(inter_agent_task) { INPUT_ENCRYPTED } else { INPUT_NOT_A_USER_MESSAGE }.into());
     }
     let chosen = client
@@ -1068,7 +1068,7 @@ fn inter_agent_task(item: &Value) -> bool {
     encrypted || headed
 }
 /// TT-9's read of a child's (or a clean trial's) first user message.
-fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, turn: Option<&str>, client: Option<&str>, by: &Value) -> Result<Vec<String>, String> {
+fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, turn: Option<&str>, client: Option<&str>, kind: TrialKind, by: &Value) -> Result<Vec<String>, String> {
     let turn = match turn {
         Some(turn) => turn.to_owned(),
         None => {
@@ -1079,7 +1079,7 @@ fn read_first_user_texts(home: &HomeSession, generation: &Value, thread: &str, t
         }
     };
     let items = read_items(home, generation, thread, &turn, by)?;
-    first_user_texts(&items, client)
+    first_user_texts(&items, client, kind)
 }
 /// Performs the reads `trial_reads_due` returned. Holds no App lock.
 pub(crate) fn perform_trial_reads(home: &HomeSession, reads: Vec<TrialRead>) -> Vec<TrialReadResult> {
@@ -1087,8 +1087,8 @@ pub(crate) fn perform_trial_reads(home: &HomeSession, reads: Vec<TrialRead>) -> 
         .into_iter()
         .map(|read| {
             let texts = match &read {
-                TrialRead::Child { generation, child, .. } => read_first_user_texts(home, generation, child, None, None, &rule_read()),
-                TrialRead::CleanFirstTurn { generation, thread, turn, client, .. } => read_first_user_texts(home, generation, thread, Some(turn), Some(client), &rule_read()),
+                TrialRead::Child { generation, child, .. } => read_first_user_texts(home, generation, child, None, None, TrialKind::Delegated, &rule_read()),
+                TrialRead::CleanFirstTurn { generation, thread, turn, client, .. } => read_first_user_texts(home, generation, thread, Some(turn), Some(client), TrialKind::Clean, &rule_read()),
             };
             TrialReadResult { read, texts }
         })
@@ -1300,7 +1300,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
         let reading = match (&text, turn.as_deref()) {
             (Err(cause), _) => FidelityReading::NotChecked { limits: vec![cause.clone()] },
             (_, None) => FidelityReading::NotChecked { limits: vec!["Codex's acknowledgment named no turn".into()] },
-            (Ok(text), Some(turn)) => match read_first_user_texts(home, &generation, &thread, Some(turn), trial["client_message"].as_str(), &person_read()) {
+            (Ok(text), Some(turn)) => match read_first_user_texts(home, &generation, &thread, Some(turn), trial["client_message"].as_str(), TrialKind::Clean, &person_read()) {
                 Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
                 Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the first turn could not be read: {cause}")] },
             },
@@ -1311,7 +1311,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     }
     let text = text?;
     if let Some(child) = linked {
-        let reading = match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
+        let reading = match read_first_user_texts(home, &generation, &child, None, None, TrialKind::Delegated, &person_read()) {
             Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
             Err(cause) if not_checkable(&cause) => FidelityReading::NotChecked { limits: vec![cause] },
             Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the sub-agent's first turn could not be read: {cause}")] },
@@ -1324,7 +1324,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     let mut unread = vec![];
     let mut not_checkable_children = vec![];
     for child in candidates {
-        match read_first_user_texts(home, &generation, &child, None, None, &person_read()) {
+        match read_first_user_texts(home, &generation, &child, None, None, TrialKind::Delegated, &person_read()) {
             Ok(texts) if texts.iter().any(|t| t.contains(&marker)) => {
                 let mut root = root.lock().unwrap();
                 if root.linked_child(reference).is_some() {

@@ -1371,10 +1371,15 @@ changed.
     child's own history can carry `subAgentActivity` naming its parent. The
     App no longer infers a parent from an item that names the containing
     thread itself, the root agent (`agentPath` "/root"), or a known ancestor
-    of the containing thread. A `subAgentActivity` of kind `started` names
-    the thread the containing thread spawned. It overrides an earlier
-    inference made in the wrong arrival order, at any depth, and drops the
-    inverted inference; it never overrides `collabAgentToolCall.senderThreadId`.
+    of the containing thread, or whose `agentPath` is an ancestor of the
+    containing thread's known path. A `subAgentActivity` of kind `started`
+    names the thread the containing thread spawned. Its parent gets its own
+    `parentSource` ("subAgentActivity started (spawning thread)"). It corrects
+    only a purely inferred parent: it drops an inverted inference and
+    re-parents an inferred node, at any depth, under the same ancestor guard.
+    A parent set by a `started` row or by `collabAgentToolCall.senderThreadId`
+    is never removed or moved. A descendant's own `started` row naming an
+    ancestor (forked context can copy its spawner's rows) changes nothing.
     Add that qualification. Limits:
     - Without a `started` row (for example, a history read that has not
       reached the parent's spawn turn), an inference made from a descendant's
