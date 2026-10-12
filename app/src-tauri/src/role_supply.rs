@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 pub const CONTENT_METHOD: &str = "chirality.app.exact-bytes.sha256/v1";
+#[path = "instruction_seed_history.rs"]
+mod seed_history;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Role {
@@ -150,13 +152,15 @@ impl Guidance {
         {
             return Err("guidance source path not allowed".into());
         }
-        Self::seeded(
-            path,
-            release,
-            read_guidance(root, path, || {})
-                .map_err(|e| format!("guidance-file-unreadable: {e}"))?,
-            default,
-        )
+        let (bytes, history) = read_guidance_snapshot(root, path, || {})
+            .map_err(|e| format!("guidance-file-unreadable: {e}"))?;
+        let mut guidance = Self::seeded(path, release, bytes, default)?;
+        // Historical seeded-copy sources keep their original shape. Current
+        // file reads name the reviewed comparison and declared history apart.
+        guidance.source = json!({"store":"editable-copy","path":path,
+            "reviewedDefault":{"release":release,"content":content(default)},
+            "state":guidance.source["state"],"seedHistory":history});
+        Ok(guidance)
     }
     pub fn modified(&self) -> bool {
         self.source["state"] == "modified"
@@ -167,11 +171,11 @@ impl Guidance {
 }
 
 #[cfg(unix)]
-fn read_guidance(
+fn read_guidance_snapshot(
     root: &std::path::Path,
     path: &str,
     after_open: impl FnOnce(),
-) -> Result<Vec<u8>, String> {
+) -> Result<(Vec<u8>, Value), String> {
     use std::{
         ffi::CString,
         fs::{File, Metadata, OpenOptions},
@@ -218,6 +222,21 @@ fn read_guidance(
         )
     }
     let opened_root = directory(root)?;
+    let history = (|| -> Result<(File, Metadata, Vec<u8>), &'static str> {
+        let name = CString::new(".seed-record.json").unwrap();
+        let flags = libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY;
+        let fd = unsafe { libc::openat(opened_root.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 {
+            return Err(if std::io::Error::last_os_error().kind() == std::io::ErrorKind::NotFound { "missing" } else { "unreadable" });
+        }
+        let mut file = unsafe { File::from_raw_fd(fd) };
+        let before = file.metadata().map_err(|_| "unreadable")?;
+        if !before.is_file() || before.len() > seed_history::MAX_BYTES { return Err("unreadable"); }
+        let mut raw = Vec::new();
+        (&mut file).take(before.len() + 1).read_to_end(&mut raw).map_err(|_| "unreadable")?;
+        if raw.len() as u64 != before.len() { return Err("changed"); }
+        Ok((file, before, raw))
+    })();
     let (agents, name) = match path.strip_prefix("agents/") {
         Some(name) => (Some(at(&opened_root, "agents", true)?), name),
         None => (None, path),
@@ -257,12 +276,31 @@ fn read_guidance(
     if !current_meta.is_file() || stamp(&current_meta) != stamp(&after) {
         return Err("guidance source replaced during read".into());
     }
-    Ok(bytes)
+    let history = match history {
+        Ok((file, before, raw)) => {
+            let stable = (|| -> Result<bool, String> {
+                let after = file.metadata().map_err(|e| e.to_string())?;
+                let named = at(&opened_root, ".seed-record.json", false)?.metadata().map_err(|e| e.to_string())?;
+                Ok(after.is_file() && named.is_file() && stamp(&before) == stamp(&after) && stamp(&after) == stamp(&named))
+            })().unwrap_or(false);
+            if stable { seed_history::report(&raw, path, &bytes) } else { seed_history::unknown("changed") }
+        }
+        Err(reason) => seed_history::unknown(reason),
+    };
+    if identity(&directory(root)?)? != identity(&opened_root)? {
+        return Err("guidance root changed during history read".into());
+    }
+    Ok((bytes, history))
 }
 
 #[cfg(not(unix))]
-fn read_guidance(_: &std::path::Path, _: &str, _: impl FnOnce()) -> Result<Vec<u8>, String> {
+fn read_guidance_snapshot(_: &std::path::Path, _: &str, _: impl FnOnce()) -> Result<(Vec<u8>, Value), String> {
     Err("no-follow guidance reading is unavailable on this target".into())
+}
+
+#[cfg(all(test, unix))]
+fn read_guidance(root: &std::path::Path, path: &str, after_open: impl FnOnce()) -> Result<Vec<u8>, String> {
+    read_guidance_snapshot(root, path, after_open).map(|(bytes, _)| bytes)
 }
 
 #[cfg(all(test, unix))]
