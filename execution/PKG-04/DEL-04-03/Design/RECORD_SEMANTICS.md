@@ -205,7 +205,7 @@ The v0.3 → v0.4 change table is preserved in RS-v0.4 at commit `cc58211c5`.
 | D10 | No fabricated human act; faithful recording of an actually performed act is permitted | V4-HI-31; V4-AUT-03; d3 |
 | D11 | Acts are distinct subjects; evidence of one establishes none of the others; no acceptance-first chain | d3; V4-AUT-03 |
 | D12 | Nothing agent-produced is presented as certified, sealed, approved or code-compliant | V4-AUT-05 |
-| D13 | Git history and reviewed pull requests are primary change records | V4-OPS-31 |
+| D13 | Git history and reviewed pull requests are primary change records (repository development; App records follow V4-REC-06) | V4-OPS-31 |
 | D14 | Reserved to the person (first increment, App/shared): mark checked; accept where autonomy requires a proposal; engineering approval; reliance; changing the grant or enabling external access. No grant widens past a reserved act or declared checkpoint. The host names and enforces its own list. **Current phase (R8-11 item 2, restated by R9-2; the reading of D2 was confirmed by the owner: OWNER_ITEMS O-25, DECISION-7 of `APP-V4-BASIS-ALIGN-20260928`):** "no grant widens past a reserved act" binds, and the host enforces it through its operations. For a declared checkpoint, V4-HI-42's request clause and record clause are in force whatever the autonomy setting; whether the run goes on before the act is for the person and the agents, and the host's own treatment of its operations decides what the host does. Holding the run binds only for governed checkpoints in the governance phase | OWNER_DECISIONS D2; V4-HI-30; R8-11; R9-2 |
 | D15 | App routine tool-permission and sandbox modes are the user's own Codex setting per project/turn; they govern tool execution only and never stand in for a reserved or professional act. Hosts have no classifier permission mode in the first increment | OWNER_DECISIONS D3 |
 | D16 | Host content read by the App's Codex through the external channel may flow to the App conversation's selected model, cloud included; the App does not gate on the model destination. A host may restrict its own channel (DEP-001); PRD V4-HOST-02, as amended by SCA-V4-001 (which applies DECISION-5; R8-13), governs the host's embedded agent: "A host's agent sends data only to the model service the person selected and to destinations the person has allowed — in advance in an allow list (by category, such as web access, MCP servers or other APIs, or by named destination) or when the agent asks during its work. Nothing else is contacted: no analytics, silent provider switch or background download unless the person turns it on. Every destination contacted is recorded and shown (D-18; DEC-5)." Its record is R15 (ScopeOfWork REQ-002 and CLM-002; V4-HI-70 as amended). (That the App **records** the destination per turn and shows it in the channel status is **SETTLED**: ScopeOfWork REQ-002 requires "model used with its observed destination per turn", and the owner confirmed the reading, OWNER_ITEMS O-10, accepted at DECISION-7 of `APP-V4-BASIS-ALIGN-20260928`; R4-1/R5-4; R9-4) | OWNER_DECISIONS DECISION-2 D5; R5-4; PRD V4-HOST-02 (SCA-V4-001; DECISION-5); ScopeOfWork REQ-002; OWNER_ITEMS O-10 (DECISION-7) |
@@ -1474,7 +1474,9 @@ they are, the App writes the §13.7 paths.
   working tree, so the agent's writable workspace never holds them. Each
   project has one subtree, `projects/<safe-project-key>/`, with
   `runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl`,
-  `acts/<safe-writer-storage-key>.jsonl` and `captures/`, keyed as in §13.7.
+  `acts/<safe-writer-storage-key>.jsonl`, `captures/` and `workflow/` (WR
+  §16.8 WP-1 records), keyed as in §13.7. A capture is written once; its one
+  add-once backlink (AAC §5.2a) is its only later change.
   The person may place the store on another volume, for example a backed-up
   one. The App reports which store it writes and never falls back silently
   to another.
@@ -1483,37 +1485,57 @@ they are, the App writes the §13.7 paths.
   each project's identity and the project roots it has seen. The project
   file is a link, not an authority: a missing, changed or duplicated identity
   is shown as a limit and never silently attaches records to another project.
+  The store's own identity record governs; an agent-edited or missing project
+  file can only produce a limit.
 - **Workflow libraries.** A15 library acts and their capture evidence stay
   with the library (§13.7 rows) until the owner decides how library standing
-  is verified across installations.
+  is verified across installations (U-STORE-2).
+- **Not yet in the store.** Fleet coordination files (DEL-06-01 FR-D3) and
+  App-written connector route accounts (DEL-07-02) stay in the project until
+  the owner decides whether they join the store (U-STORE-6).
 - **Units written together.** Entries that must stand together, such as an
   arrival's act and its label, a lapse and its label, or a batch of request
   endings, are written as one line that holds the group. The reader accepts a
   group whole or reports it as a limit; it never reads half a group. The
   group form is defined with the schema (§13.2–§13.3), and single-entry lines
-  stay valid.
-- **Tamper-evidence.** Each line carries the content identity of the
-  preceding line of its log, with its method designation. Checkpoint entries
-  at intervals are signed with an installation key held in the macOS Keychain,
-  never in a file. A reader reports a broken chain or a signature that does
-  not verify as a limit and does not repair it. External anchoring is not used
-  until the owner decides whether the strength needs it.
+  stay valid. Groups are single-writer, since logs are per run and writer.
+  This changes R-2 ("one entry per line") and W-1's one-line write to "one
+  entry or one group per line".
+- **Tamper-evidence (proposed option).** Each line carries the content
+  identity of the preceding complete line of its log, with its method
+  designation. A line that W-0 terminated after a torn write (FC-2) is not a
+  link, and the reader reports the gap. Imported legacy logs have no chain and
+  read as "unchained (legacy)", a limit. Checkpoint entries at intervals are
+  signed. A reader reports a broken chain or a signature that does not verify
+  as a limit and never repairs it. Signing depends on the App being signed:
+  the owner accepted SEAL-C's residual "until signing" on 2026-10-11, and the
+  key moves to the OS keychain at signing (AAC §6.3; OI-011). Whether
+  checkpoints share SEAL-C's key, and SEAL-2/U-32, are settled there. The
+  strength required, and any external anchoring, remain the owner's decision
+  (U-STORE-3).
 - **Derived index.** A SQLite database in the store, built only from the
   logs, answers cross-run queries. It is deletable and rebuildable and is
   never the authority for a record (REQ-001; V4-REC-06). Where it disagrees
   with the logs, the logs govern and the index is rebuilt.
 - **Retention and disposition.** Records are retained with no deletion
   offered until the owner sets a retention policy, including disposition and
-  legal hold (U-R3 in DEL-01-02).
+  legal hold (U-STORE-1).
 - **Export and import.** A project's records move or are handed over as a
-  verified package: a manifest with each file's content identity, signed.
+  verified package. The candidate form is a signed manifest with each file's
+  content identity.
   Import never overwrites, keeps every record identity, and reports
   duplicates under R-5…R-8. The package format is chosen with the owner's
-  backup and export decision.
-- **Existing records.** The App discovers the §13.7 project logs, reads them
-  in place, and imports them into the store as byte-identical copies verified
-  against their content identity. It never rewrites or deletes the originals,
-  and a storage-path change is not a migration of their meaning.
+  backup and export decision (U-STORE-5).
+- **Existing records.** The App discovers the §13.7 project logs and reads
+  them in place. It then imports them explicitly (§13.7 discovery makes no
+  implicit copy) into the store as byte-identical copies verified against
+  their content identity. After import the store copy is the owning log and
+  the original is a legacy source: R-1 counts each record identity once and
+  treats neither copy as pending or as a duplicate. The App never rewrites or
+  deletes the originals, and a storage-path change is not a migration of their
+  meaning.
+- **Agent access.** The store sits outside the agent's writable workspace.
+  Whether agents may also read it is the owner's decision (U-STORE-4).
 - **Failures.** An unreadable store, or an unwritable owning log, refuses new
   recording visibly (W-0, W-2) and reports what is pending. There is no
   fallback to a project path, another store or memory.
@@ -1781,7 +1803,7 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-01 Operation-specific reserved additions `OI-021` | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and execution | Class may be *no policy basis (pending OI-021)*; fixtures held |
 | U-02 Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment in DEL-03-01 | Scope dimension "consequence" is a slot; OP-C5 on S-4 under ⟨set-2⟩ held |
 | U-04 Serialization, field names, identity algorithms, record-identity form, carriage-manifest representation | DEL-04-03 with DEL-03-01 (TBD-003) and DEL-02-01 | Before OUT-001 CONFIG and writer implementation | **v0.8:** serialization, element spellings, unit of storage, record-identity form (opaque token) and version rule PROPOSED in §13, for review; **CC-ID** selects only new App record-entry minting (§13.2), with product adoption pending independent review. **CC-CONTENT-RX** adopts the reviewed bounded App exact-byte/package methods (§6.2a); host/global content/revision algorithms and the carriage-manifest representation stay open. L-2 depends on method designations and same subject/scope only |
-| U-05 App record location — bounded choice selected | DEL-04-03 with App consumers | Implementation/consumer review | CC-P-R §13.7 selects project run/writer and outside-run-only logs, portable A15 library logs/captures and registered legacy discovery. Implementation not yet evidenced; global OI-014 remains open |
+| U-05 App record location — bounded choice selected | DEL-04-03 with App consumers | Implementation/consumer review | CC-P-R §13.7 selects project run/writer and outside-run-only logs, portable A15 library logs/captures and registered legacy discovery. RS §13.8 (PRD R-STORE) directs App records to the App's records store; not yet implemented. Global OI-014 remains open |
 | U-06 Host persistence/placement `OI-013` | Shared contract owner with SWB implementation owner | Before shared/host implementation boundary contracts | Host recording follows meaning only |
 | U-07 *Closed (DECISION-K1 K1-3, 2026-09-30).* Purpose of a multi-row A4 after partial lapse | The owner (decided) | — | **Settled:** the act keeps its purpose for unchanged rows; a new act on the changed rows alone answers together with it (L-7; EXEC §4.7 JA-1) |
 | U-08 *Closed (R12-5, 2026-09-30).* Workflow review/registration as act kind | The integrator (R12-5); the A15 is captured by DEL-01-04's App act control (AAC-v0.2; K-8), registration is DEL-02-02's (WR-v0.2) | — | **A15 register workflow revision** is a human-act record kind (§6.1, HA-10); a checkpoint cannot require it in this increment |
@@ -1790,7 +1812,13 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-12 Content returning to c₀ after observed lapse | Host owner (U-C2) with DEL-04-03 | Before lapse display criteria are fixed | L-11 keeps lapse visible. SWBPIPE: same content ⇒ same whole-model hash; DRAFT #885 revision still advances (SQ-03 (e)) |
 | U-14 Host-stored findings as a change operation | Host owner | Before V4-EXM-21 fixture binding | R10 may also need R7 |
 | U-15 Host receipts, origin marks, subject identities, resulting objects, lapse, per-operation settings version, de-duplication `DEP-001` | SWBPIPE outside implementation session | Before corresponding connected-journey integration/examination and fallback-replacement decision; host joins deferred (DECISION-3) | All host evidence is fixture. SWBPIPE answered 2026-09-28 (SQ-03, SQ-07, SQ-08, SQ-09, SQ-10): whole-model identity only; resulting objects as target ids and diffs; within-session de-duplication and receipts only (DRAFT #885); receiptless session undo |
-| U-16 Reader/writer placement `OI-014` — bounded App allocation selected | App/shared contract owners | Remaining shared allocation point of need | CC-P-R §13.7 selects App-local Rust capture/writer for Group A, no common service. Other shared allocations and external host choices remain open |
+| U-16 Reader/writer placement `OI-014` — bounded App allocation selected | App/shared contract owners | Remaining shared allocation point of need | CC-P-R §13.7 selects App-local Rust capture/writer for Group A, no common service; §13.8 keeps it for the records store. Other shared allocations and external host choices remain open |
+| U-STORE-1 Records retention, disposition and legal hold | Owner, with privacy | Before any deletion or archive feature | Retain everything; no deletion offered (§13.8) |
+| U-STORE-2 Library standing across installations, and whose signature counts | Owner, with DEL-02-02 | Before libraries are shared between installations | Library evidence stays with the library (§13.8) |
+| U-STORE-3 Tamper-evidence strength and external anchoring | Owner | Before signed checkpoints are built | Hash chain; checkpoint signing after App signing (§13.8; OI-011) |
+| U-STORE-4 Agent read access to the records store | Owner | Before the store move ships | Outside the writable workspace; reads not further restricted |
+| U-STORE-5 Backup and export package format | Owner | Before export/import is built | Configurable store location; candidate signed manifest |
+| U-STORE-6 Whether fleet coordination files and App connector accounts join the store | Owner, with DEL-06-01 and DEL-07-02 | Before the store move ships | They stay in the project |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
 | U-21 Host-loop per-turn guidance identities | Host owner (relay) | Before connected integration | R3 *unknown* where absent |

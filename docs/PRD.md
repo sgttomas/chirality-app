@@ -37,7 +37,7 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | A–I | Earlier renewal directions, retained through B-HTML's quoted basis: human governance, Root's conceptual role, manuals, SoWs, thesis, PEC and research. |
 | OD-nn / D-nn | Original scoped directions/choices in `../conceptual/DECISIONS.md`, including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |
-| R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the recommended records-storage direction ("I approve your recommendations. Proceed accordingly."), asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
+| R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index, the App's recovery ledger in SQLite and bounded read paths. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
 | DEC-4 / DEC-5 | [Owner decisions][B-DEC45] `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
 The original handoff's pending-answer list and `SEED_SET_PLAN.md` §3 remain
@@ -382,18 +382,20 @@ For the owner and an agent fleet, in the Chirality App (D-09, option B).
   it (R-STORE).
 - **V4-REC-03** A harness's own session store is operational, not the
   authority for any human act.
-- **V4-REC-04** Each workflow run leaves a compact record in the managed
-  records store of the application that ran it (the Chirality App's records
-  store, or a host's own store, V4-HI-70), linked to its project, that links
-  the host's own receipts and hashes rather than copying them (R-STORE).
+- **V4-REC-04** Each workflow run leaves a compact record, linked to its
+  project, that links the host's own receipts and hashes rather than copying
+  them. An App run's record is kept in the App's records store (V4-REC-02;
+  R-STORE); a host-agent run's record stays with the host project
+  (V4-HI-70).
 - **V4-REC-05** Every recorded human act binds to the identified content,
   scope and purpose it concerns (thesis CF §2.3; X-20).
-- **V4-REC-06** Records management does not rely on version control (R-STORE).
-  Records are append-only and tamper-evident; entries that must stand
-  together are written as one unit; records are retained and disposed of under
-  a stated retention policy, backed up, and moved or handed over as verified
-  export packages. Indexes and query stores built from records are
-  rebuildable and never the authority for a record.
+- **V4-REC-06** The App's records management does not rely on version
+  control (R-STORE). The App's records are append-only and tamper-evident;
+  entries that must stand together are written as one unit; they are retained
+  and disposed of under a stated retention policy, can be backed up, and are
+  moved or handed over as verified export packages. Indexes and query stores
+  built from them are rebuildable and never the authority for a record. A
+  host's store follows its owner (V4-HI-70; OI-013).
 
 ---
 

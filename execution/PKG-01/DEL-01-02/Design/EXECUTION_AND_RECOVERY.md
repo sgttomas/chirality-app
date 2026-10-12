@@ -740,8 +740,10 @@ facts. The App resolves its own user-data root from the host; tests supply an
 explicit scratch ledger path instead. No common service or host persistence
 allocation follows from this local choice (bounded U-R7/TBD-002 only).
 
-**Direction (owner, 2026-10-12; PRD R-STORE).** The ledger is App-private
-operational state, not a record. It moves to a SQLite database in App user
+**Approved recommendation (owner, 2026-10-12: "I approve your
+recommendations. Proceed accordingly."; PRD R-STORE).** The approved
+recommendations included this change. The ledger is App-private operational
+state, not a record. It moves to a SQLite database in App user
 data, which records its entries without rewriting or deleting any of them.
 Entries that must stand together are recorded in one transaction, for
 example a startup batch of RQ-06 endings or a session marker with its
@@ -1185,7 +1187,7 @@ qualified.
 | U-R4 Numbers: quit wait limit, stop wait limit, journal size, overlap wait (with HOSTING U-05) | App implementation owner | Before implementation | TEST VALUES in the prototype only |
 | U-R5 *Closed at G (R22-3):* more than one App window on one conversation. Each window is an observer and shows the interrupt control; the first press settles it, another window's press is refused and its control shows the turn's state (§3.3, SR-11; NIR-v0.2 §4.8 WI-5, beside WI-4) | — | — | — |
 | U-R6 *Closed at G (C1-A G-A1):* RS does not record a turn interrupt in format 0.1 (RS-v0.9 §10, DEL-01-02 row; §3, "Run-ended event" row) | — | — | §8.2 cites it |
-| U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects App-local UTF-8 JSON Lines pointer ledger under App-own user-data runtime; failure visible, no relocation. Retention/deletion U-R3 remains open; no product evidence claimed |
+| U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects App-local UTF-8 JSON Lines pointer ledger under App-own user-data runtime; failure visible, no relocation. SQLite in App user data is proposed (§7; PRD R-STORE). Retention/deletion U-R3 remains open; no product evidence claimed |
 | U-R8 *Closed 2026-10-10 (owner ruling on OI-008, `docs/ARCHITECTURE.md` §3):* the process division. The Rust host owns record writing, every request to Codex and the capture of a person's act; the web view presents and sends only what the person initiates (§0, §4.1 "Placement") | — | — | Requirements still stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
 | U-R13 Version advance (R19-5): every supplier statement here is about 0.158.0; a version-advance check (regenerate types, diff, rerun the OBS harnesses and this prototype's variants, list affected statements) is proposed as a later node, its scheduling open | Integrator / owner | Before relying on another version | Statements name 0.158.0 |
