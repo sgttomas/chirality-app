@@ -4108,6 +4108,9 @@ struct WorkflowSelectionState {
     package: std::path::PathBuf,
     /// The person's original selection time (WR selection_record.selected_at).
     selected_at: String,
+    /// WR SL-2 / §5.4: the registered selection this one replaced, cited by
+    /// `replaces` in this selection's records.
+    replaces: Option<String>,
 }
 /// WR TT-1 (SETTLED) and TX-1: only registered (LS-1), bundled (LS-5), host-listed
 /// (LS-6) or shipped-held (LS-8) revisions are composed and run. The App holds no
@@ -4206,7 +4209,7 @@ impl WorkflowRootSession {
             },
             Err(error) => json!({"standing":"candidate catalog unavailable","entries":[],"limit":error}),
         };
-        json!({"productionCatalog":production_catalog,"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err(),
+        json!({"productionCatalog":production_catalog,"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err(),
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
@@ -4324,6 +4327,7 @@ impl WorkflowRootSession {
             selection: held.selection().clone(),
             package: path,
             selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
         });
         Ok(self.snapshot())
     }
@@ -4338,6 +4342,7 @@ impl WorkflowRootSession {
             selection: resolved.selection().clone(),
             package: resolved.package_path().to_path_buf(),
             selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
         });
         Ok(self.snapshot())
     }
@@ -4354,6 +4359,7 @@ impl WorkflowRootSession {
             selection: resolved.selection().clone(),
             package: resolved.package_path().to_path_buf(),
             selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
         });
         drop(_owner);
         Ok(self.snapshot())
@@ -4436,8 +4442,130 @@ impl WorkflowRootSession {
             selection,
             package: path,
             selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
         });
         drop(review);
+        Ok(self.snapshot())
+    }
+    /// WR SL-2 / §5.4: the registered selection in force, which a new
+    /// selection by the person replaces and cites. A candidate selection that
+    /// can never run (TT-1) is not cited; the registered selection it replaced is.
+    fn replaced(&self) -> Option<String> {
+        self.selected.as_ref().and_then(|s| match run_admission(&s.selection) {
+            Ok(()) => Some(s.reference.clone()),
+            Err(_) => s.replaces.clone(),
+        })
+    }
+    /// The opened library holding a project or user revision (its origin and source root).
+    fn library_of(&self, identity: &crate::workflow_workspace::WorkflowIdentity) -> Option<std::sync::Arc<WorkflowLibraryContext>> {
+        self.libraries.values().find(|l| l.origin == identity.origin && l.source_root == identity.source_root).cloned()
+    }
+    /// WR §4.8 RC-2: the registration (G-4) or re-confirmation (G-4R) result this
+    /// process holds for `identity` in `library`, from the reviews that captured it.
+    fn held_registered(
+        &self,
+        library: &std::sync::Arc<WorkflowLibraryContext>,
+        identity: &crate::workflow_workspace::WorkflowIdentity,
+    ) -> Result<Option<crate::workflow_workspace::RegisteredRevision>, String> {
+        for review in self.reviews.values() {
+            let review = review.try_lock().map_err(|_| "A registration interaction is pending; selection pending, nothing selected")?;
+            if !std::sync::Arc::ptr_eq(&review.library, library) {
+                continue;
+            }
+            if let Some(found) = review.registered.get(&identity.revision).filter(|r| r.identity() == identity) {
+                return Ok(Some(found.clone()));
+            }
+        }
+        Ok(None)
+    }
+    /// WR SL-2: "newer revision ‹n› available" beside a registered selection, as
+    /// the slot's ledger reads now. Display only: it never changes the selection (SL-4).
+    fn newer_revision_view(&self, selected: &WorkflowSelectionState) -> Value {
+        if run_admission(&selected.selection).is_err() {
+            return Value::Null;
+        }
+        let identity = selected.selection.identity();
+        let Some(library) = self.library_of(identity) else {
+            return json!({"limit":"the selection's library is not open in this App session; newer revisions not read"});
+        };
+        let Ok(owner) = library.owner.try_lock() else {
+            return json!({"limit":"library busy; newer revisions not read now"});
+        };
+        match owner.newer_registered(identity) {
+            Ok(None) => Value::Null,
+            Ok(Some((sequence, newer, selectable))) => json!({"sequence":sequence,"revision":newer.revision,"identity":newer,
+                "notice":format!("newer revision {sequence} available"),"selectable":selectable == Ok(true),
+                "offered":match selectable {
+                    Ok(true) => format!("Select revision {sequence}"),
+                    Ok(false) => "registered — re-confirm to use in this App session: Review a draft with its bytes (DS-8), or Refine (RF-1) to make one".into(),
+                    Err(cause) => format!("registered in this App session — not selectable now: {cause} (LS-4)"),
+                },
+                "standing":"read from the registration ledger now; the selection stays on its revision until the person selects another (WR SL-2, SL-4)"}),
+            Err(cause) => json!({"limit":format!("newer revisions not read: {cause}")}),
+        }
+    }
+    /// WR LS-1 "Select (in such a process)", SL-1, SL-4: the person selects a
+    /// registered revision from the active library's list. Only a revision whose
+    /// registration or re-confirmation result this process holds (RC-2) is
+    /// selected, resolved from the revision store and verified there; anything
+    /// else keeps its standing and route (SL-5; §5.4).
+    /// `library_ref` is the library whose list the person pressed; a press that
+    /// arrives after the active library changed selects nothing.
+    pub fn select_listed_registered(&mut self, library_ref: &str, name: &str, revision: &str) -> Result<Value, String> {
+        if !crate::workflow_workspace::valid_name(name) {
+            return Err("Invalid workflow name".into());
+        }
+        let library = self.active_library()?;
+        if library.reference != library_ref {
+            return Err("The active library changed since the list was shown; nothing selected".into());
+        }
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; selection pending")?;
+        let found = owner.registered_revision(name, revision).map_err(|cause| format!("{name}: registration ledger not readable ({cause}); nothing selected"))?;
+        let Some((_, identity)) = found else { return Err(owner.not_selectable(name, revision)) };
+        let store = owner.store_copy(&identity);
+        let refusal = owner.not_selectable(name, revision);
+        drop(owner);
+        let held = self.held_registered(&library, &identity)?.ok_or(refusal)?;
+        self.choose_registered(&held, store)
+    }
+    /// WR SL-2: following "newer revision ‹n› available". A new selection event
+    /// that cites the one it replaces; the earlier selection, and any record of
+    /// it, is left as it is. `selection_ref` and `revision` are what the notice
+    /// showed; a changed selection or slot refuses.
+    pub fn follow_newer_revision(&mut self, selection_ref: &str, revision: &str) -> Result<Value, String> {
+        let current = self.selected.as_ref().ok_or("No workflow selected; nothing to follow")?;
+        if current.reference != selection_ref {
+            return Err("The selection changed since the notice was shown; nothing selected".into());
+        }
+        let identity = current.selection.identity().clone();
+        let library = self.library_of(&identity).ok_or("The selection's library is not open in this App session; nothing selected")?;
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; selection pending")?;
+        let (sequence, newer, _) = owner
+            .newer_registered(&identity)
+            .map_err(|cause| format!("newer revisions not read ({cause}); nothing selected"))?
+            .ok_or("No newer registered revision of the selected workflow; nothing selected")?;
+        if newer.revision != revision {
+            return Err(format!("The slot's newer revision changed since the notice was shown (now revision {sequence}); nothing selected"));
+        }
+        let store = owner.store_copy(&newer);
+        let refusal = owner.not_selectable(&newer.name, &newer.revision);
+        drop(owner);
+        let held = self.held_registered(&library, &newer)?.ok_or(refusal)?;
+        self.choose_registered(&held, store)
+    }
+    /// SL-1/SL-4: the person's selection of a held registered revision, resolved
+    /// from `store` and verified there; it replaces (and cites) the one in force.
+    fn choose_registered(&mut self, held: &crate::workflow_workspace::RegisteredRevision, store: std::path::PathBuf) -> Result<Value, String> {
+        let selection = held.select();
+        crate::storage::check_path(&store)?;
+        selection.verify_store(&store)?;
+        self.selected = Some(WorkflowSelectionState {
+            reference: crate::util::opaque_id("workflow-selection:")?,
+            selection,
+            package: store,
+            selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
+        });
         Ok(self.snapshot())
     }
     pub fn create_selected_draft(&mut self, name: &str) -> Result<Value, String> {
@@ -4634,6 +4762,11 @@ impl WorkflowRootSession {
         // WR PR-4: a start confirmed from an agent proposal says so in its records.
         let prepared = match proposal {
             Some(proposal) => prepared.confirmed_from_proposal(proposal)?,
+            None => prepared,
+        };
+        // WR SL-2 / §5.4: a selection that replaced another cites it.
+        let prepared = match &selected.replaces {
+            Some(replaced) => prepared.replacing(replaced),
             None => prepared,
         };
         let publication = crate::workflow_workspace::publication::PreparedRunPublication::new(
@@ -5292,6 +5425,7 @@ impl WorkflowRootSession {
             selection: found.revision.select(),
             package,
             selected_at: crate::util::now_rfc3339(),
+            replaces: self.replaced(),
         };
         let previous = self.selected.replace(chosen);
         let proposal = json!({"conversation":thread,"item":message.item,"proposed_name":named.text()});

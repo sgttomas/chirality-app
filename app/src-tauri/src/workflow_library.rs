@@ -101,9 +101,104 @@ impl LibraryOwner {
         }
         Ok(read)
     }
+    /// WR SL-4: the revision store copy of a revision, from which a selection
+    /// is resolved (never the published copy). The caller verifies its bytes.
+    pub(crate) fn store_copy(&self, identity: &WorkflowIdentity) -> PathBuf {
+        store_path(&self.root, identity)
+    }
+    /// The slot's *registered* line for `revision`, as the ledger reads now:
+    /// its sequence and identity. The slot must read as one series (`latest`).
+    pub(crate) fn registered_revision(
+        &self,
+        name: &str,
+        revision: &str,
+    ) -> Result<Option<(u64, WorkflowIdentity)>, String> {
+        let rows = read_ledger(&self.root)?;
+        let slot = slot_lines(&rows, &self.origin, &self.source_root, name);
+        latest(&slot)?;
+        slot.iter()
+            .find(|v| v["outcome"] == "registered" && v["identity"]["revision"] == revision)
+            .map(|v| {
+                let k = serde_json::from_value(v["identity"].clone())
+                    .map_err(|e| format!("registered identity not readable: {e}"))?;
+                Ok((v["sequence"].as_u64().unwrap_or(0), k))
+            })
+            .transpose()
+    }
+    /// WR SL-2: the slot's newer registered revision than `k`, as the ledger
+    /// reads now: (sequence, identity, selectable in this process (RC-2) with
+    /// its store verifying, or why its store does not verify). A
+    /// reading only: it never changes a selection (SL-4).
+    pub(crate) fn newer_registered(
+        &self,
+        k: &WorkflowIdentity,
+    ) -> Result<Option<(u64, WorkflowIdentity, Result<bool, String>)>, String> {
+        if k.origin != self.origin || k.source_root != self.source_root {
+            return Err("selected revision is not of this library".into());
+        }
+        let rows = read_ledger(&self.root)?;
+        let slot = slot_lines(&rows, &self.origin, &self.source_root, &k.name);
+        latest(&slot)?;
+        let registered: Vec<&Value> = slot.iter().filter(|v| v["outcome"] == "registered").collect();
+        let selected = registered
+            .iter()
+            .position(|v| v["identity"]["revision"] == k.revision.as_str())
+            .ok_or("selected revision has no registered line in its slot's ledger")?;
+        let Some(last) = registered.last().filter(|_| selected + 1 < registered.len()) else {
+            return Ok(None);
+        };
+        let newer: WorkflowIdentity = serde_json::from_value(last["identity"].clone())
+            .map_err(|e| format!("registration ledger malformed: latest identity: {e}"))?;
+        // Selectable only when held here (RC-2) and its store verifies now (SL-4).
+        let selectable = self.selectable_now(&newer);
+        // `latest` checked the series: sequence k+1 is the k+1-th registered line.
+        Ok(Some((registered.len() as u64, newer, selectable)))
+    }
+    /// WR SL-5 / §5.4: why `name` at `revision` is not offered for selection
+    /// here, with its standing and the route the person has.
+    pub(crate) fn not_selectable(&self, name: &str, revision: &str) -> String {
+        match self.registered_revision(name, revision) {
+            Ok(Some((sequence, k))) if !self.is_held(&k) => format!("{name} revision {sequence}: registered — re-confirm to use in this App session (WR §4.8 RC-2): Review a draft with its bytes (DS-8), or Refine (RF-1) to make one. Nothing selected"),
+            Ok(Some((sequence, _))) => format!("{name} revision {sequence} is selectable in this App session, but its registration result is not reachable now (a registration interaction may be pending); nothing selected, select it again"),
+            Err(cause) => format!("{name}: registration ledger not readable ({cause}); nothing selected"),
+            // SL-5 names the content's standing only when the requested content
+            // is that content: the draft's, or an unregistered published copy's.
+            Ok(None) if self.content_at(".chirality/workflow-drafts", name).as_deref() == Some(revision) => format!("{name} at {revision} is a draft — not registered. Content without registered standing is not selectable (WR SL-5): Review to register. Nothing selected"),
+            Ok(None) if self.content_at(".chirality/workflows", name).as_deref() == Some(revision) && self.latest_registered(name).is_ok_and(|l| l.is_none()) => format!("{name} is present without registration record (LS-2) and is not selectable (WR SL-5): Review to register. Nothing selected"),
+            Ok(None) => format!("{name} revision {revision} is not registered in this slot of this library; nothing selected"),
+        }
+    }
+    /// The content identity of the package at `folder/name`, if it reads.
+    fn content_at(&self, folder: &str, name: &str) -> Option<String> {
+        if !super::valid_name(name) {
+            return None;
+        }
+        let path = self.root.join(folder).join(name);
+        storage::check_path(&path).ok()?;
+        Snapshot::capture(&path).ok().map(|s| s.revision().to_owned())
+    }
+    /// WR SL-4: the revision store's bytes still recompute to `k` (LS-1's
+    /// store condition), so a selection would resolve.
+    fn store_verifies(&self, k: &WorkflowIdentity) -> Result<(), String> {
+        let store = store_path(&self.root, k);
+        storage::check_path(&store)?;
+        let read = Snapshot::capture(&store).map_err(|e| format!("selected revision not resolvable: {e}"))?;
+        if read.revision() != k.revision {
+            return Err("revision not verified: the revision store does not recompute to the revision".into());
+        }
+        Ok(())
+    }
+    /// RC-2 and SL-4 together: held by this process, and its store verifies now.
+    fn selectable_now(&self, k: &WorkflowIdentity) -> Result<bool, String> {
+        if !self.is_held(k) {
+            return Ok(false);
+        }
+        self.store_verifies(k).map(|()| true)
+    }
     /// V15 F5 (WR §4.6 LS-1 note, §5.4): the library's registered revisions as
-    /// read, for listing and per-row Refine. LS-1 is not checked here; a row is
-    /// "selectable in this App session" only when this process holds its result.
+    /// read, for listing, per-row Select (LS-1 "Select (in such a process)")
+    /// and Refine. LS-1 is not checked here; a row is "selectable in this App
+    /// session" only when this process holds its result.
     pub(crate) fn registered_listing(&self) -> Value {
         let rows = match read_ledger(&self.root) {
             Ok(rows) => rows,
@@ -115,12 +210,31 @@ impl LibraryOwner {
                 && v["identity"]["origin"] == self.origin.as_str()
                 && v["identity"]["source_root"] == self.source_root.as_str())
             .map(|v| {
-                let held = serde_json::from_value::<WorkflowIdentity>(v["identity"].clone())
-                    .is_ok_and(|k| self.is_held(&k));
-                json!({"name":v["identity"]["name"],"sequence":v["sequence"],"revision":v["identity"]["revision"],
-                    "registeredAt":v["written_at"],"disposition":v["disposition"],
-                    "label":if held {"registered — selectable in this App session"} else {"registered — re-confirm to use in this App session"},
-                    "offered":"Refine (RF-1); Review a draft with its bytes (DS-8)"})
+                // A held row's store is read now (content-addressed, bounded by
+                // HY-5): Select is offered only when the selection would resolve.
+                let selectable = serde_json::from_value::<WorkflowIdentity>(v["identity"].clone())
+                    .map_err(|e| format!("registered identity not readable: {e}"))
+                    .and_then(|k| self.selectable_now(&k));
+                let mut row = json!({"name":v["identity"]["name"],"sequence":v["sequence"],"revision":v["identity"]["revision"],
+                    "registeredAt":v["written_at"],"disposition":v["disposition"]});
+                match selectable {
+                    Ok(true) => {
+                        row["label"] = json!("registered — selectable in this App session");
+                        row["selectable"] = json!(true);
+                        row["offered"] = json!("Select; Refine (RF-1)");
+                    }
+                    Ok(false) => {
+                        row["label"] = json!("registered — re-confirm to use in this App session");
+                        row["selectable"] = json!(false);
+                        row["offered"] = json!("Refine (RF-1); Review a draft with its bytes (DS-8)");
+                    }
+                    Err(cause) => {
+                        row["label"] = json!(format!("registered in this App session — not selectable now: {cause} (LS-4)"));
+                        row["selectable"] = json!(false);
+                        row["offered"] = json!("Review to register once the record or store is restored (LS-4)");
+                    }
+                }
+                row
             })
             .collect::<Vec<_>>())
     }
