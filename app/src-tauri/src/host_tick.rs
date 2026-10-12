@@ -22,17 +22,35 @@ pub(crate) const INTERVAL: std::time::Duration = std::time::Duration::from_secs(
 /// One home's current native view: its new frames received, as `host_status`
 /// receives them (runtime lock only; no Root guard is held).
 pub(crate) fn receive_view(home: &HomeSession) -> Value {
-    let mut runtime = home.runtime.lock().unwrap();
-    let (generation, position) = runtime.cursor();
-    let observation = home.host.observe(generation, position);
-    let mut view = runtime.receive(&observation)["nativeView"].clone();
-    // EXEC RC-5 / CE-4: the received server-request register, which the
-    // checkpoint recorder reads for person-input requests and elicitations.
+    let mut view = {
+        let mut runtime = home.runtime.lock().unwrap();
+        let (generation, position) = runtime.cursor();
+        let observation = home.host.observe(generation, position);
+        let mut view = runtime.receive(&observation)["nativeView"].clone();
+        // EXEC RC-5 / CE-4: the received server-request register, which the
+        // checkpoint recorder reads for person-input requests and elicitations.
+        if view.is_object() {
+            view["serverRequests"] = observation["snapshot"]["serverRequests"].clone();
+            // EXEC AE-6: DEL-01-02's custody events, which the recorder maps to
+            // CE-13 / CE-14 for the run current in each conversation they name.
+            view["custodyEvents"] = json!(home.host.custody_events());
+            // HOSTING §8.3 / RS R5: the thread-level destinations the host
+            // observed (requested at start; reported by start, resume or fork).
+            view["hostThreads"] = observation["snapshot"]["threads"].clone();
+            // The turns the host correlated with its own `turn/start`, with
+            // whether each carried a `collaborationMode` model (RS R5 requested).
+            view["hostTurns"] = observation["snapshot"]["conversationTurns"].clone();
+        }
+        view
+    };
+    // RS R5 destination class (ACCESS-v0.2 §2): the access entry of the
+    // conversation this home last started, for that conversation only.
     if view.is_object() {
-        view["serverRequests"] = observation["snapshot"]["serverRequests"].clone();
-        // EXEC AE-6: DEL-01-02's custody events, which the recorder maps to
-        // CE-13 / CE-14 for the run current in each conversation they name.
-        view["custodyEvents"] = json!(home.host.custody_events());
+        let access = home.access_selection.lock().unwrap().as_ref().map(|s| s.snapshot());
+        view["conversationAccess"] = json!(access
+            .filter(|a| a["thread"]["threadId"].is_string())
+            .map(|a| vec![json!({"threadId":a["thread"]["threadId"],"entryId":a["selection"]["entryId"]})])
+            .unwrap_or_default());
     }
     view
 }
