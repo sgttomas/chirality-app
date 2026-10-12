@@ -19,7 +19,12 @@
 //!   from the human-act and act-declined records in the project's record set
 //!   (RS §6, written by the App act control), each verified against the one
 //!   capture object it cites ([`project_act_records`]), with their CE-18 labels
-//!   (SP-1…SP-8, SP-6 earlier acts included; [`count_acts`]);
+//!   (SP-1…SP-8, SP-6 earlier acts included; [`count_acts`]); and, for an
+//!   arrival still *performed* whose referent lapsed after its resume point,
+//!   CE-5 with the next performance ordinal for an act of the required kind
+//!   on the content now current (RC-8, JA-1; §2.4.3), after which the first
+//!   run action started after both that act's capture and the lapse
+//!   observation it answers is a new resume point (CE-11, A-9);
 //! - CE-12 `continued_past` once per waiting arrival, for the first agent run
 //!   action (RC-9) the App received after the arrival, and CE-11
 //!   `run_resumed` for the first run action started after the act that made
@@ -520,17 +525,24 @@ impl CheckpointRecorder {
         outputs
     }
 
-    /// CE-5, CE-6, CE-8 for the arrivals still waiting, from the project's
-    /// act records (read once, lazily). A read that fails counts nothing and
-    /// is retried at the next observation; nothing is inferred (RC-2).
+    /// CE-5, CE-6, CE-8 for the arrivals still waiting, and CE-5 for those
+    /// performed with a referent lapsed after the resume point (RC-8), from
+    /// the project's act records (read once, lazily). A read that fails counts
+    /// nothing and is retried at the next observation; nothing is inferred
+    /// (RC-2). A new performance opens the way for its own resume point (CE-11).
     fn count(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) {
         let all: Vec<Value> = entries.iter().cloned().chain(written.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
-        if waiting_arrivals(&all).is_empty() || !self.read_acts(acts, records) {
+        if !countable(&all) || !self.read_acts(acts, records) {
             return;
         }
-        if let Some(read) = records.as_ref() {
-            written.extend(count_acts(&all, read, root));
+        let Some(read) = records.as_ref() else { return };
+        let outputs = count_acts(&all, read, root);
+        for (_, body) in outputs.iter().filter(|(k, b)| *k == "disposition_change" && b["disposition"] == "performed") {
+            for arrival in self.arrivals.iter_mut().filter(|a| a.reference() == body["arrival"]) {
+                arrival.resumed = false;
+            }
         }
+        written.extend(outputs);
     }
 
     /// CE-10 for the arrivals with a performance, from the project's act
@@ -873,7 +885,12 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             subjects.as_array()?.iter().position(|s| s.as_str().is_some_and(|p| files.iter().any(|f| Path::new(p) == f)))
         };
         let pending = |out: &[Output]| -> Vec<Value> { out.iter().map(|(k, b)| json!({"kind":k,"body":b})).collect() };
-        if disposition(entries, &out, &arrival).as_deref() != Some("waiting") {
+        // RC-8, JA-1, §2.4.3 "performed, with lapsed referents | CE-5": a
+        // performed arrival whose referent lapsed after the resume point is
+        // answered again by an act on its current content; nothing else is
+        // recorded against it (it is not *waiting*).
+        let relapsed = disposition(entries, &out, &arrival).as_deref() == Some("performed") && lapsed_after_resume(entries, &arrival);
+        if disposition(entries, &out, &arrival).as_deref() != Some("waiting") && !relapsed {
             continue;
         }
         for unresolved in &read.unresolved {
@@ -916,6 +933,23 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             if entries.iter().chain(shown.iter()).any(|e| seen(e["kind"].as_str().unwrap_or_default(), &e["body"])) {
                 continue;
             }
+            // The next performance ordinal (RS L-12): a lapse label repeats the ordinal it lapses.
+            let next_ordinal = || 1 + entries.iter().chain(shown.iter())
+                .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival)
+                .filter_map(|e| e["body"]["performanceOrdinal"].as_u64()).max().unwrap_or(0);
+            if relapsed {
+                // Only an act of the required kind on the content now current answers
+                // (SP-1, SP-4; SP-6: its capture time does not decide). The single App
+                // referent is the whole bound scope, so the act answers alone (JA-1).
+                if record["kind"] == "act_declined" || kind != required || same(content) != Some(true) || !ACT_KINDS.contains(&kind) {
+                    continue;
+                }
+                let act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
+                out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
+                let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
+                out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":next_ordinal(),"answeredBy":[id],"annotations":annotations})));
+                break;
+            }
             if disposition(entries, &out, &arrival).as_deref() != Some("waiting") {
                 break;
             }
@@ -936,10 +970,7 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
                 match same(content) {
                     None => continue, // incomparable methods (SB-1): neither counted nor said to differ
                     Some(true) => {
-                        // The next performance ordinal (RS L-12): a lapse label repeats the ordinal it lapses.
-                        let ordinal = 1 + entries.iter().chain(shown.iter())
-                            .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival)
-                            .filter_map(|e| e["body"]["performanceOrdinal"].as_u64()).max().unwrap_or(0);
+                        let ordinal = next_ordinal();
                         out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
                         let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
                         out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":[id],"annotations":annotations})));
@@ -961,6 +992,28 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
     out
 }
 
+/// RC-8: whether an arrival's latest performance has a referent lapsed after
+/// its resume point: the latest known lapse of an act it cites, recorded after
+/// it, is *lapsed* (not subject absent, not back at c0) *after resume*, and
+/// its label was written. Such an arrival stays *performed* and an act on the
+/// current content answers it again (§2.4.3).
+fn lapsed_after_resume(entries: &[Value], arrival: &Value) -> bool {
+    let Some((at, performance)) = latest_performance(entries, arrival) else { return false };
+    let cited = |id: &Value| performance["answeredBy"].as_array().is_some_and(|ids| ids.contains(id));
+    let lapses: Vec<(usize, &Value)> = entries.iter().enumerate().skip(at + 1)
+        .filter(|(_, e)| e["kind"] == "act_lapsed" && e["body"]["arrival"] == *arrival && cited(&e["body"]["act"]["recordId"]) && !unknown_state(&e["body"]["state"]))
+        .map(|(i, e)| (i, &e["body"])).collect();
+    lapses.last().is_some_and(|(i, b)| b["state"] == "lapsed" && b["when"] == "after resume"
+        && entries[i + 1..].iter().any(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival))
+}
+/// Whether acts are counted for any arrival of a run: one waits, or one is
+/// performed with a referent lapsed after its resume point (RC-8).
+pub(crate) fn countable(entries: &[Value]) -> bool {
+    !waiting_arrivals(entries).is_empty() || entries.iter().filter(|e| e["kind"] == "checkpoint_arrival").any(|e| {
+        let arrival = json!({"checkpoint":e["body"]["checkpoint"],"arrivalOrdinal":e["body"]["arrivalOrdinal"]});
+        disposition(entries, &[], &arrival).as_deref() == Some("performed") && lapsed_after_resume(entries, &arrival)
+    })
+}
 /// A lapse state that says nothing about the content (RS L-2, L-3).
 fn unknown_state(state: &Value) -> bool {
     state.as_str().is_some_and(|s| s.starts_with("unknown"))
@@ -1273,15 +1326,30 @@ fn disposition(entries: &[Value], pending: &[Output], arrival: &Value) -> Option
         .filter(|(k, b)| *k == "disposition_change" && b["arrival"] == *arrival)
         .last().and_then(|(_, b)| b["disposition"].as_str().map(str::to_owned))
 }
-/// When an arrival became *performed*: its arrival time, or the latest
-/// capture time of an act counted for it after the arrival.
+/// When an arrival became *performed* (HD-5, A-9: the resume point is the
+/// first run action started at or after it). The first performance: its
+/// arrival time, or the latest capture time of an act counted for it after
+/// the arrival. A later performance answers a lapse, so it cannot precede the
+/// lapse observation that made it possible: the later of the capture of each
+/// act it cites and the latest lapse observation recorded before it.
 fn performed_at(entries: &[Value], pending: &[Output], arrival: &Value) -> Option<String> {
-    let all = || entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(pending.iter().map(|(k, b)| (*k, b)));
-    let arrived = all().find(|(k, b)| *k == "checkpoint_arrival" && b["checkpoint"] == arrival["checkpoint"] && b["arrivalOrdinal"] == arrival["arrivalOrdinal"])
+    let all: Vec<(&str, &Value)> = entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(pending.iter().map(|(k, b)| (*k, b))).collect();
+    let arrived = all.iter().find(|(k, b)| *k == "checkpoint_arrival" && b["checkpoint"] == arrival["checkpoint"] && b["arrivalOrdinal"] == arrival["arrivalOrdinal"])
         .and_then(|(_, b)| b["event"]["evidencedTime"]["value"].as_str().map(str::to_owned))?;
-    let latest = all().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && b["relation"] == "after arrival")
-        .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned)).max();
-    Some(latest.map_or(arrived.clone(), |t| t.max(arrived)))
+    let labels = || all.iter().enumerate().filter(|(_, (k, b))| *k == "disposition_change" && b["arrival"] == *arrival && b["disposition"] == "performed");
+    let top = labels().filter_map(|(_, (_, b))| b["performanceOrdinal"].as_u64()).max().unwrap_or(1);
+    if top <= 1 {
+        let latest = all.iter().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && b["relation"] == "after arrival")
+            .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned)).max();
+        return Some(latest.map_or(arrived.clone(), |t| t.max(arrived)));
+    }
+    let (at, performance) = labels().find(|(_, (_, b))| b["performanceOrdinal"].as_u64() == Some(top)).map(|(i, (_, b))| (i, *b))?;
+    let cited = |id: &Value| performance["answeredBy"].as_array().is_some_and(|ids| ids.contains(id));
+    let captures = all[..at].iter().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && cited(&b["act"]["recordId"]))
+        .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned));
+    let lapses = all[..at].iter().filter(|(k, b)| *k == "act_lapsed" && b["arrival"] == *arrival)
+        .filter_map(|(_, b)| b["time"].as_str().filter(|t| comparable(t)).map(str::to_owned));
+    Some(std::iter::once(arrived).chain(captures).chain(lapses).max().unwrap_or_default())
 }
 /// CE-17 `waitingArrivals` from RS entries (`kind`, `body`) of one run, in
 /// arrival order: every arrival whose latest disposition is *waiting*.
