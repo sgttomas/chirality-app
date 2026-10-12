@@ -49,12 +49,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('root',nargs='?',type=Path,default=Path(__file__).resolve().parents[2]/'workflows')
     parser.add_argument('--json',action='store_true')
+    parser.add_argument('--public-export',action='store_true',help='validate an exported library with its declared project-only exclusions')
     args=parser.parse_args(); root=args.root.resolve()
     if not root.is_dir(): parser.exit(2,f'ERROR: missing workflows root {root}\n')
     if (root/'catalog.yaml').is_file():
         try:
             from build_workflow_index import validate_and_build
-            index=validate_and_build(root.parent)
+            index=validate_and_build(root.parent,public_export=args.public_export)
             generated=root/'index.json'
             expected=json.dumps(index,indent=2,sort_keys=False)+'\n'
             if not generated.is_file() or generated.read_text()!=expected:
