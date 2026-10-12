@@ -335,6 +335,10 @@ impl CheckpointRecorder {
         // The act records, read at most once per observation and only while an
         // arrival waits or has a performance whose content can lapse.
         let mut records: Option<ActRead> = None;
+        // CE-10 first for the arrivals waiting again after a lapse: no resume point
+        // can follow their latest performance, so the content they need an act on
+        // is read before acts are counted against it (EXEC §2.4.3).
+        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records, true);
         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         for (at, key, event) in events {
             match event {
@@ -420,11 +424,11 @@ impl CheckpointRecorder {
                 }
             }
         }
-        // CE-10 after the received items: the files are read now, after every item
-        // this view delivered, so a resume point among them precedes the lapse
-        // observation (RC-8, HD-5). Acts are then counted again against the content
+        // CE-10 after the received items for *performed* arrivals: the files are read
+        // now, after every item this view delivered, so a resume point among them
+        // precedes the lapse observation (RC-8, HD-5). Acts are then counted again against the content
         // now current (EXEC §2.4.3).
-        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records);
+        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records, false);
         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         written
     }
@@ -467,14 +471,14 @@ impl CheckpointRecorder {
     /// now ([`observe_lapses`]). A read of the act records that fails claims
     /// no lapse and no currency (A-10). A lapse before the resume point opens
     /// the way for a new resume point after the next performance (CE-11).
-    fn lapses(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) {
+    fn lapses(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>, waiting_only: bool) {
         let all: Vec<Value> = entries.iter().cloned().chain(written.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
         if !lapse_evaluable(&all) || !self.read_acts(acts, records) {
             return;
         }
         let Some(read) = records.as_ref() else { return };
         let cache = &mut self.contents;
-        let outputs = observe_lapses(&all, read, &crate::util::now_rfc3339(), &mut |subject| cached_content(cache, root, subject));
+        let outputs = lapses_of(&all, read, &crate::util::now_rfc3339(), &mut |subject| cached_content(cache, root, subject), waiting_only);
         for (_, body) in outputs.iter().filter(|(k, b)| *k == "act_lapsed" && b["when"] == "before resume") {
             for arrival in self.arrivals.iter_mut().filter(|a| a.reference() == body["arrival"]) {
                 arrival.resumed = false;
@@ -913,6 +917,13 @@ pub(crate) fn lapse_evaluable(entries: &[Value]) -> bool {
 /// currency (A-10), and the effect of content back at `c0` is RS U-12, so
 /// neither changes a label.
 pub(crate) fn observe_lapses(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current) -> Vec<Output> {
+    lapses_of(entries, read, now, current, false)
+}
+/// [`observe_lapses`], for the arrivals whose latest label is *waiting* only
+/// when `waiting_only` (such an arrival has no resume point after its latest
+/// performance, so its lapse is *before resume* whatever an observation's
+/// items show).
+fn lapses_of(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current, waiting_only: bool) -> Vec<Output> {
     use crate::standing::{compare, CurrentContent, Lapse};
     let mut out: Vec<Output> = Vec::new();
     let pending = |out: &[Output]| -> Vec<Value> { entries.iter().cloned().chain(out.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect() };
@@ -924,7 +935,7 @@ pub(crate) fn observe_lapses(entries: &[Value], read: &ActRead, now: &str, curre
         let Some(shown) = referent["subject"].as_str() else { continue };
         let all = pending(&out);
         let latest = disposition(&all, &[], &arrival);
-        if !matches!(latest.as_deref(), Some("performed" | "waiting")) {
+        if !matches!(latest.as_deref(), Some("performed" | "waiting")) || (waiting_only && latest.as_deref() != Some("waiting")) {
             continue;
         }
         let Some((at, performance)) = latest_performance(&all, &arrival) else { continue };

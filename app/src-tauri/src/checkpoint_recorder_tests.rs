@@ -1079,6 +1079,33 @@ fn a_resume_and_a_lapse_in_one_observation_record_the_resume_first() {
     std::fs::remove_dir_all(root2).unwrap();
 }
 
+// N-1 (EXEC §2.4.3, RH-2): an arrival waiting after a lapse whose file changes again and gets
+// an act on the new content within one observation: the new content is read before acts are
+// counted, so the act is counted (performed, ordinal 2), never "act on other content".
+#[test]
+fn a_waiting_arrivals_new_content_is_read_before_acts_are_counted() {
+    let root = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &file_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    std::fs::write(root.join("out/summary.md"), "v3").unwrap();
+    let next = act(&root, "A7", &root.join("out/summary.md"), "v3", LATER);
+    for view in [file_view(), resumed_view()] {
+        let (mut recorder, mut all) = (recorder.clone(), all.clone());
+        let outputs = again(&mut recorder, &root, &view, &mut all);
+        let shown: Vec<&str> = kinds(&outputs).into_iter().filter(|k| *k != "continued_past" && *k != "run_resumed").collect();
+        assert_eq!(shown, ["act_lapsed", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+        assert_eq!((outputs[0].1["c1"].clone(), outputs[0].1["when"].as_str()), (digest("v3"), Some("before resume")));
+        let counted = outputs.iter().find(|(k, _)| *k == "act_counted").unwrap();
+        assert_eq!(counted.1["act"]["recordId"], next.as_str());
+        assert!(!kinds(&outputs).contains(&"act_not_counted"));
+        assert!(waiting_arrivals(&all).is_empty());
+        let after = again(&mut recorder, &root, &view, &mut all);
+        assert!(after.iter().all(|(k, _)| *k == "run_resumed"), "{after:#?}");
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 // M-1 (RS W-2): an act_lapsed whose label was not written (an end after relaunch appends entry
 // by entry and stops at a failure) gets its label at the next observation, with the recorded
 // lapse's time; a labelled lapse gets none, so nothing is duplicated.

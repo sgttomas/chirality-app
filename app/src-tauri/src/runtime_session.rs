@@ -9204,6 +9204,28 @@ for line in sys.stdin:
         assert_eq!(log[kinds.len()-3]["body"]["when"],"after resume");assert_eq!(log[kinds.len()-2]["body"]["disposition"],"performed");
         assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([]));
     }
+    // N-1 through the person's End run: an arrival waiting after a lapse whose file changed again
+    // and was acted on before the end is counted on its new content, so run_ended lists nothing.
+    #[test]
+    fn checkpoint_lapse_then_new_content_and_act_before_the_end_is_counted(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        let view=recorder_view(&peer,&summary_items()[1..]);
+        run.lock().unwrap().observe_checkpoints(&view);
+        record_file_act(&peer,"out/summary.md","A7",b"v1","2026-09-21T15:00:00.000Z");
+        run.lock().unwrap().observe_checkpoints(&view);
+        std::fs::write(&file,b"v2").unwrap();
+        run.lock().unwrap().observe_checkpoints(&view);
+        drop(run);
+        std::fs::write(&file,b"v3").unwrap();
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v3","2026-09-21T16:00:00.000Z");
+        root.end_plain(&a,&view).unwrap();
+        let log=rs_for(&peer,&a);
+        assert!(!log.iter().any(|e|e["kind"]=="act_not_counted"),"{log:#?}");
+        let counted:Vec<&Value>=log.iter().filter(|e|e["kind"]=="act_counted").collect();
+        assert_eq!(counted.last().unwrap()["body"]["act"]["recordId"],act.as_str());
+        assert_eq!(log.last().unwrap()["kind"],"run_ended");assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([]));
+    }
     // At the end after a relaunch, a lapse is observed from the run's own record with its own
     // time, before run_ended; nothing is back-filled into the interrupted interval (RP-1).
     #[test]

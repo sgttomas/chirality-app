@@ -628,8 +628,10 @@ the act's bound file at each live observation and when the person ends the run;
 a file is rehashed only when its device, inode, size or modification or change
 time changes, or within two seconds of its change time. The resume point is the
 recorded `run_resumed` after the latest performance; without one a lapse is *before
-resume*. Files are read after every item an observation delivers, so a resume point
-in that observation precedes the lapse. An unknown state is written once and
+resume*. For a *performed* arrival the file is read after every item an observation
+delivers, so a resume point in that observation precedes the lapse; for one waiting
+again after a lapse it is read before acts are counted, so an act on the newest
+content counts. An unknown state is written once and
 changes no label; content back at c₀ is written and changes no label (RS U-12). A
 lapse whose label was not written gets it at the next observation. After a lapse,
 acts count against the content the latest determinate lapse read; an act already

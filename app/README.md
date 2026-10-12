@@ -318,8 +318,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     The agent's next own action (RC-9) records `continued_past` once (CE-12),
     and the first action evidenced as started after the deciding act records
     `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
-    **Lapses (CE-10).** While the run is live, at each observation, after the
-    items it delivered, the App reads the file each act answering an arrival's latest performance is
+    **Lapses (CE-10).** While the run is live, at each observation (after the
+    items it delivered for a *performed* arrival, before counting acts for one
+    waiting again after a lapse), the App reads the file each act answering an arrival's latest performance is
     bound to (rehashing it only when its metadata changes) and compares it
     with the act's bound content as the file-act view does. A changed identity
     is written as `act_lapsed` *lapsed*, a missing file *lapsed (subject
