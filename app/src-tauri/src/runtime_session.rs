@@ -9182,6 +9182,28 @@ for line in sys.stdin:
         assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]),"waiting after the lapse before the resume point");
         assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty(),"every entry is a conformant RS entry");
     }
+    // B-1 through the person's End run: the end's own observation delivers the agent's first
+    // action after the act while the file has also changed. The resume point is written first,
+    // the lapse is *after resume* and the arrival stays performed, so run_ended lists nothing.
+    #[test]
+    fn checkpoint_lapse_and_resume_in_the_ending_observation_keep_the_resume_first(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        record_file_act(&peer,"out/summary.md","A7",b"v1","2026-09-21T15:00:00.000Z");
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"));
+        drop(run);
+        std::fs::write(&file,b"v2").unwrap();
+        let mut view=recorder_view(&peer,&[summary_items()[1].clone(),json!({"id":"c1","type":"commandExecution","source":"agent","command":"ls","status":"inProgress"})]);
+        view["items"][2]["sourceFrame"]=json!({"method":"item/started","params":{"startedAtMs":1_790_010_000_000i64}}); // 17:00, after the act
+        root.end_plain(&a,&view).unwrap();
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(&kinds[kinds.len()-4..],["run_resumed","act_lapsed","disposition_change","run_ended"],"{kinds:?}");
+        assert!(!kinds.contains(&"continued_past"));
+        assert_eq!(log[kinds.len()-3]["body"]["when"],"after resume");assert_eq!(log[kinds.len()-2]["body"]["disposition"],"performed");
+        assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([]));
+    }
     // At the end after a relaunch, a lapse is observed from the run's own record with its own
     // time, before run_ended; nothing is back-filled into the interrupted interval (RP-1).
     #[test]

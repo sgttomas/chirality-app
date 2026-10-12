@@ -317,8 +317,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     The agent's next own action (RC-9) records `continued_past` once (CE-12),
     and the first action evidenced as started after the deciding act records
     `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
-    **Lapses (CE-10).** While the run is live, at each observation the App
-    reads the file each act answering an arrival's latest performance is
+    **Lapses (CE-10).** While the run is live, at each observation, after the
+    items it delivered, the App reads the file each act answering an arrival's latest performance is
     bound to (rehashing it only when its metadata changes) and compares it
     with the act's bound content as the file-act view does. A changed identity
     is written as `act_lapsed` *lapsed*, a missing file *lapsed (subject
@@ -330,7 +330,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     PH-8). A file that cannot be read is *unknown (unavailable)*, and content
     back at the acted content "matches c0 again after observed lapse"; both
     are written without changing the label (A-10; RS U-12). A repeated
-    observation is not written again. The file-act view reads these entries
+    observation is not written again; a lapse whose label was not written
+    gets it at the next observation. The file-act view reads these entries
     as the act's lapse history.
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, lapses since the last observation and then acts
@@ -619,10 +620,13 @@ run's own RS log. Neither opens a new store.
 
 The run panel (item 23) records output arrivals (AW-6, AW-7), harness-capability
 call starts (AW-3), requests, counted App-file acts and, while the run is live,
-their lapses (CE-1…CE-6, CE-8, CE-10…CE-12, CE-17). It does not yet record
-host-operation or host-outcome arrivals (CE-7, CE-9), observation loss or
-recovery (CE-13, CE-14), anything after the run's end (CE-10 *after run end*,
-CE-16), or output records. Conversation roles (item 24)
+their lapses, with their labels and recording gaps (CE-1…CE-6, CE-8,
+CE-10…CE-12, CE-17…CE-19). It does not yet record host-operation or
+host-outcome arrivals, A5 items or A12 relations (CE-7, CE-9), observation loss
+or recovery (CE-13, CE-14), replaced arrivals (CE-15, which follows only from A5
+items), anything after the run's end (CE-10 *after run end*, CE-16), or output
+records; outputs gated by a lapsed act do not show standing *lapsed* (their
+facets read unknown). Conversation roles (item 24)
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 

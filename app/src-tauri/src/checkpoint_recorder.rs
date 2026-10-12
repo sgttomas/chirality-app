@@ -335,9 +335,6 @@ impl CheckpointRecorder {
         // The act records, read at most once per observation and only while an
         // arrival waits or has a performance whose content can lapse.
         let mut records: Option<ActRead> = None;
-        // CE-10 first, so that an act on the changed content is counted against
-        // the content now current (EXEC §2.4.3).
-        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         for (at, key, event) in events {
             match event {
@@ -423,6 +420,12 @@ impl CheckpointRecorder {
                 }
             }
         }
+        // CE-10 after the received items: the files are read now, after every item
+        // this view delivered, so a resume point among them precedes the lapse
+        // observation (RC-8, HD-5). Acts are then counted again against the content
+        // now current (EXEC §2.4.3).
+        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records);
+        self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         written
     }
 
@@ -900,6 +903,9 @@ pub(crate) fn lapse_evaluable(entries: &[Value]) -> bool {
 /// An entry is written only when the observation differs from the latest
 /// one recorded for that arrival and act: a known state from the latest known
 /// one (state and `c1`), an unknown state from the latest one of any state.
+/// A recorded *lapsed* or *lapsed (subject absent)* with no label for the
+/// arrival after it (its label's write failed, RS W-2) gets that label once,
+/// with the recorded lapse's time and *when*.
 /// Only *lapsed* and *lapsed (subject absent)* write a CE-18 label: before
 /// the resume point the arrival is *waiting* "waiting — lapsed at ‹t›" (and
 /// "subject absent"); after it, it stays *performed* with "act lapsed at ‹t›"
@@ -958,19 +964,29 @@ pub(crate) fn observe_lapses(entries: &[Value], read: &ActRead, now: &str, curre
             } else {
                 prior.iter().rev().find(|p| !unknown_state(&p["state"])).is_some_and(|p| p["state"] == state && p["c1"] == c1)
             };
-            if repeated {
-                continue;
-            }
-            out.push(("act_lapsed", json!({"act":{"recordId":id,"actKind":b["actKind"],"capturedAt":b["captureTime"],"capturingSurface":"app_act_control"},
-                "state":state,"referents":[path],"c0":c0,"c1":c1,"time":now,"arrival":arrival,"when":when})));
+            // The lapse whose label is written: this observation, or a recorded one
+            // that has no label after it (its label's write failed; RS W-2).
+            let (time, when) = if repeated {
+                let Some(position) = all.iter().rposition(|e| e["kind"] == "act_lapsed" && e["body"]["arrival"] == arrival && e["body"]["act"]["recordId"] == id) else { continue };
+                let recorded = &all[position]["body"];
+                let labelled = all[position + 1..].iter().any(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival);
+                if labelled || recorded["state"] != state || !matches!(state, "lapsed" | "lapsed (subject absent)") {
+                    continue;
+                }
+                (recorded["time"].as_str().unwrap_or(now).to_owned(), recorded["when"].as_str().unwrap_or(when).to_owned())
+            } else {
+                out.push(("act_lapsed", json!({"act":{"recordId":id,"actKind":b["actKind"],"capturedAt":b["captureTime"],"capturingSurface":"app_act_control"},
+                    "state":state,"referents":[path],"c0":c0,"c1":c1,"time":now,"arrival":arrival,"when":when})));
+                (now.to_owned(), when.to_owned())
+            };
             if !matches!(state, "lapsed" | "lapsed (subject absent)") {
                 continue;
             }
             if when == "after resume" {
                 out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":answered,
-                    "annotations":[{"label":"act lapsed at","actRefs":[id],"time":now,"referents":[shown]}]})));
+                    "annotations":[{"label":"act lapsed at","actRefs":[id],"time":time,"referents":[shown]}]})));
             } else {
-                let mut annotations = vec![json!({"label":"waiting — lapsed at","actRefs":[id],"time":now,"referents":[shown]})];
+                let mut annotations = vec![json!({"label":"waiting — lapsed at","actRefs":[id],"time":time,"referents":[shown]})];
                 if state == "lapsed (subject absent)" {
                     annotations.push(json!({"label":"subject absent","referents":[shown]}));
                 }

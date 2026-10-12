@@ -1052,3 +1052,54 @@ fn the_end_observes_lapses_before_counting() {
     assert_eq!(waiting_arrivals(&ended), vec![cp_rely()]);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// B-1 (RC-8, HD-5, PH-7): when one observation delivers the run's first action after the act
+// and the file has also changed, the resume point is recorded first and the lapse, read
+// after every delivered item, is *after resume*: performed "act lapsed at", no continued_past.
+#[test]
+fn a_resume_and_a_lapse_in_one_observation_record_the_resume_first() {
+    let root = project("v1");
+    let (mut recorder, mut all, rely) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed", "act_lapsed", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[1].1["when"], "after resume");
+    assert_eq!((outputs[2].1["disposition"].as_str(), outputs[2].1["annotations"][0]["label"].as_str(), &outputs[2].1["answeredBy"]), (Some("performed"), Some("act lapsed at"), &json!([rely])));
+    assert!(waiting_arrivals(&all).is_empty());
+    // A lapse before any run action, then an act on the new content in the same observation:
+    // the lapse is read after the items and the act is counted against the content now current.
+    let root2 = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root2);
+    std::fs::write(root2.join("out/summary.md"), "v2").unwrap();
+    let next = act(&root2, "A7", &root2.join("out/summary.md"), "v2", LATER);
+    let outputs = again(&mut recorder, &root2, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[2].1["act"]["recordId"].as_str(), outputs[3].1["performanceOrdinal"].as_u64()), (Some(next.as_str()), Some(2)));
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(root2).unwrap();
+}
+
+// M-1 (RS W-2): an act_lapsed whose label was not written (an end after relaunch appends entry
+// by entry and stops at a failure) gets its label at the next observation, with the recorded
+// lapse's time; a labelled lapse gets none, so nothing is duplicated.
+#[test]
+fn a_recorded_lapse_without_its_label_is_labelled_once() {
+    let root = project("v1");
+    let (_, all, rely) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = end_observations(&all, &root);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"]);
+    let mut partial = all.clone();
+    partial.extend(entries(&outputs[..1]));
+    let repaired = end_observations(&partial, &root);
+    conformant(&repaired);
+    assert_eq!(kinds(&repaired), ["disposition_change"], "{repaired:#?}");
+    assert_eq!(repaired[0].1, json!({"arrival":cp_rely(),"disposition":"waiting","annotations":[{"label":"waiting — lapsed at","actRefs":[rely],"time":outputs[0].1["time"],"referents":[RELY]}]}));
+    partial.extend(entries(&repaired));
+    assert_eq!(waiting_arrivals(&partial), vec![cp_rely()]);
+    assert!(end_observations(&partial, &root).is_empty(), "labelled: nothing more");
+    let mut whole = all.clone();
+    whole.extend(entries(&outputs));
+    assert!(end_observations(&whole, &root).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}

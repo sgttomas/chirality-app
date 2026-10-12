@@ -604,7 +604,10 @@ arrival's latest performance, with the before- and after-resume labels of
 §2.4.3. Later acts on decided arrivals (§4.6), including an act on lapsed
 referents after the resume point, lapses and acts after run end (CE-10 *after
 run end*, CE-16) and observation loss/recovery (CE-13/14) are not yet recorded:
-the App does not observe a run after its end. Host-operation
+the App does not observe a run after its end. Outputs gated by a lapsed act do
+not yet show standing *lapsed* (PH-8, RH-1): the run panel's facets read
+*unknown* once the record holds `act_lapsed` or any other entry they do not
+read. Host-operation
 and host-outcome arrivals stay not evaluable without mapping (ADAPTER NM-2),
 so no CE-7 arises; an empty waiting list establishes no wider completeness.
 
@@ -625,9 +628,14 @@ the act's bound file at each live observation and when the person ends the run;
 a file is rehashed only when its device, inode, size or modification or change
 time changes, or within two seconds of its change time. The resume point is the
 recorded `run_resumed` after the latest performance; without one a lapse is *before
-resume*. An unknown state is written once and changes no label; content back at
-c₀ is written and changes no label (RS U-12). After a lapse, acts count against
-the content the latest determinate lapse read. These interpretations
+resume*. Files are read after every item an observation delivers, so a resume point
+in that observation precedes the lapse. An unknown state is written once and
+changes no label; content back at c₀ is written and changes no label (RS U-12). A
+lapse whose label was not written gets it at the next observation. After a lapse,
+acts count against the content the latest determinate lapse read; an act already
+cited for the arrival, such as one recorded "act on other content", is not
+reconsidered when the content later becomes the content it was made on (§4.6, the
+first decides). These interpretations
 remain disclosed pending governing treatment; they add no acceptance rule.
 
 #### 2.4.3 Transition table (per arrival, current phase)
