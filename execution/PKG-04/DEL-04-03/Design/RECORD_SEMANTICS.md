@@ -1634,7 +1634,10 @@ It realizes §13.8's agent access and does not change what a record is.
   without the file system, with the project's canonical path and the path it
   was configured by: one with `.` or `..` components, or under neither, is
   withheld unresolved, so no record makes the App look up an automount or
-  network path. Only a path under one of them is resolved. The
+  network path. Only a path under one of them is resolved, with its
+  symbolic links followed: a link the project itself contains is looked up
+  wherever it points (an automount or network location included), and a
+  path that leads outside the project through it is withheld. The
   item's `pathsRewritten` counts them, so such an entry is the record with
   those values replaced, not its exact bytes. Every other string, free text
   included, is quoted exactly and may contain paths, including ones outside
