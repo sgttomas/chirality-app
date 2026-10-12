@@ -1462,28 +1462,33 @@ fn capture_stamp(path: &Path) -> Option<crate::records_index::Stamp> {
 }
 pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
-    // The record set through the bounded index (`records_index`): every limit,
-    // a torn tail included, still makes the act records unread. Only the act
-    // records, corrections and entries sharing their identities are read again,
-    // and only when one of them changed.
-    let (limits, epoch) = crate::records_index::with_index(&root, |ix| {
-        let mut limits = ix.limits();
-        limits.extend(ix.partials());
-        (limits, ix.act_epoch())
-    });
-    if !limits.is_empty() {
-        return Err(format!("the project's record set is incomplete: {limits:?}"));
-    }
-    if let Some(cache) = ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
-        if cache.root == root && cache.epoch == epoch && cache.keys == crate::capture_seal::verification_basis(&root)
-            && cache.captures.iter().all(|(p, s)| capture_stamp(p) == *s) {
-            return Ok(cache.read.clone());
-        }
-    }
-    let (claims, complete, epoch) = crate::records_index::with_index(&root, |ix| {
-        (ix.act_claims(), ix.paths().into_iter().map(|p| p.to_string_lossy().into_owned()).collect::<std::collections::HashSet<_>>(), ix.act_epoch())
-    });
+    // The record set through the bounded index (`records_index`), in one
+    // look: a log's torn final line is a partial, never an entry (RS §14.2
+    // R-2), so it leaves the set complete; any other limit makes the act
+    // records unread. Only the act records, corrections and entries sharing
+    // their identities are read again (each line re-validated), and only when
+    // one of them, a capture read or the seal key basis changed.
+    enum Look { Kept(ActRead), Fresh(Vec<Value>, std::collections::HashSet<String>, u64) }
     let keys = crate::capture_seal::verification_basis(&root);
+    let look = crate::records_index::with_index(&root, |ix| -> Result<Look, String> {
+        let limits = ix.limits();
+        if !limits.is_empty() {
+            return Err(format!("the project's record set is incomplete: {limits:?}"));
+        }
+        let epoch = ix.act_epoch();
+        if let Some(cache) = ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            if cache.root == root && cache.epoch == epoch && cache.keys == keys
+                && cache.captures.iter().all(|(p, s)| capture_stamp(p) == *s) {
+                return Ok(Look::Kept(cache.read.clone()));
+            }
+        }
+        let claims = ix.act_claims().map_err(|e| format!("the project's record set is incomplete: [{e:?}]"))?;
+        Ok(Look::Fresh(claims, ix.paths().into_iter().map(|p| p.to_string_lossy().into_owned()).collect(), epoch))
+    })?;
+    let (claims, complete, epoch) = match look {
+        Look::Kept(read) => return Ok(read),
+        Look::Fresh(claims, complete, epoch) => (claims, complete, epoch),
+    };
     let projected = crate::decision_view::record_relations::project_from_read_claims(&claims, &complete);
     let mut captures = Vec::new();
     let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()

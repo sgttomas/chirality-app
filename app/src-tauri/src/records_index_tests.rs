@@ -150,3 +150,112 @@ fn the_writer_refuses_held_identities_and_incomplete_sets_from_the_index() {
     assert!(own("rec:app:index-guard-2").is_err_and(|e| e.contains("record-set conflict/incomplete")));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// Review R11 G1 probe: a 40-entry log (~13.6 KB), edited in place before the
+// kept 4 KiB. A same-size edit (line 1 damaged, or an early identity made a
+// duplicate of another) is a change without the growth pattern, so the log is
+// read in full and the index reports what the full reader reports. An edit
+// made together with an append (the log only grew) is found by the verifier's
+// pass, and an entry read again from its stored position that no longer holds
+// it fails as incomplete and makes the next refresh read the log in full.
+#[test]
+fn probe_r11_in_place_edit_beyond_guard() {
+    let root = scratch();
+    let log = crate::storage::project_log(&root, None, "edited");
+    let padded = |n: usize| json!({"label":"unresolvable reference","subjectRef":format!("edit {n}"),"detail":"x".repeat(240)});
+    for n in 0..40 { append(&log, "evidence_limit", &APP_WRITER, padded(n)).unwrap(); }
+    let original = std::fs::read(&log).unwrap();
+    assert!(original.len() > 13_000, "{}", original.len());
+    agree(&root, "40 entries");
+    let lines: Vec<&[u8]> = original.split(|b| *b == b'\n').collect();
+    let id_of = |line: &[u8]| serde_json::from_slice::<Value>(line).unwrap()["recordId"].as_str().unwrap().to_owned();
+    let (first_id, second_id) = (id_of(lines[0]), id_of(lines[1]));
+    let pause = || std::thread::sleep(std::time::Duration::from_millis(5));
+    // Line 1 damaged, same size.
+    let mut damaged = original.clone();
+    damaged[1] = b'#';
+    pause();
+    std::fs::write(&log, &damaged).unwrap();
+    agree(&root, "line 1 damaged at the same size");
+    assert!(with_index(&root, |ix| ix.limits()).iter().any(|l| l.contains("unreadable line 1")));
+    // An early identity made a duplicate of another, same size.
+    let duplicated = String::from_utf8(original.clone()).unwrap().replacen(&first_id, &second_id, 1);
+    pause();
+    std::fs::write(&log, duplicated.as_bytes()).unwrap();
+    agree(&root, "early identity duplicated at the same size");
+    assert!(with_index(&root, |ix| ix.limits()).iter().any(|l| l.contains("duplicate record identity")));
+    pause();
+    std::fs::write(&log, &original).unwrap();
+    agree(&root, "restored");
+    // An edit beyond the kept 4 KiB together with an append: the verifier finds it.
+    let mut grown = damaged.clone();
+    let extra = crate::records::envelope("evidence_limit", &APP_WRITER, padded(40), "rec:app:edit-41".into(), 41, None, None);
+    grown.extend(serde_json::to_vec(&extra).unwrap());
+    grown.push(b'\n');
+    pause();
+    std::fs::write(&log, &grown).unwrap();
+    let _ = with_index(&root, |ix| ix.limits());
+    assert!(verify(&root) >= 1, "the verifier replaces the log it finds changed");
+    agree(&root, "after the verifier's pass");
+    // A line read again that no longer holds its indexed entry: incomplete, then a full read.
+    pause();
+    std::fs::write(&log, &original).unwrap();
+    agree(&root, "restored again");
+    let mut moved = String::from_utf8(original.clone()).unwrap().replacen(&first_id, &"0".repeat(first_id.len()), 1).into_bytes();
+    moved.extend(serde_json::to_vec(&crate::records::envelope("evidence_limit", &APP_WRITER, padded(41), "rec:app:edit-41".into(), 41, None, None)).unwrap());
+    moved.push(b'\n');
+    pause();
+    std::fs::write(&log, &moved).unwrap();
+    let read = with_index(&root, |ix| ix.entries_with(&first_id));
+    assert!(read.as_ref().is_err_and(|e| e.contains("read again in full")) || read.as_ref().is_ok_and(|v| v.is_empty()), "{read:?}");
+    agree(&root, "after a failed re-read");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R11 G3: a log added to a directory whose stamp the index already
+// holds is found by the verifier's pass, which lists every directory again.
+#[test]
+fn the_verifier_lists_every_directory_again() {
+    let root = scratch();
+    let first = crate::storage::project_log(&root, None, "first");
+    append(&first, "evidence_limit", &APP_WRITER, body(1)).unwrap();
+    agree(&root, "one log");
+    // Make the index's directory stamp stale-looking: forget the listing's content.
+    {
+        let mut all = INDEXES.lock().unwrap();
+        let (_, ix) = all.iter_mut().find(|(r, _)| *r == root).unwrap();
+        for (_, (_, children)) in ix.dirs.iter_mut() { children.clear(); }
+    }
+    let ids = with_index(&root, |ix| ix.ids.len());
+    assert_eq!(ids, 0, "a cached listing hides the log until listed again");
+    verify(&root);
+    agree(&root, "after the verifier's pass");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R11 G1 (3): a writer's first use of its owning log in this process reads
+// that log in full, so an edit the index missed (made with an append, beyond the
+// kept 4 KiB) refuses the append instead of passing unseen.
+#[test]
+fn a_writers_first_open_reads_its_log_in_full() {
+    let root = scratch();
+    let log = crate::storage::project_log(&root, None, "first-open");
+    let padded = |n: usize| json!({"label":"unresolvable reference","subjectRef":format!("open {n}"),"detail":"x".repeat(240)});
+    // Written outside this index's writer bookkeeping: lines built directly.
+    let mut bytes = Vec::new();
+    for n in 0..40u64 {
+        bytes.extend(serde_json::to_vec(&crate::records::envelope("evidence_limit", &APP_WRITER, padded(n as usize), format!("rec:app:open-{n}"), n + 1, None, None)).unwrap());
+        bytes.push(b'\n');
+    }
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::write(&log, &bytes).unwrap();
+    agree(&root, "read by a reader first");
+    bytes[1] = b'#';
+    bytes.extend(serde_json::to_vec(&crate::records::envelope("evidence_limit", &APP_WRITER, padded(40), "rec:app:open-40".into(), 41, None, None)).unwrap());
+    bytes.push(b'\n');
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    std::fs::write(&log, &bytes).unwrap();
+    let refused = append(&log, "evidence_limit", &APP_WRITER, body(99)).unwrap_err();
+    assert!(refused.contains("incomplete owning log") && refused.contains("unreadable line 1"), "{refused}");
+    std::fs::remove_dir_all(root).unwrap();
+}

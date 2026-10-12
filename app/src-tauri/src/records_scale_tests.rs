@@ -152,7 +152,20 @@ fn records_scale_child() {
             let start = t();
             for n in 1..=10 { probe(n).unwrap(); }
             let next = scale_ms(start) / 10.0;
-            json!({"readAllMs":read,"entries":count,"limits":limits.len(),"peakRssBytes":rss,"oneAppendMs":first,"nextAppendMs":next,"appendOk":appended.is_ok(),"peakRssAfterAppendsBytes":scale_rss_bytes()})
+            let rss_index = scale_rss_bytes();
+            // One pass of the background verifier (off the record tick).
+            let start = t();
+            let replaced = crate::records_index::verify(&root);
+            let verify_ms = scale_ms(start);
+            json!({"readAllMs":read,"entries":count,"limits":limits.len(),"peakRssBytes":rss,"oneAppendMs":first,"nextAppendMs":next,"appendOk":appended.is_ok(),"peakRssAfterAppendsBytes":rss_index,
+                "verifyPassMs":verify_ms,"verifyReplaced":replaced,"peakRssAfterVerifyBytes":scale_rss_bytes()})
+        }
+        "index" => {
+            // The index alone, built cold in its own process: its time and peak resident size.
+            let before = scale_rss_bytes();
+            let start = t();
+            let (limits, ids) = crate::records_index::with_index(&root, |ix| (ix.limits().len(), ix.holds("rec:app:none")));
+            json!({"buildMs":scale_ms(start),"limits":limits,"held":ids,"rssBeforeBytes":before,"peakRssBytes":scale_rss_bytes()})
         }
         "acts" => {
             let start = t();
@@ -256,7 +269,7 @@ fn records_scale_report() {
         let size = |p: &std::path::Path| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
         let records_bytes: u64 = crate::storage::discover(&root).unwrap().iter().map(|p| size(p)).sum();
         let mut tier = json!({"runs":runs,"acts":acts,"ledgerLines":ledger_lines,"recordLogBytes":records_bytes,"ledgerBytes":size(&ledger),"generateMs":generated});
-        for what in ["read_all", "acts", "ledger", "tick"] {
+        for what in ["read_all", "index", "acts", "ledger", "tick"] {
             let spec = json!({"what":what,"root":root,"keys":keys,"ledger":ledger,"runs":runs,"acts":acts});
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([SCALE_CHILD, "--exact", "--ignored", "--nocapture", "--test-threads=1"])
