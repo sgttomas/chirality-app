@@ -17,6 +17,8 @@ pub struct RuntimeSession {
     prior_views: Vec<Value>,
     closed_generations: Vec<Value>,
     history_pages: u64,
+    /// Of those, the pages the host's recovery reads returned (RECOVERY §5 R-4).
+    recovery_pages: u64,
 }
 impl RuntimeSession {
     pub fn cursor(&self) -> (&Value, u64) {
@@ -53,10 +55,11 @@ impl RuntimeSession {
             self.account_revision = self.account_revision.saturating_add(1);
             self.position = 0;
             self.history_pages = 0;
+            self.recovery_pages = 0;
             self.closed = self.closed_generations.contains(generation);
             self.limits = losses;
             if !self.prior_views.is_empty() {
-                self.limits.push("Observation lost across generation boundary; earlier activity returns only as the person reads Codex history pages".into());
+                self.limits.push("Observation lost across generation boundary; earlier activity returns only as Codex history pages are read: the host's recovery reads after a restart, and the pages the person reads".into());
             }
             if self.closed {
                 self.limits
@@ -159,7 +162,7 @@ impl RuntimeSession {
             "accountObservation":self.account.as_ref().map(AccountObservation::snapshot),
             "nativeViewLimits":self.limits,"observerCursor":{"generation":self.generation,"position":self.position},
             "observerGap":observation["gap"],"priorNativeViews":self.prior_views,"nativeViewObservationEnded":self.closed,
-            "observerRecovery":{"historyRebuilt":false,"historyPagesRead":self.history_pages,"historyRead":"pages the person reads in stored history are added to the native view as recovered-from-supplier rows; no automatic rebuild","standing":"App-observed receiving state plus explicitly read Codex history pages"}})
+            "observerRecovery":{"historyRebuilt":false,"historyPagesRead":self.history_pages,"recoveryPagesRead":self.recovery_pages,"historyRead":"after a Codex restart the host reads each conversation that lost observation (thread/read, then its latest turn summaries) and adds those pages to the native view as recovered-from-supplier rows; pages the person reads in stored history are added the same way; the full history is not rebuilt, and items are added only as their pages are read","standing":"App-observed receiving state plus Codex history pages read by the host's recovery reads or by the person"}})
     }
     /// A person-requested native history page of this open generation, read into
     /// the native view as `recovered-from-supplier` rows. Other generations,
@@ -186,6 +189,15 @@ impl RuntimeSession {
             if !self.limits.contains(&limit) {
                 self.limits.push(limit);
             }
+        }
+    }
+    /// A page the host's recovery reads returned (RECOVERY §5 R-4), read into
+    /// the native view as `receive_history` reads the person's pages.
+    pub fn receive_recovered_history(&mut self, generation: &Value, home: &str, method: &str, params: &Value, result: &Value) {
+        let before = self.history_pages;
+        self.receive_history(generation, home, method, params, result);
+        if self.history_pages > before {
+            self.recovery_pages += 1;
         }
     }
     /// Consume the current atomic Host observation before freezing attribution.

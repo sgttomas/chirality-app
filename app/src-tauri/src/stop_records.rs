@@ -234,6 +234,25 @@ impl StopRequest {
         }
         Ok(Some(self.advance(json!({"waitingEnded":true,"transition":"SR-10"}))?))
     }
+    /// SR-09: a recovery read after a restart found the turn's final status in
+    /// Codex history. Only from *outcome-unknown*; the source is
+    /// *recovered-from-supplier*, and the label is the cause's for that status
+    /// (Codex's own status is shown beside it by the recovery event).
+    pub(crate) fn recovered(&mut self, status: &str) -> Result<Option<Value>, String> {
+        if self.state() != "outcome-unknown" || !matches!(status, "interrupted" | "completed" | "failed") {
+            return Ok(None);
+        }
+        let label = label(self.record["cause"].as_str().unwrap_or_default(), status).ok_or("stop request cause unknown")?;
+        Ok(Some(self.advance(json!({"turnOutcome":status,"outcomeSource":"recovered-from-supplier","outcomeLabel":label,"state":"outcome-recovered","transition":"SR-09"}))?))
+    }
+    /// A request of an earlier App session, from its latest ledger record, so
+    /// that its later transitions (SR-08 at startup, SR-09 after a recovery
+    /// read) are written through the same path. Its generation is closed.
+    pub(crate) fn from_record(record: &Value) -> Result<Self, String> {
+        validate(record)?;
+        let generation = record["generation"].as_str().and_then(|g| crate::recovery::generation_from_ref(g).ok()).unwrap_or(Value::Null);
+        Ok(Self { record: record.clone(), generation, request_identity: None, last_entry: None, note: None })
+    }
 }
 
 /// AS-02 / SQ-R R-2: SR-08 for a stop request an earlier App session left
@@ -242,9 +261,7 @@ impl StopRequest {
 /// *unknown*. `None` when the record needs no closing (already settled,
 /// outcome unknown, not sent, or only requested).
 pub(crate) fn closed_at_restart(record: &Value) -> Result<Option<Value>, String> {
-    validate(record)?;
-    let mut request = StopRequest { record: record.clone(), generation: Value::Null, request_identity: None, last_entry: None, note: None };
-    request.generation_closed()
+    StopRequest::from_record(record)?.generation_closed()
 }
 
 /// K-4 (§3.1 AS-03, AS-04, AS-07; §7): the ledger `quit_requested` entry with
@@ -377,6 +394,12 @@ impl LedgerIndex {
         }
         self.seen = rows.len();
         self.last = rows.last().cloned();
+    }
+    /// The latest recorded stop request for one turn of one generation (SR-09
+    /// after a relaunch), the last requested when there are several.
+    pub(crate) fn latest_for(&self, generation: &str, thread: &str, turn: &str) -> Option<&Value> {
+        self.order.iter().rev().filter_map(|id| self.latest.get(id))
+            .find(|r| r["generation"] == generation && r["threadId"] == thread && r["turnId"] == turn)
     }
     /// Whether this exact ledger entry is in the ledger (compared only with
     /// the entries of its own stop request).

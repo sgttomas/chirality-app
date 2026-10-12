@@ -238,6 +238,18 @@ pub(crate) fn workspace_read(home: &str, generation: &Value, method: &str, param
         .map_err(|_| "workspace read identity exhausted")?;
     Ok(HistoryQuery { factory_id: 0, query_id, home: home.into(), generation: generation.clone(), method: method.into(), params })
 }
+/// The reviewed native response shape of a workspace read's result (the
+/// recovery reads, RECOVERY §5 R-4): a result Codex returns in another shape
+/// is not read.
+pub(crate) fn validate_read_response(method: &str, result: &Value) -> Result<(), String> {
+    let target = match method {
+        "thread/read" => "ThreadReadResponse",
+        "thread/turns/list" => "ThreadTurnsListResponse",
+        "thread/items/list" => "ThreadItemsListResponse",
+        _ => return Err(format!("{method} is not a read the workflow workspace makes")),
+    };
+    validate(target, result)
+}
 fn validate(target: &str, value: &Value) -> Result<(), String> {
     validators()?
         .get(target)

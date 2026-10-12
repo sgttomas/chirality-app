@@ -70,6 +70,8 @@ code_paths:
 - app/src-tauri/src/codex_stop.rs
 - app/src-tauri/src/stop_records.rs
 - app/src-tauri/resources/runtime_core/recovery.stop-request.schema.json
+- app/src-tauri/src/execution_custody.rs
+- app/src-tauri/src/hosting_recovery_reads.rs
 checks:
 - app/src-tauri/src/recovery_startup_request_tests.rs
 - app/src-tauri/tests/recovery_startup.rs
@@ -77,5 +79,7 @@ checks:
 - app/src-tauri/src/codex_stop_tests.rs
 - app/src-tauri/src/stop_records_tests.rs
 - app/src-tauri/src/stop_records_host_tests.rs
+- app/src-tauri/src/execution_custody_tests.rs
+- app/src-tauri/src/hosting_recovery_reads_tests.rs
 - execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
 - execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py

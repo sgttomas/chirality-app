@@ -156,6 +156,18 @@ fn read_recovery_custody_from_root(homes:&Mutex<runtime_session::HomeRouter>,mod
     Ok(view)
 }
 
+/// RECOVERY §3.2 CV-15: the person asks for an unavailable conversation's
+/// recovery reads again. The host reads it on this home's ready Codex
+/// (`thread/read`, then its latest turns); nothing is resumed and nothing is
+/// sent to the conversation. Returns the recovery view after the reads.
+#[tauri::command(async)]
+fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generation: Value, thread_id: String) -> Result<Value,String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    home.host.recovery_retry(&thread_id)?;
+    host_tick::recovery_tick_home(&home);
+    recovery_root_view::read(&home, &mode_home_class, &home.host.snapshot()["generation"])
+}
+
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
     let home = state.homes.lock().unwrap().active();
@@ -1761,6 +1773,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
             read_recovery_custody,
+            recovery_retry,
             read_connector_routes,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,

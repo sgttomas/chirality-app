@@ -6,8 +6,10 @@
 //! - the record tick receives every home's native frames and lets the
 //!   checkpoint recorder record what the view shows of the open runs (EXEC §2.4);
 //! - the trial tick, on its own thread so that a slow Codex read never delays
-//!   the record tick, makes the trial reads that are due (WR TT-9) and the
-//!   delegation readings of conversations not read yet (NPTD §7.1).
+//!   the record tick, makes the recovery reads due once a home's Codex is
+//!   ready after a restart (RECOVERY §3.2 CV-11…CV-15), the trial reads that
+//!   are due (WR TT-9) and the delegation readings of conversations not read
+//!   yet (NPTD §7.1).
 //!
 //! `host_status` only reads (`workflow_status`, `tick_state`).
 use crate::runtime_session::{record_run_observations, trial_flows, HomeRouter, HomeSession, WorkflowRootSession};
@@ -86,11 +88,30 @@ pub(crate) fn delegation_tick_home_aged(home: &HomeSession, max_age: std::time::
     due.len()
 }
 
-/// The trial tick for every home the App holds (TT-9 reads, then the
-/// delegation readings, which also wait on Codex).
+/// RECOVERY §3.2 CV-11…CV-15, §5 R-4 / X-3…X-5: the recovery reads due in one
+/// home in its ready generation, made by the host with no App lock held; the
+/// pages Codex returned are then read into the native view (which first
+/// follows the ready generation) as recovered-from-supplier rows. Returns the
+/// number of pages.
+pub(crate) fn recovery_tick_home(home: &HomeSession) -> usize {
+    let pages = home.host.recovery_reads(crate::hosting::recovery_reads::RECOVERY_READ_WAIT);
+    if pages.is_empty() {
+        return 0;
+    }
+    receive_view(home);
+    let mut runtime = home.runtime.lock().unwrap();
+    for page in &pages {
+        runtime.receive_recovered_history(page.query.generation(), page.query.home(), page.query.method(), page.query.params(), &page.result);
+    }
+    pages.len()
+}
+
+/// The trial tick for every home the App holds (recovery reads, TT-9 reads,
+/// then the delegation readings; all wait on Codex).
 pub(crate) fn trial_tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) {
     let entries = homes.lock().unwrap().entries();
     for home in entries {
+        recovery_tick_home(&home);
         trial_tick_home(&home, workflows);
         delegation_tick_home(&home);
     }
