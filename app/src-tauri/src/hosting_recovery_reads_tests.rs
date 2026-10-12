@@ -311,7 +311,10 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     let restart = relaunched.host.recovery_custody().snapshot()["restartEvents"].clone();
     assert_eq!(restart[0]["priorSessionEnd"], "ended-without-record");
     assert_eq!(crate::host_tick::recovery_tick_home(&relaunched), 3, "thread/read and two turn pages");
-    let reads: Vec<String> = f.wire()[wire..].iter().map(|w| w["method"].as_str().unwrap().to_owned()).collect();
+    // The relaunched session's own handshake can still be arriving; everything else
+    // written after the relaunch is the recovery reads.
+    let reads: Vec<String> = f.wire()[wire..].iter().map(|w| w["method"].as_str().unwrap().to_owned())
+        .filter(|m| !matches!(m.as_str(), "initialize" | "initialized")).collect();
     assert_eq!(reads, ["thread/read", "thread/turns/list", "thread/turns/list"]);
     let recovered = &Fixture::events(&relaunched, "observation_recovered")[0];
     validate_event(recovered);
