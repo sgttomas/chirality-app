@@ -366,13 +366,14 @@ fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &st
     let (acts, limits) = crate::records::read_log(&crate::storage::library_log(library));
     assert!(limits.is_empty(), "{limits:?}");
     assert!(acts.iter().any(|e| e["recordId"] == line["act"]["record_id"]), "the ledger cites the recorded A15 act");
-    // workflow_select_registered: the hot registered revision's published copy.
-    let copy = library.join(".chirality/workflows").join(NAME);
-    let snapshot = r.select_hot_registered_copy(&reference, &revision, copy).unwrap();
+    // workflow_select_registered: the hot registered revision, resolved from its revision store (SL-4).
+    let snapshot = r.select_hot_registered_copy(&reference, &revision).unwrap();
     assert_eq!(snapshot["selection"]["standing"], "registered revision");
     assert_eq!(snapshot["selection"]["runnable"], true);
     assert_eq!(snapshot["selection"]["identity"]["revision"], revision.as_str());
     assert_eq!(snapshot["selection"]["identity"]["origin"], origin);
+    let store = library.join(".chirality/workflow-revisions").join(NAME).join(crate::storage::key(&revision)).join(NAME);
+    assert_eq!(r.selected.as_ref().unwrap().package, store, "resolved from the revision store");
     (reference, revision)
 }
 
@@ -426,9 +427,8 @@ fn refine_register_and_select(
     assert_eq!(line["prior_revision"]["revision"], previous, "the new act names the disclosed prior");
     assert_eq!(line["identity"]["derived_from"]["revision"], previous, "derived from the App-kept base");
     // The disclosed prior is not promoted: the old revision is not selectable, even through the new review.
-    let copy = library.join(".chirality/workflows").join(NAME);
-    assert!(r.select_hot_registered_copy(&reference, previous, copy.clone()).is_err(), "old revision stays cold");
-    r.select_hot_registered_copy(&reference, &revision, copy).unwrap();
+    assert!(r.select_hot_registered_copy(&reference, previous).is_err(), "old revision stays cold");
+    r.select_hot_registered_copy(&reference, &revision).unwrap();
     (reference, revision)
 }
 
@@ -758,7 +758,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert!(reading.possibly_live_in(THREAD).is_empty());
     assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty());
     assert!(
-        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one, project.join(".chirality/workflows").join(NAME)).is_err(),
+        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one).is_err(),
         "the lost process's hot registration is not recreated from files"
     );
     // A new start in that conversation is allowed because the run ended. The fresh
@@ -778,11 +778,11 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         "\nRefined after relaunch (journey step 7).\n",
     );
     assert!(
-        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one, project.join(".chirality/workflows").join(NAME)).is_err(),
+        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one).is_err(),
         "re-registration does not recreate the lost process's registration"
     );
     // The selection is the new revision; re-select it after the negative check.
-    root.lock().unwrap().select_hot_registered_copy(&review_two, &revision_two, project.join(".chirality/workflows").join(NAME)).unwrap();
+    root.lock().unwrap().select_hot_registered_copy(&review_two, &revision_two).unwrap();
     let b = root
         .lock()
         .unwrap()
@@ -895,7 +895,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
         // Not selectable cold (RC-2, SEAL-2 deferred).
-        let cold = r.select_hot_registered_copy(&review_three, &revision_three, copy.clone()).unwrap_err();
+        let cold = r.select_hot_registered_copy(&review_three, &revision_three).unwrap_err();
         assert!(cold.contains("re-confirm to use in this App session"), "{cold}");
         r.begin_review(four.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
             .expect("DS-8 after relaunch, with no edit");
@@ -957,7 +957,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(crate::workflow_workspace::Snapshot::capture(&copy).unwrap().files(), copy_before.files(), "no copy written");
     {
         let mut r = root.lock().unwrap();
-        let selected = r.select_hot_registered_copy(&reference, &revision_three, copy.clone()).unwrap();
+        let selected = r.select_hot_registered_copy(&reference, &revision_three).unwrap();
         assert_eq!(selected["selection"]["standing"], "registered revision");
         assert_eq!(selected["selection"]["runnable"], true);
         assert_eq!(selected["selection"]["identity"]["revision"], revision_three.as_str());

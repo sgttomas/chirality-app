@@ -11,7 +11,7 @@ const document=installMiniDom();
 const React = (await import('react')).default;
 const {renderToStaticMarkup} = await import('react-dom/server');
 const {createRoot} = await import('react-dom/client');
-const {RegisteredRevisions,NewerRevisionNotice,WorkflowRootPanel}=loadSrc('App');
+const {RegisteredRevisions,NewerRevisionNotice,ReviewSelectButtons,WorkflowRootPanel}=loadSrc('App');
 
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const find=(node,match,found=[])=>{
@@ -86,4 +86,20 @@ test('the panel sends the shown library with a list Select',async()=>{
   await React.act(async()=>{props(b).onClick();await new Promise(r=>setTimeout(r,0));});
   assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64)}]);
   await React.act(()=>root.unmount());
+});
+
+// A retained review's Select is a "Select revision ‹n›" shortcut: it names the
+// review and revision only, and the host resolves the revision store (WR SL-4).
+test('a retained review offers Select revision ‹n› for what it registered, naming no folder',()=>{
+  const s=spy();
+  const review={reference:'review-1',status:{entries:[
+    {state:'registered',identity:{name:'load-check',revision:'a'.repeat(64)}},
+    {state:'re-confirmed',identity:{name:'load-check',revision:'c'.repeat(64)}},
+    {state:'not completed',identity:{name:'load-check',revision:'d'.repeat(64)}}]}};
+  const tree=ReviewSelectButtons({review,libraries:[{reference:'lib-1',registered:[held]}],busy:false,act:s.act});
+  const shown=buttons(tree);
+  assert.deepEqual(shown.map(text),['Select revision 1','Select revision cccccccccccc'],'sequence when listed, else the revision prefix; a not-completed entry offers nothing');
+  shown[0].props.onClick();
+  assert.deepEqual(s.calls,[['workflow_select_registered',{reviewRef:'review-1',revision:'a'.repeat(64)}]]);
+  assert.doesNotMatch(h(ReviewSelectButtons,{review,libraries:[],busy:false,act:()=>{}}),/holding copy|…/,'no folder picker is implied');
 });

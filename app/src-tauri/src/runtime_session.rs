@@ -4419,33 +4419,31 @@ impl WorkflowRootSession {
             .cloned()
             .ok_or("No actual native library context selected".into())
     }
-    pub fn select_hot_registered_copy(
-        &mut self,
-        review_ref: &str,
-        revision: &str,
-        path: std::path::PathBuf,
-    ) -> Result<Value, String> {
+    /// "Select revision ‹n›" on a retained review: the revision that review
+    /// registered or re-confirmed in this process (RC-2), resolved from its
+    /// revision store and verified there (SL-4), never from a published copy
+    /// or any other folder, through the path a list selection uses.
+    pub fn select_hot_registered_copy(&mut self, review_ref: &str, revision: &str) -> Result<Value, String> {
         let review = self
             .reviews
             .get(review_ref)
             .cloned()
             .ok_or("Original hot review not retained; ledger/JSON cannot select. If the revision is registered: registered — re-confirm to use in this App session (Review a draft with its bytes, or Refine to make one)")?;
-        let review = review.try_lock().map_err(|_| "Original review owner busy/unavailable; selection pending, no transfer")?;
-        let actual = review
-            .registered
-            .get(revision)
-            .ok_or("Actual hot registered revision unavailable in this review; registered — re-confirm to use in this App session")?;
-        let selection = actual.select();
-        selection.verify_store(&path)?;
-        self.selected = Some(WorkflowSelectionState {
-            reference: crate::util::opaque_id("workflow-selection:")?,
-            selection,
-            package: path,
-            selected_at: crate::util::now_rfc3339(),
-            replaces: self.replaced(),
-        });
-        drop(review);
-        Ok(self.snapshot())
+        let (held, library) = {
+            let review = review.try_lock().map_err(|_| "Original review owner busy/unavailable; selection pending, no transfer")?;
+            let held = review
+                .registered
+                .get(revision)
+                .cloned()
+                .ok_or("Actual hot registered revision unavailable in this review; registered — re-confirm to use in this App session")?;
+            (held, review.library.clone())
+        };
+        let store = library
+            .owner
+            .try_lock()
+            .map_err(|_| "Original library owner busy/unavailable; selection pending")?
+            .store_copy(held.identity());
+        self.choose_registered(&held, store)
     }
     /// WR SL-2 / §5.4: the registered selection in force, which a new
     /// selection by the person replaces and cites. A candidate selection that
@@ -7279,7 +7277,7 @@ mod workflow_root_tests {
                 let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
                 review.attempted_native=true;review.accept_result(result).unwrap();
                 review.registered.values().next().unwrap().identity().revision.clone()};
-            root.select_hot_registered_copy(&reference,&revision,self.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
+            root.select_hot_registered_copy(&reference,&revision).unwrap();
             assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
             root
         }
@@ -7307,12 +7305,12 @@ mod workflow_root_tests {
         review.attempted_native=true;review.accept_result(result).unwrap();
         let revision=review.registered.values().next().unwrap().identity().revision.clone();
         assert_eq!(review.status["entries"][0]["state"],"registered");drop(review);
-        root.select_hot_registered_copy(&reference,&revision,f.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
+        root.select_hot_registered_copy(&reference,&revision).unwrap();
         assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
         // PD-1: the run panel reads the selected revision's declared part from the host, as WD read it.
         let declaration=&root.snapshot()["selection"]["declaration"];
         assert!(declaration["reading"].is_string()&&declaration["categories"].is_object(),"{declaration}");
-        let mut cold=WorkflowRootSession::default();assert!(cold.select_hot_registered_copy(&reference,&revision,f.package.clone()).is_err(),"readable ledger/tuple cannot recreate hot registration authority");
+        let mut cold=WorkflowRootSession::default();assert!(cold.select_hot_registered_copy(&reference,&revision).is_err(),"readable ledger/tuple cannot recreate hot registration authority");
         assert!(cold.select_development_copy(f.root.join(".chirality/workflows/coordinated-knowledge-work")).is_ok(),"exact copy can separately retain development admission, not old A15");
     }
     #[test]
@@ -9064,7 +9062,12 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.fixture.registered();
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let text=root.runs[&a].lock().unwrap().prepared().text().to_owned();
-        assert!(text.contains("[Chirality] Other files of this revision, in the folder \".chirality/workflows/coordinated-knowledge-work\": REVIEW-NOTES.md (sha256 "),"{text}");
+        // The holding folder is the revision store (SL-4), inside the project: the
+        // agent is pointed at the registered bytes, not the editable published copy.
+        let held_revision=root.runs[&a].lock().unwrap().prepared().workflow().revision.clone();
+        let store_label=format!(".chirality/workflow-revisions/coordinated-knowledge-work/{}/coordinated-knowledge-work",crate::storage::key(&held_revision));
+        assert!(text.contains(&format!("[Chirality] Other files of this revision, in the folder \"{store_label}\": REVIEW-NOTES.md (sha256 ")),"{text}");
+        assert!(!text.contains("\".chirality/workflows/coordinated-knowledge-work\""),"never the published copy");
         assert!(!text.contains("selected native workflow holding copy"));
         assert_eq!(root.runs[&a].lock().unwrap().status["otherFiles"]["basis"],"holding folder inside the project");
         // Another explicit project: the holding copy is outside it.
@@ -9677,6 +9680,61 @@ for line in sys.stdin:
         assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"ended to start coordinated-knowledge-work");
     }
     /// The revision store copy of the fixture's selected revision.
+    /// The retained review the fixture registered from, and its registered revision.
+    fn review_of(root:&WorkflowRootSession)->(String,String){
+        let reference=root.active_review.clone().unwrap();
+        let revision=root.reviews[&reference].lock().unwrap().registered.keys().next().unwrap().clone();
+        (reference,revision)
+    }
+    fn fixture_store(f:&Fixture,root:&WorkflowRootSession)->std::path::PathBuf{
+        let id=root.selected.as_ref().unwrap().selection.identity().clone();
+        f.root.join(".chirality/workflow-revisions").join(&id.name).join(crate::storage::key(&id.revision)).join(&id.name)
+    }
+    // WR SL-4: "Select revision ‹n›" on a retained review resolves the revision
+    // store. Neither an edited published copy nor an unrelated identical copy
+    // elsewhere is used; each new selection reads the store again.
+    #[test]
+    fn workflow_reselection_review_select_resolves_the_store_only(){
+        let f=Fixture::new();let mut root=f.registered();let (reference,revision)=review_of(&root);
+        let store=fixture_store(&f,&root);
+        assert_eq!(root.selected.as_ref().unwrap().package,store,"the fixture's own review selection");
+        // An unrelated folder with identical bytes exists (the development holding copy).
+        assert_eq!(crate::workflow_workspace::Snapshot::capture(&f.package).unwrap().revision(),revision,"identical copy elsewhere");
+        let published=f.root.join(".chirality/workflows/coordinated-knowledge-work/WORKFLOW.md");
+        std::fs::write(&published,"---\nname: coordinated-knowledge-work\n---\nedited outside registration\n").unwrap();
+        let first=root.selected.as_ref().unwrap().reference.clone();
+        let selected=root.select_hot_registered_copy(&reference,&revision).unwrap();
+        assert_eq!(root.selected.as_ref().unwrap().package,store);
+        assert_ne!(root.selected.as_ref().unwrap().package,f.package);
+        assert_eq!(selected["selection"]["replaces"],first.as_str());
+        assert!(selected["selection"]["currentLimit"].is_null(),"the store verifies: {}",selected["selection"]);
+        assert_eq!(selected["selection"]["declaration"],root.snapshot()["selection"]["declaration"]);
+    }
+    // SL-4: a store that does not recompute is refused, with no fallback to the
+    // published copy or any other folder; the selection in force stays.
+    #[test]
+    fn workflow_reselection_review_select_refuses_a_tampered_store(){
+        let f=Fixture::new();let mut root=f.registered();let (reference,revision)=review_of(&root);
+        let store=fixture_store(&f,&root);let before=root.selected.as_ref().unwrap().reference.clone();
+        let file=store.join("WORKFLOW.md");let kept=std::fs::read(&file).unwrap();
+        std::fs::write(&file,b"tampered store").unwrap();
+        let refused=root.select_hot_registered_copy(&reference,&revision).unwrap_err();
+        assert!(refused.contains("revision not verified"),"{refused}");
+        assert_eq!(root.selected.as_ref().unwrap().reference,before,"selection unchanged");
+        std::fs::write(&file,kept).unwrap();
+        root.select_hot_registered_copy(&reference,&revision).expect("restored store resolves");
+    }
+    // RC-2: only a revision the named retained review holds is selected.
+    #[test]
+    fn workflow_reselection_review_select_refuses_stale_review_or_revision(){
+        let f=Fixture::new();let mut root=f.registered();let (reference,revision)=review_of(&root);
+        let before=root.selected.as_ref().unwrap().reference.clone();
+        let stale=root.select_hot_registered_copy("review:not-retained",&revision).unwrap_err();
+        assert!(stale.contains("not retained"),"{stale}");
+        let other=root.select_hot_registered_copy(&reference,&"f".repeat(64)).unwrap_err();
+        assert!(other.contains("unavailable in this review"),"{other}");
+        assert_eq!(root.selected.as_ref().unwrap().reference,before,"selection unchanged");
+    }
     fn store_of(peer:&Peer,root:&WorkflowRootSession)->std::path::PathBuf{
         let id=root.selected.as_ref().unwrap().selection.identity().clone();
         peer.fixture.root.join(".chirality/workflow-revisions").join(&id.name).join(crate::storage::key(&id.revision)).join(&id.name)
@@ -10039,7 +10097,9 @@ for line in sys.stdin:
     #[test]
     fn v10_g2_end_and_start_leaves_a_untouched_when_b_cannot_be_prepared(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
-        let copy=peer.fixture.root.join(".chirality/workflows/coordinated-knowledge-work/WORKFLOW.md");
+        // B cannot be prepared: the selected revision's store no longer recomputes
+        // (the selection resolves from the store, SL-4, so an edited published copy would not do).
+        let copy=store_of(&peer,&root).join("WORKFLOW.md");
         let mut bytes=std::fs::read(&copy).unwrap();bytes.extend_from_slice(b"\nedited after selection\n");std::fs::write(&copy,bytes).unwrap();
         let refused=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
         assert!(refused.is_err(),"{refused:?}");
@@ -10316,9 +10376,9 @@ for line in sys.stdin:
     fn workflow_root_wrc1_busy_review_selection_refuses_without_global_wait(){
         let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));root.open_library(f.root.clone(),"project",Some(&f.root),control).unwrap();root.create_selected_draft("coordinated-knowledge-work").unwrap();
         let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("offline fixture".into())).unwrap());root.begin_review(home,json!({"hostState":"absent"}),vec!["coordinated-knowledge-work".into()],false).unwrap();
-        let reference=root.active_review.clone().unwrap();let original=root.reviews[&reference].clone();let held=original.lock().unwrap();let root=Arc::new(Mutex::new(root));let shared=root.clone();let package=f.package.clone();
+        let reference=root.active_review.clone().unwrap();let original=root.reviews[&reference].clone();let held=original.lock().unwrap();let root=Arc::new(Mutex::new(root));let shared=root.clone();
         let(started_tx,started_rx)=std::sync::mpsc::channel();let(done_tx,done_rx)=std::sync::mpsc::channel();
-        let worker=std::thread::spawn(move||{let mut root=shared.lock().unwrap();started_tx.send(()).unwrap();let result=root.select_hot_registered_copy(&reference,"not-a-replayable-registered-identity",package);drop(root);done_tx.send(result.is_err()).unwrap();});
+        let worker=std::thread::spawn(move||{let mut root=shared.lock().unwrap();started_tx.send(()).unwrap();let result=root.select_hot_registered_copy(&reference,"not-a-replayable-registered-identity");drop(root);done_tx.send(result.is_err()).unwrap();});
         started_rx.recv_timeout(Duration::from_secs(2)).unwrap();let outcome=done_rx.recv_timeout(Duration::from_millis(200));let observer_root_available=root.try_lock().is_ok();drop(held);worker.join().unwrap();
         assert_eq!(outcome.ok(),Some(true),"busy original review must return pending, not block workflow root");assert!(observer_root_available);
     }

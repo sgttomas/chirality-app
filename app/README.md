@@ -104,7 +104,15 @@ writes records or operates the act control." `src-tauri/` holds that host;
     so, LS-4); the press names its library, and a press after another library
     became active selects nothing. The host resolves the selection from the
     revision store, never the published copy, and verifies its bytes there
-    again (SL-1, SL-4). Other rows keep Refine and re-confirmation through a
+    again (SL-1, SL-4). Every registered selection resolves from the revision
+    store this way: from the list, from a retained review's **Select revision
+    ‹n›** (the revision that review registered or re-confirmed; no folder is
+    picked), from "newer revision ‹n› available", and from a confirmed agent
+    proposal (item 20). An edited published copy or an identical copy
+    elsewhere is never used, and a store that does not recompute refuses with
+    the selection unchanged. A run's files line (WR TX-7) therefore names the
+    revision's store folder, project- or `~`-relative, and the selection's
+    holding library is recorded as that folder's parent. Other rows keep Refine and re-confirmation through a
     draft; selecting one, a draft or an unregistered library entry is refused
     with its standing and route (SL-5). Beside a registered selection the view
     shows "newer revision ‹n› available" when the slot's ledger has a newer
@@ -220,8 +228,10 @@ writes records or operates the act control." `src-tauri/` holds that host;
     the person attaches are ordinary attachments.
     **Review for registration…** opens the existing review for the listed
     content, refused as DS-6 if the draft changed since listing.
-    Registration stays the person's A15 act at the native confirmation. A trial
-    is not a run, registration, checking or acceptance.
+    Registration stays the person's A15 act at the native confirmation; once
+    it registers or re-confirms, the review offers **Select revision ‹n›**,
+    resolved from the revision store like every registered selection (item 16).
+    A trial is not a run, registration, checking or acceptance.
 22. **Stop Codex…** and **Restart Codex…** always ask first (DEL-01-04 §5.2,
     C-12). A native question lists the live turns, waiting requests, delegated
     agents and workflow runs in force in that home, or says none were observed,

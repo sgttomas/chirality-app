@@ -331,6 +331,17 @@ export function RegisteredRevisions({ library, rows, busy, act }:{ library: stri
     {" "}<button disabled={busy} onClick={()=>act("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button></li>)}</ul>;
 }
 
+/** "Select revision ‹n›" on a retained review, for each revision that review
+ * registered or re-confirmed in this App process (RC-2). The host resolves it
+ * from the revision store (SL-4); nothing here picks a folder. ‹n› is the
+ * revision's sequence as the library lists it, or its first 12 characters. */
+export function ReviewSelectButtons({ review, libraries, busy, act }:{ review: Json; libraries: Json[]; busy: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
+  const listed=(id:Json)=>libraries.flatMap((l:Json)=>Array.isArray(l.registered)?l.registered:[])
+    .find((row:Json)=>row.name===id?.name&&row.revision===id?.revision)?.sequence;
+  return <>{(review?.status?.entries??[]).filter((entry:Json)=>entry.state==="registered"||entry.state==="re-confirmed").map((entry:Json)=>
+    <button key={entry.identity.revision} disabled={busy} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {listed(entry.identity)??String(entry.identity.revision).slice(0,12)}</button>)}</>;
+}
+
 /** WR SL-2: "newer revision ‹n› available" beside the selection. The selection
  * stays on its revision; only the person's press selects the newer one, as a new
  * selection that cites the one it replaces. */
@@ -414,7 +425,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
       <button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>{review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm this revision for use in this App session through native A15 confirmation…":"Register this review through native A15 confirmation…"}</button>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
-      {(review.status?.entries??[]).filter((entry:Json)=>entry.state==="registered"||entry.state==="re-confirmed").map((entry:Json)=><button key={entry.identity.revision} disabled={busy} onClick={()=>action("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select hot {entry.state} {entry.identity.name} holding copy…</button>)}
+      <ReviewSelectButtons review={review} libraries={data?.libraries??[]} busy={busy} act={action}/>
     </article>)}
     <h3>Send selected workflow text</h3>
     <label>Current native conversation <select value={thread} onChange={e=>setThread(e.target.value)} disabled={busy}><option value="">Select conversation</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>

@@ -1110,11 +1110,12 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
+/// "Select revision ‹n›" on a retained review: resolved from the revision
+/// store (WR SL-4); no folder picker.
 #[tauri::command(async)]
-fn workflow_select_registered(app:tauri::AppHandle,state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
-    let Some(path)=workflow_native_folder(&app,"Select actual holding copy of this hot registered revision")? else{return Ok(json!({"state":"native selection dismissed"}));};
+fn workflow_select_registered(state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
     let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision,path))
+    noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision))
 }
 /// WR LS-1 "Select (in such a process)", SL-1: the person selects a registered
 /// revision from the active library's list; the host resolves it from the
