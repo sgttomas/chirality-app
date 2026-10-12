@@ -602,9 +602,15 @@ not an act. No App act binds an agent message, so an AW-6 arrival remains waitin
 While the run is live, CE-10 is recorded for the App-file acts that answer an
 arrival's latest performance, with the before- and after-resume labels of
 §2.4.3. Later acts on decided arrivals (§4.6), including an act on lapsed
-referents after the resume point, lapses and acts after run end (CE-10 *after
-run end*, CE-16) and observation loss/recovery (CE-13/14) are not yet recorded:
-the App does not observe a run after its end. Outputs gated by a lapsed act do
+referents after the resume point, and lapses and acts after run end (CE-10 *after
+run end*, CE-16) are not yet recorded: the App does not observe a run after its
+end. While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
+name its conversation and CE-14 for a later readable recovery read; a deciding
+loss names no arrival and writes no *unknown* label, because which arrival a lost
+production would have been is not established. A loss or recovery of an App
+session that ended (a relaunch) is not recorded, and AW-12's "the named item never
+completes (`turn/completed` *interrupted* or *failed*)" without a process loss
+writes no CE-13. Outputs gated by a lapsed act do
 not yet show standing *lapsed* (PH-8, RH-1): the run panel's facets read
 *unknown* once the record holds `act_lapsed` or any other entry they do not
 read. Host-operation
@@ -633,7 +639,23 @@ delivers, so a resume point in that observation precedes the lapse; for one wait
 again after a lapse it is read before acts are counted, so an act on the newest
 content counts. An unknown state is written once and
 changes no label; content back at c₀ is written and changes no label (RS U-12). A
-lapse whose label was not written gets it at the next observation. After a lapse,
+lapse whose label was not written gets it at the next observation. For CE-13 and
+CE-14 the custody events reach the recorder with the native view of the record
+tick and of the End run paths; in this App session the run current in a named
+conversation is its open run (one at a time, RE-7), and a loss counts for it from
+the generation it opened in on. A loss is *deciding* when an item it left in flight
+in the run may be a listed checkpoint's named event: a message whose streamed text
+(the native view's untruncated preview) has no settled first line other than the
+designating line (AW-6), or a file change whose received changes do not exclude the
+declared path (AW-7); a call's start is an arrival already observed (AW-3). CE-14
+is written only for a recovery read *accessible* matched to a recorded loss of the
+run not yet recovered whose live turns are the turns the read reports, because the
+custody event names no lost generation; two losses with the same live turns, or
+none, are not told apart. The reads list turns and return no item, so they decide
+nothing and no label changes. A conversation with no App index (no custody home)
+gets no custody `observation_lost` (RECOVERY close keeps only a limit), so its run
+records no CE-13. Each entry names its custody event, by which a repeated
+observation is not written again. After a lapse,
 acts count against the content the latest determinate lapse read; an act already
 cited for the arrival, such as one recorded "act on other content", is not
 reconsidered when the content later becomes the content it was made on (§4.6, the

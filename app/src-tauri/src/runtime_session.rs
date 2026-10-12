@@ -6775,7 +6775,7 @@ impl WorkflowRun {
             *cache = fingerprint.map(|f| (f, read.clone()));
             Ok(read)
         };
-        let outputs = recorder.observe(view, &crate::checkpoint_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, project_root: &self.project_root }, &entries, &mut acts);
+        let outputs = recorder.observe(view, &crate::checkpoint_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, project_root: &self.project_root, start_spawn: scope.generation["spawnCounter"].as_u64().unwrap_or(0) }, &entries, &mut acts);
         self.checkpoints = Some(recorder);
         let held = self.entries.iter().any(|e| e.pending());
         let recorded = !outputs.is_empty();
@@ -9362,6 +9362,44 @@ for line in sys.stdin:
         let counted:Vec<&Value>=log.iter().filter(|e|e["kind"]=="act_counted").collect();
         assert_eq!(counted.last().unwrap()["body"]["act"]["recordId"],act.as_str());
         assert_eq!(log.last().unwrap()["kind"],"run_ended");assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([]));
+    }
+    // CE-13 / CE-14 through the actual run and RS writer (EXEC AE-6, A-4, A-12, RC-4): a custody
+    // loss naming the run's conversation is written to the run's own log once, also when the
+    // first write fails and is retried; then the recovery read; run_ended follows them, and a
+    // loss after the end is not written to the ended run. Nothing is sent because of either.
+    #[test]
+    fn checkpoint_custody_loss_and_recovery_reach_the_run_log_once_and_in_order(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let generation=crate::recovery::generation_ref(&peer.generation).unwrap();
+        let mut ready=peer.generation.clone();ready["spawnCounter"]=json!(peer.generation["spawnCounter"].as_u64().unwrap()+1);
+        let lost=|id:&str|json!({"kind":"observation_lost","eventId":id,"appSession":peer.generation["appSession"],"at":crate::util::now_rfc3339(),"standing":"App-observed","home":"H-acct",
+            "generation":generation,"cause":"supplier-exit","conversations":["thread"],"liveTurns":[{"threadId":"thread","turnId":"turn"}],
+            "inFlightItems":[{"threadId":"thread","turnId":"turn","itemId":"m9","itemType":"agentMessage","lastObservedStatus":"inProgress"}],"outstandingEntries":[]});
+        let recovered=json!({"kind":"observation_recovered","eventId":"cev:recovered:fixture","appSession":peer.generation["appSession"],"at":crate::util::now_rfc3339(),"standing":"App-observed",
+            "threadId":"thread","home":"H-acct","generation":crate::recovery::generation_ref(&ready).unwrap(),"via":"thread/read","priorEvents":"accessible","turns":[{"turnId":"turn","supplierStatus":"interrupted","appReading":"recovered from Codex: interrupted"}]});
+        let with=|events:Vec<Value>|{let mut v=recorder_view(&peer,&[]);v["custodyEvents"]=json!(events);v};
+        let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
+        // A-12: the first write fails; the held entry is written late, once, with its limit.
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+        run.lock().unwrap().observe_checkpoints(&with(vec![lost("cev:lost:fixture")]));
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+        run.lock().unwrap().observe_checkpoints(&with(vec![lost("cev:lost:fixture"),recovered.clone()]));
+        run.lock().unwrap().observe_checkpoints(&with(vec![lost("cev:lost:fixture"),recovered.clone()]));
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(kinds.iter().filter(|k|**k=="observation_lost").count(),1,"{kinds:?}");assert_eq!(kinds.iter().filter(|k|**k=="observation_recovered").count(),1,"{kinds:?}");
+        let at=|k:&str|kinds.iter().position(|x|*x==k).unwrap();
+        assert!(at("observation_lost")<at("observation_recovered"));
+        let loss=&log[at("observation_lost")];assert_eq!(loss["body"]["deciding"],true);assert_eq!(loss["runId"],a.as_str());
+        assert!(log.iter().any(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==loss["recordId"]),"written late with its limit");
+        assert_eq!((peer.wire().len(),peer.home.host.client_requests().len()),(wire,requests),"recording sends nothing (RC-4)");
+        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open,"a loss ends nothing");
+        run.lock().unwrap().end_run(None,None).unwrap();
+        run.lock().unwrap().observe_checkpoints(&with(vec![lost("cev:lost:fixture"),recovered,lost("cev:lost:after-end")]));
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(kinds.last(),Some(&"run_ended"),"the ended run gets nothing after its end: {kinds:?}");
+        assert!(at("observation_recovered")<kinds.iter().position(|k|*k=="run_ended").unwrap());
+        assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty(),"every entry is a conformant RS entry");
     }
     // At the end after a relaunch, a lapse is observed from the run's own record with its own
     // time, before run_ended; nothing is back-filled into the interrupted interval (RP-1).

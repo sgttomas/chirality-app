@@ -510,3 +510,17 @@ fn sr09_transition_is_only_from_outcome_unknown_with_a_final_status() {
     let back = crate::stop_records::StopRequest::from_record(&record).unwrap();
     assert_eq!(back.generation(), &generation);
 }
+
+// EXEC AE-6: the custody events reach the checkpoint recorder through the native view
+// the record tick and the End run paths receive, in the order they arose.
+#[test]
+fn checkpoint_custody_events_reach_the_native_view() {
+    let f = Fixture::new();
+    f.live_work();
+    crate::host_tick::receive_view(&f.home);
+    f.crash();
+    let view = crate::host_tick::receive_view(&f.home);
+    let events = view["custodyEvents"].as_array().unwrap();
+    assert_eq!(events, &Fixture::events(&f.home, "observation_lost"), "{view}");
+    assert_eq!(events[0]["conversations"], json!(["thread"]));
+}

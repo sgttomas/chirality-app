@@ -50,7 +50,7 @@ fn view(items: Vec<Value>) -> Value {
     json!({"home":"native-home","generation":g(1),"items":items})
 }
 fn scope<'a>(root: &'a std::path::Path) -> RunScope<'a> {
-    RunScope { home: "native-home", conversation: "thread", start: crate::run_offers::RunStart::At(1), project_root: root }
+    RunScope { home: "native-home", conversation: "thread", start: crate::run_offers::RunStart::At(1), project_root: root, start_spawn: 1 }
 }
 fn validator() -> jsonschema::Validator {
     let schema: Value = serde_json::from_str(include_str!("../schemas/checkpoint-record-entries.schema.json")).unwrap();
@@ -1129,4 +1129,205 @@ fn a_recorded_lapse_without_its_label_is_labelled_once() {
     whole.extend(entries(&outputs));
     assert!(end_observations(&whole, &root).is_empty());
     std::fs::remove_dir_all(root).unwrap();
+}
+
+// ---- Observation lost and recovered (CE-13, CE-14; AE-6, AW-12, RP-1) ----
+
+fn gen_ref(counter: u64) -> String {
+    crate::recovery::generation_ref(&g(counter)).unwrap()
+}
+/// DEL-01-02's custody `observation_lost` for generation `counter`, naming `threads`.
+fn lost_event(id: &str, counter: u64, threads: &[&str], items: Vec<Value>) -> Value {
+    json!({"kind":"observation_lost","eventId":id,"appSession":"session","at":"2026-09-21T16:00:00.000Z","standing":"App-observed","home":"H-acct",
+        "generation":gen_ref(counter),"cause":"supplier-exit","conversations":threads,"liveTurns":[{"threadId":"thread","turnId":"turn-1"}],"inFlightItems":items,"outstandingEntries":[]})
+}
+fn in_flight(id: &str, kind: &str) -> Value {
+    json!({"threadId":"thread","turnId":"turn-1","itemId":id,"itemType":kind,"lastObservedStatus":"inProgress"})
+}
+/// DEL-01-02's custody `observation_recovered` read in generation `counter`.
+fn recovered_event(id: &str, counter: u64, prior: &str) -> Value {
+    let mut e = json!({"kind":"observation_recovered","eventId":id,"appSession":"session","at":"2026-09-21T16:05:00.000Z","standing":"App-observed","threadId":"thread","home":"H-acct",
+        "generation":gen_ref(counter),"via":"thread/read","priorEvents":prior,"turns":[{"turnId":"turn-1","supplierStatus":"interrupted","appReading":"recovered from Codex: interrupted"}]});
+    if prior == "unavailable" {
+        e["unavailableReason"] = json!("fixture: thread not found");
+    }
+    e
+}
+fn with_custody(mut v: Value, events: Vec<Value>) -> Value {
+    v["custodyEvents"] = json!(events);
+    v
+}
+
+// AE-6, AW-12: a loss naming the run's conversation is written once; it is deciding only
+// when an item it left in flight may be a listed checkpoint's named event. Nothing else is
+// written for it (no label, no arrival): which arrival it would be is not established.
+#[test]
+fn a_loss_is_written_once_and_deciding_only_for_a_possible_production() {
+    let root = std::path::PathBuf::from("/project/root");
+    // The native view's shape: the started text stays empty; streamed deltas are the preview.
+    let mut partial = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    partial["preview"] = json!("Spac");
+    let mut other = row("turn-1", json!({"id":"m2","type":"agentMessage","text":""}), 3, Some(3), None);
+    other["preview"] = json!("Working on it\nSpacing report");
+    let elsewhere = row("turn-1", json!({"id":"f2","type":"fileChange","status":"inProgress","changes":[{"path":"out/other.md","kind":{"type":"add"},"diff":""}]}), 4, Some(4), None);
+    let items = vec![start_row(), partial, other, elsewhere];
+    let cases = [
+        (vec![in_flight("c1", "commandExecution")], false),
+        (vec![in_flight("m2", "agentMessage")], false), // its first line is settled and is not the designating line
+        (vec![in_flight("f2", "fileChange")], false),   // its changes produce no declared path
+        (vec![in_flight("m1", "agentMessage")], true),  // "Spac" may still become "Spacing report"
+        (vec![in_flight("f9", "fileChange")], true),    // not in the view: its changes are not known
+    ];
+    for (n, (flight, deciding)) in cases.into_iter().enumerate() {
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let id = format!("cev:lost:{n}");
+        let v = with_custody(view(items.clone()), vec![lost_event(&id, 1, &["thread"], flight)]);
+        let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+        conformant(&outputs);
+        assert_eq!(kinds(&outputs), ["observation_lost"], "case {n}: {outputs:#?}");
+        let body = &outputs[0].1;
+        assert_eq!(body["deciding"], deciding, "case {n}: {body}");
+        assert!(body["arrival"].is_null(), "no arrival is named");
+        assert!(body["scope"].as_str().unwrap().contains(&format!("(custody event {id})")));
+        assert!(body["cause"].as_str().unwrap().contains("supplier-exit"));
+        let mut all = entries(&listed);
+        all.extend(entries(&outputs));
+        assert!(obs(&mut recorder, &v, &scope(&root), &all).is_empty(), "case {n}: read once");
+        let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+        assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "case {n}: already in the record, not written again");
+        assert!(waiting_arrivals(&all).is_empty() && !kinds(&outputs).contains(&"disposition_change"));
+    }
+}
+
+// AE-6: a loss of another conversation, of a generation before the run opened, of another
+// App session or physical home is not this run's; a run with no listed checkpoint still
+// records its loss (RC-2).
+#[test]
+fn only_a_loss_of_the_runs_conversation_after_it_opened_is_its_own() {
+    let root = std::path::PathBuf::from("/project/root");
+    let items = vec![start_row()];
+    let mut foreign_session = lost_event("cev:s", 1, &["thread"], vec![]);
+    foreign_session["appSession"] = json!("earlier");
+    let mut foreign_home = lost_event("cev:h", 1, &["thread"], vec![]);
+    foreign_home["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"session","home":"other-home","spawnCounter":1})).unwrap());
+    for (event, start_spawn) in [(lost_event("cev:o", 1, &["other-thread"], vec![]), 1), (lost_event("cev:1", 1, &["thread"], vec![]), 2), (foreign_session, 1), (foreign_home, 1)] {
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut run = scope(&root);
+        run.start_spawn = start_spawn;
+        assert!(obs(&mut recorder, &with_custody(view(items.clone()), vec![event.clone()]), &run, &entries(&listed)).is_empty(), "{event}");
+    }
+    let (mut bare, none) = CheckpointRecorder::start(Err("bytes differ".into()));
+    assert!(none.is_empty());
+    let outputs = obs(&mut bare, &with_custody(view(items), vec![lost_event("cev:l", 2, &["thread", "other"], vec![])]), &scope(&root), &[]);
+    assert_eq!(kinds(&outputs), ["observation_lost"]);
+    assert_eq!(outputs[0].1["deciding"], false);
+}
+
+// CE-14 (RP-1): a recovery read of the run's conversation after its recorded loss is written
+// once with the read's own time; an unavailable read, or one with no loss recorded for the run
+// before it, writes nothing. It recovers no item, so no label changes and nothing is back-filled.
+#[test]
+fn a_recovery_is_written_once_after_a_recorded_loss() {
+    let root = std::path::PathBuf::from("/project/root");
+    let items = vec![start_row(), row("turn-1", message("m1", "Spacing report"), 2, Some(2), Some(3))];
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let mut all = entries(&listed);
+    // A recovery with no loss of this run before it: nothing.
+    let early = with_custody(view(items.clone()), vec![recovered_event("cev:r0", 2, "accessible")]);
+    let outputs = obs(&mut recorder, &early, &scope(&root), &all);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"], "{outputs:#?}");
+    all.extend(entries(&outputs));
+    let events = vec![lost_event("cev:l1", 1, &["thread"], vec![in_flight("m9", "agentMessage")]), recovered_event("cev:r1", 2, "unavailable"), recovered_event("cev:r2", 2, "accessible"), recovered_event("cev:r3", 2, "accessible")];
+    let outputs = obs(&mut recorder, &with_custody(view(items.clone()), events.clone()), &scope(&root), &all);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["observation_lost", "observation_recovered"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["deciding"], true);
+    let scope_text = outputs[1].1["scope"].as_str().unwrap();
+    assert!(scope_text.contains("(custody event cev:r2)") && scope_text.contains("at 2026-09-21T16:05:00.000Z") && scope_text.contains("turn turn-1: Codex reports interrupted"), "{scope_text}");
+    assert!(outputs[1].1.get("arrival").is_none());
+    all.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &with_custody(view(items.clone()), events.clone()), &scope(&root), &all).is_empty(), "read once");
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    let again: Vec<Output> = obs(&mut fresh, &with_custody(view(items), events), &scope(&root), &all).into_iter().filter(|(k, _)| k.starts_with("observation")).collect();
+    assert!(again.is_empty(), "already recorded: {again:#?}");
+    assert_eq!(disposition(&all, &[], &json!({"checkpoint":"CP-check","arrivalOrdinal":1})).as_deref(), Some("waiting"), "no label changes");
+}
+
+// F-1: the in-flight message row as the native view itself builds it from item/started and
+// item/agentMessage/delta: the deltas decide, not the started text. A settled first line that
+// is not the designating line is not deciding; one still growing, or the designating line, is.
+#[test]
+fn a_loss_reads_the_native_views_streamed_message_text() {
+    let root = std::path::PathBuf::from("/project/root");
+    let decides = |deltas: &[&str]| {
+        let mut native = crate::native_items::NativeView::new("native-home".into()).unwrap();
+        native.ready(g(1), json!("codex 0.160.0"), json!("unverified-development")).unwrap();
+        let frames = [json!({"method":"turn/started","params":{"threadId":"thread","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null,"itemsView":"summary"}}}),
+            json!({"method":"item/started","params":{"threadId":"thread","turnId":"turn-1","item":{"id":"m1","type":"agentMessage","text":""}}})];
+        let deltas = deltas.iter().map(|d| json!({"method":"item/agentMessage/delta","params":{"threadId":"thread","turnId":"turn-1","itemId":"m1","delta":d}}));
+        for (n, frame) in frames.into_iter().chain(deltas).enumerate() {
+            native.consume(&json!({"generation":g(1),"position":n + 1,"frame":frame})).unwrap();
+        }
+        let v = with_custody(native.snapshot(), vec![lost_event("cev:native", 1, &["thread"], vec![in_flight("m1", "agentMessage")])]);
+        let row = v["items"].as_array().unwrap().iter().find(|r| r["native"]["id"] == "m1").unwrap().clone();
+        assert_eq!(row["native"]["text"], "", "the started text stays as started: {row}");
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut run = scope(&root);
+        run.start = crate::run_offers::RunStart::BeforeView; // the turn is in the run
+        let outputs: Vec<Output> = obs(&mut recorder, &v, &run, &entries(&listed)).into_iter().filter(|(k, _)| *k == "observation_lost").collect();
+        conformant(&outputs);
+        outputs[0].1["deciding"].as_bool().unwrap()
+    };
+    assert!(!decides(&["Working on it", "\nSp"]), "a settled first line other than the designating line");
+    assert!(decides(&["Spacing rep"]), "still growing");
+    assert!(decides(&["Spacing report\n", "The findings"]), "the designating line");
+    assert!(decides(&[]), "nothing received yet");
+    // A truncated preview has lost its start: its first line is not known.
+    let mut truncated = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    truncated["preview"] = json!("…tail\nmore");
+    truncated["previewTruncated"] = json!(true);
+    assert_eq!(received_text(&truncated), None);
+}
+
+// F-2: a recovery read is matched to a loss of this run by the turn it reports, the live turn
+// at that loss (the custody event names no lost generation): the recovery of a loss from
+// before the run, or one whose read was unavailable, is not this run's.
+#[test]
+fn a_recovery_matches_the_runs_loss_by_its_live_turn() {
+    let root = std::path::PathBuf::from("/project/root");
+    let mut run = scope(&root);
+    run.start_spawn = 2;
+    let mut before = lost_event("cev:g1", 1, &["thread"], vec![]);
+    before["liveTurns"] = json!([{"threadId":"thread","turnId":"turn-0"}]);
+    let mut of_before = recovered_event("cev:r-g1", 3, "accessible");
+    of_before["turns"][0]["turnId"] = json!("turn-0");
+    let mut events = vec![before, lost_event("cev:g2", 2, &["thread"], vec![]), of_before, recovered_event("cev:r-g2", 3, "unavailable")];
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let mut all = entries(&listed);
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events.clone()), &run, &all);
+    assert_eq!(kinds(&outputs), ["observation_lost"], "only g2's loss; g1's recovery is not this run's: {outputs:#?}");
+    all.extend(entries(&outputs));
+    events.push(recovered_event("cev:r-g2-retry", 3, "accessible"));
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events), &run, &all);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["observation_recovered"]);
+    assert!(outputs[0].1["scope"].as_str().unwrap().contains("(custody event cev:r-g2-retry)"));
+}
+
+// F-3: the loss names the stop or loss that ended the process (RECOVERY §2).
+#[test]
+fn a_loss_names_its_definition() {
+    for (cause, definition) in [("supplier-exit", "DEF-5 (b)"), ("supplier-stop", "DEF-5 (a)"), ("app-quit", "DEF-6"), ("system-termination", "DEF-5")] {
+        let mut event = lost_event("cev:c", 1, &["thread"], vec![]);
+        event["cause"] = json!(cause);
+        let body = lost_body(&event, "cev:c", "thread", &[]);
+        assert!(body["cause"].as_str().unwrap().contains(definition) && body["scope"].as_str().unwrap().contains(definition), "{cause}: {body}");
+    }
+}
+
+#[test]
+fn a_settled_first_line_needs_its_line_break() {
+    assert_eq!(settled_first_line("Spacing rep"), None);
+    assert_eq!(settled_first_line("\n  \n Spacing report \nrest"), Some("Spacing report"));
+    assert_eq!(settled_first_line("  \n"), None);
 }
