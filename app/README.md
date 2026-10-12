@@ -97,6 +97,24 @@ writes records or operates the act control." `src-tauri/` holds that host;
     registration are connected to prepared input and source-owned native page
     comparison. Code and synthetic checks do not establish a native person's
     registration, provider uptake or completed workflow execution.
+    **Reuse (WR §4.4, §4.6).** The active library's list of registered revisions
+    offers **Select revision ‹n›** on a revision whose registration or
+    re-confirmation result this App process holds (RC-2); the host resolves it
+    from the revision store, never the published copy, and verifies its bytes
+    there (SL-1, SL-4). Other rows keep Refine and re-confirmation through a
+    draft; selecting one, a draft or an unregistered library entry is refused
+    with its standing and route (SL-5). Beside a registered selection the view
+    shows "newer revision ‹n› available" when the slot's ledger has a newer
+    registered revision; the selection stays where it is (SL-2, SL-4). Its
+    **Select revision ‹n›** is offered only when this process holds that
+    revision; following it is a new selection whose `selection_record` cites
+    the one it replaces (`replaces`). Any person's selection of a registered
+    revision replacing another registered selection cites it the same way
+    (§5.4); a candidate selection that cannot run is not cited. The selection
+    stays App-wide, not per conversation as WR §5.4 is headed. A selection is
+    recorded when a run of it is prepared, since the record names the run's
+    conversation, so a replaced selection no run used has no record of its
+    own. Bundled (LS-5) entries remain inspect-only candidates.
 17. The selected conversation shows its native activity readably: messages,
     reasoning summaries, plan items and checklist revisions, tool rows and
     descendants, grouped by turn in native start order and, within a turn, in

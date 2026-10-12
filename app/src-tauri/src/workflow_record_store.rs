@@ -867,6 +867,11 @@ impl PreparedRunPublication {
             body["how"] = json!("agent proposal confirmed by the person");
             body["proposal"] = proposal.clone();
         }
+        // SL-2 / §5.4: a selection that replaced another cites it; the replaced
+        // selection's own record, if one was written, is left as it is.
+        if let Some(replaced) = prepared.replaces() {
+            body["replaces"] = json!(replaced);
+        }
         // SL-7: a selection for a chained run records prior_run as a relation, from
         // the same owner end the chain line was composed from (CH-2).
         if let Some(chain) = prepared.record["chain"].as_object() {
@@ -1090,6 +1095,7 @@ impl PreparedEndPublication {
             text: text.clone(),
             record: record.clone(),
             proposal: None,
+            replaces: None,
         };
         let record = PendingRecord::new(
             project,

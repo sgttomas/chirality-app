@@ -1332,6 +1332,8 @@ pub struct PreparedRunText {
     record: serde_json::Value,
     /// WR PR-4: the agent message whose proposal the person confirmed, if any.
     proposal: Option<serde_json::Value>,
+    /// WR SL-2 / §5.4: the selection this run's selection replaced, if any.
+    replaces: Option<String>,
 }
 fn exact_text_identity(text: &str) -> serde_json::Value {
     crate::role_supply::content(text.as_bytes())
@@ -1437,6 +1439,7 @@ impl PreparedRunText {
             text,
             record,
             proposal: None,
+            replaces: None,
         })
     }
     /// WR PR-4: a start the person confirmed from an agent's proposal line. The
@@ -1450,6 +1453,16 @@ impl PreparedRunText {
     }
     pub fn proposal(&self) -> Option<&serde_json::Value> {
         self.proposal.as_ref()
+    }
+    /// WR SL-2 / §5.4: the run's selection is a new selection event that cites
+    /// the one it replaced. The run text is unchanged; only the selection record
+    /// carries `replaces`.
+    pub fn replacing(mut self, replaced: &str) -> Self {
+        self.replaces = Some(replaced.to_owned());
+        self
+    }
+    pub fn replaces(&self) -> Option<&str> {
+        self.replaces.as_deref()
     }
     pub fn text(&self) -> &str {
         &self.text
@@ -1504,6 +1517,7 @@ impl PreparedRunText {
             text,
             record,
             proposal: None,
+            replaces: None,
         })
     }
     /// The same composed text and record, scoped to a later generation of the

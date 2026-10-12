@@ -979,3 +979,11 @@ act log prevents establishing LS-1 at review and DS-8 is not offered. After
 capture it keeps G-1R pending, without a ledger line, until the log reads again;
 a missing or differently bound record instead ends *not completed*. Confirmation
 of this pending interpretation remains open with the WR owner.
+
+**Open record correspondence — SL-2 `replaces`.** The App keeps one App-wide
+selection, not one per conversation as §5.4 is headed, and writes a
+`selection_record` when a run of the selection is prepared, because the record
+names the run's conversation. A selection that replaces a registered selection
+cites its `selection_id` in `replaces`; a replaced selection that no run used
+has no record of its own. Whether a record is due at the selection itself
+remains open with the WR owner.

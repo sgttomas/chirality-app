@@ -2213,3 +2213,58 @@ fn v15_f5_registered_listing_labels_rows() {
         "registered — selectable in this App session"
     );
 }
+
+/// WR §4.6 LS-1 "Select (in such a process)", SL-2, SL-5: the listing offers
+/// Select only for a revision this process holds; a newer registered revision
+/// of the slot is read from the ledger, held or not, and changes nothing;
+/// content without registered standing keeps its standing and route.
+#[test]
+fn workflow_reselection_listing_offers_and_newer_revision_reading() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    // SL-5: a draft only.
+    let draft = owner.not_selectable("sample", one.revision());
+    assert!(draft.contains("draft — not registered") && draft.contains("Review to register"), "{draft}");
+    let first = register(&owner, one.revision());
+    let rows = owner.registered_listing();
+    assert_eq!(rows[0]["selectable"], true, "{rows}");
+    assert_eq!(rows[0]["offered"], "Select; Refine (RF-1)");
+    assert_eq!(owner.newer_registered(first.identity()).unwrap(), None);
+    assert_eq!(owner.store_copy(first.identity()), store_path(&s.0, first.identity()));
+    assert_eq!(
+        owner.registered_revision("sample", one.revision()).unwrap().map(|(n, k)| (n, k.revision)),
+        Some((1, one.revision().to_owned()))
+    );
+    let two = s.put("sample", false, "Two");
+    let second = register(&owner, two.revision());
+    assert_eq!(
+        owner.newer_registered(first.identity()).unwrap(),
+        Some((2, second.identity().clone(), true)),
+        "revision 2 is newer and held by this process"
+    );
+    assert_eq!(owner.newer_registered(second.identity()).unwrap(), None);
+    // Another App process: the ledger still reads the newer revision, which
+    // that process does not hold (RC-2); the listing offers no Select.
+    let cold = s.persistent_owner();
+    assert_eq!(cold.newer_registered(first.identity()).unwrap(), Some((2, second.identity().clone(), false)));
+    let rows = cold.registered_listing();
+    assert!(
+        rows.as_array().unwrap().iter().all(|r| r["selectable"] == false
+            && r["offered"] == "Refine (RF-1); Review a draft with its bytes (DS-8)"),
+        "{rows}"
+    );
+    let refused = cold.not_selectable("sample", two.revision());
+    assert!(
+        refused.contains("revision 2: registered — re-confirm to use in this App session") && refused.contains("Refine (RF-1)"),
+        "{refused}"
+    );
+    // LS-2: content in the published-copy location with no registration.
+    s.put("loose", true, "Loose");
+    let loose = cold.not_selectable("loose", &"0".repeat(64));
+    assert!(loose.contains("present without registration record (LS-2)") && loose.contains("Review to register"), "{loose}");
+    // A revision of another library is not read here.
+    let mut other = first.identity().clone();
+    other.source_root = "another-root".into();
+    assert!(cold.newer_registered(&other).is_err());
+}
