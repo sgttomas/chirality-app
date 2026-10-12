@@ -97,7 +97,7 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
         .append(true)
         .open(ws.join(LOG))
         .unwrap();
-    f.write_all(b"{torn").unwrap();
+    f.write_all(b"{torn\n").unwrap();
     f.sync_all().unwrap();
     let out = ac
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)
@@ -120,10 +120,10 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
         .contains("incomplete record set"));
     assert_eq!(
         std::fs::read(ws.join(LOG)).unwrap().len(),
-        before.len() + 5,
-        "partial log is never repaired or replayed implicitly"
+        before.len() + 6,
+        "an unreadable line is never repaired or replayed implicitly"
     );
-    // Explicit fixture repair restores the pre-fault bytes; no product W-0 repair is claimed.
+    // Explicit fixture repair restores the pre-fault bytes (an unreadable line is not a torn tail; W-0 does not apply).
     std::fs::write(ws.join(LOG), before).unwrap();
     let cold = relaunched.recover_pending().unwrap().remove(0);
     assert_eq!(cold["state"], "AC-8 record pending");
@@ -420,17 +420,26 @@ fn incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append()
     std::fs::write(&path, serde_json::to_vec(&capture).unwrap()).unwrap();
     let foreign = storage::project_log(&ws, Some("run:foreign"), "writer:foreign");
     std::fs::create_dir_all(foreign.parent().unwrap()).unwrap();
-    std::fs::write(&foreign, b"{partial").unwrap();
+    // An unreadable line leaves the set incomplete (a torn tail alone is a partial, R-2).
+    std::fs::write(&foreign, b"{partial\n").unwrap();
     let log = std::fs::read(ws.join(LOG)).unwrap();
     let result = ActControl::new(&ws).recover_pending().unwrap().remove(0);
     assert_eq!(result["state"], "AC-8 record pending");
     assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log);
     assert!(
-        serde_json::from_slice::<Value>(&std::fs::read(path).unwrap())
+        serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap())
             .unwrap()
             .get("recordId")
             .is_none()
     );
+    // Another writer's torn tail is a partial, never an entry (RS R-2): recovery
+    // proceeds beside it and repairs only the backlink; the foreign log is untouched.
+    std::fs::write(&foreign, b"{partial").unwrap();
+    let result = ActControl::new(&ws).recover_pending().unwrap().remove(0);
+    assert_eq!(result["state"], "AC-7 recorded", "{result}");
+    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log, "nothing appended");
+    assert_eq!(std::fs::read(&foreign).unwrap(), b"{partial");
+    assert!(serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap()).unwrap().get("recordId").is_some());
 }
 #[test]
 fn run_and_outside_run_logs_keep_identity_and_do_not_duplicate() {
@@ -669,7 +678,7 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
     }
     let before = std::fs::read(ws.join(LOG)).unwrap();
     let mut torn = before.clone();
-    torn.extend(b"{torn");
+    torn.extend(b"{torn\n");
     std::fs::write(ws.join(LOG), torn).unwrap();
     let mut ids = vec![];
     for offer in &offers {
@@ -772,7 +781,7 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
     let (mut control, ids, actor, request) = twice_prepared(&ws);
     let before = std::fs::read(ws.join(LOG)).unwrap();
     let mut torn = before.clone();
-    torn.extend(b"{torn");
+    torn.extend(b"{torn\n");
     std::fs::write(ws.join(LOG), torn).unwrap();
     let first = control
         .confirm(
@@ -829,7 +838,7 @@ fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
     let (mut control, ids, actor, _) = twice_prepared(&ws);
     let before = std::fs::read(ws.join(LOG)).unwrap();
     let mut torn = before.clone();
-    torn.extend(b"{torn");
+    torn.extend(b"{torn\n");
     std::fs::write(ws.join(LOG), torn).unwrap();
     let a = control
         .confirm(
@@ -876,7 +885,7 @@ fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
     let (mut control, id, actor) = prepared(&ws);
     let before = std::fs::read(ws.join(LOG)).unwrap();
     let mut torn = before.clone();
-    torn.extend(b"{torn");
+    torn.extend(b"{torn\n");
     std::fs::write(ws.join(LOG), torn).unwrap();
     let first = control
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)

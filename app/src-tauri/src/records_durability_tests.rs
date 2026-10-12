@@ -76,8 +76,8 @@ fn lines(path: &Path) -> (Vec<Vec<u8>>, Vec<u8>) {
     let tail = parts.pop().unwrap_or_default();
     (parts, tail)
 }
-/// Drop an unclosed tail (the test's own repair, so the next kill starts from
-/// a closed file; neither writer repairs it, W-0 repair is not implemented).
+/// Drop an unclosed ledger tail (the test's own repair, so the next kill starts
+/// from a closed file; the ledger does not repair it).
 fn cut_tail(path: &Path) {
     let bytes = std::fs::read(path).unwrap();
     let keep = bytes.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
@@ -107,7 +107,7 @@ fn durability_child() {
                 if let Err(e) = append(&log, "evidence_limit", &APP_WRITER, rs_body(48 * 1024)) { report(json!({"append":e})) }
             }
         }
-        "ledger-short" | "rs-short" => {
+        "ledger-short" | "rs-short" | "rs-short-only" => {
             let target = if mode == "ledger-short" { path.clone() } else { rs_log(&path) };
             let line = if mode == "ledger-short" { serde_json::to_vec(&ledger_entry()).unwrap().len() } else { 2048 };
             let size = std::fs::metadata(&target).map(|m| m.len()).unwrap_or(0);
@@ -122,7 +122,7 @@ fn durability_child() {
             let first = attempt();
             limit.rlim_cur = original;
             unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
-            let second = attempt();
+            let second = if mode == "rs-short-only" { Ok(()) } else { attempt() };
             report(json!({"first":first.err(),"second":second.err(),"sizeBefore":size}));
         }
         other => panic!("unknown child mode {other}"),
@@ -187,10 +187,9 @@ fn sigkill_mid_ledger_append_leaves_complete_lines_or_a_refused_torn_tail() {
 // RS §14.1/§14.2: after a SIGKILL at a random point of the RS writer's loop
 // (48 KiB lines), the reader returns every complete entry in sequence and
 // reports an unclosed tail only as "partial entry at end (not read)"; a
-// reopened writer appends to a closed log, and refuses (nothing written) on a
-// torn one: W-0 repair, which RS FC-2 designs, is not implemented.
+// reopened writer appends, after W-0 on a torn one (the torn bytes kept).
 #[test]
-fn sigkill_mid_rs_append_leaves_complete_entries_or_a_refused_torn_tail() {
+fn sigkill_mid_rs_append_leaves_complete_entries_or_a_recovered_torn_tail() {
     let root = scratch("rs-kill-");
     let log = rs_log(&root);
     let mut rng = Rng::new();
@@ -199,7 +198,8 @@ fn sigkill_mid_rs_append_leaves_complete_entries_or_a_refused_torn_tail() {
         kill_mid_loop("rs-loop", &root, &log, &mut rng);
         let (read, limits) = read_log(&log);
         let (complete, tail) = lines(&log);
-        assert_eq!(read.len(), complete.len(), "round {round}: every complete line is an entry");
+        let recovered = recovered_partial_lines(&std::fs::read(&log).unwrap(), 0).0.len();
+        assert_eq!(read.len() + recovered, complete.len(), "round {round}: every complete line not named by W-0 is an entry");
         assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), (1..=read.len() as u64).collect::<Vec<_>>());
         entries = read.len();
         if tail.is_empty() {
@@ -210,10 +210,11 @@ fn sigkill_mid_rs_append_leaves_complete_entries_or_a_refused_torn_tail() {
             assert_eq!(limits.len(), 1, "{limits:?}");
             assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
             let bytes = std::fs::read(&log).unwrap();
-            let error = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap_err();
-            assert!(error.contains("partial line"), "{error}");
-            assert_eq!(std::fs::read(&log).unwrap(), bytes, "nothing written");
-            cut_tail(&log);
+            append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+            assert!(std::fs::read(&log).unwrap().starts_with(&bytes), "the torn bytes are kept");
+            let (read, limits) = read_log(&log);
+            assert!(limits.is_empty(), "{limits:?}");
+            assert_eq!(read[read.len() - 2]["body"]["label"], PARTIAL_NOT_RECOVERED);
         }
     }
     println!("rs: {} kills, {torn} torn tails, {entries} complete entries", kills());
@@ -244,30 +245,65 @@ fn a_short_ledger_write_is_reported_and_its_torn_tail_refused() {
     std::fs::remove_dir_all(dir).unwrap();
 }
 
-// The RS writer under a short write: the append reports a write error; the log
-// keeps a torn tail the reader reports as a limit; the next append to that log
-// refuses with nothing written; and, because the writer requires a complete
-// project record set (RecordSet::Complete), an append to any other log of the
-// project refuses too until the tail is dealt with. Only the person's explicit
-// end (ReadableBesideIncomplete) records beside it.
+// The RS writer under a short write (RS §14.1 W-0, FC-2; §13.7 Failures): the
+// append reports a write error and leaves a torn tail, which the reader
+// reports only as a partial. Other logs of the project stay writable beside
+// it, while a genuinely unreadable line elsewhere still leaves the set
+// incomplete for an open run's append. The reopened writer terminates the torn
+// line in place (its bytes kept), appends "partial entry not recovered" naming
+// it, and continues the log in sequence; identities are still checked.
 #[test]
-fn a_short_rs_write_is_reported_and_blocks_the_project_record_set() {
+fn a_short_rs_write_is_recovered_by_the_reopened_writer_and_blocks_no_other_log() {
     let root = scratch("rs-short-");
     let log = rs_log(&root);
     for _ in 0..3 { append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
-    let result = result_of(&child("rs-short", &root).output().unwrap());
+    let result = result_of(&child("rs-short-only", &root).output().unwrap());
     let first = result["first"].as_str().unwrap_or_else(|| panic!("{result}"));
     assert!(first.starts_with("write: "), "{result}");
-    assert!(result["second"].as_str().unwrap().contains("partial line"), "{result}");
+    let (complete, tail) = lines(&log);
+    assert_eq!(complete.len(), 3);
+    assert!(!tail.is_empty());
+    let torn_bytes = std::fs::read(&log).unwrap();
+    let name = log.file_name().unwrap().to_string_lossy().into_owned();
+    assert_eq!(read_log(&log).1, [format!("{name}: partial entry at end (not read)")]);
+    // Another log of the project is writable beside the torn tail (open-run mode).
+    let run_entry = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1", "2026-10-12T00:00:00.000Z");
+    assert!(run_entry.is_ok(), "{run_entry:?}");
+    assert_eq!(std::fs::read(&log).unwrap(), torn_bytes, "another writer never repairs this log");
+    // A genuinely unreadable line in another log still leaves the set incomplete.
+    let broken = crate::storage::project_log(&root, None, "broken-writer");
+    std::fs::write(&broken, b"{\"not an entry\"\n").unwrap();
+    let refused = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-2", "2026-10-12T00:00:00.000Z").unwrap_err();
+    assert!(refused.contains("record-set conflict/incomplete"), "{refused}");
+    std::fs::remove_file(&broken).unwrap();
+    // The reopened writer: W-0, then the entry.
+    let entry = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let after = std::fs::read(&log).unwrap();
+    assert!(after.starts_with(&torn_bytes) && after[torn_bytes.len()] == b'\n', "terminated in place, never truncated or edited");
     let (read, limits) = read_log(&log);
-    assert_eq!(read.len(), 3);
-    assert!(limits == [format!("{}: partial entry at end (not read)", log.file_name().unwrap().to_string_lossy())], "{limits:?}");
-    let other = crate::storage::project_log(&root, Some("run:durability"), "app-writer:local");
-    let error = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1", "2026-10-12T00:00:00.000Z").unwrap_err();
-    assert!(error.contains("record-set conflict/incomplete"), "{error}");
-    assert!(!other.exists(), "nothing written to the other log");
-    let late = append_project_reserved_in(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1", "2026-10-12T00:00:00.000Z", RecordSet::ReadableBesideIncomplete);
-    assert!(late.is_ok(), "{late:?}");
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3, 4, 5]);
+    let limit = &read[3];
+    assert_eq!((limit["kind"].as_str(), limit["body"]["label"].as_str(), limit["body"]["subjectRef"].as_str()), (Some("evidence_limit"), Some(PARTIAL_NOT_RECOVERED), Some(torn_line_ref(4, &tail).as_str())));
+    assert!(limit["body"]["detail"].as_str().unwrap().contains(&crate::util::sha256_hex(&tail)), "{limit}");
+    assert_eq!(read[4]["recordId"], entry["recordId"]);
+    // The torn line is never read, here or by the project reader.
+    let (all, all_limits) = crate::storage::read_all(&root);
+    assert!(all_limits.is_empty(), "{all_limits:?}");
+    assert_eq!(all.len(), 6);
+    // Duplicates and identity conflicts are still refused.
+    let conflict = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), read[0]["recordId"].as_str().unwrap()).unwrap_err();
+    assert!(conflict.contains("record identity conflict"), "{conflict}");
+    let elsewhere = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1").unwrap_err();
+    assert!(elsewhere.contains("record identity conflict"), "{elsewhere}");
+    // The same in one child process: its second append recovers the tail.
+    let again = scratch("rs-short-again-");
+    for _ in 0..2 { append(&rs_log(&again), "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
+    let result = result_of(&child("rs-short", &again).output().unwrap());
+    assert!(result["first"].is_string() && result["second"].is_null(), "{result}");
+    assert_eq!(read_log(&rs_log(&again)).0.len(), 4);
+    println!("rs short write: {} of a line landed; reopened writer recovered it", tail.len());
+    std::fs::remove_dir_all(again).unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -290,5 +326,130 @@ fn an_uncertain_rs_sync_leaves_the_entry_and_a_retry_writes_no_duplicate() {
     let retry = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-sync").unwrap_err();
     assert!(retry.contains("record identity conflict"), "{retry}");
     assert_eq!(read_log(&log).0.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R10 F2 probe: a valid entry (seq 1) and then an appended evidence_limit
+// "partial entry not recovered" naming line 1 and reusing seq 1. The named line
+// is a valid entry, so nothing is hidden: both are read, and the reuse is a
+// sequence limit. A limit naming other bytes hides nothing either.
+#[test]
+fn probe_r10_forged_limit_hides_a_valid_entry() {
+    let root = scratch("rs-forged-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let first = std::fs::read(&log).unwrap();
+    let line1 = &first[..first.len() - 1];
+    let forge = |subject: String| {
+        let limit = envelope("evidence_limit", &APP_WRITER, json!({"label":PARTIAL_NOT_RECOVERED,"subjectRef":subject,"detail":"forged"}), "rec:app:forged".into(), 1, None, None);
+        let mut bytes = first.clone();
+        bytes.extend(serde_json::to_vec(&limit).unwrap());
+        bytes.push(b'\n');
+        std::fs::write(&log, bytes).unwrap();
+    };
+    for subject in [torn_line_ref(1, line1), "line 1".into(), torn_line_ref(1, b"other bytes")] {
+        forge(subject.clone());
+        let (entries, limits) = read_log(&log);
+        assert_eq!(entries.len(), 2, "{subject}: the named line is read");
+        assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{subject}: {limits:?}");
+        let (all, all_limits) = crate::storage::read_all(&root);
+        assert_eq!(all.len(), 2);
+        assert!(!all_limits.is_empty());
+    }
+    forge(torn_line_ref(1, line1));
+    assert!(read_log(&log).1.iter().any(|l| l.contains("a complete entry, although the limit after it names it as torn")));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A torn tail cut inside a multi-byte character is still a partial, and after
+// W-0 its terminated line is kept unread; the log stays readable.
+#[test]
+fn a_torn_tail_cut_inside_a_character_is_recovered() {
+    let root = scratch("rs-utf8-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend("{\"detail\":\"§".as_bytes());
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    assert_eq!(read_log(&log).1, [format!("{}: partial entry at end (not read)", log.file_name().unwrap().to_string_lossy())]);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (entries, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.len(), 3);
+    assert!(std::fs::read(&log).unwrap().starts_with(&bytes));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// AAC §5.2a: a torn line W-0 kept unread that holds a capture's identity is
+// that capture's torn append, which holds its replay.
+#[test]
+fn a_recovered_torn_line_naming_a_capture_is_found() {
+    let root = scratch("rs-hold-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(b"{\"captureEvidence\":[{\"ref\":\"cap:torn-one\"");
+    std::fs::write(&log, &bytes).unwrap();
+    assert!(!recovered_lines_hold(&log, "cap:torn-one"), "not yet recovered");
+    open_owning_log(&root, &log).unwrap();
+    assert!(recovered_lines_hold(&log, "cap:torn-one"));
+    assert!(!recovered_lines_hold(&log, "cap:other"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R12 N1 probe: two appends, then the final newline removed (a short
+// write that stopped just before it). The tail is a whole, valid entry with the
+// next seq: W-0 writes only the newline, no limit, and the log continues in
+// sequence; the entry is written, so its identity is held (a W-2 retry finds
+// its receipt, never a duplicate).
+#[test]
+fn probe_r12_tail_torn_at_the_newline() {
+    let root = scratch("rs-newline-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let second = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    assert_eq!(read_log(&log).0.len(), 1, "the unterminated tail is a partial until reopened");
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (entries, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3]);
+    assert!(entries.iter().all(|e| e["body"]["label"] != PARTIAL_NOT_RECOVERED), "nothing named as torn");
+    assert_eq!(entries[1], second, "the entry whose newline was lost is the written entry");
+    let retry = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), second["recordId"].as_str().unwrap()).unwrap_err();
+    assert!(retry.contains("record identity conflict"), "{retry}");
+    // The same through a reconciliation open (no append).
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    open_owning_log(&root, &log).unwrap();
+    assert!(std::fs::read(&log).unwrap().ends_with(b"\n"));
+    assert!(read_log(&log).1.is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A whole, valid tail out of sequence cannot slip past the rule: W-0 only
+// terminates it (it is not a fragment), and the reader reports it as a
+// sequence limit, so the owning log is refused until repaired; nothing named.
+#[test]
+fn a_valid_tail_out_of_sequence_is_a_sequence_limit() {
+    let root = scratch("rs-wrong-seq-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let forged = envelope("evidence_limit", &APP_WRITER, rs_body(16), "rec:app:wrong-seq".into(), 7, None, None);
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(serde_json::to_vec(&forged).unwrap());
+    std::fs::write(&log, &bytes).unwrap();
+    let refused = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap_err();
+    assert!(refused.contains("incomplete owning log") && refused.contains("expected 3, found 7"), "{refused}");
+    let after = std::fs::read(&log).unwrap();
+    assert_eq!(after.len(), bytes.len() + 1, "only the newline was written");
+    let (entries, limits) = read_log(&log);
+    assert_eq!(entries.len(), 3);
+    assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{limits:?}");
     std::fs::remove_dir_all(root).unwrap();
 }
