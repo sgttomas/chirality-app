@@ -731,10 +731,12 @@ keeps only pointers and its own observations, labelled *App-observed*, and
 never uses them as authority for what Codex holds.
 
 The **App ledger** (`recovery.app-ledger-entry.schema.json`): append-only,
-one UTF-8 JSON object per LF-terminated line. **CC-REC-LEDGER technical choice
-for Group A App implementation:** keep this pointer-only file at
-`<App-own-user-data>/runtime/recovery.ledger.jsonl`, outside Codex homes and
-independent of the selected project RS logs and portable A15 library acts.
+one JSON object per entry. **CC-REC-LEDGER technical choice for Group A App
+implementation:** keep this pointer-only ledger in a SQLite database at
+`<App-own-user-data>/runtime/recovery.ledger.sqlite`, beside the JSON Lines
+file `runtime/recovery.ledger.jsonl` earlier builds wrote (read only to import
+it), outside Codex homes and independent of the selected project RS logs and
+portable A15 library acts.
 App execution/recovery owns the ledger; supplier-integration supplies its custody
 facts. The App resolves its own user-data root from the host; tests supply an
 explicit scratch ledger path instead. No common service or host persistence
@@ -748,8 +750,8 @@ data, which records its entries without rewriting or deleting any of them.
 Entries that must stand together are recorded in one transaction, for
 example a startup batch of RQ-06 endings or a session marker with its
 endings. The JSON Lines ledger stays readable as legacy history and is
-imported, never rewritten. This is PROPOSED and not yet implemented; until
-then the App writes the JSON Lines file described here.
+imported, never rewritten. Implemented: see "App ledger store" under
+Current implementation conditions.
 
 Validate complete entries against the existing ledger schema before append,
 append without rewriting prior facts and establish durable file/directory
@@ -763,7 +765,7 @@ of a known new ledger is distinct from inability to read a configured existing
 ledger. Required protocol responses remain the supplier boundary's duty;
 ledger failure does not turn silence into approval or justify suppressing a
 required server-request reply. Native payloads, credentials and transcript
-content are never copied into this file. Retention/deletion remains U-R3:
+content are never copied into the ledger. Retention/deletion remains U-R3:
 no deletion/compaction/retention duration is selected by this placement change.
 
 | Entry kind | What it holds | Used for |
@@ -776,7 +778,7 @@ no deletion/compaction/retention duration is selected by this placement change.
 | `stop_request` | The stop-request record (its own schema) | SR history across relaunch |
 | `lifecycle_ref` | Home, generation and HOSTING transition identity | Linking custody to HOSTING's lifecycle records |
 
-**Never kept** (the schema refuses them; C-11 checks the file): message or
+**Never kept** (the schema refuses them; C-11 checks the database): message or
 reasoning text, item content, command lines, tool arguments or results, plan
 content (DEL-01-03 shows checklist revisions Codex does not keep as "not
 recoverable after relaunch", R17-4), request payloads, file contents.
@@ -1187,7 +1189,7 @@ qualified.
 | U-R4 Numbers: quit wait limit, stop wait limit, journal size, overlap wait (with HOSTING U-05) | App implementation owner | Before implementation | TEST VALUES in the prototype only |
 | U-R5 *Closed at G (R22-3):* more than one App window on one conversation. Each window is an observer and shows the interrupt control; the first press settles it, another window's press is refused and its control shows the turn's state (§3.3, SR-11; NIR-v0.2 §4.8 WI-5, beside WI-4) | — | — | — |
 | U-R6 *Closed at G (C1-A G-A1):* RS does not record a turn interrupt in format 0.1 (RS-v0.9 §10, DEL-01-02 row; §3, "Run-ended event" row) | — | — | §8.2 cites it |
-| U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects App-local UTF-8 JSON Lines pointer ledger under App-own user-data runtime; failure visible, no relocation. SQLite in App user data is proposed (§7; PRD R-STORE). Retention/deletion U-R3 remains open; no product evidence claimed |
+| U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects an App-local SQLite pointer ledger under App-own user-data runtime (PRD R-STORE), importing the earlier JSON Lines ledger once; failure visible, no relocation. Retention/deletion U-R3 remains open; no product evidence claimed |
 | U-R8 *Closed 2026-10-10 (owner ruling on OI-008, `docs/ARCHITECTURE.md` §3):* the process division. The Rust host owns record writing, every request to Codex and the capture of a person's act; the web view presents and sends only what the person initiates (§0, §4.1 "Placement") | — | — | Requirements still stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
 | U-R13 Version advance (R19-5): every supplier statement here is about 0.158.0; a version-advance check (regenerate types, diff, rerun the OBS harnesses and this prototype's variants, list affected statements) is proposed as a later node, its scheduling open | Integrator / owner | Before relying on another version | Statements name 0.158.0 |
@@ -1237,6 +1239,74 @@ seen live is found. Readings this file leaves open, as implemented:
 - `app_restart_interruption` is derived from the rows earlier App sessions
   wrote, so a recovery read in this session does not remove it.
 
+**App ledger store (§7; PRD R-STORE).** Implemented in the Rust host
+(`recovery.rs`, `recovery_store.rs`, `rusqlite` 0.32 with bundled SQLite).
+Readings §7 leaves open, as implemented:
+- *Location.* The database is `recovery.ledger.sqlite` beside the configured
+  ledger location (`runtime/recovery.ledger.jsonl`). It is created at the
+  first write when neither exists; a configured location whose database or
+  JSON Lines file exists but cannot be read is "App history unavailable".
+  Each entry is stored as its exact JSON with indexed columns (kind,
+  session, home, thread, generation, and the keys below), validated against
+  the ledger schema before insert and again when read.
+- *Append-only in the schema.* Triggers refuse every UPDATE and DELETE of an
+  entry, of the import record and of the database's metadata.
+- *Transactions.* A batch is one `BEGIN IMMEDIATE` transaction: a session
+  marker and its RQ-06 endings, and a startup batch of endings, are recorded
+  together or not at all (the earlier partial-batch reading, an earlier
+  marker with only some endings, now arises only from an imported JSON Lines
+  ledger, which the next start finishes). A failed start still asks for a
+  reopen before another write, because a commit that reports an error may
+  have reached the disk. SR-08 closures at startup remain separate
+  best-effort appends, as before.
+- *Durability.* Rollback journal, `synchronous=FULL`, `fullfsync` and
+  `checkpoint_fullfsync`; a new database's directory is synced on creation.
+  An entry is reported persisted only after its commit returns. A database
+  another App instance holds past the busy wait (5 s), a read-only database
+  or one that cannot be opened is a visible "append not confirmed" or
+  "App history unavailable"; nothing falls back to another location or to
+  the JSON Lines file. Two App instances append in commit order.
+- *Guards.* The database and its `-journal`/`-wal`/`-shm` files must each be a
+  regular single-link file or absent, inside the bound namespaces, and every
+  write rechecks that the path still names the opened file (device and
+  inode): the equivalent, for a file SQLite opens itself, of the JSON Lines
+  writer's no-follow and descriptor checks.
+- *Import.* The JSON Lines file is read in bounded pieces: its length and
+  content identity (`chirality.app.exact-bytes.sha256/v1`) on an open where
+  it is not the same file (device, inode, length, modification time) as
+  when it was imported, and its lines only when it is imported now (a change
+  between the two reads refuses the import). Every complete line that is a valid
+  entry is imported in order, in one transaction with the import record
+  (path, byte length, content identity, lines imported, first and last
+  entry, limit); the first torn or invalid line ends the import, and it and
+  the rest are a recorded limit, never entries, while the earlier entries
+  stay readable (the JSON Lines reader refused the whole file instead). A
+  refused line's content is never echoed into the limit. The file is never
+  written, truncated or removed. It is imported at most once: a file whose
+  path or content was imported is not imported again, and a changed one is
+  reported as changed and not imported. A JSON Lines file that appears
+  beside a database created without one is not imported (its entries would
+  not follow the database's order).
+- *Held entries.* The host never holds or copies the whole ledger. It holds
+  the current entries: every session marker, quit, Codex stop, stop-request
+  entry and RQ-06 ending; the latest `conversation_index` entry for each
+  conversation, generation, appending session and tag list; and the latest
+  `register_entry_summary` for each request and state while the request's
+  latest entry is listed (a request closed in this App process stays held
+  until the next start). They are read at startup by one indexed query, and
+  each new entry replaces the one it supersedes. The readers that searched
+  the whole ledger (CV-19 adoption, the custody view and its RQ-06/SR-08
+  startup readings, the latest execution rows, the stop-request read-back,
+  the summaries' comparison with earlier ones, tags) give the same results
+  over these entries; a limit repeated once per superseded entry is now
+  given once per held entry. The per-fact readers search the held entries
+  and the queued facts in place, without a copy.
+- *Host status.* The status the web view polls carries the ledger's bounded
+  snapshot (database, import reading, number of held entries), not its
+  entries. The details pane "Recovery initialization and historical pointer
+  state" shows that snapshot. Entries not held are not re-validated at
+  startup; SQLite's own checks cover them.
+
 **App ledger durability and scale, measured (2026-10-12; release build,
 macOS, one machine; `records::durability_tests`, and the ignored
 `records_scale_report`).**
@@ -1277,3 +1347,25 @@ macOS, one machine; `records::durability_tests`, and the ignored
   live readers seen (`persist_execution`, `persist_requests`, tags) search
   them for the latest row of one conversation or request. Next: the
   startup read.
+- These measurements are of the JSON Lines writer, which the SQLite store
+  and the bounded host state replace ("App ledger store", below). Measured
+  again (2026-10-12; release build, same machine, `records_scale_report`
+  over the same fixtures; the first open imports the JSON Lines file):
+
+  | Rows | First open (import, once) | Resident after open | Host status `recovery` | One fact (append + observation) | Startup (`configure_recovery`) | Held entries |
+  |---|---|---|---|---|---|---|
+  | 34,000 | 0.42 s | 23 MB | 756 B | 12.6 ms | 22 ms | 103 |
+  | 340,000 | 3.9 s | 29 MB | 759 B | 12.7 ms | 117 ms | 1,010 |
+  | 1,000,000 | 10.3 s | 37 MB | 760 B | 15.2 ms | 318 ms | 2,965 |
+
+  The status and one fact no longer follow the row count (a fact's cost is
+  its synced commit). Startup still reads the database's indexes once, so its
+  time grows with the rows, at about a tenth of before. The held entries
+  grow with the conversations and their loads (the fixture opens a new
+  conversation every 150 items), not with their items. The tests cover a
+  SIGKILL during appends (the database passes its integrity check, no
+  committed entry is lost, a cut transaction leaves nothing) and a write cut
+  by the file-size limit (the batch is not confirmed and leaves nothing; the
+  next one is recorded whole); `recovery::store::tests` checks that the held
+  entries, the host status and one fact stay flat from 1,000 to 100,000 rows
+  over the same conversations.

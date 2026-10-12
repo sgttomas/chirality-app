@@ -172,7 +172,7 @@ fn selected_text_control_to_native_activity_request_and_pointer_ledger_keeps_out
     ledger.start_session("synthetic", "synthetic-test").unwrap();
     ledger.request_summary(&requests.entries()[0]).unwrap();
     // The stored entries and the database file itself (C-11: never kept).
-    let bytes = format!("{}{}", String::from_utf8_lossy(&std::fs::read(chirality_app_v4_lib::recovery::database_path(&path)).unwrap()), RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"]);
+    let bytes = format!("{}{}", String::from_utf8_lossy(&std::fs::read(chirality_app_v4_lib::recovery::database_path(&path)).unwrap()), RecoveryLedger::open(path.clone()).unwrap().recorded_entries());
     assert!(!bytes.contains("synthetic native request"));
     assert!(!bytes.contains("synthetic request-producing text"));
     interrupt_conversation_turn(&state, &g(), "thread", "turn", |_, _, _| {

@@ -31,8 +31,8 @@ fn run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     assert_eq!(tags.iter().map(|t|t["value"].as_str().unwrap()).collect::<Vec<_>>(),[a.as_str(),b.as_str()],"ordered; the earlier run's tag is kept");
     assert!(tags[0]["seq"].as_u64()<tags[1]["seq"].as_u64());
     // Durable: the ledger file itself carries both tags, readable by a later process.
-    let ledger=crate::recovery::RecoveryLedger::open(peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap().snapshot();
-    let rows=ledger["entries"].as_array().unwrap().clone();
+    let ledger=crate::recovery::RecoveryLedger::open(peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap().recorded_entries();
+    let rows=ledger.as_array().unwrap().clone();
     assert_eq!(crate::recovery::tags_of(&rows,"H-acct","thread",owner),tags);
     // The conversation's latest index row itself still carries the earlier run's tag.
     let latest=rows.iter().rev().find(|r|r["kind"]=="conversation_index"&&r["threadId"]=="thread").unwrap();

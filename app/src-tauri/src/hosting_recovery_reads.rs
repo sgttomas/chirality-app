@@ -41,9 +41,9 @@ impl Host {
             let mut i = self.inner.0.lock().unwrap();
             if i.state != "ready" || crate::recovery::generation_ref(&i.generation).is_err() { return Vec::new(); }
             let generation = i.generation.clone();
-            let rows = Self::recovery_history(&i);
+            let (held, queue) = Self::recovery_history(&i);
             let session = i.app_session.clone();
-            i.execution_custody.adopt(&session, &generation, &rows);
+            { let mut facts = queue.facts.lock().unwrap(); i.execution_custody.adopt(&session, &generation, crate::recovery::History::new(&held, facts.make_contiguous())); }
             let targets = i.execution_custody.begin_recovery(&generation, &now_rfc3339());
             if targets.is_empty() { return Vec::new(); }
             Self::persist_recovery(&mut i);
@@ -145,7 +145,7 @@ impl Host {
         let mine = |r: &Value| r["generation"] == generation && r["threadId"] == thread && r["turnId"] == turn;
         let recorded = {
             let mut index = i.stop_ledger_index.lock().unwrap();
-            index.update(i.recovery_snapshot.as_ref());
+            index.update(i.recovery_snapshot.as_ref().map(|o| o.rows.as_slice()).unwrap_or_default());
             index.all_for(generation, thread, turn)
         };
         for (record, entry) in recorded {
@@ -184,16 +184,17 @@ impl Host {
         }
         Ok(())
     }
-    fn recovery_history(i: &Inner) -> Vec<Value> {
-        let mut history = i.recovery_snapshot.as_ref().and_then(|s| s["entries"].as_array()).cloned().unwrap_or_default();
-        history.extend(i.pending_recovery.facts.lock().unwrap().iter().cloned());
-        history
+    /// The held ledger entries (shared, not copied) and the queue the facts
+    /// not yet recorded wait in; searched together as one history in place.
+    fn recovery_history(i: &Inner) -> (std::sync::Arc<Vec<Value>>, std::sync::Arc<crate::hosting::CapturedRecoveryQueue>) {
+        (i.recovery_snapshot.as_ref().map(|o| std::sync::Arc::clone(&o.rows)).unwrap_or_default(), std::sync::Arc::clone(&i.pending_recovery))
     }
     /// Queues the recovery states' ledger rows, validated like every pointer row.
     pub(super) fn persist_recovery(i: &mut Inner) {
-        let history = Self::recovery_history(i);
+        let (held, queue) = Self::recovery_history(i);
         let session = i.app_session.clone();
-        for row in i.execution_custody.recovery_rows(&session, &history) {
+        let rows = { let mut facts = queue.facts.lock().unwrap(); i.execution_custody.recovery_rows(&session, crate::recovery::History::new(&held, facts.make_contiguous())) };
+        for row in rows {
             match RecoveryLedger::validate_pointer_entry(&row) {
                 Ok(()) if i.recovery.is_some() => i.pending_recovery.facts.lock().unwrap().push_back(row),
                 Ok(()) => i.recovery_error = Some("recovery state is memory-only; App ledger unavailable".into()),

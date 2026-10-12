@@ -34,7 +34,7 @@ fn automatic_and_manual_start_helper_initialize_actual_host_once_at_fixed_app_pa
     let result = start_with_recovery(&host, &startup, Ok(&root), Some(&codex), || {
         assert_eq!(startup.lock().unwrap().snapshot()["state"], "configured");
         assert_eq!(
-            host.snapshot()["recovery"]["entries"][0]["kind"],
+            host.recorded_recovery_entries()[0]["kind"],
             "session_started"
         );
         assert!(database_path(&path).exists(), "the ledger database is written before the start");
@@ -60,7 +60,7 @@ fn automatic_and_manual_start_helper_initialize_actual_host_once_at_fixed_app_pa
         json!(path.as_os_str().as_encoded_bytes())
     );
     assert_eq!(status["database"], database_path(&path).to_str().unwrap());
-    assert_eq!(RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().len(), 1);
+    assert_eq!(RecoveryLedger::open(path.clone()).unwrap().recorded_entries().as_array().unwrap().len(), 1);
 }
 /// DEL-01-02 §7 (SQLite direction): a JSON Lines ledger of an earlier build
 /// is imported once; its torn tail is reported as a limit, never stored as an
@@ -81,7 +81,7 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     let called = std::cell::Cell::new(false);
     start_with_recovery(&host, &startup, Ok(&root), None, || {
         called.set(true);
-        assert_eq!(host.snapshot()["recovery"]["entries"][0], complete, "the complete line is imported");
+        assert_eq!(host.recorded_recovery_entries()[0], complete, "the complete line is imported");
         Ok(())
     })
     .unwrap();
@@ -95,7 +95,7 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     assert_eq!(import["importedLines"], 1);
     assert_eq!(import["byteLength"], legacy.len());
     assert!(import["limit"].as_str().unwrap().contains("not newline-closed"), "{import}");
-    let entries = host.snapshot()["recovery"]["entries"].as_array().unwrap().clone();
+    let entries = host.recorded_recovery_entries().as_array().unwrap().clone();
     assert_eq!(entries.len(), 2, "the import and this session's start; the torn tail is no entry");
     assert_eq!(entries[1]["previousSessionEnd"], "ended-without-record");
     // A later App start reads the database; the file is not imported twice.
@@ -103,7 +103,7 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     let startup = Mutex::new(RecoveryStartup::default());
     start_with_recovery(&next, &startup, Ok(&root), None, || Ok(())).unwrap();
     assert_eq!(next.snapshot()["recovery"]["store"]["legacyImport"]["state"], "imported earlier");
-    assert_eq!(next.snapshot()["recovery"]["entries"].as_array().unwrap().len(), 3);
+    assert_eq!(next.recorded_recovery_entries().as_array().unwrap().len(), 3);
     assert_eq!(std::fs::read(path).unwrap(), legacy);
 }
 #[test]
@@ -199,18 +199,19 @@ fn existing_historical_pointer_entries_stay_nonanswerable_and_never_copy_native_
     ledger.start_session("old", "synthetic").unwrap();
     ledger.request_summary(&register.entries()[0]).unwrap();
     drop(ledger);
-    let before = RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().clone();
+    let before = RecoveryLedger::open(path.clone()).unwrap().recorded_entries().as_array().unwrap().clone();
     let host = Host::new();
     let startup = Mutex::new(RecoveryStartup::default());
     start_with_recovery(&host, &startup, Ok(&root), None, || Ok(())).unwrap();
-    let after = RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().clone();
+    let after = RecoveryLedger::open(path.clone()).unwrap().recorded_entries().as_array().unwrap().clone();
     assert!(after.starts_with(&before), "earlier entries are kept as they were");
     assert!(!serde_json::to_string(&after).unwrap().contains("synthetic-must-not-copy"));
     assert!(!String::from_utf8_lossy(&std::fs::read(database_path(&path)).unwrap()).contains("synthetic-must-not-copy"));
     let snapshot = host.snapshot();
     assert_eq!(snapshot["recovery"]["oldRequestsAnswerable"], false);
     assert!(snapshot["serverRequests"].as_array().unwrap().is_empty());
-    let entries = snapshot["recovery"]["entries"].as_array().unwrap();
+    let entries = host.recorded_recovery_entries();
+    let entries = entries.as_array().unwrap();
     let start_position = entries.iter().rposition(|e| e["kind"] == "session_started").unwrap();
     assert_eq!(
         entries[start_position]["previousSessionEnd"],

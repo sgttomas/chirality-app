@@ -214,7 +214,7 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     let f = Fixture::new(true);
     f.item("known-turn");
     let mut ledger = RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();
-    let mut row = ledger.snapshot()["entries"]
+    let mut row = ledger.recorded_entries()
         .as_array()
         .unwrap()
         .iter()
@@ -238,7 +238,7 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     row["session"] = next_session.clone();
     row["tags"] = json!([{"owner":"synthetic-receiver","value":"later-metadata","seq":1}]);
     new_ledger.append(row).unwrap();
-    next.inner.0.lock().unwrap().recovery_snapshot = Some(new_ledger.snapshot());
+    next.inner.0.lock().unwrap().recovery_snapshot = Some(new_ledger.observation());
     let home = HomeSession::new(HomeClass::Account, next.clone(), Err("offline".into())).unwrap();
     let view =
         crate::recovery_root_view::read(&home, HomeClass::Account.as_str(), &Value::Null).unwrap();

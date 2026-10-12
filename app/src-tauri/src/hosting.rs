@@ -178,7 +178,9 @@ struct Inner {
     source_requests: HashMap<String, SourceEvidence>,
     server_requests: RequestRegister,
     recovery: Option<Arc<Mutex<RecoveryLedger>>>,
-    recovery_snapshot: Option<Value>,
+    /// The ledger's bounded snapshot and its held entries (DEL-01-02 §7):
+    /// what this host last observed, read without ledger IO under Inner.
+    recovery_snapshot: Option<crate::recovery::LedgerObservation>,
     pending_recovery: Arc<CapturedRecoveryQueue>,
     recovery_projection_errors: Vec<Value>,
     account_channels: Vec<Value>,
@@ -450,6 +452,11 @@ pub struct AppRuntimeCustody {
 }
 impl AppRuntimeCustody {
     pub(crate) fn close_distribution_publication(&self) { self.terminal_publication.lock_state().closing=true; }
+    /// Every entry the App ledger database holds, read from it (inspection
+    /// and tests; never on the App's own paths).
+    pub fn recorded_recovery_entries(&self)->Value {
+        self.ledger.as_ref().map(|ledger|ledger.lock().unwrap().recorded_entries()).unwrap_or(Value::Null)
+    }
     pub fn snapshot(&self)->Value {
         let recovery=self.ledger.as_ref().map(|ledger|ledger.lock().unwrap().snapshot());
         json!({"appSession":self.session,"recovery":recovery,"limit":self.initial_limit,"sessionEndObservation":*self.end_observation.lock().unwrap(),"pendingSourceObservations":self.sources.lock().unwrap().iter().map(|s|json!({"entries":s.queue.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"limit":*s.queue.limit.lock().unwrap()})).collect::<Vec<_>>(),"standing":"actual App custody; pointer-only metadata, not native live proof or capture chronology"})
@@ -784,7 +791,7 @@ impl Host {
             "serverRequests": i.server_requests.records(),
             // NIR CS-7: why the process ended for each request it ended unanswered.
             "serverRequestEndContexts": i.server_requests.end_contexts(),
-            "recovery": i.recovery_snapshot,"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
+            "recovery": i.recovery_snapshot.as_ref().map(|o|&o.summary),"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
             "recoveryPersistenceError": i.recovery_error,"recoveryInitializationError":i.recovery_initialization_error,
             "journal": i.journal,
             "malformedFrames": i.malformed,
@@ -814,13 +821,13 @@ impl Host {
     }
     pub fn new_with_app_custody(custody:Arc<AppRuntimeCustody>)->Result<Self,String>{
         let writer=Arc::clone(&custody.writer);let _writer=writer.lock().unwrap();if custody.end_observation.lock().unwrap().is_some(){return Err("App session end already observed; no new home source in this App session".into());}
-        let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().snapshot());let mut host=Self::new();host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
+        let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().observation());let mut host=Self::new();host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
         {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
     /// Safely retained source observation; no ledger lock/IO under Inner.
     pub fn shared_recovery_observation(&self)->Value{
-        let i=self.inner.0.lock().unwrap();json!({"appSession":i.app_session,"recovery":i.recovery_snapshot,"limit":i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()),"configured":i.recovery.is_some(),"standing":"actual App custody; last observed pointer ledger metadata, not live native reconstruction"})
+        let i=self.inner.0.lock().unwrap();json!({"appSession":i.app_session,"recovery":i.recovery_snapshot.as_ref().map(|o|&o.summary),"limit":i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()),"configured":i.recovery.is_some(),"standing":"actual App custody; last observed pointer ledger metadata, not live native reconstruction"})
     }
     fn allocate_home_spawn(&self,i:&mut Inner,home:String)->Result<(),String>{
         let mut counters=self.spawn_counters.lock().unwrap();let prior=counters.entry(home.clone()).or_default();*prior=prior.checked_add(1).ok_or("home spawn counter exhausted; no generation reuse")?;i.home=home;i.spawn_counter=*prior;Ok(())
@@ -833,7 +840,7 @@ impl Host {
     fn configure_recovery_inner(&self,path:PathBuf,namespaces:Option<Arc<attachment_custody::NativeNamespaceBindings>>)->Result<(),String>{
         if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody already adopted; no second recovery ledger/session initialization".into());}
         let _writer=self.recovery_writer.lock().unwrap();if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody adopted while waiting; no second recovery initialization".into());}let session={let mut i=self.inner.0.lock().unwrap();if i.state!="absent"{return Err("recovery must be configured before supplier start".into());}if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}i.recovery_path=Some(path.clone());i.app_session.clone()};
-        let opened=(||{let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path,binding)?,None=>RecoveryLedger::open(path)?};ledger.start_session(&session,"chirality-app-v4-unqualified")?;Ok::<_,String>(ledger)})();let ledger=match opened{Ok(ledger)=>ledger,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.snapshot();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;Ok(())
+        let opened=(||{let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path,binding)?,None=>RecoveryLedger::open(path)?};ledger.start_session(&session,"chirality-app-v4-unqualified")?;Ok::<_,String>(ledger)})();let ledger=match opened{Ok(ledger)=>ledger,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;Ok(())
     }
 
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
@@ -864,14 +871,16 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         let pending=i.pending_recovery.facts.lock().unwrap().len();
         crate::recovery::RecoveryCustodyView::from_owner(
-            &i.app_session, i.recovery_snapshot.as_ref(), i.execution_custody.snapshot(),
+            &i.app_session, i.recovery_snapshot.as_ref().map(|o|o.rows.as_slice()), i.execution_custody.snapshot(),
             pending,
             i.recovery_initialization_error.as_deref().or(i.recovery_error.as_deref()))
     }
     fn persist_execution(i:&mut Inner) {
-        let mut history=i.recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array()).cloned().unwrap_or_default();
-        history.extend(i.pending_recovery.facts.lock().unwrap().iter().cloned());
-        for row in i.execution_custody.rows(&i.generation,&history) {
+        // The held entries and the queued facts, searched in place (no copy).
+        let held=i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)).unwrap_or_default();
+        let queue=Arc::clone(&i.pending_recovery);
+        let rows={let mut facts=queue.facts.lock().unwrap();let generation=i.generation.clone();i.execution_custody.rows(&generation,crate::recovery::History::new(&held,facts.make_contiguous()))};
+        for row in rows {
             match RecoveryLedger::validate_pointer_entry(&row) {
                 Ok(()) if i.recovery.is_some()=>i.pending_recovery.facts.lock().unwrap().push_back(row),
                 Ok(())=>i.recovery_error=Some("execution pointer observation is memory-only; App ledger unavailable".into()),
@@ -881,7 +890,11 @@ impl Host {
     }
     fn persist_requests(i:&mut Inner){
         if i.recovery.is_none(){return;}
-        for request in i.server_requests.entries(){let mut history=i.recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array()).cloned().unwrap_or_default();history.extend(i.pending_recovery.facts.lock().unwrap().iter().cloned());match RecoveryLedger::request_summary_entry(&request,&history){Ok(Some(entry))=>i.pending_recovery.facts.lock().unwrap().push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
+        // Each request's summary is compared with the held entries, the queued
+        // facts and the summaries queued before it here, searched in place.
+        let held=i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)).unwrap_or_default();
+        let queue=Arc::clone(&i.pending_recovery);let mut facts=queue.facts.lock().unwrap();
+        for request in i.server_requests.entries(){match RecoveryLedger::request_summary_entry_in(&request,crate::recovery::History::new(&held,facts.make_contiguous())){Ok(Some(entry))=>facts.push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
     }
     /// Nonblocking writer admission: captured facts stay queued when another
     /// actual writer owns IO. No service/store or silent drop is introduced.
@@ -898,7 +911,7 @@ impl Host {
     }
     fn drain_recovery_queue(source:&Weak<(Mutex<Inner>,Condvar)>,queue:&Arc<CapturedRecoveryQueue>,ledger:Option<&Arc<Mutex<RecoveryLedger>>>)->Value {
         let entries=queue.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>();let Some(ledger)=ledger else{return json!({"standing":"ledger unavailable; captured pointer queue remains App-owned","pending":entries.len()});};
-        let mut stored=0;let mut error=None;let snapshot={let mut ledger=ledger.lock().unwrap();for entry in &entries{if let Err(reason)=ledger.append(entry.clone()){error=Some(reason);break;}stored+=1;}ledger.snapshot()};
+        let mut stored=0;let mut error=None;let snapshot={let mut ledger=ledger.lock().unwrap();for entry in &entries{if let Err(reason)=ledger.append(entry.clone()){error=Some(reason);break;}stored+=1;}ledger.observation()};
         let pending={let mut facts=queue.facts.lock().unwrap();for entry in entries.iter().take(stored){if facts.front()==Some(entry){facts.pop_front();}else{error=Some("REC captured observation order conflict; facts retained".into());break;}}facts.len()};
         *queue.limit.lock().unwrap()=error.clone();
         // No queue/ledger guard held while touching the still-live source.
@@ -908,12 +921,12 @@ impl Host {
 
 
 
-    fn refresh_recovery_observation(&self){let ledger=self.inner.0.lock().unwrap().recovery.clone();if let Some(ledger)=ledger{let snapshot=ledger.lock().unwrap().snapshot();self.inner.0.lock().unwrap().recovery_snapshot=Some(snapshot);}}
+    fn refresh_recovery_observation(&self){let ledger=self.inner.0.lock().unwrap().recovery.clone();if let Some(ledger)=ledger{let snapshot=ledger.lock().unwrap().observation();self.inner.0.lock().unwrap().recovery_snapshot=Some(snapshot);}}
     fn context_scope(i:&Inner,generation:&Value,thread:&str,home:Option<&str>)->Result<(),String>{
         crate::recovery::generation_ref(generation)?;if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||thread.is_empty()||!i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==thread){return Err("context source is not current operational home/thread/full generation".into());}
         if home.is_some_and(|h|!matches!(h,"H-acct"|"H-key")){return Err("REC home class must come actual configured ACCESS home kind or absence".into());}Ok(())
     }
-    fn context_rows(snapshot:Option<&Value>)->Vec<Value>{snapshot.and_then(|v|v["entries"].as_array()).map(|rows|rows.iter().filter(|e|e["kind"]=="conversation_index").cloned().collect()).unwrap_or_default()}
+    fn context_rows(snapshot:Option<&crate::recovery::LedgerObservation>)->Vec<Value>{snapshot.map(|o|o.rows.iter().filter(|e|e["kind"]=="conversation_index").cloned().collect()).unwrap_or_default()}
     /// New CURRENT known admission only; historical P is never overwritten by Q.
     pub fn observe_conversation_project(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
         {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
@@ -927,7 +940,7 @@ impl Host {
         let(Some(home),Some(project),Some(ledger))=(home,context.reference(),ledger)else{return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":"known owning home/project/index ledger absent: no project-bearing row; hot-only/cold lookup unavailable"}));};
         let at=now_rfc3339();let entry=json!({"kind":"conversation_index","session":generation["appSession"],"at":at,"threadId":thread,"home":home,"project":project,"tags":[],"lastObservedExecution":{"state":"indexed","at":at},"lastLoadedGeneration":crate::recovery::generation_ref(generation)?});
         {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,Some(home))?;}
-        let(result,snapshot)={let mut ledger=ledger.lock().unwrap();let result=ledger.append(entry.clone());(result,ledger.snapshot())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);if let Err(error)=result{i.recovery_error=Some(error.clone());return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":format!("CURRENT index append unavailable: {error}; no durable association claimed")}));}
+        let(result,snapshot)={let mut ledger=ledger.lock().unwrap();let result=ledger.append(entry.clone());(result,ledger.observation())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);if let Err(error)=result{i.recovery_error=Some(error.clone());return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":format!("CURRENT index append unavailable: {error}; no durable association claimed")}));}
         let changed=i.generation!=*generation||i.server_requests.is_closed(generation);
         if !changed {i.execution_custody.bind(generation,thread,&entry);Self::persist_execution(&mut i);}
         drop(i);self.drain_recovery_owned();
@@ -956,7 +969,7 @@ impl Host {
         let Some(ledger)=ledger else{result["persistence"]=json!("memory-only");result["limit"]=json!("ledger unavailable; hot tag retained, cold lookup unavailable");return Ok(result);};
         let mut entry=index;entry["session"]=generation["appSession"].clone();entry["at"]=json!(now_rfc3339());entry["tags"].as_array_mut().ok_or("REC index tags absent")?.push(result["tag"].clone());
         {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
-        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry.clone());(appended,ledger.snapshot())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);result["scopeChangedDuringIO"]=json!(i.generation!=*generation||i.server_requests.is_closed(generation));
+        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry.clone());(appended,ledger.observation())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);result["scopeChangedDuringIO"]=json!(i.generation!=*generation||i.server_requests.is_closed(generation));
         match appended{Ok(())=>{result["indexSnapshot"]=entry;result["persistence"]=json!("durable App metadata");result["durableBindingObserved"]=json!(true);},Err(error)=>{i.recovery_error=Some(error.clone());result["persistence"]=json!("memory-only");result["limit"]=json!(format!("context append unavailable: {error}; hot binding retained, cold lookup unavailable"));}}
         Ok(result)
     }
@@ -982,18 +995,26 @@ impl Host {
         let tag=json!({"owner":owner,"value":value,"seq":seq});
         let mut entry=index;entry["session"]=generation["appSession"].clone();entry["at"]=json!(now_rfc3339());
         match entry["tags"].as_array_mut(){Some(tags)=>tags.push(tag.clone()),None=>return memory("REC index tags absent".into())}
-        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry);(appended,ledger.snapshot())};
+        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry);(appended,ledger.observation())};
         let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);
         match appended{Ok(())=>json!({"persistence":"durable App metadata","tag":tag,"idempotent":false}),Err(error)=>{i.recovery_error=Some(error.clone());drop(i);memory(format!("tag append unavailable: {error}"))}}
     }
     /// RECOVERY §4.1 `tags of` over this Host's current ledger observation.
     pub fn tags_of(&self,home:&str,thread:&str,owner:&str)->Vec<Value>{
-        let rows=self.inner.0.lock().unwrap().recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array().cloned()).unwrap_or_default();
+        let rows=self.inner.0.lock().unwrap().recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)).unwrap_or_default();
         crate::recovery::tags_of(&rows,home,thread,owner)
     }
-    /// The REC ledger entries this Host currently observes (read-only).
+    /// The REC ledger's current entries this Host holds (read-only; DEL-01-02
+    /// §7: the latest entry of each conversation and listed request, and every
+    /// session, quit, Codex-stop and stop-request entry), not the whole ledger.
     pub fn recovery_entries(&self)->Vec<Value>{
-        self.inner.0.lock().unwrap().recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array().cloned()).unwrap_or_default()
+        self.inner.0.lock().unwrap().recovery_snapshot.as_ref().map(|o|o.rows.to_vec()).unwrap_or_default()
+    }
+    /// Every entry the Host's ledger database holds, read from it (inspection
+    /// and tests; never on the Host's own paths).
+    pub fn recorded_recovery_entries(&self)->Value{
+        let ledger=self.inner.0.lock().unwrap().recovery.clone();
+        ledger.map(|l|l.lock().unwrap().recorded_entries()).unwrap_or(Value::Null)
     }
 
     /// The child's process id, which is also its process-group id (H11).
@@ -2478,7 +2499,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let queued = i.pending_recovery.facts.lock().unwrap();
         let queue_limit = i.pending_recovery.limit.lock().unwrap().clone();
         let mut index = i.stop_ledger_index.lock().unwrap();
-        index.update(i.recovery_snapshot.as_ref());
+        index.update(i.recovery_snapshot.as_ref().map(|o| o.rows.as_slice()).unwrap_or_default());
         let recorded = |entry: &Value| index.contains(entry);
         let live: Vec<(Value, String)> = i.stop_requests.iter().map(|r| {
             // A note (a transition or an earlier record that was not
@@ -3454,7 +3475,7 @@ mod missing_custody_mapping_tests {
         let result=host.error_server_request(&generation,&json!(1),&error,"app-rule:invented-error").unwrap();assert_eq!(result["replyWriteResult"],"written");assert_eq!(result["acknowledgment"],"not-observed");
         let mut line=String::new();BufReader::new(child.stdout.take().unwrap()).read_line(&mut line).unwrap();assert_eq!(serde_json::from_str::<Value>(&line).unwrap(),json!({"id":1,"error":error}));*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
         let snapshot=host.snapshot();let entry=&snapshot["serverRequests"][0];assert_eq!(entry["generation"],generation);assert_eq!(entry["requestIdentity"],1);assert_eq!(entry["settlement"]["nativeContent"],error);assert_eq!(entry["settlement"]["origin"],json!({"class":"app-rule","ruleName":"invented-error"}));assert_eq!(entry["state"],"errored");assert_eq!(entry["replyWriteResult"],"written");assert_eq!(entry["acknowledgmentObservation"]["status"],"not-observed");assert_eq!(snapshot["recoveryPersistenceError"],Value::Null);
-        let entries=snapshot["recovery"]["entries"].as_array().unwrap();assert_eq!(entries.len(),3);assert_eq!(entries[1]["transition"],"RQ-01");assert_eq!(entries[2]["transition"],"RQ-03");assert_eq!(entries[2]["endedAs"],"errored");assert_eq!(entries[2]["replyWrite"],"written");assert_eq!(entries[2]["origin"],"app-rule:invented-error");assert_eq!(crate::recovery::generation_from_ref(entries[2]["generation"].as_str().unwrap()).unwrap(),generation);assert!(entries.iter().all(|e|e["transition"]!="RQ-08"&&e["kind"]!="human_act"));assert!(entries[2]["subject"].get("turnId").is_none());crate::recovery::remove_test_ledger(&path);
+        let entries=host.recorded_recovery_entries();let entries=entries.as_array().unwrap();assert_eq!(entries.len(),3);assert_eq!(entries[1]["transition"],"RQ-01");assert_eq!(entries[2]["transition"],"RQ-03");assert_eq!(entries[2]["endedAs"],"errored");assert_eq!(entries[2]["replyWrite"],"written");assert_eq!(entries[2]["origin"],"app-rule:invented-error");assert_eq!(crate::recovery::generation_from_ref(entries[2]["generation"].as_str().unwrap()).unwrap(),generation);assert!(entries.iter().all(|e|e["transition"]!="RQ-08"&&e["kind"]!="human_act"));assert!(entries[2]["subject"].get("turnId").is_none());crate::recovery::remove_test_ledger(&path);
     }
 }
 
@@ -3868,17 +3889,17 @@ mod conversation_transport_tests {
     }
     #[test]
     fn explicit_context_host_actual_index_p_tag_q_absence_and_idempotence_preserve_source(){
-        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let p=Context::known("explicit App P",AppProjectSource::ConfiguredDirectory).unwrap();let q=Context::known("explicit App Q / 家",AppProjectSource::OpenedDirectory).unwrap();let admission=host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();assert_eq!(admission["indexSnapshot"]["project"],"explicit App P");assert_eq!(host.observe_conversation_project(&g,"thread",Some("H-acct"),&q).unwrap()["indexSnapshot"]["project"],"explicit App P");let packet=context_packet(&host,&owner,&g,&selections);let bound=host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap();assert_eq!(bound["historicalProject"],"explicit App P");assert_eq!(bound["currentSubmissionProject"],"explicit App Q / 家");assert_eq!(bound["relation"],"different; no transfer");assert_eq!(bound["persistence"],"durable App metadata");let value=crate::recovery::encode_submission_context(packet.submission_ref(),q.reference()).unwrap();assert_eq!(bound["tag"]["value"],value);let count=host.snapshot()["recovery"]["entries"].as_array().unwrap().len();assert_eq!(host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap()["idempotent"],true);assert_eq!(host.snapshot()["recovery"]["entries"].as_array().unwrap().len(),count);assert!(host.bind_attachment_context(&packet,&p,Some("H-acct")).is_err());let second=context_packet(&host,&owner,&g,&selections);let none=host.bind_attachment_context(&second,&Context::unknown(),Some("H-acct")).unwrap();assert_eq!(none["historicalProject"],"explicit App P");assert!(none["currentSubmissionProject"].is_null());assert_eq!(none["relation"],"unbound");let ledger=RecoveryLedger::open(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap().snapshot();let indexes:Vec<_>=ledger["entries"].as_array().unwrap().iter().filter(|e|e["kind"]=="conversation_index").collect();assert!(indexes.iter().all(|e|e["project"]=="explicit App P"));assert_eq!(indexes.last().unwrap()["tags"].as_array().unwrap().len(),2);assert!(packet.source().attempted_frame()["params"].get("cwd").is_none());assert!(packet.source().attempted_frame()["params"].get("project").is_none());std::fs::remove_dir_all(root).unwrap();
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let p=Context::known("explicit App P",AppProjectSource::ConfiguredDirectory).unwrap();let q=Context::known("explicit App Q / 家",AppProjectSource::OpenedDirectory).unwrap();let admission=host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();assert_eq!(admission["indexSnapshot"]["project"],"explicit App P");assert_eq!(host.observe_conversation_project(&g,"thread",Some("H-acct"),&q).unwrap()["indexSnapshot"]["project"],"explicit App P");let packet=context_packet(&host,&owner,&g,&selections);let bound=host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap();assert_eq!(bound["historicalProject"],"explicit App P");assert_eq!(bound["currentSubmissionProject"],"explicit App Q / 家");assert_eq!(bound["relation"],"different; no transfer");assert_eq!(bound["persistence"],"durable App metadata");let value=crate::recovery::encode_submission_context(packet.submission_ref(),q.reference()).unwrap();assert_eq!(bound["tag"]["value"],value);let count=host.recorded_recovery_entries().as_array().unwrap().len();assert_eq!(host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap()["idempotent"],true);assert_eq!(host.recorded_recovery_entries().as_array().unwrap().len(),count);assert!(host.bind_attachment_context(&packet,&p,Some("H-acct")).is_err());let second=context_packet(&host,&owner,&g,&selections);let none=host.bind_attachment_context(&second,&Context::unknown(),Some("H-acct")).unwrap();assert_eq!(none["historicalProject"],"explicit App P");assert!(none["currentSubmissionProject"].is_null());assert_eq!(none["relation"],"unbound");let ledger=RecoveryLedger::open(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap().recorded_entries();let indexes:Vec<_>=ledger.as_array().unwrap().iter().filter(|e|e["kind"]=="conversation_index").collect();assert!(indexes.iter().all(|e|e["project"]=="explicit App P"));assert_eq!(indexes.last().unwrap()["tags"].as_array().unwrap().len(),2);assert!(packet.source().attempted_frame()["params"].get("cwd").is_none());assert!(packet.source().attempted_frame()["params"].get("project").is_none());std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn explicit_context_host_no_index_or_home_and_real_append_failure_keep_hot_conflicts(){
-        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let q=Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap();let r=Context::known("R",AppProjectSource::OpenedDirectory).unwrap();let packet=context_packet(&host,&owner,&g,&selections);let hot=host.bind_attachment_context(&packet,&q,None).unwrap();assert!(hot["indexSnapshot"].is_null());assert_eq!(hot["persistence"],"memory-only");assert!(hot["limit"].as_str().unwrap().contains("cold lookup unavailable"));assert!(host.bind_attachment_context(&packet,&r,Some("H-acct")).is_err());assert!(host.snapshot()["recovery"]["entries"].as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let q=Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap();let r=Context::known("R",AppProjectSource::OpenedDirectory).unwrap();let packet=context_packet(&host,&owner,&g,&selections);let hot=host.bind_attachment_context(&packet,&q,None).unwrap();assert!(hot["indexSnapshot"].is_null());assert_eq!(hot["persistence"],"memory-only");assert!(hot["limit"].as_str().unwrap().contains("cold lookup unavailable"));assert!(host.bind_attachment_context(&packet,&r,Some("H-acct")).is_err());assert!(host.recorded_recovery_entries().as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));
         let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();let second=context_packet(&host,&owner,&g,&selections);let path=crate::recovery::database_path(&owner.root().join("runtime/recovery.ledger.jsonl"));std::fs::rename(&path,owner.root().join("runtime/displaced-ledger")).unwrap();std::fs::create_dir(&path).unwrap();let failed=host.bind_attachment_context(&second,&q,Some("H-acct")).unwrap();assert_eq!(failed["historicalProject"],"P");assert_eq!(failed["persistence"],"memory-only");assert!(failed["limit"].as_str().unwrap().contains("append unavailable"));assert!(host.bind_attachment_context(&second,&r,Some("H-acct")).is_err());let same=host.bind_attachment_context(&second,&q,Some("H-acct")).unwrap();assert_eq!(same["idempotent"],true);assert_eq!(same["persistence"],"memory-only");assert!(same["limit"].as_str().unwrap().contains("cold lookup unavailable"));assert!(path.is_dir(),"nothing replaced the displaced ledger");std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn explicit_context_paused_ledger_preserves_summary_order_and_allows_actual_stop(){
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let packet=Arc::new(context_packet(&host,&owner,&g,&selections));let ledger=host.inner.0.lock().unwrap().recovery.clone().unwrap();let paused=ledger.lock().unwrap();let caller=Arc::clone(&host);let prepared=Arc::clone(&packet);let writer=std::thread::spawn(move||caller.bind_attachment_context(&prepared,&Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap(),Some("H-acct")));let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.recovery_writer.try_lock().is_ok()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert!(host.recovery_writer.try_lock().is_err());
-        host.on_line(&serde_json::to_vec(&json!({"id":"request","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g);assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let pid=child.id() as i32;*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g.clone());let started=std::time::Instant::now();assert_eq!(host.stop("person:fixture","codex-stop").unwrap()["state"],"stopped");assert!(started.elapsed()<Duration::from_secs(2));assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());drop(paused);assert!(writer.join().unwrap().is_err());host.flush_recovery_observations();let view=host.snapshot();assert!(view["recoveryPendingObservations"].as_array().unwrap().is_empty());let summaries:Vec<_>=view["recovery"]["entries"].as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").collect();assert_eq!(summaries[0]["state"],"listed");assert_eq!(summaries.last().unwrap()["state"],"closed");assert!(view["recovery"]["entries"].as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));std::fs::remove_dir_all(root).unwrap();
+        host.on_line(&serde_json::to_vec(&json!({"id":"request","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g);assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let pid=child.id() as i32;*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g.clone());let started=std::time::Instant::now();assert_eq!(host.stop("person:fixture","codex-stop").unwrap()["state"],"stopped");assert!(started.elapsed()<Duration::from_secs(2));assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());drop(paused);assert!(writer.join().unwrap().is_err());host.flush_recovery_observations();let view=host.snapshot();assert!(view["recoveryPendingObservations"].as_array().unwrap().is_empty());let recorded=host.recorded_recovery_entries();let summaries:Vec<_>=recorded.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").collect();assert_eq!(summaries[0]["state"],"listed");assert_eq!(summaries.last().unwrap()["state"],"closed");assert!(host.recorded_recovery_entries().as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));std::fs::remove_dir_all(root).unwrap();
     }
 
     // Shared consumer join uses actual private selection/Prepared/SourceRequest
@@ -3968,7 +3989,7 @@ mod conversation_transport_tests {
         assert_eq!(crate::recovery::stored_entries(&leaf),before);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
         let reply=host.answer_server_request(&ga,&json!("guard-request"),&json!({"decision":"decline"}),"person-via-interaction",Some("person:synthetic (identity not verified)")).unwrap();assert_eq!(reply["replyWriteResult"],"written");
         assert_eq!(host.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap()["state"],"stopped");let captured=host.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.last().unwrap()["transition"],"RQ-05");assert_eq!(crate::recovery::stored_entries(&leaf),before);
-        std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("shared/skills"),key.native_path().join("skills")).unwrap();cap.flush_captured_recovery();assert!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let rows=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();for fact in &captured{assert_eq!(rows.iter().filter(|row|*row==fact).count(),1);}std::fs::remove_dir_all(root).unwrap();
+        std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("shared/skills"),key.native_path().join("skills")).unwrap();cap.flush_captured_recovery();assert!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();for fact in &captured{assert_eq!(rows.iter().filter(|row|*row==fact).count(),1);}std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn namespace_guard_actual_reserved_source_home_and_current_use_refusal(){
@@ -3982,12 +4003,12 @@ mod conversation_transport_tests {
     #[test]
     fn app_custody_retired_host_queue_survives_actual_drop_recreation_flush_and_end(){
         let(root,account)=app_custody_root();let cap=account.app_runtime_custody().unwrap();let ga=app_custody_mock_home(&account,&root.join("account"));let writer=cap.writer.lock().unwrap();account.on_line(&serde_json::to_vec(&json!({"id":1,"method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}})).unwrap(),&ga);account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();let captured=account.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.len(),2);let weak=Arc::downgrade(&account.inner);drop(account);let deadline=std::time::Instant::now()+Duration::from_secs(1);while weak.upgrade().is_some()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert!(weak.upgrade().is_none(),"actual Host/readers must retire, not stay alive as a queue surrogate");assert_eq!(cap.snapshot()["pendingSourceObservations"][0]["entries"],json!(captured));drop(writer);
-        let next=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let ga2=app_custody_mock_home(&next,&root.join("account"));assert_eq!(ga2["spawnCounter"],2);cap.flush_captured_recovery();let rows=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();for entry in &captured{assert_eq!(rows.iter().filter(|e|*e==entry).count(),1);}assert!(cap.snapshot()["pendingSourceObservations"][0]["entries"].as_array().unwrap().is_empty());next.stop_scoped(&ga2,"person:synthetic","codex-stop").unwrap();let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"confirmed");assert_eq!(end["pendingPointerFacts"],0);std::fs::remove_dir_all(root).unwrap();
+        let next=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let ga2=app_custody_mock_home(&next,&root.join("account"));assert_eq!(ga2["spawnCounter"],2);cap.flush_captured_recovery();let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();for entry in &captured{assert_eq!(rows.iter().filter(|e|*e==entry).count(),1);}assert!(cap.snapshot()["pendingSourceObservations"][0]["entries"].as_array().unwrap().is_empty());next.stop_scoped(&ga2,"person:synthetic","codex-stop").unwrap();let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"confirmed");assert_eq!(end["pendingPointerFacts"],0);std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn app_custody_retired_queue_io_failure_keeps_actual_facts_and_error_without_end_replay(){
         let(root,account)=app_custody_root();let cap=account.app_runtime_custody().unwrap();let ga=app_custody_mock_home(&account,&root.join("account"));let writer=cap.writer.lock().unwrap();account.on_line(&serde_json::to_vec(&json!({"id":"retired","method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}})).unwrap(),&ga);account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();let captured=account.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();let weak=Arc::downgrade(&account.inner);drop(account);let deadline=std::time::Instant::now()+Duration::from_secs(1);while weak.upgrade().is_some()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert!(weak.upgrade().is_none());drop(writer);
-        let ledger=crate::recovery::database_path(&root.join("recovery.ledger.jsonl"));let saved=root.join("saved-original");std::fs::rename(&ledger,&saved).unwrap();std::fs::create_dir(&ledger).unwrap();let failure=cap.flush_captured_recovery();assert!(!failure["sources"][0]["limit"].is_null());let pending=&cap.snapshot()["pendingSourceObservations"][0];assert_eq!(pending["entries"],json!(captured));assert!(!pending["limit"].is_null());let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"unknown");assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);std::fs::remove_dir(&ledger).unwrap();std::fs::rename(&saved,&ledger).unwrap();cap.flush_captured_recovery();let rows=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();for entry in &captured{assert_eq!(rows.iter().filter(|e|*e==entry).count(),1);}assert!(cap.snapshot()["pendingSourceObservations"][0]["entries"].as_array().unwrap().is_empty());assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);assert!(!rows.iter().any(|e|e["kind"]=="session_ended"));std::fs::remove_dir_all(root).unwrap();
+        let ledger=crate::recovery::database_path(&root.join("recovery.ledger.jsonl"));let saved=root.join("saved-original");std::fs::rename(&ledger,&saved).unwrap();std::fs::create_dir(&ledger).unwrap();let failure=cap.flush_captured_recovery();assert!(!failure["sources"][0]["limit"].is_null());let pending=&cap.snapshot()["pendingSourceObservations"][0];assert_eq!(pending["entries"],json!(captured));assert!(!pending["limit"].is_null());let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"unknown");assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);std::fs::remove_dir(&ledger).unwrap();std::fs::rename(&saved,&ledger).unwrap();cap.flush_captured_recovery();let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();for entry in &captured{assert_eq!(rows.iter().filter(|e|*e==entry).count(),1);}assert!(cap.snapshot()["pendingSourceObservations"][0]["entries"].as_array().unwrap().is_empty());assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);assert!(!rows.iter().any(|e|e["kind"]=="session_ended"));std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn app_custody_named_cr7_environment_removal_uses_only_explicit_canaries(){
@@ -3998,15 +4019,15 @@ mod conversation_transport_tests {
     #[test]
     fn app_custody_one_session_shared_actual_ledger_equal_request_ids_and_recreated_counter(){
         let(root,account)=app_custody_root();let ga=app_custody_mock_home(&account,&root.join("account"));let cap=account.app_runtime_custody().unwrap();assert!(Arc::ptr_eq(&cap,&account.app_runtime_custody().unwrap()));let key=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let gb=app_custody_mock_home(&key,&root.join("key"));assert_eq!(ga["appSession"],gb["appSession"]);assert_ne!(ga["home"],gb["home"]);assert_eq!(ga["spawnCounter"],1);assert_eq!(gb["spawnCounter"],1);assert!(Arc::ptr_eq(&account.recovery_writer,&key.recovery_writer));assert!(key.configure_recovery(root.join("recovery.ledger.jsonl")).is_err());
-        let request=json!({"id":1,"method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}});account.on_line(&serde_json::to_vec(&request).unwrap(),&ga);key.on_line(&serde_json::to_vec(&request).unwrap(),&gb);let entries=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();assert_eq!(entries.iter().filter(|e|e["kind"]=="session_started").count(),1);let listed=entries.iter().filter(|e|e["kind"]=="register_entry_summary").collect::<Vec<_>>();assert_eq!(listed.len(),2);assert_ne!(listed[0]["generation"],listed[1]["generation"]);assert!(listed.iter().all(|e|e["requestIdentity"]=="1"));
+        let request=json!({"id":1,"method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}});account.on_line(&serde_json::to_vec(&request).unwrap(),&ga);key.on_line(&serde_json::to_vec(&request).unwrap(),&gb);let entries=cap.recorded_recovery_entries().as_array().unwrap().clone();assert_eq!(entries.iter().filter(|e|e["kind"]=="session_started").count(),1);let listed=entries.iter().filter(|e|e["kind"]=="register_entry_summary").collect::<Vec<_>>();assert_eq!(listed.len(),2);assert_ne!(listed[0]["generation"],listed[1]["generation"]);assert!(listed.iter().all(|e|e["requestIdentity"]=="1"));
         account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();let reopened=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let ga2=app_custody_mock_home(&reopened,&root.join("account"));assert_eq!(ga2["appSession"],ga["appSession"]);assert_eq!(ga2["home"],ga["home"]);assert_eq!(ga2["spawnCounter"],2);reopened.stop_scoped(&ga2,"person:synthetic","codex-stop").unwrap();key.stop_scoped(&gb,"person:synthetic","codex-stop").unwrap();
-        let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"confirmed");assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);let rows=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();assert_eq!(rows.iter().filter(|e|e["kind"]=="session_started").count(),1);assert_eq!(rows.iter().filter(|e|e["kind"]=="session_ended").count(),1);assert!(Host::new_with_app_custody(Arc::clone(&cap)).is_err());let actual=crate::recovery::stored_entries(&root.join("recovery.ledger.jsonl"));assert_eq!(actual,rows);std::fs::remove_dir_all(root).unwrap();
+        let end=cap.record_app_session_end(&[]).unwrap();assert_eq!(end["write"],"confirmed");assert_eq!(cap.record_app_session_end(&[]).unwrap(),end);let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();assert_eq!(rows.iter().filter(|e|e["kind"]=="session_started").count(),1);assert_eq!(rows.iter().filter(|e|e["kind"]=="session_ended").count(),1);assert!(Host::new_with_app_custody(Arc::clone(&cap)).is_err());let actual=crate::recovery::stored_entries(&root.join("recovery.ledger.jsonl"));assert_eq!(actual,rows);std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn app_custody_shared_paused_writer_retains_source_order_and_actual_stop(){
         let(root,account)=app_custody_root();let cap=account.app_runtime_custody().unwrap();let key=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let ga=app_custody_mock_home(&account,&root.join("account"));let gb=app_custody_mock_home(&key,&root.join("key"));let writer=cap.writer.lock().unwrap();let request=json!({"id":"same","method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}});for(host,g)in [(&account,&ga),(&key,&gb)]{host.on_line(&serde_json::to_vec(&request).unwrap(),g);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);}
         let start=std::time::Instant::now();assert_eq!(key.stop_scoped(&gb,"person:synthetic","codex-stop").unwrap()["state"],"stopped");assert!(start.elapsed()<Duration::from_secs(2));let pending=key.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert!(pending.len()>=2);assert_eq!(pending[0]["transition"],"RQ-01");assert_eq!(pending.last().unwrap()["transition"],"RQ-04");
-        assert_eq!(account.answer_server_request(&ga,&json!("same"),&json!({"decision":"decline"}),"person-via-interaction",Some("person:synthetic (identity not verified)")).unwrap()["replyWriteResult"],"written");account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();let account_pending=account.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(account_pending.last().unwrap()["transition"],"RQ-05");drop(writer);account.flush_recovery_observations();key.flush_recovery_observations();assert!(key.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let all=cap.snapshot()["recovery"]["entries"].as_array().unwrap().clone();let key_rows=all.iter().filter(|e|e["generation"]==crate::recovery::generation_ref(&gb).unwrap()).cloned().collect::<Vec<_>>();assert_eq!(key_rows,pending);let account_rows=all.iter().filter(|e|e["generation"]==crate::recovery::generation_ref(&ga).unwrap()).cloned().collect::<Vec<_>>();assert_eq!(account_rows,account_pending);std::fs::remove_dir_all(root).unwrap();
+        assert_eq!(account.answer_server_request(&ga,&json!("same"),&json!({"decision":"decline"}),"person-via-interaction",Some("person:synthetic (identity not verified)")).unwrap()["replyWriteResult"],"written");account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();let account_pending=account.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(account_pending.last().unwrap()["transition"],"RQ-05");drop(writer);account.flush_recovery_observations();key.flush_recovery_observations();assert!(key.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let all=cap.recorded_recovery_entries().as_array().unwrap().clone();let key_rows=all.iter().filter(|e|e["generation"]==crate::recovery::generation_ref(&gb).unwrap()).cloned().collect::<Vec<_>>();assert_eq!(key_rows,pending);let account_rows=all.iter().filter(|e|e["generation"]==crate::recovery::generation_ref(&ga).unwrap()).cloned().collect::<Vec<_>>();assert_eq!(account_rows,account_pending);std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn app_custody_unavailable_original_ledger_no_relocation_and_no_json_session_adoption(){

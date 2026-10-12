@@ -8,13 +8,21 @@
 //!   schema by the caller before insert, and again on every read) and the
 //!   indexed columns readers use: kind, session, home, thread, generation.
 //! - Entries that must stand together are inserted in one transaction.
+//! - The host holds only the *current* entries ([`currency`]): every entry of
+//!   the few kinds that only accumulate slowly (session markers, quits, Codex
+//!   stops, stop requests, RQ-06 endings), the latest `conversation_index`
+//!   entry per conversation, generation, appending session and tag list, and
+//!   the latest `register_entry_summary` per request and state while the
+//!   request is still listed. They are read by one indexed query
+//!   ([`Store::current_entries`]), never by loading the whole ledger.
 //! - Durability: rollback journal, `synchronous=FULL` and `fullfsync`, so a
 //!   commit that returns is on disk before the entry is reported persisted;
 //!   a new database file's directory entry is synced on creation.
 //! - The JSON Lines ledger of earlier builds is imported once, in order, every
 //!   complete and valid line up to the first that is not; the rest is reported
 //!   as a limit and never stored as an entry. The file is never written. The
-//!   import is recorded (source path, byte length, content identity), in the
+//!   import is recorded (source path, byte length, content identity, the
+//!   file's device, inode and modification time), in the
 //!   same transaction as its entries, so it happens at most once.
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 use serde_json::{json, Value};
@@ -34,12 +42,17 @@ CREATE TABLE IF NOT EXISTS ledger_entry (
     generation TEXT,
     origin TEXT NOT NULL CHECK (origin IN ('app', 'legacy-import')),
     batch INTEGER NOT NULL,
+    currency TEXT,
+    subject TEXT,
     entry TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ledger_entry_kind ON ledger_entry (kind, seq);
 CREATE INDEX IF NOT EXISTS ledger_entry_session ON ledger_entry (session, seq);
 CREATE INDEX IF NOT EXISTS ledger_entry_thread ON ledger_entry (home, thread, seq);
 CREATE INDEX IF NOT EXISTS ledger_entry_generation ON ledger_entry (generation, seq);
+CREATE INDEX IF NOT EXISTS ledger_entry_batch ON ledger_entry (batch);
+CREATE INDEX IF NOT EXISTS ledger_entry_currency ON ledger_entry (currency, seq);
+CREATE INDEX IF NOT EXISTS ledger_entry_subject ON ledger_entry (subject, seq);
 CREATE TABLE IF NOT EXISTS legacy_import (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source_path TEXT NOT NULL,
@@ -50,7 +63,8 @@ CREATE TABLE IF NOT EXISTS legacy_import (
     first_seq INTEGER,
     last_seq INTEGER,
     tail_limit TEXT,
-    imported_at TEXT NOT NULL
+    imported_at TEXT NOT NULL,
+    file_identity TEXT NOT NULL
 );
 CREATE TRIGGER IF NOT EXISTS ledger_entry_never_rewritten BEFORE UPDATE ON ledger_entry
     BEGIN SELECT RAISE(ABORT, 'ledger entries are never rewritten'); END;
@@ -70,6 +84,28 @@ CREATE TRIGGER IF NOT EXISTS ledger_meta_never_deleted BEFORE DELETE ON ledger_m
 thread_local! {
     /// Test hook: the next batch fails after inserting this many entries.
     pub(crate) static FAIL_BATCH_AFTER: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+/// The key under which a later entry supersedes an earlier one among the
+/// entries the host holds; `None`: every entry of that kind is held. For a
+/// `conversation_index` the key keeps apart each tag list, so the union of a
+/// conversation's tags over its held entries is the union over all of them,
+/// and each generation and appending session, so the custody view's ordering
+/// (source session, spawn counter, position) finds the same latest entry.
+pub(crate) fn currency(entry: &Value) -> Option<String> {
+    match entry["kind"].as_str()? {
+        "conversation_index" => Some(
+            json!(["conversation_index", entry["home"], entry["threadId"], entry["lastLoadedGeneration"], entry["session"], entry["tags"]]).to_string(),
+        ),
+        "register_entry_summary" if entry["transition"] != "RQ-06" => {
+            Some(json!(["register_entry_summary", entry["generation"], entry["requestIdentity"], entry["state"]]).to_string())
+        }
+        _ => None,
+    }
+}
+/// A request's identity in the ledger (generation and request identity).
+pub(crate) fn subject(entry: &Value) -> Option<String> {
+    (entry["kind"] == "register_entry_summary").then(|| json!([entry["generation"], entry["requestIdentity"]]).to_string())
 }
 
 /// The database beside the configured ledger location.
@@ -187,7 +223,8 @@ impl Store {
         }
         Ok(())
     }
-    /// Every entry in order, each validated again with `validate`.
+    /// Every entry in order, each validated again with `validate`. Reads the
+    /// whole ledger: for inspection and tests, never on the host's paths.
     pub(crate) fn entries(&self, validate: &dyn Fn(&Value) -> Result<(), String>) -> Result<Vec<Value>, String> {
         let mut statement = self.connection.prepare("SELECT entry FROM ledger_entry ORDER BY seq").map_err(db_error("App history unavailable"))?;
         let rows = statement.query_map([], |r| r.get::<_, String>(0)).map_err(db_error("App history unavailable"))?;
@@ -200,11 +237,48 @@ impl Store {
         }
         Ok(entries)
     }
+    /// How many entries the database holds.
+    pub(crate) fn count(&self) -> Result<u64, String> {
+        self.connection.query_row("SELECT COUNT(*) FROM ledger_entry", [], |r| r.get::<_, i64>(0)).map(|n| n as u64).map_err(db_error("App history unavailable"))
+    }
+    /// The current entries in ledger order (see the module text), by one
+    /// indexed query; a request whose latest entry is closed is not held.
+    /// Each is validated with `validate`, and its stored columns must be the
+    /// ones its JSON gives.
+    pub(crate) fn current_entries(&self, validate: &dyn Fn(&Value) -> Result<(), String>) -> Result<Vec<Value>, String> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT kind, currency, subject, entry FROM ledger_entry
+                 WHERE currency IS NULL
+                    OR (seq IN (SELECT MAX(seq) FROM ledger_entry WHERE currency IS NOT NULL GROUP BY currency)
+                        AND (subject IS NULL OR subject NOT IN (
+                            SELECT latest.subject FROM ledger_entry AS latest
+                            WHERE latest.seq IN (SELECT MAX(seq) FROM ledger_entry WHERE subject IS NOT NULL GROUP BY subject)
+                              AND json_extract(latest.entry, '$.state') = 'closed')))
+                 ORDER BY seq",
+            )
+            .map_err(db_error("App history unavailable"))?;
+        let rows = statement
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, Option<String>>(2)?, r.get::<_, String>(3)?)))
+            .map_err(db_error("App history unavailable"))?;
+        let mut entries = Vec::new();
+        for row in rows {
+            let (kind, held, request, text) = row.map_err(db_error("App history unavailable"))?;
+            let entry: Value = serde_json::from_str(&text).map_err(|e| format!("App history unavailable: stored entry is not JSON: {e}"))?;
+            validate(&entry).map_err(|e| format!("App history unavailable: {e}"))?;
+            if entry["kind"] != kind.as_str() || currency(&entry) != held || subject(&entry) != request {
+                return Err("App history unavailable: a stored entry's index columns do not match its JSON".into());
+            }
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
     /// One transaction: every entry is recorded, or none is.
     pub(crate) fn insert_batch(&mut self, entries: &[Value]) -> Result<(), String> {
         self.guard()?;
         let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("recovery ledger append not confirmed"))?;
-        let batch: i64 = tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("recovery ledger append not confirmed"))?;
+        let batch = next_batch(&tx).map_err(db_error("recovery ledger append not confirmed"))?;
         for (n, entry) in entries.iter().enumerate() {
             #[cfg(test)]
             if FAIL_BATCH_AFTER.with(|f| f.get()) == Some(n) {
@@ -217,18 +291,36 @@ impl Store {
         }
         tx.commit().map_err(db_error("recovery ledger append not confirmed"))
     }
-    /// The JSON Lines ledger at `legacy`, imported once (see the module text).
-    /// `read` reads its bytes (with the caller's descriptor guards). Returns
-    /// the import reading shown with the ledger.
+    /// The JSON Lines ledger at `legacy`, open as `file` (with the caller's
+    /// descriptor guards), imported once (see the module text). It is read in
+    /// bounded pieces: once for its length and content identity, and, only
+    /// when it is imported now, once more line by line; a change between the
+    /// two reads is refused. Returns the import reading shown with the ledger.
     pub(crate) fn import_legacy(
         &mut self,
         legacy: &Path,
-        bytes: &[u8],
+        file: &mut std::fs::File,
         validate: &dyn Fn(&Value) -> Result<(), String>,
     ) -> Result<Value, String> {
         let source = legacy.to_string_lossy().into_owned();
-        let content = crate::util::sha256_hex(bytes);
-        let length = bytes.len() as i64;
+        // The file as last imported, unchanged (same file, length and
+        // modification time): its content identity is not read again.
+        let file_identity = file_identity(file)?;
+        let unchanged: Option<(String, i64, String, i64, Option<String>)> = self
+            .connection
+            .query_row(
+                "SELECT source_path, byte_length, content_value, imported_lines, tail_limit FROM legacy_import WHERE source_path = ?1 AND file_identity = ?2 ORDER BY id LIMIT 1",
+                params![source, file_identity],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+            )
+            .optional()
+            .map_err(db_error("legacy ledger import record not readable"))?;
+        if let Some((path, imported_length, imported_content, lines, limit)) = unchanged {
+            return Ok(json!({"state":"imported earlier","sourcePath":path,"byteLength":imported_length,
+                "content":{"method":EXACT_BYTES,"value":imported_content},"importedLines":lines,"limit":limit}));
+        }
+        let (length, content) = read_identity(file)?;
+        let length = length as i64;
         let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("legacy ledger import not recorded"))?;
         let earlier: Option<(String, i64, String, i64, Option<String>)> = tx
             .query_row(
@@ -254,45 +346,65 @@ impl Store {
             return Ok(json!({"state":"not imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},"importedLines":0,
                 "limit":"this JSON Lines ledger appeared after the ledger database was created without one; it is not imported, so its entries would not follow the database's order"}));
         }
-        // Every complete, valid line in order; the first that is not ends the import.
-        let mut entries = Vec::new();
+        // Every complete, valid line in order; the first that is not ends the
+        // import. Each is inserted as it is read; none is held after.
+        use sha2::Digest;
+        use std::io::{BufRead, Seek};
+        file.seek(std::io::SeekFrom::Start(0)).map_err(|e| format!("App history unavailable: {e}"))?;
+        let mut reader = std::io::BufReader::with_capacity(1 << 20, file);
+        let mut hasher = sha2::Sha256::new();
+        let batch = next_batch(&tx).map_err(db_error("legacy ledger import not recorded"))?;
+        let (mut first, mut last, mut imported) = (None, None, 0i64);
         let mut offset = 0usize;
         let mut limit: Option<String> = None;
-        while offset < bytes.len() {
-            let Some(end) = bytes[offset..].iter().position(|b| *b == b'\n') else {
-                limit = Some(format!("final line at byte {offset} is not newline-closed ({} bytes); not imported", bytes.len() - offset));
+        let mut line = Vec::new();
+        // After the first line that is not imported: its offset and the
+        // newline-closed lines from it on, counted for the limit.
+        let mut refused: Option<(usize, String, usize)> = None;
+        loop {
+            line.clear();
+            let read = reader.read_until(b'\n', &mut line).map_err(|e| format!("App history unavailable: {e}"))?;
+            if read == 0 {
                 break;
-            };
-            let line = &bytes[offset..offset + end + 1];
-            let parsed: Result<Value, String> = serde_json::from_slice(line).map_err(|e| e.to_string()).and_then(|v| validate(&v).map(|()| v));
-            match parsed {
-                // The line's exact bytes are kept, without its line feed.
-                Ok(entry) => entries.push((entry, String::from_utf8_lossy(&line[..line.len() - 1]).into_owned())),
-                Err(reason) => {
-                    let rest = bytes[offset..].iter().filter(|b| **b == b'\n').count();
-                    limit = Some(format!("line {} at byte {offset} is not a valid ledger entry ({reason}); it and the {} bytes after it ({} newline-closed lines in all) are not imported", entries.len() + 1, bytes.len() - offset, rest));
-                    break;
+            }
+            hasher.update(&line);
+            let closed = line.last() == Some(&b'\n');
+            if let Some((_, _, rest)) = refused.as_mut() {
+                *rest += closed as usize;
+            } else if !closed {
+                limit = Some(format!("final line at byte {offset} is not newline-closed ({} bytes); not imported", line.len()));
+            } else {
+                let parsed: Result<Value, String> = serde_json::from_slice(&line).map_err(|e| e.to_string()).and_then(|v| validate(&v).map(|()| v));
+                match parsed {
+                    // The line's exact bytes are kept, without its line feed.
+                    Ok(entry) => {
+                        let text = String::from_utf8_lossy(&line[..line.len() - 1]).into_owned();
+                        let seq = insert(&tx, &entry, &text, "legacy-import", batch).map_err(db_error("legacy ledger import not recorded"))?;
+                        first.get_or_insert(seq);
+                        last = Some(seq);
+                        imported += 1;
+                    }
+                    Err(reason) => refused = Some((offset, reason, 1)),
                 }
             }
-            offset += end + 1;
+            offset += line.len();
         }
-        let batch: i64 = tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("legacy ledger import not recorded"))?;
-        let mut first = None;
-        let mut last = None;
-        for (entry, text) in &entries {
-            let seq = insert(&tx, entry, text, "legacy-import", batch).map_err(db_error("legacy ledger import not recorded"))?;
-            first.get_or_insert(seq);
-            last = Some(seq);
+        let digest: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+        if offset as i64 != length || digest != content {
+            return Err("App history unavailable: the JSON Lines ledger changed while it was being imported; nothing imported".into());
+        }
+        if let Some((at, reason, rest)) = refused {
+            limit = Some(format!("line {} at byte {at} is not a valid ledger entry ({reason}); it and the {} bytes after it ({rest} newline-closed lines in all) are not imported", imported + 1, offset - at));
         }
         let at = crate::util::now_rfc3339();
         tx.execute(
-            "INSERT INTO legacy_import (source_path, byte_length, content_method, content_value, imported_lines, first_seq, last_seq, tail_limit, imported_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            params![source, length, EXACT_BYTES, content, entries.len() as i64, first, last, limit, at],
+            "INSERT INTO legacy_import (source_path, byte_length, content_method, content_value, imported_lines, first_seq, last_seq, tail_limit, imported_at, file_identity) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![source, length, EXACT_BYTES, content, imported, first, last, limit, at, file_identity],
         )
         .map_err(db_error("legacy ledger import not recorded"))?;
         tx.commit().map_err(db_error("legacy ledger import not committed"))?;
         Ok(json!({"state":"imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},
-            "importedLines":entries.len(),"limit":limit,"importedAt":at}))
+            "importedLines":imported,"limit":limit,"importedAt":at}))
     }
     #[cfg(test)]
     pub(crate) fn connection(&self) -> &Connection {
@@ -300,12 +412,39 @@ impl Store {
     }
 }
 
+/// The open file's device, inode, length and modification time.
+fn file_identity(file: &std::fs::File) -> Result<String, String> {
+    use std::os::unix::fs::MetadataExt;
+    let meta = file.metadata().map_err(|e| format!("App history unavailable: {e}"))?;
+    Ok(json!([meta.dev(), meta.ino(), meta.len(), meta.mtime(), meta.mtime_nsec()]).to_string())
+}
+/// A file's length and exact-byte content identity, read in bounded pieces.
+fn read_identity(file: &mut std::fs::File) -> Result<(u64, String), String> {
+    use sha2::Digest;
+    use std::io::{Read, Seek};
+    file.seek(std::io::SeekFrom::Start(0)).map_err(|e| format!("App history unavailable: {e}"))?;
+    let mut hasher = sha2::Sha256::new();
+    let mut buffer = vec![0u8; 1 << 20];
+    let mut length = 0u64;
+    loop {
+        let n = file.read(&mut buffer).map_err(|e| format!("App history unavailable: {e}"))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buffer[..n]);
+        length += n as u64;
+    }
+    Ok((length, hasher.finalize().iter().map(|b| format!("{b:02x}")).collect()))
+}
+fn next_batch(tx: &rusqlite::Transaction) -> rusqlite::Result<i64> {
+    tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0))
+}
 fn insert(tx: &rusqlite::Transaction, entry: &Value, text: &str, origin: &str, batch: i64) -> rusqlite::Result<i64> {
     let column = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
     let generation = column("generation").or_else(|| column("lastLoadedGeneration"));
     tx.execute(
-        "INSERT INTO ledger_entry (kind, session, home, thread, generation, origin, batch, entry) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        params![column("kind").unwrap_or_default(), column("session"), column("home"), column("threadId"), generation, origin, batch, text],
+        "INSERT INTO ledger_entry (kind, session, home, thread, generation, origin, batch, currency, subject, entry) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![column("kind").unwrap_or_default(), column("session"), column("home"), column("threadId"), generation, origin, batch, currency(entry), subject(entry), text],
     )?;
     Ok(tx.last_insert_rowid())
 }
