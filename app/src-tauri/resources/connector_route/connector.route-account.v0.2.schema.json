@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-07-02:route-account:0.2",
-  "title": "Source-file route account (DEL-07-02 CFB-v0.3 / CFB-v0.3 route account; PROPOSED)",
+  "title": "Source-file route account (DEL-07-02 CFB-v0.3 wholly unavailable sources; PROPOSED)",
   "description": "One affected question answered from ordinary project files when connector material is absent or does not support reliance (REQ-002, REQ-004). It names the sources and revisions read, the facts found, the gaps, the conclusions supported and not supported, and each duty with its actual standing. A performed duty cites its evidence; a prepared or outstanding duty claims no performance (REQ-004; RS OF-1). Reading files establishes no authority by itself (REQ-002).",
   "type": "object",
   "required": [
