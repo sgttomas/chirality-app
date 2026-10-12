@@ -201,7 +201,10 @@ provider is required. Domains-specific evidence joins its later increment
 **V4-EXM-31 Reconstructing a run.** A week after V4-EXM-20, someone
 reconstructs from the project's files what was asked, what the agent
 proposed, what the engineer accepted and what changed, with the host's
-receipts. *Verifies* V4-REC-01…05, V4-HI-70…71. Preserve what is unknown and the scope
+receipts. *Verifies* V4-REC-01, V4-REC-03…05 and V4-HI-70…71 for the host's run.
+The App-run placement and records management of V4-REC-02, V4-REC-04 and
+V4-REC-06 (PRD R-STORE) have no examination criterion yet; one is assigned when
+the App's records store (RS §13.8) is implemented. Preserve what is unknown and the scope
 of any actual human act. Records of source resolution or transport success
 alone must not fill an unobserved provider/host outcome.
 

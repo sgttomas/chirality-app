@@ -88,7 +88,7 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   format with identified versions; this format does not change them, and
   their adoption of it would be a separate instruction change.
 - **FR-D3 Location and placement (settled, owner 2026-10-10).** The records
-  live with the user's project (V4-REC-02; RS OF-9), in one fixed default
+  live with the user's project (V4-REC-02 as then worded; RS OF-9), in one fixed default
   folder, `<project>/.chirality/fleet/`: `briefs/`, `graphs/<undertaking>/`
   and `coordination.fleet.jsonl`, the layout the prototype uses. It sits
   beside the App's other project folders (`.chirality/workflow-drafts/`,
@@ -105,7 +105,13 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   writes the person's files or the App's records, talks to Codex, or captures a
   person's act. The web view presents, and sends only what the person
   initiates. It never writes records or operates the act control." Neither
-  decides OI-013 or OI-014.
+  decides OI-013 or OI-014. On 2026-10-12 the owner moved decisions, accepted
+  records and run records to the App's records store (PRD R-STORE). The owner
+  then split the fleet files by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"). The App-written
+  `coordination.fleet.jsonl` joins the records store (RS §13.8); briefs and
+  graphs, which the person and agents edit with ordinary tools, stay in
+  `<project>/.chirality/fleet/`. Until RS §13.8 is implemented the log stays
+  here.
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
   children: every `dispatch_observed`, associated with a brief or not.
   RECOVERY's ledger is unchanged.
