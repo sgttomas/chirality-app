@@ -127,6 +127,31 @@ fn a_batch_that_fails_midway_records_nothing() {
     assert_eq!(batches[before.len()], batches[before.len() + 1], "the marker and its ending share one transaction");
 }
 
+/// A session start whose commit landed but was reported not confirmed (its
+/// folder flush failed): the retry reopens and finds the marker, so neither it
+/// nor its RQ-06 ending is written again. RQ-06 endings are never repeated, so
+/// the custody view's RQ-06 events count each once.
+#[test]
+fn a_start_that_landed_unconfirmed_is_not_written_again() {
+    let f = Scratch::new();
+    let mut ledger = f.open();
+    ledger.start_session("old", "c").unwrap();
+    ledger.request_summary(&outstanding("old")).unwrap();
+    drop(ledger);
+    let before = f.entries().len();
+    let mut ledger = f.open();
+    FAIL_FLUSH_AFTER_COMMIT.with(|n| n.set(true));
+    assert!(ledger.start_session("new", "c").unwrap_err().contains("not flushed"));
+    assert_eq!(f.entries().len(), before + 2, "the marker and its ending landed");
+    assert!(ledger.start_session("new", "c").unwrap_err().contains("reopen"), "the failed writer is not reused");
+    drop(ledger);
+    let mut ledger = f.open();
+    ledger.start_session("new", "c").unwrap();
+    let after = f.entries();
+    assert_eq!(after.len(), before + 2, "nothing is written again");
+    assert_eq!(after.iter().filter(|e| e["transition"] == "RQ-06").count(), 1);
+}
+
 #[test]
 fn a_complete_json_lines_ledger_is_imported_once_and_never_written() {
     let f = Scratch::new();

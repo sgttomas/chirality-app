@@ -102,6 +102,9 @@ CREATE TRIGGER IF NOT EXISTS ledger_meta_never_deleted BEFORE DELETE ON ledger_m
 thread_local! {
     /// Test hook: the next batch fails after inserting this many entries.
     pub(crate) static FAIL_BATCH_AFTER: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    /// Test hook: the next batch commits, then its folder flush fails, so the
+    /// append is reported not confirmed although it landed.
+    pub(crate) static FAIL_FLUSH_AFTER_COMMIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// The key under which a later entry supersedes an earlier one among the
@@ -387,6 +390,10 @@ impl Store {
             insert(&tx, entry, &text, "app", batch).map_err(db_error("recovery ledger append not confirmed"))?;
         }
         tx.commit().map_err(db_error("recovery ledger append not confirmed"))?;
+        #[cfg(test)]
+        if FAIL_FLUSH_AFTER_COMMIT.with(|f| f.replace(false)) {
+            return Err("recovery ledger append not confirmed: the commit returned but its folder was not flushed (injected)".into());
+        }
         self.flush("recovery ledger append not confirmed")
     }
     /// The JSON Lines ledger at `legacy`, open as `file` (with the caller's

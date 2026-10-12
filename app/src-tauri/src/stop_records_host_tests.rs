@@ -275,3 +275,123 @@ fn a_transition_that_was_not_recorded_is_shown_beside_the_recorded_one() {
     assert_eq!(row["persistence"], "a transition was not recorded: forced failure; its latest queued record is recorded in the App ledger", "{row}");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// DEL-01-02 §7: a commit that lands but whose folder flush fails is reported
+// not confirmed, so the fact stays queued and the next drain appends it again.
+// The readers read a ledger with those repeated entries as they read it with
+// one copy of each: compared at each relaunch with a twin ledger made from the
+// same entries, each once.
+fn with_failed_flush<T>(host: &Host, operation: impl FnOnce() -> T) -> T {
+    use crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT as FAIL;
+    FAIL.with(|f| f.set(true));
+    let result = operation();
+    if FAIL.with(|f| f.get()) {
+        host.flush_recovery_observations();
+    }
+    assert!(!FAIL.with(|f| f.get()), "a commit landed and its flush failed");
+    // The next drain: the landed fact is still queued and is appended again.
+    host.flush_recovery_observations();
+    result
+}
+fn relaunch(path: &Path, session: &str) -> Host {
+    let host = Host::new();
+    host.inner.0.lock().unwrap().app_session = session.to_owned();
+    host.configure_recovery(path.to_path_buf()).unwrap();
+    host
+}
+/// The ledger at `path` with each entry once, as an earlier build's JSON
+/// Lines ledger in a fresh folder, relaunched as the same App session. Also
+/// returns what was repeated: each kind, a stop request by its transition.
+fn twin(path: &Path, session: &str) -> (Host, PathBuf, PathBuf, Vec<String>) {
+    let mut once: Vec<Value> = Vec::new();
+    let mut repeated = Vec::new();
+    for entry in ledger_rows(path) {
+        if once.contains(&entry) {
+            repeated.push(entry["record"]["transition"].as_str().or(entry["kind"].as_str()).unwrap().to_owned());
+        } else {
+            once.push(entry);
+        }
+    }
+    let root = scratch();
+    let twin = root.join("recovery.ledger.jsonl");
+    let mut lines = Vec::new();
+    for entry in &once {
+        lines.extend(serde_json::to_vec(entry).unwrap());
+        lines.push(b'\n');
+    }
+    std::fs::write(&twin, lines).unwrap();
+    (relaunch(&twin, session), twin, root, repeated)
+}
+/// What a relaunch reads: its startup entries (the session marker with the
+/// earlier session's end, RQ-06 endings, SR-08 records), the stop requests,
+/// the custody view (RQ-06 events, restart events, conversations, limits) and
+/// CV-19's latest execution rows. Times are left out.
+fn readings(host: &Host, path: &Path, session: &str) -> Value {
+    fn untimed(v: &mut Value) {
+        match v {
+            Value::String(s) if s.len() >= 19 && s.as_bytes()[4] == b'-' && s.as_bytes()[7] == b'-' && s.as_bytes()[10] == b'T' => *v = json!("<time>"),
+            Value::Array(a) => a.iter_mut().for_each(untimed),
+            Value::Object(o) => o.values_mut().for_each(untimed),
+            _ => {}
+        }
+    }
+    let rows = ledger_rows(path);
+    let start = rows.iter().position(|e| e["kind"] == "session_started" && e["session"] == session).unwrap();
+    let held = host.inner.0.lock().unwrap().recovery_snapshot.as_ref().map(|o| Arc::clone(&o.rows)).unwrap();
+    let mut readings = json!({
+        "startup": rows[start..],
+        "stopRequests": host.snapshot()["stopRequests"],
+        "custody": host.recovery_custody().snapshot(),
+        "latestExecution": crate::recovery::latest_execution_rows(crate::recovery::History::new(&held, &[])),
+    });
+    untimed(&mut readings);
+    readings
+}
+
+#[test]
+fn entries_repeated_by_a_retried_drain_read_as_one_copy() {
+    let root = scratch();
+    let (host, g, path) = ledger_host(&root);
+    host.observe_conversation_project(&g, "thread", Some("H-acct"), &crate::recovery::ExplicitAppProjectContext::known("P", crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
+    event(&host, &g, "turn", "inProgress");
+    host.flush_recovery_observations();
+    // A request left listed, a stop request left without a final status
+    // (SR-01, SR-02, SR-10) and a Codex stop, with repeated entries.
+    with_failed_flush(&host, || host.on_line(&serde_json::to_vec(&json!({"id":7,"method":"item/commandExecution/requestApproval","params":{"threadId":"thread","turnId":"turn","itemId":"item"}})).unwrap(), &g));
+    let (begun, _) = with_failed_flush(&host, || exchange(&host, &g, None, || {}, || host.turn_interrupt_begin(&g, "thread", "turn", crate::stop_records::Cause::CodexStop, "H-acct", &person())));
+    let source = begun.unwrap();
+    with_failed_flush(&host, || assert!(host.turn_interrupt_acknowledgment(&source, Duration::from_millis(20)).is_err()));
+    let material = json!({"observedLiveTurns":[{"threadId":"thread","turnId":"turn"}]});
+    assert_eq!(with_failed_flush(&host, || host.record_codex_stop(&person(), "H-acct", false, &material))["state"], "not yet recorded");
+    let first = host.inner.0.lock().unwrap().app_session.clone();
+    // The App ends without an end record: the next start ends the request
+    // (RQ-06) and the stop request (SR-08).
+    drop(host);
+    let second = opaque_id("app-session:").unwrap();
+    let a = relaunch(&path, &second);
+    let (b, twin_path, twin_root, repeated) = twin(&path, &second);
+    let rows = ledger_rows(&path);
+    assert_eq!(repeated, ["register_entry_summary", "SR-01", "SR-10", "codex_stop"], "each written twice");
+    assert_eq!(readings(&a, &path, &second), readings(&b, &twin_path, &second));
+    let startup = &rows[rows.iter().position(|e| e["session"] == second).unwrap()..];
+    assert_eq!(startup.iter().filter(|e| e["transition"] == "RQ-06").count(), 1, "one RQ-06 ending: {startup:#?}");
+    assert_eq!(startup.iter().filter(|e| e["record"]["transition"] == "SR-08").count(), 1, "one SR-08 record: {startup:#?}");
+    assert_eq!(startup[0]["previousSession"], first);
+    // This session's quit answers are repeated too; the next start reads its end.
+    let asked = json!({"observedLiveTurns":[{"threadId":"thread","turnId":"turn"}]});
+    with_failed_flush(&a, || a.record_quit_requested(&person(), &asked));
+    with_failed_flush(&a, || a.record_quit_answered(&person(), true));
+    a.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    drop((a, b));
+    let third = opaque_id("app-session:").unwrap();
+    let a = relaunch(&path, &third);
+    let (b, twin_path_2, twin_root_2, repeated) = twin(&path, &third);
+    assert_eq!(repeated, ["register_entry_summary", "SR-01", "SR-10", "codex_stop", "quit_requested", "quit_answered"], "and the quit request and answer");
+    let reading = readings(&a, &path, &third);
+    assert_eq!(reading, readings(&b, &twin_path_2, &third));
+    assert_eq!(reading["startup"][0]["previousSessionEnd"], "quit-with-live-work");
+    assert_eq!(reading["custody"]["requestEndEvents"].as_array().unwrap().len(), 1, "{reading:#}");
+    for root in [root, twin_root, twin_root_2] {
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
