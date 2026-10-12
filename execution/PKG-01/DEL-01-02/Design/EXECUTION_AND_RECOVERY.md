@@ -740,6 +740,15 @@ facts. The App resolves its own user-data root from the host; tests supply an
 explicit scratch ledger path instead. No common service or host persistence
 allocation follows from this local choice (bounded U-R7/TBD-002 only).
 
+**Direction (owner, 2026-10-12; PRD R-STORE).** The ledger is App-private
+operational state, not a record. It moves to a SQLite database in App user
+data, which records its entries without rewriting or deleting any of them.
+Entries that must stand together are recorded in one transaction, for
+example a startup batch of RQ-06 endings or a session marker with its
+endings. The JSON Lines ledger stays readable as legacy history and is
+imported, never rewritten. This is PROPOSED and not yet implemented; until
+then the App writes the JSON Lines file described here.
+
 Validate complete entries against the existing ledger schema before append,
 append without rewriting prior facts and establish durable file/directory
 publication before reporting an entry persisted. On recovery, incomplete,

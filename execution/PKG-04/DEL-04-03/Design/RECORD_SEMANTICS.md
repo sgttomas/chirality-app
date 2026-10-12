@@ -193,7 +193,7 @@ The v0.3 → v0.4 change table is preserved in RS-v0.4 at commit `cc58211c5`.
 
 | # | Settled distinction | Citation |
 |---|---|---|
-| D1 | Workflow definitions, the person's decisions and accepted records are ordinary files in the user's project or workspace | V4-REC-02 |
+| D1 | Workflow definitions are ordinary files in the user's project, workspace or workflow library; the person's decisions, accepted records and run records are ordinary append-only files in the App's records store, linked to their project (§13.8) | V4-REC-02 (PRD R-STORE) |
 | D2 | A harness session store is operational, not the authority for any human act; coordination views are derived and rebuildable | V4-REC-03; V4-PM-06 |
 | D3 | Host domain truth stays in the host's own store | V4-REC-01 |
 | D4 | Host receipts, hashes and origin marks evidence what changed; the run record links them and does not copy them | V4-HI-71; V4-REC-04 |
@@ -247,15 +247,15 @@ host-operation checkpoints are *not enforceable* too (R8-2).
 
 | Rule | Statement | Serves |
 |---|---|---|
-| OF-1 | The authority for "person P performed act K on content C for purpose U" is an **act record** in an ordinary project/workspace file together with the evidence it references. Nothing else supplies a missing act. | REQ-001, REQ-003; AC-001 |
+| OF-1 | The authority for "person P performed act K on content C for purpose U" is an **act record**, an ordinary append-only file in the App's records store (§13.8) or, for a host's act, in the host's own store, together with the evidence it references. Nothing else supplies a missing act. | REQ-001, REQ-003; AC-001 |
 | OF-2 | Harness session content, transcripts, agent memory, derived views, search indexes, PEC projections, A14 settlements and user-input/elicitation answers may **locate** evidence. Their assertion that an act occurred creates none. | REQ-001; D2; D15; R4-12 |
 | OF-3 | Host domain truth, receipts, hashes and origin marks stay with the host. A record holds **references** plus what is needed to resolve and compare them: reference, claimed identity, identity method designation, resolution status. Never a substitute copy. | REQ-002; D3, D4 |
 | OF-4 | Workflow definitions and accepted records remain owned by their producing deliverables; this format supplies the act and run records that refer to them. | REQ-001, REQ-005 |
 | OF-5 | A written act record is not edited to change actor, act kind, bound content, scope or purpose. A correction is a new record naming the corrected one; both remain readable. Supersession of A12/A13 (L-0) is a relation, not an edit. (Proposed; the mechanism is PROPOSED in §14.1 W-3: a new entry of the same kind carrying *corrects* and a reason.) | REQ-003, REQ-004 |
-| OF-6 | Git history is the primary change record for the files (D13); records cite a repository revision where their own revision matters. | AX-003 |
+| OF-6 | Records management does not rely on version control (V4-REC-06; PRD R-STORE). Git may hold the change history of a person's project files; a record cites a repository revision only where its subject's own revision matters. | AX-003; V4-REC-06 |
 | OF-7 | Each record identifies its **format version** and **record kind**; a reader refuses or limits an unknown version (PROPOSED rule: §13.4, §14.2 R-3). | OUT-001 |
 | OF-8 | The **recorder** is always identified and is never the decision actor merely by having written the record. A person's own act captured in a surface is *direct capture* by that surface, not self-recording. | REQ-003; D10 |
-| OF-9 | App runs keep records with the user's project/workspace; host-agent runs keep records with the host project (V4-HI-70). Group A App paths and persistence follow §13.7 (CC-P-R; bounded U-05 selection); host persistence/placement and other shared allocations remain unselected (U-06, remaining OI-013/014). | REQ-001, REQ-005 |
+| OF-9 | App runs keep records in the App's records store, linked to their project (§13.8; V4-REC-02, V4-REC-04); host-agent runs keep records in the host's own store with the host project (V4-HI-70). Until §13.8 is implemented the App writes the §13.7 project paths (CC-P-R; bounded U-05 selection); host persistence/placement and other shared allocations remain unselected (U-06, remaining OI-013/014). | REQ-001, REQ-005 |
 
 ## 3. Record kinds and identity
 
@@ -1029,7 +1029,9 @@ two acts of the person.
 **Standing.** PROPOSED by DEL-04-03 in Wave B. Nothing here is accepted. The
 format is written as a schema with conformance fixtures, which every
 placement option needs (R12-2). For Group A App implementation the bounded
-placement and paths are selected in §13.7 (CC-P-R); host placement and other
+placement and paths are selected in §13.7 (CC-P-R), and §13.8 states the
+owner's records-store direction that replaces §13.7's project placement once
+implemented (PRD R-STORE); host placement and other
 shared allocations remain open under OI-013/014. Identity algorithm and
 canonicalization remain unselected (U-16; DEL-03-01 TBD-003). Element spellings are Chirality's own; no wire
 field of a host or supplier is selected.
@@ -1049,7 +1051,7 @@ field of a host or supplier is selected.
 
 | Option | Unit | For | Against |
 |---|---|---|---|
-| **S-A (selected for Group A App; host proposal retained)** | One append-only log per run and writer, one entry per line (JSON Lines, UTF-8, each line ended by a line feed), plus one act log per writer for acts captured outside any run — for A15, one act log per library, travelling with it (v0.9; WR-v0.2 §3 shows `<library>/.chirality/records/acts.jsonl` as its historical placeholder; Group A App location is now §13.7) | A written entry is never rewritten (OF-5); a torn write damages at most the last line; each writer's order is its own; an ordinary text file that version control can diff (OF-6, D13) | A run view joins several logs; the reader merges them |
+| **S-A (selected for Group A App; host proposal retained)** | One append-only log per run and writer, one entry per line (JSON Lines, UTF-8, each line ended by a line feed), plus one act log per writer for acts captured outside any run — for A15, one act log per library, travelling with it (v0.9; WR-v0.2 §3 shows `<library>/.chirality/records/acts.jsonl` as its historical placeholder; Group A App location is now §13.7) | A written entry is never rewritten (OF-5); a torn write damages at most the last line; each writer's order is its own; an ordinary, inspectable text file that needs no version control (OF-6; V4-REC-06) | A run view joins several logs; the reader merges them. No transaction spans entries, and queries rescan whole logs; §13.8 adds grouped lines and a derived index for these |
 | S-B | One document per run, rewritten at each change | One file to read | Rewrites earlier content; a failed rewrite can lose the whole run record; conflicts with OF-5 |
 | S-C | One file per entry | No torn lines | Many files; order needs a separate index |
 | S-D | One log per workspace for all runs | One stream | Runs contend for one file; large files |
@@ -1388,6 +1390,11 @@ coordinates or mismatched source/run/thread/purpose/text identities.
 
 ### 13.7 Selected Group A App allocation (CC-P-R)
 
+**Superseded in direction by §13.8 (PRD R-STORE).** The project paths below
+remain what the App writes until the records store is implemented. Afterwards
+they remain discoverable legacy sources, read in place and imported as §13.8
+describes; they are never rewritten or deleted.
+
 The owner separately answered “Approve App-local storage (recommended)” and
 “Approve native-confirmation implementation (recommended)” in this run's
 `OWNER_DECISIONS.md`, in parent chat and relayed by HELP_HUMAN. These select the
@@ -1452,6 +1459,64 @@ conflicting identity, or an exact copy found only in another log, stays pending
 with its reason; it is not settled or called never written. Unread lines cannot
 be checked and remain a limit, never evidence of completeness.
 The end after relaunch retains its own-log and confirmed-start guards.
+
+### 13.8 Records store, integrity, index and retention (PRD R-STORE; V4-REC-02, V4-REC-04, V4-REC-06)
+
+**Direction (owner, 2026-10-12).** "We can't rely on Git for records
+management, that's not what it's meant for." The owner approved the
+records-storage recommendations and accepted an App-managed records store
+outside the project working tree "as a new direction". The direction is
+settled. The mechanisms below are PROPOSED and not yet implemented; until
+they are, the App writes the §13.7 paths.
+
+- **Placement.** The App keeps its records in its own records store at
+  `<App-own-user-data>/records/`, outside every Codex home and every project
+  working tree, so the agent's writable workspace never holds them. Each
+  project has one subtree, `projects/<safe-project-key>/`, with
+  `runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl`,
+  `acts/<safe-writer-storage-key>.jsonl` and `captures/`, keyed as in §13.7.
+  The person may place the store on another volume, for example a backed-up
+  one. The App reports which store it writes and never falls back silently
+  to another.
+- **Project identity.** The App mints a stable opaque project identity once
+  and writes it in the project at `.chirality/project.json`. The store keeps
+  each project's identity and the project roots it has seen. The project
+  file is a link, not an authority: a missing, changed or duplicated identity
+  is shown as a limit and never silently attaches records to another project.
+- **Workflow libraries.** A15 library acts and their capture evidence stay
+  with the library (§13.7 rows) until the owner decides how library standing
+  is verified across installations.
+- **Units written together.** Entries that must stand together, such as an
+  arrival's act and its label, a lapse and its label, or a batch of request
+  endings, are written as one line that holds the group. The reader accepts a
+  group whole or reports it as a limit; it never reads half a group. The
+  group form is defined with the schema (§13.2–§13.3), and single-entry lines
+  stay valid.
+- **Tamper-evidence.** Each line carries the content identity of the
+  preceding line of its log, with its method designation. Checkpoint entries
+  at intervals are signed with an installation key held in the macOS Keychain,
+  never in a file. A reader reports a broken chain or a signature that does
+  not verify as a limit and does not repair it. External anchoring is not used
+  until the owner decides whether the strength needs it.
+- **Derived index.** A SQLite database in the store, built only from the
+  logs, answers cross-run queries. It is deletable and rebuildable and is
+  never the authority for a record (REQ-001; V4-REC-06). Where it disagrees
+  with the logs, the logs govern and the index is rebuilt.
+- **Retention and disposition.** Records are retained with no deletion
+  offered until the owner sets a retention policy, including disposition and
+  legal hold (U-R3 in DEL-01-02).
+- **Export and import.** A project's records move or are handed over as a
+  verified package: a manifest with each file's content identity, signed.
+  Import never overwrites, keeps every record identity, and reports
+  duplicates under R-5…R-8. The package format is chosen with the owner's
+  backup and export decision.
+- **Existing records.** The App discovers the §13.7 project logs, reads them
+  in place, and imports them into the store as byte-identical copies verified
+  against their content identity. It never rewrites or deletes the originals,
+  and a storage-path change is not a migration of their meaning.
+- **Failures.** An unreadable store, or an unwritable owning log, refuses new
+  recording visibly (W-0, W-2) and reports what is pending. There is no
+  fallback to a project path, another store or memory.
 
 ## 14. Writer and reader sequences, with failure behaviour (RS 7; PROPOSED)
 
