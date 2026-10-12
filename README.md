@@ -8,7 +8,7 @@ Meet Help Human, the assistant inside Chirality App. Bring a complex task, work 
 
 ## Get started
 
-Version **3.0.1** is available for **Apple Silicon Macs running macOS 15 or newer**. It uses Codex through your ChatGPT account. Local-model support is planned for a later release.
+Version **3.0.1** is the published fallback for **Apple Silicon Macs running macOS 15 or newer** while [App v4 develops in Chirality](https://github.com/sgttomas/chirality/tree/main/projects/chirality-app-v4). App v3 is frozen and no longer developed or verified in the main repository. The published version uses Codex through your ChatGPT account. Local-model support is planned for a later release.
 
 1. Download the `.dmg` from the [latest release](https://github.com/sgttomas/chirality-app/releases/latest).
 2. Open it and drag Chirality to Applications. The release is signed and notarized.
@@ -31,9 +31,11 @@ Use **Report issue** in the App or [open a GitHub issue](https://github.com/sgtt
 
 ## Source and development
 
-This repository is the curated Chirality desktop release projection, hosting public installers, release notes, user issue reports, and the versioned desktop application source. The desktop source for this projection is in [`desktop/`](desktop/); the generic runtime source is in `runtime/`. Current application and instruction development takes place in **[sgttomas/chirality](https://github.com/sgttomas/chirality)**. These source snapshots are separate from the versioned installers; use the main repository for current development history and build instructions.
+This repository hosts public installers, release notes, user issue reports and retained v3 source snapshots. Current application and instruction development takes place in **[sgttomas/chirality](https://github.com/sgttomas/chirality)**.
 
-- [App source and development setup](https://github.com/sgttomas/chirality#develop-and-contribute)
+The [`desktop/`](desktop/) and [`runtime/`](runtime/) snapshots were published together in [projection commit ea7aac1](https://github.com/sgttomas/chirality-app/commit/ea7aac1) on 2026-09-20; the desktop package manifest identifies version 3.0.1. Their documentation describes that retained source, including historical architecture and build assumptions. The snapshots are separate from versioned installers: use each release's notes and assets to identify what was distributed. [Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md) explains recovery of the old source and exporter.
+
+- [App v4 development setup and checks](https://github.com/sgttomas/chirality/blob/main/projects/chirality-app-v4/app/README.md#developer-start)
 - [Roles and instructions](https://github.com/sgttomas/chirality/tree/main/agents)
 - [Workflow library](https://github.com/sgttomas/chirality/tree/main/workflows)
 - [Release notes](https://github.com/sgttomas/chirality-app/releases)

@@ -1,5 +1,11 @@
 # Chirality Runtime
 
+This README describes the retained v3 Runtime snapshot published in
+[projection commit ea7aac1](https://github.com/sgttomas/chirality-app/commit/ea7aac1).
+Runtime is frozen in the main repository. For current application development,
+use [App v4](https://github.com/sgttomas/chirality/tree/main/projects/chirality-app-v4);
+for old source recovery, use [Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md).
+
 This workspace contains the Chirality Runtime service: the session store, turn
 coordinator, delegated-runtime coordination, Codex supervisor and login
 modules, the authenticated Unix-socket API, its typed Node client and the
@@ -66,7 +72,7 @@ conversation starts, receive calls through the authenticated host API, and
 return results. The catalog is immutable for that conversation; handlers
 explicitly rebind after restart. Runtime supplies transport and lifecycle while
 the application owns argument/domain validation, live state and human acceptance.
-See [Application tools](docs/APPLICATION_TOOLS.md) for the interface and limits.
+See the [preserved Application tools reference](https://github.com/sgttomas/chirality/blob/15e8b7a72ce0ed440f1f46b9b6ca83503af9c02c/projects/chirality-runtime/docs/APPLICATION_TOOLS.md) for the interface and limits at the export's recorded source basis.
 SWBPIPE client adoption and its live domain adapter remain separate work.
 
 ## Development
