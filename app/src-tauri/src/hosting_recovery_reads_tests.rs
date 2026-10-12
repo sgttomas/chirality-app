@@ -520,7 +520,128 @@ fn checkpoint_custody_events_reach_the_native_view() {
     crate::host_tick::receive_view(&f.home);
     f.crash();
     let view = crate::host_tick::receive_view(&f.home);
-    let events = view["custodyEvents"].as_array().unwrap();
-    assert_eq!(events, &Fixture::events(&f.home, "observation_lost"), "{view}");
+    let events: Vec<Value> = view["custodyEvents"].as_array().unwrap().iter().filter(|e| e["kind"] == "observation_lost").cloned().collect();
+    assert_eq!(events, Fixture::events(&f.home, "observation_lost"), "{view}");
     assert_eq!(events[0]["conversations"], json!(["thread"]));
+}
+
+// RS R13 and R11 through the real Host: the checkpoint recorder, fed the native view the
+// record tick receives, writes each A14 request of the run once with its settlement, the
+// requests ended unanswered with the context their process ended in and DEL-01-02's
+// request_ended_unanswered event (RECOVERY RQ-04), and "lost acknowledgement" for each
+// written reply Codex never acknowledged (RQ-05). None is a human act.
+struct SettlementRun { recorder: crate::checkpoint_recorder::CheckpointRecorder, entries: Vec<Value>, root: PathBuf }
+impl SettlementRun {
+    fn new(f: &Fixture) -> Self {
+        let (recorder, listed) = crate::checkpoint_recorder::CheckpointRecorder::start(Err("fixture: no declaration".into()));
+        assert!(listed.is_empty());
+        Self { recorder, entries: vec![], root: f.root.clone() }
+    }
+    /// One record tick: receive the view, observe it in the run, keep the entries.
+    fn tick(&mut self, f: &Fixture) -> Vec<crate::checkpoint_recorder::Output> {
+        let view = crate::host_tick::receive_view(&f.home);
+        let outputs = Self::observe(&mut self.recorder, &view, &f.first, &self.entries, &self.root);
+        for (kind, body) in &outputs {
+            assert!(crate::records::nonconformance(kind, body, "rec:app:fixture", "run:workflow:fixture", "2026-10-10T00:00:00.000Z").is_none(), "{kind} {body}");
+            assert!(matches!(*kind, "tool_permission_settlement" | "evidence_limit" | "observation_lost"), "never a human act: {kind}");
+        }
+        self.entries.extend(outputs.iter().map(|(k, b)| json!({"kind":k,"body":b})));
+        outputs
+    }
+    fn observe(recorder: &mut crate::checkpoint_recorder::CheckpointRecorder, view: &Value, first: &Value, entries: &[Value], root: &std::path::Path) -> Vec<crate::checkpoint_recorder::Output> {
+        let home = view["home"].as_str().unwrap().to_owned();
+        let scope = crate::checkpoint_recorder::RunScope { home: &home, conversation: "thread", start: crate::run_offers::run_start(view, "thread", first, Some("turn-1")),
+            project_root: root, start_spawn: first["spawnCounter"].as_u64().unwrap() };
+        recorder.observe(view, &scope, entries, &mut || Ok(Default::default()))
+    }
+    fn settlements(&self) -> Vec<Value> {
+        self.entries.iter().filter(|e| e["kind"] == "tool_permission_settlement").map(|e| e["body"].clone()).collect()
+    }
+    fn limits(&self) -> Vec<Value> {
+        self.entries.iter().filter(|e| e["kind"] == "evidence_limit").map(|e| e["body"].clone()).collect()
+    }
+    /// A fresh recorder over the run's entries writes nothing again.
+    fn written_once(&self, f: &Fixture) {
+        let (mut fresh, _) = crate::checkpoint_recorder::CheckpointRecorder::start(Err("fixture: no declaration".into()));
+        let view = crate::host_tick::receive_view(&f.home);
+        assert!(Self::observe(&mut fresh, &view, &f.first, &self.entries, &self.root).is_empty(), "no duplicates");
+    }
+}
+impl Fixture {
+    fn request(&self, id: u64, method: &str) {
+        self.emit(json!({"id":id,"method":method,"params":{"threadId":"thread","turnId":"turn-1","itemId":"item-1"}}));
+        self.until("the request", || self.home.host.snapshot()["serverRequests"].as_array().is_some_and(|r| r.iter().any(|e| e["requestIdentity"] == id)));
+    }
+    /// The ledger's RQ-04 summaries' contexts (RECOVERY §3.5).
+    fn rq04_contexts(&self) -> Vec<Value> {
+        // The REC writer may be busy with another append; the summary stays queued until a later flush.
+        self.until("the RQ-04 summary", || { self.home.host.flush_recovery_observations(); self.ledger().iter().any(|e| e["transition"] == "RQ-04") });
+        self.ledger().iter().filter(|e| e["kind"] == "register_entry_summary" && e["transition"] == "RQ-04").map(|e| e["context"].clone()).collect()
+    }
+    fn end_context(&self, id: u64) -> Value {
+        self.home.host.snapshot()["serverRequestEndContexts"].as_array().unwrap().iter().find(|c| c["requestIdentity"] == id).map(|c| c["context"].clone()).unwrap_or(Value::Null)
+    }
+}
+const PERSON: &str = "person:fixture (identity not verified)";
+
+#[test]
+fn tool_permission_settlements_reach_the_runs_log_once_through_a_quit() {
+    let f = Fixture::new();
+    f.live_work();
+    let mut run = SettlementRun::new(&f);
+    let approval = "item/commandExecution/requestApproval";
+    for id in 1..=4 { f.request(id, approval); }
+    assert!(run.tick(&f).is_empty(), "open requests are not yet settled");
+    let host = &f.home.host;
+    host.answer_server_request(&f.first, &json!(1), &json!({"decision":"accept"}), "person-via-interaction", Some(PERSON)).unwrap();
+    host.answer_server_request(&f.first, &json!(2), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap();
+    host.error_server_request(&f.first, &json!(3), &json!({"code":-32000,"message":"outside the project"}), "app-rule:refuse-outside-project").unwrap();
+    f.emit(json!({"method":"serverRequest/resolved","params":{"threadId":"thread","requestId":4}}));
+    f.until("the resolution", || host.snapshot()["serverRequests"].as_array().unwrap().iter().any(|e| e["requestIdentity"] == 4 && e["state"] == "resolved-by-supplier"));
+    let reference = |id: u64| format!("server-request:{}/{id}", f.first["spawnCounter"]);
+    assert_eq!(run.tick(&f).len(), 4);
+    assert_eq!(run.tick(&f), vec![], "each once");
+    // Quit: request 7 is outstanding when the process ends.
+    host.stop_scoped(&f.first, "the person", crate::app_quit::QUIT_STOP_REASON).unwrap();
+    run.tick(&f);
+    assert_eq!(f.end_context(7), "app-quit");
+    assert_eq!(f.rq04_contexts(), [json!("app-quit")]);
+    let ended = Fixture::events(&f.home, "request_ended_unanswered");
+    assert_eq!(ended.len(), 1, "{ended:?}");
+    assert_eq!(run.settlements(), vec![
+        json!({"request":reference(1),"settledBy":"the person via interaction","settlement":"answered"}),
+        json!({"request":reference(2),"settledBy":"the person via interaction","settlement":"declined"}),
+        json!({"request":reference(3),"settledBy":"explicit error","settlement":"errored","ruleName":"refuse-outside-project"}),
+        json!({"request":reference(4),"settledBy":"the supplier","settlement":"resolved by supplier"}),
+        json!({"request":reference(7),"settledBy":"none — ended unanswered","settlement":"ended unanswered (process exit)","context":"App quit","custodyEventRef":ended[0]["eventId"]}),
+    ]);
+    // The fixture acknowledges no reply: the three written replies are lost acknowledgements.
+    let limits = run.limits();
+    assert_eq!(limits.iter().map(|l| (l["label"].as_str().unwrap(), l["subjectRef"].as_str().unwrap())).collect::<Vec<_>>(),
+        [("lost acknowledgement", reference(1).as_str()), ("lost acknowledgement", reference(2).as_str()), ("lost acknowledgement", reference(3).as_str())]);
+    let unacknowledged = Fixture::events(&f.home, "acknowledgment_not_observed");
+    assert_eq!(unacknowledged.iter().map(|e| (e["settlementOrigin"].as_str().unwrap(), e["context"].as_str().unwrap())).collect::<Vec<_>>(),
+        [("person-via-interaction", "app-quit"), ("person-via-interaction", "app-quit"), ("app-rule:refuse-outside-project", "app-quit")]);
+    for event in ended.iter().chain(&unacknowledged) { validate_event(event); }
+    assert_eq!(run.tick(&f), vec![]);
+    run.written_once(&f);
+}
+
+#[test]
+fn a_request_open_at_a_supplier_exit_ends_unanswered_in_that_context() {
+    let f = Fixture::new();
+    f.live_work();
+    let mut run = SettlementRun::new(&f);
+    assert!(run.tick(&f).is_empty());
+    f.crash();
+    let outputs: Vec<_> = run.tick(&f).into_iter().filter(|(k, _)| *k != "observation_lost").collect();
+    assert_eq!(f.end_context(7), "supplier-exit");
+    assert_eq!(f.rq04_contexts(), [json!("supplier-exit")]);
+    let ended = Fixture::events(&f.home, "request_ended_unanswered");
+    assert_eq!(ended[0]["context"], "supplier-exit");
+    validate_event(&ended[0]);
+    assert_eq!(outputs, vec![("tool_permission_settlement", json!({"request":format!("server-request:{}/7", f.first["spawnCounter"]),"settledBy":"none — ended unanswered",
+        "settlement":"ended unanswered (process exit)","context":"supplier exit","custodyEventRef":ended[0]["eventId"]}))]);
+    assert!(run.limits().is_empty(), "no reply was written");
+    run.written_once(&f);
 }

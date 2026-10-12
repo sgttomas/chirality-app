@@ -153,3 +153,31 @@ fn cold03_exact_adopted_schema_examples_and_old_reader_boundary(){
     let examples=[(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.item-only.valid.json"),true,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.competing-turns.valid.json"),true,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json"),true,true),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.empty-turn.invalid.json"),false,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.null-turn.invalid.json"),false,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.payload.invalid.json"),false,false)];
     for (bytes,n,o) in examples {let row:Value=serde_json::from_str(bytes).unwrap();assert_eq!(newer.is_valid(&row),n);assert_eq!(older.is_valid(&row),o);}
 }
+
+// RECOVERY RQ-04, RQ-05 at a generation's close: an outstanding entry ended unanswered and a
+// written, unacknowledged reply, each reported once, also when the close is seen again.
+#[test]
+fn a_close_reports_ended_and_unacknowledged_requests_once() {
+    let f = Fixture::new();
+    f.index();
+    f.turn("inProgress");
+    for id in [1, 2] {
+        f.host.on_line(&serde_json::to_vec(&json!({"id":id,"method":"item/commandExecution/requestApproval","params":{"threadId":"t","turnId":"u","itemId":"i"}})).unwrap(), &f.g);
+    }
+    {
+        let mut i = f.host.inner.0.lock().unwrap();
+        i.server_requests.prepare(&f.g, &json!(1), &json!({"decision":"accept"}), "person-via-interaction", Some("person:p (identity not verified)")).unwrap();
+        i.server_requests.written(&f.g, &json!(1), true);
+    }
+    f.close();
+    f.close();
+    let events = f.host.recovery_custody().snapshot()["live"]["events"].as_array().unwrap().clone();
+    let of = |kind: &str| events.iter().filter(|e| e["kind"] == kind).cloned().collect::<Vec<_>>();
+    let (ended, unacknowledged) = (of("request_ended_unanswered"), of("acknowledgment_not_observed"));
+    assert_eq!((ended.len(), unacknowledged.len()), (1, 1), "{events:#?}");
+    for e in ended.iter().chain(&unacknowledged) { validate_event(e); }
+    assert_eq!((ended[0]["entry"]["requestIdentity"].as_str(), ended[0]["context"].as_str()), (Some("2"), Some("supplier-exit")));
+    assert_eq!(ended[0]["entry"]["subject"], json!({"threadId":"t","turnId":"u","itemId":"i"}));
+    assert_eq!((unacknowledged[0]["entry"]["requestIdentity"].as_str(), unacknowledged[0]["settlementOrigin"].as_str()), (Some("1"), Some("person-via-interaction")));
+    assert_eq!(f.host.snapshot()["serverRequestEndContexts"], json!([{"generation":f.g,"requestIdentity":2,"context":"supplier-exit"}]));
+}

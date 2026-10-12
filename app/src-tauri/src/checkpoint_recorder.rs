@@ -41,6 +41,9 @@
 //!   no label written; and CE-14 `observation_recovered` once for a custody
 //!   recovery read *accessible* of that conversation after a recorded loss,
 //!   which recovers no item and so changes no label (RP-1);
+//! - RS R13 `tool_permission_settlement` once for each A14 request of the
+//!   run the register shows settled, and R11 "lost acknowledgement" for a
+//!   written reply DEL-01-02 reports never acknowledged ([`settlements`]);
 //! - the waiting arrivals listed by CE-17 `run_ended` (`waiting`).
 //!
 //! Recording is not a reaction (RC-4): nothing here sends, asks, opens,
@@ -496,6 +499,8 @@ impl CheckpointRecorder {
                 }
             }
         }
+        // RS R13 and R11 "lost acknowledgement" for this run's requests.
+        written.extend(settlements(view, scope, entries, &written, &in_run));
         // CE-10 after the received items for *performed* arrivals: the files are read
         // now, after every item this view delivered, so a resume point among them
         // precedes the lapse observation (RC-8, HD-5). Acts are then counted again against the content
@@ -1188,6 +1193,81 @@ pub(crate) fn end_observations(entries: &[Value], root: &Path) -> Vec<Output> {
     }
 }
 
+/// RS R13 `tool_permission_settlement` (RS §4 R13, §13.3; R2-8; NIR R-g) for
+/// each A14 tool-permission request of this run (the register's own *a14*
+/// origin class; person-input requests and named services are not A14), and
+/// RS R11 "lost acknowledgement" for any request of the run whose written
+/// reply DEL-01-02 reports was never acknowledged (RECOVERY §8.2
+/// `acknowledgment_not_observed`). A request is the run's when it is of this
+/// App session, names the run's conversation and a turn of the run, as for
+/// CE-4. Each is written once, when the register shows it settled:
+/// - *answered* or *declined* by the person through the card;
+/// - *declined* by an App named rule, with the rule's name (never answered by rule);
+/// - *errored* by an explicit error or a named rule;
+/// - *resolved by supplier* (`serverRequest/resolved` before any answer);
+/// - *ended unanswered (process exit)*, settled by no one, with its context and
+///   the custody event `request_ended_unanswered` that reports it (RQ-04).
+/// A settlement whose reply could not be written, or a request still open, is
+/// not yet written. The user's own Codex mode settles a request inside Codex,
+/// which never reaches the App, so that origin is never written here. An R13
+/// entry is never a human act (RS HA-1; R17-9).
+fn settlements(view: &Value, scope: &RunScope, entries: &[Value], written: &[Output], in_run: &impl Fn(&str) -> bool) -> Vec<Output> {
+    let mut out: Vec<Output> = Vec::new();
+    let session = &view["generation"]["appSession"];
+    let custody = |kind: &str, generation: &str, identity: &str| view["custodyEvents"].as_array().into_iter().flatten()
+        .find(|e| e["kind"] == kind && e["appSession"] == *session && e["entry"]["generation"] == generation && e["entry"]["requestIdentity"] == identity);
+    let recorded = |out: &[Output], kind: &str, field: &str, value: &str| entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"]))
+        .chain(written.iter().chain(out.iter()).map(|(k, b)| (*k, b)))
+        .any(|(k, b)| k == kind && b[field] == value && (kind != "evidence_limit" || b["label"] == "lost acknowledgement"));
+    for r in view["serverRequests"].as_array().into_iter().flatten() {
+        if r["generation"]["appSession"] != *session || r["nativeParameters"]["threadId"] != scope.conversation {
+            continue;
+        }
+        let (Some(turn), Some(spawn), Ok(generation), Ok(identity)) = (r["nativeParameters"]["turnId"].as_str(), r["generation"]["spawnCounter"].as_u64(),
+            crate::recovery::generation_ref(&r["generation"]), serde_json::to_string(&r["requestIdentity"])) else { continue };
+        if !in_run(turn) || spawn < scope.start_spawn {
+            continue;
+        }
+        let shown = match &r["requestIdentity"] { Value::String(s) => s.clone(), other => other.to_string() };
+        let reference = format!("server-request:{spawn}/{shown}");
+        if r["originClass"] == "a14" && !recorded(&out, "tool_permission_settlement", "request", &reference) {
+            let origin = &r["settlement"]["origin"];
+            let rule = origin["ruleName"].as_str().filter(|s| !s.is_empty());
+            let person = origin["class"] == "person-via-interaction";
+            let body = match r["state"].as_str() {
+                Some("answered") if person => Some(json!({"request":reference,"settledBy":"the person via interaction","settlement":"answered"})),
+                Some("declined") if person => Some(json!({"request":reference,"settledBy":"the person via interaction","settlement":"declined"})),
+                Some("declined") if origin["class"] == "app-rule" && rule.is_some() => Some(json!({"request":reference,"settledBy":"App named-rule decline","settlement":"declined","ruleName":rule})),
+                Some("errored") if origin["class"] == "app-explicit-error" => Some(json!({"request":reference,"settledBy":"explicit error","settlement":"errored"})),
+                Some("errored") if origin["class"] == "app-rule" && rule.is_some() => Some(json!({"request":reference,"settledBy":"explicit error","settlement":"errored","ruleName":rule})),
+                Some("resolved-by-supplier") => Some(json!({"request":reference,"settledBy":"the supplier","settlement":"resolved by supplier"})),
+                Some("ended-unanswered") => custody("request_ended_unanswered", &generation, &identity).and_then(|e| {
+                    let context = match e["context"].as_str()? {
+                        "supplier-exit" => "supplier exit",
+                        "supplier-stop" => "supplier stop",
+                        "app-quit" => "App quit",
+                        "system-termination" => "system termination",
+                        "app-ended-without-record" => "App ended without record",
+                        _ => return None,
+                    };
+                    Some(json!({"request":reference,"settledBy":"none — ended unanswered","settlement":"ended unanswered (process exit)","context":context,"custodyEventRef":e["eventId"]}))
+                }),
+                _ => None,
+            };
+            if let Some(body) = body {
+                out.push(("tool_permission_settlement", body));
+            }
+        }
+        if let Some(event) = custody("acknowledgment_not_observed", &generation, &identity) {
+            if !recorded(&out, "evidence_limit", "subjectRef", &reference) {
+                out.push(("evidence_limit", json!({"label":"lost acknowledgement","subjectRef":reference,
+                    "detail":format!("The reply written to Codex ({} by {}) was never acknowledged before its process ended ({}; custody event {}).",
+                        r["method"].as_str().unwrap_or("request"), event["settlementOrigin"].as_str().unwrap_or("not stated"), event["context"].as_str().unwrap_or("not stated"), event["eventId"].as_str().unwrap_or("not stated"))})));
+            }
+        }
+    }
+    out
+}
 /// Whether a CE-13 or CE-14 entry for the custody event `id` is already in the
 /// run's entries or this observation's outputs (each names its event).
 fn custody_recorded(entries: &[Value], written: &[Output], id: &str) -> bool {

@@ -143,6 +143,30 @@ impl ExecutionCustody {
             }).collect::<Vec<_>>();
             self.events.push(json!({"kind":"observation_lost","eventId":format!("cev:{}:{}",g,home),"appSession":generation["appSession"],"at":at,"standing":"App-observed","home":home,"generation":g,"cause":cause,"conversations":threads,"liveTurns":turns,"inFlightItems":items,"outstandingEntries":outstanding}));
         }
+        // RECOVERY §3.5 RQ-04 and RQ-05 at this generation's close: each entry
+        // still outstanding ended unanswered, and each written reply whose
+        // acknowledgment was never observed (§8.2 `request_ended_unanswered`,
+        // `acknowledgment_not_observed`). The entry is cited by reference only.
+        for r in requests.iter().filter(|r| r["generation"] == *generation) {
+            let (Some(method), Ok(identity)) = (r["method"].as_str(), serde_json::to_string(&r["requestId"])) else { continue };
+            let mut entry = json!({"generation":g,"requestIdentity":identity,"method":method});
+            if let Some(thread) = r["nativeParameters"]["threadId"].as_str().filter(|s| !s.is_empty()) {
+                let mut subject = json!({"threadId":thread});
+                for k in ["turnId", "itemId"] {
+                    if let Some(v) = r["nativeParameters"][k].as_str().filter(|s| !s.is_empty()) { subject[k] = json!(v); }
+                }
+                entry["subject"] = subject;
+            }
+            let origin = r["settlement"]["origin"].as_str().unwrap_or_default();
+            let written = matches!(r["state"].as_str(), Some("answered" | "declined")) || (r["state"] == "errored" && r["laterProtocolError"] == true);
+            if r["state"] == "outstanding" {
+                self.events.push(json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq04:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"context":cause}));
+            } else if written && r["replyWriteResult"] == "written" && !r["acknowledgment"].is_object()
+                && !self.events.iter().any(|e| e["eventId"] == format!("cev:rq05:{g}:{identity}"))
+                && (origin == "person-via-interaction" || origin == "app-explicit-error" || origin.strip_prefix("app-rule:").is_some_and(|rule| !rule.is_empty())) {
+                self.events.push(json!({"kind":"acknowledgment_not_observed","eventId":format!("cev:rq05:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"settlementOrigin":origin,"context":cause}));
+            }
+        }
     }
     /// CV-19: conversations an earlier App session left unsettled in this
     /// physical home, from their latest ledger rows, held recovery-pending

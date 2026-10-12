@@ -480,6 +480,24 @@ impl RequestRegister {
             }
         }
     }
+    /// [`close`](Self::close), keeping why the process ended on each entry it
+    /// ends unanswered (RECOVERY RQ-04 context: *supplier-exit*, *supplier-stop*,
+    /// *app-quit*), for the card's words (NIR CS-7).
+    pub fn close_for(&mut self, generation: &Value, context: &str) -> usize {
+        let before: Vec<bool> = self.entries.iter().map(|e| e["state"] == "ended-unanswered").collect();
+        let ended = self.close(generation);
+        for (e, was) in self.entries.iter_mut().zip(before) {
+            if !was && e["state"] == "ended-unanswered" {
+                e["endContext"] = json!(context);
+            }
+        }
+        ended
+    }
+    /// Each entry ended unanswered with the context its process ended in.
+    pub fn end_contexts(&self) -> Vec<Value> {
+        self.entries.iter().filter(|e| e["endContext"].is_string())
+            .map(|e| json!({"generation":e["generation"],"requestIdentity":e["requestId"],"context":e["endContext"]})).collect()
+    }
     pub fn close(&mut self, generation: &Value) -> usize {
         if !self.closed.contains(generation) {
             self.closed.push(generation.clone());

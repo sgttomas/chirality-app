@@ -279,9 +279,9 @@ fn change_view(path: &str) -> Value {
 fn file_view() -> Value {
     change_view("out/summary.md")
 }
-/// Every output is a valid EXEC body (the RS-only limit kind aside) and a conformant RS run entry.
+/// Every output is a valid EXEC body (the RS-only kinds aside) and a conformant RS run entry.
 fn conformant(outputs: &[Output]) {
-    let exec: Vec<Output> = outputs.iter().filter(|(k, _)| *k != "evidence_limit").cloned().collect();
+    let exec: Vec<Output> = outputs.iter().filter(|(k, _)| !matches!(*k, "evidence_limit" | "tool_permission_settlement")).cloned().collect();
     valid(&exec);
     for (kind, body) in outputs {
         if let Some(why) = crate::records::nonconformance(kind, body, "rec:app:fixture", "run:workflow:fixture", "2026-10-10T00:00:00.000Z") {
@@ -1442,4 +1442,141 @@ fn a_settled_first_line_needs_its_line_break() {
     assert_eq!(settled_first_line("Spacing rep"), None);
     assert_eq!(settled_first_line("\n  \n Spacing report \nrest"), Some("Spacing report"));
     assert_eq!(settled_first_line("  \n"), None);
+}
+
+// ---- Tool-permission settlements (RS R13) and lost acknowledgements (R11) ----
+
+/// A register record (HOSTING server-request entry) of `thread` in generation `counter`.
+fn request(id: Value, counter: u64, turn: &str, method: &str, class: &str, state: &str, origin: Option<Value>) -> Value {
+    let mut r = json!({"recordKind":"server-request-entry","requestIdentity":id,"generation":g(counter),"method":method,"classification":"known-answerable","originClass":class,
+        "nativeParameters":{"threadId":"thread","turnId":turn,"itemId":"item-1"},"receiptPosition":9,"state":state,"replyWriteResult":null,"acknowledgmentObservation":{"status":"not-observed"}});
+    if let Some(origin) = origin {
+        r["settlement"] = json!({"kind":if state == "declined" {"decline"} else if state == "errored" {"error"} else {"answer"},"origin":origin,"nativeContent":null});
+        r["replyWriteResult"] = json!("written");
+    }
+    r
+}
+const APPROVAL: &str = "item/commandExecution/requestApproval";
+fn person() -> Option<Value> { Some(json!({"class":"person-via-interaction","actorRef":"person:p (identity not verified)"})) }
+fn rule(name: &str) -> Option<Value> { Some(json!({"class":"app-rule","ruleName":name})) }
+/// DEL-01-02's RQ-04 or RQ-05 custody event for request `id` of generation `counter`.
+fn request_event(kind: &str, id: &Value, counter: u64, context: &str) -> Value {
+    let identity = serde_json::to_string(id).unwrap();
+    let tag = if kind == "request_ended_unanswered" { "rq04" } else { "rq05" };
+    let mut e = json!({"kind":kind,"eventId":format!("cev:{tag}:{}:{identity}", gen_ref(counter)),"appSession":"session","at":"2026-09-21T16:00:00.000Z","standing":"App-observed",
+        "entry":{"generation":gen_ref(counter),"requestIdentity":identity,"method":APPROVAL,"subject":{"threadId":"thread","turnId":"turn-1","itemId":"item-1"}},"context":context});
+    if kind == "acknowledgment_not_observed" {
+        e["settlementOrigin"] = json!("person-via-interaction");
+    }
+    e
+}
+fn settlement_view(requests: Vec<Value>, events: Vec<Value>) -> Value {
+    let mut v = with_custody(view(vec![start_row(), row("turn-0", message("m0", "earlier"), 0, Some(0), Some(0))]), events);
+    v["serverRequests"] = json!(requests);
+    v
+}
+
+// R13: each A14 request of the run is written once with its settlement origin, when the
+// register shows it settled; never a human act; open, unwritten or non-A14 requests are not.
+#[test]
+fn tool_permission_settlements_are_written_once_with_their_origin() {
+    let root = std::path::PathBuf::from("/project/root");
+    let mut other = request(json!(20), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    other["nativeParameters"]["threadId"] = json!("other-thread");
+    let mut foreign = request(json!(21), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    foreign["generation"]["appSession"] = json!("earlier-session");
+    let requests = vec![
+        request(json!(1), 1, "turn-1", APPROVAL, "a14", "answered", person()),
+        request(json!(2), 1, "turn-1", "item/fileChange/requestApproval", "a14", "declined", person()),
+        request(json!(3), 1, "turn-1", "item/permissions/requestApproval", "a14", "declined", rule("deny-network")),
+        request(json!(4), 1, "turn-1", APPROVAL, "a14", "errored", rule("refuse-outside-project")),
+        request(json!(5), 1, "turn-1", "execCommandApproval", "a14", "errored", Some(json!({"class":"app-explicit-error"}))),
+        request(json!(6), 1, "turn-1", "applyPatchApproval", "a14", "resolved-by-supplier", None),
+        request(json!("seven"), 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None),
+        // Not written: ended with no custody event yet, open, settling, write failed,
+        // person input, a turn before the run, another conversation, another App session.
+        request(json!(8), 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None),
+        request(json!(9), 1, "turn-1", APPROVAL, "a14", "outstanding", None),
+        request(json!(10), 1, "turn-1", APPROVAL, "a14", "settling", person()),
+        request(json!(11), 1, "turn-1", APPROVAL, "a14", "settle-write-failed", person()),
+        request(json!(12), 1, "turn-1", "item/tool/requestUserInput", "person-input", "answered", person()),
+        request(json!(13), 1, "turn-0", APPROVAL, "a14", "answered", person()),
+        other, foreign,
+    ];
+    let v = settlement_view(requests, vec![request_event("request_ended_unanswered", &json!("seven"), 1, "supplier-exit")]);
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert!(outputs.iter().all(|(k, _)| *k == "tool_permission_settlement"), "never a human act: {outputs:#?}");
+    let bodies: Vec<&Value> = outputs.iter().map(|(_, b)| b).collect();
+    assert_eq!(bodies, [
+        &json!({"request":"server-request:1/1","settledBy":"the person via interaction","settlement":"answered"}),
+        &json!({"request":"server-request:1/2","settledBy":"the person via interaction","settlement":"declined"}),
+        &json!({"request":"server-request:1/3","settledBy":"App named-rule decline","settlement":"declined","ruleName":"deny-network"}),
+        &json!({"request":"server-request:1/4","settledBy":"explicit error","settlement":"errored","ruleName":"refuse-outside-project"}),
+        &json!({"request":"server-request:1/5","settledBy":"explicit error","settlement":"errored"}),
+        &json!({"request":"server-request:1/6","settledBy":"the supplier","settlement":"resolved by supplier"}),
+        &json!({"request":"server-request:1/seven","settledBy":"none — ended unanswered","settlement":"ended unanswered (process exit)","context":"supplier exit",
+            "custodyEventRef":format!("cev:rq04:{}:\"seven\"", gen_ref(1))}),
+    ]);
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &v, &scope(&root), &all).is_empty(), "each settlement is written once");
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "a fresh recorder reads the run's entries");
+    // A later tick: request 8's custody event arrives, request 9 is answered.
+    let mut later = v.clone();
+    later["custodyEvents"].as_array_mut().unwrap().push(request_event("request_ended_unanswered", &json!(8), 1, "app-quit"));
+    later["serverRequests"][8] = request(json!(9), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    let outputs = obs(&mut recorder, &later, &scope(&root), &all);
+    conformant(&outputs);
+    assert_eq!(outputs.iter().map(|(_, b)| (b["request"].as_str().unwrap(), b["settledBy"].as_str().unwrap(), b["context"].as_str())).collect::<Vec<_>>(),
+        [("server-request:1/8", "none — ended unanswered", Some("App quit")), ("server-request:1/9", "the person via interaction", None)]);
+    // A request of a generation before the run opened is not the run's.
+    let earlier = RunScope { start_spawn: 2, ..scope(&root) };
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &later, &earlier, &entries(&listed)).is_empty());
+}
+
+// RQ-04 context spellings become RS's; an unknown context writes nothing.
+#[test]
+fn an_ended_request_carries_its_context_and_custody_event() {
+    let root = std::path::PathBuf::from("/project/root");
+    for (context, written) in [("supplier-exit", Some("supplier exit")), ("supplier-stop", Some("supplier stop")), ("app-quit", Some("App quit")),
+        ("system-termination", Some("system termination")), ("app-ended-without-record", Some("App ended without record")), ("unknown", None)] {
+        let id = json!(1);
+        let event = request_event("request_ended_unanswered", &id, 1, context);
+        let v = settlement_view(vec![request(id, 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None)], vec![event.clone()]);
+        let (mut recorder, _) = CheckpointRecorder::start(Ok(declaration()));
+        let outputs = obs(&mut recorder, &v, &scope(&root), &[]);
+        conformant(&outputs);
+        match written {
+            Some(spelling) => {
+                assert_eq!(outputs.len(), 1, "{context}");
+                assert_eq!((outputs[0].1["context"].as_str(), &outputs[0].1["custodyEventRef"]), (Some(spelling), &event["eventId"]), "{context}");
+            }
+            None => assert!(outputs.is_empty(), "{context}"),
+        }
+    }
+}
+
+// R11 "lost acknowledgement" from DEL-01-02's acknowledgment_not_observed (RQ-05), on the
+// run whose conversation the request names; written once, alongside the request's R13.
+#[test]
+fn a_reply_never_acknowledged_is_a_lost_acknowledgement() {
+    let root = std::path::PathBuf::from("/project/root");
+    let id = json!(1);
+    let v = settlement_view(vec![request(id.clone(), 1, "turn-1", APPROVAL, "a14", "answered", person())],
+        vec![request_event("acknowledgment_not_observed", &id, 1, "app-quit")]);
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["tool_permission_settlement", "evidence_limit"]);
+    let limit = &outputs[1].1;
+    assert_eq!((limit["label"].as_str(), limit["subjectRef"].as_str()), (Some("lost acknowledgement"), Some("server-request:1/1")));
+    assert!(limit["detail"].as_str().unwrap().contains(&format!("cev:rq05:{}:1", gen_ref(1))), "{limit}");
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "written once");
 }

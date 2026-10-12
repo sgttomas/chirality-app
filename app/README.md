@@ -429,6 +429,22 @@ writes records or operates the act control." `src-tauri/` holds that host;
     so it recovers no item and changes no label (RP-1). An unavailable read
     writes nothing. A conversation with no App index gets no custody loss, so
     its run records none.
+    **Tool-permission settlements (RS R13, R11).** Each A14 request of the
+    run (an approval request in the register: the run's App session and
+    conversation, a turn of the run, from the generation it opened in) is
+    written once as `tool_permission_settlement` when the register shows it
+    settled: answered or declined by the person, declined by a named App
+    rule, errored explicitly or by a named rule, resolved by Codex, or ended
+    unanswered with the context its process ended in (supplier exit, supplier
+    stop, App quit, system termination) and DEL-01-02's
+    `request_ended_unanswered` event (RECOVERY RQ-04, written at the
+    generation's close). A reply written to Codex and never acknowledged
+    before the close is RS's "lost acknowledgement" limit, from
+    `acknowledgment_not_observed` (RQ-05). A request still open, or whose
+    reply could not be written, is not written. A settlement inside Codex by
+    the user's own Codex mode never reaches the App and is not recorded. None
+    is a human act. The request card says "when you quit" for a request
+    ended at a quit (NIR CS-7).
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, lapses since the last observation and then acts
     recorded since are written first, also for a run ended after a relaunch

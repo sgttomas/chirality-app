@@ -87,6 +87,17 @@ export function decisionForms(request: Json): { decision: Json; answer: Json }[]
   return [];
 }
 
+/** The register's entries, each ended-unanswered one with the context its
+ * Codex process ended in (`serverRequestEndContexts`; DEL-01-02's stop
+ * record), for CS-7's "when you quit". */
+export function hostRequests(host: Json): Json[] {
+  const contexts: Json[] = host?.serverRequestEndContexts ?? [];
+  return (host?.serverRequests ?? []).map((request: Json) => {
+    const known = contexts.find((c: Json) => JSON.stringify(c?.generation) === JSON.stringify(request?.generation) && JSON.stringify(c?.requestIdentity) === JSON.stringify(request?.requestIdentity));
+    return known ? { ...request, endContext: known.context } : request;
+  });
+}
+
 /** §4.4 card states, in the person's words, from the register entry. */
 export function cardState(request: Json): string {
   const origin = request?.settlement?.origin;
@@ -103,7 +114,7 @@ export function cardState(request: Json): string {
       return confirmed ? "You declined; written; Codex reported the request resolved" : "You declined; written to Codex; Codex has not confirmed it";
     case "settle-write-failed": return "Your answer could not be written; whether Codex received it is unknown";
     case "resolved-by-supplier": return `Resolved by Codex before you answered (cause: ${text(request?.supplierResolution?.cause) || "not reported"})`;
-    case "ended-unanswered": return "Ended unanswered: the Codex process ended";
+    case "ended-unanswered": return request?.endContext === "app-quit" ? "Ended unanswered: the Codex process ended when you quit" : "Ended unanswered: the Codex process ended";
     default: return `Register state ${text(request?.state) || "not reported"}`;
   }
 }

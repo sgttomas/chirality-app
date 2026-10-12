@@ -12,7 +12,7 @@ import { RunPanel, SelectedWorkflow, runBringBackDefault } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, requestThread } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -84,7 +84,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
     finally { setBusy(""); }
   };
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
-  const requests: Json[] = (host?.serverRequests ?? []).filter((request: Json) => selected && requestThread(request) === selected.threadId);
+  const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
   const ordered = [...requests.filter(answerable), ...requests.filter((request: Json) => !answerable(request))];
   const offers: Json[] = (host?.workflowRoot?.offers ?? []).filter((offer: Json) => selected && offer?.message?.threadId === selected.threadId);
   const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
@@ -761,7 +761,7 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
-      <WaitingRequestsIndicator requests={host?.serverRequests ?? []} open={openRequests} />
+      <WaitingRequestsIndicator requests={hostRequests(host)} open={openRequests} />
       <NativeConfirmationContent />
       <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
@@ -844,7 +844,7 @@ export function App() {
         <div id="other-requests">
           <h3>Requests outside the selected conversation</h3>
           <p>Requests of the selected conversation are shown beside it above. Select another conversation to answer its requests there.</p>
-          {(host?.serverRequests ?? []).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} />)}
+          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} />)}
         </div>
         <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
         <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>

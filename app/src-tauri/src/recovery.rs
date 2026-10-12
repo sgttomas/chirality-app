@@ -505,6 +505,10 @@ impl RecoveryLedger {
             });
             if state == "ended-unanswered" {
                 entry["transition"] = json!("RQ-04");
+                // RQ-04: the context the process ended in, as the register kept it at the close.
+                if let Some(context) = request["endContext"].as_str() {
+                    entry["context"] = json!(context);
+                }
             }
         }
         let later_error = request["classification"] == "known-answerable"

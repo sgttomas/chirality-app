@@ -16,7 +16,7 @@ const load=(name,local={})=>{
 };
 const activity=load('NativeActivity');
 const cards=load('RequestCards',{'./NativeActivity':activity});
-const {NativeRequestCard,WaitingRequestsIndicator,cardState,decisionForms,decisionWords,refusalWords,requestTitle,waitingByConversation,answerable}=cards;
+const {NativeRequestCard,WaitingRequestsIndicator,cardState,decisionForms,decisionWords,hostRequests,refusalWords,requestTitle,waitingByConversation,answerable}=cards;
 
 // Invented register records in the host shape (native_requests.rs records()).
 const g={appSession:'s',home:'h',spawnCounter:1};
@@ -90,6 +90,8 @@ test('card states use the person words for each register state (CS)',()=>{
     [{state:'settle-write-failed'},'Your answer could not be written; whether Codex received it is unknown'],
     [{state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved'}},'Resolved by Codex before you answered (cause: not reported)'],
     [{state:'ended-unanswered'},'Ended unanswered: the Codex process ended'],
+    [{state:'ended-unanswered',endContext:'app-quit'},'Ended unanswered: the Codex process ended when you quit'],
+    [{state:'ended-unanswered',endContext:'supplier-exit'},'Ended unanswered: the Codex process ended'],
     [{state:'errored',settlement:{origin:{class:'app-rule',ruleName:'no-dynamic-tools'}}},'Codex asked for something the App does not provide (item/commandExecution/requestApproval): answered with an error by rule no-dynamic-tools'],
   ];
   for(const [extra,words] of cases) assert.equal(cardState(entry(extra)),words);
@@ -128,4 +130,12 @@ test('the waiting indicator counts only requests that wait for the person, per c
   const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{requests:rs,open:()=>{}}));
   assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/conversation T: 3/);assert.match(html,/it answers nothing/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{requests:[],open:()=>{}})),/No requests from Codex are waiting/);
+});
+
+test('an ended request carries the context its process ended in, matched by generation and identity (CS-7)',()=>{
+  const generation={appSession:'s',home:'h',spawnCounter:1};
+  const host={serverRequests:[entry({requestIdentity:7,generation,state:'ended-unanswered'}),entry({requestIdentity:8,generation,state:'ended-unanswered'}),entry({requestIdentity:7,generation:{...generation,spawnCounter:2},state:'ended-unanswered'})],
+    serverRequestEndContexts:[{generation,requestIdentity:7,context:'app-quit'},{generation,requestIdentity:8,context:'supplier-exit'}]};
+  assert.deepEqual(hostRequests(host).map(cardState),['Ended unanswered: the Codex process ended when you quit','Ended unanswered: the Codex process ended','Ended unanswered: the Codex process ended']);
+  assert.deepEqual(hostRequests({}),[]);
 });
