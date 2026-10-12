@@ -9328,6 +9328,38 @@ for line in sys.stdin:
         assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]),"waiting after the lapse before the resume point");
         assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty(),"every entry is a conformant RS entry");
     }
+    // RC-8 / §2.4.3 "performed, with lapsed referents | CE-5" through the actual run and RS
+    // writer: after a lapse past the resume point, the person's act on the current content
+    // performs the arrival again (ordinal 2), a later agent action is its new resume point,
+    // nothing is sent, and the act records are not changed.
+    #[test]
+    fn checkpoint_lapse_then_act_on_current_content_performs_again_with_a_new_resume_point(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        let command=|id:&str,ms:i64|{let mut v=recorder_view(&peer,&[summary_items()[1].clone(),json!({"id":id,"type":"commandExecution","source":"agent","command":"ls","status":"inProgress"})]);
+            v["items"][2]["sourceFrame"]=json!({"method":"item/started","params":{"startedAtMs":ms}});v};
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        record_file_act(&peer,"out/summary.md","A7",b"v1","2026-09-21T15:00:00.000Z");
+        run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+        run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000)); // 15:36:40: the resume point
+        std::fs::write(&file,b"v2").unwrap();
+        run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000));
+        let next=record_file_act(&peer,"out/summary.md","A7",b"v2","2026-09-21T16:00:00.000Z");
+        let acts_before=std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap();
+        let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
+        run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000));
+        run.lock().unwrap().observe_checkpoints(&command("c2",1_790_010_000_000)); // 17:00: after the new act
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        let tail:Vec<&str>=kinds.iter().copied().skip_while(|k|*k!="act_lapsed").collect();
+        assert_eq!(tail,["act_lapsed","disposition_change","act_counted","disposition_change","run_resumed"],"{kinds:?}");
+        let counted=log.iter().filter(|e|e["kind"]=="act_counted").last().unwrap();assert_eq!(counted["body"]["act"]["recordId"],next.as_str());
+        let label=log.iter().filter(|e|e["kind"]=="disposition_change").last().unwrap();
+        assert_eq!((label["body"]["disposition"].as_str(),label["body"]["performanceOrdinal"].as_u64()),(Some("performed"),Some(2)));
+        assert_eq!(log.last().unwrap()["body"]["firstActionRef"],"item:thread/turn/c2");
+        assert_eq!((peer.wire().len(),peer.home.host.client_requests().len()),(wire,requests),"recording sends nothing (RC-4)");
+        assert_eq!(std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap(),acts_before,"act records are not changed");
+        assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty());
+    }
     // B-1 through the person's End run: the end's own observation delivers the agent's first
     // action after the act while the file has also changed. The resume point is written first,
     // the lapse is *after resume* and the arrival stays performed, so run_ended lists nothing.

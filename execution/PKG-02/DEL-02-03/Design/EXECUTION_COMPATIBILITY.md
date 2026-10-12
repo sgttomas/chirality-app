@@ -601,8 +601,9 @@ correction relations; an unrelated file-naming record is an unresolvable limit,
 not an act. No App act binds an agent message, so an AW-6 arrival remains waiting.
 While the run is live, CE-10 is recorded for the App-file acts that answer an
 arrival's latest performance, with the before- and after-resume labels of
-§2.4.3. Later acts on decided arrivals (§4.6), including an act on lapsed
-referents after the resume point, and lapses and acts after run end (CE-10 *after
+§2.4.3, and an act on the current content of a referent lapsed after the resume
+point performs the arrival again (RC-8, JA-1). Other later acts on decided
+arrivals (§4.6), and lapses and acts after run end (CE-10 *after
 run end*, CE-16) are not yet recorded: the App does not observe a run after its
 end. While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
 name its conversation and CE-14 for a later readable recovery read; a deciding
@@ -661,7 +662,14 @@ observation is not written again. After a lapse,
 acts count against the content the latest determinate lapse read; an act already
 cited for the arrival, such as one recorded "act on other content", is not
 reconsidered when the content later becomes the content it was made on (§4.6, the
-first decides). These interpretations
+first decides). A performed arrival whose latest known lapse, after its resume
+point, is *lapsed* (not *subject absent* or back at c₀) is answered again by the
+first act in capture order of the required kind on the content the lapse read,
+whatever its capture time (SP-6; "by earlier act" when before the arrival); it
+alone answers the single App referent (JA-1). Acts of another kind or on other
+content and declines are not recorded against it, since it is not *waiting*; the
+optional CE-12 is not written for it ("unchanged"). Its new resume point is the
+first run action started at or after the new act's capture (A-9). These interpretations
 remain disclosed pending governing treatment; they add no acceptance rule.
 
 #### 2.4.3 Transition table (per arrival, current phase)

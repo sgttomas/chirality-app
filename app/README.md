@@ -384,7 +384,11 @@ writes records or operates the act control." `src-tauri/` holds that host;
     lapsed at ‹t›" (and "subject absent"), and an act on the content now
     current performs it again with the next ordinal; after it, the arrival
     stays *performed* with "act lapsed at ‹t›" and nothing re-holds (RC-8,
-    PH-8). A file that cannot be read is *unknown (unavailable)*, and content
+    PH-8); then an act of the required kind on the content now current,
+    whatever its capture time (SP-6), performs it again with the next ordinal
+    and answers it alone (one referent, JA-1), and the first agent action
+    started after that act is a new resume point. Other acts and declines are
+    not recorded against the still *performed* arrival. A file that cannot be read is *unknown (unavailable)*, and content
     back at the acted content "matches c0 again after observed lapse"; both
     are written without changing the label (A-10; RS U-12). A repeated
     observation is not written again; a lapse whose label was not written
@@ -420,8 +424,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
     relaunch the custody events of the session that ended are gone, and the
     run gets RS's "App-restart interruption" limit instead) and, since it observes
     no run after its end, no after-end lapse or act (CE-10 *after run end*,
-    CE-16). An act on lapsed content after the resume point is not recorded
-    against the still *performed* arrival. A path is compared as text
+    CE-16). A path is compared as text
     (U-E26). Recording follows the active home's view while the App
     refreshes, and when the person ends the run. Each declared output shows its
     promise apart from its standing facets (AS §8), which come only from the
