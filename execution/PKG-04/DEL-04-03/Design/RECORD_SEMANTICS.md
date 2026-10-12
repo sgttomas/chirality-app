@@ -1494,13 +1494,13 @@ they are, the App writes the §13.7 paths.
   App-written connector route accounts (DEL-07-02) stay in the project until
   the owner decides whether they join the store (U-STORE-6).
 - **Units written together.** Entries that must stand together, such as an
-  arrival's act and its label, a lapse and its label, or a batch of request
+  `act_counted` entry and its label, a lapse and its label, or a batch of request
   endings, are written as one line that holds the group. The reader accepts a
   group whole or reports it as a limit; it never reads half a group. The
   group form is defined with the schema (§13.2–§13.3), and single-entry lines
   stay valid. Groups are single-writer, since logs are per run and writer.
-  This changes R-2 ("one entry per line") and W-1's one-line write to "one
-  entry or one group per line".
+  When implemented, R-2 ("one entry per line") and W-1's one-line write read
+  "one entry or one group per line".
 - **Tamper-evidence (proposed option).** Each line carries the content
   identity of the preceding complete line of its log, with its method
   designation. A line that W-0 terminated after a torn write (FC-2) is not a
@@ -1510,7 +1510,7 @@ they are, the App writes the §13.7 paths.
   as a limit and never repairs it. Signing depends on the App being signed:
   the owner accepted SEAL-C's residual "until signing" on 2026-10-11, and the
   key moves to the OS keychain at signing (AAC §6.3; OI-011). Whether
-  checkpoints share SEAL-C's key, and SEAL-2/U-32, are settled there. The
+  checkpoints share SEAL-C's key, and SEAL-2/U-32, are decided there. The
   strength required, and any external anchoring, remain the owner's decision
   (U-STORE-3).
 - **Derived index.** A SQLite database in the store, built only from the
@@ -1531,7 +1531,10 @@ they are, the App writes the §13.7 paths.
   implicit copy) into the store as byte-identical copies verified against
   their content identity. After import the store copy is the owning log and
   the original is a legacy source: R-1 counts each record identity once and
-  treats neither copy as pending or as a duplicate. The App never rewrites or
+  treats neither copy as pending or as a duplicate. For imported copies this
+  qualifies §13.7's explicit-end rule that an exact copy found only in another
+  log stays pending. An original that no longer matches its imported copy is
+  reported as a limit, and the store copy governs. The App never rewrites or
   deletes the originals, and a storage-path change is not a migration of their
   meaning.
 - **Agent access.** The store sits outside the agent's writable workspace.
