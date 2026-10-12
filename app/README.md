@@ -19,6 +19,32 @@ act. The web view presents, and sends only what the person initiates. It never
 writes records or operates the act control." `src-tauri/` holds that host;
 `src/` holds the web view.
 
+## Developer start
+
+This is the development App; the published fallback remains v3.0.1 in
+[chirality-app](https://github.com/sgttomas/chirality-app). Build commands below
+run from `projects/chirality-app-v4/app/` in the Chirality repository.
+
+Use Rust **1.97.1**, Node **24** and Python **3**. These Rust and Node versions
+match [App v4 CI](../../../.github/workflows/app-v4.yml). Install dependencies
+with `npm ci` when downloads are authorized, or use the prepared-cache route in
+[Offline build and checks](#offline-build-and-checks).
+
+```sh
+npm ci
+npm run build
+(cd src-tauri && cargo build --locked)
+(cd src-tauri && python3 schemas/sync.py)
+```
+
+Before running supplier-dependent checks, prepare the complete stock Codex
+0.160.0 platform package and set the binary path and expected hash as described
+in [Offline build and checks](#offline-build-and-checks). For a development
+launch, follow [Run the development App](#run-the-development-app), including
+its scratch workspace and Codex home. The offline stand-in does not run a model
+turn. [Storage and remaining work](#storage-and-remaining-work) states the
+implemented behavior and qualification limits.
+
 ## Current path
 
 1. The Rust host starts the stock App Server, completes its handshake and keeps
@@ -604,9 +630,11 @@ writes records or operates the act control." `src-tauri/` holds that host;
 
 ## Offline build and checks
 
-Use Rust 1.92, Node 24 and prepared Cargo/npm caches. Set `CARGO_HOME` if the
-approved dependency cache is isolated; its machine-local recovery path is in
-this run's evidence. Package downloads require the owner's authorization.
+Use Rust 1.97.1, Node 24, Python 3 and prepared Cargo/npm caches. Set
+`CARGO_HOME` to the dependency cache you prepared if it is isolated. The offline
+commands require those caches to contain the locked dependencies; use the
+[developer start](#developer-start) to prepare dependencies when downloads are
+authorized.
 
 ```sh
 npm install --offline --no-audit --no-fund --ignore-scripts
