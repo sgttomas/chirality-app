@@ -13,6 +13,7 @@ pub mod canonical;
 pub mod capture_seal;
 pub mod catalog;
 mod checkpoint_recorder;
+mod model_turn_recorder;
 pub mod codex_stop;
 mod app_quit;
 pub mod conversation_roles;

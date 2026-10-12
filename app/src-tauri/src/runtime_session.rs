@@ -4816,6 +4816,7 @@ impl WorkflowRootSession {
             checkpoints: None,
             act_cache: None,
             run_tag: Value::Null,
+            model_turns: Default::default(),
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -6233,6 +6234,8 @@ pub(crate) struct WorkflowRun {
     /// EXEC A-2 / RECOVERY §4.1: the REC run tag written at `run_opened` (durable,
     /// or held in this run's memory only, with the reason).
     run_tag: Value,
+    /// RS R5 / HOSTING §8.3: the run's `model_turn` entries (per turn, and thread reports).
+    model_turns: crate::model_turn_recorder::ModelTurnRecorder,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -6314,6 +6317,7 @@ impl WorkflowRun {
             "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
             "compatibility":self.compatibility_view(),
             "checkpointRecorder":self.checkpoints.as_ref().map(crate::checkpoint_recorder::CheckpointRecorder::view),
+            "modelTurns":self.model_turns.view(),
             "workflow":{"origin":self.prepared().workflow().origin,"name":self.prepared().workflow().name,"revision":self.prepared().workflow().revision,"sourceRoot":self.prepared().workflow().source_root},
             "home":self.prepared().scope().home,"generation":self.prepared().scope().generation,
             "runTag":self.run_tag,
@@ -6757,6 +6761,23 @@ impl WorkflowRun {
             }
         }
     }
+    /// RS R5 (HOSTING §8.3): the `model_turn` entries this view shows are due,
+    /// queued in order; written with the run's other entries. Records only.
+    fn observe_model_turns(&mut self, view: &Value) {
+        let scope = self.prepared().scope().clone();
+        let start = self.start_in(view);
+        let bodies = self.model_turns.observe(view, &crate::model_turn_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, start_spawn: scope.generation["spawnCounter"].as_u64().unwrap_or(0) });
+        let queued = !bodies.is_empty();
+        self.push_model_turns(bodies);
+        // With a checkpoint recorder the observation flushes them below.
+        if queued && self.checkpoints.is_none() {
+            self.flush_records();
+        }
+    }
+    fn push_model_turns(&mut self, bodies: Vec<Value>) {
+        let observed_at = crate::util::now_rfc3339();
+        self.push_recorder_outputs(bodies.into_iter().map(|body| ("model_turn", body)).collect(), &observed_at);
+    }
     /// The run's entries as the recorder reads them (`kind`, `body`).
     fn recorded_bodies(&self) -> Vec<Value> {
         self.entries.iter().map(|e| json!({"kind":e.kind,"body":e.body})).collect()
@@ -6767,6 +6788,7 @@ impl WorkflowRun {
         if self.lifecycle != RunLifecycle::Open {
             return;
         }
+        self.observe_model_turns(view);
         let Some(mut recorder) = self.checkpoints.take() else { return };
         let scope = self.prepared().scope().clone();
         let start = self.start_in(view);
@@ -6822,6 +6844,8 @@ impl WorkflowRun {
         // last observation, then CE-17: the arrivals whose recorded disposition is
         // still *waiting*. The person's end is never refused for unreadable act
         // records (A-11): a limit naming them and why is written before run_ended.
+        let ended_turns = self.model_turns.end();
+        self.push_model_turns(ended_turns);
         let outputs = crate::checkpoint_recorder::end_observations(&self.recorded_bodies(), &self.project_root);
         if !outputs.is_empty() {
             self.push_recorder_outputs(outputs, &crate::util::now_rfc3339());
@@ -7374,6 +7398,17 @@ for line in sys.stdin:
     emit({'method':'item/started','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
     emit({'method':'item/completed','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
    continue
+  if mode('notify-mode') in ('reroute','ended'):
+   # HOSTING §8.3: the turn's user message, an optional model/rerouted naming the turn, then its end.
+   emit({'id':f['id'],'result':result})
+   tid=f['params']['threadId'];uid=result['turn']['id']
+   item={'id':uid+'-user','type':'userMessage','content':[]}
+   emit({'method':'item/started','params':{'threadId':tid,'turnId':uid,'item':item}})
+   emit({'method':'item/completed','params':{'threadId':tid,'turnId':uid,'item':item}})
+   if mode('notify-mode')=='reroute':
+    emit({'method':'model/rerouted','params':{'threadId':tid,'turnId':uid,'fromModel':'fixture-model','toModel':'fixture-safe-model','reason':'highRiskCyberActivity'}})
+   emit({'method':'turn/completed','params':{'threadId':tid,'turn':{'id':uid,'status':'completed','items':[],'error':None}}})
+   continue
   if mode('notify-mode')=='spawn':
    emit({'id':f['id'],'result':result})
    item={'id':'spawn-old','type':'collabAgentToolCall','status':'completed','tool':'spawnAgent','senderThreadId':f['params']['threadId'],'receiverThreadIds':['child-old'],'agentsStates':{'child-old':{'status':'running'}}}
@@ -7691,6 +7726,41 @@ for line in sys.stdin:
         let results=trial_flows::perform_trial_reads(&peer.home,due);
         root.lock().unwrap().apply_trial_reads(results)
     }
+    // RS R5 / HOSTING §8.3 through the owned peer, the host's record tick and the
+    // run's RS writer: the run-start turn is rerouted (model/rerouted names it), a
+    // later turn has no report and reads unknown, the thread report sits beside
+    // them with scope thread, each is written once, all before run_ended.
+    #[test]
+    fn model_turn_entries_record_each_turn_and_the_reroute_through_the_record_tick(){
+        let peer=Peer::new();peer.set_mode("notify-mode","reroute");
+        let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let workflows=Mutex::new(root);let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let model_turns=||rs_for(&peer,&a).into_iter().filter(|e|e["kind"]=="model_turn").map(|e|e["body"].clone()).collect::<Vec<_>>();
+        let until=|count:usize|{let deadline=std::time::Instant::now()+Duration::from_secs(5);
+            while model_turns().len()<count&&std::time::Instant::now()<deadline{crate::host_tick::tick(&homes,&workflows);std::thread::sleep(Duration::from_millis(20));}};
+        until(2);
+        let first=model_turns();
+        assert_eq!(first.len(),2,"{first:?}");
+        assert_eq!(first[0]["scope"],"thread");assert!(first[0].get("turn").is_none());
+        assert_eq!(first[0]["requested"],first[0]["effective"],"the fixture reports the requested model for the thread: {}",first[0]);
+        assert_eq!(first[0]["requested"],"fixture-provider/fixture-model","the App's thread/start request: {}",first[0]);
+        assert_eq!(first[1],json!({"turn":1,"scope":"turn","requested":first[0]["requested"],"effective":"fixture-safe-model","reroute":true,"destinationClass":"unknown"}));
+        // A second turn of the run with no report.
+        peer.set_mode("notify-mode","ended");peer.set_mode("turn-id","turn-2");
+        peer.home.host.turn_start_text(&peer.generation,"thread","next").unwrap();
+        until(3);
+        let bodies=model_turns();
+        assert_eq!(bodies.len(),3,"{bodies:?}");
+        assert_eq!(bodies[2],json!({"turn":2,"scope":"turn","requested":first[0]["requested"],"effective":"unknown","reroute":false,"destinationClass":"unknown"}),"never filled from the thread or an earlier turn");
+        for _ in 0..3{crate::host_tick::tick(&homes,&workflows);}
+        assert_eq!(model_turns().len(),3,"no duplicates on later ticks");
+        workflows.lock().unwrap().runs[&a].clone().lock().unwrap().end_run(None,None).unwrap();
+        let kinds=kinds_for(&peer,&a);
+        assert_eq!(kinds.last().map(String::as_str),Some("run_ended"));
+        assert_eq!(kinds.iter().filter(|k|*k=="model_turn").count(),3,"nothing added at the end: every turn already ended {kinds:?}");
+        // Every entry was validated by the RS writer (W-1); the log reads complete.
+        assert!(peer.fixture.rs_entries().iter().all(|e|e["formatVersion"].is_string()));
+    }
     // OI-008: observations are recorded by the host's own tick with no host_status
     // call, and host_status's workflow part records nothing.
     #[test]
@@ -7713,7 +7783,8 @@ for line in sys.stdin:
         let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
         crate::host_tick::tick(&homes,&workflows);
         let after=kinds_for(&peer,&a);
-        assert_eq!(&after[5..],["checkpoint_arrival","disposition_change"],"{after:?}");
+        // The same tick also records the conversation's thread-level model report (RS R5, scope thread).
+        assert_eq!(&after[5..],["model_turn","checkpoint_arrival","disposition_change"],"{after:?}");
         crate::host_tick::tick(&homes,&workflows);
         assert_eq!(kinds_for(&peer,&a).len(),after.len(),"recorded once");
         // host_status itself no longer drives the recorder.
@@ -9381,7 +9452,9 @@ for line in sys.stdin:
         let mut view=recorder_view(&peer,&[summary_items()[1].clone(),json!({"id":"c1","type":"commandExecution","source":"agent","command":"ls","status":"inProgress"})]);
         view["items"][2]["sourceFrame"]=json!({"method":"item/started","params":{"startedAtMs":1_790_010_000_000i64}}); // 17:00, after the act
         root.end_plain(&a,&view).unwrap();
-        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        // The checkpoint entries' order; the run's live turn also gets its RS R5
+        // `model_turn` at the end, which is not a checkpoint entry.
+        let log:Vec<Value>=rs_for(&peer,&a).into_iter().filter(|e|e["kind"]!="model_turn").collect();let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
         assert_eq!(&kinds[kinds.len()-4..],["run_resumed","act_lapsed","disposition_change","run_ended"],"{kinds:?}");
         assert!(!kinds.contains(&"continued_past"));
         assert_eq!(log[kinds.len()-3]["body"]["when"],"after resume");assert_eq!(log[kinds.len()-2]["body"]["disposition"],"performed");

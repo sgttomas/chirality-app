@@ -547,6 +547,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
 | `src-tauri/src/hosting_recovery_reads.rs`, `execution_custody.rs` | Recovery after a restart (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22; SR-09): the reads on the home's ready process, `observation_lost`/`observation_recovered`/`turn_outcome`, and the conversations' recovery states in the ledger; run on the host's trial tick or on the person's retry |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |
+| `src-tauri/src/model_turn_recorder.rs` | RS R5 `model_turn` entries (HOSTING §8.3): thread-scope reports and one entry per run turn, effective only from a `model/rerouted` naming the turn; observes `native_items.rs`'s `modelReroutes` and the host's thread rows; never reacts |
 | `src-tauri/src/run_restart.rs`, `run_restart_tests.rs` | EXEC §2.7 / RECOVERY §4.1: the REC run tag at `run_opened` (owner `DEL-02-03`) and the host's startup writer of RS "App-restart interruption" limits; tests also cover WR TX-5 / SQ-END end notices after relaunch and (j) permanent refusals |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
@@ -738,7 +739,27 @@ replaced arrivals (CE-15, which follows only from A5
 items), anything after the run's end (CE-10 *after run end*, CE-16), or output
 records. An output gated by a checkpoint shows that checkpoint's recorded act
 standing, *lapsed* included; an observation loss or recovery still makes an
-output's facets unknown. Conversation roles (item 24)
+output's facets unknown.
+
+Each run also records RS R5 `model_turn` entries (HOSTING §8.3), through the
+same writer and the host's record tick. The host keeps `model/rerouted`
+notifications as observations; it changes nothing it sends. Every thread-level
+report of the run's conversation (thread start, resume or fork, from the run's
+generation on) is written with scope *thread* and no turn. Each turn of the
+run (the conversation's turns from the start turn on, observed live while the
+run is open) gets one entry with its ordinal in the run, written when the turn
+is observed to end, or at the run's end before `run_ended` for a turn still
+live. `requested` is the provider and model the App asked for at thread
+start (*unknown* for a conversation it did not start in this session).
+`effective` comes only from a `model/rerouted` naming that turn (`reroute`
+true), otherwise *unknown*, never from the thread or an earlier turn. A
+re-route received after its turn's entry was written is a further entry for
+that turn. The destination class is DEL-01-05's mapping of the access entry,
+known only for the conversation the home last started (otherwise *unknown*).
+The re-route's reason and the native turn identity have no place in the entry
+body. Nothing is recorded after the run's end.
+
+Conversation roles (item 24)
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 

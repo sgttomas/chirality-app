@@ -107,6 +107,9 @@ pub struct NativeView {
     descendants: BTreeMap<String, Value>,
     goals: BTreeMap<String, Value>,
     checklist_gaps: Vec<Value>,
+    /// HOSTING §8.3: `model/rerouted` notifications received live, in receipt
+    /// order (read-only observations; nothing is sent in reply).
+    reroutes: Vec<Value>,
     /// Order in which this view first received each item; a receipt reading,
     /// not a native sequence or a claim about when Codex produced the item.
     next_order: u64,
@@ -131,6 +134,7 @@ impl NativeView {
             descendants: BTreeMap::new(),
             goals: BTreeMap::new(),
             checklist_gaps: Vec::new(),
+            reroutes: Vec::new(),
             next_order: 0,
         })
     }
@@ -318,6 +322,13 @@ impl NativeView {
             }
             Some("turn/started" | "turn/completed") => {
                 self.turn(text(p, "threadId")?, &p["turn"], false)?;
+            }
+            Some("model/rerouted") => {
+                // HOSTING §8.3 (0.160.0 ModelReroutedNotification): a supplier
+                // report naming its thread and turn. Observed only.
+                let field = |name: &str| text(p, name).map(str::to_owned);
+                self.reroutes.push(json!({"threadId":field("threadId")?,"turnId":field("turnId")?,"fromModel":field("fromModel")?,"toModel":field("toModel")?,
+                    "reason":p["reason"],"generation":g,"receiptPosition":pos,"standing":"live-observed"}));
             }
             Some("thread/goal/updated") => {
                 self.goals.insert(
@@ -636,6 +647,7 @@ impl NativeView {
         json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
             "turns":self.turns.values().collect::<Vec<_>>(),
+            "modelReroutes":self.reroutes,
             "turnRecords":self.turns.keys().map(|(thread,turn)|json!({"threadId":thread,"turnId":turn})).collect::<Vec<_>>(),"typesPin":self.types_pin,"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})
     }
@@ -966,6 +978,17 @@ mod tests {
         frame(&mut v, 9, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"interrupted"}}));
         assert_eq!(row(&v, "c")["displayState"], "not-completed");
         assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
+    }
+    // HOSTING §8.3: `model/rerouted` (0.160.0 ModelReroutedNotification) is kept
+    // as a live observation naming its thread and turn; a malformed one is refused.
+    #[test]
+    fn model_rerouted_is_observed_with_its_turn_and_receipt() {
+        let mut v = view();
+        frame(&mut v, 3, "model/rerouted", json!({"threadId":"t","turnId":"u","fromModel":"a","toModel":"b","reason":"highRiskCyberActivity"}));
+        assert_eq!(v.snapshot()["modelReroutes"], json!([{"threadId":"t","turnId":"u","fromModel":"a","toModel":"b","reason":"highRiskCyberActivity","generation":g(1),"receiptPosition":3,"standing":"live-observed"}]));
+        let refused = v.consume(&json!({"generation":g(1),"position":4,"frame":{"method":"model/rerouted","params":{"threadId":"t","fromModel":"a","toModel":"b"}}}));
+        assert!(refused.is_err_and(|e| e.contains("turnId")));
+        assert_eq!(v.snapshot()["modelReroutes"].as_array().unwrap().len(), 1);
     }
     #[test]
     fn a_stale_history_page_never_overwrites_newer_live_state() {
