@@ -1539,8 +1539,18 @@ they are, the App writes the §13.7 paths.
   reported as a limit, and the store copy governs. The App never rewrites or
   deletes the originals, and a storage-path change is not a migration of their
   meaning.
-- **Agent access.** The store sits outside the agent's writable workspace.
-  Whether agents may also read it is the owner's decision (U-STORE-4).
+- **Agent access** (owner, 2026-10-12: "I choose option B"). The store sits
+  outside the agent's writable workspace. The App gives agents a read-only
+  records capability scoped to the current project, which they use when the
+  person or the workflow directs them to rebuild context. The App decides what
+  it returns: never keys and never another project's records. It marks what
+  it returns as quoted evidence, not authority (OF-2), and records each read.
+  Codex 0.160.0's sandbox cannot exclude paths from reading (its
+  `SandboxPolicy` limits writes and network only), so direct file reads stay
+  possible. Guidance treats the capability as the way to read records, and
+  the limit is stated. The capture-seal key leaving its readable file for the
+  OS keychain (AAC §6.3; OI-011) is what closes the forgery path that
+  readable keys open.
 - **Failures.** An unreadable store, or an unwritable owning log, refuses new
   recording visibly (W-0, W-2) and reports what is pending. There is no
   fallback to a project path, another store or memory.
@@ -1856,7 +1866,7 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-STORE-1 Records retention, disposition and legal hold | Owner, with privacy | Before any deletion or archive feature | Retain everything; no deletion offered (§13.8) |
 | U-STORE-2 Library standing across installations, and whose signature counts | Owner, with DEL-02-02 | Before libraries are shared between installations | Library evidence stays with the library (§13.8) |
 | U-STORE-3 Tamper-evidence strength and external anchoring | Owner | Before signed checkpoints are built | Hash chain; checkpoint signing after App signing (§13.8; OI-011) |
-| U-STORE-4 Agent read access to the records store | Owner | Before the store move ships | Outside the writable workspace; reads not further restricted |
+| U-STORE-4 *Decided 2026-10-12:* agent reads through an App-provided, project-scoped, read-only records capability (owner: "I choose option B") | — | — | Direct file reads cannot be prevented under Codex 0.160.0; the limit is stated (§13.8) |
 | U-STORE-5 Backup and export package format | Owner | Before export/import is built | Configurable store location; candidate signed manifest |
 | U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)") | — | — | App-written coordination log and connector accounts join the store; briefs and graphs stay in the project (§13.8) |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
