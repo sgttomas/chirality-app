@@ -1490,9 +1490,11 @@ they are, the App writes the §13.7 paths.
 - **Workflow libraries.** A15 library acts and their capture evidence stay
   with the library (§13.7 rows) until the owner decides how library standing
   is verified across installations (U-STORE-2).
-- **Not yet in the store.** Fleet coordination files (DEL-06-01 FR-D3) and
-  App-written connector route accounts (DEL-07-02) stay in the project until
-  the owner decides whether they join the store (U-STORE-6).
+- **Split by who writes** (owner, 2026-10-12: "Split by who writes (Recommended)"). Records the App writes join the
+  store: the fleet coordination log (DEL-06-01 `coordination.fleet.jsonl`)
+  and connector route accounts (DEL-07-02). Working files that the person and
+  agents edit with ordinary tools stay in the project: fleet briefs and graphs
+  (DEL-06-01 FR-D1, FR-D3).
 - **Units written together.** Entries that must stand together, such as an
   `act_counted` entry and its label, a lapse and its label, or a batch of request
   endings, are written as one line that holds the group. The reader accepts a
@@ -1856,7 +1858,7 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-STORE-3 Tamper-evidence strength and external anchoring | Owner | Before signed checkpoints are built | Hash chain; checkpoint signing after App signing (§13.8; OI-011) |
 | U-STORE-4 Agent read access to the records store | Owner | Before the store move ships | Outside the writable workspace; reads not further restricted |
 | U-STORE-5 Backup and export package format | Owner | Before export/import is built | Configurable store location; candidate signed manifest |
-| U-STORE-6 Whether fleet coordination files and App connector accounts join the store | Owner, with DEL-06-01 and DEL-07-02 | Before the store move ships | They stay in the project |
+| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)") | — | — | App-written coordination log and connector accounts join the store; briefs and graphs stay in the project (§13.8) |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
 | U-21 Host-loop per-turn guidance identities | Host owner (relay) | Before connected integration | R3 *unknown* where absent |
