@@ -10,7 +10,9 @@ in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and accepta
 criteria, `Design/` holds contracts and open implementation conditions, and
 `deliverable.yaml` states needs and code/check pointers. Query their inputs and
 consumers with the [deliverables tools](../../tools/deliverables/README.md).
-The [App README](app/README.md) describes the current product path and checks.
+For the toolchain, build and launch instructions, start with the
+[App developer start](app/README.md#developer-start). The rest of that README
+describes the current product path, checks and remaining qualification limits.
 
 The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
 applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)

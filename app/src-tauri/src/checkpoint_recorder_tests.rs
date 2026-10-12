@@ -1580,3 +1580,28 @@ fn a_reply_never_acknowledged_is_a_lost_acknowledgement() {
     let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
     assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "written once");
 }
+
+// The act read is kept while no act record and no capture it read has changed; then it
+// equals a fresh read. A new act, or a capture changed on disk, makes it read again.
+#[test]
+fn the_act_read_is_kept_only_while_its_records_and_captures_are_unchanged() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", "2026-09-21T14:13:21.000Z");
+    let fresh = |root: &std::path::Path| { forget_act_read_for_test(); project_act_records(root).unwrap() };
+    let first = project_act_records(&root).unwrap();
+    assert_eq!(first.acts.len(), 1);
+    crate::records::append_project(&root, Some("run:cache"), "app-writer:local", "evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"x"})).unwrap();
+    let kept = project_act_records(&root).unwrap();
+    assert_eq!(format!("{kept:?}"), format!("{:?}", fresh(&root)), "a run entry leaves the act read as a fresh read finds it");
+    act(&root, "A7", &file, "v1", "2026-09-21T14:13:22.000Z");
+    assert_eq!(project_act_records(&root).unwrap().acts.len(), 2, "a new act record is read");
+    let capture = crate::storage::capture_path(&root, first.acts[0]["capture"]["captureId"].as_str().unwrap());
+    let mut bytes: Value = serde_json::from_slice(&std::fs::read(&capture).unwrap()).unwrap();
+    bytes["purpose"] = json!("Another purpose.");
+    std::fs::write(&capture, serde_json::to_vec(&bytes).unwrap()).unwrap();
+    let changed = project_act_records(&root).unwrap();
+    assert_eq!((changed.acts.len(), changed.unresolved.len()), (1, 1), "a changed capture is verified again: {changed:?}");
+    assert_eq!(format!("{changed:?}"), format!("{:?}", fresh(&root)));
+    std::fs::remove_dir_all(root).unwrap();
+}

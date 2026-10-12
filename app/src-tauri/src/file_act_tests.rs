@@ -476,3 +476,30 @@ fn file_act_publication_stage_helper_does_not_change_legacy_create_json() {
         std::fs::read(&new).unwrap()
     );
 }
+
+// Review R10 F1 probe: a file act is recorded, then the act log is torn. The next
+// capture is recorded (the act control's writer runs RS W-0 on its own log: the
+// torn bytes kept and named), the log is newline-closed again, and the act read
+// is not left incomplete.
+#[test]
+fn probe_r10_torn_act_log_tail() {
+    let mut f = Fixture::new();
+    let (offer, event) = f.ready(FileActKind::Rely, false);
+    assert_eq!(f.control.consume_file_event(&offer, event).unwrap()["state"], "AC-7 recorded");
+    let log = f.root.join(LOG);
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(b"{\"torn");
+    std::fs::write(&log, &bytes).unwrap();
+    let (offer, event) = f.ready(FileActKind::Check, false);
+    let out = f.control.consume_file_event(&offer, event).unwrap();
+    assert_eq!(out["state"], "AC-7 recorded", "{out}");
+    let after = std::fs::read(&log).unwrap();
+    assert!(after.starts_with(&bytes) && after.ends_with(b"\n"), "the torn bytes kept; the log closed again");
+    let (entries, limits) = crate::records::read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.iter().map(|e| e["kind"].as_str().unwrap()).collect::<Vec<_>>(), ["human_act", "evidence_limit", "human_act"]);
+    assert_eq!(entries[1]["body"]["label"], crate::records::PARTIAL_NOT_RECOVERED);
+    let read = crate::checkpoint_recorder::project_act_records(&f.root);
+    assert!(read.is_ok(), "{read:?}");
+    assert_eq!(f.entries().len(), 3);
+}

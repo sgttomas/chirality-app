@@ -128,6 +128,20 @@ fn folder_for(root: &Path) -> Result<PathBuf, String> {
     }
     Ok(folder)
 }
+/// What verifying a capture of `root` depends on besides the capture itself:
+/// the key folder in use and the identity, size, times (modified, changed), owner and mode of the
+/// folder and its key file. An act read kept across calls is read again when
+/// this changes (a key added, a folder moved, permissions changed).
+pub(crate) fn verification_basis(root: &Path) -> String {
+    let describe = |p: &Path| match std::fs::symlink_metadata(p) {
+        Ok(m) => format!("{}:{}:{}:{}:{}:{}:{}:{}:{:o}", m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec(), m.uid(), m.mode()),
+        Err(e) => e.to_string(),
+    };
+    match folder_for(root) {
+        Ok(folder) => format!("{}|{}|{}", folder.display(), describe(&folder), describe(&folder.join(KEY_FILE))),
+        Err(e) => format!("no key folder: {e}"),
+    }
+}
 fn uid() -> u32 {
     unsafe { libc::geteuid() }
 }
