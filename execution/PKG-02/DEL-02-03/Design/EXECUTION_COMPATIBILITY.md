@@ -610,10 +610,12 @@ loss names no arrival and writes no *unknown* label, because which arrival a los
 production would have been is not established. A loss or recovery of an App
 session that ended (a relaunch) is not recorded, and AW-12's "the named item never
 completes (`turn/completed` *interrupted* or *failed*)" without a process loss
-writes no CE-13. Outputs gated by a lapsed act do
-not yet show standing *lapsed* (PH-8, RH-1): the run panel's facets read
-*unknown* once the record holds `act_lapsed` or any other entry they do not
-read. Host-operation
+writes no CE-13. An output that declares a gating checkpoint shows, in its
+human-act facet, the act standing the record holds for that checkpoint's latest
+arrival, including *lapsed* (PH-8, RH-1; AS OV-5); with no `act_lapsed` it reads
+"no lapse recorded", never *not lapsed*. An output with no gating checkpoint
+shows *unknown* acts once an act entry concerns an arrival bound to it, and an
+observation loss or recovery still makes every facet *unknown*. Host-operation
 and host-outcome arrivals stay not evaluable without mapping (ADAPTER NM-2),
 so no CE-7 arises; an empty waiting list establishes no wider completeness.
 

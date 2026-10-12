@@ -149,10 +149,64 @@ test('an arrival bound to an output is evidence of where it was put, never a sta
   assert.equal(facets.hostChecks,'none reported');
   // Another output keeps "missing"; a disposition other than waiting, or an unreadable body, reads unknown.
   assert.ok(outputStanding({name:'examination-report'},run({lifecycle:{state:'open',records:bound}})).evidence.startsWith('missing'));
+  // An act-related label at an arrival bound to an output that declares no gating checkpoint:
+  // its human-act facet is unknown; the other facets keep their rules (AS §8).
   const performed=outputStanding(output,run({lifecycle:{state:'open',records:[...bound,disposition('CP-sum',1,'performed')]}}));
-  assert.ok(Object.values(performed).every(v=>v.startsWith('unknown')),JSON.stringify(performed));
+  assert.ok(performed.humanActs.startsWith('unknown: acts are recorded at an arrival bound to summary, which declares no gating checkpoint'),performed.humanActs);
+  assert.equal(performed.hostChecks,'none reported');assert.ok(performed.evidence.startsWith('observed in the conversation only'));
   const bodiless=outputStanding(output,run({lifecycle:{state:'open',records:record(['run_opened','checkpoint_arrival'])}}));
   assert.ok(Object.values(bodiless).every(v=>v.startsWith('unknown')));
+});
+
+test('an output gated by a checkpoint shows that checkpoint’s act standing from the record (AS §8 Human acts, OV-5)',()=>{
+  const gated={name:'summary',form:'file',gating_checkpoint:'CP-rely',promised_standing:['relied on by the person']};
+  const at={checkpoint:'CP-rely',arrivalOrdinal:1};
+  const act=(id,time)=>({recordId:id,actKind:'A7',capturedAt:time,capturingSurface:'app_act_control'});
+  const c0={method:'chirality.app.exact-bytes.sha256/v1',value:'00000000000000aa'},c1={method:'chirality.app.exact-bytes.sha256/v1',value:'11'};
+  const a=arrival('CP-rely',1,'item:thread/turn/f1','output summary: file out/summary.md');
+  const counted=(id,time,relation='after arrival')=>entry('act_counted',{arrival:at,act:act(id,time),relation,referents:['output summary: file out/summary.md']});
+  const performed=(ids,ordinal=1,annotations=[])=>entry('disposition_change',{arrival:at,disposition:'performed',performanceOrdinal:ordinal,answeredBy:ids,annotations});
+  const lapse=(state,time,over={})=>entry('act_lapsed',{act:act('rec:app:rely','T1'),state,referents:['/p/out/summary.md'],c0,c1,time,arrival:at,when:'after resume',...over});
+  const facet=records=>outputStanding(gated,run({lifecycle:{state:'open',records:[entry('run_opened',{}),...records]}}));
+  const base=[a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T1'),performed(['rec:app:rely'])];
+  // Counted, no lapse recorded: never "not lapsed" (not yet evaluated is never shown as not lapsed).
+  const f=facet(base);
+  assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: performed (performance 1); A7 rec:app:rely, captured T1; lapse: none recorded in this run (not evaluated beyond the record; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
+  assert.equal(f.hostChecks,'none reported','the other facets keep their rules');assert.equal(f.temporal,'unknown: no result for this output is recorded');
+  // By earlier act.
+  assert.ok(facet([a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T0','earlier act'),performed(['rec:app:rely'])]).humanActs.includes('A7 rec:app:rely, captured T0 — by earlier act rec:app:rely at T0;'));
+  // Not counted: prior act not counted before the arrival; after it, the recorded reason.
+  const waitingOnly=facet([a,disposition('CP-rely',1,'waiting'),entry('act_not_counted',{arrival:at,act:act('rec:app:old','T0'),reason:'content no longer current',capturedBeforeArrival:true}),
+    entry('act_not_counted',{arrival:at,act:act('rec:app:other','T2'),reason:'act on other content',capturedBeforeArrival:false}),disposition('CP-rely',1,'waiting')]).humanActs;
+  assert.equal(waitingOnly,'checkpoint CP-rely, arrival 1: reached; no act recorded for it. Not counted: A7 rec:app:old, captured T0: prior act not counted — content no longer current; A7 rec:app:other, captured T2: act not counted — act on other content.');
+  // Lapsed (after resume: still performed), with c₀; subject absent; matches c₀ again; unknown states.
+  const lapsed=facet([...base,lapse('lapsed','T3'),performed(['rec:app:rely'],1,[{label:'act lapsed at',time:'T3'}])]).humanActs;
+  assert.ok(lapsed.includes('performed (performance 1)')&&lapsed.includes('lapse: lapsed (observed T3; c₀ chirality.app.exact-bytes.sha256/v1 000000000000)'),lapsed);
+  assert.ok(facet([...base,lapse('lapsed (subject absent)','T3',{c1:'subject absent',when:'before resume'}),disposition('CP-rely',1,'waiting')]).humanActs
+    .includes('reached again; the act on its current content is not yet recorded (performance 1); A7 rec:app:rely, captured T1; lapse: lapsed (subject absent) (observed T3'));
+  assert.ok(facet([...base,lapse('lapsed','T3'),lapse('matches c0 again after observed lapse','T4',{c1:c0})]).humanActs.includes('lapse: matches c₀ again after observed lapse (observed T4'));
+  for(const state of ['unknown (incomparable)','unknown (unavailable)']){
+    const u=facet([...base,lapse('lapsed','T3'),lapse(state,'T5',{c1:{notObtainable:true,reason:'x'}})]).humanActs;
+    assert.ok(u.includes(`lapse: ${state} (observed T5)`),u);assert.ok(!u.includes('lapse: lapsed'),'the latest observation, unknown, is shown');
+  }
+  // A new performance after a lapse: its own act, ordinal 2.
+  const again=facet([...base,lapse('lapsed','T3',{when:'before resume'}),disposition('CP-rely',1,'waiting'),counted('rec:app:next','T6'),performed(['rec:app:next'],2)]).humanActs;
+  assert.ok(again.includes('performed (performance 2); A7 rec:app:next, captured T6; lapse: none recorded'),again);
+  // Declined; joint answer; no arrival; an unknown disposition.
+  assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('declined (rec:app:no)'));
+  assert.ok(facet([...base.slice(0,3),counted('rec:app:two','T2'),performed(['rec:app:rely','rec:app:two'])]).humanActs.includes('answered by 2 acts: '));
+  assert.equal(facet([]).humanActs,'none recorded in this run: checkpoint CP-rely, which gates this output, has no recorded arrival');
+  assert.ok(facet([a,disposition('CP-rely',1,'unknown')]).humanActs.startsWith('unknown'));
+  // A loss, deciding or not: the record holds an entry this view does not read; every facet stays unknown.
+  for(const deciding of [true,false]){
+    const lost=facet([...base,entry('observation_lost',{scope:'s',cause:'c',deciding})]);
+    assert.ok(Object.values(lost).every(v=>v.startsWith('unknown')),JSON.stringify(lost));
+  }
+  // An output gated by another checkpoint is not given this checkpoint's act.
+  assert.ok(outputStanding({...gated,gating_checkpoint:'CP-check'},run({lifecycle:{state:'open',records:base}})).humanActs.startsWith('none recorded in this run: checkpoint CP-check'));
+  const html=h(StandingFacets,{facets:f});
+  assert.ok(!/\bchecked\b|verified|approved|accepted|relied|passed|not lapsed\)/i.test(html.replace('not shown as not lapsed','')),html);
+  assert.ok(!FORBIDDEN.test(html));
 });
 
 test('standing facets show only what the run record supports',()=>{

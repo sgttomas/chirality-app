@@ -406,7 +406,16 @@ writes records or operates the act control." `src-tauri/` holds that host;
     promise apart from its standing facets (AS §8), which come only from the
     run record: with nothing recorded they read none reported, not recorded or
     missing. An arrival bound to the output adds only where the agent put it.
-    Record entries this view does not read make the facets unknown. The
+    An output that declares a gating checkpoint shows, in its human-act facet
+    only, the record's act standing for that checkpoint's latest arrival: the
+    counted act (with "by earlier act" and "answered by ‹n› acts"), "prior act
+    not counted" and other not-counted acts with their reasons, a decline, and
+    the latest recorded lapse observation (lapsed, with c₀; lapsed (subject
+    absent); matches c₀ again; unknown (incomparable / unavailable)). With no
+    lapse recorded it says so, never *not lapsed*. An output with no gating
+    checkpoint reads acts unknown once an act entry concerns an arrival bound
+    to it. Other record entries this view does not read, an observation loss
+    or recovery among them, make the facets unknown. The
     advisory compatibility (DEL-02-03 CK-1/CK-2) is shown readably; a role
     outside the written-for roles names both and points to Continue as
     (U-R10, chosen display).
@@ -682,8 +691,9 @@ host-outcome arrivals, A5 items or A12 relations (CE-7, CE-9), the *unknown*
 label of a deciding loss, losses or recoveries of an earlier App session,
 replaced arrivals (CE-15, which follows only from A5
 items), anything after the run's end (CE-10 *after run end*, CE-16), or output
-records; outputs gated by a lapsed act do not show standing *lapsed* (their
-facets read unknown). Conversation roles (item 24)
+records. An output gated by a checkpoint shows that checkpoint's recorded act
+standing, *lapsed* included; an observation loss or recovery still makes an
+output's facets unknown. Conversation roles (item 24)
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 
