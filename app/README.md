@@ -288,17 +288,21 @@ writes records or operates the act control." `src-tauri/` holds that host;
     items seen open read "not completed (turn ended)" only when Codex reports
     the turn ended. Codex's status is shown beside the App's reading, and a
     turn live when the App stopped Codex carries the graceful-stop note. A
-    stop request whose outcome was unknown records SR-09 with that status. A
-    failed read leaves the conversation *unavailable* with the reason; it is
-    read again when the person chooses **Read this conversation from Codex
-    again** in the recovery panel, or at the next ready. If Codex ends during
-    the reads, the conversation waits for the next ready. The pages are added
+    stop request of that turn whose outcome was unknown records SR-09 with
+    that status. A failed read leaves the conversation *unavailable* with the
+    reason; it is read again when the person chooses **Read this conversation
+    from Codex again** in the recovery panel, or at the next ready. If Codex
+    ends or is stopped during the reads, the conversation waits for the next
+    ready. The pages are added
     to the activity view (item 17). *Limits:* a conversation with no App index
     (no home recorded) is not read; a turn not found within 20 pages is
     *unavailable*, not absent; a read Codex does not answer within 20 s ends
     that pass, leaving the conversations not yet read *unavailable*; the
     graceful-stop note is inferred from the App's stop, not from whether the
-    stop had to force the process to end; the events are kept in this App process, and
+    stop had to force the process to end; after a relaunch only each
+    conversation's latest persisted state is read, so a loss not yet
+    recovered when the conversation was loaded again before the App ended is
+    not read; the events are kept in this App process, and
     the ledger keeps the conversation's recovery states. Not witnessed
     natively.
 23. **Run panel** (NIR §9 PD-1…PD-7, AS §4, §8, §9). The selected workflow and

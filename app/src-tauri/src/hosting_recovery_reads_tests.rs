@@ -9,10 +9,12 @@ use crate::runtime_session::HomeSession;
 use std::path::PathBuf;
 use std::time::Instant;
 
-/// `read-mode`: `ok` (default), `error` (thread/read answers an error) or
-/// `exit` (the peer exits on thread/read). `history-turns`: the turns
-/// thread/turns/list reports, newest first; `history-pages` splits them into
-/// pages of that size.
+/// `read-mode`: `ok` (default), `error` (thread/read answers an error),
+/// `silent` (no answer) or `exit` (the peer exits on thread/read);
+/// `read-delay` delays thread/read by that many seconds. `history-turns`: the
+/// turns thread/turns/list reports, newest first; `history-pages` splits them
+/// into pages of that size. `interrupt-error` refuses the next interrupt;
+/// other interrupts are not answered.
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
@@ -42,7 +44,10 @@ for line in sys.stdin:
  elif m=='thread/start':
   t=thread('thread');t['status']={'type':'idle'}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ elif m=='turn/interrupt' and os.path.exists('interrupt-error'):
+  os.unlink('interrupt-error');emit({'id':f['id'],'error':{'code':-32600,'message':'fixture: refused'}});continue
  elif m=='thread/read':
+  if os.path.exists('read-delay'): time.sleep(float(read('read-delay','0')))
   mode=read('read-mode','ok')
   if mode=='exit': os._exit(4)
   if mode=='silent': continue
@@ -389,6 +394,105 @@ fn an_unanswered_read_is_unavailable_and_a_retry_while_not_ready_waits_for_ready
     f.restart();
     assert_eq!(f.home.host.recovery_reads(Duration::from_secs(2)).len(), 2);
     assert_eq!(f.states().last().unwrap(), "indexed");
+}
+
+/// An earlier session's request that takes no transition here keeps the
+/// ledger's persistence reading (it is not taken into this process).
+#[test]
+fn relaunch_without_a_final_status_leaves_the_ledger_stop_request_reading_unchanged() {
+    let f = Fixture::new();
+    f.live_work();
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
+    f.crash();
+    let _ = f.home.host.stop("fixture", "test relaunch");
+    f.history(json!([{"id":"turn-1","status":"inProgress"}]));
+    let relaunched = Fixture::session(&f.root, &f.cfg);
+    let record = |home: &HomeSession| home.host.snapshot()["stopRequests"]["records"][0].clone();
+    let before = record(&relaunched);
+    assert_eq!((before["state"].as_str(), before["persistence"].as_str()), (Some("outcome-unknown"), Some("recorded in the App ledger")));
+    assert_eq!(crate::host_tick::recovery_tick_home(&relaunched), 2);
+    assert_eq!(record(&relaunched), before, "no transition, and the ledger's reading stands");
+    let outcome = &Fixture::events(&relaunched, "turn_outcome")[0];
+    assert_eq!((outcome["outcome"].as_str(), outcome["cause"].as_str()), (Some("unknown"), Some("person-interrupt")));
+    let _ = relaunched.host.stop("fixture", "test ended");
+}
+
+/// SR-09 for every outcome-unknown stop request of the turn, not only the latest.
+#[test]
+fn every_outcome_unknown_stop_request_of_the_turn_records_sr09() {
+    let f = Fixture::new();
+    f.live_work();
+    let person = crate::stop_records::person("fixture person");
+    f.set("interrupt-error", "");
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &person).unwrap();
+    f.until("the refusal", || f.home.host.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().any(|r| r["state"] == "refused"));
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &person).unwrap();
+    f.crash();
+    let rows = |home: &HomeSession| home.host.snapshot()["stopRequests"]["records"].as_array().unwrap().clone();
+    assert_eq!(rows(&f.home).iter().map(|r| r["state"].clone()).collect::<Vec<_>>(), [json!("outcome-unknown"), json!("outcome-unknown")]);
+    f.history(json!([{"id":"turn-1","status":"interrupted"}]));
+    f.restart();
+    crate::host_tick::recovery_tick_home(&f.home);
+    for r in rows(&f.home) {
+        assert_eq!((r["state"].as_str(), r["transition"].as_str(), r["persistence"].as_str()), (Some("outcome-recovered"), Some("SR-09"), Some("recorded in the App ledger")), "{r}");
+    }
+    let outcome = &Fixture::events(&f.home, "turn_outcome")[0];
+    assert_eq!(outcome["stopRequest"], rows(&f.home)[1]["stopRequestId"], "the latest sent request is the cause");
+}
+
+/// On relaunch an earlier sent request still records SR-09 when a later
+/// request for the turn was never sent.
+#[test]
+fn relaunch_sr09_reaches_an_earlier_sent_request_behind_a_later_unsent_one() {
+    let f = Fixture::new();
+    f.live_work();
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
+    f.crash();
+    let _ = f.home.host.stop("fixture", "test relaunch");
+    // A later request for the same turn that was never sent, as SR-03 records it.
+    let sent = f.ledger().into_iter().rev().find(|e| e["kind"] == "stop_request").unwrap()["record"].clone();
+    let generation = crate::recovery::generation_from_ref(sent["generation"].as_str().unwrap()).unwrap();
+    let mut later = crate::stop_records::StopRequest::requested(&generation, "H-acct", "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, &crate::stop_records::person("fixture person")).unwrap();
+    let unsent = later.not_sent(false, "refused before sending: fixture").unwrap();
+    let session = sent["appSession"].as_str().unwrap();
+    let mut ledger = crate::recovery::RecoveryLedger::open(f.root.join("recovery.ledger.jsonl")).unwrap();
+    ledger.append(crate::stop_records::ledger_entry(session, &unsent)).unwrap();
+    drop(ledger);
+    f.history(json!([{"id":"turn-1","status":"completed"}]));
+    let relaunched = Fixture::session(&f.root, &f.cfg);
+    crate::host_tick::recovery_tick_home(&relaunched);
+    let records = relaunched.host.snapshot()["stopRequests"]["records"].as_array().unwrap().clone();
+    let by = |id: &Value| records.iter().find(|r| r["stopRequestId"] == *id).unwrap().clone();
+    let earlier = by(&sent["stopRequestId"]);
+    assert_eq!((earlier["state"].as_str(), earlier["label"].as_str()), (Some("outcome-recovered"), Some("completed (stop requested)")));
+    assert_eq!((by(&unsent["stopRequestId"])["state"].as_str(), by(&unsent["stopRequestId"])["persistence"].as_str()), (Some("not-sent"), Some("recorded in the App ledger")));
+    assert_eq!(Fixture::events(&relaunched, "turn_outcome")[0]["stopRequest"], sent["stopRequestId"]);
+    let _ = relaunched.host.stop("fixture", "test ended");
+}
+
+/// CV-22 when the person's Stop Codex lands during the reads, before the
+/// generation's close: no unavailable event; read again at the next ready.
+#[test]
+fn stop_codex_during_the_reads_returns_to_recovery_pending() {
+    let f = Fixture::new();
+    f.live_work();
+    f.crash();
+    f.history(json!([{"id":"turn-1","status":"interrupted"}]));
+    f.set("read-delay", "0.4");
+    f.restart();
+    let generation = f.home.host.snapshot()["generation"].clone();
+    let host = f.home.host.clone();
+    let stopper = std::thread::spawn(move || { std::thread::sleep(Duration::from_millis(100)); host.stop_scoped(&generation, "the person", "Stop Codex") });
+    let _ = f.home.host.recovery_reads(Duration::from_secs(3));
+    stopper.join().unwrap().unwrap();
+    assert!(Fixture::events(&f.home, "observation_recovered").is_empty(), "no CV-14 for a process leaving ready");
+    let observation = f.home.host.recovery_custody().snapshot()["live"]["observations"].as_array().unwrap().iter()
+        .find(|o| o["generation"] == crate::recovery::generation_ref(&f.first).unwrap()).unwrap().clone();
+    assert_eq!((observation["state"].as_str(), observation["unavailableReason"].is_null()), (Some("recovery-pending"), true));
+    std::fs::remove_file(f.root.join("read-delay")).unwrap();
+    f.home.host.start(&f.cfg, "the person: Start Codex").unwrap();
+    assert_eq!(crate::host_tick::recovery_tick_home(&f.home), 2);
+    assert_eq!(Fixture::events(&f.home, "observation_recovered")[0]["priorEvents"], "accessible");
 }
 
 #[test]

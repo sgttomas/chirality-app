@@ -1197,24 +1197,31 @@ retry; each conversation is read once per ready generation, with the reads
 grouped per thread. `thread/turns/list` pages descending until the turn last
 seen live is found. Readings this file leaves open, as implemented:
 - `turn_outcome` names a `cause` and `stopRequest` only from a stop request
-  that was sent for that turn. A turn live at a stop or quit with no such
-  request has no cause ("cause not observed"); its `appReading` names the loss
-  (the prototype instead derives *quit* or *codex-stop* from the loss cause).
+  that was sent for that turn (the latest one). A turn live at a stop or quit
+  with no such request has no cause ("cause not observed"); its `appReading`
+  names the loss (the prototype instead derives *quit* or *codex-stop* from
+  the loss cause). SR-09 is recorded for every outcome-unknown stop request
+  of that turn, never over a recorded final status.
 - `historyNote` is given for a turn live when the App stopped the process
-  (loss cause *supplier-stop* or *app-quit*), from the App's own record. The
-  schema's constant text names 0.158.0.
+  (loss cause *supplier-stop* or *app-quit*), inferred from that loss cause in
+  the App's own record; whether the stop escalated to a forced end is not
+  consulted (`abortNoteExpected` is not written). The schema's constant text
+  names 0.158.0.
 - A turn not found within 20 pages makes the conversation *unavailable* with
   that reason; *absent* is reported only after the last page. A read with no
   answer within its wait (20 s) ends the pass: the conversations not yet
-  read are *unavailable* with that reason.
-- The schema-shaped `historyNote` is inferred from the loss cause; whether
-  the stop escalated to a forced end is not consulted (`abortNoteExpected` is
-  not written).
+  read are *unavailable* with that reason. A read that fails while the
+  process is leaving `ready` (a Stop or Restart Codex under way, before its
+  generation's close) is CV-22, not CV-14.
 - `observation_recovered` and `turn_outcome` are held in this App process, as
   `observation_lost` is; the ledger keeps each conversation's recovery states
   as `conversation_index` rows (*recovering*, *unavailable*,
   *recovery-pending*, *indexed*, keeping the last loaded generation) and SR-09
   as `stop_request` records. A conversation with no App index (no home) is
   not read.
+- CV-19 takes each conversation's latest persisted row only. A loss in one
+  generation that was not yet recovered when the conversation was loaded in a
+  later generation, before the App ended, is not read after the relaunch;
+  only the later generation's state is.
 - `app_restart_interruption` is derived from the rows earlier App sessions
   wrote, so a recovery read in this session does not remove it.

@@ -395,11 +395,13 @@ impl LedgerIndex {
         self.seen = rows.len();
         self.last = rows.last().cloned();
     }
-    /// The latest recorded stop request for one turn of one generation (SR-09
-    /// after a relaunch), the last requested when there are several.
-    pub(crate) fn latest_for(&self, generation: &str, thread: &str, turn: &str) -> Option<&Value> {
-        self.order.iter().rev().filter_map(|id| self.latest.get(id))
-            .find(|r| r["generation"] == generation && r["threadId"] == thread && r["turnId"] == turn)
+    /// Every recorded stop request for one turn of one generation, each by its
+    /// latest record and its last ledger entry, in request order (SR-09 after
+    /// a relaunch).
+    pub(crate) fn all_for(&self, generation: &str, thread: &str, turn: &str) -> Vec<(Value, Option<Value>)> {
+        self.order.iter().filter_map(|id| Some((self.latest.get(id)?, self.entries.get(id).and_then(|e| e.last()))))
+            .filter(|(r, _)| r["generation"] == generation && r["threadId"] == thread && r["turnId"] == turn)
+            .map(|(r, e)| (r.clone(), e.cloned())).collect()
     }
     /// Whether this exact ledger entry is in the ledger (compared only with
     /// the entries of its own stop request).

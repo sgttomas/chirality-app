@@ -26,7 +26,7 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
       <details><summary>Original open item pointers</summary>{detail(row.openItems)}</details>
     </article>)}
     <h3>Loss and recovery events observed in this App process</h3>
-    <p>A source event is separate from whether its pointer facts reached durable storage. A recovery event reports what Codex history said when the App read it after a restart; nothing was resumed or sent.</p>
+    <p>A source event is separate from whether its pointer facts reached durable storage. A recovery event reports what Codex history said when the App read it after a restart; the App sent Codex only those history reads, resumed nothing and sent nothing to the conversation.</p>
     {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: {event.cause ?? event.priorEvents ?? event.outcome} · {text(event.generation ?? event.threadId)}</summary>{detail(event)}</details>)}
     <h3>Restart observations derived from persisted prior-session facts</h3>
     {(custody.restartEvents ?? []).length === 0 && <p>No restart interruption is established by the available persisted facts.</p>}

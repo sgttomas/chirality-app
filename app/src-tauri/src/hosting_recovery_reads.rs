@@ -70,9 +70,14 @@ impl Host {
                 let _writer = self.recovery_writer.lock().unwrap();
                 let mut i = self.inner.0.lock().unwrap();
                 let at = now_rfc3339();
+                // CV-22 also when the process is leaving `ready` but its
+                // generation has not closed yet (a Stop or Restart Codex under
+                // way): a read refused or unanswered for that is no CV-14.
+                let leaving = i.state != "ready" || i.generation != generation;
                 for target in &targets {
                     if !i.execution_custody.recovering_in(&target.key, &generation) { continue; }
                     match &read {
+                        Err(_) if leaving => i.execution_custody.recovery_pending_again(&target.key, &at),
                         Err(reason) => i.execution_custody.recovery_failed(&target.key, &generation, reason, &at),
                         Ok(statuses) => {
                             let status = target.turn.as_deref().and_then(|t| statuses.get(t)).map(String::as_str);
@@ -128,31 +133,46 @@ impl Host {
         pages.push(RecoveryPage { query, result: result.clone() });
         Ok(result)
     }
-    /// SR-09 for the lost turn's stop request, of this process or (after a
-    /// relaunch) of the ledger, when history reports a final status. Its
-    /// cause and identity go on `turn_outcome` whenever it was sent.
+    /// SR-09 for every stop request of the lost turn, of this process or
+    /// (after a relaunch) of the ledger, whose outcome is unknown, when
+    /// history reports a final status; a recorded final status is never
+    /// changed. Their generation is closed, so an earlier session's request
+    /// with no SR-08 recorded gets it first. A ledger request joins this
+    /// process's requests only when it takes a transition here, carrying its
+    /// ledger entry, so its persistence reading stays the ledger's. The latest
+    /// request that was sent gives `turn_outcome` its cause and identity.
     fn stop_request_recovered(i: &mut Inner, generation: &str, thread: &str, turn: &str, status: Option<&str>) -> Option<RecoveredStop> {
-        let mine = |r: &crate::stop_records::StopRequest| r.record()["generation"] == generation && r.record()["threadId"] == thread && r.record()["turnId"] == turn;
-        let id = match i.stop_requests.iter().rev().find(|r| mine(r) && r.record()["send"] == "sent") {
-            Some(r) => r.id().to_owned(),
-            None => {
-                let record = {
-                    let mut index = i.stop_ledger_index.lock().unwrap();
-                    index.update(i.recovery_snapshot.as_ref());
-                    index.latest_for(generation, thread, turn).cloned()
-                }.filter(|r| r["send"] == "sent")?;
-                let request = crate::stop_records::StopRequest::from_record(&record).ok()?;
-                let id = request.id().to_owned();
-                i.stop_requests.push(request);
-                id
-            }
+        let mine = |r: &Value| r["generation"] == generation && r["threadId"] == thread && r["turnId"] == turn;
+        let recorded = {
+            let mut index = i.stop_ledger_index.lock().unwrap();
+            index.update(i.recovery_snapshot.as_ref());
+            index.all_for(generation, thread, turn)
         };
-        let record = i.stop_requests.iter().find(|r| r.id() == id)?.record().clone();
-        // Its generation is closed: an earlier session's request with no SR-08
-        // recorded gets it first, then SR-09 for a final status.
-        Self::stop_request_update(i, &id, |r| r.generation_closed());
-        if let Some(status) = status { Self::stop_request_update(i, &id, |r| r.recovered(status)); }
-        Some(RecoveredStop { cause: record["cause"].as_str().unwrap_or_default().to_owned(), id })
+        for (record, entry) in recorded {
+            if i.stop_requests.iter().any(|r| r.record()["stopRequestId"] == record["stopRequestId"]) { continue; }
+            let Ok(mut trial) = crate::stop_records::StopRequest::from_record(&record) else { continue };
+            let closes = trial.generation_closed().ok().flatten().is_some();
+            let recovers = status.is_some_and(|s| trial.recovered(s).ok().flatten().is_some());
+            if !(closes || recovers) { continue; }
+            let Ok(mut request) = crate::stop_records::StopRequest::from_record(&record) else { continue };
+            if let Some(entry) = entry { request.queued(entry); }
+            i.stop_requests.push(request);
+        }
+        let ids: Vec<String> = i.stop_requests.iter().filter(|r| mine(r.record())).map(|r| r.id().to_owned()).collect();
+        for id in &ids {
+            Self::stop_request_update(i, id, |r| r.generation_closed());
+            if let Some(status) = status { Self::stop_request_update(i, id, |r| r.recovered(status)); }
+        }
+        // The cause: this process's and the ledger's requests, latest sent.
+        let latest = {
+            let index = i.stop_ledger_index.lock().unwrap();
+            let mut all: Vec<Value> = index.all_for(generation, thread, turn).into_iter().map(|(r, _)| r).collect();
+            for r in i.stop_requests.iter().filter(|r| mine(r.record())) {
+                if !all.iter().any(|a| a["stopRequestId"] == r.record()["stopRequestId"]) { all.push(r.record().clone()); }
+            }
+            all.into_iter().filter(|r| r["send"] == "sent").max_by(|a, b| a["requestedAt"].as_str().cmp(&b["requestedAt"].as_str()))
+        }?;
+        Some(RecoveredStop { cause: latest["cause"].as_str().unwrap_or_default().to_owned(), id: latest["stopRequestId"].as_str().unwrap_or_default().to_owned() })
     }
     /// CV-15 by the person: the unavailable conversation is read again by the
     /// next recovery pass in a ready process (at once when Codex is ready,

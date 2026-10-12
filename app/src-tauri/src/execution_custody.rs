@@ -208,6 +208,11 @@ impl ExecutionCustody {
         let row=self.conversations.get(key)?;let home=row.binding.as_ref()?["home"].clone();let current=generation_ref(generation).ok()?;
         Some(json!({"kind":"observation_recovered","eventId":format!("cev:recovered:{current}:{}:{}:{}",key.0,key.1,row.attempts),"appSession":generation["appSession"],"at":at,"standing":"App-observed","threadId":key.1,"home":home,"generation":current,"via":"thread/read","turns":[]}))
     }
+    /// CV-22 before the generation's close is observed: the process left
+    /// `ready` during the reads; they resume at the next ready.
+    pub(super) fn recovery_pending_again(&mut self,key:&(String,String),at:&str) {
+        if let Some(row)=self.conversations.get_mut(key) {row.state="recovery-pending";row.at=at.into();row.dirty=true;}
+    }
     /// CV-14: the reads failed or returned no result.
     pub(super) fn recovery_failed(&mut self,key:&(String,String),generation:&Value,reason:&str,at:&str) {
         let Some(mut event)=self.recovered_event(key,generation,at) else{return;};
