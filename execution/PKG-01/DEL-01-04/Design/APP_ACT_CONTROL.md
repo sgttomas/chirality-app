@@ -451,6 +451,11 @@ and record writing, using the current Design schemas for conformance. This
 allocates the App slice; it creates no common service or host loop/panel and
 closes neither external OI-013 nor the remaining OI-014 candidates.
 
+**Superseded in direction by RS §13.8 (PRD R-STORE).** Project captures and
+act records move to the App's records store; the table below remains what the
+App writes until then. A15 library rows stay with the library until the owner
+decides library standing across installations.
+
 | Act owner/context | Capture root | Act record location |
 |---|---|---|
 | Project act within a run | `<project>/.chirality/captures/` | `<project>/.chirality/records/runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl` |
@@ -603,9 +608,10 @@ the App data folder, and the key moves to the OS keychain at signing (OI-011):
   only to the signed App"; the App is not yet signed (PKG I-4, U-PKG-8) and an
   unsigned build's key-store access changes with every build, so the OS key store
   is the follow-up at signing. Moving captures and act records out of the
-  project would change RS §13.7's owner-selected allocation and DEL-04-03's
-  "ordinary project files" (REQ-001), which are the owner's; SEAL-C changes
-  neither, adds no RS entry element and leaves format 0.1, R-7 and R11 as they
+  project was the owner's to decide. On 2026-10-12 the owner directed them to
+  the App's records store (RS §13.8; PRD R-STORE), out of the agent's
+  writable workspace. SEAL-C stays the interim protection until that lands and
+  changes neither allocation, adds no RS entry element and leaves format 0.1, R-7 and R11 as they
   are (RS FR-08's entry seal stays conditional). The App does not choose or
   force the person's sandbox or approval setting (D3), but its protection
   against an agent does depend on it: an agent whose sandbox can read the App

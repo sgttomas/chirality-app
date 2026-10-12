@@ -129,7 +129,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | Run texts and supply checks (v0.2, R19-7) | `run_text` and `supply_check` records handed to DEL-02-03 and DEL-04-03 (RS R3); the composed text itself is not stored twice: it is recomputable from the record's lines and the revision's bytes in the store, and Codex keeps it in its history (read back with `thread/items/list`, R21-4) | The App | App records (R17-4); the text in Codex's history is Codex's |
 | Host workflows held in the App | An import holding library (CA's LIB-A2 ⟨fx-app-import⟩), `<project>/.chirality/workflow-imports/<host source root>/<name>/` | The person's relay (DEP-001) | Origin *host*; listing and relay deferred (DECISION-3) |
 
-Project-library records travel with the project folder, as RS OF-9 asks of App run records. The App cannot stop an agent writing into these folders (D3). It therefore never treats the presence of files as registration, and it computes standing from the ledger, the act record and the bytes together (§4.6).
+A15 library records stay with their library (RS §13.8, *Workflow libraries*) until the owner decides library standing across installations. App run records go to the App's records store (RS OF-9, §13.8). The App cannot stop an agent writing into these folders (D3). It therefore never treats the presence of files as registration, and it computes standing from the ledger, the act record and the bytes together (§4.6).
 
 **Open draft-base location and trust conditions.** The App-kept base is
 implemented at `<App user-data>/runtime/wr/draft-bases/<sha256 of draft key JSON>.json`,
@@ -803,6 +803,10 @@ Bounded 2026-10-05 source adoption; historical fixture identities remain intact.
 
 This bounded App allocation completes §8 and SC-1/SC-5 under RS §13.7's
 App-local Rust/project ownership. It does not allocate an external host service.
+
+**Superseded in direction by RS §13.8 (PRD R-STORE).** These App records move
+to the App's records store with the project's other records (`workflow/`).
+Until §13.8 is implemented, the publisher writes the path below.
 
 **WP-1 Location and identity.** The Rust WR publisher writes one immutable UTF-8
 JSON envelope per selection_record, run_text or supply_check at the explicitly
