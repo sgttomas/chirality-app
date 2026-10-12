@@ -154,11 +154,14 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   }
   for(const r of [command(),A14['item/fileChange/requestApproval']]) assert.doesNotMatch(render(r),/<textarea/,'only legacy requests take a reason');
   assert.equal(REJECTION_LIMIT,2000);
-  const written='Not this folder.\n\tUse the scratch copy: ünïcödé 🙂 "quoted" \\ back';
+  const written='Not this folder.\n\tUse the scratch copy: ünïcödé 🙂 👩‍💻 עברית "quoted" \\ back';
   for(const ok of ['',written,'x'.repeat(REJECTION_LIMIT),'🙂'.repeat(REJECTION_LIMIT)]) assert.equal(rejectionProblem(ok),null,'within bounds');
   assert.deepEqual(deniedWith(written),{decision:{denied:{rejection:written}}},'verbatim');
   assert.match(rejectionProblem('x'.repeat(REJECTION_LIMIT+1)),/longer than 2000 characters/);
   for(const bad of ['bell\u0007','cr\r','nul\u0000','del\u007f','c1\u0085','esc\u001b[31m']) assert.match(rejectionProblem(bad),/control character/,JSON.stringify(bad));
+  // The host's BIDI_FORMATTING set, exactly; other format characters stay allowed.
+  for(const bad of ['‪','‫','‬','‭','‮','⁦','⁧','⁨','⁩','‎','‏','؜']) assert.match(rejectionProblem(`x${bad}y`),/bidirectional formatting character/,JSON.stringify(bad));
+  for(const allowed of ['‍','​','⁠','﻿',' ']) assert.equal(rejectionProblem(`x${allowed}y`),null,JSON.stringify(allowed));
   // Mounted: what the decline sends as the person writes.
   const {installMiniDom}=await import('./support/mini-dom.mjs');
   const document=installMiniDom();
@@ -178,7 +181,7 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   await React.act(()=>props(deny()).onClick());
   assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:written}}},'written text, verbatim');
   assert.equal(props(box()).value,'','the draft is cleared once sent');
-  for(const bad of ['bell\u0007','x'.repeat(REJECTION_LIMIT+1)]){
+  for(const bad of ['bell\u0007','x'.repeat(REJECTION_LIMIT+1),'name‮txt.exe']){
     await type(bad);
     assert.equal(props(deny()).disabled,true,'refused before sending');
     assert.ok(container.querySelectorAll(n=>n.localName==='p'&&n.getAttribute?.('role')==='alert').length===1);

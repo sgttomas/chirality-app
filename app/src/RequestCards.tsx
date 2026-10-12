@@ -93,11 +93,15 @@ export function decisionForms(request: Json): { decision: Json; answer: Json }[]
 /** DM-3: the longest rejection text a person may write on a legacy decline, in
  * characters; the host refuses longer text (native_requests.rs REJECTION_LIMIT). */
 export const REJECTION_LIMIT = 2000;
-/** Why the host would refuse this rejection text, or null: too long, or a control
- * character other than a line break or tab. Checked before anything is sent. */
+/** Why the host would refuse this rejection text, or null: too long, a control
+ * character other than a line break or tab, or a bidirectional formatting
+ * character (the host's BIDI_FORMATTING set: U+202A–U+202E, U+2066–U+2069,
+ * U+200E, U+200F, U+061C; other format characters, such as the zero-width joiner
+ * in emoji, are allowed). Checked before anything is sent. */
 export function rejectionProblem(rejection: string): string | null {
   if (Array.from(rejection).length > REJECTION_LIMIT) return `The reason is longer than ${REJECTION_LIMIT} characters.`;
   if (/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/.test(rejection)) return "The reason has a control character other than a line break or tab.";
+  if (/[‪-‮⁦-⁩‎‏؜]/.test(rejection)) return "The reason has a bidirectional formatting character, which could make the confirmation read differently from what is sent.";
   return null;
 }
 /** DM-3: the legacy `denied` decline carrying the person's text exactly as written ("" when none). */
