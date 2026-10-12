@@ -19,11 +19,14 @@
 //!
 //! Runtime core adds §6 request custody and native answer/error paths, atomic
 //! cursor re-attachment snapshots and optional durable summary recording.
-//! Still outstanding: automatic restart rules (§4.4), native recovery reads,
-//! quit/relaunch integration and the per-home configuration link.
+//! Recovery reads after a restart are `hosting_recovery_reads.rs`. Still
+//! outstanding: automatic restart rules (§4.4), quit/relaunch integration and
+//! the per-home configuration link.
 
 #[path = "execution_custody.rs"]
 mod execution_custody;
+#[path = "hosting_recovery_reads.rs"]
+pub(crate) mod recovery_reads;
 #[path = "hosting_request_event_join.rs"]
 mod request_event_join;
 #[path = "hosting_call_custody.rs"]
@@ -1433,6 +1436,7 @@ impl Host {
         let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
+        Self::persist_recovery(i);
         Self::stop_requests_generation_closed(i,&generation);
         Self::oauth_lost(i,&generation);
         let ended = i.server_requests.close(&generation);

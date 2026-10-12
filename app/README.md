@@ -106,7 +106,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     inferred. Agent text, reasoning summaries, plans and command output stream
     as labelled previews that the completed native item replaces. Stored-history
     pages the person reads (turns, items, thread read) are added as
-    recovered-from-supplier rows; nothing is rebuilt automatically. Only a plan
+    recovered-from-supplier rows, as are the pages the host's recovery reads
+    return after a restart (item 22b); items are added only as their pages
+    are read. Only a plan
     observed live shows a revision number in this conversation. A row the view
     cannot read shows its JSON instead of breaking the view.
 18. Plan mode (experimental) is offered only when this Codex connection declared
@@ -271,6 +273,38 @@ writes records or operates the act control." `src-tauri/` holds that host;
     question. The indicator gives a count only; the conversations are listed
     in the window's request cards, and clicking the Dock icon opens the App,
     not a particular conversation (WI-3). Quit has not been witnessed natively.
+22b. **Recovery after a restart** (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22;
+    §3.4 SR-09; §5 R-4, X-3…X-5). When a home's Codex is ready again (Start or
+    Restart Codex, or the App's start after a relaunch), the host reads, on
+    that process, each conversation of that home whose process ended while it
+    was loaded, or that an earlier App session left unsettled: `thread/read`
+    (metadata only), then `thread/turns/list` newest first, page by page
+    until the turn last seen live is found. The reads run on the host's trial
+    tick, are journalled as `app-rule:recovery-read`, and change nothing in
+    Codex: nothing is resumed and no prompt is re-sent. The App then records
+    `observation_recovered` *accessible* and, for the turn last seen live,
+    `turn_outcome` with Codex's final status (*recovered-from-supplier*), or
+    *unknown* when history reports it in progress or does not have it; its
+    items seen open read "not completed (turn ended)" only when Codex reports
+    the turn ended. Codex's status is shown beside the App's reading, and a
+    turn live when the App stopped Codex carries the graceful-stop note. A
+    stop request of that turn whose outcome was unknown records SR-09 with
+    that status. A failed read leaves the conversation *unavailable* with the
+    reason; it is read again when the person chooses **Read this conversation
+    from Codex again** in the recovery panel, or at the next ready. If Codex
+    ends or is stopped during the reads, the conversation waits for the next
+    ready. The pages are added
+    to the activity view (item 17). *Limits:* a conversation with no App index
+    (no home recorded) is not read; a turn not found within 20 pages is
+    *unavailable*, not absent; a read Codex does not answer within 20 s ends
+    that pass, leaving the conversations not yet read *unavailable*; the
+    graceful-stop note is inferred from the App's stop, not from whether the
+    stop had to force the process to end; after a relaunch only each
+    conversation's latest persisted state is read, so a loss not yet
+    recovered when the conversation was loaded again before the App ended is
+    not read; the events are kept in this App process, and
+    the ledger keeps the conversation's recovery states. Not witnessed
+    natively.
 23. **Run panel** (NIR §9 PD-1…PD-7, AS §4, §8, §9). The selected workflow and
     each run show the declared part readably, as the host read it from the
     revision's own bytes: inputs, tools, checkpoints, outputs, returned
@@ -440,6 +474,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
 | `src-tauri/src/app_quit.rs` | App quit asked first (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2): assessment across homes, `quit_requested`/`quit_answered`, quit interrupts (cause *quit*), the exit's process stops and `session_ended` (AS-09, AS-10); the DEF-1 exit rule; the C-24 waiting count |
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
+| `src-tauri/src/hosting_recovery_reads.rs`, `execution_custody.rs` | Recovery after a restart (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22; SR-09): the reads on the home's ready process, `observation_lost`/`observation_recovered`/`turn_outcome`, and the conversations' recovery states in the ledger; run on the host's trial tick or on the person's retry |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |
 | `src-tauri/src/run_restart.rs`, `run_restart_tests.rs` | EXEC §2.7 / RECOVERY §4.1: the REC run tag at `run_opened` (owner `DEL-02-03`) and the host's startup writer of RS "App-restart interruption" limits; tests also cover WR TX-5 / SQ-END end notices after relaunch and (j) permanent refusals |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
@@ -611,13 +646,14 @@ narrows R-1 but does not close it: anything that can read that file, including
 an agent under Codex's default read access, can seal. Trustworthy persistent
 cold replay remains unfinished under AAC §6.3 U-AAC-3 and I3-CUST, and SEAL-2 stays
 deferred. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
 
 REC stop-request records and the ledger `codex_stop` entry (item 22) are
-appended to the existing pointer ledger. Checkpoint entries (item 23) go to the
+appended to the existing pointer ledger, as are the conversations' recovery
+states (item 22b, `conversation_index` rows). Checkpoint entries (item 23) go to the
 run's own RS log. Neither opens a new store.
 
 The run panel (item 23) records output arrivals (AW-6, AW-7), harness-capability

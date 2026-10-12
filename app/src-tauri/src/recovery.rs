@@ -1125,6 +1125,30 @@ fn recorded_startup_request_events(rows: &[Value]) -> Vec<Value> {
         }).collect()
 }
 
+/// The latest execution row per (home, physical home, thread) among the rows
+/// `keep` admits, ordered as the custody view orders them: the source
+/// generation's session start, its spawn counter, then ledger position, so a
+/// delayed older append cannot eclipse a later session or generation. Rows
+/// without a canonical generation or a known session start are left out.
+fn latest_by_source(rows:&[Value],keep:impl Fn(&Value)->bool)->std::collections::BTreeMap<(String,String,String),Value> {
+    let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
+    let mut latest=std::collections::BTreeMap::<(String,String,String),((usize,u64,usize),Value)>::new();
+    for (position,row) in rows.iter().enumerate().filter(|(_,r)|r["kind"]=="conversation_index"&&keep(r)) {
+        let Some(g)=row["lastLoadedGeneration"].as_str().and_then(|r|generation_from_ref(r).ok()) else{continue;};
+        let Some(rank)=starts.iter().find(|(_,s)|s["session"]==g["appSession"]).map(|(n,_)|*n) else{continue;};
+        if !starts.iter().any(|(_,s)|s["session"]==row["session"]) {continue;}
+        let (Some(home),Some(thread),Some(physical))=(row["home"].as_str(),row["threadId"].as_str(),g["home"].as_str()) else{continue;};
+        let order=(rank,g["spawnCounter"].as_u64().unwrap_or(0),position);
+        let key=(home.to_string(),physical.to_string(),thread.to_string());
+        if latest.get(&key).is_none_or(|(o,_)|order>*o) {latest.insert(key,(order,row.clone()));}
+    }
+    latest.into_iter().map(|(k,(_,row))|(k,row)).collect()
+}
+/// RECOVERY §3.2 CV-19: each conversation's latest persisted execution row,
+/// from which the Host reads which conversations an earlier session left
+/// unsettled. Pointer metadata only.
+pub(crate) fn latest_execution_rows(rows:&[Value])->Vec<Value> {latest_by_source(rows,|_|true).into_values().collect()}
+
 impl RecoveryCustodyView {
     pub fn snapshot(&self)->Value {self.document.clone()}
     pub(crate) fn from_owner(session:&str,ledger:Option<&Value>,live:Value,pending:usize,error:Option<&str>)->Self {
@@ -1160,7 +1184,10 @@ impl RecoveryCustodyView {
             if latest.get(&key).is_none_or(|(a,b,c,_)|order>(*a,*b,*c)) {latest.insert(key,(order.0,order.1,order.2,row.clone()));}
         }
         let mut historical=Vec::new();let mut events=Vec::new();
-        for (key,(_,_,_,row)) in latest {
+        // A prior session's end is read from what earlier sessions recorded:
+        // a row this session appends (a recovery read's outcome, CV-13) does
+        // not remove the restart fact.
+        for (key,row) in latest_by_source(&rows,|r|r["session"]!=session) {
             let thread=&key.2;
             let execution=&row["lastObservedExecution"];
             let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
@@ -1181,6 +1208,11 @@ impl RecoveryCustodyView {
                     } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
                 }
             }
+        }
+        for (key,(_,_,_,row)) in latest {
+            let thread=&key.2;
+            let execution=&row["lastObservedExecution"];
+            let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
             let associations=execution["openItems"].as_array().into_iter().flatten().map(|item| {
                 let turn=item["turnId"].as_str().filter(|s|!s.is_empty());
                 json!({"generation":source,"home":row["home"],"threadId":thread,"turnId":turn,"itemId":item["itemId"],"itemType":item["itemType"],"correlation":if turn.is_some(){"known persisted association"}else{"unknown; historical row supplies no per-item turn"},"fullTuple":turn.map(|turn|json!({"generation":source,"home":row["home"],"threadId":thread,"turnId":turn,"itemId":item["itemId"]})),"standing":"Historical App pointer; not current liveness, recovered native content or operation authority"})
