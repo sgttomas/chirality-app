@@ -1344,8 +1344,14 @@ Readings §7 leaves open, as implemented:
   over these entries; a limit repeated once per superseded entry is now
   given once per held entry. The per-fact readers search the held entries
   and the queued facts in place, without a copy. A retry after a commit
-  that reported an error but did land can append an entry twice; the
-  readers tolerate the repeated entry.
+  that reported an error but did land can append an entry twice: a queued
+  fact stays queued and the next drain appends it again. The readers
+  tolerate the repeated entry: after a relaunch the startup closures, the
+  RQ-06 and SR-08 endings, the stop requests, the quit answers and the
+  custody view read the same as with one copy
+  (`stop_records_host_tests::entries_repeated_by_a_retried_drain_read_as_one_copy`).
+  A session start is not repeated: its writer is reopened before a retry,
+  which finds the marker, so RQ-06 endings are written once.
 - *Host status.* The status the web view polls carries the ledger's bounded
   snapshot (database, import reading, number of held entries), not its
   entries. The details pane "Recovery initialization and historical pointer
