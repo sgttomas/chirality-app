@@ -9350,7 +9350,7 @@ for line in sys.stdin:
         let acts_before=std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap();
         let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
         run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000));
-        run.lock().unwrap().observe_checkpoints(&command("c2",1_790_010_000_000)); // 17:00: after the new act
+        run.lock().unwrap().observe_checkpoints(&command("c2",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64+60_000)); // after the new act and the lapse observed now
         let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
         let tail:Vec<&str>=kinds.iter().copied().skip_while(|k|*k!="act_lapsed").collect();
         assert_eq!(tail,["act_lapsed","disposition_change","act_counted","disposition_change","run_resumed"],"{kinds:?}");

@@ -23,7 +23,8 @@
 //!   arrival still *performed* whose referent lapsed after its resume point,
 //!   CE-5 with the next performance ordinal for an act of the required kind
 //!   on the content now current (RC-8, JA-1; §2.4.3), after which the first
-//!   run action started after that act is a new resume point (CE-11);
+//!   run action started after both that act's capture and the lapse
+//!   observation it answers is a new resume point (CE-11, A-9);
 //! - CE-12 `continued_past` once per waiting arrival, for the first agent run
 //!   action (RC-9) the App received after the arrival, and CE-11
 //!   `run_resumed` for the first run action started after the act that made
@@ -1325,16 +1326,30 @@ fn disposition(entries: &[Value], pending: &[Output], arrival: &Value) -> Option
         .filter(|(k, b)| *k == "disposition_change" && b["arrival"] == *arrival)
         .last().and_then(|(_, b)| b["disposition"].as_str().map(str::to_owned))
 }
-/// When an arrival became *performed*: its arrival time, or the latest
-/// capture time of an act counted for it after the arrival (also for a
-/// performance after a lapse: the act's capture is its evidence, A-9).
+/// When an arrival became *performed* (HD-5, A-9: the resume point is the
+/// first run action started at or after it). The first performance: its
+/// arrival time, or the latest capture time of an act counted for it after
+/// the arrival. A later performance answers a lapse, so it cannot precede the
+/// lapse observation that made it possible: the later of the capture of each
+/// act it cites and the latest lapse observation recorded before it.
 fn performed_at(entries: &[Value], pending: &[Output], arrival: &Value) -> Option<String> {
-    let all = || entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(pending.iter().map(|(k, b)| (*k, b)));
-    let arrived = all().find(|(k, b)| *k == "checkpoint_arrival" && b["checkpoint"] == arrival["checkpoint"] && b["arrivalOrdinal"] == arrival["arrivalOrdinal"])
+    let all: Vec<(&str, &Value)> = entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(pending.iter().map(|(k, b)| (*k, b))).collect();
+    let arrived = all.iter().find(|(k, b)| *k == "checkpoint_arrival" && b["checkpoint"] == arrival["checkpoint"] && b["arrivalOrdinal"] == arrival["arrivalOrdinal"])
         .and_then(|(_, b)| b["event"]["evidencedTime"]["value"].as_str().map(str::to_owned))?;
-    let latest = all().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && b["relation"] == "after arrival")
-        .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned)).max();
-    Some(latest.map_or(arrived.clone(), |t| t.max(arrived)))
+    let labels = || all.iter().enumerate().filter(|(_, (k, b))| *k == "disposition_change" && b["arrival"] == *arrival && b["disposition"] == "performed");
+    let top = labels().filter_map(|(_, (_, b))| b["performanceOrdinal"].as_u64()).max().unwrap_or(1);
+    if top <= 1 {
+        let latest = all.iter().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && b["relation"] == "after arrival")
+            .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned)).max();
+        return Some(latest.map_or(arrived.clone(), |t| t.max(arrived)));
+    }
+    let (at, performance) = labels().find(|(_, (_, b))| b["performanceOrdinal"].as_u64() == Some(top)).map(|(i, (_, b))| (i, *b))?;
+    let cited = |id: &Value| performance["answeredBy"].as_array().is_some_and(|ids| ids.contains(id));
+    let captures = all[..at].iter().filter(|(k, b)| *k == "act_counted" && b["arrival"] == *arrival && cited(&b["act"]["recordId"]))
+        .filter_map(|(_, b)| b["act"]["capturedAt"].as_str().map(str::to_owned));
+    let lapses = all[..at].iter().filter(|(k, b)| *k == "act_lapsed" && b["arrival"] == *arrival)
+        .filter_map(|(_, b)| b["time"].as_str().filter(|t| comparable(t)).map(str::to_owned));
+    Some(std::iter::once(arrived).chain(captures).chain(lapses).max().unwrap_or_default())
 }
 /// CE-17 `waitingArrivals` from RS entries (`kind`, `body`) of one run, in
 /// arrival order: every arrival whose latest disposition is *waiting*.

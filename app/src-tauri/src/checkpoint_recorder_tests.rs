@@ -847,6 +847,10 @@ fn again(recorder: &mut CheckpointRecorder, root: &std::path::Path, view: &Value
     outputs
 }
 /// The file view with an agent command started at 15:36:40, after the act at 15:00.
+/// A supplier start time a minute from now: after a lapse the App observes now.
+fn after_now() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64 + 60_000
+}
 fn resumed_view() -> Value {
     let mut items = file_view()["items"].as_array().unwrap().clone();
     let mut c = row("turn-1", command("c1", "agent"), 3, Some(30), None);
@@ -886,7 +890,7 @@ fn a_lapse_before_resume_makes_the_arrival_waiting_again() {
     // A new resume point follows the new performance (HD-5).
     let outputs = again(&mut recorder, &root, &{
         let mut v = resumed_view();
-        v["items"][2]["sourceFrame"]["params"]["startedAtMs"] = json!(1_790_010_000_000i64); // 17:00, after the act at 16:00
+        v["items"][2]["sourceFrame"]["params"]["startedAtMs"] = json!(after_now()); // after the act and after the lapse observed now
         v
     }, &mut all);
     assert_eq!(kinds(&outputs), ["run_resumed"], "{outputs:#?}");
@@ -921,7 +925,7 @@ fn a_lapse_after_resume_is_recorded_and_nothing_re_holds() {
 fn resumed_again_view() -> Value {
     let mut items = resumed_view()["items"].as_array().unwrap().clone();
     let mut c = row("turn-1", command("c2", "agent"), 4, Some(40), None);
-    c["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_010_000_000i64}});
+    c["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":after_now()}});
     items.push(c);
     view(items)
 }
@@ -973,6 +977,39 @@ fn an_act_on_lapsed_content_after_resume_performs_the_arrival_again() {
     assert_eq!(outputs[1].1["answeredBy"], json!([earlier]));
     assert!(again(&mut recorder, &root, &resumed_again_view(), &mut all).is_empty());
     let _ = rely;
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A-9 / HD-5 for a performance after a lapse: its resume point is the first run action started
+// at or after both the capture of the act it cites and the lapse observation it answers. Here
+// an earlier act (captured before the arrival) performs the arrival again; a run action that
+// started between the original act and that performance, delivered only afterwards, is not
+// the new resume point; one started after the lapse observation is.
+#[test]
+fn a_re_performance_resumes_only_after_its_lapse_and_its_act() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["run_resumed"]);
+    std::fs::write(&file, "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    let earlier = act(&root, "A7", &file, "v2", BEFORE);
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["act"]["recordId"].as_str(), outputs[0].1["relation"].as_str(), outputs[1].1["performanceOrdinal"].as_u64()), (Some(earlier.as_str()), Some("earlier act"), Some(2)));
+    // Started at 16:30: after the original act (15:00), before the lapse observed now; delivered now.
+    let mut items = resumed_view()["items"].as_array().unwrap().clone();
+    let mut late = row("turn-1", command("c3", "agent"), 4, Some(40), None);
+    late["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_008_000_000i64}});
+    items.push(late);
+    let outputs = again(&mut recorder, &root, &view(items.clone()), &mut all);
+    assert!(!kinds(&outputs).contains(&"run_resumed"), "an action started before the re-performance is not its resume point: {outputs:#?}");
+    let mut next = row("turn-1", command("c4", "agent"), 5, Some(50), None);
+    next["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":after_now()}});
+    items.push(next);
+    let outputs = again(&mut recorder, &root, &view(items), &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["firstActionRef"], "item:thread/turn-1/c4");
     std::fs::remove_dir_all(root).unwrap();
 }
 

@@ -668,8 +668,13 @@ first act in capture order of the required kind on the content the lapse read,
 whatever its capture time (SP-6; "by earlier act" when before the arrival); it
 alone answers the single App referent (JA-1). Acts of another kind or on other
 content and declines are not recorded against it, since it is not *waiting*; the
-optional CE-12 is not written for it ("unchanged"). Its new resume point is the
-first run action started at or after the new act's capture (A-9). These interpretations
+optional CE-12 is not written for it ("unchanged"). Any performance after a lapse
+(this one, or one after a lapse before the resume point) answers that lapse, so the
+change to *performed* (HD-5) cannot precede its observation: its resume point is
+the first run action started at or after both the capture of each act it cites
+and the latest lapse observation recorded before it (A-9: no resume point from an
+unestablished order). A run action started earlier and delivered later is not its
+resume point. These interpretations
 remain disclosed pending governing treatment; they add no acceptance rule.
 
 #### 2.4.3 Transition table (per arrival, current phase)

@@ -390,7 +390,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     PH-8); then an act of the required kind on the content now current,
     whatever its capture time (SP-6), performs it again with the next ordinal
     and answers it alone (one referent, JA-1), and the first agent action
-    started after that act is a new resume point. Other acts and declines are
+    started after both that act's capture and the lapse observation is a new
+    resume point. Other acts and declines are
     not recorded against the still *performed* arrival. A file that cannot be read is *unknown (unavailable)*, and content
     back at the acted content "matches c0 again after observed lapse"; both
     are written without changing the label (A-10; RS U-12). A repeated
