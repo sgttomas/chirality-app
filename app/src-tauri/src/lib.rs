@@ -1120,9 +1120,9 @@ fn workflow_select_registered(app:tauri::AppHandle,state:State<'_,AppState>,revi
 /// revision from the active library's list; the host resolves it from the
 /// revision store. No folder picker: the store is the library's own.
 #[tauri::command(async)]
-fn workflow_select_listed(state:State<'_,AppState>,name:String,revision:String)->Result<Value,String>{
+fn workflow_select_listed(state:State<'_,AppState>,library_ref:String,name:String,revision:String)->Result<Value,String>{
     let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_listed_registered(&name,&revision))
+    noted_selection(&state,&view,|root|root.select_listed_registered(&library_ref,&name,&revision))
 }
 /// WR SL-2: the person follows "newer revision ‹n› available"; a new selection
 /// event citing the one it replaces.

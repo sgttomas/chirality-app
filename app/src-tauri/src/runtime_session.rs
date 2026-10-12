@@ -4494,8 +4494,12 @@ impl WorkflowRootSession {
         match owner.newer_registered(identity) {
             Ok(None) => Value::Null,
             Ok(Some((sequence, newer, selectable))) => json!({"sequence":sequence,"revision":newer.revision,"identity":newer,
-                "notice":format!("newer revision {sequence} available"),"selectable":selectable,
-                "offered":if selectable {format!("Select revision {sequence}")} else {"registered — re-confirm to use in this App session: Review a draft with its bytes (DS-8), or Refine (RF-1) to make one".into()},
+                "notice":format!("newer revision {sequence} available"),"selectable":selectable == Ok(true),
+                "offered":match selectable {
+                    Ok(true) => format!("Select revision {sequence}"),
+                    Ok(false) => "registered — re-confirm to use in this App session: Review a draft with its bytes (DS-8), or Refine (RF-1) to make one".into(),
+                    Err(cause) => format!("registered in this App session — not selectable now: {cause} (LS-4)"),
+                },
                 "standing":"read from the registration ledger now; the selection stays on its revision until the person selects another (WR SL-2, SL-4)"}),
             Err(cause) => json!({"limit":format!("newer revisions not read: {cause}")}),
         }
@@ -4505,11 +4509,16 @@ impl WorkflowRootSession {
     /// registration or re-confirmation result this process holds (RC-2) is
     /// selected, resolved from the revision store and verified there; anything
     /// else keeps its standing and route (SL-5; §5.4).
-    pub fn select_listed_registered(&mut self, name: &str, revision: &str) -> Result<Value, String> {
+    /// `library_ref` is the library whose list the person pressed; a press that
+    /// arrives after the active library changed selects nothing.
+    pub fn select_listed_registered(&mut self, library_ref: &str, name: &str, revision: &str) -> Result<Value, String> {
         if !crate::workflow_workspace::valid_name(name) {
             return Err("Invalid workflow name".into());
         }
         let library = self.active_library()?;
+        if library.reference != library_ref {
+            return Err("The active library changed since the list was shown; nothing selected".into());
+        }
         let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; selection pending")?;
         let found = owner.registered_revision(name, revision).map_err(|cause| format!("{name}: registration ledger not readable ({cause}); nothing selected"))?;
         let Some((_, identity)) = found else { return Err(owner.not_selectable(name, revision)) };

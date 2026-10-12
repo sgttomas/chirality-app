@@ -325,9 +325,9 @@ export function workflowActionMessage(command: string, result: Json): string {
 /** The active library's registered revisions (WR §4.6 LS-1). A revision this App
  * process holds a registration or re-confirmation result for is offered Select;
  * the host resolves it from the revision store (SL-1, SL-4). Every row keeps Refine. */
-export function RegisteredRevisions({ rows, busy, act }:{ rows: Json[]; busy: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
+export function RegisteredRevisions({ library, rows, busy, act }:{ library: string; rows: Json[]; busy: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
   return <ul aria-label="Registered revisions in the active library">{rows.map((row:Json)=><li key={`${row.name}@${row.revision}`}>{row.name} · revision {row.sequence} · {row.label}
-    {row.selectable===true&&<> <button disabled={busy} onClick={()=>act("workflow_select_listed",{name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
+    {row.selectable===true&&<> <button disabled={busy} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
     {" "}<button disabled={busy} onClick={()=>act("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button></li>)}</ul>;
 }
 
@@ -401,7 +401,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
     <label>New draft name, or in-place library entry name <input {...EXACT_TEXT} value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
-    {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} rows={l.registered} busy={busy} act={action}/>)}
+    {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} library={l.reference} rows={l.registered} busy={busy} act={action}/>)}
     <label>Registered revision (content identity) <input {...EXACT_TEXT} value={revision} onChange={e=>setRevision(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.activeLibrary||!name||!revision} onClick={()=>action("workflow_refine_registered",{name,revision})}>Refine registered revision from the revision store (no selection)</button>
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>

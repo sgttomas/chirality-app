@@ -1029,19 +1029,34 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
         r.create_selected_draft(NAME).unwrap();
         // SL-5: a draft is refused for selection with its standing and Review to register.
         let draft = crate::workflow_workspace::Snapshot::capture(&project.join(".chirality/workflow-drafts").join(NAME)).unwrap();
-        let refused = r.select_listed_registered(NAME, draft.revision()).unwrap_err();
+        let project_library = r.active_library.clone().unwrap();
+        let refused = r.select_listed_registered(&project_library, NAME, draft.revision()).unwrap_err();
         assert!(refused.contains("draft — not registered") && refused.contains("Review to register"), "{refused}");
+        // Review finding 3: another content identity of a name with a draft is not called the draft.
+        let unknown = r.select_listed_registered(&project_library, NAME, &"f".repeat(64)).unwrap_err();
+        assert!(!unknown.contains("draft") && unknown.contains("not registered in this slot"), "{unknown}");
         assert_eq!(r.snapshot()["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
         r.begin_review(one.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false).unwrap();
         let revision_one = register_only(&mut r);
         let library = r.snapshot()["libraries"][0].clone();
         let row = &library["registered"][0];
         assert_eq!((row["selectable"].clone(), row["offered"].clone()), (json!(true), json!("Select; Refine (RF-1)")), "{library}");
+        // Review finding 1: a press for the project list that arrives after another
+        // library became active selects nothing in either library.
+        let user_root = disk.base.join("user-library");
+        std::fs::create_dir(&user_root).unwrap();
+        r.open_library(user_root, "user", Some(&project), act.clone()).unwrap();
+        assert_ne!(r.active_library.as_deref(), Some(project_library.as_str()));
+        let moved = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap_err();
+        assert!(moved.contains("active library changed"), "{moved}");
+        assert_eq!(r.snapshot()["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
+        r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
+        assert_eq!(r.active_library.as_deref(), Some(project_library.as_str()), "reopening re-activates the same library");
         // SL-4: the selection resolves from the revision store, not the published copy.
         let published = project.join(".chirality/workflows").join(NAME).join("WORKFLOW.md");
         let kept = std::fs::read(&published).unwrap();
         std::fs::write(&published, b"edited outside registration").unwrap();
-        let selected = r.select_listed_registered(NAME, &revision_one).unwrap();
+        let selected = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap();
         std::fs::write(&published, kept).unwrap();
         let selection = &selected["selection"];
         assert_eq!(selection["standing"], "registered revision");
@@ -1123,7 +1138,8 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
         let mut r = root.lock().unwrap();
         let second_selection = r.selected.as_ref().unwrap().reference.clone();
         r.select_development_copy(disk.package.clone()).unwrap();
-        let back = r.select_listed_registered(NAME, &revision_one).unwrap();
+        let project_library = r.active_library.clone().unwrap();
+        let back = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap();
         assert_eq!(back["selection"]["identity"]["revision"], revision_one.as_str());
         assert_eq!(back["selection"]["replaces"], second_selection.as_str());
         assert_eq!(back["selection"]["newerRevision"]["notice"], "newer revision 2 available");
@@ -1137,7 +1153,8 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
     c.open_library(project.clone(), "project", Some(&project), Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))))).unwrap();
     let rows = c.snapshot()["libraries"][0]["registered"].clone();
     assert!(rows.as_array().unwrap().iter().all(|row| row["selectable"] == false), "{rows}");
-    let refused = c.select_listed_registered(NAME, &revision_two).unwrap_err();
+    let cold_library = c.active_library.clone().unwrap();
+    let refused = c.select_listed_registered(&cold_library, NAME, &revision_two).unwrap_err();
     assert!(refused.contains("re-confirm to use in this App session") && refused.contains("Refine (RF-1)"), "{refused}");
     assert!(c.snapshot()["selection"].is_null());
     drop(c);

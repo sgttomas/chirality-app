@@ -99,9 +99,12 @@ writes records or operates the act control." `src-tauri/` holds that host;
     registration, provider uptake or completed workflow execution.
     **Reuse (WR §4.4, §4.6).** The active library's list of registered revisions
     offers **Select revision ‹n›** on a revision whose registration or
-    re-confirmation result this App process holds (RC-2); the host resolves it
-    from the revision store, never the published copy, and verifies its bytes
-    there (SL-1, SL-4). Other rows keep Refine and re-confirmation through a
+    re-confirmation result this App process holds (RC-2) and whose revision
+    store still recomputes when the list is read (a row that does not says
+    so, LS-4); the press names its library, and a press after another library
+    became active selects nothing. The host resolves the selection from the
+    revision store, never the published copy, and verifies its bytes there
+    again (SL-1, SL-4). Other rows keep Refine and re-confirmation through a
     draft; selecting one, a draft or an unregistered library entry is refused
     with its standing and route (SL-5). Beside a registered selection the view
     shows "newer revision ‹n› available" when the slot's ledger has a newer

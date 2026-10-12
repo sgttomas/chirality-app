@@ -7,9 +7,10 @@ import {loadSrc} from './support/load-src.mjs';
 // ‹n› available" notice beside the selection (WR SL-2), in the host's shapes
 // (workflow_library.rs registered_listing; runtime_session.rs newer_revision_view).
 // The view sends only the person's press; the host selects and records.
-installMiniDom();
+const document=installMiniDom();
 const React = (await import('react')).default;
 const {renderToStaticMarkup} = await import('react-dom/server');
+const {createRoot} = await import('react-dom/client');
 const {RegisteredRevisions,NewerRevisionNotice,WorkflowRootPanel}=loadSrc('App');
 
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
@@ -29,15 +30,15 @@ const cold={name:'load-check',sequence:2,revision:'b'.repeat(64),label:'register
 
 test('a held registered revision offers Select; one not held in this process keeps Refine only (LS-1)',()=>{
   const s=spy();
-  const tree=RegisteredRevisions({rows:[held,cold],busy:false,act:s.act});
+  const tree=RegisteredRevisions({library:'lib-1',rows:[held,cold],busy:false,act:s.act});
   const rows=find(tree,n=>n.type==='li');
   assert.equal(rows.length,2);
   assert.deepEqual(buttons(rows[0]).map(text),['Select revision 1','Refine from the revision store…']);
   assert.deepEqual(buttons(rows[1]).map(text),['Refine from the revision store…'],'no Select without a result held here (RC-2)');
   assert.match(text(rows[1]),/registered — re-confirm to use in this App session/);
   buttons(rows[0])[0].props.onClick();
-  assert.deepEqual(s.calls,[['workflow_select_listed',{name:'load-check',revision:'a'.repeat(64)}]]);
-  assert.ok(buttons(RegisteredRevisions({rows:[held],busy:true,act:s.act})).every(b=>b.props.disabled));
+  assert.deepEqual(s.calls,[['workflow_select_listed',{libraryRef:'lib-1',name:'load-check',revision:'a'.repeat(64)}]],'the press names the library whose list was shown');
+  assert.ok(buttons(RegisteredRevisions({library:'lib-1',rows:[held],busy:true,act:s.act})).every(b=>b.props.disabled));
 });
 
 const selection=(newerRevision)=>({reference:'workflow-selection:1',identity:{name:'load-check',origin:'project',revision:'a'.repeat(64)},standing:'registered revision',runnable:true,newerRevision});
@@ -68,4 +69,21 @@ test('the workflow panel places the list offers and the notice',()=>{
   assert.match(html,/aria-label="Newer revision"[^>]*>newer revision 2 available/);
   assert.match(html,/<button>Select revision 2<\/button>/);
   assert.match(html,/<button>Select revision 1<\/button>/);
+});
+
+// Review finding 1: the press names the library whose list was shown, so the
+// host can refuse it once another library is active.
+test('the panel sends the shown library with a list Select',async()=>{
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {ok:true};};
+  const data={selection:null,activeLibrary:'lib-2',libraries:[{reference:'lib-1',registered:[held]},{reference:'lib-2',registered:[{...held,sequence:3}]}],reviews:[]};
+  const container=document.createElement('div');document.body.appendChild(container);
+  const root=createRoot(container);
+  await React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act})));
+  const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
+  assert.equal(container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 1').length,0,'only the active library is listed');
+  const [b]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
+  assert.ok(b);
+  await React.act(async()=>{props(b).onClick();await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64)}]);
+  await React.act(()=>root.unmount());
 });
