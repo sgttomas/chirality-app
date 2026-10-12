@@ -57,24 +57,29 @@ pub(crate) enum RecordSet {
 /// Reconciliation before an unresolved append. In end mode the owning log is
 /// checked separately: discovery can fail before returning even its readable
 /// entries, and a matching prefix must not hide an incomplete owning target.
-pub(crate) fn append_record_set(root: &Path, log: &Path, set: RecordSet) -> Result<(Vec<Value>, Vec<Value>), String> {
-    let (mut entries, limits, _partial) = crate::storage::read_all_parts(root);
+///
+/// Returns the readable entries holding `id` across the project, and those in
+/// the owning log: the record set is read through the bounded index
+/// (`records_index`), so the cost does not grow with the project's history.
+pub(crate) fn append_record_set(root: &Path, log: &Path, set: RecordSet, id: &str) -> Result<(Vec<Value>, Vec<Value>), String> {
+    let (mut entries, limits) = crate::records_index::with_index(root, |ix| (ix.entries_with(id), ix.limits()));
     if set == RecordSet::Complete && !limits.is_empty() {
         return Err(format!("RS record set incomplete; nothing written: {limits:?}"));
     }
     crate::storage::check_path(log)?;
     // W-0 at the writer's open: its own torn tail is terminated and named first.
     if read_log_parts(log).partial_tail.is_some() {
-        w0_open(log, &entries)?;
+        w0_open(root, log)?;
     }
     let own_read = read_log_parts(log);
     let (own, own_limits) = (own_read.entries, own_read.limits);
     if !own_limits.is_empty() {
         return Err(format!("RS owning log incomplete; nothing written: {own_limits:?}"));
     }
+    let own: Vec<Value> = own.into_iter().filter(|e| e["recordId"].as_str() == Some(id)).collect();
     if set == RecordSet::ReadableBesideIncomplete {
         for entry in &own {
-            if !entries.contains(&entry) {
+            if !entries.contains(entry) {
                 entries.push(entry.clone());
             }
         }
@@ -88,11 +93,16 @@ pub(crate) const PARTIAL_NOT_RECOVERED: &str = "partial entry not recovered";
 /// is followed directly by that writer's "partial entry not recovered" limit
 /// naming it as `line ‹n›`. Such a line is kept, never read as an entry.
 pub(crate) fn recovered_partial_lines(lines: &[&str]) -> std::collections::BTreeSet<usize> {
+    recovered_partial_lines_from(lines, 0)
+}
+/// As [`recovered_partial_lines`], for lines that start at the log's
+/// `first`-th line (0-based); the indices returned are into `lines`.
+pub(crate) fn recovered_partial_lines_from(lines: &[&str], first: usize) -> std::collections::BTreeSet<usize> {
     let mut out = std::collections::BTreeSet::new();
     for i in 0..lines.len().saturating_sub(1) {
         if let Ok(next) = serde_json::from_str::<Value>(lines[i + 1]) {
             if next["kind"] == "evidence_limit" && next["body"]["label"] == PARTIAL_NOT_RECOVERED
-                && next["body"]["subjectRef"] == format!("line {}", i + 1) {
+                && next["body"]["subjectRef"] == format!("line {}", first + i + 1) {
                 out.insert(i);
             }
         }
@@ -300,7 +310,28 @@ pub(crate) fn note_project_late_write(
     set: RecordSet,
 ) -> Result<(), String> {
     let log = crate::storage::project_log(root, Some(run), writer);
-    let (all, own) = append_record_set(root, &log, set)?;
+    // The readable "record write failed" limits naming `subject`, across the
+    // project (bounded index) and in the owning log.
+    let (mut all, limits) = crate::records_index::with_index(root, |ix| (ix.late_limits_for(subject), ix.limits()));
+    if set == RecordSet::Complete && !limits.is_empty() {
+        return Err(format!("RS record set incomplete; nothing written: {limits:?}"));
+    }
+    crate::storage::check_path(&log)?;
+    if read_log_parts(&log).partial_tail.is_some() {
+        w0_open(root, &log)?;
+    }
+    let own_read = read_log_parts(&log);
+    if !own_read.limits.is_empty() {
+        return Err(format!("RS owning log incomplete; nothing written: {:?}", own_read.limits));
+    }
+    let own: Vec<Value> = own_read.entries.into_iter().filter(|e| e["kind"] == "evidence_limit" && e["body"]["label"] == "record write failed" && e["body"]["subjectRef"] == subject).collect();
+    if set == RecordSet::ReadableBesideIncomplete {
+        for entry in &own {
+            if !all.contains(entry) {
+                all.push(entry.clone());
+            }
+        }
+    }
     let entries = if set == RecordSet::ReadableBesideIncomplete {
         // Only this writer's own limit settles its uncertain late append.
         &own
@@ -314,7 +345,10 @@ pub(crate) fn note_project_late_write(
             && (set == RecordSet::Complete || e["runId"] == run)
     }) {
         if set == RecordSet::ReadableBesideIncomplete {
-            if all.iter().filter(|e| e["recordId"] == limit["recordId"]).count() > 1 {
+            let id = limit["recordId"].as_str().unwrap_or_default();
+            let mut holding = crate::records_index::with_index(root, |ix| ix.entries_with(id));
+            if !holding.contains(limit) { holding.push(limit.clone()); }
+            if holding.len() > 1 {
                 return Err(format!("late-write limit identity {} has readable duplicate or conflicting content; owning limit cannot be reconciled", limit["recordId"]));
             }
             crate::storage::sync_publication(&log)?;
@@ -481,12 +515,9 @@ pub(crate) fn nonconformance(kind: &str, body: &Value, id: &str, run: &str, obse
 /// append the writer's "partial entry not recovered" limit (taking `seq`)
 /// naming that line, with the torn bytes' length and digest. `all` is every
 /// readable entry the identity is checked against.
-fn w0_bytes(log: &Path, existing: &[u8], seq: u64, run: Option<&str>, all: &[Value], validator: &crate::schema_validation::RecordValidator) -> Result<Vec<u8>, String> {
-    let start = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
-    let tail = &existing[start..];
-    let line_no = existing[..start].iter().filter(|b| **b == b'\n').count() + 1;
+fn w0_bytes(log: &Path, tail: &[u8], line_no: usize, seq: u64, run: Option<&str>, holds: &dyn Fn(&str) -> bool, validator: &crate::schema_validation::RecordValidator) -> Result<Vec<u8>, String> {
     let limit_id = crate::util::opaque_id("rec:app:")?;
-    if all.iter().any(|entry| entry["recordId"].as_str() == Some(limit_id.as_str())) {
+    if holds(&limit_id) {
         return Err(format!("record identity conflict: {limit_id}; nothing written"));
     }
     let name = log.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -499,6 +530,14 @@ fn w0_bytes(log: &Path, existing: &[u8], seq: u64, run: Option<&str>, all: &[Val
     bytes.push(b'\n');
     Ok(bytes)
 }
+fn read_tail(log: &Path, from: u64) -> Result<Vec<u8>, String> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(log).map_err(|e| format!("read owning log: {e}"))?;
+    f.seek(SeekFrom::Start(from)).map_err(|e| format!("read owning log: {e}"))?;
+    let mut b = Vec::new();
+    f.read_to_end(&mut b).map_err(|e| format!("read owning log: {e}"))?;
+    Ok(b)
+}
 fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
     let mut f = OpenOptions::new().append(true).open(log).map_err(|e| format!("open log: {e}"))?;
     f.write_all(bytes).map_err(|e| format!("W-0 repair write: {e}; nothing more written"))?;
@@ -508,7 +547,7 @@ fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
 /// W-0 when a writer opens its log for reconciliation rather than an append:
 /// under the writer lock, a torn last line is terminated and named (the
 /// owning log is then complete). `all` is every readable entry of the set.
-fn w0_open(log: &Path, all: &[Value]) -> Result<(), String> {
+fn w0_open(root: &Path, log: &Path) -> Result<(), String> {
     let validator = crate::schema_validation::bundled().map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
     let lock_path = crate::storage::records_root(log).map(|r| r.join(".writer.lock")).unwrap_or_else(|| log.with_extension("ownership.lock"));
     let _ownership = crate::storage::lock(&lock_path)?;
@@ -522,7 +561,9 @@ fn w0_open(log: &Path, all: &[Value]) -> Result<(), String> {
     }
     let seq = own.entries.iter().filter_map(|e| e["seq"].as_u64()).max().unwrap_or(0).checked_add(1).ok_or("writer sequence exhausted; nothing written")?;
     let run = own.entries.iter().find_map(|e| e["runId"].as_str()).map(str::to_owned);
-    let bytes = w0_bytes(log, &existing, seq, run.as_deref(), all, validator)?;
+    let start = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
+    let line_no = existing[..start].iter().filter(|b| **b == b'\n').count() + 1;
+    let bytes = crate::records_index::with_index(root, |ix| w0_bytes(log, &existing[start..], line_no, seq, run.as_deref(), &|id| ix.holds(id), validator))?;
     w0_write(log, &bytes)
 }
 fn append_reserved(
@@ -545,50 +586,49 @@ fn append_reserved(
         .map(|r| r.join(".writer.lock"))
         .unwrap_or_else(|| log.with_extension("ownership.lock"));
     let _ownership = crate::storage::lock(&lock_path)?;
-    let existing = match std::fs::read(log) {
-        Ok(bytes) => bytes,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
-        Err(e) => return Err(format!("read owning log: {e}")),
-    };
-    let own = read_log_parts(log);
-    if !own.limits.is_empty() {
-        return Err(format!("incomplete owning log: {:?}", own.limits));
-    }
-    let torn = !existing.is_empty() && !existing.ends_with(b"\n");
-    let entries = own.entries;
-    let mut all = entries.clone();
-    if let Some(root) = records_root
-        .as_ref()
-        .and_then(|r| r.parent())
-        .and_then(|r| r.parent())
-    {
-        // Another writer's torn tail is a partial, never an entry (R-2): it
-        // cannot hold an identity and does not make the set incomplete.
-        let (discovered, limits, _partial) = crate::storage::read_all_parts(root);
-        if !limits.is_empty() && set == RecordSet::Complete {
-            return Err(format!("record-set conflict/incomplete: {limits:?}"));
+    let project = records_root.as_ref().and_then(|r| r.parent()).and_then(|r| r.parent()).map(Path::to_path_buf);
+    // The owning log and the project's record set, through the bounded index
+    // (`records_index`): limits, identities and the next `seq` without
+    // reading the history again. Another writer's torn tail is a partial,
+    // never an entry (R-2): it cannot hold an identity and does not make the
+    // set incomplete. If discovery itself fails, only the owning log is read.
+    let indexed = project.as_ref().map(|root| crate::records_index::with_index(root, |ix| {
+        let own = ix.own(log);
+        let held = ix.holds(&id);
+        (own.map(|o| (o.limits, o.partial, o.next_seq, o.complete_end, o.complete_lines)), ix.limits(), ix.discovery_failed(), held)
+    }));
+    let (own_limits, torn, next_seq, complete_end, complete_lines, set_limits, held) = match indexed {
+        Some((Some((limits, partial, next, end, lines)), set_limits, false, held)) => (limits, partial, next, end, lines, set_limits, held),
+        Some((None, set_limits, false, held)) if !log.exists() => (vec![], false, Some(1), 0, 0, set_limits, held),
+        other => {
+            // Outside a records tree, or discovery failed: the owning log alone.
+            let own = read_log_parts(log);
+            let existing = std::fs::read(log).unwrap_or_default();
+            let end = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1) as u64;
+            let lines = existing[..end as usize].iter().filter(|b| **b == b'\n').count();
+            let next = own.entries.iter().filter_map(|e| e["seq"].as_u64()).max().unwrap_or(0).checked_add(1);
+            let held = own.entries.iter().any(|e| e["recordId"].as_str() == Some(id.as_str())) || other.as_ref().is_some_and(|o| o.3);
+            let set_limits = other.map(|o| o.1).unwrap_or_default();
+            (own.limits, own.partial_tail.is_some(), next, end, lines, set_limits, held)
         }
-        // Readable entries of incomplete logs are checked too. If discovery
-        // itself fails, `read_all` returns no entries, and in the tolerant mode
-        // only the owning log's entries are checked.
-        all.extend(discovered);
+    };
+    if !own_limits.is_empty() {
+        return Err(format!("incomplete owning log: {own_limits:?}"));
     }
-    if all
-        .iter()
-        .any(|entry| entry["recordId"].as_str() == Some(id.as_str()))
-    {
+    if !set_limits.is_empty() && set == RecordSet::Complete {
+        return Err(format!("record-set conflict/incomplete: {set_limits:?}"));
+    }
+    if held {
         return Err(format!("record identity conflict: {id}; nothing written"));
     }
-    let mut seq = entries
-        .iter()
-        .filter_map(|e| e.get("seq").and_then(|s| s.as_u64()))
-        .max()
-        .unwrap_or(0)
-        .checked_add(1)
-        .ok_or("writer sequence exhausted; nothing written")?;
+    let mut seq = next_seq.ok_or("writer sequence exhausted; nothing written")?;
     // W-0: terminate the torn last line in place and record that it was not
     // recovered, in one write, before this append.
-    let repair = if torn { Some(w0_bytes(log, &existing, seq, run, &all, validator)?) } else { None };
+    let repair = if torn {
+        let tail = read_tail(log, complete_end)?;
+        let holds = |candidate: &str| candidate == id || project.as_ref().is_some_and(|root| crate::records_index::with_index(root, |ix| ix.holds(candidate)));
+        Some(w0_bytes(log, &tail, complete_lines + 1, seq, run, &holds, validator)?)
+    } else { None };
     if repair.is_some() {
         seq = seq.checked_add(1).ok_or("writer sequence exhausted; nothing written")?;
     }

@@ -1664,6 +1664,42 @@ machine; `records::durability_tests`, and the ignored
   the per-append record-set read (identity collision and completeness
   from an index or the owning log), then the act read (only records
   since the last read).
+- *Bounded reads (current implementation; `records_index.rs`).* The
+  writer's guards (W-0/W-1, CC-ID, the open-run complete-set guard, the
+  W-2 reconciliations) and the act read now use an in-process index of
+  the project's logs. It is rebuilt from them, never a store, and keeps
+  at most four projects. Per log it keeps the record identities with
+  their byte positions, the limits and any torn tail. Each refresh
+  re-walks the tree and takes every log's and directory's stamp
+  (device, inode, size, time). A log that only grew is read from its
+  last complete line, after a check that the 4 KiB before it are
+  unchanged; any other change reads the log again. The guarantees are
+  those of the full read. An identity held by a readable entry anywhere
+  is refused; an unreadable or invalid line, a sequence gap, a duplicate
+  identity or a failed discovery leaves the set incomplete; a torn tail
+  is a partial; reconciliation reads the matching entries by identity.
+  The act read reprojects only act records, corrections and entries
+  sharing their identities (RS R-6, R-8). It keeps its result while the
+  index's act records, every capture it read (stamp) and the seal key
+  basis are unchanged. Not seen: an in-place rewrite of earlier bytes
+  that keeps a log's size, time and last 4 KiB.
+
+  Same machine and harness. "First" is the first use in a process,
+  which builds the index, as before; "next" is every later one.
+
+  | Runs / acts | Append, first / next | Act read, first / after a run entry | Record tick writing again (2 entries) |
+  |---|---|---|---|
+  | 100 / 300 | 37 / 11 ms | 105 / 3 ms | 42 ms |
+  | 1,000 / 3,000 | 230 / 21 ms | 0.66 s / 24 ms | 81 ms (was 3.8 s for 9) |
+  | 10,000 / 100,000 | 3.0 s / 177 ms | 16.7 s / 0.55 s | 1.6 s (was 53 s for 9) |
+
+  A next append no longer reads entries. What remains linear is one
+  metadata call per log and per directory, about 15 µs each. A kept act
+  read costs one metadata call per capture it read. The act-store
+  fingerprint (1.1 s at 100,000 captures) no longer runs on the record
+  tick. The first act read in a process still peaks at 6.2 GB at
+  100,000 acts (9.1 GB before). The index's own memory was not measured
+  apart.
 
 ## 15. Local prototype (R12-3)
 
