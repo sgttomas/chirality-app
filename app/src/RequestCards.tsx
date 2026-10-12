@@ -46,6 +46,9 @@ export function requestTitle(request: Json): string {
     case LEGACY_PATCH: return "Tool permission: change files (legacy request)";
     case QUESTION: return "Question from the agent";
     case ELICITATION: return `Input request from MCP server ${text(request?.nativeParameters?.serverName) || "(name not reported)"} or the agent (not established)`;
+    // RS §13.9: the App answers its own records capability's calls by rule.
+    case "item/tool/call": if (request?.originClass === "named-service" && request?.nativeParameters?.tool === "chirality_records_read_v1") return "The agent read this project's records (the App's records capability answered; each read is in the read log)";
+      return `Request from Codex the App does not answer itself (${text(request?.method)})`;
     default: return `Request from Codex the App does not answer itself (${text(request?.method) || "no method"})`;
   }
 }

@@ -199,21 +199,23 @@ fn each_call_is_recorded_once_schema_valid_and_before_it_is_answered() {
     let validator = jsonschema::options().offline().build(&serde_json::from_str::<Value>(LOG_SCHEMA).unwrap()).unwrap();
     let first = cap.answer(&call(1, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
     cap.answer(&call(2, json!({"operation":"read_run"})), Some(a.to_str().unwrap()));
-    // The same call again (same generation, thread and call id): answered once, recorded once.
+    // The same call again (same generation, thread and call id): read once;
+    // the repeat is refused and, like every call, recorded.
     let again = cap.answer(&call(1, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
     assert_eq!(again["success"], false);
     assert!(returned(&again)["refused"].as_str().unwrap().contains("answered already"));
     let logged = f.logged();
-    assert_eq!(logged.len(), 2, "two calls, two entries; the repeat is not recorded");
+    assert_eq!(logged.len(), 3, "every call is one line");
+    assert_eq!((logged[2]["callId"].as_str(), logged[2]["outcome"].as_str()), (Some("call-1"), Some("refused")));
     for entry in &logged { validator.validate(entry).unwrap_or_else(|e| panic!("{e}: {entry}")); }
     let ids: HashSet<&str> = logged.iter().map(|e| e["readId"].as_str().unwrap()).collect();
-    assert_eq!(ids.len(), 2);
+    assert_eq!(ids.len(), 3, "each line its own read identity");
     assert_eq!(logged[0]["outcome"], "returned");
     assert_eq!(logged[0]["readId"], returned(&first)["readId"]);
     assert_eq!(logged[0]["returned"]["content"]["value"], json!(crate::util::sha256_hex(first["contentItems"][0]["text"].as_str().unwrap().as_bytes())), "the returned bytes' identity");
     assert_eq!(logged[0]["returned"]["recordIds"].as_array().unwrap().len(), 3);
     assert_eq!((logged[1]["outcome"].as_str(), logged[1]["refusal"].is_string()), (Some("refused"), true));
-    assert_eq!(cap.snapshot()["recentReads"].as_array().unwrap().len(), 2);
+    assert_eq!(cap.snapshot()["recentReads"].as_array().unwrap().len(), 3);
     // A read that cannot be recorded returns nothing.
     std::fs::remove_dir_all(f.0.join("app-data/runtime")).unwrap();
     let unrecorded = cap.answer(&call(3, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
@@ -225,6 +227,122 @@ fn each_call_is_recorded_once_schema_valid_and_before_it_is_answered() {
     std::fs::write(f.read_log(), b"{\"torn\":").unwrap();
     assert_eq!(cap.answer(&call(4, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()))["success"], false);
     assert_eq!(std::fs::read(f.read_log()).unwrap(), b"{\"torn\":");
+    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("unclosed final line"), "the cause is shown with the capability");
+}
+
+fn text_of(answer: &Value) -> &str {
+    answer["contentItems"][0]["text"].as_str().unwrap()
+}
+fn write_lines(project: &Path, run: &str, lines: &[String]) {
+    let log = crate::storage::project_log(project, Some(run), "app-writer:local");
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::write(&log, lines.iter().map(|l| format!("{l}\n")).collect::<String>()).unwrap();
+}
+
+// #1313 review B1 probes: the bound holds on the final text, and no refused
+// line's content or validator text is returned.
+#[test]
+fn probe_refused_lines_large_identities_and_large_workflow_names_stay_bounded() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    let cap = capability(&f, &a);
+    // (a) 25 lines whose seq is a 4 KB string: refused by the reader.
+    let refused: Vec<String> = (0..25).map(|n| json!({"format":"chirality.rs.record","formatVersion":"0.1","recordId":format!("rec:bad-{n}"),"kind":"evidence_limit",
+        "recorder":{"role":"App writer","identity":"app-writer:local"},"context":{"surface":"App"},"runId":"run:a","seq":format!("REFUSED-CONTENT-{}", "s".repeat(4096)),
+        "writtenAt":"w","body":{"label":"unresolvable reference","subjectRef":"x","detail":"y"}}).to_string()).collect();
+    write_lines(&a, "run:a", &refused);
+    let answer = cap.answer(&call(1, json!({"operation":"read_run","run":"run:a"})), Some(a.to_str().unwrap()));
+    assert!(text_of(&answer).len() <= RESPONSE_LIMIT, "{} bytes", text_of(&answer).len());
+    assert!(!text_of(&answer).contains("REFUSED-CONTENT"), "refused content is never returned");
+    let page = returned(&answer);
+    assert!(page["limits"].as_array().unwrap().iter().all(|l| l.as_str().unwrap().len() <= 400 && !l.as_str().unwrap().contains("schema")), "{}", page["limits"]);
+    assert!(page["limits"][0].as_str().unwrap().contains("line 1 is not a valid record (not read)"));
+    // (b) a 40 KB recordId: returned as a stub whose fields are bounded.
+    let b = f.project("project-b");
+    let big_id = format!("rec:app:{}", "r".repeat(40 * 1024));
+    let entry = crate::records::envelope("evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"x","detail":"y"}), big_id.clone(), 1, Some("run:b"), None);
+    write_lines(&b, "run:b", &[entry.to_string()]);
+    let cap_b = capability(&f, &b);
+    for (n, args) in [(2, json!({"operation":"read_run","run":"run:b"})), (3, json!({"operation":"list_runs"}))] {
+        let answer = cap_b.answer(&call(n, args), Some(b.to_str().unwrap()));
+        assert!(text_of(&answer).len() <= RESPONSE_LIMIT, "{} bytes", text_of(&answer).len());
+        assert!(!text_of(&answer).contains(&big_id));
+    }
+    assert!(f.logged().iter().all(|e| serde_json::to_string(e).unwrap().len() < 8 * 1024), "the read log's entries are bounded too");
+    // (c) a 60 KB workflow name in run_opened, and its absolute sourceRoot.
+    let c = f.project("project-c");
+    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
+    opened["runId"] = json!("run:c");
+    opened["body"]["runId"] = json!("run:c");
+    opened["body"]["workflow"]["name"] = json!("W".repeat(60 * 1024));
+    let mut small = opened.clone();
+    small["recordId"] = json!("rec:app:c-2");
+    small["seq"] = json!(2);
+    small["kind"] = json!("evidence_limit");
+    small["body"] = json!({"label":"unresolvable reference","subjectRef":format!("{}/out/summary.md", c.display()),"detail":"/Users/someone/elsewhere"});
+    write_lines(&c, "run:c", &[opened.to_string(), small.to_string()]);
+    let cap_c = capability(&f, &c);
+    for (n, args) in [(4, json!({"operation":"list_runs"})), (5, json!({"operation":"read_run","run":"run:c"}))] {
+        let answer = cap_c.answer(&call(n, args), Some(c.to_str().unwrap()));
+        let text = text_of(&answer);
+        assert!(text.len() <= RESPONSE_LIMIT && !text.contains(&"W".repeat(1024)), "{} bytes", text.len());
+        assert!(!text.contains(c.to_str().unwrap()) && !text.contains("/Users/someone"), "absolute paths are rewritten or withheld");
+    }
+    let page = returned(&cap_c.answer(&call(6, json!({"operation":"read_run","run":"run:c"})), Some(c.to_str().unwrap())));
+    let item = &page["items"][1];
+    assert_eq!(item["quoted"]["body"]["subjectRef"], "<project>/out/summary.md");
+    assert_eq!(item["quoted"]["body"]["detail"], "<absolute path outside the project; withheld>");
+    assert_eq!(item["pathsRewritten"], 2);
+    // The bound is applied to the final text: a page that does not fit keeps fewer items.
+    let d = f.project("project-d");
+    let lines: Vec<String> = (1..=60).map(|seq| crate::records::envelope("evidence_limit", &crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"x","detail":"d".repeat(ENTRY_LIMIT - 600)}), format!("rec:app:d-{seq}"), seq, Some("run:d"), None).to_string()).collect();
+    write_lines(&d, "run:d", &lines);
+    let cap_d = capability(&f, &d);
+    let page = cap_d.answer(&call(7, json!({"operation":"read_run","run":"run:d","limit":50})), Some(d.to_str().unwrap()));
+    assert!(text_of(&page).len() <= RESPONSE_LIMIT);
+    let page = returned(&page);
+    let kept = page["items"].as_array().unwrap().len();
+    assert!(kept >= 1 && kept < 50 && page["next"] == json!(format!("o:{kept}")), "{kept} {}", page["next"]);
+}
+
+#[test]
+fn library_acts_are_never_returned_and_lines_are_the_files_own() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    // The project is also a workflow library: its A15 acts log is the library's.
+    let library = crate::storage::library_log(&a);
+    std::fs::create_dir_all(library.parent().unwrap()).unwrap();
+    let a15 = crate::records::envelope("evidence_limit", &crate::records::APP_INTERFACE, json!({"label":"unresolvable reference","subjectRef":"LIBRARY-ACT","detail":"y"}), "rec:app:lib-1".into(), 1, None, None);
+    std::fs::write(&library, format!("{a15}\n")).unwrap();
+    // A run log with an invalid line and a blank line before its entries.
+    let first = crate::records::envelope("evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"x","detail":"first"}), "rec:app:l-1".into(), 1, Some("run:l"), None);
+    let second = crate::records::envelope("evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"x","detail":"second"}), "rec:app:l-2".into(), 2, Some("run:l"), None);
+    write_lines(&a, "run:l", &["{\"not\":\"a record\"}".into(), String::new(), first.to_string(), second.to_string()]);
+    let cap = capability(&f, &a);
+    let acts = cap.answer(&call(1, json!({"operation":"read_acts"})), Some(a.to_str().unwrap()));
+    let run = cap.answer(&call(2, json!({"operation":"read_run","run":"run:l"})), Some(a.to_str().unwrap()));
+    for answer in [&acts, &run] { assert!(!text_of(answer).contains("LIBRARY-ACT") && !text_of(answer).contains("rec:app:lib-1")); }
+    let page = returned(&run);
+    assert_eq!(page["items"].as_array().unwrap().iter().map(|i| i["source"]["line"].as_u64().unwrap()).collect::<Vec<_>>(), [3, 4], "the file's own lines");
+    assert!(page["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().ends_with("line 1 is not a valid record (not read)")));
+}
+
+#[test]
+fn only_the_canonical_cursor_continues_a_page() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:c", 30, "C", false);
+    let cap = capability(&f, &a);
+    let next = returned(&cap.answer(&call(1, json!({"operation":"read_run","run":"run:c"})), Some(a.to_str().unwrap())))["next"].clone();
+    assert_eq!(next, "o:20");
+    for (n, cursor) in [(2, "o:+20"), (3, "o:020"), (4, "o: 20"), (5, "o:20 "), (6, "o:-1")] {
+        let answer = cap.answer(&call(n, json!({"operation":"read_run","run":"run:c","cursor":cursor})), Some(a.to_str().unwrap()));
+        assert_eq!(answer["success"], false, "{cursor}");
+    }
+    let rest = returned(&cap.answer(&call(7, json!({"operation":"read_run","run":"run:c","cursor":next})), Some(a.to_str().unwrap())));
+    assert_eq!(rest["items"].as_array().unwrap().len(), 10);
+    assert!(rest["next"].is_null());
 }
 
 /// A fake Codex: answers the handshake, `thread/start` and `turn/start`; after
@@ -292,7 +410,10 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
     assert!(reply("other-tool").unwrap()["error"].is_object(), "a tool the App did not offer stays unsupported");
     // Both calls recorded, before their answers; the register keeps a reference, not the content.
     let logged = f.logged();
-    assert_eq!(logged.iter().map(|e| e["callId"].as_str().unwrap()).collect::<Vec<_>>(), ["call-1", "call-2"]);
+    // Each call is answered on its own worker, so their lines may come in either order.
+    let mut calls: Vec<&str> = logged.iter().map(|e| e["callId"].as_str().unwrap()).collect();
+    calls.sort();
+    assert_eq!(calls, ["call-1", "call-2"]);
     assert_eq!(logged[0]["generation"], json!(crate::recovery::generation_ref(&generation).unwrap()));
     let deadline = Instant::now() + Duration::from_secs(5);
     let snapshot = loop {
@@ -302,13 +423,18 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
         assert!(Instant::now() < deadline, "{}", s["serverRequests"]);
         std::thread::sleep(Duration::from_millis(20));
     };
+    let validator = jsonschema::options().offline().build(&serde_json::from_str::<Value>(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap()).unwrap();
     let records: Vec<&Value> = snapshot["serverRequests"].as_array().unwrap().iter().filter(|r| r["method"] == "item/tool/call" && r["originClass"] == "named-service").collect();
     assert_eq!(records.len(), 2);
     for r in &records {
         assert_eq!(r["state"], "answered");
         assert_eq!(r["settlement"]["origin"], json!({"class":"app-rule","ruleName":"records-read"}));
-        assert!(r["settlement"]["contentRef"]["readId"].as_str().unwrap().starts_with("rread:"));
-        assert!(r["settlement"].get("nativeContent").is_none(), "no returned content kept in the register");
+        assert!(r["settlement"].get("nativeContent").is_none() && r["settlement"].get("contentRef").is_none(), "no returned content in the register's record");
+        validator.validate(r).unwrap_or_else(|e| panic!("{e}: {r}"));
+    }
+    // The read log, joined by generation and request identity, accounts for each answer.
+    for r in &records {
+        assert!(logged.iter().any(|e| e["requestIdentity"] == json!(serde_json::to_string(&r["requestIdentity"]).unwrap())));
     }
     assert!(!serde_json::to_string(&snapshot).unwrap().contains("JOURNEY"), "the host status carries no returned records");
     assert_eq!(snapshot["recordsCapability"]["recentReads"].as_array().unwrap().len(), 2);

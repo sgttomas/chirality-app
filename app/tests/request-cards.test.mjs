@@ -45,6 +45,9 @@ test('tool-permission cards are titled and read without the raw JSON',()=>{
   assert.ok(!/item\/commandExecution\/requestApproval/.test(outside),'the method name is not the title');
   for(const [method,r] of Object.entries(A14)) assert.ok(requestTitle(r).startsWith('Tool permission: '),method);
   assert.equal(requestTitle(request('item/tool/requestUserInput',{...at,questions:[],isBlocking:true})),'Question from the agent');
+  // RS §13.9: a records capability call is the App's own answer, not one it leaves unanswered.
+  assert.match(requestTitle({...request('item/tool/call',{...at,tool:'chirality_records_read_v1'}),originClass:'named-service'}),/read this project's records/);
+  assert.match(requestTitle(request('item/tool/call',{...at,tool:'other'})),/does not answer itself/);
 });
 
 test('LB-1/LB-2/LB-3: App words never say accept or approve; the native value is shown beside them',()=>{

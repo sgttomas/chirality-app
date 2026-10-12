@@ -225,7 +225,9 @@ impl RequestRegister {
                 let kind=if settlement.get("error").is_some(){"error"}else if e["negative"]==true{"decline"}else{"answer"};
                 let mut result=json!({"kind":kind,"origin":origin});
                 if let Some(redaction)=settlement.get("contentRedacted") {result["secretValuesPresent"]=json!(true);result["redaction"]=json!({"marker":"secret-answer-values-removed","questionIds":redaction["questionIds"]});}
-                else if let Some(reference)=settlement.get("contentRef") {result["contentRef"]=reference.clone();}
+                // A named tool's answer (RS §13.9): no nativeContent; the read log
+                // accounts for what was returned (joined by generation and request).
+                else if settlement.get("contentRef").is_some() {}
                 else {result["nativeContent"]=settlement.get("error").or_else(||settlement.get("content")).cloned().unwrap_or(Value::Null);}
                 record["settlement"]=result;
             }
@@ -884,6 +886,31 @@ mod review_repair_tests {
                 "serverRequest/resolved"
             );
             assert_eq!(record["supplierResolution"]["cause"], "supplier-native");
+        }
+    }
+    /// RS §13.9: the records capability's calls, answered (success or refusal)
+    /// by its named rule, written or not, export as the adopted schema allows,
+    /// with no content and no field the schema lacks.
+    #[test]
+    fn records_capability_entries_match_adopted_hosting_schema() {
+        let schema: Value = serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();
+        let validator = jsonschema::options().offline().build(&schema).unwrap();
+        let g = json!({"appSession":"s","home":"h","spawnCounter":1});
+        for (success, written) in [(true, true), (false, true), (true, false)] {
+            let mut r = RequestRegister::default();
+            let frame = json!({"id":7,"method":"item/tool/call","params":{"threadId":"t","turnId":"u","callId":"c","tool":"chirality_records_read_v1","namespace":null,"arguments":{"operation":"list_runs"}}});
+            r.receive_named_tool(&g, 1, &frame, "app-rule:records-read").unwrap();
+            for record in r.records() { validator.validate(&record).unwrap_or_else(|e| panic!("outstanding: {e}: {record}")); }
+            assert!(r.prepare_named_tool(&g, &json!(7), &json!({"success":success,"contentItems":[]}), "app-rule:other", json!({})).is_err(), "only its own rule");
+            r.prepare_named_tool(&g, &json!(7), &json!({"success":success,"contentItems":[{"type":"inputText","text":"RETURNED"}]}), "app-rule:records-read", json!({"readId":"rread:x"})).unwrap();
+            for record in r.records() { validator.validate(&record).unwrap_or_else(|e| panic!("settling: {e}: {record}")); }
+            r.written(&g, &json!(7), written);
+            let record = &r.records()[0];
+            validator.validate(record).unwrap_or_else(|e| panic!("{success} {written}: {e}: {record}"));
+            assert_eq!(record["originClass"], "named-service");
+            assert_eq!(record["state"], if written { "answered" } else { "settle-write-failed" });
+            assert_eq!(record["settlement"], json!({"kind":"answer","origin":{"class":"app-rule","ruleName":"records-read"}}));
+            assert!(!record.to_string().contains("RETURNED"));
         }
     }
     #[test]

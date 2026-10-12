@@ -554,6 +554,9 @@ pub struct Host {
     /// its send are not interleaved with another. Per Host, so a home whose
     /// Codex stops reading holds up only its own interrupts.
     interrupt_gate: Mutex<()>,
+    /// This host, once started as an `Arc` (RS §13.9: a records call is
+    /// answered on a worker thread, off the frame reader).
+    this: Mutex<std::sync::Weak<Host>>,
     #[cfg(test)]
     after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
@@ -630,6 +633,7 @@ impl Host {
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
             interrupt_gate: Mutex::new(()),
+            this: Mutex::new(std::sync::Weak::new()),
             #[cfg(test)]
             after_attachment_namespace_write:Mutex::new(None),
             #[cfg(test)]
@@ -1097,6 +1101,7 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
             let mut i = self.inner.0.lock().unwrap();
@@ -3134,7 +3139,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         drop(i);
         if let Some(call)=cce_call {let _=self.cce_reply_unavailable(&call);}
-        if let Some(call)=records_call {self.answer_records_call(call);}
+        // The read and its log's sync run on a worker, so the frame reader
+        // keeps receiving; the reply goes through the ordinary write path.
+        if let Some(call)=records_call {
+            match self.this.lock().unwrap().upgrade() {
+                Some(host)=>{let _=std::thread::Builder::new().name("records-capability".into()).spawn(move||host.answer_records_call(call));}
+                None=>self.answer_records_call(call),
+            }
+        }
         if let Some((bound,id,token_refresh))=private_auth_reply{
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));
             let mut i=self.inner.0.lock().unwrap();

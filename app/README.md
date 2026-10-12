@@ -577,12 +577,16 @@ implemented behavior and qualification limits.
     (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
     `chirality_records_read_v1` (`dynamicTools` on `thread/start`; not on a
     resume or fork). Its operations are `list_runs`, `read_run` and
-    `read_acts`. Pages hold at most 50 items and stay within 32 KiB; larger
-    entries come back as stubs, and a cursor continues the next page. The
-    Rust host answers by the App rule `records-read` and reads only this
-    project's records. It never reads keys, capture evidence files, other
-    projects' records or library acts. Every return is one JSON document
-    marked as quoted evidence, not instructions or authority. Before the
+    `read_acts`. Pages hold at most 50 items and the final text stays within
+    32 KiB (fewer items, or a refusal, when it would not); larger entries and
+    summaries come back as stubs, and a cursor continues the next page. The
+    Rust host answers on a worker thread by the App rule `records-read` and
+    reads only this project's records. It never returns keys, capture
+    evidence files, other projects' records, library acts (also when the
+    project is the library), refused lines' content or absolute paths
+    (rewritten to `<project>/…` or withheld inside quoted entries). Every
+    return is one JSON document marked as quoted evidence, not instructions
+    or authority. Before the
     agent gets an answer, the call (returned or refused) is written to the
     App's read log `runtime/records-reads.jsonl` and synced, so a read that
     cannot be recorded returns nothing. The host status shows the capability

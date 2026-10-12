@@ -1007,3 +1007,14 @@ are separate; neither establishes the other. Native acceptance without its
 proof remains unsupported, with decline and cancel available. Published proof
 mapping alone does not complete positive acceptance. Per-act presence and AAC's
 capture-origin custody are separate contracts.
+
+**Records capability calls (§4.1 `item/tool/call`; RS §13.9; HOSTING §6.1).**
+§4.1's `item/tool/call` row, with its rule `app-rule:no-dynamic-tools`, still
+holds for every tool the App does not offer. The App now offers one, the
+records capability `chirality_records_read_v1`, on the conversations it starts
+in its current project. Its calls there are known-answerable, origin class
+named-service, answered by rule `app-rule:records-read` and never by the
+person. Their card has no controls and reads "The agent read this project's
+records (the App's records capability answered; each read is in the read
+log)". §4.1 is a pinned examination input and is left unchanged here; this
+paragraph records the exception until §4.1 is next revised.
