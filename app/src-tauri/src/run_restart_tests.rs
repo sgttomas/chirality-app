@@ -245,12 +245,16 @@ fn identity_conflict_in_an_incomplete_record_set_is_not_a_permanent_refusal(){
     let refusal=|| crate::records::supply::permanent_refusal(&root,"run:x","evidence_limit",id,&body,"2026-10-10T00:00:00Z");
     assert!(refusal().is_some_and(|r|r.contains("already held")),"complete set: definite conflict");
     let torn=crate::storage::project_log(&root,None,"other-writer");std::fs::write(&torn,b"{\"torn").unwrap();
+    assert!(refusal().is_some_and(|r|r.contains("already held")),"a torn final line is a partial, never an entry (R-2): still definite");
+    std::fs::write(&torn,b"{\"torn\n").unwrap();
     assert!(refusal().is_none(),"an unreadable log leaves the conflict indefinite: stays held");
     std::fs::remove_dir_all(root).unwrap();
 }
 // RS W-1 / §13.7 and CC-ID: every append but the relaunch end needs the whole record set
 // complete. The relaunch end's mode accepts other incomplete logs, still refuses an
-// incomplete owning log, and still refuses an identity held by a readable entry.
+// incomplete owning log, and still refuses an identity held by a readable entry. A torn
+// final line is a partial (R-2): it leaves another writer's set complete, and its own
+// writer recovers it on its next open (W-0).
 #[test]
 fn writer_record_set_modes_beside_an_incomplete_log(){
     use crate::records::RecordSet::{Complete,ReadableBesideIncomplete};
@@ -260,12 +264,21 @@ fn writer_record_set_modes_beside_an_incomplete_log(){
     let torn=crate::storage::project_log(&root,None,"torn-writer");std::fs::write(&torn,b"{\"torn").unwrap();
     let body=json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"});
     let append=|id:&str,set|crate::records::append_project_reserved_in(&root,"run:x","w","evidence_limit",&crate::records::APP_WRITER,body.clone(),id,"2026-10-11T00:00:00Z",set);
+    assert!(append("rec:app:p",Complete).is_ok(),"another writer's torn tail leaves the set complete");
+    assert_eq!(std::fs::read(&torn).unwrap(),b"{\"torn","another writer's log is never repaired here");
+    std::fs::write(&torn,b"{\"torn\n").unwrap();
     assert!(append("rec:app:a",Complete).is_err_and(|e|e.contains("record-set conflict/incomplete")),"the default still needs the whole set");
     assert!(append("rec:app:a",ReadableBesideIncomplete).is_ok(),"the relaunch end's mode writes beside it");
     assert!(append(held,ReadableBesideIncomplete).is_err_and(|e|e.contains("identity conflict")),"a readable identity is still checked");
     let own=crate::storage::project_log(&root,Some("run:x"),"w");
-    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();
-    assert!(append("rec:app:b",ReadableBesideIncomplete).is_err_and(|e|e.contains("partial line")),"an incomplete owning log refuses");
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn_own=std::fs::read(&own).unwrap();
+    assert!(append("rec:app:b",ReadableBesideIncomplete).is_ok(),"the owning writer recovers its torn tail (W-0)");
+    assert!(std::fs::read(&own).unwrap().starts_with(&torn_own),"the torn bytes are kept");
+    let (entries,limits)=crate::records::read_log(&own);assert!(limits.is_empty(),"{limits:?}");
+    assert_eq!(entries.iter().map(|e|e["body"]["label"].as_str().unwrap()).collect::<Vec<_>>(),["unresolvable reference","unresolvable reference",crate::records::PARTIAL_NOT_RECOVERED,"unresolvable reference"]);
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"unreadable\n").unwrap();drop(f);
+    assert!(append("rec:app:c",ReadableBesideIncomplete).is_err_and(|e|e.contains("incomplete owning log")),"an unreadable owning line refuses");
     std::fs::remove_dir_all(root).unwrap();
 }
 // PR #1269 review: in `Complete` mode the supply writer refuses beside an incomplete set
@@ -278,10 +291,25 @@ fn supply_complete_mode_refuses_before_recognising_a_written_entry_beside_a_torn
     let mut entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),"2026-10-11T00:00:00Z".into()).unwrap();
     let mut again=entry.clone();let mut third=entry.clone();
     crate::records::supply::append_run_entry(&root,"run:x",&mut entry).unwrap();
-    let torn=crate::storage::project_log(&root,None,"torn-writer");std::fs::create_dir_all(torn.parent().unwrap()).unwrap();std::fs::write(&torn,b"{\"torn").unwrap();
+    let torn=crate::storage::project_log(&root,None,"torn-writer");std::fs::create_dir_all(torn.parent().unwrap()).unwrap();std::fs::write(&torn,b"{\"torn\n").unwrap();
     assert!(crate::records::supply::append_run_entry_in(&root,"run:x",&mut again,Complete).is_err_and(|e|e.contains("RS record set incomplete")));
     assert_eq!(crate::records::supply::append_run_entry_in(&root,"run:x",&mut third,ReadableBesideIncomplete).unwrap()["recordId"],entry.record_id.as_str());
     std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS §14.2 R-2, §14.1 W-0: another writer's torn final line is a partial, never an
+// entry, so an open run (complete-set guard) keeps writing beside it, and the torn
+// log is left for its own writer to recover.
+#[test]
+fn an_open_run_records_beside_another_writers_torn_tail(){
+    let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
+    std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
+    let other=crate::storage::project_log(&peer.fixture.root,None,"torn-writer");std::fs::create_dir_all(other.parent().unwrap()).unwrap();std::fs::write(&other,b"{\"torn").unwrap();
+    let before=own_log(&peer,&a).len();
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();
+    run.observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
+    assert!(!run.has_pending_records(),"{}",run.view(&a));assert!(own_log(&peer,&a).len()>before);
+    assert_eq!(std::fs::read(&other).unwrap(),b"{\"torn");
 }
 
 // The live end records without repairing unrelated logs, including when nothing
@@ -331,13 +359,32 @@ fn live_end_drains_pending_checkpoint_and_r3_before_its_end_beside_a_torn_log(){
     assert_eq!(std::fs::read(&other).unwrap(),torn);
 }
 
-// The person's hot end still ends the run when its owning target cannot be
-// written; the record stays pending and retries preserve the original end.
+// W-0 at the person's hot end: the run's own torn log is recovered (the torn
+// bytes kept, "partial entry not recovered" naming the line) and the end is
+// recorded after it, beside another incomplete log.
 #[test]
-fn live_end_own_torn_log_holds_writes_until_repair_even_beside_another_torn_log(){
+fn live_end_recovers_its_own_torn_log_beside_another_incomplete_log(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let own=crate::records::supply::run_log(&peer.fixture.root,&a);
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn=std::fs::read(&own).unwrap();let (other,_)=break_act_log(&peer);let other_bytes=std::fs::read(&other).unwrap();
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();let ended=run.end_run(None,None).unwrap();
+    assert_eq!(ended["recorded"],true,"{ended}");assert!(!run.has_pending_records());
+    assert!(std::fs::read(&own).unwrap().starts_with(&torn),"the torn bytes are kept in place");
+    let log=own_log(&peer,&a);
+    let w0=log.iter().position(|e|e["body"]["label"]==crate::records::PARTIAL_NOT_RECOVERED).expect("W-0's limit");
+    assert!(w0<log.iter().position(|e|e["kind"]=="run_ended").unwrap());
+    assert_eq!(std::fs::read(&other).unwrap(),other_bytes,"another writer's log is untouched");
+}
+
+// The person's hot end still ends the run when its owning target cannot be
+// written (an unreadable line, not a torn tail); the record stays pending and
+// retries preserve the original end.
+#[test]
+fn live_end_own_unreadable_log_holds_writes_until_repair_even_beside_another_incomplete_log(){
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
-    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn\n").unwrap();drop(f);
     let torn=std::fs::read(&own).unwrap();let (other,_)=break_act_log(&peer);let other_bytes=std::fs::read(&other).unwrap();
     let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();let ended=run.end_run(None,None).unwrap();
     assert_eq!(ended["recorded"],false);assert_eq!(run.lifecycle,RunLifecycle::Ended);assert!(run.has_pending_records());
@@ -363,7 +410,8 @@ fn live_end_reconciles_uncertain_own_writes_when_discovery_fails_but_refuses_own
     crate::records::append_project(&peer.fixture.root,Some(run),"other-writer","evidence_limit",&crate::records::APP_WRITER,
         json!({"label":"record write failed","subjectRef":original.record_id,"detail":"another writer's claim cannot settle this writer's late limit"})).unwrap();
     let own=crate::records::supply::run_log(&peer.fixture.root,run);let complete=std::fs::read(&own).unwrap();
-    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    // An unreadable own line (a torn tail alone is recovered by W-0 first).
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn\n").unwrap();drop(f);
     let torn=std::fs::read(&own).unwrap();
     assert!(crate::records::supply::append_run_entry_in(&peer.fixture.root,run,&mut pending,ReadableBesideIncomplete).is_err_and(|e|e.contains("owning log incomplete")));
     assert!(pending.written.is_none());assert_eq!(std::fs::read(&own).unwrap(),torn);
@@ -430,8 +478,32 @@ fn live_end_conflicting_late_limit_keeps_its_already_landed_parent_pending(){
 }
 
 // R3 uses the same guarded uncertain-write reconciliation as lifecycle entries.
+// W-0 first: a torn tail after the landed R3 is terminated and named, so the
+// owning log is complete, and the landed R3 is settled once with its late limit.
 #[test]
-fn live_end_r3_matching_prefix_in_a_torn_own_log_stays_pending(){
+fn live_end_r3_landed_before_a_torn_own_tail_is_settled_once_after_w0(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();peer.select_history();run.check_native_supply().unwrap();
+    let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+    let slot=run.checks.last_mut().unwrap();
+    slot.r3=WorkflowR3::Pending(crate::records::supply::prepare_live(&project,slot.published.as_ref().unwrap()).unwrap());
+    let pending=match &mut slot.r3 {WorkflowR3::Pending(p)=>p,_=>unreachable!()};
+    crate::records::supply::append_live(&project,slot.published.as_ref().unwrap(),pending,crate::records::RecordSet::Complete).unwrap();
+    let id=pending.record_id().to_owned();pending.hold("injected uncertain write");
+    let own=crate::records::supply::run_log(&peer.fixture.root,&a);
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let torn=std::fs::read(&own).unwrap();break_act_log(&peer);
+    run.end_run(None,None).unwrap();assert!(!run.has_pending_records(),"{}",run.view(&a));
+    assert!(std::fs::read(&own).unwrap().starts_with(&torn),"the torn bytes are kept");
+    let log=own_log(&peer,&a);
+    assert_eq!(log.iter().filter(|e|e["recordId"]==id.as_str()).count(),1,"the landed R3 is not written again");
+    let w0=log.iter().position(|e|e["body"]["label"]==crate::records::PARTIAL_NOT_RECOVERED).unwrap();
+    let late=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==id.as_str()).unwrap();let end=log.iter().position(|e|e["kind"]=="run_ended").unwrap();
+    assert!(w0<late&&late<end);
+}
+// An unreadable own line holds the R3 pending until repaired.
+#[test]
+fn live_end_r3_matching_prefix_in_an_unreadable_own_log_stays_pending(){
     let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
     let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();peer.select_history();run.check_native_supply().unwrap();
     let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
@@ -441,7 +513,7 @@ fn live_end_r3_matching_prefix_in_a_torn_own_log_stays_pending(){
     crate::records::supply::append_live(&project,slot.published.as_ref().unwrap(),pending,crate::records::RecordSet::Complete).unwrap();
     let id=pending.record_id().to_owned();pending.hold("injected uncertain write");
     let own=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&own).unwrap();
-    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
+    let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn\n").unwrap();drop(f);
     let torn=std::fs::read(&own).unwrap();break_act_log(&peer);
     run.end_run(None,None).unwrap();assert!(run.has_pending_records());
     assert!(matches!(&run.checks.last().unwrap().r3,WorkflowR3::Pending(_)));assert_eq!(std::fs::read(&own).unwrap(),torn);

@@ -1625,12 +1625,23 @@ machine; `records::durability_tests`, and the ignored
 - *FC-2.* 200 SIGKILLs at random points of a child appending 48 KiB
   entries in a loop left only complete entries, in sequence, and no torn
   tail. A short write (`RLIMIT_FSIZE`) leaves one. The reader reports it
-  as "partial entry at end (not read)", never as an entry. W-0's repair
-  is not implemented, so a reopened writer refuses that log ("ends in a
-  partial line … nothing written"). Because an append requires a
-  complete record set, it also refuses every other log of the project
-  ("record-set conflict/incomplete"). Only the person's explicit end
-  records beside it (`ReadableBesideIncomplete`). A directory-sync
+  as "partial entry at end (not read)", never as an entry. W-0 as
+  implemented: the reopened writer (at an append or a reconciliation)
+  terminates the torn line in place with one `\n`, never truncating or
+  editing it. In the same write it appends `evidence_limit` "partial
+  entry not recovered", by the App writer with the next `seq`, its
+  `subjectRef` "line ‹n›", and a detail giving the torn bytes' length
+  and SHA-256; the log then continues in sequence. A line directly
+  followed by that limit naming it is never read as an entry (both RS
+  readers). A torn final line in another writer's log is a partial, not
+  an entry (R-2; §3 *partial* "never" written). It therefore leaves the
+  record set complete for every other writer, including open runs'
+  complete-set guard (§13.7). An unreadable or invalid line elsewhere
+  still leaves the set incomplete, as before. Identity checks are
+  unchanged: an identity held by a readable entry is refused. One that
+  appears only in torn bytes is not held. A crash during W-0's own write
+  can leave a terminated, unnamed line: an unreadable line, which keeps
+  that owning log refused until it is repaired. A directory-sync
   failure after the line landed reports the append failed while the
   reader shows the entry; a retry under the same reserved identity
   refuses, so nothing is duplicated (FC-1). Not shown: survival of

@@ -142,9 +142,12 @@ fn read_log(root: &Path, path: &Path) -> (Vec<Value>, Vec<String>) {
     let mut entries = Vec::new();
     let mut limits = Vec::new();
     let mut expected = 1u64;
-    let count = text.lines().count();
-    for (n, line) in text.lines().enumerate() {
-        if line.trim().is_empty() {
+    let lines: Vec<&str> = text.lines().collect();
+    let count = lines.len();
+    // RS §14.1 W-0: a torn line its writer terminated and named is never read.
+    let recovered = crate::records::recovered_partial_lines(&lines);
+    for (n, line) in lines.iter().enumerate() {
+        if line.trim().is_empty() || recovered.contains(&n) {
             continue;
         }
         if n + 1 == count && !text.ends_with('\n') {

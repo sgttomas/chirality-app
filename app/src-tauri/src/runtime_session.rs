@@ -9540,11 +9540,14 @@ for line in sys.stdin:
         assert!(lapse["time"].as_str().unwrap()>=before.as_str(),"observed at the end, not back-dated");
         assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
     }
-    /// Appends a partial line to the act log; returns the log and its bytes before.
+    /// Appends an unreadable (terminated) line to the act log, which leaves the
+    /// record set incomplete; returns the log and its bytes before. (A torn
+    /// final line alone is a partial, never an entry, recovered by its own
+    /// writer's W-0; it leaves the set complete for other writers.)
     fn break_act_log(peer:&Peer)->(std::path::PathBuf,Vec<u8>){
         let log=peer.fixture.root.join(crate::recorder::LOG);std::fs::create_dir_all(log.parent().unwrap()).unwrap();
         let before=std::fs::read(&log).unwrap_or_default();
-        let mut f=std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":").unwrap();
+        let mut f=std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":\n").unwrap();
         (log,before)
     }
     // m-b (EXEC A-11): while an arrival waits and the act records cannot be read, the person's
@@ -9634,7 +9637,7 @@ for line in sys.stdin:
         let end=log.iter().position(|e|e["kind"]=="run_ended").expect("run_ended written");
         assert!(limit<end,"the limit precedes run_ended");
         let detail=log[limit]["body"]["detail"].as_str().unwrap();
-        assert!(detail.contains("could not be read")&&detail.contains("partial entry at end"),"{detail}");
+        assert!(detail.contains("could not be read")&&detail.contains("unreadable line"),"{detail}");
         assert!(detail.contains(&*act_log.file_name().unwrap().to_string_lossy()),"the unread log is named: {detail}");
         assert_eq!(log[end]["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
         std::fs::write(&act_log,before).unwrap();
