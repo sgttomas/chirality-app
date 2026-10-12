@@ -1538,8 +1538,12 @@ joined the store.
   `records_store_identity` (adopt, new identity, restore the link). Reading
   mints nothing, and a project folder named through a symlink is refused.
 - **Workflow libraries.** A15 library acts and their capture evidence stay
-  with the library (§13.7 rows) until the owner decides how library standing
-  is verified across installations (U-STORE-2).
+  with the library (§13.7 rows). Across installations (owner U-STORE-2,
+  2026-10-12: "Evidence; re-register"), acts made by another installation are
+  shown as quoted evidence attributed to that installation, marked verified
+  or unverified once the App is signed. They never count as this person's
+  registration: a workflow from such a library is selectable here only after
+  the person registers it with their own A15.
 - **Split by who writes** (owner, 2026-10-12: "Split by who writes (Recommended)"). Records the App writes join the
   store: the fleet coordination log (DEL-06-01 `coordination.fleet.jsonl`)
   and connector route accounts (DEL-07-02). Working files that the person and
@@ -1555,31 +1559,38 @@ joined the store.
   stay valid. Groups are single-writer, since logs are per run and writer.
   When implemented, R-2 ("one entry per line") and W-1's one-line write read
   "one entry or one group per line".
-- **Tamper-evidence (proposed option).** Each line carries the content
+- **Tamper-evidence.** Each line carries the content
   identity of the preceding complete line of its log, with its method
   designation. A line that W-0 terminated after a torn write (FC-2) is not a
   link, and the reader reports the gap. Imported legacy logs have no chain and
   read as "unchained (legacy)", a limit. Checkpoint entries at intervals are
   signed. A reader reports a broken chain or a signature that does not verify
-  as a limit and never repairs it. Signing depends on the App being signed:
+  as a limit and never repairs it. The owner set this strength (U-STORE-3,
+  2026-10-12: "Chain + signed checkpoints"), with no external anchoring: it
+  detects edits by anyone without the checkpoint key, not by someone who
+  controls this machine and its keychain, and proves no outside time.
+  Signing depends on the App being signed:
   the owner accepted SEAL-C's residual "until signing" on 2026-10-11, and the
   key moves to the OS keychain at signing (AAC §6.3; OI-011). Whether
-  checkpoints share SEAL-C's key, and SEAL-2/U-32, are decided there. The
-  strength required, and any external anchoring, remain the owner's decision
-  (U-STORE-3).
+  checkpoints share SEAL-C's key, and SEAL-2/U-32, are decided there.
 - **Derived index** (proposed). A SQLite database in the store, built only from the
   logs, answers cross-run queries. It is deletable and rebuildable and is
   never the authority for a record (REQ-001; V4-REC-06). Where it disagrees
   with the logs, the logs govern and the index is rebuilt.
-- **Retention and disposition.** Records are retained with no deletion
-  offered until the owner sets a retention policy, including disposition and
-  legal hold (U-STORE-1).
-- **Export and import.** A project's records move or are handed over as a
-  verified package. The candidate form is a signed manifest with each file's
-  content identity.
-  Import never overwrites, keeps every record identity, and reports
-  duplicates under R-5…R-8. The package format is chosen with the owner's
-  backup and export decision (U-STORE-5).
+- **Retention and disposition** (owner U-STORE-1, 2026-10-12: "Keep;
+  recorded disposal"). Records are kept with no expiry; nothing is disposed
+  of automatically. The person may dispose of a closed project's records only
+  as a recorded act, and only after a verified export package of them
+  exists. A legal hold set on a project blocks its disposal until the hold is
+  released, and setting and releasing a hold are recorded acts. Until export
+  and that act are built, no deletion is offered.
+- **Export and import** (owner U-STORE-5, 2026-10-12: "BagIt + signed
+  manifest"). A project's records move or are handed over as a verified
+  BagIt package (RFC 8493): the store's files byte for byte, with a SHA-256
+  manifest and each log's chain head; the manifest is signed once the App is
+  signed. The package is readable and checkable without the App.
+  Import verifies the package, never overwrites, keeps every record identity,
+  and reports duplicates under R-5…R-8.
 - **Existing records** (implemented). The App discovers the §13.7 project logs and reads
   them in place. It then imports them explicitly (§13.7 discovery makes no
   implicit copy) into the store as byte-identical copies verified against
@@ -2162,11 +2173,11 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-14 Host-stored findings as a change operation | Host owner | Before V4-EXM-21 fixture binding | R10 may also need R7 |
 | U-15 Host receipts, origin marks, subject identities, resulting objects, lapse, per-operation settings version, de-duplication `DEP-001` | SWBPIPE outside implementation session | Before corresponding connected-journey integration/examination and fallback-replacement decision; host joins deferred (DECISION-3) | All host evidence is fixture. SWBPIPE answered 2026-09-28 (SQ-03, SQ-07, SQ-08, SQ-09, SQ-10): whole-model identity only; resulting objects as target ids and diffs; within-session de-duplication and receipts only (DRAFT #885); receiptless session undo |
 | U-16 Reader/writer placement `OI-014` — bounded App allocation selected | App/shared contract owners | Remaining shared allocation point of need | CC-P-R §13.7 selects App-local Rust capture/writer for Group A, no common service; §13.8 keeps it for the records store. Other shared allocations and external host choices remain open |
-| U-STORE-1 Records retention, disposition and legal hold | Owner, with privacy | Before any deletion or archive feature | Retain everything; no deletion offered (§13.8) |
-| U-STORE-2 Library standing across installations, and whose signature counts | Owner, with DEL-02-02 | Before libraries are shared between installations | Library evidence stays with the library (§13.8) |
-| U-STORE-3 Tamper-evidence strength and external anchoring | Owner | Before signed checkpoints are built | Hash chain; checkpoint signing after App signing (§13.8; OI-011) |
+| U-STORE-1 *Decided 2026-10-12:* records retention, disposition and legal hold (owner: "Keep; recorded disposal") | — | — | Kept with no expiry; disposal of a closed project only as a recorded act after a verified export, blocked by a legal hold (§13.8) |
+| U-STORE-2 *Decided 2026-10-12:* library standing across installations (owner: "Evidence; re-register") | — | — | Another installation's acts are attributed quoted evidence; selectable here only after the person's own A15 (§13.8) |
+| U-STORE-3 *Decided 2026-10-12:* tamper-evidence strength (owner: "Chain + signed checkpoints") | — | — | Per-log hash chain; signed checkpoints after App signing, key in the OS keychain; no external anchoring (§13.8; OI-011) |
 | U-STORE-4 *Decided 2026-10-12:* agent reads through an App-provided, project-scoped, read-only records capability (owner: "I choose option B") | — | — | Direct file reads cannot be prevented under Codex 0.160.0; the limit is stated (§13.8). The capability is §13.9 |
-| U-STORE-5 Backup and export package format | Owner | Before export/import is built | Configurable store location; candidate signed manifest |
+| U-STORE-5 *Decided 2026-10-12:* backup and export package format (owner: "BagIt + signed manifest") | — | — | BagIt (RFC 8493) package, SHA-256 manifest with chain heads, signed after App signing (§13.8) |
 | U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)") | — | — | App-written coordination log and connector accounts join the store; briefs and graphs stay in the project (§13.8) |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
