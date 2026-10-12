@@ -39,6 +39,7 @@ The [`desktop/`](desktop/) and [`runtime/`](runtime/) snapshots were published t
 - [Roles and instructions](https://github.com/sgttomas/chirality/tree/main/agents)
 - [Workflow library](https://github.com/sgttomas/chirality/tree/main/workflows)
 - [Release notes](https://github.com/sgttomas/chirality-app/releases)
+- [Release projection CI](docs/CI.md)
 
 ## License
 

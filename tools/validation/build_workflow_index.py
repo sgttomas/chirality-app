@@ -15,6 +15,7 @@ LEGACY_SCHEMA = "chirality-legacy-methods/v1"
 NAME_RE = re.compile(r"^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$")
 SOURCES = ("project", "user", "bundled")
 ROLES = ("HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK")
+PUBLIC_EXPORT_EXCLUSIONS = (("skill", "chirality-change"),)
 CENTRAL = (
     "create-workflow",
     "project-setup",
@@ -247,6 +248,10 @@ def parse_execution(package_root: Path, repo_root: Path, required: bool) -> dict
 
 def validate_and_build(root: Path, public_export: bool = False) -> dict:
     root = root.resolve()
+    # Exported libraries deliberately omit these project-only packages. Keep
+    # canonical validation strict and tolerate only the declared identities
+    # when reproducing an already-exported library.
+    omitted_skills = {name for kind, name in PUBLIC_EXPORT_EXCLUSIONS if kind == "skill"} if public_export else set()
     workflows = root / "workflows"
     catalog = _load_catalog(workflows / "catalog.yaml")
     if catalog.get("schema") != CATALOG_SCHEMA:
@@ -382,7 +387,8 @@ def validate_and_build(root: Path, public_export: bool = False) -> dict:
             if successor["kind"] == "workflow" and successor["name"] not in names:
                 raise ValueError(f"unknown workflow successor: {alias}")
             if successor["kind"] == "skill" and successor["name"] not in skill_names:
-                raise ValueError(f"unknown skill successor: {alias}")
+                if successor["name"] not in omitted_skills or successor.get("scope") != "project":
+                    raise ValueError(f"unknown skill successor: {alias}")
     if methods["unknownLegacyBehavior"] != "error" or not isinstance(methods["historicalOnly"], list):
         raise ValueError("unconverted legacy methods must remain historical and unknown selection must error")
     converted = methods["convertedWorkflowAliases"]
@@ -390,7 +396,7 @@ def validate_and_build(root: Path, public_export: bool = False) -> dict:
         not isinstance(k, str) or not isinstance(v, dict)
         or set(v) != {"kind", "name"} or v["kind"] not in ("workflow", "skill")
         or (v["kind"] == "workflow" and v["name"] not in names)
-        or (v["kind"] == "skill" and v["name"] not in skill_names)
+        or (v["kind"] == "skill" and v["name"] not in skill_names | omitted_skills)
         for k, v in converted.items()
     ):
         raise ValueError("converted TaskSkill mapping targets unknown workflows")
@@ -398,7 +404,7 @@ def validate_and_build(root: Path, public_export: bool = False) -> dict:
         raise ValueError("legacy methods cannot be both converted and historical-only")
     converted_refs = dict(sorted(converted.items()))
     if public_export:
-        descriptors = [item for item in descriptors if not (item["kind"] == "skill" and item["name"] == "chirality-change")]
+        descriptors = [item for item in descriptors if (item["kind"], item["name"]) not in PUBLIC_EXPORT_EXCLUSIONS]
     return {
         "schema": INDEX_SCHEMA,
         "library": library,
@@ -418,7 +424,7 @@ def validate_and_build(root: Path, public_export: bool = False) -> dict:
             "malformedHigherPrecedence": "block-identity",
             "collisionHandling": "expose-all-qualified-candidates",
             "resourceContainment": "realpath-within-package-root",
-            "publicExportExclusions": [{"kind": "skill", "name": "chirality-change"}],
+            "publicExportExclusions": [{"kind": kind, "name": name} for kind, name in PUBLIC_EXPORT_EXCLUSIONS],
         },
     }
 
