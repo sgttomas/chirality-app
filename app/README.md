@@ -130,8 +130,14 @@ writes records or operates the act control." `src-tauri/` holds that host;
     recovered-from-supplier rows, as are the pages the host's recovery reads
     return after a restart (item 22b); items are added only as their pages
     are read. Only a plan
-    observed live shows a revision number in this conversation. A row the view
-    cannot read shows its JSON instead of breaking the view.
+    observed live shows a revision number in this conversation; a later run
+    does not reset it. Each plan revision, checklist and tool row in a turn a
+    workflow run was in force at, as the App's run markers place it (from
+    its start turn to the turn it ended after), carries "During the run of
+    ‹workflow› ‹revision›" (NPTD §5.7). Messages carry none, and so does a row
+    outside any run, between runs, or past the start turn of a run whose end
+    this view cannot place; nothing says which run caused an item. A row the
+    view cannot read shows its JSON instead of breaking the view.
 18. Plan mode (experimental) is offered only when this Codex connection declared
     the experimental API and Codex lists a `plan` preset. Sending in plan or
     default mode puts `collaborationMode` on `turn/start` with the conversation's
