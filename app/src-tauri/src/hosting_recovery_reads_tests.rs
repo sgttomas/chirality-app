@@ -645,3 +645,35 @@ fn a_request_open_at_a_supplier_exit_ends_unanswered_in_that_context() {
     assert!(run.limits().is_empty(), "no reply was written");
     run.written_once(&f);
 }
+
+// Review M-1 probe through the real Host: the person's answer is still being written
+// (`settling`) when the process ends. The host never records a write result for a closed
+// generation (HOSTING write path: "reply write finished for closed/superseded source; no
+// successor settlement inferred"), so the entry stays settling with no write recorded,
+// RQ-04 (RT-11, outstanding only) and RQ-05 (a reply was written) do not apply, and the run
+// records no R13 or R11 for it: nothing claims it answered, written or acknowledged. What a
+// reply settling at a close should become is not designed (reported).
+#[test]
+fn a_reply_still_settling_at_the_close_is_never_recorded_as_written() {
+    let f = Fixture::new();
+    f.live_work();
+    let mut run = SettlementRun::new(&f);
+    assert!(run.tick(&f).is_empty());
+    let host = f.home.host.clone();
+    let serial = host.frame_write.lock().unwrap();
+    let (caller, generation) = (host.clone(), f.first.clone());
+    let writer = std::thread::spawn(move || caller.answer_server_request(&generation, &json!(7), &json!({"decision":"accept"}), "person-via-interaction", Some(PERSON)));
+    let state = || host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|e| e["requestIdentity"] == 7).map(|e| e["state"].clone()).unwrap();
+    f.until("settling", || state() == "settling");
+    f.crash();
+    drop(serial);
+    assert!(writer.join().unwrap().is_err(), "the write is refused or its result discarded after the close");
+    let entry = host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|e| e["requestIdentity"] == 7).cloned().unwrap();
+    assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("settling"), Some("not-attempted")), "{entry}");
+    for kind in ["request_ended_unanswered", "acknowledgment_not_observed"] {
+        assert!(Fixture::events(&f.home, kind).is_empty(), "{kind}");
+    }
+    let outputs = run.tick(&f);
+    assert!(outputs.iter().all(|(k, _)| *k == "observation_lost"), "{outputs:?}");
+    assert!(run.settlements().is_empty() && run.limits().is_empty());
+}

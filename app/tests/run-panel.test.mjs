@@ -336,3 +336,34 @@ test('Bring a real run back defaults to the host’s default conversation for th
   assert.equal(props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Bring a real run back to authoring')[0]).disabled,true,'the person may clear it');
   await React.act(()=>rootEl.unmount());
 });
+
+test('tool-permission settlements and model turns feed no facet; a lost acknowledgement adds an unknown to evidence only (AS §2, §3.2, §8, DS-3; RS R5, R13, R11)',()=>{
+  const gated={name:'summary',form:'file',gating_checkpoint:'CP-rely',promised_standing:['relied on by the person']};
+  const plain={name:'resolution-report',promised_standing:[]};
+  const facets=(output,records)=>outputStanding(output,run({lifecycle:{state:'open',records:[entry('run_opened',{}),...records]}}));
+  const settled=[
+    entry('tool_permission_settlement',{request:'server-request:1/1',settledBy:'the person via interaction',settlement:'answered'}),
+    entry('tool_permission_settlement',{request:'server-request:1/2',settledBy:'App named-rule decline',settlement:'declined',ruleName:'deny-network'}),
+    entry('tool_permission_settlement',{request:'server-request:1/7',settledBy:'none — ended unanswered',settlement:'ended unanswered (process exit)',context:'App quit',custodyEventRef:'cev:rq04:g:7'}),
+  ];
+  // Settlements leave every facet exactly as the run without them, for a gated and an ungated output.
+  for(const output of [gated,plain]) assert.deepEqual(facets(output,settled),facets(output,[]),output.name);
+  assert.ok(facets(gated,settled).humanActs.startsWith('none recorded in this run: checkpoint CP-rely'),'an A14 settlement is never a human act');
+  // RS R5 model turns (PR #1302) are shown in the channel status, not here (AS §2, §3.2): no facet changes.
+  const turns=[entry('model_turn',{turn:1,requested:'fixture-model',effective:'fixture-model',destinationClass:'local model server',scope:'turn'}),
+    entry('model_turn',{requested:'fixture-model',effective:'other-model',reroute:true,scope:'thread'})];
+  for(const output of [gated,plain]) assert.deepEqual(facets(output,[...settled,...turns]),facets(output,[]),output.name);
+  // A lost acknowledgement: evidence gains an unknown note; nothing else changes, nothing is stronger.
+  const lost=entry('evidence_limit',{label:'lost acknowledgement',subjectRef:'server-request:1/1',detail:'never acknowledged'});
+  const before=facets(plain,settled),after=facets(plain,[...settled,lost]);
+  assert.deepEqual({...after,evidence:before.evidence},before);
+  assert.equal(after.evidence,`${before.evidence}; unknown (unobserved outcome, observer: the App): Codex's acknowledgement of a reply written to server-request:1/1 was not observed (lost acknowledgement); its relation to resolution-report is not recorded`);
+  // An unreadable settlement, another limit or a limit without its subject still reads unknown everywhere.
+  for(const r of [entry('tool_permission_settlement',{request:'server-request:1/3',settledBy:'the App',settlement:'answered'}),entry('model_turn',{requested:'m',effective:'m'}),
+    entry('evidence_limit',{label:'record write failed',subjectRef:'r1'}),entry('evidence_limit',{label:'lost acknowledgement'})]){
+    const f=facets(plain,[r]);
+    assert.ok(Object.values(f).every(v=>v.startsWith('unknown')),JSON.stringify(f));
+  }
+  const html=h(StandingFacets,{facets:after});
+  assert.ok(!/\bchecked\b|verified|approved|accepted|relied|passed|permitted/i.test(html),html);
+});

@@ -182,6 +182,21 @@ const readCheckpointEntry = (r: Json): boolean => {
     default: return readActEntry(r);
   }
 };
+// RS R13 tool-permission settlements feed no facet: AS §8 names no source for
+// them, RS §8's record-out does not carry them to AS, and an A14 settlement is
+// never an act (AS §2 "never shown as a grant or an act; recorded only in RS
+// R13"; DS-3; RS HA-1). A readable one leaves every facet as it is.
+// RS R11 "lost acknowledgement" is a record-out evidence limit, which AS §8
+// assigns to Evidence completeness only: it adds an *unknown* note there and
+// leaves the other facets as they are. Other limits are not read here.
+const SETTLED_BY = ["the person via interaction", "the user's Codex mode", "App named-rule decline", "explicit error", "the supplier", "none — ended unanswered"];
+const SETTLEMENTS = ["answered", "declined", "errored", "resolved by supplier", "ended unanswered (process exit)"];
+const settlementEntry = (r: Json): boolean => r?.kind === "tool_permission_settlement" && str(r?.body?.request) && SETTLED_BY.includes(r?.body?.settledBy) && SETTLEMENTS.includes(r?.body?.settlement);
+// RS R5 `model_turn` (the model and destination per turn) feeds no facet either:
+// AS §2 and §3.2 place the destination in DEL-03-03's channel status, "not here".
+const modelTurnEntry = (r: Json): boolean => r?.kind === "model_turn" && typeof r?.body?.requested === "string" && typeof r?.body?.effective === "string"
+  && ((Number.isInteger(r?.body?.turn) && r.body.turn >= 1) || r?.body?.scope === "thread");
+const lostAcknowledgement = (r: Json): boolean => r?.kind === "evidence_limit" && r?.body?.label === "lost acknowledgement" && str(r?.body?.subjectRef);
 // AS §8 "Human acts" (source: the record): the checkpoint entries about acts at an
 // arrival, which this view reads into that facet only. They say nothing about the
 // other facets (no result, host check, limitation, examination or route).
@@ -273,7 +288,7 @@ function arrivalEvidence(output: Json, run: Json): string | undefined {
   return `observed in the conversation only: ${bound.map((r: Json) => `${text(r.body.event?.ref)} (arrival of ${text(r.body.checkpoint)})`).join("; ")}. That marks where the agent put the output; it does not show that its content meets the declaration`;
 }
 export function outputStanding(output: Json, run: Json): Facets {
-  const unread = Array.from(new Set(records(run).filter((r: Json) => !OUTPUT_NEUTRAL_KINDS.includes(text(r?.kind)) && !readCheckpointEntry(r)).map((r: Json) => text(r?.kind))));
+  const unread = Array.from(new Set(records(run).filter((r: Json) => !OUTPUT_NEUTRAL_KINDS.includes(text(r?.kind)) && !readCheckpointEntry(r) && !settlementEntry(r) && !modelTurnEntry(r) && !lostAcknowledgement(r)).map((r: Json) => text(r?.kind))));
   if (unread.length) {
     const unknown = `unknown: the run record holds ${unread.join(", ")} entries whose bodies this view does not read, so their relation to ${text(output?.name)} is not shown`;
     return { temporal: unknown, hostChecks: unknown, limitations: unknown, humanActs: unknown, examination: unknown, evidence: `unknown (record entries not read by this view)`, route: unknown };
@@ -297,7 +312,8 @@ export function outputStanding(output: Json, run: Json): Facets {
     limitations: "none reported",
     humanActs,
     examination: "none recorded",
-    evidence: arrivalEvidence(output, run) ?? `missing: no record of ${text(output?.name) || "this output"} in the run record`,
+    evidence: [arrivalEvidence(output, run) ?? `missing: no record of ${text(output?.name) || "this output"} in the run record`,
+      ...all.filter(lostAcknowledgement).map((r: Json) => `unknown (unobserved outcome, observer: the App): Codex's acknowledgement of a reply written to ${text(r.body.subjectRef)} was not observed (lost acknowledgement); its relation to ${name || "this output"} is not recorded`)].join("; "),
     route: "not recorded",
   };
 }

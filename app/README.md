@@ -441,7 +441,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     generation's close). A reply written to Codex and never acknowledged
     before the close is RS's "lost acknowledgement" limit, from
     `acknowledgment_not_observed` (RQ-05). A request still open, or whose
-    reply could not be written, is not written. A settlement inside Codex by
+    reply could not be written, is not written; nor is a reply still being
+    written when the process ended, whose write result the host does not
+    record after the close (no transition is designed for it). A settlement inside Codex by
     the user's own Codex mode never reaches the App and is not recorded. None
     is a human act. The request card says "when you quit" for a request
     ended at a quit (NIR CS-7).
@@ -475,8 +477,14 @@ writes records or operates the act control." `src-tauri/` holds that host;
     lapse recorded it reads *not yet evaluated*, never *not lapsed*; a performed
     label without its counted act reads unknown. An output with no gating
     checkpoint reads acts unknown once an act entry concerns an arrival bound
-    to it. Other record entries this view does not read, an observation loss
-    or recovery among them, make the facets unknown. The
+    to it. A tool-permission settlement (R13) changes no facet: AS §8 names
+    no source for it and an A14 settlement is never an act (DS-3); nor does
+    a model turn (R5 `model_turn`), whose destination AS §2 shows in the
+    channel status, "not here". A "lost
+    acknowledgement" limit (R11) adds an *unknown* note to Evidence
+    completeness only, the facet AS §8 gives record-out evidence limits.
+    Other record entries this view does not read, other limits and an
+    observation loss or recovery among them, make the facets unknown. The
     advisory compatibility (DEL-02-03 CK-1/CK-2) is shown readably; a role
     outside the written-for roles names both and points to Continue as
     (U-R10, chosen display).
