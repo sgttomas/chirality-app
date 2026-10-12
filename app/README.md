@@ -369,6 +369,19 @@ writes records or operates the act control." `src-tauri/` holds that host;
     observation is not written again; a lapse whose label was not written
     gets it at the next observation. The file-act view reads these entries
     as the act's lapse history.
+    **Observation lost and recovered (CE-13, CE-14).** The record tick and
+    the End run paths receive DEL-01-02's custody events with the native
+    view. Each `observation_lost` of this App session that names the run's
+    conversation, from the Codex generation the run opened in on, is written
+    once as `observation_lost` with its cause (DEF-5). It is *deciding* when
+    an item it left in flight may be a listed checkpoint's named event: a
+    message whose received text has not settled on another first line, or a
+    file change whose received changes do not exclude the declared path
+    (AW-12). A deciding loss names no arrival and writes no *unknown* label.
+    A later recovery read *accessible* of that conversation is written once
+    as `observation_recovered` with its own time; it reads turns only, so it
+    recovers no item and changes no label (RP-1). An unavailable read writes
+    nothing.
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, lapses since the last observation and then acts
     recorded since are written first, also for a run ended after a relaunch
@@ -380,7 +393,9 @@ writes records or operates the act control." `src-tauri/` holds that host;
     written is shown on the run (A-12). It is written later, in order, with a
     "record write failed" limit (CE-19), and is never written elsewhere. The
     App writes no host-outcome, A5 item or A12 entries (AW-8…AW-10, CE-7,
-    CE-9), no observation-loss entries (CE-13, CE-14) and, since it observes
+    CE-9), no observation loss or recovery of an earlier App session (after a
+    relaunch the custody events of the session that ended are gone, and the
+    run gets RS's "App-restart interruption" limit instead) and, since it observes
     no run after its end, no after-end lapse or act (CE-10 *after run end*,
     CE-16). An act on lapsed content after the resume point is not recorded
     against the still *performed* arrival. A path is compared as text
@@ -658,10 +673,12 @@ run's own RS log. Neither opens a new store.
 
 The run panel (item 23) records output arrivals (AW-6, AW-7), harness-capability
 call starts (AW-3), requests, counted App-file acts and, while the run is live,
-their lapses, with their labels and recording gaps (CE-1…CE-6, CE-8,
-CE-10…CE-12, CE-17…CE-19). It does not yet record host-operation or
-host-outcome arrivals, A5 items or A12 relations (CE-7, CE-9), observation loss
-or recovery (CE-13, CE-14), replaced arrivals (CE-15, which follows only from A5
+their lapses, with their labels and recording gaps, and the Codex observation
+losses and recovery reads of its conversation in this App session (CE-1…CE-6,
+CE-8, CE-10…CE-14, CE-17…CE-19). It does not yet record host-operation or
+host-outcome arrivals, A5 items or A12 relations (CE-7, CE-9), the *unknown*
+label of a deciding loss, losses or recoveries of an earlier App session,
+replaced arrivals (CE-15, which follows only from A5
 items), anything after the run's end (CE-10 *after run end*, CE-16), or output
 records; outputs gated by a lapsed act do not show standing *lapsed* (their
 facets read unknown). Conversation roles (item 24)

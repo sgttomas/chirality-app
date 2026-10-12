@@ -1319,7 +1319,7 @@ fn current_native_view(home:&Arc<runtime_session::HomeSession>)->Value{
 fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Option<Value>)->Result<Value,String>{
     let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
     let home=run.try_lock().map_err(|_|"Original run operation pending")?.home.clone();
-    let view=current_native_view(&home);
+    let view=crate::host_tick::receive_view(&home); // with the server requests and custody events the recorder reads (CE-4, CE-13, CE-14)
     state.workflows.lock().unwrap().end_requested(&run_ref,&view,finished_report.as_ref())
 }
 /// RN-3/RN-4, PR-4: the person starts the workflow an agent message proposed (or,
@@ -1328,7 +1328,7 @@ fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Opti
 #[tauri::command(async)]
 fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Value,run_ref:Option<String>,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let view=current_native_view(&home);
+    let view=crate::host_tick::receive_view(&home); // as workflow_end_run
     let next=state.workflows.lock().unwrap().start_proposed(&view,home,&generation,&message,run_ref.as_deref(),person_text,state.workspace.as_deref())?;
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"proposed workflow run prepared but not started","limit":e})}}))
@@ -1337,7 +1337,7 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 #[tauri::command(async)]
 fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let view=current_native_view(&home);
+    let view=crate::host_tick::receive_view(&home); // as workflow_end_run
     let next=state.workflows.lock().unwrap().end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))

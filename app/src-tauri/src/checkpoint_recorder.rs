@@ -29,6 +29,13 @@
 //!   answering an arrival is bound to and its content identity differs, the
 //!   file is absent, or the identity cannot be compared or read
 //!   ([`observe_lapses`]; RC-8, PH-8, A-10; RS L-1…L-6, L-11);
+//! - CE-13 `observation_lost` once for each DEL-01-02 custody loss of this App
+//!   session that names the run's conversation, from the generation the run
+//!   opened in on (AE-6, A-4): *deciding* when an item it left in flight may
+//!   be a listed checkpoint's named event (AW-12), with no arrival named and
+//!   no label written; and CE-14 `observation_recovered` once for a custody
+//!   recovery read *accessible* of that conversation after a recorded loss,
+//!   which recovers no item and so changes no label (RP-1);
 //! - the waiting arrivals listed by CE-17 `run_ended` (`waiting`).
 //!
 //! Recording is not a reaction (RC-4): nothing here sends, asks, opens,
@@ -138,6 +145,8 @@ pub(crate) struct CheckpointRecorder {
     seen_completions: BTreeSet<String>,
     seen_starts: BTreeSet<String>,
     seen_requests: BTreeSet<String>,
+    /// The custody events (AE-6) already read, by event identity.
+    seen_custody: BTreeSet<String>,
     limit: Option<String>,
     /// The last reason the project's act records could not be read, if any.
     acts_limit: Option<String>,
@@ -185,6 +194,9 @@ pub(crate) struct RunScope<'a> {
     pub conversation: &'a str,
     pub start: crate::run_offers::RunStart,
     pub project_root: &'a std::path::Path,
+    /// The spawn counter of the Codex generation the run opened in: a loss of
+    /// an earlier generation is not this run's (AE-6).
+    pub start_spawn: u64,
 }
 
 impl CheckpointRecorder {
@@ -281,12 +293,12 @@ impl CheckpointRecorder {
             "standing":"Recorded only from native items this App observed live and from the human-act records in this project; recording sends, asks or pauses nothing (RC-4)."})
     }
 
-    /// Reads the run's native rows and server requests once each, in receipt
-    /// order, and the project's act records, and returns the entries to write
-    /// (CE-3…CE-6, CE-8, CE-11, CE-12, CE-18). `entries` is the run's record
-    /// so far, which decides each arrival's disposition.
+    /// Reads the run's native rows, server requests and custody events once
+    /// each, in receipt order, and the project's act records, and returns the
+    /// entries to write (CE-3…CE-6, CE-8, CE-10…CE-14, CE-18). `entries` is the
+    /// run's record so far, which decides each arrival's disposition.
     pub(crate) fn observe(&mut self, view: &Value, scope: &RunScope, entries: &[Value], acts: ActSource) -> Vec<Output> {
-        if view["home"] != scope.home || self.listed.is_empty() {
+        if view["home"] != scope.home {
             return vec![];
         }
         let session = view["generation"]["appSession"].clone();
@@ -294,10 +306,37 @@ impl CheckpointRecorder {
             Completed(&'a Value),
             Started(&'a Value),
             Request(&'a Value),
+            Lost(&'a Value),
+            Recovered(&'a Value),
         }
         let in_run = |turn: &str| crate::run_offers::turn_order(view, scope.conversation, turn).is_some_and(|order| scope.start.includes(order));
         let mut events: Vec<((u64, u64), String, Event)> = Vec::new();
-        for row in view["items"].as_array().into_iter().flatten() {
+        // AE-6: DEL-01-02's custody events of this App session that name this
+        // run's conversation in its own physical home, from the generation the
+        // run opened in on. A loss is ordered after every item of the generation
+        // it closed; a recovery before the items of the generation that read it.
+        for event in view["custodyEvents"].as_array().into_iter().flatten() {
+            let Some(id) = event["eventId"].as_str() else { continue };
+            if event["appSession"] != session || self.seen_custody.contains(id) {
+                continue;
+            }
+            let Some(generation) = event["generation"].as_str().and_then(|g| crate::recovery::generation_from_ref(g).ok()) else { continue };
+            let Some(spawn) = generation["spawnCounter"].as_u64() else { continue };
+            if generation["home"] != scope.home || spawn < scope.start_spawn {
+                continue;
+            }
+            match event["kind"].as_str() {
+                Some("observation_lost") if event["conversations"].as_array().is_some_and(|c| c.iter().any(|t| t == scope.conversation)) => {
+                    events.push(((spawn, u64::MAX), id.to_owned(), Event::Lost(event)));
+                }
+                Some("observation_recovered") if event["threadId"] == scope.conversation && spawn > scope.start_spawn => {
+                    events.push(((spawn, 0), id.to_owned(), Event::Recovered(event)));
+                }
+                _ => {}
+            }
+        }
+        let listed = !self.listed.is_empty();
+        for row in view["items"].as_array().into_iter().flatten().filter(|_| listed) {
             if row["threadId"] != scope.conversation || row["standing"] != "live-observed" || row["receipt"]["generation"]["appSession"] != session {
                 continue;
             }
@@ -414,6 +453,23 @@ impl CheckpointRecorder {
                         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
                     }
                 }
+                Event::Lost(event) => {
+                    self.seen_custody.insert(key.clone());
+                    if !custody_recorded(entries, &written, &key) {
+                        let possible = self.possible_productions(event, view, scope, &in_run);
+                        written.push(("observation_lost", lost_body(event, &key, scope.conversation, &possible)));
+                    }
+                }
+                Event::Recovered(event) => {
+                    self.seen_custody.insert(key.clone());
+                    // CE-14 only for a loss recorded for this run and not yet
+                    // recovered, and only when Codex's history could be read:
+                    // an unavailable read recovers nothing.
+                    let count = |kind: &str| entries.iter().map(|e| e["kind"].as_str().unwrap_or_default()).chain(written.iter().map(|(k, _)| *k)).filter(|k| *k == kind).count();
+                    if event["priorEvents"] == "accessible" && count("observation_lost") > count("observation_recovered") && !custody_recorded(entries, &written, &key) {
+                        written.push(("observation_recovered", recovered_body(event, &key, scope.conversation)));
+                    }
+                }
                 Event::Request(request) => {
                     self.seen_requests.insert(key);
                     let current: Vec<Value> = self.arrivals.iter().filter(|a| a.at < at).map(Arrival::reference)
@@ -504,6 +560,44 @@ impl CheckpointRecorder {
                 false
             }
         }
+    }
+
+    /// AW-12 / AE-6: which in-flight items of a loss may be the named event of
+    /// a listed checkpoint of this run, each described. An item of a turn the
+    /// view places outside the run is not; otherwise a message is, unless the
+    /// text already received has a complete first non-empty line that is not
+    /// the designating line (AW-6), and a file change is, unless the changes
+    /// already received produce no declared path (AW-7). A call's start is an
+    /// arrival already observed (AW-3), so its completion decides nothing.
+    fn possible_productions(&self, event: &Value, view: &Value, scope: &RunScope, in_run: &impl Fn(&str) -> bool) -> Vec<String> {
+        let mut found = Vec::new();
+        for item in event["inFlightItems"].as_array().into_iter().flatten().filter(|i| i["threadId"] == scope.conversation) {
+            let (Some(turn), Some(id), Some(kind)) = (item["turnId"].as_str(), item["itemId"].as_str(), item["itemType"].as_str()) else { continue };
+            if crate::run_offers::turn_order(view, scope.conversation, turn).is_some() && !in_run(turn) {
+                continue;
+            }
+            let row = view["items"].as_array().into_iter().flatten()
+                .find(|r| r["threadId"] == scope.conversation && r["turnId"] == turn && r["native"]["id"] == id);
+            for listed in &self.listed {
+                match &listed.trigger {
+                    Trigger::Message { output, line } if kind == "agentMessage" => {
+                        if row.and_then(|r| r["native"]["text"].as_str()).and_then(settled_first_line).is_some_and(|l| l != line) {
+                            continue;
+                        }
+                        found.push(format!("agentMessage {id} (turn {turn}) may have been a production of output {output}, the reached-when of checkpoint {} (AW-6)", listed.name));
+                    }
+                    Trigger::File { output, path } if kind == "fileChange" => {
+                        let changes = row.and_then(|r| r["native"]["changes"].as_array().or_else(|| r["startNative"]["changes"].as_array()));
+                        if changes.is_some_and(|c| !c.iter().filter_map(produced_path).any(|p| same_path(p, path, scope.project_root))) {
+                            continue;
+                        }
+                        found.push(format!("fileChange {id} (turn {turn}) may have produced output {output} at {path}, the reached-when of checkpoint {} (AW-7)", listed.name));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        found
     }
 
     /// Which listed checkpoints a completed row meets, each with its bound
@@ -1030,6 +1124,55 @@ pub(crate) fn end_observations(entries: &[Value], root: &Path) -> Vec<Output> {
     }
 }
 
+/// Whether a CE-13 or CE-14 entry for the custody event `id` is already in the
+/// run's entries or this observation's outputs (each names its event).
+fn custody_recorded(entries: &[Value], written: &[Output], id: &str) -> bool {
+    let named = format!("(custody event {id})");
+    entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(written.iter().map(|(k, b)| (*k, b)))
+        .any(|(k, b)| matches!(k, "observation_lost" | "observation_recovered") && b["scope"].as_str().is_some_and(|s| s.contains(&named)))
+}
+/// CE-13 (AE-6, AW-12) from a custody `observation_lost`: what was lost in
+/// this run's conversation and whether it may decide a checkpoint's arrival.
+fn lost_body(event: &Value, id: &str, conversation: &str, possible: &[String]) -> Value {
+    let cause = event["cause"].as_str().unwrap_or("not stated");
+    let live: Vec<String> = event["liveTurns"].as_array().into_iter().flatten().filter(|t| t["threadId"] == conversation)
+        .filter_map(|t| t["turnId"].as_str().map(str::to_owned)).collect();
+    let items: Vec<String> = event["inFlightItems"].as_array().into_iter().flatten().filter(|i| i["threadId"] == conversation)
+        .map(|i| format!("{} {} (turn {})", i["itemType"].as_str().unwrap_or("item"), i["itemId"].as_str().unwrap_or("?"), i["turnId"].as_str().unwrap_or("?"))).collect();
+    let none = |v: &[String]| if v.is_empty() { "none".to_owned() } else { v.join(", ") };
+    let deciding = if possible.is_empty() {
+        "No lost observation is the named event of a checkpoint of this run (AW-12).".to_owned()
+    } else {
+        format!("The lost observation may be the named event of a checkpoint of this run (AW-12): {}. Which arrival it would be is not established, so no arrival is named and no label is written.", possible.join("; "))
+    };
+    let scope = format!("Conversation {conversation} in Codex generation {} (custody event {id}): the Codex process ended at {} ({cause}; DEF-5). Live turn: {}. Items in flight, not completed: {}. {deciding}",
+        event["generation"].as_str().unwrap_or("not stated"), event["at"].as_str().unwrap_or("not stated"), none(&live), none(&items));
+    json!({"scope":scope,"cause":format!("Codex process ended: {cause} (DEF-5; DEL-01-02 custody event observation_lost)"),"deciding":!possible.is_empty()})
+}
+/// CE-14 (AE-6, RP-1) from a custody `observation_recovered` *accessible*:
+/// Codex's history was read again, with the event's own time. The reads list
+/// turns only, so no lost item's completion is among what was recovered.
+fn recovered_body(event: &Value, id: &str, conversation: &str) -> Value {
+    let turns: Vec<String> = event["turns"].as_array().into_iter().flatten()
+        .map(|t| format!("turn {}: Codex reports {} ({})", t["turnId"].as_str().unwrap_or("?"), t["supplierStatus"].as_str().unwrap_or("?"), t["appReading"].as_str().unwrap_or("no reading"))).collect();
+    let scope = format!("Conversation {conversation}: Codex history read again in generation {} at {} (custody event {id}){}. The reads list turns and return no item, so no lost item's completion is recovered; nothing is back-filled (RP-1).",
+        event["generation"].as_str().unwrap_or("not stated"), event["at"].as_str().unwrap_or("not stated"),
+        if turns.is_empty() { String::new() } else { format!("; {}", turns.join("; ")) });
+    json!({"scope":scope})
+}
+/// The first non-empty line of a message's text received so far, once a line
+/// break has ended it; None while it may still grow.
+fn settled_first_line(text: &str) -> Option<&str> {
+    let mut rest = text;
+    while let Some(end) = rest.find('\n') {
+        let line = rest[..end].trim();
+        if !line.is_empty() {
+            return Some(line);
+        }
+        rest = &rest[end + 1..];
+    }
+    None
+}
 /// The first non-empty line of a message, trimmed (WD OP-1).
 fn first_line(text: &str) -> Option<&str> {
     text.lines().map(str::trim).find(|l| !l.is_empty())

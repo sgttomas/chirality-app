@@ -851,6 +851,12 @@ impl Host {
         snapshot["distributionEvidence"] = evidence;
         json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames})
     }
+    /// DEL-01-02's custody events held in this process (`observation_lost`,
+    /// `observation_recovered`, `turn_outcome`), in order, for receivers that
+    /// map them (RECOVERY §8.2; EXEC AE-6). A read; it changes nothing.
+    pub fn custody_events(&self) -> Vec<Value> {
+        self.inner.0.lock().unwrap().execution_custody.events().to_vec()
+    }
     /// Read-only App metadata, never admission to native/act/dispatch authority.
     pub fn recovery_custody(&self) -> crate::recovery::RecoveryCustodyView {
         let i=self.inner.0.lock().unwrap();

@@ -30,6 +30,9 @@ pub(crate) fn receive_view(home: &HomeSession) -> Value {
     // checkpoint recorder reads for person-input requests and elicitations.
     if view.is_object() {
         view["serverRequests"] = observation["snapshot"]["serverRequests"].clone();
+        // EXEC AE-6: DEL-01-02's custody events, which the recorder maps to
+        // CE-13 / CE-14 for the run current in each conversation they name.
+        view["custodyEvents"] = json!(home.host.custody_events());
     }
     view
 }

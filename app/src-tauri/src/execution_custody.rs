@@ -282,6 +282,8 @@ impl ExecutionCustody {
         }
         result
     }
+    /// The custody events held in this App process, in the order they arose.
+    pub(super) fn events(&self)->&[Value] {&self.events}
     pub(super) fn snapshot(&self)->Value {
         json!({"events":self.events,"limits":self.limits,"observations":self.conversations.iter().map(|((generation,thread),row)|json!({"generation":generation,"threadId":thread,"state":row.state,"liveTurn":row.turn,"openItems":row.open.iter().map(|((turn,id),kind)|json!({"turnId":turn,"itemId":id,"itemType":kind})).collect::<Vec<_>>(),"indexKnown":row.binding.is_some(),"recoveryAttempts":row.attempts,"unavailableReason":row.reason,"standing":"App-observed pointer state; persistence is reported separately"})).collect::<Vec<_>>()})
     }
