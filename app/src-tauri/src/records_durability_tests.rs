@@ -397,3 +397,59 @@ fn a_recovered_torn_line_naming_a_capture_is_found() {
     assert!(!recovered_lines_hold(&log, "cap:other"));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// Review R12 N1 probe: two appends, then the final newline removed (a short
+// write that stopped just before it). The tail is a whole, valid entry with the
+// next seq: W-0 writes only the newline, no limit, and the log continues in
+// sequence; the entry is written, so its identity is held (a W-2 retry finds
+// its receipt, never a duplicate).
+#[test]
+fn probe_r12_tail_torn_at_the_newline() {
+    let root = scratch("rs-newline-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let second = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    assert_eq!(read_log(&log).0.len(), 1, "the unterminated tail is a partial until reopened");
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (entries, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3]);
+    assert!(entries.iter().all(|e| e["body"]["label"] != PARTIAL_NOT_RECOVERED), "nothing named as torn");
+    assert_eq!(entries[1], second, "the entry whose newline was lost is the written entry");
+    let retry = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), second["recordId"].as_str().unwrap()).unwrap_err();
+    assert!(retry.contains("record identity conflict"), "{retry}");
+    // The same through a reconciliation open (no append).
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    open_owning_log(&root, &log).unwrap();
+    assert!(std::fs::read(&log).unwrap().ends_with(b"\n"));
+    assert!(read_log(&log).1.is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A whole, valid tail out of sequence cannot slip past the rule: W-0 only
+// terminates it (it is not a fragment), and the reader reports it as a
+// sequence limit, so the owning log is refused until repaired; nothing named.
+#[test]
+fn a_valid_tail_out_of_sequence_is_a_sequence_limit() {
+    let root = scratch("rs-wrong-seq-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let forged = envelope("evidence_limit", &APP_WRITER, rs_body(16), "rec:app:wrong-seq".into(), 7, None, None);
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(serde_json::to_vec(&forged).unwrap());
+    std::fs::write(&log, &bytes).unwrap();
+    let refused = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap_err();
+    assert!(refused.contains("incomplete owning log") && refused.contains("expected 3, found 7"), "{refused}");
+    let after = std::fs::read(&log).unwrap();
+    assert_eq!(after.len(), bytes.len() + 1, "only the newline was written");
+    let (entries, limits) = read_log(&log);
+    assert_eq!(entries.len(), 3);
+    assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{limits:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}

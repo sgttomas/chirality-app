@@ -5,9 +5,14 @@
 //! by a successful write; a written entry is never rewritten (OF-5).
 //!
 //! W-0 (§14.1, FC-2): a writer that opens its log on an unterminated last line
-//! terminates it (the torn bytes stay in place, never truncated or edited) and,
-//! in the same write, appends "partial entry not recovered" naming that line
-//! with its length and SHA-256 (`line ‹n›; ‹len› bytes; sha256 ‹hex›`). A
+//! terminates it (the torn bytes stay in place, never truncated or edited). If
+//! that line is a whole, schema-valid entry (only its newline was lost), the
+//! newline is all W-0 writes: the entry is written, and is read as any entry
+//! (in sequence, it simply reads; a W-2 retry finds it as its receipt; out of
+//! sequence, it is a sequence limit and the owning log stays refused).
+//! Otherwise (a genuine fragment) W-0, in the same write, appends "partial
+//! entry not recovered" naming that line with its length and SHA-256
+//! (`line ‹n›; ‹len› bytes; sha256 ‹hex›`). A
 //! reader leaves a line unread only when the limit directly after it names it
 //! and its bytes match, and only when the line is not itself a valid entry;
 //! otherwise the line is read as written and the mismatch is a limit. A torn
@@ -544,6 +549,16 @@ fn w0_bytes(log: &Path, existing: &[u8], seq: u64, run: Option<&str>, all: &[Val
     bytes.push(b'\n');
     Ok(bytes)
 }
+/// RS §14.1 W-0: whether the unterminated last line of `existing` is a whole,
+/// schema-valid entry, so that only its newline was lost. W-0 then appends only
+/// the newline: the entry is written, and readers judge it as any entry (in
+/// sequence it reads; out of sequence it is a sequence limit, so the owning log
+/// is refused until repaired). Only a genuine fragment is named and kept unread.
+fn tail_is_entry(existing: &[u8], validator: &crate::schema_validation::RecordValidator) -> bool {
+    let start = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
+    let tail = &existing[start..];
+    serde_json::from_slice::<Value>(tail.strip_suffix(b"\r").unwrap_or(tail)).ok().is_some_and(|v| validator.validate(&v).is_ok())
+}
 fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
     let mut f = OpenOptions::new().append(true).open(log).map_err(|e| format!("open log: {e}"))?;
     f.write_all(bytes).map_err(|e| format!("W-0 repair write: {e}; nothing more written"))?;
@@ -570,9 +585,11 @@ pub(crate) fn recovered_lines_hold(log: &Path, text: &str) -> bool {
     let lines: Vec<&[u8]> = bytes.split(|b| *b == b'\n').collect();
     hidden.iter().any(|i| lines[*i].windows(text.len().max(1)).any(|w| w == text.as_bytes()))
 }
-/// The project's record set as a writer guard reads it: the readable entries
+/// The project's record set as the act control reads it: the readable entries
 /// and the limits that leave it incomplete (another log's torn tail is a
-/// partial, not one of them; RS §14.2 R-2).
+/// partial, not one of them; RS §14.2 R-2). A full read: its cost grows with
+/// the project's history; the act control makes it once per capture, recovery
+/// or offer, never on the record tick.
 pub(crate) fn writer_record_set(root: &Path) -> (Vec<Value>, Vec<String>) {
     let (entries, limits, _partials) = crate::storage::read_all_parts(root);
     (entries, limits)
@@ -584,6 +601,9 @@ fn w0_open(log: &Path, all: &[Value]) -> Result<(), String> {
     let existing = std::fs::read(log).map_err(|e| format!("read owning log: {e}"))?;
     if existing.is_empty() || existing.ends_with(b"\n") {
         return Ok(());
+    }
+    if tail_is_entry(&existing, validator) {
+        return w0_write(log, b"\n");
     }
     let own = read_log_parts(log);
     if !own.limits.is_empty() {
@@ -624,6 +644,13 @@ fn append_reserved(
         return Err(format!("incomplete owning log: {:?}", own.limits));
     }
     let torn = !existing.is_empty() && !existing.ends_with(b"\n");
+    if torn && tail_is_entry(&existing, validator) {
+        // W-0 for a whole entry whose newline was lost: terminate it only, then
+        // run this append again on the now complete log (every check again).
+        w0_write(log, b"\n")?;
+        drop(_ownership);
+        return append_reserved(log, kind, recorder, body, id, run, observed_at, set, Ok(validator));
+    }
     let entries = own.entries;
     let mut all = entries.clone();
     if let Some(root) = records_root

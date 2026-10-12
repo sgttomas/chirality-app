@@ -1730,7 +1730,12 @@ machine; `records::durability_tests`, and the ignored
   as "partial entry at end (not read)", never as an entry. W-0 as
   implemented: the reopened writer (at an append or a reconciliation)
   terminates the torn line in place with one `\n`, never truncating or
-  editing it. In the same write it appends `evidence_limit` "partial
+  editing it. If that line is a whole, schema-valid entry (a short write
+  stopped just before its newline), the newline is all W-0 writes. The
+  entry is then written and is read as any entry: in sequence it simply
+  reads, and a W-2 retry finds it as its receipt; out of sequence it is
+  a sequence limit, so the owning log stays refused until repaired.
+  Only a genuine fragment is named. For a fragment, in the same write it appends `evidence_limit` "partial
   entry not recovered", by the App writer with the next `seq` and the
   `subjectRef` "line ‹n›; ‹len› bytes; sha256 ‹hex›". The log then
   continues in sequence. The App act control's writer does the same on
