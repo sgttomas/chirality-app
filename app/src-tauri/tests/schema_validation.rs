@@ -76,12 +76,21 @@ fn missing_invalid_and_unregistered_resources_fail_schema_setup() {
 }
 
 #[test]
-fn partial_last_line_preserves_w0_refusal() {
+fn partial_last_line_is_terminated_and_kept_unread_by_w0() {
+    // RS §14.1 W-0 / §14.3 FC-2: the torn bytes are terminated in place (never
+    // truncated or edited), named by a "partial entry not recovered" limit, and
+    // never read as an entry; the log then continues.
     let dir = common::ScratchDirectory::new("chirality-w1-partial");
     let log = dir.join("records.jsonl");
     std::fs::write(&log, b"{partial").unwrap();
-    assert!(records::append(&log, "human_act", &records::APP_INTERFACE, act()).unwrap_err().contains("partial line"));
-    assert_eq!(std::fs::read(log).unwrap(), b"{partial");
+    records::append(&log, "human_act", &records::APP_INTERFACE, act()).unwrap();
+    assert!(std::fs::read(&log).unwrap().starts_with(b"{partial\n"));
+    let (entries, limits) = records::read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    let kinds: Vec<&str> = entries.iter().map(|e| e["kind"].as_str().unwrap()).collect();
+    assert_eq!(kinds, ["evidence_limit", "human_act"]);
+    assert_eq!(entries[0]["body"]["label"], "partial entry not recovered");
+    assert!(entries[0]["body"]["subjectRef"].as_str().unwrap().starts_with("line 1; 8 bytes; sha256 "));
 }
 
 fn package_fixture() -> Value {
