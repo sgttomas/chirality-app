@@ -161,7 +161,10 @@ writes records or operates the act control." `src-tauri/` holds that host;
     or **End ‹A› and start ‹B›** while a run is in force (*completed* when the same
     message reports A finished). The proposal selects nothing until the person
     presses; the selection is then recorded as "agent proposal confirmed by the
-    person". Unresolved proposals show their notice. The activity view marks run
+    person". The press resolves the proposed revision from the revision store
+    and verifies it there, as a selection from the library list does (SL-4); an
+    edited published copy is not used, and a store that does not recompute
+    refuses with nothing selected or started. Unresolved proposals show their notice. The activity view marks run
     starts and ends from the App's run records and folds the supplied run text.
 21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling
     (first given for the draft workspace as "A, proceed with the Rust host."), the Rust host observes
