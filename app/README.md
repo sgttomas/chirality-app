@@ -247,7 +247,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     after SR-01 but before the send is recorded as SR-03 *not-sent (not-ready)*
     with the reason, a gap in the Design's send values. At the next start the
     App writes SR-08 for each stop request an earlier session left sent with
-    no final status (AS-02, R-2); RQ-06 for its listed requests is not written.
+    no final status (AS-02, R-2), and RQ-06 for the requests such a session left
+    listed (*app-ended-without-record*; no reply is sent).
 22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
     the App's own menu item (Cmd/Ctrl+Q). The host assesses live work across
     every App-owned home and records `quit_requested` with the lists. With
@@ -631,14 +632,14 @@ appended to the existing pointer ledger, as are the conversations' recovery
 states (item 22b, `conversation_index` rows). Checkpoint entries (item 23) go to the
 run's own RS log. Neither opens a new store.
 
-The run panel (item 23) records only output arrivals (AW-6, AW-7). It does not
-yet record tool-call or host-outcome arrivals, act counting and its
-dispositions (CE-2, CE-4…CE-7), or output records. Conversation roles (item 24)
+The run panel (item 23) records the arrivals and act counting item 23
+describes (CE-1…CE-6, CE-8, CE-11, CE-12, CE-17, CE-18). It does not record
+host-outcome arrivals (AW-8…AW-10, CE-7, CE-9) or output records. Conversation roles (item 24)
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 
 The ask-first App quit (item 22a) and the startup SR-08 write are
-implemented but not witnessed natively; RQ-06 at startup is not written. The Restart Codex question
+implemented but not witnessed natively, as are the startup RQ-06 endings. The Restart Codex question
 was witnessed natively once, on 2026-10-10, with nothing live: it listed nothing
 in force and showed its three buttons with Keep Codex running as the default.
 Restart Codex was pressed, and Cancel and Keep Codex running were not. The
