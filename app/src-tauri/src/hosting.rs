@@ -1604,7 +1604,7 @@ impl Host {
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=record,Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
-                if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
+                if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             }
             Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
@@ -2861,6 +2861,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             && matches!(turn["status"].as_str(), Some("inProgress" | "completed" | "interrupted" | "failed"))
     }
 
+    /// HOSTING §8.3 / RS R5: what the App's own `turn/start` for this turn
+    /// asked for, from the request it sent (read only): a `collaborationMode`
+    /// turn carries that mode's model; a plain turn carries none.
+    fn note_turn_request(i: &mut Inner, key: &str, generation: &Value, thread: &str, turn: &Value) {
+        let Some(mode) = i.source_requests.get(key).map(|e| e.request.frame["params"]["collaborationMode"].clone()) else { return };
+        let sent = if mode.is_object() { json!({"collaborationMode":true,"model":mode["settings"]["model"]}) } else { json!({"collaborationMode":false}) };
+        if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == *turn) {
+            entry["appTurnStart"] = sent;
+        }
+    }
     fn remember_turn(i: &mut Inner, generation: &Value, thread: &str, native: &Value, source: &str, position: u64) {
         if !Self::native_turn_shape(native) { return; }
         if let Some(entry) = i.conversation_turns.iter_mut().find(|t| t["generation"] == *generation && t["threadId"] == thread && t["turnId"] == native["id"]) {
@@ -3039,6 +3049,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                         if source_gen == gen {
                             if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {
                                 Self::remember_turn(&mut i, &gen, &thread, turn, "turn/start response", pos);
+                                Self::note_turn_request(&mut i, &key, &gen, &thread, &turn["id"]);
                                 if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == pos) { entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt); }
                             }
                         }
@@ -3562,6 +3573,14 @@ mod conversation_transport_tests {
         assert_eq!(outbound["params"]["collaborationMode"]["mode"],"default");
         assert_eq!(host.snapshot()["requestedModes"].as_array().unwrap().len(),1,"one current requested mode per conversation");
         assert_eq!(host.snapshot()["requestedModes"][0]["mode"],"default");
+        // RS R5 requested per turn (review finding on #1302): each turn the App
+        // started records whether its turn/start carried a mode's model.
+        let started=|id:&str|host.snapshot()["conversationTurns"].as_array().unwrap().iter().find(|t|t["turnId"]==id).unwrap()["appTurnStart"].clone();
+        assert_eq!(started("turn"),json!({"collaborationMode":true,"model":"selected"}));
+        assert_eq!(started("turn2"),json!({"collaborationMode":true,"model":"selected"}));
+        let (_,outbound)=exchange(&host,Some(json!({"result":{"turn":{"id":"turn3","status":"inProgress","items":[],"itemsView":"full"}}})),vec![],||host.turn_start_text(&g(),"thread","plain"));
+        assert!(outbound["params"].get("collaborationMode").is_none(),"a plain turn carries no model");
+        assert_eq!(started("turn3"),json!({"collaborationMode":false}));
         host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
         assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
         // The conversation's reported effort is kept, not reset.

@@ -12,14 +12,20 @@
 //!   run, written when the turn is observed to end, or at the run's end for a
 //!   turn still in progress, before `run_ended`. Its `effective` value comes
 //!   only from a `model/rerouted` report naming that turn; otherwise it is
-//!   *unknown*, even when the thread or an earlier turn has a value;
+//!   *unknown*, even when the thread or an earlier turn has a value. Each
+//!   re-route is recorded with its turn: a turn with several gets one entry
+//!   per re-route (`reroute` true); `reroute` is omitted when none was
+//!   observed, which is not evidence that none happened (HOSTING U-19);
 //! - a `model/rerouted` report received after its turn's entry was written is
-//!   recorded as a further entry for that turn (`reroute` true), since each
-//!   re-route is recorded with its turn; the earlier entry is not rewritten.
+//!   recorded as a further entry for that turn; the earlier one is not rewritten.
 //!
-//! `requested` is the provider and model the person chose when the App started
-//! the conversation; a conversation the App did not start in this session
-//! (resumed, forked, read from history) has *unknown*. The destination class
+//! A turn's `requested` comes from the App's own `turn/start` for it, as the
+//! host correlated it: a `collaborationMode` turn asked for that mode's model;
+//! a plain turn carries no model and runs under the latest mode the App sent
+//! the conversation in the same Codex process, or else under the provider and
+//! model the App requested at thread start. A turn the App did not start, one
+//! after a mode sent in an earlier process, and a conversation the App did not
+//! start in this session have *unknown*. The destination class
 //! is DEL-01-05's mapping of the conversation's access entry (ACCESS-v0.2 §2),
 //! known only for the conversation the home last started; otherwise *unknown*.
 //!
@@ -42,8 +48,11 @@ struct Turn {
     id: String,
     ordinal: u64,
     written: bool,
-    /// The `toModel` of a re-route naming this turn, observed before its entry.
-    rerouted_to: Option<String>,
+    /// The `toModel` of each re-route naming this turn observed before its
+    /// entry, in receipt order; each is recorded with its turn.
+    rerouted_to: Vec<String>,
+    /// What the App's own `turn/start` asked for (see [`ModelTurnRecorder::turn_requested`]).
+    requested: String,
 }
 
 #[derive(Debug, Default)]
@@ -74,10 +83,62 @@ fn class_of(entry: &Value) -> &'static str {
 }
 
 impl ModelTurnRecorder {
-    fn turn_body(&self, ordinal: u64, effective: Option<&str>) -> Value {
-        json!({"turn":ordinal,"scope":"turn","requested":self.requested.as_deref().unwrap_or("unknown"),
-            "effective":effective.unwrap_or("unknown"),"reroute":effective.is_some(),
-            "destinationClass":self.class.as_deref().unwrap_or("unknown")})
+    /// `reroute` is written only when a re-route was observed: none observed
+    /// is not evidence that none happened (HOSTING U-19).
+    fn turn_body(&self, ordinal: u64, requested: &str, rerouted_to: Option<&str>) -> Value {
+        let mut body = json!({"turn":ordinal,"scope":"turn","requested":requested,
+            "effective":rerouted_to.unwrap_or("unknown"),"destinationClass":self.class.as_deref().unwrap_or("unknown")});
+        if rerouted_to.is_some() {
+            body["reroute"] = json!(true);
+        }
+        body
+    }
+    /// The turn's entries: one per re-route observed for it, or one *unknown*.
+    fn turn_bodies(&self, turn: &Turn) -> Vec<Value> {
+        if turn.rerouted_to.is_empty() {
+            return vec![self.turn_body(turn.ordinal, &turn.requested, None)];
+        }
+        turn.rerouted_to.iter().map(|to| self.turn_body(turn.ordinal, &turn.requested, Some(to))).collect()
+    }
+    /// RS R5 *requested* for one turn, from the App's own `turn/start` as the
+    /// host correlated it: a `collaborationMode` turn asked for that mode's
+    /// model; a plain turn carries no model, so it runs under the latest mode
+    /// the App sent this conversation in the same Codex process (Codex keeps
+    /// it), or else the conversation's thread-start request. A turn the App did
+    /// not start, or one after a mode sent in an earlier process, is *unknown*.
+    fn turn_requested(&self, view: &Value, scope: &RunScope, turn: &str) -> String {
+        let session = &view["generation"]["appSession"];
+        let rows: Vec<&Value> = view["hostTurns"].as_array().into_iter().flatten()
+            .filter(|t| t["threadId"] == scope.conversation && t["generation"]["appSession"] == *session && t["generation"]["home"] == scope.home && t["appTurnStart"].is_object())
+            .collect();
+        let Some(this) = rows.iter().find(|t| t["turnId"] == turn) else { return "unknown".into() };
+        if this["appTurnStart"]["collaborationMode"] == true {
+            return destination(&Value::Null, &this["appTurnStart"]["model"]);
+        }
+        let spawn = |t: &Value| t["generation"]["spawnCounter"].as_u64().unwrap_or(0);
+        let order = |t: &Value| t["turnId"].as_str().and_then(|id| crate::run_offers::turn_order(view, scope.conversation, id));
+        let mut earlier_mode = false;
+        let mut latest: Option<(u64, String)> = None;
+        for mode in rows.iter().filter(|t| t["appTurnStart"]["collaborationMode"] == true && t["turnId"] != turn) {
+            if spawn(mode) < spawn(this) {
+                earlier_mode = true;
+                continue;
+            }
+            match (order(mode), order(this)) {
+                (Some(m), Some(t)) if spawn(mode) == spawn(this) && m < t => {
+                    if latest.as_ref().is_none_or(|(o, _)| m > *o) {
+                        latest = Some((m, destination(&Value::Null, &mode["appTurnStart"]["model"])));
+                    }
+                }
+                (None, _) | (_, None) if spawn(mode) == spawn(this) => earlier_mode = true,
+                _ => {}
+            }
+        }
+        match latest {
+            Some((_, model)) => model,
+            None if earlier_mode => "unknown".into(),
+            None => self.requested.clone().unwrap_or_else(|| "unknown".into()),
+        }
     }
 
     /// Reads the run's conversation in `view` and returns the `model_turn`
@@ -133,7 +194,13 @@ impl ModelTurnRecorder {
         found.sort();
         for (_, id) in found {
             let ordinal = self.turns.len() as u64 + 1;
-            self.turns.push(Turn { id, ordinal, written: false, rerouted_to: None });
+            self.turns.push(Turn { id, ordinal, written: false, rerouted_to: vec![], requested: "unknown".into() });
+        }
+        // Requested as the host correlated each unwritten turn's start (read again until written).
+        for index in 0..self.turns.len() {
+            if !self.turns[index].written {
+                self.turns[index].requested = self.turn_requested(view, scope, &self.turns[index].id);
+            }
         }
         // Re-routes naming a turn of the run.
         for reroute in view["modelReroutes"].as_array().into_iter().flatten() {
@@ -149,9 +216,9 @@ impl ModelTurnRecorder {
                 Some(index) => {
                     self.reroutes_seen.insert(key);
                     if self.turns[index].written {
-                        written.push(self.turn_body(self.turns[index].ordinal, Some(to)));
+                        written.push(self.turn_body(self.turns[index].ordinal, &self.turns[index].requested, Some(to)));
                     } else {
-                        self.turns[index].rerouted_to = Some(to.to_owned());
+                        self.turns[index].rerouted_to.push(to.to_owned());
                     }
                 }
                 // A turn with no row yet is read again later; one outside the run is not this run's.
@@ -168,7 +235,7 @@ impl ModelTurnRecorder {
         for index in 0..self.turns.len() {
             if !self.turns[index].written && ended(&self.turns[index].id) {
                 self.turns[index].written = true;
-                written.push(self.turn_body(self.turns[index].ordinal, self.turns[index].rerouted_to.as_deref()));
+                written.extend(self.turn_bodies(&self.turns[index]));
             }
         }
         written
@@ -181,7 +248,7 @@ impl ModelTurnRecorder {
         for index in 0..self.turns.len() {
             if !self.turns[index].written {
                 self.turns[index].written = true;
-                written.push(self.turn_body(self.turns[index].ordinal, self.turns[index].rerouted_to.as_deref()));
+                written.extend(self.turn_bodies(&self.turns[index]));
             }
         }
         written

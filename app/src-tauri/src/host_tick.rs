@@ -37,6 +37,9 @@ pub(crate) fn receive_view(home: &HomeSession) -> Value {
             // HOSTING §8.3 / RS R5: the thread-level destinations the host
             // observed (requested at start; reported by start, resume or fork).
             view["hostThreads"] = observation["snapshot"]["threads"].clone();
+            // The turns the host correlated with its own `turn/start`, with
+            // whether each carried a `collaborationMode` model (RS R5 requested).
+            view["hostTurns"] = observation["snapshot"]["conversationTurns"].clone();
         }
         view
     };

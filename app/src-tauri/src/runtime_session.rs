@@ -7751,7 +7751,7 @@ for line in sys.stdin:
         until(3);
         let bodies=model_turns();
         assert_eq!(bodies.len(),3,"{bodies:?}");
-        assert_eq!(bodies[2],json!({"turn":2,"scope":"turn","requested":first[0]["requested"],"effective":"unknown","reroute":false,"destinationClass":"unknown"}),"never filled from the thread or an earlier turn");
+        assert_eq!(bodies[2],json!({"turn":2,"scope":"turn","requested":first[0]["requested"],"effective":"unknown","destinationClass":"unknown"}),"never filled from the thread or an earlier turn; no reroute claimed");
         for _ in 0..3{crate::host_tick::tick(&homes,&workflows);}
         assert_eq!(model_turns().len(),3,"no duplicates on later ticks");
         workflows.lock().unwrap().runs[&a].clone().lock().unwrap().end_run(None,None).unwrap();

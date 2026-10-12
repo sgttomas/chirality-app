@@ -747,14 +747,23 @@ notifications as observations; it changes nothing it sends. Every thread-level
 report of the run's conversation (thread start, resume or fork, from the run's
 generation on) is written with scope *thread* and no turn. Each turn of the
 run (the conversation's turns from the start turn on, observed live while the
-run is open) gets one entry with its ordinal in the run, written when the turn
+run is open) gets an entry with its ordinal in the run, written when the turn
 is observed to end, or at the run's end before `run_ended` for a turn still
-live. `requested` is the provider and model the App asked for at thread
-start (*unknown* for a conversation it did not start in this session).
-`effective` comes only from a `model/rerouted` naming that turn (`reroute`
-true), otherwise *unknown*, never from the thread or an earlier turn. A
-re-route received after its turn's entry was written is a further entry for
-that turn. The destination class is DEL-01-05's mapping of the access entry,
+live. A turn's `requested` comes from the App's own `turn/start` for it, as
+the host correlated the response: a plan- or default-mode turn carries
+`collaborationMode.settings.model` (the conversation's reported model) and
+asked for that; a plain text, run or attachment turn carries no model, so it
+runs under the latest mode the App sent the conversation in the same Codex
+process (Codex keeps it), or else under the provider and model the App asked
+for at thread start. A turn the App did not start, a plain turn after a mode
+sent in an earlier Codex process, and a conversation the App did not start in
+this session have *unknown*. `effective` comes only from a `model/rerouted`
+naming that turn, otherwise *unknown*, never from the thread or an earlier
+turn. Each re-route is recorded with its turn, `reroute` true: a turn
+re-routed twice gets two entries, and a re-route received after its turn's
+entry was written is a further entry for that turn. With no re-route observed
+`reroute` is omitted, since `model/rerouted` has not been observed live
+(HOSTING U-19) and its absence shows nothing. The destination class is DEL-01-05's mapping of the access entry,
 known only for the conversation the home last started (otherwise *unknown*).
 The re-route's reason and the native turn identity have no place in the entry
 body. Nothing is recorded after the run's end.
