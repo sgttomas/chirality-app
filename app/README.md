@@ -749,15 +749,22 @@ generation on) is written with scope *thread* and no turn. Each turn of the
 run (the conversation's turns from the start turn on, observed live while the
 run is open) gets an entry with its ordinal in the run, written when the turn
 is observed to end, or at the run's end before `run_ended` for a turn still
-live. A turn's `requested` comes from the App's own `turn/start` for it, as
-the host correlated the response: a plan- or default-mode turn carries
+live. `requested` and `effective` are written as "‹provider›/‹model›",
+as "‹model›" when no provider is known, or as *unknown*. A turn's `requested`
+is the App's request in force for it, from the App's own `turn/start` as the
+host correlated the response. A plan- or default-mode turn carries
 `collaborationMode.settings.model` (the conversation's reported model) and
-asked for that; a plain text, run or attachment turn carries no model, so it
-runs under the latest mode the App sent the conversation in the same Codex
-process (Codex keeps it), or else under the provider and model the App asked
-for at thread start. A turn the App did not start, a plain turn after a mode
-sent in an earlier Codex process, and a conversation the App did not start in
-this session have *unknown*. `effective` comes only from a `model/rerouted`
+asked for that. A plain text, run or attachment turn carries no model, so its
+`requested` is the latest request the App sent for this conversation in this
+Codex process: the latest mode's model, or else the provider and model the
+App asked for at thread start. That Codex keeps a mode for later turns is its
+documented behaviour (item 18); it has not been observed, and no witness has
+shown which model a later plain turn actually ran under. A mode turn's
+`requested`, and a plain turn's that inherits it, is "‹model›" with no
+provider, because the mode element carries only the conversation's reported
+model. A turn the App did not start, a plain turn after a mode sent in an
+earlier Codex process, and a conversation the App did not start in this
+session have *unknown*. `effective` comes only from a `model/rerouted`
 naming that turn, otherwise *unknown*, never from the thread or an earlier
 turn. Each re-route is recorded with its turn, `reroute` true: a turn
 re-routed twice gets two entries, and a re-route received after its turn's
