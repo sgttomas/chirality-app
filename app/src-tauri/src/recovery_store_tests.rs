@@ -158,7 +158,7 @@ fn a_complete_json_lines_ledger_is_imported_once_and_never_written() {
 }
 
 #[test]
-fn a_torn_or_invalid_final_line_is_a_limit_and_never_an_entry() {
+fn only_a_torn_final_line_is_a_limit_and_never_an_entry() {
     // Torn: the final line is not newline-closed.
     let f = Scratch::new();
     let mut bytes = lines(&[started("old")]);
@@ -171,24 +171,76 @@ fn a_torn_or_invalid_final_line_is_a_limit_and_never_an_entry() {
     assert_eq!(ledger.snapshot()["historyLimits"], json!(ledger.history_limits()));
     drop(ledger);
     assert_eq!(std::fs::read(f.ledger_path()).unwrap(), bytes);
-    // Invalid and final: a complete last line that is not a ledger entry.
+    // A relaunch reports the recorded import, with its limit, and imports nothing again.
+    let again = f.open();
+    assert_eq!(again.legacy_import()["state"], "imported earlier");
+    assert!(again.history_limits()[0].contains("not newline-closed"));
+    assert_eq!(again.recorded_entries(), json!([started("old")]));
+    drop(again);
+    // A complete, newline-closed final line that is not an entry is no torn
+    // write (RS R-2): it fails closed like an invalid line before the end.
     let g = Scratch::new();
     let mut bytes = lines(&[started("old")]);
     bytes.extend_from_slice(b"{\"kind\":\"session_started\",\"payload\":\"must-not-store\"}\n");
     std::fs::write(g.ledger_path(), &bytes).unwrap();
-    let ledger = g.open();
-    assert_eq!(ledger.recorded_entries(), json!([started("old")]));
-    let limit = ledger.legacy_import()["limit"].as_str().unwrap().to_owned();
-    assert!(limit.contains("final line 2") && limit.contains("is not a valid ledger entry"), "{limit}");
-    drop(ledger);
-    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&g.ledger_path())).contains("must-not-store"), "{limit}");
+    let refused = RecoveryLedger::open(g.ledger_path()).err().unwrap();
+    assert!(refused.contains("line 2") && refused.contains("complete line that is not a valid ledger entry") && !refused.contains("must-not-store"), "{refused}");
+    assert!(refused.contains("will then never be imported"), "the error says what moving the file aside gives up: {refused}");
+    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&g.ledger_path())).contains("must-not-store"));
     assert_eq!(std::fs::read(g.ledger_path()).unwrap(), bytes);
-    // A relaunch reports the recorded import, with its limit, and imports nothing again.
-    let again = g.open();
-    assert_eq!(again.legacy_import()["state"], "imported earlier");
-    assert_eq!(again.legacy_import()["limit"], json!(limit));
-    assert!(again.history_limits()[0].contains(&limit));
-    assert_eq!(again.recorded_entries(), json!([started("old")]));
+    assert!(g.entries_raw().is_empty());
+}
+
+// #1309 N1 (the confirmation review's sequence): a failed import left the
+// database; the person moved the file aside and a start was recorded; then
+// they put the repaired file back. Its history would follow that start's
+// entries out of order, so it is never imported.
+#[test]
+fn a_json_lines_ledger_returned_after_entries_were_recorded_is_never_imported() {
+    let f = Scratch::new();
+    let history = vec![started("S1"), json!({"kind":"session_started","session":"S2","at":"synthetic","previousSession":"S1","previousSessionEnd":"clean","candidate":"c"}), listed("S2", 7)];
+    let mut bad = lines(&history[..1]);
+    bad.extend_from_slice(b"{\"kind\":\"not-a-ledger-kind\"}\n");
+    bad.extend(lines(&history[1..]));
+    // (1) the invalid line refuses the open; the database is left without entries.
+    std::fs::write(f.ledger_path(), &bad).unwrap();
+    assert!(RecoveryLedger::open(f.ledger_path()).err().unwrap().contains("Nothing is imported"));
+    // (2) moved aside: the App records again.
+    let aside = f.0.join("moved-aside.jsonl");
+    std::fs::rename(f.ledger_path(), &aside).unwrap();
+    f.open().start_session("S3", "c").unwrap();
+    let recorded = f.entries_raw();
+    assert_eq!(recorded.len(), 1);
+    assert_eq!((recorded[0]["session"].as_str(), recorded[0]["previousSessionEnd"].as_str()), (Some("S3"), Some("none")));
+    // (3) repaired and put back: refused, nothing imported or derived, file untouched.
+    std::fs::write(f.ledger_path(), lines(&history)).unwrap();
+    let refused = RecoveryLedger::open(f.ledger_path()).err().unwrap();
+    assert!(refused.contains("recorded entries before this JSON Lines ledger") && refused.contains("never be imported"), "{refused}");
+    assert_eq!(f.entries_raw(), recorded, "no imported entry and no session start derived from it");
+    assert_eq!(std::fs::read(f.ledger_path()).unwrap(), lines(&history));
+    // Moved aside again, the App continues with its own history.
+    std::fs::remove_file(f.ledger_path()).unwrap();
+    let mut ledger = f.open();
+    ledger.start_session("S4", "c").unwrap();
+    let last = f.entries_raw().last().unwrap().clone();
+    assert_eq!((last["previousSession"].as_str(), last["previousSessionEnd"].as_str()), (Some("S3"), Some("ended-without-record")));
+}
+
+// #1309 B1: after every commit the folder is flushed (F_FULLFSYNC); a commit
+// whose folder flush fails is not reported confirmed and is not held.
+#[test]
+fn a_commit_is_confirmed_only_after_its_folder_is_flushed() {
+    let f = Scratch::new();
+    let mut ledger = f.open();
+    ledger.start_session("s", "c").unwrap();
+    let held = ledger.current_entries().len();
+    crate::storage::fail_directory_for_test(Some(f.0.clone()));
+    let refused = ledger.append(ended("s"));
+    crate::storage::fail_directory_for_test(None);
+    let refused = refused.unwrap_err();
+    assert!(refused.contains("append not confirmed") && refused.contains("folder was not flushed"), "{refused}");
+    assert_eq!(ledger.current_entries().len(), held, "an unconfirmed append is not held");
+    ledger.append(ended("s")).unwrap();
 }
 
 #[test]

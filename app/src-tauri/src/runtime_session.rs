@@ -547,7 +547,9 @@ impl RecoveryStartup {
         if !self.attempted {
             self.attempted = true;
             let observed = host.shared_recovery_observation();
-            self.status = json!({"state":if observed["configured"]==true{"shared-source-configured"}else{"shared-source-unavailable"},"sourceObservation":observed,"blocksSupplierStart":false,"standing":"same actual App custody; no new ledger/session or cold live reconstruction"});
+            // The shared ledger's history limits, shown as this home's own (App.tsx).
+            let limits = observed["recovery"]["historyLimits"].clone();
+            self.status = json!({"state":if observed["configured"]==true{"shared-source-configured"}else{"shared-source-unavailable"},"historyLimits":if limits.is_array(){limits}else{json!([])},"sourceObservation":observed,"blocksSupplierStart":false,"standing":"same actual App custody; no new ledger/session or cold live reconstruction"});
         }
         self.snapshot()
     }

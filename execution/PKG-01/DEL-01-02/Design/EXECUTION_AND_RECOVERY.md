@@ -1266,15 +1266,21 @@ Readings §7 leaves open, as implemented:
   have reached the disk. SR-08 closures at startup remain separate
   best-effort appends, as before.
 - *Durability.* Rollback journal (`journal_mode=DELETE`), `synchronous=EXTRA`,
-  `fullfsync` and `checkpoint_fullfsync`, checked at every open; a new
-  database's directory is synced on creation. In DELETE mode a commit is
-  durable when its journal is unlinked, and SQLite syncs the directory after
-  that unlink only at EXTRA (bundled 3.46.0: `sqlite3OsDelete(…,
-  pPager->extraSync)`, set only at `PAGER_SYNCHRONOUS_EXTRA`); at FULL a power
-  loss could bring the journal back and roll back a commit already reported
-  (found in review of #1309). An entry is reported persisted only after its
-  commit returns. Whether the device honours the syncs is not observable
-  from the App. A database
+  `fullfsync` and `checkpoint_fullfsync`, read back and checked at every
+  open. What is flushed, per commit: SQLite writes the journal and the
+  database file and syncs each with `F_FULLFSYNC` (fullfsync). The commit
+  becomes durable when the journal is unlinked. SQLite's own directory sync
+  after that unlink (EXTRA, bundled 3.46.0 `unixDelete`) is a plain `fsync`,
+  not `F_FULLFSYNC`, and is skipped without an error when the folder cannot
+  be opened, so on macOS the unlink could still sit in the drive's cache and a
+  power loss bring the journal back, rolling back a reported entry (found in
+  review of #1309). After every commit the store therefore flushes the
+  database's folder itself (`File::sync_all`, `F_FULLFSYNC` on macOS): for
+  each append, the schema's creation and the JSON Lines import. An entry is
+  reported recorded only when its commit and that folder flush both
+  succeeded; a failed flush is "append not confirmed" and the entry is not
+  held. Whether the device honours `F_FULLFSYNC` is not observable from the
+  App. A database
   another App instance holds past the busy wait (5 s), a read-only database
   or one that cannot be opened is a visible "append not confirmed" or
   "App history unavailable"; nothing falls back to another location or to
@@ -1284,8 +1290,10 @@ Readings §7 leaves open, as implemented:
 - *Guards.* The database and its `-journal`/`-wal`/`-shm` files must each be a
   regular single-link file or absent, inside the bound namespaces. SQLite
   opens the name under its folder's resolved path with `SQLITE_OPEN_NOFOLLOW`,
-  the descriptor it opened (read from its unix VFS file object and examined
-  with `fstat`) must be the file the path names, and every write rechecks
+  the descriptor it opened (read from its unix VFS file object only for the
+  pinned SQLite 3.46.0 and only when that object's VFS pointer equals the
+  connection's own, `SQLITE_FCNTL_VFS_POINTER`, otherwise the open is
+  refused; examined with `fstat`) must be the file the path names, and every write rechecks
   that the path still names it (device and inode): the equivalent, for a
   file SQLite opens itself, of the JSON Lines writer's no-follow and
   descriptor checks.
@@ -1296,25 +1304,32 @@ Readings §7 leaves open, as implemented:
   between the two reads refuses the import). Every complete line that is a
   valid entry is imported in order, in one transaction with the import
   record (path, byte length, content identity, file identity, lines
-  imported, first and last entry, limit). A torn or invalid **final** line is
-  not imported and is the import's recorded limit; the earlier entries are
-  the whole history before it (the JSON Lines reader refused the whole file
-  instead). That limit is shown at every start with the recovery
-  initialization ("configured-with-limits", `historyLimits`) and in the
-  custody view's limits. An invalid line **before the end** imports nothing:
-  the history after it would be missing, and §7 infers no historical answer
-  from incomplete storage, so a session end, RQ-06, SR-08 or CV-19 reading
-  derived from the part before it could be false and would be recorded for
-  good. The open fails visibly ("App history unavailable", initialization
-  failed, as with the JSON Lines reader), and the next start imports the
-  repaired file. A refused line's content is never echoed into a limit or
-  error. The file is never written, truncated or removed. It is imported at
-  most once: a file whose path or content was imported is not imported
-  again. A file that changed after its import (an earlier build appended to
-  it, or a backup was restored) and a JSON Lines file that appears beside a
-  database created without one fail closed the same way: their entries are
-  not in the database, so its history is incomplete; the error says to move
-  the file aside.
+  imported, first and last entry, limit). Only a final line that is **not
+  newline-closed** (a torn write, RS R-2) is not imported and is the import's
+  recorded limit; the earlier entries are the whole history before it (the
+  JSON Lines reader refused the whole file instead). That limit is shown at
+  every start with the recovery initialization ("configured-with-limits",
+  `historyLimits`, also on a home that shares the ledger) and in the custody
+  view's limits. A **complete** line that is not a valid entry, wherever it
+  is (including the last line, for example another build's `session_ended`),
+  is no crash's trace and imports nothing: §7 infers no historical answer
+  from incomplete or nonconforming storage, and a session end, RQ-06, SR-08
+  or CV-19 reading derived from part of the history could be false and would
+  be recorded for good. The open fails visibly ("App history unavailable",
+  initialization failed, as with the JSON Lines reader); no App recovery is
+  recorded until the file is repaired, which the next start then imports.
+  A refused line's content is never echoed into a limit or error. The file
+  is never written, truncated or removed. It is imported at most once: a
+  file whose path or content was imported is not imported again. These fail
+  closed the same way, because the database's history would be incomplete or
+  out of order: a file that changed after its import (an earlier build
+  appended to it, or a backup was restored); a JSON Lines file that appears
+  beside a database created without one; and a file not yet imported when
+  the database already holds entries the App recorded, for example after the
+  file was moved aside and the App ran (its history would follow those
+  entries). Each error says what moving the file aside gives up: the App can
+  then record again, and the file's entries, or those an earlier build
+  appended, are never imported.
 - *Held entries.* The host never holds or copies the whole ledger. It holds
   the current entries: every session marker, quit, Codex stop, stop-request
   entry and RQ-06 ending; the latest `conversation_index` entry for each

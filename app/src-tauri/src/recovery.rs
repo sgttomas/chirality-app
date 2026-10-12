@@ -673,7 +673,7 @@ impl RecoveryLedger {
     }
     /// Limits of the history this ledger holds, shown with the recovery
     /// initialization and the custody view: today the JSON Lines import's
-    /// (a torn or invalid final line that was not imported).
+    /// (a torn final line, not newline-closed, that was not imported).
     pub fn history_limits(&self) -> Vec<String> {
         self.legacy["limit"].as_str().map(|l| vec![format!("App history import: {l}")]).unwrap_or_default()
     }
@@ -775,7 +775,8 @@ mod tests {
         remove_test_ledger(&path);
     }
     /// A payload-bearing entry is refused before anything is created; a JSON
-    /// Lines ledger whose only line is malformed imports nothing and reports it.
+    /// Lines ledger whose only line is a complete malformed one imports nothing
+    /// and refuses the open (only a torn line is a limit).
     #[test]
     fn malformed_or_payload_bearing_ledger_is_never_stored() {
         let path = path();
@@ -785,9 +786,8 @@ mod tests {
         assert!(!path.exists());
         assert!(!store::database_path(&path).exists(), "refused before the database is created");
         std::fs::write(&path, "{\n").unwrap();
-        let opened = RecoveryLedger::open(path.clone()).unwrap();
-        assert_eq!(opened.recorded_entries(), json!([]));
-        assert!(opened.legacy_import()["limit"].as_str().unwrap().contains("is not a valid ledger entry"), "{}", opened.legacy_import());
+        let refused = RecoveryLedger::open(path.clone()).err().unwrap();
+        assert!(refused.contains("is a complete line that is not a valid ledger entry"), "{refused}");
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\n");
         remove_test_ledger(&path);
         assert!(generation_ref(&json!(1)).is_err());

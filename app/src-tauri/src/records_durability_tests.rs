@@ -169,6 +169,12 @@ fn ledger_rows(path: &Path) -> Vec<Value> {
     let db = rusqlite::Connection::open(crate::recovery::database_path(path)).unwrap();
     let check: String = db.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
     assert_eq!(check, "ok");
+    // A kill before the schema's own commit leaves a database with no tables:
+    // no entry was confirmed then (the caller's count says so).
+    let tables: i64 = db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'ledger_entry'", [], |r| r.get(0)).unwrap();
+    if tables == 0 {
+        return Vec::new();
+    }
     let mut statement = db.prepare("SELECT entry FROM ledger_entry ORDER BY seq").unwrap();
     let rows = statement.query_map([], |r| r.get::<_, String>(0)).unwrap();
     rows.map(|r| serde_json::from_str(&r.unwrap()).unwrap()).collect()

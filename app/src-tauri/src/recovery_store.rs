@@ -15,18 +15,23 @@
 //!   the latest `register_entry_summary` per request and state while the
 //!   request is still listed. They are read by one indexed query
 //!   ([`Store::current_entries`]), never by loading the whole ledger.
-//! - Durability: rollback journal (`journal_mode=DELETE`) with
-//!   `synchronous=EXTRA` and `fullfsync`. In DELETE mode a commit is durable
-//!   when its journal is unlinked; SQLite syncs the directory after that
-//!   unlink only at EXTRA (3.46.0 `sqlite3OsDelete(…, pPager->extraSync)`), so
-//!   at FULL a power loss could bring the journal back and roll a returned
-//!   commit back. A new database file's directory entry is synced on creation.
+//! - Durability: rollback journal (`journal_mode=DELETE`), `synchronous=EXTRA`,
+//!   `fullfsync` and `checkpoint_fullfsync`. SQLite writes and syncs the
+//!   journal and the database file with `F_FULLFSYNC` (fullfsync). A commit
+//!   becomes durable when the journal is unlinked, and SQLite's own directory
+//!   sync after that unlink (EXTRA) is a plain `fsync`, not `F_FULLFSYNC`, and
+//!   is skipped silently when the folder cannot be opened (3.46.0
+//!   `unixDelete`, `full_fsync(fd,0,0)`). So after every commit this store
+//!   flushes the database's folder itself (`File::sync_all`, which is
+//!   `F_FULLFSYNC` on macOS), and a commit is reported confirmed only when
+//!   that flush succeeds; if it fails the append is reported not confirmed.
 //! - The JSON Lines ledger of earlier builds is imported once, in order, every
-//!   complete and valid line. A torn or invalid final line is a recorded limit,
-//!   never an entry. An invalid line before the end, a file changed since its
-//!   import and a file that appeared after the database was created fail the
-//!   open and import nothing (DEL-01-02 §7: no reading is derived from part of
-//!   a history). The file is never written. The import is recorded (source
+//!   complete and valid line. Only a final line that is not newline-closed (a
+//!   torn write) is a recorded limit, never an entry. A complete invalid line
+//!   anywhere, a file changed since its import, a file that appeared after the
+//!   database was created and a file not imported before the App recorded
+//!   entries fail the open and import nothing (DEL-01-02 §7: no reading is
+//!   derived from part of a history, or from one out of order). The file is never written. The import is recorded (source
 //!   path, byte length, content identity, the file's device, inode, length and
 //!   modification time) in the same transaction as its entries, so it happens
 //!   at most once.
@@ -162,6 +167,8 @@ fn db_error(context: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
 
 pub(crate) struct Store {
     path: PathBuf,
+    /// The database's folder, resolved; flushed after every commit.
+    folder: PathBuf,
     connection: Connection,
     /// The device and inode of the file SQLite has open; the path must name
     /// it at open and before every write.
@@ -208,7 +215,7 @@ impl Store {
         if (durability.0.as_str(), durability.1, durability.2, durability.3) != DURABILITY {
             return Err(format!("ledger durability not established ({durability:?})"));
         }
-        let mut store = Self { path: path.to_path_buf(), opened, connection, index_current: false };
+        let mut store = Self { path: path.to_path_buf(), folder: folder.clone(), opened, connection, index_current: false };
         store.ensure_schema(legacy_present)?;
         store.index_current = store.meta("index_format")?.as_deref() == Some(INDEX_FORMAT);
         if !existed {
@@ -245,7 +252,13 @@ impl Store {
             Some(SCHEMA_VERSION) => {}
             Some(other) => return Err(format!("App history unavailable: ledger database schema {other} is not this App's ({SCHEMA_VERSION})")),
         }
-        tx.commit().map_err(db_error("ledger schema not committed"))
+        tx.commit().map_err(db_error("ledger schema not committed"))?;
+        self.flush("ledger schema not committed")
+    }
+    /// After a commit: the unlink of its journal, the moment it became durable,
+    /// is flushed to the device with the folder (module text).
+    fn flush(&self, context: &str) -> Result<(), String> {
+        crate::storage::sync_dir(&self.folder).map_err(|e| format!("{context}: the commit returned but its folder was not flushed ({e})"))
     }
     fn meta(&self, key: &str) -> Result<Option<String>, String> {
         self.connection.query_row("SELECT value FROM ledger_meta WHERE key = ?1", [key], |r| r.get(0)).optional().map_err(db_error("ledger metadata not readable"))
@@ -373,7 +386,8 @@ impl Store {
             let text = serde_json::to_string(entry).map_err(|e| format!("recovery ledger append not confirmed: {e}"))?;
             insert(&tx, entry, &text, "app", batch).map_err(db_error("recovery ledger append not confirmed"))?;
         }
-        tx.commit().map_err(db_error("recovery ledger append not confirmed"))
+        tx.commit().map_err(db_error("recovery ledger append not confirmed"))?;
+        self.flush("recovery ledger append not confirmed")
     }
     /// The JSON Lines ledger at `legacy`, open as `file` (with the caller's
     /// descriptor guards), imported once (see the module text). It is read in
@@ -421,14 +435,21 @@ impl Store {
             if imported_content != content || imported_length != length {
                 // Fail closed (§7): entries written after the import are not in
                 // the database, so no startup reading may be derived from it.
-                return Err(format!("App history unavailable: the JSON Lines ledger changed after its import (it now has {length} bytes with content {content}; {imported_length} bytes were imported). Entries written to it since are not in the ledger database, so its history is incomplete and nothing is derived from it. The file is not written; move it aside to continue."));
+                return Err(format!("App history unavailable: the JSON Lines ledger changed after its import (it now has {length} bytes with content {content}; {imported_length} bytes were imported). Entries written to it since are not in the ledger database, so its history is incomplete and nothing is derived from it; no App recovery is recorded until this is resolved. The file is not written. Moving it aside lets the App record again and gives up the entries an earlier build appended to it: they will never be imported."));
             }
             return Ok(reading);
         }
         let at_creation: Option<String> = tx.query_row("SELECT value FROM ledger_meta WHERE key = 'legacy_at_creation'", [], |r| r.get(0)).optional().map_err(db_error("legacy ledger import record not readable"))?;
         if at_creation.as_deref() == Some("absent") {
             drop(tx);
-            return Err(format!("App history unavailable: a JSON Lines ledger ({length} bytes) appeared after the ledger database was created without one. Its entries would not follow the database's order and are not imported, so the history is incomplete and nothing is derived from it. The file is not written; move it aside to continue."));
+            return Err(format!("App history unavailable: a JSON Lines ledger ({length} bytes) appeared after the ledger database was created without one. Its entries would not follow the database's order and are not imported, so the history is incomplete and nothing is derived from it; no App recovery is recorded until this is resolved. The file is not written. Moving it aside lets the App record again, but its entries will then never be imported."));
+        }
+        // Entries the App recorded without this file come first in the
+        // database; its history cannot be placed before them, at any later start.
+        let recorded: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM ledger_entry WHERE origin = 'app')", [], |r| r.get(0)).map_err(db_error("legacy ledger import record not readable"))?;
+        if recorded {
+            drop(tx);
+            return Err(format!("App history unavailable: the ledger database recorded entries before this JSON Lines ledger ({length} bytes) was imported, so its history would follow them out of order; it is not imported, and nothing is derived from it. No App recovery is recorded until this is resolved. The file is not written. Moving it aside lets the App record again, but its entries will then never be imported."));
         }
         // Every complete, valid line in order; the first that is not ends the
         // import. Each is inserted as it is read; none is held after.
@@ -478,12 +499,12 @@ impl Store {
             return Err("App history unavailable: the JSON Lines ledger changed while it was being imported; nothing imported".into());
         }
         if let Some((at, reason, size, rest)) = refused {
-            if at + size < offset {
-                // Not the final line (§7): later history would be missing, so
-                // nothing is imported; the file can be repaired or moved aside.
-                return Err(format!("App history unavailable: line {} at byte {at} of the JSON Lines ledger is not a valid ledger entry ({reason}), and {} bytes ({} newline-closed lines) follow it. Nothing is imported, since the history after it would be missing; the file is not written. Repair it or move it aside to continue.", imported + 1, offset - at - size, rest - 1));
-            }
-            limit = Some(format!("final line {} at byte {at} is not a valid ledger entry ({reason}); not imported", imported + 1));
+            // A complete line that is not an entry is no torn write (RS R-2):
+            // wherever it is, nothing is imported (§7). Only an unclosed final
+            // line is a crash's trace and a limit.
+            let after = offset - at - size;
+            return Err(format!("App history unavailable: line {} at byte {at} of the JSON Lines ledger is a complete line that is not a valid ledger entry ({reason}){}. Nothing is imported and nothing is derived from it; no App recovery is recorded until this is resolved. The file is not written. Repair the file to import it at the next start. Moving it aside lets the App record again, but its entries will then never be imported.", imported + 1,
+                if after > 0 { format!(", and {after} bytes ({} newline-closed lines) follow it", rest - 1) } else { String::new() }));
         }
         let at = crate::util::now_rfc3339();
         tx.execute(
@@ -492,6 +513,7 @@ impl Store {
         )
         .map_err(db_error("legacy ledger import not recorded"))?;
         tx.commit().map_err(db_error("legacy ledger import not committed"))?;
+        self.flush("legacy ledger import not committed")?;
         Ok(json!({"state":"imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},
             "importedLines":imported,"limit":limit,"importedAt":at}))
     }
@@ -515,9 +537,11 @@ fn durability(connection: &Connection) -> rusqlite::Result<(String, i64, i64, i6
     Ok((mode.to_ascii_lowercase(), read("synchronous")?, read("fullfsync")?, read("checkpoint_fullfsync")?))
 }
 /// The device and inode of the file SQLite has open as `main`. The unix VFS's
-/// file object begins {methods, vfs, inode info, descriptor} (bundled SQLite
-/// 3.46.0, `struct unixFile`); the VFS name is checked before the descriptor
-/// is read, and the descriptor is examined with `fstat`.
+/// file object begins {methods, vfs, inode info, descriptor} (`struct
+/// unixFile` of the bundled SQLite, which must be 3.46.0). The descriptor is
+/// read only when the object's VFS pointer is, by pointer equality, the
+/// connection's own VFS (`SQLITE_FCNTL_VFS_POINTER`) and that VFS is a unix
+/// one; otherwise the open is refused. The descriptor is examined with `fstat`.
 fn descriptor_identity(connection: &Connection) -> Result<(u64, u64), String> {
     use rusqlite::ffi;
     use std::os::raw::{c_char, c_int, c_void};
@@ -529,17 +553,28 @@ fn descriptor_identity(connection: &Connection) -> Result<(u64, u64), String> {
         descriptor: c_int,
     }
     let unavailable = || "REC ledger database descriptor unavailable; not opened".to_string();
-    // SAFETY: SQLITE_FCNTL_FILE_POINTER writes the main database's
-    // sqlite3_file pointer, owned by the open connection borrowed here; it is
-    // read only while that borrow lasts, and only after its VFS is a unix VFS.
+    // SAFETY: SQLITE_FCNTL_FILE_POINTER and SQLITE_FCNTL_VFS_POINTER write the
+    // main database's sqlite3_file and the connection's sqlite3_vfs, both owned
+    // by the open connection borrowed here. The file object is read as a
+    // unixFile only for the pinned SQLite version and only when its VFS field
+    // equals the connection's VFS pointer, compared without dereferencing it.
     unsafe {
+        if ffi::sqlite3_libversion_number() != 3_046_000 {
+            return Err(unavailable());
+        }
+        let main = b"main\0".as_ptr() as *const c_char;
         let mut file: *mut ffi::sqlite3_file = std::ptr::null_mut();
-        let rc = ffi::sqlite3_file_control(connection.handle(), b"main\0".as_ptr() as *const c_char, ffi::SQLITE_FCNTL_FILE_POINTER, &mut file as *mut _ as *mut c_void);
+        let rc = ffi::sqlite3_file_control(connection.handle(), main, ffi::SQLITE_FCNTL_FILE_POINTER, &mut file as *mut _ as *mut c_void);
         if rc != ffi::SQLITE_OK || file.is_null() || (*file).pMethods.is_null() {
             return Err(unavailable());
         }
+        let mut vfs: *mut ffi::sqlite3_vfs = std::ptr::null_mut();
+        let rc = ffi::sqlite3_file_control(connection.handle(), main, ffi::SQLITE_FCNTL_VFS_POINTER, &mut vfs as *mut _ as *mut c_void);
+        if rc != ffi::SQLITE_OK || vfs.is_null() || (*vfs).zName.is_null() || !std::ffi::CStr::from_ptr((*vfs).zName).to_bytes().starts_with(b"unix") {
+            return Err(unavailable());
+        }
         let head = &*(file as *const UnixFileHead);
-        if head.vfs.is_null() || (*head.vfs).zName.is_null() || !std::ffi::CStr::from_ptr((*head.vfs).zName).to_bytes().starts_with(b"unix") || head.descriptor < 0 {
+        if !std::ptr::eq(head.vfs, vfs as *const ffi::sqlite3_vfs) || head.descriptor < 0 {
             return Err(unavailable());
         }
         let mut stat: libc::stat = std::mem::zeroed();
