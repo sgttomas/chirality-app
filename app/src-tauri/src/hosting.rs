@@ -782,6 +782,8 @@ impl Host {
             "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
             "inFlightNativeWrites": i.source_requests.values().filter(|e|e.write_attempt_in_progress).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"attemptPosition":e.attempt_position,"effectiveOutcome":"unknown/in-progress","lastClientObservationOnly":true})).collect::<Vec<_>>(),
             "serverRequests": i.server_requests.records(),
+            // NIR CS-7: why the process ended for each request it ended unanswered.
+            "serverRequestEndContexts": i.server_requests.end_contexts(),
             "recovery": i.recovery_snapshot,"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
             "recoveryPersistenceError": i.recovery_error,"recoveryInitializationError":i.recovery_initialization_error,
             "journal": i.journal,
@@ -1439,13 +1441,13 @@ impl Host {
             }
         }
         let generation = i.generation.clone();
-        let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
+        let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="system termination") {"system-termination"} else {"supplier-stop"}} else {"supplier-exit"};
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
         Self::persist_recovery(i);
         Self::stop_requests_generation_closed(i,&generation);
         Self::oauth_lost(i,&generation);
-        let ended = i.server_requests.close(&generation);
+        let ended = i.server_requests.close_for(&generation, cause);
         Self::persist_requests(i);
         for turn in &mut i.conversation_turns {
             if turn["generation"] == generation { turn["observationEnded"] = json!(true); }
