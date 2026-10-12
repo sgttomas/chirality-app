@@ -373,15 +373,17 @@ writes records or operates the act control." `src-tauri/` holds that host;
     the End run paths receive DEL-01-02's custody events with the native
     view. Each `observation_lost` of this App session that names the run's
     conversation, from the Codex generation the run opened in on, is written
-    once as `observation_lost` with its cause (DEF-5). It is *deciding* when
-    an item it left in flight may be a listed checkpoint's named event: a
-    message whose received text has not settled on another first line, or a
-    file change whose received changes do not exclude the declared path
-    (AW-12). A deciding loss names no arrival and writes no *unknown* label.
-    A later recovery read *accessible* of that conversation is written once
-    as `observation_recovered` with its own time; it reads turns only, so it
-    recovers no item and changes no label (RP-1). An unavailable read writes
-    nothing.
+    once as `observation_lost` with its cause (DEF-5, or DEF-6 for a quit).
+    It is *deciding* when an item it left in flight may be a listed
+    checkpoint's named event: a message whose streamed text has not settled
+    on another first line, or a file change whose received changes do not
+    exclude the declared path (AW-12). A deciding loss names no arrival and
+    writes no *unknown* label. A later recovery read *accessible* of that
+    conversation, matched to the loss by the live turn it reports, is written
+    once as `observation_recovered` with its own time; it reads turns only,
+    so it recovers no item and changes no label (RP-1). An unavailable read
+    writes nothing. A conversation with no App index gets no custody loss, so
+    its run records none.
     Recording never sends, opens, pauses or ends anything (RC-4). When the
     person ends the run, lapses since the last observation and then acts
     recorded since are written first, also for a run ended after a relaunch

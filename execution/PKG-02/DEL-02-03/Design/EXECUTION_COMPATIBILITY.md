@@ -644,13 +644,18 @@ CE-14 the custody events reach the recorder with the native view of the record
 tick and of the End run paths; in this App session the run current in a named
 conversation is its open run (one at a time, RE-7), and a loss counts for it from
 the generation it opened in on. A loss is *deciding* when an item it left in flight
-in the run may be a listed checkpoint's named event: a message whose received text
-has no settled first line other than the designating line (AW-6), or a file change
-whose received changes do not exclude the declared path (AW-7); a call's start is
-an arrival already observed (AW-3). CE-14 is written only for a recovery read
-*accessible* after a recorded loss; the reads list turns and return no item, so
-they decide nothing and no label changes. Each entry names its custody event, by
-which a repeated observation is not written again. After a lapse,
+in the run may be a listed checkpoint's named event: a message whose streamed text
+(the native view's untruncated preview) has no settled first line other than the
+designating line (AW-6), or a file change whose received changes do not exclude the
+declared path (AW-7); a call's start is an arrival already observed (AW-3). CE-14
+is written only for a recovery read *accessible* matched to a recorded loss of the
+run not yet recovered whose live turns are the turns the read reports, because the
+custody event names no lost generation; two losses with the same live turns, or
+none, are not told apart. The reads list turns and return no item, so they decide
+nothing and no label changes. A conversation with no App index (no custody home)
+gets no custody `observation_lost` (RECOVERY close keeps only a limit), so its run
+records no CE-13. Each entry names its custody event, by which a repeated
+observation is not written again. After a lapse,
 acts count against the content the latest determinate lapse read; an act already
 cited for the arrival, such as one recorded "act on other content", is not
 reconsidered when the content later becomes the content it was made on (§4.6, the

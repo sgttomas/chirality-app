@@ -1164,9 +1164,11 @@ fn with_custody(mut v: Value, events: Vec<Value>) -> Value {
 #[test]
 fn a_loss_is_written_once_and_deciding_only_for_a_possible_production() {
     let root = std::path::PathBuf::from("/project/root");
-    let mut partial = row("turn-1", json!({"id":"m1","type":"agentMessage","text":"Spac"}), 2, Some(2), None);
-    partial["displayState"] = json!("in-progress");
-    let other = row("turn-1", json!({"id":"m2","type":"agentMessage","text":"Working on it\nSpacing report"}), 3, Some(3), None);
+    // The native view's shape: the started text stays empty; streamed deltas are the preview.
+    let mut partial = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    partial["preview"] = json!("Spac");
+    let mut other = row("turn-1", json!({"id":"m2","type":"agentMessage","text":""}), 3, Some(3), None);
+    other["preview"] = json!("Working on it\nSpacing report");
     let elsewhere = row("turn-1", json!({"id":"f2","type":"fileChange","status":"inProgress","changes":[{"path":"out/other.md","kind":{"type":"add"},"diff":""}]}), 4, Some(4), None);
     let items = vec![start_row(), partial, other, elsewhere];
     let cases = [
@@ -1249,6 +1251,78 @@ fn a_recovery_is_written_once_after_a_recorded_loss() {
     let again: Vec<Output> = obs(&mut fresh, &with_custody(view(items), events), &scope(&root), &all).into_iter().filter(|(k, _)| k.starts_with("observation")).collect();
     assert!(again.is_empty(), "already recorded: {again:#?}");
     assert_eq!(disposition(&all, &[], &json!({"checkpoint":"CP-check","arrivalOrdinal":1})).as_deref(), Some("waiting"), "no label changes");
+}
+
+// F-1: the in-flight message row as the native view itself builds it from item/started and
+// item/agentMessage/delta: the deltas decide, not the started text. A settled first line that
+// is not the designating line is not deciding; one still growing, or the designating line, is.
+#[test]
+fn a_loss_reads_the_native_views_streamed_message_text() {
+    let root = std::path::PathBuf::from("/project/root");
+    let decides = |deltas: &[&str]| {
+        let mut native = crate::native_items::NativeView::new("native-home".into()).unwrap();
+        native.ready(g(1), json!("codex 0.160.0"), json!("unverified-development")).unwrap();
+        let frames = [json!({"method":"turn/started","params":{"threadId":"thread","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null,"itemsView":"summary"}}}),
+            json!({"method":"item/started","params":{"threadId":"thread","turnId":"turn-1","item":{"id":"m1","type":"agentMessage","text":""}}})];
+        let deltas = deltas.iter().map(|d| json!({"method":"item/agentMessage/delta","params":{"threadId":"thread","turnId":"turn-1","itemId":"m1","delta":d}}));
+        for (n, frame) in frames.into_iter().chain(deltas).enumerate() {
+            native.consume(&json!({"generation":g(1),"position":n + 1,"frame":frame})).unwrap();
+        }
+        let v = with_custody(native.snapshot(), vec![lost_event("cev:native", 1, &["thread"], vec![in_flight("m1", "agentMessage")])]);
+        let row = v["items"].as_array().unwrap().iter().find(|r| r["native"]["id"] == "m1").unwrap().clone();
+        assert_eq!(row["native"]["text"], "", "the started text stays as started: {row}");
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut run = scope(&root);
+        run.start = crate::run_offers::RunStart::BeforeView; // the turn is in the run
+        let outputs: Vec<Output> = obs(&mut recorder, &v, &run, &entries(&listed)).into_iter().filter(|(k, _)| *k == "observation_lost").collect();
+        conformant(&outputs);
+        outputs[0].1["deciding"].as_bool().unwrap()
+    };
+    assert!(!decides(&["Working on it", "\nSp"]), "a settled first line other than the designating line");
+    assert!(decides(&["Spacing rep"]), "still growing");
+    assert!(decides(&["Spacing report\n", "The findings"]), "the designating line");
+    assert!(decides(&[]), "nothing received yet");
+    // A truncated preview has lost its start: its first line is not known.
+    let mut truncated = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    truncated["preview"] = json!("…tail\nmore");
+    truncated["previewTruncated"] = json!(true);
+    assert_eq!(received_text(&truncated), None);
+}
+
+// F-2: a recovery read is matched to a loss of this run by the turn it reports, the live turn
+// at that loss (the custody event names no lost generation): the recovery of a loss from
+// before the run, or one whose read was unavailable, is not this run's.
+#[test]
+fn a_recovery_matches_the_runs_loss_by_its_live_turn() {
+    let root = std::path::PathBuf::from("/project/root");
+    let mut run = scope(&root);
+    run.start_spawn = 2;
+    let mut before = lost_event("cev:g1", 1, &["thread"], vec![]);
+    before["liveTurns"] = json!([{"threadId":"thread","turnId":"turn-0"}]);
+    let mut of_before = recovered_event("cev:r-g1", 3, "accessible");
+    of_before["turns"][0]["turnId"] = json!("turn-0");
+    let mut events = vec![before, lost_event("cev:g2", 2, &["thread"], vec![]), of_before, recovered_event("cev:r-g2", 3, "unavailable")];
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let mut all = entries(&listed);
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events.clone()), &run, &all);
+    assert_eq!(kinds(&outputs), ["observation_lost"], "only g2's loss; g1's recovery is not this run's: {outputs:#?}");
+    all.extend(entries(&outputs));
+    events.push(recovered_event("cev:r-g2-retry", 3, "accessible"));
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events), &run, &all);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["observation_recovered"]);
+    assert!(outputs[0].1["scope"].as_str().unwrap().contains("(custody event cev:r-g2-retry)"));
+}
+
+// F-3: the loss names the stop or loss that ended the process (RECOVERY §2).
+#[test]
+fn a_loss_names_its_definition() {
+    for (cause, definition) in [("supplier-exit", "DEF-5 (b)"), ("supplier-stop", "DEF-5 (a)"), ("app-quit", "DEF-6"), ("system-termination", "DEF-5")] {
+        let mut event = lost_event("cev:c", 1, &["thread"], vec![]);
+        event["cause"] = json!(cause);
+        let body = lost_body(&event, "cev:c", "thread", &[]);
+        assert!(body["cause"].as_str().unwrap().contains(definition) && body["scope"].as_str().unwrap().contains(definition), "{cause}: {body}");
+    }
 }
 
 #[test]

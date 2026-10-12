@@ -9251,7 +9251,7 @@ for line in sys.stdin:
             "generation":generation,"cause":"supplier-exit","conversations":["thread"],"liveTurns":[{"threadId":"thread","turnId":"turn"}],
             "inFlightItems":[{"threadId":"thread","turnId":"turn","itemId":"m9","itemType":"agentMessage","lastObservedStatus":"inProgress"}],"outstandingEntries":[]});
         let recovered=json!({"kind":"observation_recovered","eventId":"cev:recovered:fixture","appSession":peer.generation["appSession"],"at":crate::util::now_rfc3339(),"standing":"App-observed",
-            "threadId":"thread","home":"H-acct","generation":crate::recovery::generation_ref(&ready).unwrap(),"via":"thread/read","priorEvents":"accessible","turns":[]});
+            "threadId":"thread","home":"H-acct","generation":crate::recovery::generation_ref(&ready).unwrap(),"via":"thread/read","priorEvents":"accessible","turns":[{"turnId":"turn","supplierStatus":"interrupted","appReading":"recovered from Codex: interrupted"}]});
         let with=|events:Vec<Value>|{let mut v=recorder_view(&peer,&[]);v["custodyEvents"]=json!(events);v};
         let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
         // A-12: the first write fails; the held entry is written late, once, with its limit.

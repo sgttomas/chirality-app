@@ -147,6 +147,9 @@ pub(crate) struct CheckpointRecorder {
     seen_requests: BTreeSet<String>,
     /// The custody events (AE-6) already read, by event identity.
     seen_custody: BTreeSet<String>,
+    /// This run's custody losses, in order: the conversation's live turns at
+    /// each, sorted, and whether a recovery read has been matched to it.
+    losses: Vec<(Vec<String>, bool)>,
     limit: Option<String>,
     /// The last reason the project's act records could not be read, if any.
     acts_limit: Option<String>,
@@ -455,6 +458,7 @@ impl CheckpointRecorder {
                 }
                 Event::Lost(event) => {
                     self.seen_custody.insert(key.clone());
+                    self.losses.push((live_turns(event, scope.conversation), false));
                     if !custody_recorded(entries, &written, &key) {
                         let possible = self.possible_productions(event, view, scope, &in_run);
                         written.push(("observation_lost", lost_body(event, &key, scope.conversation, &possible)));
@@ -462,11 +466,18 @@ impl CheckpointRecorder {
                 }
                 Event::Recovered(event) => {
                     self.seen_custody.insert(key.clone());
-                    // CE-14 only for a loss recorded for this run and not yet
-                    // recovered, and only when Codex's history could be read:
-                    // an unavailable read recovers nothing.
-                    let count = |kind: &str| entries.iter().map(|e| e["kind"].as_str().unwrap_or_default()).chain(written.iter().map(|(k, _)| *k)).filter(|k| *k == kind).count();
-                    if event["priorEvents"] == "accessible" && count("observation_lost") > count("observation_recovered") && !custody_recorded(entries, &written, &key) {
+                    // CE-14 only for a loss of this run not yet recovered whose
+                    // live turns are the turns the read reports (the custody
+                    // event names no lost generation), and only when Codex's
+                    // history could be read: an unavailable read recovers nothing.
+                    if event["priorEvents"] != "accessible" {
+                        continue;
+                    }
+                    let mut turns: Vec<String> = event["turns"].as_array().into_iter().flatten().filter_map(|t| t["turnId"].as_str().map(str::to_owned)).collect();
+                    turns.sort();
+                    let Some(loss) = self.losses.iter_mut().find(|(lost, recovered)| !recovered && *lost == turns) else { continue };
+                    loss.1 = true;
+                    if !custody_recorded(entries, &written, &key) {
                         written.push(("observation_recovered", recovered_body(event, &key, scope.conversation)));
                     }
                 }
@@ -581,7 +592,7 @@ impl CheckpointRecorder {
             for listed in &self.listed {
                 match &listed.trigger {
                     Trigger::Message { output, line } if kind == "agentMessage" => {
-                        if row.and_then(|r| r["native"]["text"].as_str()).and_then(settled_first_line).is_some_and(|l| l != line) {
+                        if row.and_then(received_text).and_then(settled_first_line).is_some_and(|l| l != line) {
                             continue;
                         }
                         found.push(format!("agentMessage {id} (turn {turn}) may have been a production of output {output}, the reached-when of checkpoint {} (AW-6)", listed.name));
@@ -1131,10 +1142,24 @@ fn custody_recorded(entries: &[Value], written: &[Output], id: &str) -> bool {
     entries.iter().map(|e| (e["kind"].as_str().unwrap_or_default(), &e["body"])).chain(written.iter().map(|(k, b)| (*k, b)))
         .any(|(k, b)| matches!(k, "observation_lost" | "observation_recovered") && b["scope"].as_str().is_some_and(|s| s.contains(&named)))
 }
+/// A custody loss's live turns in `conversation`, sorted.
+fn live_turns(event: &Value, conversation: &str) -> Vec<String> {
+    let mut turns: Vec<String> = event["liveTurns"].as_array().into_iter().flatten().filter(|t| t["threadId"] == conversation)
+        .filter_map(|t| t["turnId"].as_str().map(str::to_owned)).collect();
+    turns.sort();
+    turns
+}
 /// CE-13 (AE-6, AW-12) from a custody `observation_lost`: what was lost in
 /// this run's conversation and whether it may decide a checkpoint's arrival.
 fn lost_body(event: &Value, id: &str, conversation: &str, possible: &[String]) -> Value {
     let cause = event["cause"].as_str().unwrap_or("not stated");
+    // RECOVERY §2: which stop or loss ended the process.
+    let definition = match cause {
+        "supplier-exit" => "DEF-5 (b), an unexpected exit",
+        "supplier-stop" => "DEF-5 (a), the person's Stop or Restart Codex",
+        "app-quit" => "DEF-6, the App quit, which stops the process (DEF-5 (a))",
+        _ => "DEF-5",
+    };
     let live: Vec<String> = event["liveTurns"].as_array().into_iter().flatten().filter(|t| t["threadId"] == conversation)
         .filter_map(|t| t["turnId"].as_str().map(str::to_owned)).collect();
     let items: Vec<String> = event["inFlightItems"].as_array().into_iter().flatten().filter(|i| i["threadId"] == conversation)
@@ -1145,9 +1170,9 @@ fn lost_body(event: &Value, id: &str, conversation: &str, possible: &[String]) -
     } else {
         format!("The lost observation may be the named event of a checkpoint of this run (AW-12): {}. Which arrival it would be is not established, so no arrival is named and no label is written.", possible.join("; "))
     };
-    let scope = format!("Conversation {conversation} in Codex generation {} (custody event {id}): the Codex process ended at {} ({cause}; DEF-5). Live turn: {}. Items in flight, not completed: {}. {deciding}",
+    let scope = format!("Conversation {conversation} in Codex generation {} (custody event {id}): the Codex process ended at {} ({cause}; {definition}). Live turn: {}. Items in flight, not completed: {}. {deciding}",
         event["generation"].as_str().unwrap_or("not stated"), event["at"].as_str().unwrap_or("not stated"), none(&live), none(&items));
-    json!({"scope":scope,"cause":format!("Codex process ended: {cause} (DEF-5; DEL-01-02 custody event observation_lost)"),"deciding":!possible.is_empty()})
+    json!({"scope":scope,"cause":format!("Codex process ended: {cause} ({definition}; DEL-01-02 custody event observation_lost)"),"deciding":!possible.is_empty()})
 }
 /// CE-14 (AE-6, RP-1) from a custody `observation_recovered` *accessible*:
 /// Codex's history was read again, with the event's own time. The reads list
@@ -1159,6 +1184,15 @@ fn recovered_body(event: &Value, id: &str, conversation: &str) -> Value {
         event["generation"].as_str().unwrap_or("not stated"), event["at"].as_str().unwrap_or("not stated"),
         if turns.is_empty() { String::new() } else { format!("; {}", turns.join("; ")) });
     json!({"scope":scope})
+}
+/// The text of an in-flight message as the native view holds it: the streamed
+/// deltas in `preview` (the item's started text otherwise). A truncated
+/// preview has lost its start, so its first line is not known.
+fn received_text(row: &Value) -> Option<&str> {
+    if row["previewTruncated"] == true {
+        return None;
+    }
+    row["preview"].as_str().or_else(|| row["native"]["text"].as_str())
 }
 /// The first non-empty line of a message's text received so far, once a line
 /// break has ended it; None while it may still grow.
