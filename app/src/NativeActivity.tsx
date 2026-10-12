@@ -285,6 +285,34 @@ const runOpened = (run: Json) => typeof run?.lifecycle?.state === "string" && /^
 function runName(run: Json): string {
   return `${text(run?.workflow?.name) || "workflow"} ${text(run?.workflow?.revision).slice(0, 12)}`.trim();
 }
+// NPTD §5.7 (R19-2): the run in force at a turn, from the App's run markers
+// only: a run whose start turn is shown at or before the turn, and whose end,
+// if recorded, is after that turn or at its end. A run whose end turn this view
+// cannot place is in force only at its start turn. With two in force the later
+// start is the one in force. Nothing is inferred about which run caused an item.
+export function runInForce(runs: Json[], turnIds: string[], turnId: string): Json | null {
+  const at = turnIds.indexOf(turnId);
+  if (at < 0) return null;
+  let found: Json | null = null;
+  let foundStart = -1;
+  for (const run of runs) {
+    const start = turnIds.indexOf(text(run?.turn));
+    if (start < 0 || start > at) continue;
+    if (run?.lifecycle?.end) {
+      const end = turnIds.indexOf(text(run?.endedAfterTurn));
+      if (end < 0 ? start !== at : end < at) continue;
+    }
+    if (start >= foundStart) { found = run; foundStart = start; }
+  }
+  return found;
+}
+// The plan revision or tool row label (NPTD §5.7): "during the run of ‹workflow›
+// ‹revision›". Messages, reasoning and compaction are conversation, not plan or
+// tool rows, and carry none.
+const UNLABELLED = new Set(["userMessage", "agentMessage", "reasoning", "contextCompaction"]);
+function RunLabel({ run }: { run: Json | null }) {
+  return run ? <div><small>During the run of <b>{runName(run)}</b>, as the App's run markers place this turn.</small></div> : null;
+}
 export function RunStartMarker({ run }: { run: Json }) {
   return <div role="note" style={marker}>Workflow run started: <b>{runName(run)}</b> (run {text(run?.reference)}), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
 }
@@ -329,6 +357,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
   // Markers and offers belong to the selected conversation itself, not to a descendant.
   const ownRuns = target === threadId ? list(runs).filter((run: Json) => run?.conversation === target && runOpened(run)) : [];
   const shownTurns = new Set(model.turns.map(turn => turn.turnId));
+  const turnIds = model.turns.map(turn => text(turn.turnId));
   const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
   const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
   return <div aria-label="Native activity">
@@ -352,9 +381,10 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
       {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
         <ItemBody row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} />
+        {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
         <Raw value={row.native} />
       </div>{offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}</RowBoundary>)}
-      {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}
+      {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}
       {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
     </section>)}
     <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
