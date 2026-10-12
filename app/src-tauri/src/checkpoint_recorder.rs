@@ -1451,10 +1451,26 @@ pub(crate) fn waiting_arrivals(entries: &[Value]) -> Vec<Value> {
 pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
     let paths = crate::storage::discover(&root)?;
-    let projected = crate::decision_view::record_relations::read_logs(&paths);
-    if let Some(limits) = projected["readLimits"].as_array().filter(|l| !l.is_empty()) {
+    // RS §14.2 R-2: a log's torn final line is a partial, never an entry, so it
+    // leaves the set complete; any other limit makes the act records unread.
+    let mut claims = Vec::new();
+    let mut complete = std::collections::HashSet::new();
+    let mut limits = Vec::new();
+    for path in &paths {
+        let log = path.to_string_lossy().into_owned();
+        let read = crate::records::read_log_parts(path);
+        if read.limits.is_empty() {
+            complete.insert(log.clone());
+        }
+        limits.extend(read.limits);
+        for record in read.entries {
+            claims.push(json!({"source":{"log":log,"seq":record["seq"]},"record":record}));
+        }
+    }
+    if !limits.is_empty() {
         return Err(format!("the project's record set is incomplete: {limits:?}"));
     }
+    let projected = crate::decision_view::record_relations::project_from_read_claims(&claims, &complete);
     let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()
         .filter(|d| d["state"] == "nonconformant").filter_map(|d| d["recordId"].as_str()).collect();
     let mut read = ActRead::default();

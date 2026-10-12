@@ -5,11 +5,20 @@
 //! by a successful write; a written entry is never rewritten (OF-5).
 //!
 //! W-0 (§14.1, FC-2): a writer that opens its log on an unterminated last line
-//! terminates it (the torn bytes stay in place, never truncated or edited) and
-//! appends "partial entry not recovered" naming that line; readers never read
-//! a line so named. A torn tail in another writer's log is a partial, never an
-//! entry (§14.2 R-2), so it does not make the record set incomplete for a
-//! writer; its own writer recovers it on its next open.
+//! terminates it (the torn bytes stay in place, never truncated or edited) and,
+//! in the same write, appends "partial entry not recovered" naming that line
+//! with its length and SHA-256 (`line ‹n›; ‹len› bytes; sha256 ‹hex›`). A
+//! reader leaves a line unread only when the limit directly after it names it
+//! and its bytes match, and only when the line is not itself a valid entry;
+//! otherwise the line is read as written and the mismatch is a limit. A torn
+//! tail in another writer's log is a partial, never an entry (§14.2 R-2), so it
+//! does not make the record set incomplete for a writer or the act control;
+//! its own writer recovers it on its next open, the App act control included
+//! (AAC §5.2a keeps RS W-0 in force).
+//!
+//! Limit: W-0's own write can itself be cut short (a crash or a full device).
+//! The torn line is then terminated but not named: it reads as an unreadable
+//! line, and that owning log stays refused until it is repaired by hand.
 //!
 //! AAC pending recovery supplies its originally reserved ID for a bounded W-2 late write.
 
@@ -84,20 +93,38 @@ pub(crate) fn append_record_set(root: &Path, log: &Path, set: RecordSet) -> Resu
 
 /// The label of W-0's limit for a torn line it terminated (RS §14.1, R11).
 pub(crate) const PARTIAL_NOT_RECOVERED: &str = "partial entry not recovered";
-/// RS §14.1 W-0, FC-2: the (0-based) lines a writer terminated on reopen. Each
-/// is followed directly by that writer's "partial entry not recovered" limit
-/// naming it as `line ‹n›`. Such a line is kept, never read as an entry.
-pub(crate) fn recovered_partial_lines(lines: &[&str]) -> std::collections::BTreeSet<usize> {
-    let mut out = std::collections::BTreeSet::new();
-    for i in 0..lines.len().saturating_sub(1) {
-        if let Ok(next) = serde_json::from_str::<Value>(lines[i + 1]) {
-            if next["kind"] == "evidence_limit" && next["body"]["label"] == PARTIAL_NOT_RECOVERED
-                && next["body"]["subjectRef"] == format!("line {}", i + 1) {
-                out.insert(i);
-            }
+/// The `subjectRef` W-0's limit gives the torn line it terminated.
+pub(crate) fn torn_line_ref(line_no: usize, bytes: &[u8]) -> String {
+    format!("line {line_no}; {} bytes; sha256 {}", bytes.len(), crate::util::sha256_hex(bytes))
+}
+/// RS §14.1 W-0, FC-2: in `text` (a log, or its part from its `first`-th
+/// line, 0-based), the lines a writer terminated on reopen: each is followed
+/// directly by that writer's "partial entry not recovered" limit naming it
+/// (`torn_line_ref`) with its exact bytes, and is not itself a valid entry.
+/// Such a line is kept, never read. A limit that names a line whose bytes
+/// differ, or a line that is a valid entry, hides nothing: the line is read as
+/// written and the mismatch is returned as a limit (with the line number).
+pub(crate) fn recovered_partial_lines(text: &[u8], first: usize) -> (std::collections::BTreeSet<usize>, Vec<(usize, String)>) {
+    let raw: Vec<&[u8]> = text.split(|b| *b == b'\n').collect();
+    let mut hidden = std::collections::BTreeSet::new();
+    let mut mismatched = Vec::new();
+    for i in 0..raw.len().saturating_sub(1) {
+        let Ok(next) = serde_json::from_slice::<Value>(raw[i + 1]) else { continue };
+        let named = next["body"]["subjectRef"].as_str().unwrap_or_default();
+        let line_no = first + i + 1;
+        if next["kind"] != "evidence_limit" || next["body"]["label"] != PARTIAL_NOT_RECOVERED || !named.starts_with(&format!("line {line_no};")) {
+            continue;
+        }
+        let entry = serde_json::from_slice::<Value>(raw[i]).ok().is_some_and(|v| crate::schema_validation::bundled().and_then(|val| val.validate(&v)).is_ok());
+        if named != torn_line_ref(line_no, raw[i]) {
+            mismatched.push((i, format!("line {line_no}: the \"partial entry not recovered\" limit after it names other bytes; read as written")));
+        } else if entry {
+            mismatched.push((i, format!("line {line_no}: a complete entry, although the limit after it names it as torn; read as written")));
+        } else {
+            hidden.insert(i);
         }
     }
-    out
+    (hidden, mismatched)
 }
 /// One log as read (R-2): its entries, the limits that leave it incomplete,
 /// and the torn final line (a partial, never an entry), apart.
@@ -117,7 +144,7 @@ pub(crate) fn read_log_parts(path: &Path) -> LogRead {
     let mut entries = Vec::new();
     let mut limits = Vec::new();
     let mut partial_tail = None;
-    let text = match std::fs::read_to_string(path) {
+    let bytes = match std::fs::read(path) {
         Ok(t) => t,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return LogRead { entries, limits, partial_tail },
         Err(e) => {
@@ -128,16 +155,34 @@ pub(crate) fn read_log_parts(path: &Path) -> LogRead {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let lines: Vec<&str> = text.lines().collect();
+    // Line by line on the bytes: a torn line may end inside a character.
+    let mut lines: Vec<&[u8]> = bytes.split(|b| *b == b'\n').collect();
+    if bytes.ends_with(b"\n") || bytes.is_empty() {
+        lines.pop();
+    }
     let n_lines = lines.len();
-    let recovered = recovered_partial_lines(&lines);
+    let closed = bytes.ends_with(b"\n");
+    let (recovered, mismatched) = recovered_partial_lines(&bytes, 0);
+    limits.extend(mismatched.into_iter().map(|(_, m)| format!("{name}: {m}")));
     let mut expected_seq = 1u64;
-    for (n, line) in lines.iter().enumerate() {
-        if line.trim().is_empty() || recovered.contains(&n) {
+    for (n, raw) in lines.iter().enumerate() {
+        if recovered.contains(&n) {
+            continue;
+        }
+        let last_open = n + 1 == n_lines && !closed;
+        let Ok(line) = std::str::from_utf8(raw.strip_suffix(b"\r").unwrap_or(raw)) else {
+            if last_open {
+                partial_tail = Some(format!("{name}: partial entry at end (not read)"));
+            } else {
+                limits.push(format!("{name}: unreadable line {}", n + 1));
+            }
+            continue;
+        };
+        if line.trim().is_empty() {
             continue;
         }
         match serde_json::from_str::<Value>(line) {
-            Ok(_) if n + 1 == n_lines && !text.ends_with('\n') => {
+            Ok(_) if last_open => {
                 partial_tail = Some(format!("{name}: partial entry at end (not read)"));
             }
             Ok(v) => {
@@ -155,7 +200,7 @@ pub(crate) fn read_log_parts(path: &Path) -> LogRead {
                     Err(e) => limits.push(format!("{name}: invalid line {}: {e}", n + 1)),
                 }
             }
-            Err(_) if n + 1 == n_lines && !text.ends_with('\n') => {
+            Err(_) if last_open => {
                 partial_tail = Some(format!("{name}: partial entry at end (not read)"));
             }
             Err(_) => limits.push(format!("{name}: unreadable line {}", n + 1)),
@@ -425,7 +470,7 @@ pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), S
     if pending["delayed"] != true {
         return Ok(());
     }
-    let (entries, limits) = crate::storage::read_all(root);
+    let (entries, limits) = writer_record_set(root);
     if !limits.is_empty() {
         return Err(format!("delay evidence record set incomplete: {limits:?}"));
     }
@@ -490,7 +535,7 @@ fn w0_bytes(log: &Path, existing: &[u8], seq: u64, run: Option<&str>, all: &[Val
         return Err(format!("record identity conflict: {limit_id}; nothing written"));
     }
     let name = log.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let limit = envelope("evidence_limit", &APP_WRITER, json!({"label":PARTIAL_NOT_RECOVERED,"subjectRef":format!("line {line_no}"),
+    let limit = envelope("evidence_limit", &APP_WRITER, json!({"label":PARTIAL_NOT_RECOVERED,"subjectRef":torn_line_ref(line_no, tail),
         "detail":format!("{} torn bytes at the end of {name} (sha256 {}) were terminated and kept unread when the writer reopened the log (RS §14.1 W-0, FC-2)", tail.len(), crate::util::sha256_hex(tail))}),
         limit_id, seq, run, run.map(|_| now_rfc3339()).as_deref());
     validator.validate(&limit)?;
@@ -508,6 +553,30 @@ fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
 /// W-0 when a writer opens its log for reconciliation rather than an append:
 /// under the writer lock, a torn last line is terminated and named (the
 /// owning log is then complete). `all` is every readable entry of the set.
+/// RS §14.1 W-0 when the App act control opens its own log (AAC §5.2a keeps
+/// RS W-0 in force): a torn last line is terminated and named first.
+pub(crate) fn open_owning_log(root: &Path, log: &Path) -> Result<(), String> {
+    if read_log_parts(log).partial_tail.is_none() {
+        return Ok(());
+    }
+    let (entries, _, _) = crate::storage::read_all_parts(root);
+    w0_open(log, &entries)
+}
+/// Whether a torn line W-0 kept unread in `log` holds `text` (AAC §5.2a: a
+/// torn append of a capture's record holds that capture's automatic replay).
+pub(crate) fn recovered_lines_hold(log: &Path, text: &str) -> bool {
+    let Ok(bytes) = std::fs::read(log) else { return false };
+    let (hidden, _) = recovered_partial_lines(&bytes, 0);
+    let lines: Vec<&[u8]> = bytes.split(|b| *b == b'\n').collect();
+    hidden.iter().any(|i| lines[*i].windows(text.len().max(1)).any(|w| w == text.as_bytes()))
+}
+/// The project's record set as a writer guard reads it: the readable entries
+/// and the limits that leave it incomplete (another log's torn tail is a
+/// partial, not one of them; RS §14.2 R-2).
+pub(crate) fn writer_record_set(root: &Path) -> (Vec<Value>, Vec<String>) {
+    let (entries, limits, _partials) = crate::storage::read_all_parts(root);
+    (entries, limits)
+}
 fn w0_open(log: &Path, all: &[Value]) -> Result<(), String> {
     let validator = crate::schema_validation::bundled().map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
     let lock_path = crate::storage::records_root(log).map(|r| r.join(".writer.lock")).unwrap_or_else(|| log.with_extension("ownership.lock"));

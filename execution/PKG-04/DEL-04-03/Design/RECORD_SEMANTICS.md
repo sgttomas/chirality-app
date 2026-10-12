@@ -1731,19 +1731,28 @@ machine; `records::durability_tests`, and the ignored
   implemented: the reopened writer (at an append or a reconciliation)
   terminates the torn line in place with one `\n`, never truncating or
   editing it. In the same write it appends `evidence_limit` "partial
-  entry not recovered", by the App writer with the next `seq`, its
-  `subjectRef` "line ‹n›", and a detail giving the torn bytes' length
-  and SHA-256; the log then continues in sequence. A line directly
-  followed by that limit naming it is never read as an entry (both RS
-  readers). A torn final line in another writer's log is a partial, not
-  an entry (R-2; §3 *partial* "never" written). It therefore leaves the
-  record set complete for every other writer, including open runs'
-  complete-set guard (§13.7). An unreadable or invalid line elsewhere
+  entry not recovered", by the App writer with the next `seq` and the
+  `subjectRef` "line ‹n›; ‹len› bytes; sha256 ‹hex›". The log then
+  continues in sequence. The App act control's writer does the same on
+  its own act log, since AAC §5.2a keeps RS W-0 in force. A capture
+  whose own torn record is kept unread this way stays held: AAC treats
+  it as a torn append. Every other capture is recorded. Both RS readers
+  leave a line unread only when the limit directly after it names it,
+  its bytes match the named length and digest, and it is not itself a
+  valid entry. Otherwise the line is read as written, the mismatch is a
+  limit, and a reused `seq` is a sequence limit, so a forged limit
+  cannot silently hide an entry. Lines are read byte by byte, so a line
+  torn inside a character is still a partial. A torn final line in
+  another writer's log is a partial, not an entry (R-2; §3 *partial*
+  "never" written). It leaves the record set complete for every other
+  writer, including open runs' complete-set guard (§13.7), and for the
+  act read and the act control. An unreadable or invalid line elsewhere
   still leaves the set incomplete, as before. Identity checks are
-  unchanged: an identity held by a readable entry is refused. One that
-  appears only in torn bytes is not held. A crash during W-0's own write
-  can leave a terminated, unnamed line: an unreadable line, which keeps
-  that owning log refused until it is repaired. A directory-sync
+  unchanged: an identity held by a readable entry is refused, and one
+  that appears only in torn bytes is not held. Limit: W-0's own write
+  can itself be cut short by a crash or a full device. The torn line is
+  then terminated but not named. It reads as an unreadable line, which
+  keeps that owning log refused until it is repaired by hand. A directory-sync
   failure after the line landed reports the append failed while the
   reader shows the entry; a retry under the same reserved identity
   refuses, so nothing is duplicated (FC-1). Not shown: survival of
