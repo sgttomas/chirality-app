@@ -90,6 +90,19 @@ export function decisionForms(request: Json): { decision: Json; answer: Json }[]
   return [];
 }
 
+/** DM-3: the longest rejection text a person may write on a legacy decline, in
+ * characters; the host refuses longer text (native_requests.rs REJECTION_LIMIT). */
+export const REJECTION_LIMIT = 2000;
+/** Why the host would refuse this rejection text, or null: too long, or a control
+ * character other than a line break or tab. Checked before anything is sent. */
+export function rejectionProblem(rejection: string): string | null {
+  if (Array.from(rejection).length > REJECTION_LIMIT) return `The reason is longer than ${REJECTION_LIMIT} characters.`;
+  if (/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/.test(rejection)) return "The reason has a control character other than a line break or tab.";
+  return null;
+}
+/** DM-3: the legacy `denied` decline carrying the person's text exactly as written ("" when none). */
+export const deniedWith = (rejection: string): Json => ({ decision: { denied: { rejection } } });
+
 /** The register's entries, each ended-unanswered one with the context its
  * Codex process ended in (`serverRequestEndContexts`; DEL-01-02's stop
  * record), for CS-7's "when you quit". */
@@ -202,6 +215,7 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [scope, setScope] = useState("turn");
   const [content, setContent] = useState("");
+  const [rejection, setRejection] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const p = request.nativeParameters ?? {};
@@ -209,12 +223,18 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
   const send = async (value: Json) => {
     setBusy(true); setError("");
     // Remove drafts from the rendered control before crossing the IPC boundary.
-    setDrafts({}); setContent("");
+    setDrafts({}); setContent(""); setRejection("");
     try { await answer(request, value); } catch (e) { setError(refusalWords(String(e))); }
     finally { setBusy(false); }
   };
-  const decisionButton = (decision: Json, value: Json) => <button key={JSON.stringify(decision)} disabled={busy} onClick={() => send(value)}>{decisionWords(decision)} <code>{JSON.stringify(decision)}</code></button>;
+  const decisionButton = (decision: Json, value: Json, blocked = false) => <button key={JSON.stringify(decision)} disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)} <code>{JSON.stringify(decision)}</code></button>;
   const modern = method === COMMAND || method === FILE_CHANGE;
+  const legacy = method === LEGACY_EXEC || method === LEGACY_PATCH;
+  // DM-3: the legacy decline sends the person's reason exactly as written, "" when none.
+  const rejectionRefused = rejectionProblem(rejection);
+  const formButton = (form: { decision: Json; answer: Json }) => legacy && form.decision?.denied
+    ? decisionButton(deniedWith(rejection).decision, deniedWith(rejection), rejectionRefused !== null)
+    : decisionButton(form.decision, form.answer);
   const forms = decisionForms(request);
   const formMode = ["form", "openai/form", "openaiForm"].includes(p.mode);
   const elicitationAcceptSupported = formMode || p.mode === "url";
@@ -228,8 +248,12 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
     {a14 && <p>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {(method === QUESTION || method === ELICITATION) && <p>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {answerable(request) && <div>
-      {forms.map(form => decisionButton(form.decision, form.answer))}
+      {forms.map(formButton)}
       {modern && forms.length === 0 && <p>This request offers no answer forms.</p>}
+      {legacy && <div>
+        <label>Reason for Codex with “{decisionWords("denied")}” (optional; sent exactly as written, up to {REJECTION_LIMIT} characters) <textarea {...EXACT_TEXT} disabled={busy} value={rejection} onChange={e => setRejection(e.target.value)} /></label>
+        {rejectionRefused && <p role="alert">{rejectionRefused} Nothing is sent until it is changed.</p>}
+      </div>}
       {method === PERMISSIONS && <>
         <label>Grant scope <select value={scope} onChange={e => setScope(e.target.value)}><option value="turn">turn</option><option value="session">session</option></select></label>
         <button disabled={busy} onClick={() => send({ permissions: p.permissions, scope })}>Grant the requested permissions</button>
