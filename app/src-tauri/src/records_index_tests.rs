@@ -46,7 +46,7 @@ fn push(path: &Path, bytes: &[u8]) {
 fn the_index_reports_what_the_full_reader_reports_through_every_change() {
     let root = scratch();
     agree(&root, "empty project");
-    let acts = crate::storage::project_log(&root, None, "index-writer");
+    let acts = crate::storage::project_log(&root, None, "index-writer").unwrap();
     for n in 0..5 { append(&acts, "evidence_limit", &APP_WRITER, body(n)).unwrap(); }
     agree(&root, "writer appends");
     let run = |n: usize| append_project(&root, Some(&format!("run:index-{n}")), "app-writer:local", "evidence_limit", &APP_WRITER, body(n)).unwrap();
@@ -60,7 +60,7 @@ fn the_index_reports_what_the_full_reader_reports_through_every_change() {
     std::fs::write(&acts, &restored[..restored.len() - first.len() - 1]).unwrap();
     agree(&root, "duplicate removed (shrunk in place)");
     // A torn tail in another log, then its writer's W-0 recovery.
-    let other = crate::storage::project_log(&root, None, "torn-writer");
+    let other = crate::storage::project_log(&root, None, "torn-writer").unwrap();
     append(&other, "evidence_limit", &APP_WRITER, body(9)).unwrap();
     push(&other, b"{\"torn");
     agree(&root, "torn tail");
@@ -107,7 +107,7 @@ fn random_changes_keep_the_index_equal_to_the_full_reader() {
     let root = scratch();
     let mut state = 0x9e3779b97f4a7c15u64 ^ std::process::id() as u64;
     let mut next = |n: u64| { state ^= state << 13; state ^= state >> 7; state ^= state << 17; state % n };
-    let logs: Vec<PathBuf> = (0..4).map(|n| crate::storage::project_log(&root, if n % 2 == 0 { Some("run:random") } else { None }, &format!("w{n}"))).collect();
+    let logs: Vec<PathBuf> = (0..4).map(|n| crate::storage::project_log(&root, if n % 2 == 0 { Some("run:random") } else { None }, &format!("w{n}")).unwrap()).collect();
     for log in &logs { std::fs::create_dir_all(log.parent().unwrap()).unwrap(); }
     for step in 0..400 {
         let log = &logs[next(logs.len() as u64) as usize];
@@ -140,7 +140,7 @@ fn random_changes_keep_the_index_equal_to_the_full_reader() {
 #[test]
 fn the_writer_refuses_held_identities_and_incomplete_sets_from_the_index() {
     let root = scratch();
-    let other = crate::storage::project_log(&root, None, "holder");
+    let other = crate::storage::project_log(&root, None, "holder").unwrap();
     let held = append(&other, "evidence_limit", &APP_WRITER, body(1)).unwrap()["recordId"].as_str().unwrap().to_owned();
     let own = |id: &str| crate::records::append_project_reserved(&root, "run:guard", "app-writer:local", "evidence_limit", &APP_WRITER, body(2), id, "2026-10-12T00:00:00.000Z");
     assert!(own(&held).is_err_and(|e| e.contains("record identity conflict")));
@@ -161,7 +161,7 @@ fn the_writer_refuses_held_identities_and_incomplete_sets_from_the_index() {
 #[test]
 fn probe_r11_in_place_edit_beyond_guard() {
     let root = scratch();
-    let log = crate::storage::project_log(&root, None, "edited");
+    let log = crate::storage::project_log(&root, None, "edited").unwrap();
     let padded = |n: usize| json!({"label":"unresolvable reference","subjectRef":format!("edit {n}"),"detail":"x".repeat(240)});
     for n in 0..40 { append(&log, "evidence_limit", &APP_WRITER, padded(n)).unwrap(); }
     let original = std::fs::read(&log).unwrap();
@@ -217,7 +217,7 @@ fn probe_r11_in_place_edit_beyond_guard() {
 #[test]
 fn the_verifier_lists_every_directory_again() {
     let root = scratch();
-    let first = crate::storage::project_log(&root, None, "first");
+    let first = crate::storage::project_log(&root, None, "first").unwrap();
     append(&first, "evidence_limit", &APP_WRITER, body(1)).unwrap();
     agree(&root, "one log");
     // Make the index's directory stamp stale-looking: forget the listing's content.
@@ -239,7 +239,7 @@ fn the_verifier_lists_every_directory_again() {
 #[test]
 fn a_writers_first_open_reads_its_log_in_full() {
     let root = scratch();
-    let log = crate::storage::project_log(&root, None, "first-open");
+    let log = crate::storage::project_log(&root, None, "first-open").unwrap();
     let padded = |n: usize| json!({"label":"unresolvable reference","subjectRef":format!("open {n}"),"detail":"x".repeat(240)});
     // Written outside this index's writer bookkeeping: lines built directly.
     let mut bytes = Vec::new();

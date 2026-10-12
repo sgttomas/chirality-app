@@ -435,8 +435,11 @@ code_paths:
 - app/src-tauri/src/recorder.rs
 - app/src-tauri/src/records.rs
 - app/src-tauri/src/records_access.rs
+- app/src-tauri/src/records_store.rs
+- app/src-tauri/src/storage.rs
 checks:
 - app/src-tauri/src/records_access_tests.rs
+- app/src-tauri/src/records_store_tests.rs
 - app/src-tauri/tests/record_semantics.rs
 - app/tests/validate-records.test.mjs
 - execution/PKG-04/DEL-04-03/Design/prototype/check_cc_r.py

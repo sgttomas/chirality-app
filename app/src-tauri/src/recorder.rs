@@ -14,7 +14,10 @@ use serde_json::{json, Value};
 use std::path::Path;
 
 pub const DECISIONS_DIR: &str = "project/decisions";
-pub const LOG: &str = ".chirality/records/acts/f8cb9d6c0500d9aa8d2a357335fa57ee813f7f1faed6b3dead34cfcad82662b8.jsonl";
+/// The App writer's outside-run act log, relative to the project's records
+/// home (RS §13.8: `acts/<writer-key>.jsonl` in its store subtree; §13.7 kept
+/// it at `.chirality/records/acts/` under the same key).
+pub const LOG: &str = "acts/f8cb9d6c0500d9aa8d2a357335fa57ee813f7f1faed6b3dead34cfcad82662b8.jsonl";
 
 /// RS §13.6 mapping. From the file: actKind, subject, purpose, scope, alternatives
 /// {id, statement}, one consequence entry per statement. From the recorder: requester,
@@ -67,7 +70,6 @@ pub fn request_from_file(
 /// A request is never identified from message text (§13.6); only files are read here.
 pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
     let dir = workspace.join(DECISIONS_DIR);
-    let log = workspace.join(LOG);
     let mut written = Vec::new();
     let mut files: Vec<_> = match std::fs::read_dir(&dir) {
         Ok(rd) => rd
@@ -78,7 +80,10 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
         Err(_) => return Ok(written),
     };
     files.sort();
+    // The owning log in the project's records store subtree, resolved when written.
+    let log = || crate::storage::project_file(workspace, LOG);
     let (entries, limits) = crate::storage::read_all(workspace);
+
     if !limits.is_empty() {
         return Err(format!("incomplete record set: {limits:?}"));
     }
@@ -104,7 +109,7 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
                 && e["body"]["subjectRef"] == req["recordId"]
         }) {
             records::append(
-                &log,
+                &log()?,
                 "evidence_limit",
                 &APP_WRITER,
                 json!({"label":"requester identity not established","subjectRef":req["recordId"],"detail":"package file observed; writer of the identified bytes not observed"}),
@@ -150,9 +155,10 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
             json!({"kind": "agent"}),
             &now_rfc3339(),
         );
-        let request = records::append(&log, "act_request", &APP_WRITER, body)?;
+        let request = records::append(&log()?, "act_request", &APP_WRITER, body)?;
         records::append(
-            &log,
+            &log()?,
+
             "evidence_limit",
             &APP_WRITER,
             json!({"label":"requester identity not established","subjectRef":request["recordId"],"detail":"package file observed; writer of the identified bytes not observed"}),

@@ -183,7 +183,7 @@ fn file_act_definite_first_lock_or_publication_failure_never_retries_into_an_act
     for fail_write in [false, true] {
         let mut f = Fixture::new();
         let (offer, event) = f.ready(FileActKind::Check, true);
-        let lock = f.root.join(CAPTURE_STORE).join(".capture.lock");
+        let lock = storage::write_capture_dir(&f.root).unwrap().join(".capture.lock");
         if fail_write {
             storage::fail_capture_write_for_test(true);
         } else {
@@ -211,15 +211,19 @@ fn file_act_definite_first_lock_or_publication_failure_never_retries_into_an_act
 fn file_act_uncertain_publication_requires_stored_matching_bytes_and_durability() {
     let mut f = Fixture::new();
     let (offer, event) = f.ready(FileActKind::Rely, false);
-    storage::ensure_directory(&f.root.join(CAPTURE_STORE)).unwrap();
-    storage::fail_directory_for_test(Some(f.root.clone()));
+    // The capture's folder in the project's records store subtree (RS §13.8):
+    // the sync of its project folder fails after publication.
+    let captures = storage::write_capture_dir(&f.root).unwrap();
+    storage::ensure_directory(&captures).unwrap();
+    storage::fail_directory_for_test(Some(captures.parent().unwrap().to_path_buf()));
+
     let result = f.control.consume_file_event(&offer, event);
     storage::fail_directory_for_test(None);
     let result = result.unwrap();
     assert_eq!(result["state"], "capture publication uncertain");
     assert!(f.control.native_captures.is_empty());
     assert!(f.entries().is_empty());
-    let path = storage::capture_path(&f.root, result["captureId"].as_str().unwrap());
+    let path = storage::write_capture_path(&f.root, result["captureId"].as_str().unwrap()).unwrap();
     let bytes = std::fs::read(&path).unwrap();
     std::fs::remove_file(&path).unwrap();
     assert_eq!(
@@ -264,7 +268,7 @@ fn file_act_decline_and_a16_retain_shared_admission_order_after_record_failure()
         .unwrap();
     f.control.present(&a16id).unwrap();
     let (file, event) = f.ready(FileActKind::Check, true);
-    storage::fail_directory_for_test(Some(f.root.join(LOG).parent().unwrap().to_path_buf()));
+    storage::fail_directory_for_test(Some(crate::storage::project_file(&f.root, LOG).unwrap().parent().unwrap().to_path_buf()));
     let first = f.control.consume_file_event(&file, event);
     let second = f
         .control
@@ -286,7 +290,7 @@ fn file_act_decline_and_a16_retain_shared_admission_order_after_record_failure()
 fn file_act_failed_log_retains_capture_and_cold_files_cannot_supply_authority() {
     let mut f = Fixture::new();
     let (offer, event) = f.ready(FileActKind::Rely, false);
-    let log = f.root.join(LOG);
+    let log = crate::storage::project_file(&f.root, LOG).unwrap();
     std::fs::create_dir_all(&log).unwrap();
     let out = f.control.consume_file_event(&offer, event).unwrap();
     assert_eq!(out["state"], "AC-8 record pending", "{out}");
@@ -311,7 +315,7 @@ fn file_act_failed_log_retains_capture_and_cold_files_cannot_supply_authority() 
 fn file_act_owner_change_and_restoration_keep_original_hot_capture() {
     let mut f = Fixture::new();
     let (offer, event) = f.ready(FileActKind::Check, false);
-    let log = f.root.join(LOG);
+    let log = crate::storage::project_file(&f.root, LOG).unwrap();
     std::fs::create_dir_all(&log).unwrap();
     let result = f.control.consume_file_event(&offer, event).unwrap();
     assert_eq!(result["state"], "AC-8 record pending");
@@ -328,7 +332,7 @@ fn file_act_owner_change_and_restoration_keep_original_hot_capture() {
     f.control.workspace = other.clone();
     assert!(f.control.continue_file_act(&offer).is_err());
     f.control.recover_pending().unwrap();
-    assert!(!other.join(LOG).exists());
+    assert!(!crate::storage::project_file(&other, LOG).unwrap().exists());
     f.control.workspace = f.root.clone();
     std::fs::remove_dir(log).unwrap();
     let recorded = f.control.continue_file_act(&offer).unwrap();
@@ -486,7 +490,7 @@ fn probe_r10_torn_act_log_tail() {
     let mut f = Fixture::new();
     let (offer, event) = f.ready(FileActKind::Rely, false);
     assert_eq!(f.control.consume_file_event(&offer, event).unwrap()["state"], "AC-7 recorded");
-    let log = f.root.join(LOG);
+    let log = crate::storage::project_file(&f.root, LOG).unwrap();
     let mut bytes = std::fs::read(&log).unwrap();
     bytes.extend(b"{\"torn");
     std::fs::write(&log, &bytes).unwrap();

@@ -201,7 +201,14 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             }
         }
     } else {
-        record_paths.iter().map(|rp| root.join(rp)).collect()
+        // A named log in place, or else in the project's records store subtree.
+        record_paths.iter().map(|rp| {
+            let in_place = root.join(rp);
+            if in_place.exists() {
+                return in_place;
+            }
+            crate::records_store::home(root).ok().and_then(|h| h.attachment.dir).map(|d| d.join(crate::storage::home_rel(rp))).unwrap_or(in_place)
+        }).collect()
     };
     let mut sources: HashMap<String, Vec<Value>> = HashMap::new();
     let mut source_claims = Vec::new();
@@ -212,11 +219,8 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             continue;
         }
         let (read, found_limits) = records::read_log(&path);
-        let log = path
-            .strip_prefix(root)
-            .unwrap_or(&path)
-            .to_string_lossy()
-            .into_owned();
+        let log = crate::storage::log_label(root, &path);
+
         if found_limits.is_empty() {
             complete_logs.insert(log.clone());
         }

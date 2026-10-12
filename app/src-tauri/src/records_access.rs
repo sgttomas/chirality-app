@@ -55,7 +55,9 @@ fn input_schema() -> Value {
 #[derive(Clone, Debug)]
 pub struct SourcedEntry {
     pub entry: Value,
-    /// The log, relative to the project (never an absolute path).
+    /// The log, named in the project's records store subtree
+    /// (`records-store:…`) or relative to the project (never an absolute path).
+
     pub log: String,
     /// The entry's line in that log's file, from 1.
     pub line: usize,
@@ -71,8 +73,9 @@ pub struct Corpus {
 pub trait RecordsSource: Send + Sync {
     fn read(&self) -> Corpus;
 }
-/// Today's source: the §13.7 project paths under `<project>/.chirality/records`
-/// and the registered legacy log, read by the R-2 reader.
+/// The project's records as R-1 discovers them (`storage::discover`): its
+/// records store subtree (RS §13.8), or before an import the §13.7 paths in
+/// place, and the registered legacy log, read by the R-2 reader.
 pub struct ProjectPaths {
     root: PathBuf,
 }
@@ -102,7 +105,11 @@ impl RecordsSource for ProjectPaths {
         let validator = crate::schema_validation::bundled();
         let mut ids = HashSet::new();
         for path in paths.into_iter().filter(|p| *p != library) {
-            let log = bounded(&path.strip_prefix(&self.root).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "<outside the project>".into()), 200);
+            // Named in the project's records store subtree (`records-store:…`)
+            // or, read in place before an import, relative to the project.
+            let label = crate::storage::log_label(&self.root, &path);
+            let log = bounded(if Path::new(&label).is_absolute() { "<outside the project>" } else { &label }, 200);
+
             let text = match std::fs::read_to_string(&path) {
                 Ok(text) => text,
                 Err(_) => {

@@ -93,8 +93,10 @@ pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
         return Err("One original capture reference required".into());
     }
     let id = refs[0]["ref"].as_str().ok_or("Capture identity missing")?;
+    let path = crate::storage::capture_path(root, id)?;
     let capture: Value =
-        serde_json::from_slice(&bytes(root, &crate::storage::capture_path(root, id))?)
+        serde_json::from_slice(&bytes(path.parent().ok_or("capture has no folder")?, &path)?)
+
             .map_err(|e| e.to_string())?;
     crate::schema_validation::validate_capture(&capture)?;
     if capture["captureId"] != id {
@@ -204,7 +206,9 @@ pub(crate) fn read(root: &Path) -> Value {
             limits.push(e);
             continue;
         }
-        let (records, errors) = read_log(root, &path);
+        // Contained in the project's records store subtree, or in the project.
+        let base = crate::records_store::project_dir_of(&path).unwrap_or_else(|| root.to_path_buf());
+        let (records, errors) = read_log(&base, &path);
         let log = path.to_string_lossy().into_owned();
         if errors.is_empty() {
             complete.insert(log.clone());

@@ -95,7 +95,7 @@ fn connected_file_act_all_kinds_and_declines_read_original_capture_without_write
             assert_eq!(row["kind"], kind.code());
             assert_eq!(row["captureCorrespondence"], true);
             // AAC §6.3 SEAL-C: the act control sealed its capture before publication.
-            let stored: Value = serde_json::from_slice(&std::fs::read(storage::capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap())).unwrap()).unwrap();
+            let stored: Value = serde_json::from_slice(&std::fs::read(storage::write_capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap()).unwrap()).unwrap()).unwrap();
             assert_eq!(stored["seal"]["method"], capture_seal::SEAL_METHOD);
             assert_eq!(row["actor"]["identityVerified"], false);
             assert_eq!(
@@ -172,10 +172,12 @@ fn connected_file_act_uncertain_and_record_pending_keep_original_continuation() 
     for uncertain in [true, false] {
         let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
         let reference = selected(&state, &home, &root, act_control::FileActKind::Rely);
-        let log = root.join(recorder::LOG);
+        let log = crate::storage::project_file(&root, recorder::LOG).unwrap();
         if uncertain {
-            storage::ensure_directory(&root.join(act_control::CAPTURE_STORE)).unwrap();
-            storage::fail_directory_for_test(Some(root.clone()));
+            let captures = storage::write_capture_dir(&root).unwrap();
+            storage::ensure_directory(&captures).unwrap();
+            storage::fail_directory_for_test(Some(captures.parent().unwrap().to_path_buf()));
+
         } else {
             std::fs::create_dir_all(&log).unwrap();
         }
@@ -210,7 +212,7 @@ fn connected_file_act_reader_does_not_upgrade_missing_or_mismatched_capture() {
     let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
     let reference = selected(&state, &home, &root, act_control::FileActKind::Approve);
     let result = synthetic(&state, &reference, "act", || {});
-    let path = storage::capture_path(&root, result["capture"]["captureId"].as_str().unwrap());
+    let path = storage::write_capture_path(&root, result["capture"]["captureId"].as_str().unwrap()).unwrap();
     let original = std::fs::read(&path).unwrap();
     std::fs::remove_file(&path).unwrap();
     let before = census(&root);
@@ -250,7 +252,7 @@ fn connected_file_act_without_seal_keys_is_recorded_unsealed_and_not_counted() {
     let view = file_act_view::read(&root);
     capture_seal::set_folder_for_test(None);
     let row = &view["rows"][0];
-    let stored: Value = serde_json::from_slice(&std::fs::read(storage::capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap())).unwrap()).unwrap();
+    let stored: Value = serde_json::from_slice(&std::fs::read(storage::write_capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap()).unwrap()).unwrap()).unwrap();
     assert!(stored.get("seal").is_none());
     assert!(stored["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().starts_with("capture not sealed (")), "{stored:#}");
     assert_eq!(row["captureCorrespondence"], false);

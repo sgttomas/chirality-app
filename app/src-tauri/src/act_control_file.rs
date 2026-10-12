@@ -303,11 +303,14 @@ impl ActControl {
         // before publication means nothing captured (AAC 4.1 step 6).
         let root = slot.root.clone();
         slot.state = FileActState::Dismissed; // consume this confirmation even on failure
+        // The project's records store subtree (RS §13.8).
+        let capture_file = storage::capture_file_for(&root, &capture)
+            .map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?;
         let _lock =
-            storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock")).map_err(|e| {
+            storage::lock(&storage::capture_lock_for(&root, &capture).map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?).map_err(|e| {
                 format!("capture failed; nothing captured; review and confirm again: {e}")
             })?;
-        match storage::create_capture_json(&storage::capture_path(&root, &id), &capture) {
+        match storage::create_capture_json(&capture_file, &capture) {
             Ok(()) => {}
             Err(storage::CapturePublicationFailure::DefinitelyNotPublished(error)) => {
                 return Err(format!(
@@ -374,14 +377,16 @@ impl ActControl {
         if uncertain.is_none() && admitted_id.is_none() {
             return Err("File act has no admitted capture; review and confirm again".into());
         }
-        let _lock = storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock"))?;
+        let captures = storage::write_capture_dir(&root)?;
+        let _lock = storage::lock(&captures.join(".capture.lock"))?;
         let id = if let Some(original) = uncertain {
             let id = original["captureId"].as_str().unwrap().to_owned();
-            let path = storage::capture_path(&root, &id);
+            let path = storage::write_capture_path(&root, &id)?;
             // No create/replace call here: uncertain absence never authorizes a
             // new publication. Compare the actual stored bytes before admission.
             let reconcile = (|| -> Result<(), String> {
-                let bytes = read_subject(&root, &path)?;
+                let bytes = read_subject(&captures, &path)?;
+
                 let stored: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
                 if stored != original {
                     return Err("Stored capture differs from original native facts".into());

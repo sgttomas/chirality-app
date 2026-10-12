@@ -119,7 +119,7 @@ fn trial_text_less_its_header_is_the_run_text_a_registered_run_of_the_same_conte
         format!(".chirality/workflow-trials/load-check/{}/load-check", storage::key(snapshot.revision()))
     );
     // TT-2: preparing a trial opens no run and writes no run_text, supply_check or record.
-    assert!(!s.0.join(".chirality/records").exists(), "nothing recorded for a trial");
+    assert!(!s.0.join(".chirality/records").exists() && !crate::records_store::existing(&s.0, "runs").exists(), "nothing recorded for a trial");
     assert!(TrialLinks::open(&s.app_data()).for_draft(&trial.key).is_empty(), "no link before a send");
     assert_eq!(trial.content, json!({"method":SNAPSHOT_METHOD,"value":snapshot.revision()}));
     // The composer refuses an absolute or empty folder label (TX-7).

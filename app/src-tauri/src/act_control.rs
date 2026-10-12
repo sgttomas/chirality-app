@@ -108,6 +108,7 @@ pub struct ActControl {
     a15_offers: HashMap<String, a15::A15OfferSlot>,
     file_offers: HashMap<String, file_act::FileActSlot>,
     file_capture_roots: HashMap<String, PathBuf>,
+    library_only: bool,
 }
 
 /// Preserve the exact request bound when this offer was composed. Identical
@@ -972,7 +973,14 @@ impl ActControl {
             a15_offers: HashMap::new(),
             file_offers: HashMap::new(),
             file_capture_roots: HashMap::new(),
+            library_only: false,
         }
+    }
+    /// The act control of a workflow library that is not the opened project:
+    /// it records A15 acts in the library and has no records store subtree,
+    /// so its recovery never gives the library a project identity.
+    pub fn for_library(library: &Path) -> Self {
+        ActControl { library_only: true, ..Self::new(library) }
     }
 
     /// AX-01 / AX-02. Compose an A16 offer for the `act_request` `request_ref`.
@@ -1253,8 +1261,10 @@ impl ActControl {
             "evidenceLimits": ["identity not verified"],
         });
         crate::schema_validation::validate_capture(&capture)?;
-        let cap_file = storage::capture_path(&ws, &capture_id);
-        let _ownership = storage::lock(&ws.join(CAPTURE_STORE).join(".capture.lock"))?;
+        // The project's records store subtree (RS §13.8); a refusal (store
+        // unavailable, import needed) captures nothing.
+        let cap_file = storage::capture_file_for(&ws, &capture)?;
+        let _ownership = storage::lock(&storage::capture_lock_for(&ws, &capture)?)?;
         let mut native = NativeCapture {
             ordinal: self.native_captures.len(),
             target_log: LOG.into(),
@@ -1410,11 +1420,24 @@ impl ActControl {
 
     /// Relaunch/late-write reconciliation; never captures again or changes act facts.
     pub fn recover_pending(&mut self) -> Result<Vec<Value>, String> {
-        let _ownership = storage::lock(&self.workspace.join(CAPTURE_STORE).join(".capture.lock"))?;
+        // A15 captures stay with the library (U-STORE-2); the project's are in
+        // its records store subtree (RS §13.8). Each folder's lock is held.
+        let library = storage::library_capture_dir(&self.workspace);
+        let _library = if library.is_dir() { Some(storage::lock(&library.join(".capture.lock"))?) } else { None };
+        // A project's records store subtree that cannot be written (store
+        // unavailable, no identity, §13.7 records waiting for import) holds its
+        // recovery visibly: no capture status is established by this attempt.
+        let project = if self.library_only { None } else { Some(storage::write_capture_dir(&self.workspace)?) };
+        let _project = match &project { Some(dir) => Some(storage::lock(&dir.join(".capture.lock"))?), None => None };
         let mut results = self.flush_native_locked();
         let mut candidates = HashMap::<String, (Value, Option<Value>)>::new();
-        let dir = self.workspace.join(CAPTURE_STORE);
-        for (directory, is_pending) in [(&dir, false), (&dir.join("pending"), true)] {
+        let mut folders = vec![(library.clone(), false, true), (library.join("pending"), true, true)];
+        if let Some(dir) = &project {
+            folders.push((dir.clone(), false, false));
+            folders.push((dir.join("pending"), true, false));
+        }
+        for (directory, is_pending, a15_only) in &folders {
+            let (directory, is_pending, a15_only) = (directory, *is_pending, *a15_only);
             let rd = match std::fs::read_dir(directory) {
                 Ok(rd) => rd,
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
@@ -1435,11 +1458,7 @@ impl ActControl {
                     continue;
                 }
                 if self.native_captures.keys().any(|id| {
-                    path == if is_pending {
-                        storage::pending_path(&self.workspace, id)
-                    } else {
-                        storage::capture_path(&self.workspace, id)
-                    }
+                    path.file_name().is_some_and(|n| n.to_string_lossy() == format!("{}.json", storage::key(id)))
                 }) {
                     continue;
                 }
@@ -1465,6 +1484,9 @@ impl ActControl {
                 }
                 if let Err(e) = crate::schema_validation::validate_capture(&original) {
                     results.push(cold_file_limit(&path, &e));
+                    continue;
+                }
+                if (original["actKind"] == "A15") != a15_only {
                     continue;
                 }
                 let id = original["captureId"].as_str().unwrap().to_owned();
@@ -1531,10 +1553,21 @@ fn recover_capture(
     let target_log = hot.as_ref().map(|h| h.target_log.clone()).unwrap_or_else(|| {
         if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() } else { LOG.into() }
     });
-    if disk_pending.is_some_and(|p| p["capture"] != *original || p["log"] != target_log) {
+    // A pending submission written before the records store names its log by
+    // the §13.7 spelling of the same home-relative path.
+    if disk_pending.is_some_and(|p| p["capture"] != *original || p["log"].as_str().map(storage::home_rel) != Some(storage::home_rel(&target_log))) {
         return Err("pending capture/owning log disagreement; no replay".into());
     }
-    let cap_path = storage::capture_path(root, id);
+    let homes = storage::capture_file_for(root, original).and_then(|c| storage::submission_log(root, original, &target_log).map(|l| (c, l)));
+    let (cap_path, owning) = match homes {
+        Ok(h) => h,
+        Err(e) => {
+            if let Some(h) = hot.as_deref_mut() {
+                pending_failure(root, h, &e);
+            }
+            return Ok(json!({"state":"AC-8 record pending","capture":original,"writeFailure":e}));
+        }
+    };
     if !cap_path.exists() {
         if hot.is_none() {
             return Ok(
@@ -1562,7 +1595,6 @@ fn recover_capture(
     }
     // RS W-0 when the act control opens its own log (AAC §5.2a keeps it in
     // force); a torn append of this capture's own record holds its replay.
-    let owning = root.join(&target_log);
     if let Err(e) = records::open_owning_log(root, &owning) {
         if let Some(h) = hot.as_deref_mut() {
             pending_failure(root, h, &e);
@@ -1694,7 +1726,8 @@ fn recover_capture(
 
 /// A pending original capture is not a fresh decision opportunity after relaunch.
 fn refuse_unresolved_capture(root: &Path, request_ref: &str) -> Result<(), String> {
-    let dir = root.join(CAPTURE_STORE).join("pending");
+    let captures = storage::capture_dir(root).map_err(|e| format!("not offered: {e}"))?;
+    let dir = captures.join("pending");
     let rd = match std::fs::read_dir(&dir) {
         Ok(rd) => Some(rd),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
@@ -1711,7 +1744,7 @@ fn refuse_unresolved_capture(root: &Path, request_ref: &str) -> Result<(), Strin
                 .as_str()
                 .ok_or("not offered: pending capture identity absent")?;
             let durable: Value =
-                serde_json::from_slice(&std::fs::read(storage::capture_path(root, id)).map_err(
+                serde_json::from_slice(&std::fs::read(captures.join(format!("{}.json", storage::key(id)))).map_err(
                     |e| format!("not offered: pending capture durability not established: {e}"),
                 )?)
                 .map_err(|e| e.to_string())?;
@@ -1727,8 +1760,8 @@ fn refuse_unresolved_capture(root: &Path, request_ref: &str) -> Result<(), Strin
         }
     }
     // The publication-before-submission interruption can leave a capture without metadata.
-    let captures = root.join(CAPTURE_STORE);
-    if let Ok(rd) = std::fs::read_dir(captures) {
+    if let Ok(rd) = std::fs::read_dir(&captures) {
+
         for entry in rd {
             let path = entry.map_err(|e| e.to_string())?.path();
             if path.extension().is_none_or(|e| e != "json") {
@@ -1860,22 +1893,24 @@ mod persistence_tests {
     fn capture_directory_failure_precedes_writer_reservation_then_hot_retry_accounts_delay() {
         let root = scratch();
         let (mut control, id, actor) = prepared(&root);
-        storage::ensure_directory(&root.join(CAPTURE_STORE)).unwrap();
-        storage::fail_directory_for_test(Some(root.join(CAPTURE_STORE)));
+        let captures = storage::write_capture_dir(&root).unwrap();
+        storage::ensure_directory(&captures).unwrap();
+        storage::fail_directory_for_test(Some(captures));
         let result = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor);
+
         storage::fail_directory_for_test(None);
         let result = result.unwrap();
         assert_eq!(result["state"], "AC-8 record pending");
         assert_eq!(result["captureDurability"], "not established");
         let capture_id = result["captureId"].as_str().unwrap();
         assert!(
-            !storage::pending_path(&root, capture_id).exists(),
+            !storage::write_pending_path(&root, capture_id).unwrap().exists(),
             "no RS ID reserved before durable capture"
         );
         assert!(control.native_captures[capture_id].pending.is_none());
         let recovered = control.recover_pending().unwrap().remove(0);
         assert_eq!(recovered["state"], "AC-7 recorded");
-        let log = crate::records::read_log(&root.join(LOG)).0;
+        let log = crate::records::read_log(&crate::storage::project_file(&root, LOG).unwrap()).0;
         assert_eq!(log.len(), 4);
         assert_eq!(log[3]["body"]["label"], "record write failed");
         assert_eq!(log[2]["observedAt"], recovered["capture"]["capturedAt"]);
@@ -1890,10 +1925,10 @@ mod persistence_tests {
             .unwrap();
         let mut original = result["capture"].clone();
         original.as_object_mut().unwrap().remove("recordId");
-        let path = storage::capture_path(&root, original["captureId"].as_str().unwrap());
+        let path = storage::write_capture_path(&root, original["captureId"].as_str().unwrap()).unwrap();
         std::fs::write(&path, serde_json::to_vec(&original).unwrap()).unwrap();
-        let oldlog = std::fs::read(root.join(LOG)).unwrap();
-        storage::fail_directory_for_test(Some(root.join(LOG).parent().unwrap().to_path_buf()));
+        let oldlog = std::fs::read(crate::storage::project_file(&root, LOG).unwrap()).unwrap();
+        storage::fail_directory_for_test(Some(crate::storage::project_file(&root, LOG).unwrap().parent().unwrap().to_path_buf()));
         let attempted = ActControl::new(&root).recover_pending();
         storage::fail_directory_for_test(None);
         let attempted = attempted.unwrap().remove(0);
@@ -1910,7 +1945,7 @@ mod persistence_tests {
         );
         let recovered = ActControl::new(&root).recover_pending().unwrap().remove(0);
         assert_eq!(recovered["state"], "AC-7 recorded");
-        assert_eq!(std::fs::read(root.join(LOG)).unwrap(), oldlog);
+        assert_eq!(std::fs::read(crate::storage::project_file(&root, LOG).unwrap()).unwrap(), oldlog);
         assert!(recovered["provenance"]
             .as_str()
             .unwrap()
@@ -1932,10 +1967,10 @@ mod persistence_tests {
                 .confirmation_text(&next_id, "ALT-1", &actor)
                 .unwrap();
             control.present(&next_id).unwrap();
-            let before = std::fs::read(root.join(LOG)).unwrap();
+            let before = std::fs::read(crate::storage::project_file(&root, LOG).unwrap()).unwrap();
             let mut torn = before.clone();
             torn.extend(b"{torn\n");
-            std::fs::write(root.join(LOG), torn).unwrap();
+            std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), torn).unwrap();
             FIXED_CAPTURE_TIME
                 .with(|time| *time.borrow_mut() = Some("2026-10-04T00:00:00Z".into()));
             let first = control
@@ -1962,11 +1997,11 @@ mod persistence_tests {
                     root.join("project/decisions/PKG-2.json"),
                 )
                 .unwrap();
-                std::fs::write(root.join(LOG), &before).unwrap();
+                std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), &before).unwrap();
                 let (_, requests) = control.refresh_recording();
                 assert_eq!(requests.unwrap().len(), 1);
             } else {
-                std::fs::write(root.join(LOG), &before).unwrap();
+                std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), &before).unwrap();
                 assert_eq!(
                     control
                         .confirm(
@@ -1980,7 +2015,7 @@ mod persistence_tests {
                 );
             }
             FIXED_CAPTURE_TIME.with(|time| *time.borrow_mut() = None);
-            let entries = crate::records::read_log(&root.join(LOG)).0;
+            let entries = crate::records::read_log(&crate::storage::project_file(&root, LOG).unwrap()).0;
             let acts = entries
                 .iter()
                 .filter(|e| e["kind"] == "human_act")

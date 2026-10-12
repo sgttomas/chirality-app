@@ -92,10 +92,10 @@ fn frozen_native_choice_cancel_and_script_refuse_without_capture() {
 fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
     let ws = workspace();
     let (mut ac, id, actor) = prepared(&ws);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut f = std::fs::OpenOptions::new()
         .append(true)
-        .open(ws.join(LOG))
+        .open(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap())
         .unwrap();
     f.write_all(b"{torn\n").unwrap();
     f.sync_all().unwrap();
@@ -107,7 +107,7 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
     assert!(capture.get("recordId").is_none());
     let capid = capture["captureId"].as_str().unwrap();
     let pending: Value =
-        serde_json::from_slice(&std::fs::read(storage::pending_path(&ws, capid)).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(storage::write_pending_path(&ws, capid).unwrap()).unwrap()).unwrap();
     let reserved = pending["recordId"].clone();
     let mut relaunched = ActControl::new(&ws);
     assert_eq!(
@@ -119,12 +119,12 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
         .unwrap_err()
         .contains("incomplete record set"));
     assert_eq!(
-        std::fs::read(ws.join(LOG)).unwrap().len(),
+        std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap().len(),
         before.len() + 6,
         "an unreadable line is never repaired or replayed implicitly"
     );
     // Explicit fixture repair restores the pre-fault bytes (an unreadable line is not a torn tail; W-0 does not apply).
-    std::fs::write(ws.join(LOG), before).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
     let cold = relaunched.recover_pending().unwrap().remove(0);
     assert_eq!(cold["state"], "AC-8 record pending");
     assert_eq!(
@@ -132,7 +132,7 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
         "capture origin not verified; automatic act replay held"
     );
     assert_eq!(
-        records::read_log(&ws.join(LOG)).0.len(),
+        records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0.len(),
         2,
         "cold files never append an act"
     );
@@ -151,7 +151,7 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
         "lapsed — the package changed after the decision"
     );
 
-    let late = records::read_log(&ws.join(LOG)).0;
+    let late = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
     assert_eq!(late.len(), 4);
     assert_eq!(late[2]["kind"], "human_act");
     assert_eq!(late[3]["kind"], "evidence_limit");
@@ -161,12 +161,12 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
     let mut facts = recovered["capture"].clone();
     facts.as_object_mut().unwrap().remove("recordId");
     assert_eq!(&facts, capture);
-    let log = std::fs::read(ws.join(LOG)).unwrap();
+    let log = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     assert_eq!(
         relaunched.recover_pending().unwrap()[0]["state"],
         "AC-7 recorded"
     );
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), log);
 }
 #[test]
 fn crash_after_append_reconciles_backlink_once_without_duplicate() {
@@ -178,13 +178,13 @@ fn crash_after_append_reconciles_backlink_once_without_duplicate() {
     let mut original = out["capture"].clone();
     original.as_object_mut().unwrap().remove("recordId");
     let capid = original["captureId"].as_str().unwrap();
-    let path = storage::capture_path(&ws, capid);
+    let path = storage::write_capture_path(&ws, capid).unwrap();
     // Frozen fixture of crash after RS append, before backlink publication.
     std::fs::write(&path, serde_json::to_vec(&original).unwrap()).unwrap();
-    let log = std::fs::read(ws.join(LOG)).unwrap();
+    let log = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let recovered = ActControl::new(&ws).recover_pending().unwrap().remove(0);
     assert_eq!(recovered["capture"]["recordId"], out["record"]["recordId"]);
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), log);
     assert!(storage::backlink(&path, "rec:conflicting").is_err());
     assert_eq!(
         serde_json::from_slice::<Value>(&std::fs::read(path).unwrap()).unwrap(),
@@ -195,12 +195,13 @@ fn crash_after_append_reconciles_backlink_once_without_duplicate() {
 fn capture_store_failure_is_visible_without_record_or_relocation() {
     let ws = workspace();
     let (mut ac, id, actor) = prepared(&ws);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
-    std::fs::write(ws.join(".chirality/captures"), b"owning target blocked").unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
+    // The project's capture folder in the records store (RS §13.8) is blocked.
+    std::fs::write(storage::write_capture_dir(&ws).unwrap(), b"owning target blocked").unwrap();
     assert!(ac
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)
         .is_err());
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), before);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
 }
 #[test]
 fn legacy_and_library_history_remain_in_place_and_opaque() {
@@ -214,7 +215,7 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
     let bytes = std::fs::read(&old).unwrap();
     assert!(identify_packages(&ws).unwrap().is_empty());
     assert_eq!(std::fs::read(&old).unwrap(), bytes);
-    assert!(!ws.join(LOG).exists());
+    assert!(!chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap().exists());
     let entries = storage::read_all(&ws).0;
     assert_eq!(entries[0]["recordId"], "rec:app:coord:0001");
     assert_eq!(
@@ -271,13 +272,14 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
     )
     .unwrap();
     assert_eq!(storage::read_all(&library).0[0], rec);
-    assert!(storage::capture_path(&library, "cap:fixture").starts_with(&*library));
+    assert!(storage::library_capture_path(&library, "cap:fixture").starts_with(&*library));
+    assert!(chirality_app_v4_lib::records_store::attach(&library, false).unwrap().project.is_none(), "a library gets no project identity");
 }
 #[test]
 fn concurrent_append_sequences_and_cross_log_ids_are_unique() {
     let ws = ScratchDirectory::new("record-race");
     let root = ws.to_path_buf();
-    let log = storage::project_log(&root, None, APP_WRITER.identity);
+    let log = storage::project_log(&root, None, APP_WRITER.identity).unwrap();
     let mut threads = vec![];
     for _ in 0..8 {
         let log = log.clone();
@@ -302,7 +304,7 @@ fn concurrent_append_sequences_and_cross_log_ids_are_unique() {
     for (n, e) in entries.iter().enumerate() {
         assert_eq!(e["seq"], json!(n + 1));
     }
-    let other = storage::project_log(&root, None, "writer:other");
+    let other = storage::project_log(&root, None, "writer:other").unwrap();
     let second = records::append(
         &other,
         "evidence_limit",
@@ -325,8 +327,8 @@ fn concurrent_append_sequences_and_cross_log_ids_are_unique() {
     assert!(util::opaque_id_with("rec:app:", |_| Err("fixture entropy failure".into())).is_err());
     assert!(!storage::key("../../escape").contains('/'));
     assert!(
-        storage::project_log(&root, Some("run:../../escape"), "writer:../escape")
-            .starts_with(&root)
+        storage::project_log(&root, Some("run:../../escape"), "writer:../escape").unwrap()
+            .starts_with(chirality_app_v4_lib::records_store::attach(&root, false).unwrap().dir.unwrap())
     );
 }
 #[test]
@@ -339,7 +341,7 @@ fn backlink_failure_stays_recorded_link_pending_then_recovers_without_append() {
         .unwrap();
     let mut capture = out["capture"].clone();
     capture.as_object_mut().unwrap().remove("recordId");
-    let path = storage::capture_path(&ws, capture["captureId"].as_str().unwrap());
+    let path = storage::write_capture_path(&ws, capture["captureId"].as_str().unwrap()).unwrap();
     std::fs::write(&path, serde_json::to_vec(&capture).unwrap()).unwrap();
     let directory = path.parent().unwrap();
     let prior = std::fs::metadata(directory).unwrap().permissions();
@@ -363,10 +365,10 @@ fn backlink_failure_stays_recorded_link_pending_then_recovers_without_append() {
         "a durable recorded claim is not turned into a missing act by backlink failure"
     );
 
-    let log = std::fs::read(ws.join(LOG)).unwrap();
+    let log = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let recovered = ActControl::new(&ws).recover_pending().unwrap().remove(0);
     assert_eq!(recovered["state"], "AC-7 recorded");
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), log);
 }
 #[test]
 fn malformed_packages_duplicate_alternatives_and_digest_changes_refuse() {
@@ -387,7 +389,7 @@ fn malformed_packages_duplicate_alternatives_and_digest_changes_refuse() {
         }
         std::fs::write(path, serde_json::to_vec(&package).unwrap()).unwrap();
         assert!(identify_packages(&ws).unwrap().is_empty());
-        assert!(!ws.join(LOG).exists());
+        assert!(!chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap().exists());
     }
     let ws = workspace();
     let path = ws.join("project/decisions/PKG-1.json");
@@ -416,16 +418,16 @@ fn incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append()
         .unwrap();
     let mut capture = out["capture"].clone();
     capture.as_object_mut().unwrap().remove("recordId");
-    let path = storage::capture_path(&ws, capture["captureId"].as_str().unwrap());
+    let path = storage::write_capture_path(&ws, capture["captureId"].as_str().unwrap()).unwrap();
     std::fs::write(&path, serde_json::to_vec(&capture).unwrap()).unwrap();
-    let foreign = storage::project_log(&ws, Some("run:foreign"), "writer:foreign");
+    let foreign = storage::project_log(&ws, Some("run:foreign"), "writer:foreign").unwrap();
     std::fs::create_dir_all(foreign.parent().unwrap()).unwrap();
     // An unreadable line leaves the set incomplete (a torn tail alone is a partial, R-2).
     std::fs::write(&foreign, b"{partial\n").unwrap();
-    let log = std::fs::read(ws.join(LOG)).unwrap();
+    let log = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let result = ActControl::new(&ws).recover_pending().unwrap().remove(0);
     assert_eq!(result["state"], "AC-8 record pending");
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), log);
     assert!(
         serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap())
             .unwrap()
@@ -437,7 +439,7 @@ fn incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append()
     std::fs::write(&foreign, b"{partial").unwrap();
     let result = ActControl::new(&ws).recover_pending().unwrap().remove(0);
     assert_eq!(result["state"], "AC-7 recorded", "{result}");
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), log, "nothing appended");
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), log, "nothing appended");
     assert_eq!(std::fs::read(&foreign).unwrap(), b"{partial");
     assert!(serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap()).unwrap().get("recordId").is_some());
 }
@@ -455,7 +457,7 @@ fn run_and_outside_run_logs_keep_identity_and_do_not_duplicate() {
     )
     .unwrap();
     assert_eq!(entry["runId"], run);
-    assert!(!storage::project_log(&ws, None, "writer:fixture").exists());
+    assert!(!storage::project_log(&ws, None, "writer:fixture").unwrap().exists());
     assert_eq!(storage::read_all(&ws).0, vec![entry]);
 }
 #[test]
@@ -468,9 +470,9 @@ fn duplicate_and_disagreeing_discovered_capture_records_never_replay() {
             .unwrap();
         let mut capture = out["capture"].clone();
         capture.as_object_mut().unwrap().remove("recordId");
-        let path = storage::capture_path(&ws, capture["captureId"].as_str().unwrap());
+        let path = storage::write_capture_path(&ws, capture["captureId"].as_str().unwrap()).unwrap();
         std::fs::write(&path, serde_json::to_vec(&capture).unwrap()).unwrap();
-        let foreign = storage::project_log(&ws, None, "writer:conflict-fixture");
+        let foreign = storage::project_log(&ws, None, "writer:conflict-fixture").unwrap();
         std::fs::create_dir_all(foreign.parent().unwrap()).unwrap();
         let mut record = out["record"].clone();
         record["seq"] = json!(1);
@@ -482,7 +484,7 @@ fn duplicate_and_disagreeing_discovered_capture_records_never_replay() {
         line.push(b'\n');
         // Synthetic conflicting input history; no qualification of another real writer.
         std::fs::write(&foreign, line).unwrap();
-        let before = std::fs::read(ws.join(LOG)).unwrap();
+        let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
         let result = ActControl::new(&ws).recover_pending();
         if disagree {
             assert!(result.unwrap()[0]["writeFailure"]
@@ -492,7 +494,7 @@ fn duplicate_and_disagreeing_discovered_capture_records_never_replay() {
         } else {
             assert_eq!(result.unwrap()[0]["state"], "AC-8 record pending");
         }
-        assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), before);
+        assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
         assert!(
             serde_json::from_slice::<Value>(&std::fs::read(path).unwrap())
                 .unwrap()
@@ -516,8 +518,8 @@ fn fabricated_cold_capture_and_pending_files_never_create_native_act() {
     original.as_object_mut().unwrap().remove("recordId");
     chirality_app_v4_lib::schema_validation::validate_capture(&original).unwrap();
     let id = original["captureId"].as_str().unwrap();
-    let cap = storage::capture_path(&ws, id);
-    let pending_path = storage::pending_path(&ws, id);
+    let cap = storage::write_capture_path(&ws, id).unwrap();
+    let pending_path = storage::write_pending_path(&ws, id).unwrap();
     storage::create_json(&cap, &original).unwrap();
     storage::create_json(&pending_path,&json!({"capture":original,"recordId":"rec:fixture:fabricated","log":LOG,"observedAt":original["capturedAt"],"delayed":false})).unwrap();
     let cap_bytes = std::fs::read(&cap).unwrap();
@@ -529,7 +531,7 @@ fn fabricated_cold_capture_and_pending_files_never_create_native_act() {
         "capture origin not verified; automatic act replay held"
     );
     assert!(storage::read_all(&ws).0.is_empty());
-    assert!(!ws.join(LOG).exists());
+    assert!(!chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap().exists());
     assert_eq!(std::fs::read(cap).unwrap(), cap_bytes);
     assert_eq!(std::fs::read(pending_path).unwrap(), pending_bytes);
 }
@@ -543,9 +545,9 @@ fn writer_sequence_gaps_duplicates_and_reordering_hold_append_and_backlink() {
             .unwrap();
         let mut capture = out["capture"].clone();
         capture.as_object_mut().unwrap().remove("recordId");
-        let path = storage::capture_path(&ws, capture["captureId"].as_str().unwrap());
+        let path = storage::write_capture_path(&ws, capture["captureId"].as_str().unwrap()).unwrap();
         std::fs::write(&path, serde_json::to_vec(&capture).unwrap()).unwrap();
-        let foreign = storage::project_log(&ws, None, "writer:sequence-fixture");
+        let foreign = storage::project_log(&ws, None, "writer:sequence-fixture").unwrap();
         let mut lines = vec![];
         for seq in seqs {
             let mut entry = records::append(
@@ -568,17 +570,17 @@ fn writer_sequence_gaps_duplicates_and_reordering_hold_append_and_backlink() {
             .1
             .iter()
             .any(|l| l.contains("sequence")));
-        let before = std::fs::read(ws.join(LOG)).unwrap();
+        let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
         let result = ActControl::new(&ws).recover_pending().unwrap().remove(0);
         assert_eq!(result["state"], "AC-8 record pending");
         assert!(records::append(
-            &ws.join(LOG),
+            &chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(),
             "evidence_limit",
             &APP_WRITER,
             json!({"label":"unresolvable reference"})
         )
         .is_err());
-        assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), before);
+        assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
         assert!(
             serde_json::from_slice::<Value>(&std::fs::read(path).unwrap())
                 .unwrap()
@@ -676,10 +678,10 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
         control.present(&id).unwrap();
         offers.push(id);
     }
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut torn = before.clone();
     torn.extend(b"{torn\n");
-    std::fs::write(ws.join(LOG), torn).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
     let mut ids = vec![];
     for offer in &offers {
         let result = control
@@ -692,19 +694,19 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
             .unwrap();
         assert_eq!(result["state"], "AC-8 record pending");
         let pending: Value = serde_json::from_slice(
-            &std::fs::read(storage::pending_path(
+            &std::fs::read(storage::write_pending_path(
                 &ws,
                 result["capture"]["captureId"].as_str().unwrap(),
-            ))
+            ).unwrap())
             .unwrap(),
         )
         .unwrap();
         ids.push(pending["recordId"].clone());
     }
-    std::fs::write(ws.join(LOG), before).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
     let results = control.recover_pending().unwrap();
     assert!(results.iter().all(|r| r["state"] == "AC-7 recorded"));
-    let entries = records::read_log(&ws.join(LOG)).0;
+    let entries = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
     assert_eq!(entries.len(), 8);
     for n in 0..2 {
         assert_eq!(entries[4 + n]["kind"], "human_act");
@@ -716,15 +718,15 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
         assert_eq!(entries[6 + n]["body"]["label"], "record write failed");
         assert_eq!(entries[6 + n]["body"]["subjectRef"], ids[n]);
     }
-    let after = std::fs::read(ws.join(LOG)).unwrap();
+    let after = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     control.recover_pending().unwrap();
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), after);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), after);
 }
 #[test]
 fn cold_capture_without_writer_submission_is_held_without_mint_or_reissue() {
     let ws = workspace();
     let request = identify_packages(&ws).unwrap().remove(0);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut original: Value = serde_json::from_slice(
         &std::fs::read(
             Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -742,7 +744,7 @@ fn cold_capture_without_writer_submission_is_held_without_mint_or_reissue() {
     )]);
     chirality_app_v4_lib::schema_validation::validate_capture(&original).unwrap();
     let id = original["captureId"].as_str().unwrap();
-    storage::create_json(&storage::capture_path(&ws, id), &original).unwrap();
+    storage::create_json(&storage::write_capture_path(&ws, id).unwrap(), &original).unwrap();
     let mut cold = ActControl::new(&ws);
     let out = cold.recover_pending().unwrap().remove(0);
     assert_eq!(
@@ -750,10 +752,10 @@ fn cold_capture_without_writer_submission_is_held_without_mint_or_reissue() {
         "capture origin not verified; automatic act replay held"
     );
     assert!(
-        !storage::pending_path(&ws, id).exists(),
+        !storage::write_pending_path(&ws, id).unwrap().exists(),
         "cold files cannot reserve an RS identity"
     );
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), before);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
     assert!(cold
         .compose_a16(request["recordId"].as_str().unwrap())
         .unwrap_err()
@@ -779,10 +781,10 @@ fn twice_prepared(ws: &Path) -> (ActControl, [String; 2], Value, Value) {
 fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_latest() {
     let ws = workspace();
     let (mut control, ids, actor, request) = twice_prepared(&ws);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut torn = before.clone();
     torn.extend(b"{torn\n");
-    std::fs::write(ws.join(LOG), torn).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
     let first = control
         .confirm(
             &ids[0],
@@ -793,14 +795,14 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
         .unwrap();
     assert_eq!(first["state"], "AC-8 record pending");
     let reserved: Value = serde_json::from_slice(
-        &std::fs::read(storage::pending_path(
+        &std::fs::read(storage::write_pending_path(
             &ws,
             first["capture"]["captureId"].as_str().unwrap(),
-        ))
+        ).unwrap())
         .unwrap(),
     )
     .unwrap();
-    std::fs::write(ws.join(LOG), before).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
     let fresh = control
         .confirm(&ids[1], "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
@@ -810,7 +812,7 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
         chirality_app_v4_lib::act_control::OfferState::Recorded
     );
 
-    let entries = records::read_log(&ws.join(LOG)).0;
+    let entries = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
     let acts = entries
         .iter()
         .filter(|e| e["kind"] == "human_act")
@@ -828,18 +830,18 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
     let view = chirality_app_v4_lib::decision_view::derive(&ws, &[LOG]);
     assert_eq!(view["rows"][0]["package"], request["recordId"]);
     assert_eq!(view["rows"][0]["decision"]["alternativeChosen"], "ALT-2");
-    let bytes = std::fs::read(ws.join(LOG)).unwrap();
+    let bytes = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     control.recover_pending().unwrap();
-    assert_eq!(std::fs::read(ws.join(LOG)).unwrap(), bytes);
+    assert_eq!(std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(), bytes);
 }
 #[test]
 fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
     let ws = workspace();
     let (mut control, ids, actor, _) = twice_prepared(&ws);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut torn = before.clone();
     torn.extend(b"{torn\n");
-    std::fs::write(ws.join(LOG), torn).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
     let a = control
         .confirm(
             &ids[0],
@@ -854,20 +856,20 @@ fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
     assert_eq!(a["state"], "AC-8 record pending");
     assert_eq!(b["state"], "AC-8 record pending");
     assert_eq!(b["capture"]["alternativeChosen"], "ALT-2");
-    assert!(records::read_log(&ws.join(LOG))
+    assert!(records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap())
         .0
         .iter()
         .all(|e| e["kind"] != "human_act"));
     let id = b["capture"]["captureId"].as_str().unwrap();
     let reserved: Value =
-        serde_json::from_slice(&std::fs::read(storage::pending_path(&ws, id)).unwrap()).unwrap();
-    std::fs::write(ws.join(LOG), before).unwrap();
+        serde_json::from_slice(&std::fs::read(storage::write_pending_path(&ws, id).unwrap()).unwrap()).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
     let results = control.recover_pending().unwrap();
     assert_eq!(results[1]["record"]["recordId"], reserved["recordId"]);
     let mut original = results[1]["capture"].clone();
     original.as_object_mut().unwrap().remove("recordId");
     assert_eq!(original, b["capture"]);
-    let entries = records::read_log(&ws.join(LOG)).0;
+    let entries = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
     assert_eq!(
         entries[2]["body"]["relations"]["alternativeChosen"],
         "ALT-1"
@@ -883,10 +885,10 @@ fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
 fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
     let ws = workspace();
     let (mut control, id, actor) = prepared(&ws);
-    let before = std::fs::read(ws.join(LOG)).unwrap();
+    let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
     let mut torn = before.clone();
     torn.extend(b"{torn\n");
-    std::fs::write(ws.join(LOG), torn).unwrap();
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
     let first = control
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
@@ -899,13 +901,13 @@ fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
     .unwrap();
     let (_, blocked) = control.refresh_recording();
     assert!(blocked.unwrap_err().contains("older trusted native"));
-    assert_eq!(records::read_log(&ws.join(LOG)).0.len(), 2);
-    std::fs::write(ws.join(LOG), before).unwrap();
+    assert_eq!(records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0.len(), 2);
+    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
     let (recovery, written) = control.refresh_recording();
     assert_eq!(recovery.unwrap()[0]["state"], "AC-7 recorded");
     let written = written.unwrap();
     assert_eq!(written.len(), 1);
-    let entries = records::read_log(&ws.join(LOG)).0;
+    let entries = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
     assert_eq!(entries[2]["kind"], "human_act");
     assert_eq!(entries[3]["body"]["label"], "record write failed");
     assert_eq!(entries[4]["recordId"], written[0]["recordId"]);
@@ -918,9 +920,10 @@ fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
 fn unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refresh() {
     let ws = workspace();
     let mut control = ActControl::new(&ws);
-    storage::ensure_directory(&ws.join(storage::CAPTURES)).unwrap();
+    storage::ensure_directory(&storage::write_capture_dir(&ws).unwrap()).unwrap();
     std::fs::write(
-        ws.join(storage::CAPTURES).join("untrusted.json"),
+        storage::write_capture_dir(&ws).unwrap().join("untrusted.json"),
+
         b"not capture JSON",
     )
     .unwrap();
@@ -930,7 +933,7 @@ fn unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refre
         .iter()
         .any(|r| r["originLimit"] == "capture origin not verified; automatic act replay held"));
     assert_eq!(written.unwrap().len(), 1);
-    assert!(records::read_log(&ws.join(LOG))
+    assert!(records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap())
         .0
         .iter()
         .all(|e| e["kind"] != "human_act"));
@@ -978,7 +981,7 @@ fn historical_request_observer_requires_registered_origin_and_exact_file_referen
             .join("../tests/fixtures/FX-DP1/records/coordination.rs.jsonl");
         let mut entries = records::read_log(&fixture).0;
         let old = if wrong_origin {
-            storage::project_log(&ws, None, "unregistered-legacy-import")
+            storage::project_log(&ws, None, "unregistered-legacy-import").unwrap()
         } else {
             ws.join(storage::LEGACY_LOG)
         };
@@ -1021,5 +1024,5 @@ fn incomplete_registered_legacy_history_refuses_discovery_without_rewriting_or_r
         .contains("incomplete record set"));
     assert_eq!(std::fs::read(&old).unwrap(), bytes);
     assert_eq!(std::fs::read(package).unwrap(), original);
-    assert!(!ws.join(LOG).exists());
+    assert!(!chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap().exists());
 }

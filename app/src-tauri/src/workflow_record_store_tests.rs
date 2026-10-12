@@ -64,7 +64,7 @@ fn invalid_partial_unsupported_and_escaping_reference_refused() {
         Err(ResolutionError::Invalid(_))
     ));
     let path =
-        f.0.join(".chirality/records/workflow")
+        crate::storage::project_file(&f.0, "workflow").unwrap()
             .join(format!("{}.json", key(a.reference()).unwrap()));
     std::fs::write(&path, b"{").unwrap();
     assert!(matches!(
@@ -388,7 +388,7 @@ fn actual_end_notice_requires_original_start_and_preserves_optional_workflow_com
     )
     .unwrap();
     assert!(p.publish(&bad).is_err());
-    let start_path = f.0.join(".chirality/records/workflow").join(format!(
+    let start_path = crate::storage::project_file(&f.0, "workflow").unwrap().join(format!(
         "{}.json",
         key(start.run_text_record().reference()).unwrap()
     ));

@@ -636,7 +636,7 @@ impl ActControl {
                 return Ok(HotA15Result::RecordPending { capture_id: cap_id, reason: error });
             }
         };
-        if let Err(e) = storage::create_json(&storage::capture_path(&root, &cap_id), &capture) {
+        if let Err(e) = storage::create_json(&storage::library_capture_path(&root, &cap_id), &capture) {
             native.failure = Some(e);
         } else {
             match records::prepare_capture_submission(&root, &capture, &native.target_log) {
@@ -1193,7 +1193,7 @@ mod tests {
         assert!(limits.is_empty());
         assert_eq!(records.len(), 1);
         assert_eq!(records[0]["recordId"], receipt.record_id());
-        assert!(!root.join(LOG).exists());
+        assert!(crate::records_store::attach(&root, false).unwrap().dir.is_none_or(|d| !d.join(LOG).exists()), "no project log; the library gets no project identity");
         assert!(matches!(
             ac.continue_a15(&offer).unwrap(),
             HotA15Result::AlreadyTransferred { .. }

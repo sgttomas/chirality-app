@@ -1519,8 +1519,9 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             Err("not written by the App's capturing surface (PH-4)".into())
         } else {
             if let Some(capture_id) = b["captureEvidence"][0]["ref"].as_str() {
-                let path = crate::storage::capture_path(&root, capture_id);
-                captures.push((path.clone(), capture_stamp(&path)));
+                if let Ok(path) = crate::storage::capture_path(&root, capture_id) {
+                    captures.push((path.clone(), capture_stamp(&path)));
+                }
             }
             match crate::file_act_view::capture(&root, b) {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
@@ -1559,9 +1560,10 @@ pub(crate) fn acts_unread_limit(reason: &str) -> Output {
 pub(crate) fn act_records_fingerprint(root: &Path) -> Option<Vec<(String, u64, i64, i64)>> {
     use std::os::unix::fs::MetadataExt;
     let mut paths = crate::storage::discover(root).ok()?;
-    let store = crate::storage::capture_path(root, "x");
-    if let Some(dir) = store.parent() {
+    let dir = crate::storage::capture_dir(root).ok()?;
+    {
         paths.push(dir.to_path_buf());
+
         if let Ok(entries) = std::fs::read_dir(dir) {
             paths.extend(entries.filter_map(|e| e.ok().map(|e| e.path())));
         }

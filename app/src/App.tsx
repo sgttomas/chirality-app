@@ -358,6 +358,35 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
       : ` ${String(newer.offered)}.`}</p>;
 }
 
+/** RS §13.8: which records store the App writes, the project's identity in it,
+ *  and the person's explicit import of the §13.7 records still in the project. */
+export function RecordsStorePanel({ store, act }: { store: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
+  if (!store) return null;
+  const project = store.project;
+  const attachment = project?.attachment;
+  return <section aria-label="Records store">
+    <h3>Records store</h3>
+    {store.state === "available"
+      ? <p>Writing to {String(store.root)} ({String(store.placement)}).</p>
+      : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
+    {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
+    {project && <>
+      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
+      {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
+      {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
+      {project.notImported > 0 && <p>
+        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} §13.7 record file(s)</button>{" "}
+        <small>Byte-identical copies, verified by SHA-256. The originals stay in the project unchanged.</small>
+      </p>}
+      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && <p>
+        <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}
+        <button onClick={() => act("records_store_identity", { action: "new-identity" })}>Give this folder a new identity</button>{" "}
+        <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>
+      </p>}
+    </>}
+  </section>;
+}
+
 export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
@@ -789,6 +818,7 @@ export function App() {
         <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p>
         <SupplyStatus supply={host?.roleSupply} />
         {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
+        <RecordsStorePanel store={host?.recordsStore} act={act} />
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>

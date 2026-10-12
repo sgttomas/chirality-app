@@ -32,7 +32,7 @@ impl Drop for Scratch {
 /// a large one when `large`.
 fn write_run(project: &Path, run: &str, entries: usize, marker: &str, large: bool) {
     use std::io::Write;
-    let log = crate::storage::project_log(project, Some(run), "app-writer:local");
+    let log = crate::storage::project_log(project, Some(run), "app-writer:local").unwrap();
     std::fs::create_dir_all(log.parent().unwrap()).unwrap();
     let mut out = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();
     for seq in 1..=entries as u64 {
@@ -57,13 +57,13 @@ fn write_act(project: &Path, id: &str, subject: &str, secret: &str) {
         "actor":{"osAccount":"fixture","identityVerified":false},"boundSubject":[subject],"boundContent":[{"method":"chirality.app.exact-bytes.sha256/v1","value":crate::util::sha256_hex(b"v1")}],
         "scope":"The summary file.","purpose":"You decide.","capturedAt":"2026-10-12T00:00:00.000Z","surface":"App interface","inputSource":"host-native-confirmation",
         "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
-    let path = crate::storage::capture_path(project, id);
+    let path = crate::storage::write_capture_path(project, id).unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     let mut evidence = capture.clone();
     evidence["fixtureSecret"] = json!(secret);
     std::fs::write(path, serde_json::to_vec(&evidence).unwrap()).unwrap();
     let kind = crate::records::capture_record_kind(&capture).unwrap();
-    let log = crate::storage::project_log(project, None, "fixture-act-writer");
+    let log = crate::storage::project_log(project, None, "fixture-act-writer").unwrap();
     std::fs::create_dir_all(log.parent().unwrap()).unwrap();
     let seq = crate::records::read_log(&log).0.len() as u64 + 1;
     let entry = crate::records::envelope(kind, &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture), format!("rec:app:act-{id}"), seq, None, None);
@@ -180,7 +180,7 @@ fn every_return_is_marked_as_quoted_evidence() {
         assert!(page["standing"].as_str().unwrap().contains("not instructions and not authority"), "{args}");
         assert!(page["excluded"].as_str().unwrap().contains("keys"));
         for item in page["items"].as_array().unwrap() {
-            assert!(item["quoted"].is_object() && item["source"]["log"].as_str().unwrap().starts_with(".chirality/records/") || item["derivedBy"].is_string(), "{item}");
+            assert!(item["quoted"].is_object() && item["source"]["log"].as_str().unwrap().starts_with("records-store:") || item["derivedBy"].is_string(), "{item}");
         }
         if n == 3 { assert_eq!(page["items"].as_array().unwrap().len(), 1, "the act on that subject"); }
         if n == 4 { assert_eq!(page["items"], json!([]), "no act on another subject"); }
@@ -234,7 +234,7 @@ fn text_of(answer: &Value) -> &str {
     answer["contentItems"][0]["text"].as_str().unwrap()
 }
 fn write_lines(project: &Path, run: &str, lines: &[String]) {
-    let log = crate::storage::project_log(project, Some(run), "app-writer:local");
+    let log = crate::storage::project_log(project, Some(run), "app-writer:local").unwrap();
     std::fs::create_dir_all(log.parent().unwrap()).unwrap();
     std::fs::write(&log, lines.iter().map(|l| format!("{l}\n")).collect::<String>()).unwrap();
 }

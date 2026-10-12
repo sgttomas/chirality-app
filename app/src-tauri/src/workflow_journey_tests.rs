@@ -58,7 +58,7 @@ text='';client=''
 def mode(name):
  return open(name).read().strip() if os.path.exists(name) else ''
 def wr():
- d='.chirality/records/workflow'
+ d=mode('wr-dir') or '.chirality/records/workflow'
  return sorted(n for n in os.listdir(d) if n.endswith('.json') and not n.startswith('.')) if os.path.isdir(d) else []
 for line in sys.stdin:
  f=json.loads(line)
@@ -116,8 +116,11 @@ impl Disk {
         for dir in [&base, &project, &base.join("account"), &base.join("probe"), &app_data] {
             std::fs::create_dir(dir).unwrap();
         }
+        // The peer sees the WR records where the App publishes them (RS §13.8).
+        std::fs::write(project.join("wr-dir"), crate::storage::project_file(&project, "workflow").unwrap().to_str().unwrap()).unwrap();
         let package = project.join(NAME);
         std::fs::create_dir(&package).unwrap();
+
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();
         for (name, bytes) in catalog.select_embedded().snapshot().files() {
             std::fs::write(package.join(name), bytes).unwrap();
@@ -147,7 +150,7 @@ impl Disk {
             .collect()
     }
     fn wr_dir(&self) -> PathBuf {
-        self.project.join(".chirality/records/workflow")
+        crate::storage::project_file(&self.project, "workflow").unwrap()
     }
     fn wr_files(&self) -> Vec<String> {
         let mut v: Vec<String> = std::fs::read_dir(self.wr_dir())

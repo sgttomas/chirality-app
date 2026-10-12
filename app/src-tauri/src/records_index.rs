@@ -372,12 +372,14 @@ impl ProjectIndex {
 /// `cached` is not listed again. Returns the logs, the directories as listed
 /// now, and a discovery failure.
 fn discover_tree(root: &Path, cached: &Dirs) -> (Vec<PathBuf>, Dirs, Option<String>) {
-    let records = root.join(".chirality/records");
     let mut out = Vec::new();
     let mut dirs = Dirs::new();
     let fail = |e: String| (vec![], Dirs::new(), Some(e));
-    if let Err(e) = crate::storage::check_path(&records) { return fail(e); }
-    let mut todo = vec![records];
+    let sources = match crate::storage::sources(root) { Ok(s) => s, Err(e) => return fail(e) };
+    for dir in &sources.walk {
+        if let Err(e) = crate::storage::check_path(dir) { return fail(e); }
+    }
+    let mut todo = sources.walk.clone();
     while let Some(dir) = todo.pop() {
         let meta = match std::fs::symlink_metadata(&dir) {
             Ok(m) => m,
@@ -410,9 +412,7 @@ fn discover_tree(root: &Path, cached: &Dirs) -> (Vec<PathBuf>, Dirs, Option<Stri
             if is_dir { todo.push(path); } else { out.push(path); }
         }
     }
-    let legacy = root.join(crate::storage::LEGACY_LOG);
-    if let Err(e) = crate::storage::check_path(&legacy) { return fail(e); }
-    if legacy.exists() { out.push(legacy); }
+    out.extend(sources.files);
     out.sort();
     out.dedup();
     (out, dirs, None)

@@ -451,16 +451,22 @@ and record writing, using the current Design schemas for conformance. This
 allocates the App slice; it creates no common service or host loop/panel and
 closes neither external OI-013 nor the remaining OI-014 candidates.
 
-**Superseded in direction by RS §13.8 (PRD R-STORE).** Project captures and
-act records move to the App's records store; the table below remains what the
-App writes until then. A15 library rows stay with the library until the owner
-decides library standing across installations.
+**Superseded by RS §13.8 (PRD R-STORE), implemented.** Project captures and
+act records are written in the project's subtree of the App's records store
+(`<store>/projects/<safe-project-key>/`, below). The §13.7 project rows they
+replace are legacy sources: read in place until the person imports them,
+with new recording (capture included) refused until then, and not read after
+it (RS §13.8 "Existing records"). A15 library rows stay with the library
+until the owner decides library standing across installations. The capture
+lock is per capture folder: a project's in its store subtree, a library's in
+the library; recovery takes both, the library's first.
 
 | Act owner/context | Capture root | Act record location |
 |---|---|---|
-| Project act within a run | `<project>/.chirality/captures/` | `<project>/.chirality/records/runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl` |
-| Project standing act captured **outside any run** | `<project>/.chirality/captures/` | `<project>/.chirality/records/acts/<safe-writer-storage-key>.jsonl` |
+| Project act within a run | `<store>/projects/<safe-project-key>/captures/` | `<store>/projects/<safe-project-key>/runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl` |
+| Project standing act captured **outside any run** | `<store>/projects/<safe-project-key>/captures/` | `<store>/projects/<safe-project-key>/acts/<safe-writer-storage-key>.jsonl` |
 | A15 registration in an owning project or user library | `<library>/.chirality/captures/` | `<library>/.chirality/records/acts.jsonl` |
+| *Legacy (§13.7), read in place before an import* | `<project>/.chirality/captures/` (not A15) | `<project>/.chirality/records/runs/…` and `…/acts/…` |
 
 A run act is never duplicated into the standing log. An A15 capture travels
 with its owning library and remains resolvable when another project opens that

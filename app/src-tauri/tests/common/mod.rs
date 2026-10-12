@@ -5,8 +5,25 @@ use std::process::Command;
 
 pub struct ScratchDirectory(PathBuf);
 
+/// RS §13.8: this test binary's records store, named explicitly (the
+/// override variable when set, else one temporary store for the process);
+/// never the App data folder.
+pub fn records_store() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        use chirality_app_v4_lib::records_store::{configure, Placement, Store, OVERRIDE_ENV};
+        let root = std::env::var_os(OVERRIDE_ENV)
+            .filter(|p| !p.is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| std::env::temp_dir().join(format!("chirality-integration-records-{}", std::process::id())));
+        configure(Ok(Store { root, placement: Placement::Override, limits: vec![] }));
+    });
+}
+
 impl ScratchDirectory {
     pub fn new(prefix: &str) -> Self {
+        records_store();
+
         let template = std::env::temp_dir().join(format!("{prefix}.XXXXXX"));
         let out = Command::new("mktemp")
             .arg("-d")

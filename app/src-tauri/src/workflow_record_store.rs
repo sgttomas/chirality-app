@@ -188,18 +188,13 @@ impl ProjectRecords {
     }
     /// References of this project's own published WR records (non-recursive;
     /// no other project or library is searched). Staging files are excluded.
-    /// V9 F-5: every step is relative to the pinned project descriptor and never
-    /// follows a symlink. An absent store is "no records"; a symlinked (even
-    /// dangling) or otherwise non-plain `.chirality`, `records` or `workflow`
-    /// entry is reported as an error, never as "no records".
+    /// V9 F-5: every step is pinned (in the project's records store subtree
+    /// from `/`, or in place from the pinned project descriptor) and never
+    /// follows a symlink. An absent folder is "no records"; a symlinked (even
+    /// dangling) or otherwise non-plain folder on the way is reported as an
+    /// error, never as "no records".
     pub fn list_references(&self) -> Result<Vec<String>, String> {
-        let Some(a) = plain_dir_at(&self.directory, ".chirality")? else {
-            return Ok(vec![]);
-        };
-        let Some(b) = plain_dir_at(&a, "records")? else {
-            return Ok(vec![]);
-        };
-        let Some(dir) = plain_dir_at(&b, "workflow")? else {
+        let Some(dir) = self.workflow_dir(false)? else {
             return Ok(vec![]);
         };
         let mut references = Vec::new();
@@ -215,10 +210,45 @@ impl ProjectRecords {
         Ok(references)
     }
     fn records(&self, create: bool) -> Result<File, String> {
-        let a = child(&self.directory, ".chirality", create)?;
-        let b = child(&a, "records", create)?;
-        child(&b, "workflow", create)
+        self.workflow_dir(create)?.ok_or_else(|| "WR record folder absent".into())
     }
+    /// The WR records folder (RS §13.8 `workflow/`): in the project's records
+    /// store subtree; before an import, for reading only, the §13.7 folder in
+    /// place. A write is refused visibly (store unavailable, no identity,
+    /// import needed), never redirected. `None` when the folder is absent.
+    fn workflow_dir(&self, create: bool) -> Result<Option<File>, String> {
+        let store = if create {
+            Some(crate::records_store::write_dir(&self.root)?)
+        } else {
+            let home = crate::records_store::home(&self.root)?;
+            match (home.store_mode, home.attachment.dir) {
+                (true, Some(dir)) => Some(dir),
+                _ => None,
+            }
+        };
+        let Some(store) = store else {
+            let Some(a) = plain_dir_at(&self.directory, ".chirality")? else { return Ok(None) };
+            let Some(b) = plain_dir_at(&a, "records")? else { return Ok(None) };
+            return plain_dir_at(&b, "workflow");
+        };
+        let path = store.join("workflow");
+        if create {
+            crate::storage::ensure_directory(&path)?;
+        }
+        let mut directory = File::open("/").map_err(|e| e.to_string())?;
+        for part in path.components() {
+            match part {
+                std::path::Component::RootDir => {}
+                std::path::Component::Normal(s) => {
+                    let Some(next) = plain_dir_at(&directory, s.to_str().ok_or("non-UTF8 records store component")?)? else { return Ok(None) };
+                    directory = next;
+                }
+                _ => return Err("non-normal records store path".into()),
+            }
+        }
+        Ok(Some(directory))
+    }
+
     fn read_raw(&self, reference: &str) -> Result<ResolvedRecord, ResolutionError> {
         let k = key(reference)?;
         let dir = self.records(false).map_err(ResolutionError::Unreadable)?;

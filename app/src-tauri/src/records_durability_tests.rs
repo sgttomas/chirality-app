@@ -50,6 +50,8 @@ fn child(mode: &str, path: &Path) -> Command {
     c.args([CHILD, "--exact", "--ignored", "--nocapture", "--test-threads=1"])
         .env("CHIRALITY_DURABILITY_CHILD", mode)
         .env("CHIRALITY_DURABILITY_PATH", path)
+        // The child writes the parent's records store (RS §13.8), named explicitly.
+        .env(crate::records_store::OVERRIDE_ENV, crate::records_store::current().unwrap().root)
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
     c
@@ -72,7 +74,7 @@ fn rs_body(pad: usize) -> Value {
 }
 /// The RS log a witness writes, in project `root`.
 fn rs_log(root: &Path) -> PathBuf {
-    crate::storage::project_log(root, None, "durability-writer")
+    crate::storage::project_log(root, None, "durability-writer").unwrap()
 }
 /// The bytes on disk, split at LF: the complete lines and the unclosed tail.
 fn lines(path: &Path) -> (Vec<Vec<u8>>, Vec<u8>) {
@@ -301,7 +303,7 @@ fn a_short_rs_write_is_recovered_by_the_reopened_writer_and_blocks_no_other_log(
     assert!(run_entry.is_ok(), "{run_entry:?}");
     assert_eq!(std::fs::read(&log).unwrap(), torn_bytes, "another writer never repairs this log");
     // A genuinely unreadable line in another log still leaves the set incomplete.
-    let broken = crate::storage::project_log(&root, None, "broken-writer");
+    let broken = crate::storage::project_log(&root, None, "broken-writer").unwrap();
     std::fs::write(&broken, b"{\"not an entry\"\n").unwrap();
     let refused = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-2", "2026-10-12T00:00:00.000Z").unwrap_err();
     assert!(refused.contains("record-set conflict/incomplete"), "{refused}");

@@ -244,7 +244,7 @@ fn schema_valid_cold_capture_cannot_mint_a_human_act() {
         std::fs::write(path, text).unwrap();
     }
     let capture_path =
-        chirality_app_v4_lib::storage::capture_path(&ws, capture["captureId"].as_str().unwrap());
+        chirality_app_v4_lib::storage::write_capture_path(&ws, capture["captureId"].as_str().unwrap()).unwrap();
     std::fs::write(capture_path, serde_json::to_vec(&capture).unwrap()).unwrap();
     let mut cold = ActControl::new(&ws);
     let recovered = cold.recover_pending().unwrap();

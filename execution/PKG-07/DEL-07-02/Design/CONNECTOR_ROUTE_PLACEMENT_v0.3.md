@@ -14,7 +14,7 @@ consequence is explicit below; it is not a same-user exclusion guarantee.
 Accounts live in the opened user's project at
 `.chirality/records/connectors/route-accounts/<storage-key>.json`.
 The owner directed these App-written accounts to the App's records store
-(owner, 2026-10-12: "Split by who writes (Recommended)"); they stay here until RS §13.8 is implemented.
+(owner, 2026-10-12: "Split by who writes (Recommended)"); they stay here until they join the store (RS §13.8, whose first step moved only the run, act, capture and WR records).
 This selects connector account location only, resolving the CFB §9 placement
 question when concurrence and review are complete. It does not select fleet
 paths, act logs, captures, provider storage, a common service or host allocation.

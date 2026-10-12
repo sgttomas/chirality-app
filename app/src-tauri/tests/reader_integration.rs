@@ -108,7 +108,7 @@ fn explicit_writer_preserves_hot_pending_flush_before_ordinary_requests_and_read
     let startup = continue_decision_writer(&ws, Some(&mut control), "app-startup-writer");
     assert_eq!(startup["requestsRecordedNow"], 1);
     let request = requests(&ws).remove(0);
-    let blocker = ws.join(".chirality/captures");
+    let blocker = storage::write_capture_dir(&ws).unwrap();
     let pending =
         synthetic_decide_after(&mut control, request["recordId"].as_str().unwrap(), || {
             // Offer/attribution checks use healthy sources. Inject publication
@@ -178,7 +178,7 @@ fn actual_public_reader_exposes_cross_log_ambiguity_each_source_and_distinct_tim
         .into_iter()
         .find(|e| e["kind"] == "human_act")
         .unwrap();
-    let external = storage::project_log(&ws, None, "synthetic-other-writer");
+    let external = storage::project_log(&ws, None, "synthetic-other-writer").unwrap();
     let writer = records::Recorder {
         role: "App writer",
         identity: "synthetic-other-writer",
@@ -256,12 +256,12 @@ fn public_request_conflict_preserves_sources_and_existing_control_refusal() {
         .unwrap()
         .validate(&conflicting)
         .unwrap();
-    let path = storage::project_log(&ws, None, "request-copy-fixture");
+    let path = storage::project_log(&ws, None, "request-copy-fixture").unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, serde_json::to_string(&conflicting).unwrap() + "\n").unwrap();
     assert!(records::read_log(&path).1.is_empty());
     assert!(
-        records::read_log(&ws.join(chirality_app_v4_lib::recorder::LOG))
+        records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, chirality_app_v4_lib::recorder::LOG).unwrap())
             .1
             .is_empty()
     );
@@ -303,7 +303,7 @@ fn same_agreeing_capture_records_keep_each_source_without_arbitrary_current_alia
         role: "App writer",
         identity: "copy-fixture",
     };
-    let path = storage::project_log(&ws, None, writer.identity);
+    let path = storage::project_log(&ws, None, writer.identity).unwrap();
     let copy = records::append(&path, "human_act", &writer, original["body"].clone()).unwrap();
     let before = census(&ws);
     let view = read_decision_packages(&ws);
@@ -339,12 +339,12 @@ fn inject_complete_request_conflict(ws: &Path, request: &Value) {
         .unwrap()
         .validate(&conflicting)
         .unwrap();
-    let path = storage::project_log(ws, None, "late-conflict-fixture");
+    let path = storage::project_log(ws, None, "late-conflict-fixture").unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, serde_json::to_string(&conflicting).unwrap() + "\n").unwrap();
     assert!(records::read_log(&path).1.is_empty());
     assert!(
-        records::read_log(&ws.join(chirality_app_v4_lib::recorder::LOG))
+        records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, chirality_app_v4_lib::recorder::LOG).unwrap())
             .1
             .is_empty()
     );
@@ -416,7 +416,7 @@ fn actual_offer_request_binding_refuses_changed_sole_request_before_native_captu
     control.present(id).unwrap();
     // Synthetic corrupt-store scenario: preserve valid shapes/sequence and ID,
     // but change the originally composed request facts. No production history edit.
-    let path = ws.join(chirality_app_v4_lib::recorder::LOG);
+    let path = chirality_app_v4_lib::storage::project_file(&ws, chirality_app_v4_lib::recorder::LOG).unwrap();
     let (mut entries, limits) = records::read_log(&path);
     assert!(limits.is_empty());
     for entry in &mut entries {
@@ -462,7 +462,7 @@ fn identical_request_copies_keep_reader_resolution_distinct_from_unchanged_contr
     continue_decision_writer(&ws, Some(&mut control), "app-startup-writer");
     let request = requests(&ws).remove(0);
     assert_eq!(request["seq"], serde_json::json!(1));
-    let path = storage::project_log(&ws, None, "identical-request-copy");
+    let path = storage::project_log(&ws, None, "identical-request-copy").unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, serde_json::to_string(&request).unwrap() + "\n").unwrap();
     assert!(records::read_log(&path).1.is_empty());
@@ -550,7 +550,7 @@ fn capture_recovery_unavailable_keeps_real_hot_capture_and_restored_retry() {
     let mut control = ActControl::new(&ws);
     continue_decision_writer(&ws, Some(&mut control), "app-startup-writer");
     let request = requests(&ws).remove(0);
-    let store = ws.join(".chirality/captures");
+    let store = storage::write_capture_dir(&ws).unwrap();
     let captured =
         synthetic_decide_after(&mut control, request["recordId"].as_str().unwrap(), || {
             std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o500)).unwrap();
@@ -563,7 +563,8 @@ fn capture_recovery_unavailable_keeps_real_hot_capture_and_restored_retry() {
         "genuine captureId-only state must remain visible"
     );
     std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
-    let saved = ws.join(".chirality/saved-captures");
+    let saved = store.with_file_name("saved-captures");
+
     std::fs::rename(&store, &saved).unwrap();
     std::os::unix::fs::symlink(&saved, &store).unwrap();
     struct Restore {

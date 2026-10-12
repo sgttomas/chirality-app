@@ -54,7 +54,25 @@ fn without(v: &Value, keys: &[&str]) -> Value {
     v
 }
 
+/// Every file under `root` (a project's records store subtree), by content.
+fn tree_hashes(root: &Path) -> Vec<(String, String)> {
+    fn walk(root: &Path, path: &Path, out: &mut Vec<(String, String)>) {
+        if path.is_dir() {
+            let mut children = std::fs::read_dir(path).unwrap().map(|e| e.unwrap().path()).collect::<Vec<_>>();
+            children.sort();
+            for child in children {
+                walk(root, &child, out);
+            }
+        } else if path.is_file() {
+            out.push((path.strip_prefix(root).unwrap().display().to_string(), sha256_hex(&std::fs::read(path).unwrap())));
+        }
+    }
+    let mut out = vec![];
+    walk(root, root, &mut out);
+    out
+}
 fn hashes(root: &Path) -> Vec<(String, String)> {
+
     fn census(root: &Path, path: &Path, out: &mut Vec<(String, String)>) {
         if path.is_dir() {
             let mut children = std::fs::read_dir(path)
@@ -365,7 +383,7 @@ fn person_decides_a_package_and_the_view_shows_it() {
         )
         .unwrap_err();
     assert!(e.contains("content changed"), "{e}");
-    let (entries, _) = read_log(&ws.join(LOG));
+    let (entries, _) = read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap());
     assert_eq!(entries.len(), 5, "no record written for the stale offer");
 
     // Write outputs for the schema test before the lapse case changes PKG-1.
@@ -373,7 +391,7 @@ fn person_decides_a_package_and_the_view_shows_it() {
     std::fs::create_dir_all(&out_dir).unwrap();
     std::fs::write(
         out_dir.join("decide-records.jsonl"),
-        std::fs::read(ws.join(LOG)).unwrap(),
+        std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap(),
     )
     .unwrap();
     std::fs::write(
@@ -429,22 +447,24 @@ fn no_write_census_detects_changes_in_relocated_log_and_capture_tree() {
     let result = ac
         .confirm(id, "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
-    let before = hashes(&ws);
-    assert!(before
-        .iter()
-        .any(|(p, _)| p.starts_with(".chirality/records/")));
-    assert!(before
-        .iter()
-        .any(|(p, _)| p.starts_with(".chirality/captures/")));
+    // The records and captures are in the project's records store subtree
+    // (RS §13.8); the census covers it and the project.
+    let store = chirality_app_v4_lib::records_store::attach(&ws, false).unwrap().dir.unwrap();
+    let census = || (hashes(&ws), tree_hashes(&store));
+    let before = census();
+    assert!(before.1.iter().any(|(p, _)| p.starts_with("acts/")));
+    assert!(before.1.iter().any(|(p, _)| p.starts_with("captures/")));
+    assert!(!before.0.iter().any(|(p, _)| p.starts_with(".chirality/records/") || p.starts_with(".chirality/captures/")));
     derive(&ws, &[LOG]);
-    assert_eq!(hashes(&ws), before);
+    assert_eq!(census(), before);
     let capture = PathBuf::from(result["captureFile"].as_str().unwrap());
     let mut bytes = std::fs::read(&capture).unwrap();
     bytes.push(b' ');
     std::fs::write(&capture, bytes).unwrap();
     assert_ne!(
-        hashes(&ws),
+        census(),
         before,
+
         "census must detect a mutation to actual relocated capture bytes"
     );
 }

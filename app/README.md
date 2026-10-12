@@ -623,8 +623,9 @@ implemented behavior and qualification limits.
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
-| `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (today the §13.7 project logs), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
-| `src-tauri/src/storage.rs` | Selected project/run/writer and library paths, legacy discovery, atomic capture persistence and locking |
+| `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
+| `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `act_control_a15.rs`, `act_control_file.rs`, `file_act_native.rs`, `canonical.rs` | A16, hot A15 and App-file offer/native custody; capture versus publication uncertainty, ordered retry and original content binding |
 | `file_act_root.rs`, `file_act_view.rs`, `src/FileActPanel.tsx` | Original file-offer ownership, separate read-only act/decline comparison and per-offer controls; no cold native-origin upgrade |
@@ -774,9 +775,24 @@ The App routes configured account (`H-acct`) and explicitly prepared API-key (`H
 
 ## Storage and remaining work
 
-Project run logs use `.chirality/records/runs/<safe-run-key>/<safe-writer-key>.jsonl`;
-outside-run acts use `.chirality/records/acts/<safe-writer-key>.jsonl` with captures
-in `.chirality/captures/`. Library A15 allocation uses the library's
+The App keeps a project's records in its own records store (RS §13.8;
+`src-tauri/src/records_store.rs`), outside the project and every Codex home:
+`<App data>/records/` by default, or a folder the person chose (from the next
+start). Tests and development name it with `CHIRALITY_RECORDS_STORE`; a
+development build without it records nothing, and there is no fallback. Each
+project has one subtree, `projects/<safe-project-key>/`, holding
+`runs/<safe-run-key>/<safe-writer-key>.jsonl`, `acts/<safe-writer-key>.jsonl`,
+`captures/` and `workflow/` (WR WP-1 records). The project is linked to it by
+`.chirality/project.json`, an identity the App mints once; the store's own
+record of the project's roots governs, and a missing, changed or duplicated
+link is shown as a limit. Records an earlier App wrote at the §13.7 paths
+(`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`)
+are read in place, and recording is refused ("import needed") until the
+person imports them: byte-identical copies verified by SHA-256, with the
+originals left unchanged and no longer read. The host status (`recordsStore`)
+shows the store, the project's identity and any import or identity limit.
+The agents' records read log stays in `runtime/records-reads.jsonl`.
+Library A15 allocation uses the library's
 `.chirality/records/acts.jsonl` and `.chirality/captures/`; its native registration
 witness remains unfinished. There is no registration attempt journal (owner
 ruling 2026-10-10): when a library is opened, SQ-X finds A15 records that no

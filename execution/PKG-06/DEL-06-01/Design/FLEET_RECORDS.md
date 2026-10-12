@@ -110,7 +110,8 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   then split the fleet files by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"). The App-written
   `coordination.fleet.jsonl` joins the records store (RS §13.8); briefs and
   graphs, which the person and agents edit with ordinary tools, stay in
-  `<project>/.chirality/fleet/`. Until RS §13.8 is implemented the log stays
+  `<project>/.chirality/fleet/`. Until the log joins the records store (RS §13.8;
+  its first step moved only the run, act, capture and WR records) it stays
   here.
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
   children: every `dispatch_observed`, associated with a brief or not.

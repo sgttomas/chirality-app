@@ -50,6 +50,7 @@ pub mod recorder;
 pub mod records;
 pub mod records_access;
 mod records_index;
+pub mod records_store;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
@@ -245,12 +246,40 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
+    s["recordsStore"] = records_store::status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
+
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
     s
+}
+
+/// RS §13.8 "Existing records": the person's explicit import of the project's
+/// §13.7 records into the records store (byte-identical, verified copies).
+#[tauri::command(async)]
+fn records_store_import(state: State<'_, AppState>) -> Result<Value, String> {
+    let project = state.workspace.as_ref().ok_or("no project is open; nothing imported")?;
+    records_store::import(project)
+}
+/// RS §13.8 "Project identity": the person resolves a project identity limit.
+#[tauri::command(async)]
+fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
+    let project = state.workspace.as_ref().ok_or("no project is open; nothing changed")?;
+    match action.as_str() {
+        "adopt" => records_store::adopt(project),
+        "new-identity" => records_store::new_identity(project),
+        "restore-link" => records_store::restore_link(project),
+        _ => Err("unknown records store identity action; nothing changed".into()),
+    }
+}
+/// RS §13.8 "Placement": the person chooses where the records store is kept
+/// (another volume, for example), from the next start.
+#[tauri::command(async)]
+fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
+    let data = state.app_user_data_root.lock().unwrap().clone()?;
+    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &[])
 }
 
 #[tauri::command(async)]
@@ -1667,6 +1696,17 @@ pub fn run() {
     let host = Arc::clone(&home.host);
             app.manage(state);
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
+            // RS §13.8: the App's records store, configured once before any
+            // record is read or written; a store that cannot be used refuses
+            // recording visibly, with no fallback. Opening the project gives it
+            // its identity once (`.chirality/project.json`).
+            {
+                let codex_homes: Vec<PathBuf> = home.host_config.as_ref().ok().map(|cfg| vec![cfg.codex_home.clone()]).unwrap_or_default();
+                records_store::configure(records_store::for_app(std::env::var_os(records_store::OVERRIDE_ENV).filter(|p| !p.is_empty()).map(PathBuf::from), data.as_deref().map_err(Clone::clone), tauri::is_dev(), workspace.as_deref(), &codex_homes));
+                if let Some(ws) = workspace.as_ref() {
+                    let _ = records_store::attach(ws, true);
+                }
+            }
             // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
             // App data folder, outside every project.
             if let Ok(data) = data.as_ref() { capture_seal::install(data); }
@@ -1809,6 +1849,7 @@ pub fn run() {
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
+            records_store_import, records_store_identity, records_store_choose,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,

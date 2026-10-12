@@ -804,9 +804,17 @@ Bounded 2026-10-05 source adoption; historical fixture identities remain intact.
 This bounded App allocation completes §8 and SC-1/SC-5 under RS §13.7's
 App-local Rust/project ownership. It does not allocate an external host service.
 
-**Superseded in direction by RS §13.8 (PRD R-STORE).** These App records move
-to the App's records store with the project's other records (`workflow/`).
-Until §13.8 is implemented, the publisher writes the path below.
+**Superseded by RS §13.8 (PRD R-STORE), implemented.** These App records are
+published in the project's subtree of the App's records store,
+`<store>/projects/<safe-project-key>/workflow/<record-key>.json`, with the
+project's other records. The owning project is still the explicitly opened
+one: its records store subtree is resolved from it (RS §13.8 "Project
+identity"), pinned from `/` without following symlinks. The
+`.chirality/records/workflow/` folder below is a legacy source: read in place
+until the person imports it, not written, and not read after an import.
+Unknown project, no attachable identity, an unavailable store or records
+waiting for import each refuse publication visibly; there is no fallback
+store.
 
 **WP-1 Location and identity.** The Rust WR publisher writes one immutable UTF-8
 JSON envelope per selection_record, run_text or supply_check at the explicitly

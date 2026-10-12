@@ -4395,7 +4395,7 @@ impl WorkflowRootSession {
         let control=match workspace {
             Some(ws) if ws==root.as_path()=>workspace_control,
             Some(ws) if std::fs::canonicalize(ws).ok().as_ref()==Some(&root)=>return Err("Existing workspace writer uses an alias of this library root; no second control or silent relocation".into()),
-            _=>std::sync::Arc::new(std::sync::Mutex::new(Some(crate::act_control::ActControl::new(&root)))),
+            _=>std::sync::Arc::new(std::sync::Mutex::new(Some(crate::act_control::ActControl::for_library(&root)))),
         };
         let mut owner = crate::workflow_workspace::registration::LibraryOwner::open(
             root.clone(),
@@ -5115,7 +5115,8 @@ impl WorkflowRootSession {
         // that log's incompleteness refuses the end. Incomplete other logs do not
         // (EXEC A-11): where an arrival waits, the act records then cannot be
         // read and end_counting writes the limit naming them before run_ended.
-        let (own, own_limits) = crate::records::read_log(&crate::records::supply::run_log(project, run));
+        let own_log = crate::records::supply::run_log(project, run).map_err(|e| format!("The run's own record cannot be written, so its end is not recorded: {e}"))?;
+        let (own, own_limits) = crate::records::read_log(&own_log);
         if !own_limits.is_empty() {
             return Err(format!("The run's own record is incomplete, so its end cannot be appended to it (RS W-1); nothing recorded: {own_limits:?}"));
         }
@@ -7300,7 +7301,7 @@ mod workflow_root_tests {
             assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
             root
         }
-        fn wr_files(&self)->Vec<String>{let mut v:Vec<String>=std::fs::read_dir(self.root.join(".chirality/records/workflow")).map(|d|d.filter_map(|e|e.ok()).map(|e|e.file_name().to_string_lossy().into_owned()).filter(|n|n.ends_with(".json")&&!n.starts_with('.')).collect()).unwrap_or_default();v.sort();v}
+        fn wr_files(&self)->Vec<String>{let mut v:Vec<String>=std::fs::read_dir(crate::storage::project_file(&self.root, "workflow").unwrap()).map(|d|d.filter_map(|e|e.ok()).map(|e|e.file_name().to_string_lossy().into_owned()).filter(|n|n.ends_with(".json")&&!n.starts_with('.')).collect()).unwrap_or_default();v.sort();v}
         fn rs_entries(&self)->Vec<Value>{let(entries,limits)=crate::storage::read_all(&self.root);assert!(limits.is_empty(),"{limits:?}");entries}
     }
     impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
@@ -7350,7 +7351,10 @@ mod workflow_root_tests {
         fn build(recovery:bool)->Self {
             use std::os::unix::fs::PermissionsExt;
             let fixture=Fixture::new();for name in ["account","probe"]{std::fs::create_dir(fixture.root.join(name)).unwrap();}
+            // The peer sees the WR records where the App publishes them (RS §13.8).
+            std::fs::write(fixture.root.join("wr-dir"),crate::storage::project_file(&fixture.root,"workflow").unwrap().to_str().unwrap()).unwrap();
             let script=fixture.root.join("owned-peer.py");
+
             std::fs::write(&script,r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
@@ -7363,7 +7367,7 @@ text='';client='';inputs=[]
 def mode(name):
  return open(name).read().strip() if os.path.exists(name) else ''
 def wr():
- d='.chirality/records/workflow'
+ d=mode('wr-dir') or '.chirality/records/workflow'
  return sorted(n for n in os.listdir(d) if n.endswith('.json') and not n.startswith('.')) if os.path.isdir(d) else []
 for line in sys.stdin:
  f=json.loads(line)
@@ -7546,7 +7550,7 @@ for line in sys.stdin:
         let before_wire = peer.wire();
         let before_records = peer.fixture.rs_entries();
         let before_wr = peer.fixture.wr_files();
-        let before_record_directory = peer.fixture.root.join(".chirality/records").exists();
+        let before_record_directory = crate::records_store::existing(&peer.fixture.root, "runs").exists();
         let before_selection = root.snapshot()["selection"]["reference"].clone();
         let refused = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "candidate examination".into(), peer.project());
         assert!(refused.as_ref().is_err_and(|e| e.contains("TT-1") && e.contains("TX-1") && e.contains("production bundle candidate")), "{refused:?}");
@@ -7558,7 +7562,7 @@ for line in sys.stdin:
         assert_eq!(peer.wire(), before_wire, "no native request dispatched by refusal");
         assert_eq!(peer.fixture.rs_entries(), before_records, "no RS record written");
         assert_eq!(peer.fixture.wr_files(), before_wr, "no WR record written");
-        assert_eq!(peer.fixture.root.join(".chirality/records").exists(), before_record_directory, "no record directory created");
+        assert_eq!(crate::records_store::existing(&peer.fixture.root, "runs").exists(), before_record_directory, "no record directory created");
         assert_eq!(peer.turn_starts(), 0);
     }
     #[test]
@@ -8619,7 +8623,7 @@ for line in sys.stdin:
         assert_eq!(state["ticks"]["test-failing-tick"]["lastFailure"]["message"],"synthetic tick failure");
     }
     fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
-    fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}
+    fn wr_dir(peer:&Peer)->PathBuf{crate::storage::project_file(&peer.fixture.root, "workflow").unwrap()}
     // WP-5: failed pre-send publication sends nothing; a retry republishes the same original bytes.
     #[test]
     fn workflow_root_publication_failure_sends_nothing_and_retry_keeps_original_bytes(){
@@ -8736,7 +8740,7 @@ for line in sys.stdin:
         // 1. RS writer unavailable: WR check published, R3 pending.
         // Fixture only (J3): run_opened now creates the run-log directory, so it is moved aside
         // before the blocking file is written, and restored with it below.
-        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
         std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
         let first=run.check_native_supply().unwrap()["check"].clone();
         assert_eq!(first["published"],true);assert_eq!(first["r3"]["state"],"pending write; missing in record");
@@ -8770,7 +8774,7 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.fixture.registered();
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
-        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
         let had=runs.is_dir();if had{std::fs::rename(&runs,&aside).unwrap();}std::fs::write(&runs,b"blocked").unwrap();
         let first=run.check_native_supply().unwrap()["check"].clone();assert_eq!(first["r3"]["state"],"pending write; missing in record");
         std::fs::remove_file(&runs).unwrap();if had{std::fs::rename(&aside,&runs).unwrap();}
@@ -8821,9 +8825,9 @@ for line in sys.stdin:
         let (selection_ref,text_ref,check_ref,orphan_ref)={let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
             let check=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
             // A stopped writer: R3 for this check never reaches the record (WP-5).
-            let blocked=peer.fixture.root.join(".chirality/records/runs");std::fs::rename(&blocked,peer.fixture.root.join("runs-aside")).unwrap();std::fs::write(&blocked,b"blocked").unwrap();
+            let blocked=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();std::fs::rename(&blocked,crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap()).unwrap();std::fs::write(&blocked,b"blocked").unwrap();
             let orphan=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
-            std::fs::remove_file(&blocked).unwrap();std::fs::rename(peer.fixture.root.join("runs-aside"),&blocked).unwrap();
+            std::fs::remove_file(&blocked).unwrap();std::fs::rename(crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap(),&blocked).unwrap();
             let view=run.view(&reference);(view["publication"]["selection"].as_str().unwrap().to_owned(),view["publication"]["runText"].as_str().unwrap().to_owned(),check,orphan)};
         drop(root); // process state lost; pending R3 for the orphan is gone with it
         let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
@@ -9154,7 +9158,7 @@ for line in sys.stdin:
         let refused=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),Some(&blocked)).unwrap_err();
         assert!(refused.contains("other files of this revision could not be supplied")&&refused.contains("not prepared or sent"),"{refused}");
         assert_eq!(root.runs.len(),runs,"no run prepared");
-        assert!(!blocked.join(".chirality/records/workflow").exists(),"nothing recorded");
+        assert!(!crate::records_store::existing(&blocked, "workflow").exists(),"nothing recorded");
         let _=std::fs::remove_dir_all(&other);let _=std::fs::remove_dir_all(&blocked);
     }
     // PR #1239 recheck: on the real path the start's send panics while the starting run's lock
@@ -9286,7 +9290,7 @@ for line in sys.stdin:
     #[test]
     fn recorder_write_failure_is_visible_and_written_late_with_its_limit(){
         let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
-        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
         std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
         run.lock().unwrap().observe_checkpoints(&recorder_view(&peer,&[json!({"id":"m1","type":"agentMessage","text":"Spacing report"})]));
         let shown=run.lock().unwrap().view(&a);let pending:Vec<Value>=shown["lifecycle"]["records"].as_array().unwrap().iter().filter(|r|r["written"]==false).cloned().collect();
@@ -9321,8 +9325,8 @@ for line in sys.stdin:
             "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
         crate::capture_seal::seal(root,&mut capture).unwrap(); // sealed as the act control seals it (AAC §6.3 SEAL-C)
         crate::schema_validation::validate_capture(&capture).unwrap();
-        let store=crate::storage::capture_path(root,&id);std::fs::create_dir_all(store.parent().unwrap()).unwrap();std::fs::write(store,serde_json::to_vec(&capture).unwrap()).unwrap();
-        crate::records::append(&root.join(crate::recorder::LOG),"human_act",&crate::records::APP_INTERFACE,crate::act_control::act_body(&capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
+        let store=crate::storage::write_capture_path(root,&id).unwrap();std::fs::create_dir_all(store.parent().unwrap()).unwrap();std::fs::write(store,serde_json::to_vec(&capture).unwrap()).unwrap();
+        crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(),"human_act",&crate::records::APP_INTERFACE,crate::act_control::act_body(&capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
     }
     fn summary_items()->[Value;2]{
         [json!({"id":"m1","type":"agentMessage","text":"Spacing report"}),json!({"id":"f1","type":"fileChange","status":"completed","changes":[{"path":"out/summary.md","kind":{"type":"add"},"diff":""}]})]
@@ -9372,7 +9376,7 @@ for line in sys.stdin:
         let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
         run.lock().unwrap().observe_checkpoints(&view);
         assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"));
-        let acts_before=std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap();
+        let acts_before=std::fs::read(crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap()).unwrap();
         let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
         std::fs::write(&file,b"v2").unwrap();
         run.lock().unwrap().observe_checkpoints(&view);
@@ -9386,7 +9390,7 @@ for line in sys.stdin:
         assert_eq!((label["body"]["disposition"].as_str(),label["body"]["annotations"][0]["label"].as_str()),(Some("waiting"),Some("waiting — lapsed at")));
         assert_eq!((peer.wire().len(),peer.home.host.client_requests().len()),(wire,requests),"a lapse sends nothing (RC-4)");
         assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open,"a lapse pauses or ends nothing");
-        assert_eq!(std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap(),acts_before,"the act record is not changed (L-8)");
+        assert_eq!(std::fs::read(crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap()).unwrap(),acts_before,"the act record is not changed (L-8)");
         let shown=crate::file_act_view::read(&peer.fixture.root);let row=shown["rows"].as_array().unwrap().iter().find(|r|r["recordId"]==act.as_str()).unwrap().clone();
         assert_eq!(row["lapseHistoryClaims"].as_array().unwrap().len(),1,"{row:#}");assert_eq!(row["comparison"],"lapsed comparison: current content differs");
         std::fs::write(&file,b"v1").unwrap();
@@ -9416,7 +9420,7 @@ for line in sys.stdin:
         std::fs::write(&file,b"v2").unwrap();
         run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000));
         let next=record_file_act(&peer,"out/summary.md","A7",b"v2","2026-09-21T16:00:00.000Z");
-        let acts_before=std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap();
+        let acts_before=std::fs::read(crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap()).unwrap();
         let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
         run.lock().unwrap().observe_checkpoints(&command("c1",1_790_005_000_000));
         run.lock().unwrap().observe_checkpoints(&command("c2",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64+60_000)); // after the new act and the lapse observed now
@@ -9428,7 +9432,7 @@ for line in sys.stdin:
         assert_eq!((label["body"]["disposition"].as_str(),label["body"]["performanceOrdinal"].as_u64()),(Some("performed"),Some(2)));
         assert_eq!(log.last().unwrap()["body"]["firstActionRef"],"item:thread/turn/c2");
         assert_eq!((peer.wire().len(),peer.home.host.client_requests().len()),(wire,requests),"recording sends nothing (RC-4)");
-        assert_eq!(std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap(),acts_before,"act records are not changed");
+        assert_eq!(std::fs::read(crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap()).unwrap(),acts_before,"act records are not changed");
         assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty());
     }
     // B-1 through the person's End run: the end's own observation delivers the agent's first
@@ -9494,7 +9498,7 @@ for line in sys.stdin:
         let with=|events:Vec<Value>|{let mut v=recorder_view(&peer,&[]);v["custodyEvents"]=json!(events);v};
         let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
         // A-12: the first write fails; the held entry is written late, once, with its limit.
-        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
         std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
         run.lock().unwrap().observe_checkpoints(&with(vec![lost("cev:lost:fixture")]));
         std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
@@ -9540,7 +9544,7 @@ for line in sys.stdin:
     /// final line alone is a partial, never an entry, recovered by its own
     /// writer's W-0; it leaves the set complete for other writers.)
     fn break_act_log(peer:&Peer)->(std::path::PathBuf,Vec<u8>){
-        let log=peer.fixture.root.join(crate::recorder::LOG);std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+        let log=crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap();std::fs::create_dir_all(log.parent().unwrap()).unwrap();
         let before=std::fs::read(&log).unwrap_or_default();
         let mut f=std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":\n").unwrap();
         (log,before)
@@ -9595,7 +9599,7 @@ for line in sys.stdin:
     }
     /// The run's own log as written (read directly: other logs may be incomplete).
     fn own_log(peer:&Peer,run:&str)->Vec<Value>{
-        let (entries,limits)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,run));assert!(limits.is_empty(),"{limits:?}");entries
+        let (entries,limits)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,run).unwrap());assert!(limits.is_empty(),"{limits:?}");entries
     }
     fn act_records_limit(e:&Value)->bool{e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]=="the project's act records"}
     // RS W-1 after relaunch: run_ended goes to the run's own log, so an incomplete own log
@@ -9606,7 +9610,7 @@ for line in sys.stdin:
         std::fs::create_dir_all(peer.fixture.root.join("out")).unwrap();std::fs::write(peer.fixture.root.join("out/summary.md"),b"v1").unwrap();
         root.runs[&a].lock().unwrap().observe_checkpoints(&recorder_view(&peer,&summary_items()[1..]));
         let mut fresh=WorkflowRootSession::default();drop(root);
-        let log=crate::records::supply::run_log(&peer.fixture.root,&a);let before=std::fs::read(&log).unwrap();
+        let log=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let before=std::fs::read(&log).unwrap();
         let mut f=std::fs::OpenOptions::new().append(true).open(&log).unwrap();std::io::Write::write_all(&mut f,b"{\"partial\":").unwrap();drop(f);
         let torn=std::fs::read(&log).unwrap();
         let refused=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None);
@@ -9645,7 +9649,7 @@ for line in sys.stdin:
     fn end_after_relaunch_with_another_log_incomplete_and_nothing_waiting_ends_plainly(){
         let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");
         let mut fresh=WorkflowRootSession::default();drop(root);
-        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let torn=crate::storage::project_file(&peer.fixture.root, "runs/torn").unwrap();std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
         fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();
         let log=own_log(&peer,&a);
         assert!(!log.iter().any(act_records_limit));
@@ -10095,10 +10099,10 @@ for line in sys.stdin:
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         assert!(root.runs[&a].lock().unwrap().send().is_err());
         let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
-        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let torn=crate::storage::project_file(&peer.fixture.root, "runs/torn").unwrap();std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
         let refused=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None);
         assert!(refused.as_ref().is_err_and(|e|e.contains("no run_opened")&&e.contains("nothing to end")),"{refused:?}");
-        let (own,_)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,&a));
+        let (own,_)=crate::records::read_log(&crate::records::supply::run_log(&peer.fixture.root,&a).unwrap());
         assert!(own.iter().all(|e|e["kind"]!="run_ended"),"nothing written: {own:?}");
         std::fs::remove_dir_all(&torn).unwrap();
         let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
@@ -10118,7 +10122,7 @@ for line in sys.stdin:
         assert_eq!(state(&a).lifecycle,crate::records::supply::RecordedLifecycle::Ended{stopped_by:"the person".into(),cause:"ended by the person".into()});
         assert_eq!(state(&b).lifecycle,crate::records::supply::RecordedLifecycle::OpenInterrupted);assert_eq!(state(&b).follows.as_deref(),Some(a.as_str()));
         assert_eq!(state(&b).restart_interruptions.len(),1,"REC restart facts naming the conversation are shown");
-        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let torn=crate::storage::project_file(&peer.fixture.root, "runs/torn").unwrap();std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
         let incomplete=crate::records::supply::read_project_runs(&project,&[]);
         let b_state=incomplete.runs.iter().find(|x|x.run==b).unwrap();assert!(matches!(b_state.lifecycle,crate::records::supply::RecordedLifecycle::Unknown(_)),"open run in an incomplete record is unknown");
         assert!(incomplete.live_in("thread").is_empty(),"unknown is not invented as live");assert!(!incomplete.limits.is_empty());
@@ -10322,7 +10326,7 @@ for line in sys.stdin:
     fn v10_g3_unknown_recorded_run_blocks_a_new_start(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
         let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
-        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let torn=crate::storage::project_file(&peer.fixture.root, "runs/torn").unwrap();std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
         let refused=fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
         assert!(refused.as_ref().is_err_and(|e|e.contains("unknown")&&e.contains(&a)&&e.contains("End")),"{refused:?}");
         // The end route: the run's own log is complete, so the person's explicit end is taken
@@ -10341,7 +10345,7 @@ for line in sys.stdin:
     #[test]
     fn v10_g4_lifecycle_entries_written_late_in_order_with_limits(){
         let peer=Peer::new();let mut root=peer.fixture.registered();
-        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();std::fs::write(&runs,b"blocked").unwrap();
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();assert_eq!(run.lifecycle,RunLifecycle::Open);
         assert!(!run.entry_written("run_opened"));
@@ -10355,7 +10359,7 @@ for line in sys.stdin:
     #[test]
     fn v10_g4_late_records_follow_observation_order_across_kinds(){
         let peer=Peer::new();let mut root=peer.fixture.registered();
-        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();std::fs::write(&runs,b"blocked").unwrap();
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
         let check=run.check_native_supply().unwrap()["check"].clone();assert_eq!(check["published"],true);assert_ne!(check["r3"]["state"],"recorded");

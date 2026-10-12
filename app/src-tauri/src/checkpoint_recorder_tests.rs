@@ -248,14 +248,14 @@ fn store(root: &std::path::Path, capture: &Value) {
 }
 /// Store a capture's bytes exactly as given (legacy or another writer's capture).
 fn store_as_is(root: &std::path::Path, capture: &Value) {
-    let path = crate::storage::capture_path(root, capture["captureId"].as_str().unwrap());
+    let path = crate::storage::write_capture_path(root, capture["captureId"].as_str().unwrap()).unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, serde_json::to_vec(capture).unwrap()).unwrap();
 }
 /// The record for a capture, as the App writer appends it, by `recorder`.
 fn record_for(root: &std::path::Path, capture: &Value, recorder: &crate::records::Recorder) -> String {
     let kind = crate::records::capture_record_kind(capture).unwrap();
-    crate::records::append(&root.join(crate::recorder::LOG), kind, recorder, crate::act_control::act_body(capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
+    crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), kind, recorder, crate::act_control::act_body(capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
 }
 /// A file act as the App act control leaves it: capture stored, record written by the capturing surface.
 fn act(root: &std::path::Path, kind: &str, file: &std::path::Path, content: &str, time: &str) -> String {
@@ -533,7 +533,7 @@ fn a_record_whose_content_differs_from_its_capture_does_not_count() {
     store(&root, &capture);
     let mut body = crate::act_control::act_body(&capture);
     body["boundContent"] = json!([digest("v1")]);
-    let id = crate::records::append(&root.join(crate::recorder::LOG), "human_act", &crate::records::APP_INTERFACE, body).unwrap()["recordId"].as_str().unwrap().to_owned();
+    let id = crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), "human_act", &crate::records::APP_INTERFACE, body).unwrap()["recordId"].as_str().unwrap().to_owned();
     let (all, outputs, read) = observe_with(&root);
     assert!(read.acts.is_empty());
     assert_eq!((read.unresolved[0]["record"]["recordId"].as_str(), read.unresolved[0]["reason"].as_str()), (Some(id.as_str()), Some("the record differs from the capture it cites")));
@@ -575,7 +575,7 @@ fn a_corrected_act_does_not_count() {
     let file = root.join("out/summary.md");
     let capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
     store(&root, &capture);
-    let original = crate::records::append(&root.join(crate::recorder::LOG), "human_act", &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture)).unwrap();
+    let original = crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), "human_act", &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture)).unwrap();
     let mut correction = original.clone();
     correction["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
     correction["seq"] = json!(original["seq"].as_u64().unwrap() + 1);
@@ -585,7 +585,7 @@ fn a_corrected_act_does_not_count() {
     crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();
     let mut line = serde_json::to_string(&correction).unwrap();
     line.push('\n');
-    let mut log = std::fs::OpenOptions::new().append(true).open(root.join(crate::recorder::LOG)).unwrap();
+    let mut log = std::fs::OpenOptions::new().append(true).open(crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).unwrap();
     std::io::Write::write_all(&mut log, line.as_bytes()).unwrap();
     let (all, outputs, read) = observe_with(&root);
     assert!(read.acts.is_empty());
@@ -1596,7 +1596,7 @@ fn the_act_read_is_kept_only_while_its_records_and_captures_are_unchanged() {
     assert_eq!(format!("{kept:?}"), format!("{:?}", fresh(&root)), "a run entry leaves the act read as a fresh read finds it");
     act(&root, "A7", &file, "v1", "2026-09-21T14:13:22.000Z");
     assert_eq!(project_act_records(&root).unwrap().acts.len(), 2, "a new act record is read");
-    let capture = crate::storage::capture_path(&root, first.acts[0]["capture"]["captureId"].as_str().unwrap());
+    let capture = crate::storage::write_capture_path(&root, first.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
     let mut bytes: Value = serde_json::from_slice(&std::fs::read(&capture).unwrap()).unwrap();
     bytes["purpose"] = json!("Another purpose.");
     std::fs::write(&capture, serde_json::to_vec(&bytes).unwrap()).unwrap();

@@ -140,7 +140,7 @@ impl Drop for ColdEndFixture {
 }
 impl ColdEndFixture {
     fn file(&self, reference: &str) -> std::path::PathBuf {
-        self.root.join(".chirality/records/workflow").join(format!(
+        crate::storage::project_file(&self.root, "workflow").unwrap().join(format!(
             "{}.json",
             reference.strip_prefix("wr-record:v1:").unwrap()
         ))
