@@ -4975,13 +4975,14 @@ impl WorkflowRootSession {
         let mut run_entries: Vec<Value> = own;
         run_entries.extend(recorded.into_iter().filter(|e| e["runId"] == run && e["recordId"].as_str().is_none_or(|id| !own_ids.contains(id))));
         let opened_workflow = run_entries.iter().find(|e| e["kind"] == "run_opened").map(|e| e["body"]["workflow"].clone()).unwrap_or(Value::Null);
-        // CE-5/CE-6/CE-8 from the run's own record (RC-10): acts recorded while the
-        // run was interrupted are counted before its waiting arrivals are listed. As
+        // CE-10 and CE-5/CE-6/CE-8 from the run's own record (RC-10): a lapse observed now,
+        // with its own time, and acts recorded while the run was interrupted are written
+        // before its waiting arrivals are listed. As
         // for a live end, unreadable act records give a limit, not a refusal (A-11).
         for (kind, body) in end_counting(&run_entries, project) {
             let mut entry = crate::records::supply::PendingRunEntry::new(kind, body.clone(), crate::util::now_rfc3339())?;
             crate::records::supply::append_run_entry_in(project, run, &mut entry, crate::records::RecordSet::ReadableBesideIncomplete)
-                .map_err(|e| format!("A counted act could not be recorded, so the run was not ended: {e}"))?;
+                .map_err(|e| format!("A checkpoint entry could not be recorded, so the run was not ended: {e}"))?;
             run_entries.push(json!({"kind":kind,"body":body}));
         }
         let waiting = crate::checkpoint_recorder::waiting_arrivals(&run_entries);
@@ -5303,17 +5304,12 @@ impl WorkflowRootSession {
         Ok(view)
     }
 }
-/// CE-5/CE-6/CE-8 at an end after relaunch: the acts counted from the run's own
-/// record or, while an arrival waits and the act records cannot be read, the
-/// limit naming them (A-11: the end is not refused).
+/// CE-10 and CE-5/CE-6/CE-8 at an end after relaunch: lapses observed now and
+/// the acts counted, from the run's own record or, while an arrival waits and
+/// the act records cannot be read, the limit naming them (A-11: the end is not
+/// refused).
 fn end_counting(run_entries: &[Value], project: &std::path::Path) -> Vec<crate::checkpoint_recorder::Output> {
-    if crate::checkpoint_recorder::waiting_arrivals(run_entries).is_empty() {
-        return vec![];
-    }
-    match crate::checkpoint_recorder::project_act_records(project) {
-        Ok(acts) => crate::checkpoint_recorder::count_acts(run_entries, &acts, project),
-        Err(e) => vec![crate::checkpoint_recorder::acts_unread_limit(&e)],
-    }
+    crate::checkpoint_recorder::end_observations(run_entries, project)
 }
 /// Starts a prepared run (CH-1 rechecked at dispatch). The Root lock is not held
 /// across the native wait. A successor start supersedes the predecessor's pending
@@ -6676,15 +6672,12 @@ impl WorkflowRun {
         if successor.is_some_and(|name| !crate::workflow_workspace::valid_name(name)) || cause == "invalid" {
             return Err("successor workflow name invalid; nothing ended".into());
         }
-        // CE-5/CE-6/CE-8 for acts recorded since the last observation, then CE-17:
-        // the arrivals whose recorded disposition is still *waiting*. The person's
-        // end is never refused for unreadable act records (A-11): a limit naming
-        // them and why is written before run_ended.
-        if !crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies()).is_empty() {
-            let outputs = match crate::checkpoint_recorder::project_act_records(&self.project_root) {
-                Ok(acts) => crate::checkpoint_recorder::count_acts(&self.recorded_bodies(), &acts, &self.project_root),
-                Err(e) => vec![crate::checkpoint_recorder::acts_unread_limit(&e)],
-            };
+        // CE-10 for content changed and CE-5/CE-6/CE-8 for acts recorded since the
+        // last observation, then CE-17: the arrivals whose recorded disposition is
+        // still *waiting*. The person's end is never refused for unreadable act
+        // records (A-11): a limit naming them and why is written before run_ended.
+        let outputs = crate::checkpoint_recorder::end_observations(&self.recorded_bodies(), &self.project_root);
+        if !outputs.is_empty() {
             self.push_recorder_outputs(outputs, &crate::util::now_rfc3339());
         }
         let waiting = crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies());
@@ -9148,6 +9141,66 @@ for line in sys.stdin:
         assert_ne!(crate::checkpoint_recorder::act_records_fingerprint(&peer.fixture.root),unchanged,"a new record changes the fingerprint");
         run.lock().unwrap().observe_checkpoints(&view);
         assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"),"counted at the next observation");
+    }
+    // CE-10 through the actual run and RS writer (EXEC §2.4.3, RC-8, PH-8, A-10): a changed file
+    // lapses the counted act in the run's own log, with nothing sent, paused or re-held (RC-4);
+    // the act record is unchanged (L-8); the file-act view reads the recorded lapse as the act's
+    // lapse history, then the content back at c0; run_ended lists the arrival made waiting.
+    #[test]
+    fn checkpoint_lapse_is_recorded_in_the_run_log_and_read_by_the_file_act_view(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        let view=recorder_view(&peer,&summary_items()[1..]);
+        run.lock().unwrap().observe_checkpoints(&view);
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        run.lock().unwrap().observe_checkpoints(&view);
+        assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_counted"));
+        let acts_before=std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap();
+        let (wire,requests)=(peer.wire().len(),peer.home.host.client_requests().len());
+        std::fs::write(&file,b"v2").unwrap();
+        run.lock().unwrap().observe_checkpoints(&view);
+        run.lock().unwrap().observe_checkpoints(&view);
+        let log=rs_for(&peer,&a);
+        let lapses:Vec<&Value>=log.iter().filter(|e|e["kind"]=="act_lapsed").collect();
+        assert_eq!(lapses.len(),1,"one observation, written once: {log:#?}");
+        let lapse=lapses[0];assert_eq!((lapse["body"]["act"]["recordId"].as_str(),lapse["body"]["state"].as_str(),lapse["body"]["when"].as_str()),(Some(act.as_str()),Some("lapsed"),Some("before resume")));
+        assert_eq!(lapse["recorder"],json!({"role":"App writer","identity":crate::records::APP_WRITER.identity}));assert_eq!(lapse["runId"],a.as_str());
+        let label=log.iter().filter(|e|e["kind"]=="disposition_change").last().unwrap();
+        assert_eq!((label["body"]["disposition"].as_str(),label["body"]["annotations"][0]["label"].as_str()),(Some("waiting"),Some("waiting — lapsed at")));
+        assert_eq!((peer.wire().len(),peer.home.host.client_requests().len()),(wire,requests),"a lapse sends nothing (RC-4)");
+        assert_eq!(run.lock().unwrap().lifecycle,RunLifecycle::Open,"a lapse pauses or ends nothing");
+        assert_eq!(std::fs::read(peer.fixture.root.join(crate::recorder::LOG)).unwrap(),acts_before,"the act record is not changed (L-8)");
+        let shown=crate::file_act_view::read(&peer.fixture.root);let row=shown["rows"].as_array().unwrap().iter().find(|r|r["recordId"]==act.as_str()).unwrap().clone();
+        assert_eq!(row["lapseHistoryClaims"].as_array().unwrap().len(),1,"{row:#}");assert_eq!(row["comparison"],"lapsed comparison: current content differs");
+        std::fs::write(&file,b"v1").unwrap();
+        run.lock().unwrap().observe_checkpoints(&view);
+        let back=rs_for(&peer,&a).into_iter().filter(|e|e["kind"]=="act_lapsed").last().unwrap();assert_eq!(back["body"]["state"],"matches c0 again after observed lapse");
+        let shown=crate::file_act_view::read(&peer.fixture.root);let row=shown["rows"].as_array().unwrap().iter().find(|r|r["recordId"]==act.as_str()).unwrap().clone();
+        assert_eq!(row["comparison"],"matches c0 again after recorded lapse claim","{row:#}");
+        run.lock().unwrap().end_run(None,None).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();
+        assert_eq!(end["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]),"waiting after the lapse before the resume point");
+        assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty(),"every entry is a conformant RS entry");
+    }
+    // At the end after a relaunch, a lapse is observed from the run's own record with its own
+    // time, before run_ended; nothing is back-filled into the interrupted interval (RP-1).
+    #[test]
+    fn checkpoint_lapse_at_an_end_after_relaunch_is_written_before_run_ended(){
+        let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        let view=recorder_view(&peer,&summary_items()[1..]);
+        run.lock().unwrap().observe_checkpoints(&view);
+        record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        run.lock().unwrap().observe_checkpoints(&view);
+        drop(run);let mut fresh=WorkflowRootSession::default();drop(root);
+        std::fs::remove_file(&file).unwrap();
+        let before=crate::util::now_rfc3339();
+        fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,None).unwrap();
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(&kinds[kinds.len()-3..],["act_lapsed","disposition_change","run_ended"],"{kinds:?}");
+        let lapse=&log[kinds.len()-3]["body"];assert_eq!((lapse["state"].as_str(),lapse["c1"].as_str()),(Some("lapsed (subject absent)"),Some("subject absent")));
+        assert!(lapse["time"].as_str().unwrap()>=before.as_str(),"observed at the end, not back-dated");
+        assert_eq!(log.last().unwrap()["body"]["waitingArrivals"],json!([{"checkpoint":"CP-rely","arrivalOrdinal":1}]));
     }
     /// Appends a partial line to the act log; returns the log and its bytes before.
     fn break_act_log(peer:&Peer)->(std::path::PathBuf,Vec<u8>){

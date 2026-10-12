@@ -24,12 +24,19 @@
 //!   action (RC-9) the App received after the arrival, and CE-11
 //!   `run_resumed` for the first run action started after the act that made
 //!   an arrival *performed*;
+//! - CE-10 `act_lapsed` (with its CE-18 label where the transition table
+//!   writes one) while the run is live, when the App reads the file an act
+//!   answering an arrival is bound to and its content identity differs, the
+//!   file is absent, or the identity cannot be compared or read
+//!   ([`observe_lapses`]; RC-8, PH-8, A-10; RS L-1…L-6, L-11);
 //! - the waiting arrivals listed by CE-17 `run_ended` (`waiting`).
 //!
 //! Recording is not a reaction (RC-4): nothing here sends, asks, opens,
-//! pauses or refuses anything; the outputs are entries for the run record and
-//! nothing else. CE-7 never arises in an App run: A5 is valid only at a host
-//! outcome (FB-16), which this App does not evaluate (AW-8…AW-10).
+//! pauses, re-holds or refuses anything; the outputs are entries for the run
+//! record and nothing else. CE-7 never arises in an App run: A5 is valid only
+//! at a host outcome (FB-16), which this App does not evaluate (AW-8…AW-10).
+//! Nothing is observed after the run's end, so no *after run end* lapse
+//! (CE-10) and no CE-16 `act_after_run_end` is written.
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -134,6 +141,24 @@ pub(crate) struct CheckpointRecorder {
     limit: Option<String>,
     /// The last reason the project's act records could not be read, if any.
     acts_limit: Option<String>,
+    /// CE-10: the exact-byte identity last read of each bound file, with the
+    /// file's metadata stamp then; read again only when the stamp changes.
+    contents: std::collections::BTreeMap<String, Seen>,
+}
+
+/// A regular file's device, inode, size and modification and change times.
+type Stamp = (u64, u64, u64, i64, i64, i64, i64);
+/// A bound file's identity as last read, its stamp then and when it was read
+/// (seconds since the epoch).
+#[derive(Clone, Debug)]
+struct Seen {
+    stamp: Stamp,
+    value: String,
+    read_at: i64,
+}
+fn stamp(m: &std::fs::Metadata) -> Stamp {
+    use std::os::unix::fs::MetadataExt;
+    (m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec())
 }
 
 /// One recorder output: the RS entry kind and its CE body.
@@ -307,8 +332,12 @@ impl CheckpointRecorder {
         }
         events.sort_by(|a, b| a.0.cmp(&b.0));
         let mut written: Vec<Output> = Vec::new();
-        // The act records, read at most once per observation and only while an arrival waits.
+        // The act records, read at most once per observation and only while an
+        // arrival waits or has a performance whose content can lapse.
         let mut records: Option<ActRead> = None;
+        // CE-10 first, so that an act on the changed content is counted against
+        // the content now current (EXEC §2.4.3).
+        self.lapses(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         self.count(entries, &mut written, scope.project_root, &mut *acts, &mut records);
         for (at, key, event) in events {
             match event {
@@ -422,23 +451,51 @@ impl CheckpointRecorder {
     /// is retried at the next observation; nothing is inferred (RC-2).
     fn count(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) {
         let all: Vec<Value> = entries.iter().cloned().chain(written.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
-        if waiting_arrivals(&all).is_empty() {
+        if waiting_arrivals(&all).is_empty() || !self.read_acts(acts, records) {
             return;
-        }
-        if records.is_none() {
-            match acts() {
-                Ok(read) => {
-                    self.acts_limit = None;
-                    *records = Some(read);
-                }
-                Err(e) => {
-                    self.acts_limit = Some(format!("act records not read; no act counted at this observation: {e}"));
-                    return;
-                }
-            }
         }
         if let Some(read) = records.as_ref() {
             written.extend(count_acts(&all, read, root));
+        }
+    }
+
+    /// CE-10 for the arrivals with a performance, from the project's act
+    /// records (read once, lazily) and the bound files as the App reads them
+    /// now ([`observe_lapses`]). A read of the act records that fails claims
+    /// no lapse and no currency (A-10). A lapse before the resume point opens
+    /// the way for a new resume point after the next performance (CE-11).
+    fn lapses(&mut self, entries: &[Value], written: &mut Vec<Output>, root: &Path, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) {
+        let all: Vec<Value> = entries.iter().cloned().chain(written.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
+        if !lapse_evaluable(&all) || !self.read_acts(acts, records) {
+            return;
+        }
+        let Some(read) = records.as_ref() else { return };
+        let cache = &mut self.contents;
+        let outputs = observe_lapses(&all, read, &crate::util::now_rfc3339(), &mut |subject| cached_content(cache, root, subject));
+        for (_, body) in outputs.iter().filter(|(k, b)| *k == "act_lapsed" && b["when"] == "before resume") {
+            for arrival in self.arrivals.iter_mut().filter(|a| a.reference() == body["arrival"]) {
+                arrival.resumed = false;
+            }
+        }
+        written.extend(outputs);
+    }
+
+    /// The project's act records for this observation, read at most once; a
+    /// failed read is kept as the recorder's acts limit and retried next time.
+    fn read_acts(&mut self, acts: &mut dyn FnMut() -> Result<ActRead, String>, records: &mut Option<ActRead>) -> bool {
+        if records.is_some() {
+            return true;
+        }
+        match acts() {
+            Ok(read) => {
+                self.acts_limit = None;
+                *records = Some(read);
+                true
+            }
+            Err(e) => {
+                self.acts_limit = Some(format!("act records not read; no act counted and no lapse observed at this observation: {e}"));
+                false
+            }
         }
     }
 
@@ -525,56 +582,111 @@ const FILE_READ_CAP: u64 = 256 * 1024 * 1024;
 /// hashed as it streams, with its identity and times unchanged across the
 /// read. Anything else is not obtainable, so no act can count for it.
 fn file_content(root: &Path, declared: &str) -> Value {
-    let read = (|| -> Result<String, String> {
-        use sha2::Digest;
-        use std::io::Read;
-        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
-        let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
-        let rel = normal(declared).ok_or("the declared path is not a plain project-relative path")?;
-        let file = std::fs::canonicalize(root.join(rel)).map_err(|e| format!("file not readable: {e}"))?;
-        if !file.starts_with(&root) || file == root {
-            return Err("the declared path resolves outside the project".into());
-        }
-        let stamp = |m: &std::fs::Metadata| (m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec());
-        let named = std::fs::symlink_metadata(&file).map_err(|e| format!("file not readable: {e}"))?;
-        if !named.file_type().is_file() {
-            return Err("not a regular file".into());
-        }
-        let mut f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&file).map_err(|e| format!("file not readable: {e}"))?;
-        let before = f.metadata().map_err(|e| e.to_string())?;
-        if !before.is_file() || stamp(&before) != stamp(&named) {
-            return Err("not the regular file named by the path".into());
-        }
-        if before.len() > FILE_READ_CAP {
-            return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
-        }
-        let mut hasher = sha2::Sha256::new();
-        let mut buf = vec![0u8; 64 * 1024];
-        let mut total = 0u64;
-        loop {
-            let n = f.read(&mut buf).map_err(|e| format!("file not readable: {e}"))?;
-            if n == 0 {
-                break;
-            }
-            total += n as u64;
-            if total > FILE_READ_CAP {
-                return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
-            }
-            hasher.update(&buf[..n]);
-        }
-        #[cfg(test)]
-        tests::DURING_READ.with(|hook| if let Some(hook) = hook.borrow().as_ref() { hook(&file) });
-        let after = f.metadata().map_err(|e| e.to_string())?;
-        let named_after = std::fs::symlink_metadata(&file).map_err(|e| e.to_string())?;
-        if stamp(&before) != stamp(&after) || stamp(&after) != stamp(&named_after) {
-            return Err("the file changed while it was read".into());
-        }
-        Ok(format!("{:x}", hasher.finalize()))
-    })();
+    let read = normal(declared).ok_or_else(|| "the declared path is not a plain project-relative path".to_owned())
+        .and_then(|rel| exact_bytes(root, Path::new(&rel)));
     match read {
         Ok(value) => json!({"method":EXACT_BYTES,"value":value,"scope":"the file's bytes as the App read them after observing the completed change"}),
         Err(reason) => json!({"notObtainable":true,"reason":format!("{reason}; no act can be counted for this referent (SP-4)")}),
     }
+}
+
+/// The exact-byte identity (RS §6.2a) of `path` in the project, relative to
+/// its root or absolute inside it, read as one coherent snapshot as AW-7
+/// reads it.
+fn exact_bytes(root: &Path, path: &Path) -> Result<String, String> {
+    use sha2::Digest;
+    use std::io::Read;
+    use std::os::unix::fs::OpenOptionsExt;
+    let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
+    let file = std::fs::canonicalize(root.join(path)).map_err(|e| format!("file not readable: {e}"))?;
+    if !file.starts_with(&root) || file == root {
+        return Err("the declared path resolves outside the project".into());
+    }
+    let named = std::fs::symlink_metadata(&file).map_err(|e| format!("file not readable: {e}"))?;
+    if !named.file_type().is_file() {
+        return Err("not a regular file".into());
+    }
+    let mut f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&file).map_err(|e| format!("file not readable: {e}"))?;
+    let before = f.metadata().map_err(|e| e.to_string())?;
+    if !before.is_file() || stamp(&before) != stamp(&named) {
+        return Err("not the regular file named by the path".into());
+    }
+    if before.len() > FILE_READ_CAP {
+        return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
+    }
+    let mut hasher = sha2::Sha256::new();
+    let mut buf = vec![0u8; 64 * 1024];
+    let mut total = 0u64;
+    loop {
+        let n = f.read(&mut buf).map_err(|e| format!("file not readable: {e}"))?;
+        if n == 0 {
+            break;
+        }
+        total += n as u64;
+        if total > FILE_READ_CAP {
+            return Err(format!("larger than {FILE_READ_CAP} bytes; not read"));
+        }
+        hasher.update(&buf[..n]);
+    }
+    #[cfg(test)]
+    tests::DURING_READ.with(|hook| if let Some(hook) = hook.borrow().as_ref() { hook(&file) });
+    let after = f.metadata().map_err(|e| e.to_string())?;
+    let named_after = std::fs::symlink_metadata(&file).map_err(|e| e.to_string())?;
+    if stamp(&before) != stamp(&after) || stamp(&after) != stamp(&named_after) {
+        return Err("the file changed while it was read".into());
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// A bound App file's current content as the App reads it now (RS §7 L-1,
+/// L-3, L-4): its exact-byte identity, absent (nothing at the bound path), or
+/// not obtainable with the reason.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Current {
+    Present(String),
+    Absent,
+    Unavailable(String),
+}
+/// The current content of an act's bound subject, an absolute path inside
+/// the project as the act control names it.
+pub(crate) fn current_content(root: &Path, subject: &Path) -> Current {
+    match exact_bytes(root, subject) {
+        Ok(value) => Current::Present(value),
+        Err(reason) => {
+            let contained = std::fs::canonicalize(root).is_ok_and(|root| subject.starts_with(&root) && subject != root)
+                && subject.components().all(|c| matches!(c, std::path::Component::RootDir | std::path::Component::Normal(_)));
+            if contained && std::fs::symlink_metadata(subject).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
+                Current::Absent
+            } else {
+                Current::Unavailable(reason)
+            }
+        }
+    }
+}
+/// [`current_content`] read again only when the regular file's stamp has
+/// changed since the identity in `cache` was read (as the act records are
+/// read again only when their fingerprint changes). An identity read less
+/// than two seconds after the file's change time is not reused, so that a
+/// rewrite within a coarse timestamp's same second is still read.
+fn cached_content(cache: &mut std::collections::BTreeMap<String, Seen>, root: &Path, subject: &Path) -> Current {
+    let key = subject.to_string_lossy().into_owned();
+    let before = std::fs::symlink_metadata(subject).ok().filter(std::fs::Metadata::is_file).map(|m| stamp(&m));
+    if let (Some(now), Some(seen)) = (before, cache.get(&key)) {
+        if now == seen.stamp && seen.read_at > now.5 + 1 {
+            return Current::Present(seen.value.clone());
+        }
+    }
+    let read_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
+    let read = current_content(root, subject);
+    match (&read, before) {
+        (Current::Present(value), Some(stamp)) => {
+            cache.insert(key, Seen { stamp, value: value.clone(), read_at });
+        }
+        _ => {
+            cache.remove(&key);
+        }
+    }
+    read
 }
 
 /// RFC 3339 UTC text with milliseconds, as the App and `rfc3339_from_ms`
@@ -606,9 +718,12 @@ fn comparable(time: &str) -> bool {
 /// - an act of the required kind on other content is not counted: "content
 ///   no longer current" before the arrival, "act on other content" after it.
 ///
-/// A referent whose content is not obtainable binds no act (A-5, SP-4). A
-/// record that claims an act on the arrival's file but cannot be verified
-/// against its capture adds an "unresolvable reference" limit, once.
+/// A referent whose content is not obtainable binds no act (A-5, SP-4). After
+/// a recorded lapse (CE-10) the content compared is the one the latest
+/// determinate lapse observation read; while the subject is absent no act
+/// counts (§4.7). A record that claims an act on the arrival's file but
+/// cannot be verified against its capture adds an "unresolvable reference"
+/// limit, once.
 pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<Output> {
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let mut out: Vec<Output> = Vec::new();
@@ -621,7 +736,15 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
         let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
         let referents = body["referents"].as_array().map(Vec::as_slice).unwrap_or_default();
         let ([referent], Some(required), Some(arrived)) = (referents, body["requiredAct"].as_str(), body["event"]["evidencedTime"]["value"].as_str()) else { continue };
-        let (Some(subject), Some(method), Some(value)) = (referent["subject"].as_str(), referent["content"]["method"].as_str(), referent["content"]["value"].as_str()) else { continue };
+        // After a recorded lapse the referent needs an act on its current content
+        // (EXEC §2.4.3 CE-10 rows; §4.7 RH-2): the content the latest determinate
+        // lapse observation read, and none while the subject is absent (§4.7).
+        let content = match observed_content(entries, &arrival) {
+            None => &referent["content"],
+            Some(c1) if c1.is_object() => c1,
+            Some(_) => continue,
+        };
+        let (Some(subject), Some(method), Some(value)) = (referent["subject"].as_str(), content["method"].as_str(), content["value"].as_str()) else { continue };
         if !subject.starts_with("output ") || !comparable(arrived) {
             continue;
         }
@@ -701,8 +824,10 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
                 match same(content) {
                     None => continue, // incomparable methods (SB-1): neither counted nor said to differ
                     Some(true) => {
+                        // The next performance ordinal (RS L-12): a lapse label repeats the ordinal it lapses.
                         let ordinal = 1 + entries.iter().chain(shown.iter())
-                            .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival && e["body"]["disposition"] == "performed").count();
+                            .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == arrival)
+                            .filter_map(|e| e["body"]["performanceOrdinal"].as_u64()).max().unwrap_or(0);
                         out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
                         let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
                         out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":[id],"annotations":annotations})));
@@ -722,6 +847,160 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
         }
     }
     out
+}
+
+/// A lapse state that says nothing about the content (RS L-2, L-3).
+fn unknown_state(state: &Value) -> bool {
+    state.as_str().is_some_and(|s| s.starts_with("unknown"))
+}
+/// The `c1` of the latest determinate `act_lapsed` recorded for an arrival:
+/// the content identity it read, or "subject absent". None when no lapse
+/// observation with a known state is recorded.
+fn observed_content<'a>(entries: &'a [Value], arrival: &Value) -> Option<&'a Value> {
+    entries.iter().filter(|e| e["kind"] == "act_lapsed" && e["body"]["arrival"] == *arrival && !unknown_state(&e["body"]["state"]))
+        .last().map(|e| &e["body"]["c1"])
+}
+/// The latest performance of an arrival: its first CE-18 label with the
+/// highest performance ordinal, and that label's position in `entries`.
+fn latest_performance<'a>(entries: &'a [Value], arrival: &Value) -> Option<(usize, &'a Value)> {
+    let labels = || entries.iter().enumerate().filter(|(_, e)| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival);
+    let top = labels().filter_map(|(_, e)| e["body"]["performanceOrdinal"].as_u64()).max()?;
+    labels().find(|(_, e)| e["body"]["disposition"] == "performed" && e["body"]["performanceOrdinal"].as_u64() == Some(top)).map(|(i, e)| (i, &e["body"]))
+}
+/// Whether any arrival in a run's entries has a performance whose acts' content
+/// can still lapse while the run is live: its latest label is *performed*, or
+/// *waiting* again after a lapse before the resume point (EXEC §2.4.3).
+pub(crate) fn lapse_evaluable(entries: &[Value]) -> bool {
+    entries.iter().filter(|e| e["kind"] == "checkpoint_arrival").any(|e| {
+        let arrival = json!({"checkpoint":e["body"]["checkpoint"],"arrivalOrdinal":e["body"]["arrivalOrdinal"]});
+        matches!(disposition(entries, &[], &arrival).as_deref(), Some("performed" | "waiting")) && latest_performance(entries, &arrival).is_some()
+    })
+}
+
+/// CE-10 (EXEC §2.4.2, §2.4.3 CE-10 rows, RC-8, PH-8, §2.6 A-10; RS §7 L-1…L-6,
+/// L-11, L-12) for a live run, from its entries (`kind`, `body`), the
+/// project's verified acts ([`ActRead`]) and `current`, which reads a bound
+/// file now. Observation only: nothing is sent, re-held or refused, and no
+/// act record is changed (RC-4, PH-8, L-8).
+///
+/// For each arrival whose latest label is *performed*, or *waiting* again
+/// after a lapse, each act its latest performance cites (`answeredBy`) that
+/// is a current verified App-file act with one bound subject is compared with
+/// that file's content now (`standing::compare`, as the file-act view
+/// compares): the act's bound content `c0` against `c1` under the same method.
+/// A changed identity is *lapsed*, a missing file *lapsed (subject absent)*,
+/// another method *unknown (incomparable)*, an unreadable file *unknown
+/// (unavailable)*, and the content back at `c0` after a recorded lapse
+/// "matches c0 again after observed lapse". The same content is nothing.
+/// Each entry cites the act, its bound subject as the act record names it,
+/// `c0`, `c1`, the observation time `now`, the arrival, and *before resume*
+/// unless the arrival is *performed* and a `run_resumed` follows its latest
+/// performance (HD-5: measured against the recorded resume point).
+///
+/// An entry is written only when the observation differs from the latest
+/// one recorded for that arrival and act: a known state from the latest known
+/// one (state and `c1`), an unknown state from the latest one of any state.
+/// Only *lapsed* and *lapsed (subject absent)* write a CE-18 label: before
+/// the resume point the arrival is *waiting* "waiting — lapsed at ‹t›" (and
+/// "subject absent"); after it, it stays *performed* with "act lapsed at ‹t›"
+/// and its ordinal and acts (RC-8). An unknown state claims no lapse and no
+/// currency (A-10), and the effect of content back at `c0` is RS U-12, so
+/// neither changes a label.
+pub(crate) fn observe_lapses(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current) -> Vec<Output> {
+    use crate::standing::{compare, CurrentContent, Lapse};
+    let mut out: Vec<Output> = Vec::new();
+    let pending = |out: &[Output]| -> Vec<Value> { entries.iter().cloned().chain(out.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect() };
+    for arrival_entry in entries.iter().filter(|e| e["kind"] == "checkpoint_arrival") {
+        let body = &arrival_entry["body"];
+        let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
+        let referents = body["referents"].as_array().map(Vec::as_slice).unwrap_or_default();
+        let [referent] = referents else { continue };
+        let Some(shown) = referent["subject"].as_str() else { continue };
+        let all = pending(&out);
+        let latest = disposition(&all, &[], &arrival);
+        if !matches!(latest.as_deref(), Some("performed" | "waiting")) {
+            continue;
+        }
+        let Some((at, performance)) = latest_performance(&all, &arrival) else { continue };
+        let resumed = all[at + 1..].iter().any(|e| e["kind"] == "run_resumed" && e["body"]["arrival"] == arrival);
+        let when = if latest.as_deref() == Some("performed") && resumed { "after resume" } else { "before resume" };
+        let (ordinal, answered) = (performance["performanceOrdinal"].clone(), performance["answeredBy"].clone());
+        for id in answered.as_array().into_iter().flatten().filter_map(Value::as_str) {
+            let Some(act) = read.acts.iter().map(|a| &a["record"]).find(|r| r["kind"] == "human_act" && r["recordId"] == id) else { continue };
+            let b = &act["body"];
+            let (Some([subject]), Some([c0])) = (b["boundSubject"].as_array().map(Vec::as_slice), b["boundContent"].as_array().map(Vec::as_slice)) else { continue };
+            let (Some(path), Some(m0), Some(v0)) = (subject.as_str(), c0["method"].as_str(), c0["value"].as_str()) else { continue };
+            let all = pending(&out);
+            let prior: Vec<&Value> = all.iter().filter(|e| e["kind"] == "act_lapsed" && e["body"]["arrival"] == arrival && e["body"]["act"]["recordId"] == id).map(|e| &e["body"]).collect();
+            let observed = prior.iter().any(|p| matches!(p["state"].as_str(), Some("lapsed" | "lapsed (subject absent)" | "partially lapsed")));
+            let bound = crate::act_policy::ContentIdentity { method: m0.into(), value: v0.into() };
+            let now_content = current(Path::new(path));
+            let present = match &now_content {
+                Current::Present(value) => Some(crate::act_policy::ContentIdentity { method: EXACT_BYTES.into(), value: value.clone() }),
+                _ => None,
+            };
+            let state = compare(&bound, match (&now_content, &present) {
+                (_, Some(identity)) => CurrentContent::Present(identity),
+                (Current::Absent, _) => CurrentContent::Absent,
+                _ => CurrentContent::Unavailable,
+            }, observed);
+            let identity = || json!({"method":EXACT_BYTES,"value":present.as_ref().map(|p| p.value.clone())});
+            let (state, c1) = match (state, &now_content) {
+                (Lapse::Lapsed, _) => ("lapsed", identity()),
+                (Lapse::SubjectAbsent, _) => ("lapsed (subject absent)", json!("subject absent")),
+                (Lapse::MatchesAgainAfterLapse, _) => ("matches c0 again after observed lapse", identity()),
+                (Lapse::Incomparable, _) => ("unknown (incomparable)", identity()),
+                (Lapse::Unavailable, Current::Unavailable(reason)) => ("unknown (unavailable)", json!({"notObtainable":true,"reason":format!("{reason}; no lapse and no currency is claimed (A-10)")})),
+                _ => continue,
+            };
+            let repeated = if state.starts_with("unknown") {
+                prior.last().is_some_and(|p| p["state"] == state)
+            } else {
+                prior.iter().rev().find(|p| !unknown_state(&p["state"])).is_some_and(|p| p["state"] == state && p["c1"] == c1)
+            };
+            if repeated {
+                continue;
+            }
+            out.push(("act_lapsed", json!({"act":{"recordId":id,"actKind":b["actKind"],"capturedAt":b["captureTime"],"capturingSurface":"app_act_control"},
+                "state":state,"referents":[path],"c0":c0,"c1":c1,"time":now,"arrival":arrival,"when":when})));
+            if !matches!(state, "lapsed" | "lapsed (subject absent)") {
+                continue;
+            }
+            if when == "after resume" {
+                out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":answered,
+                    "annotations":[{"label":"act lapsed at","actRefs":[id],"time":now,"referents":[shown]}]})));
+            } else {
+                let mut annotations = vec![json!({"label":"waiting — lapsed at","actRefs":[id],"time":now,"referents":[shown]})];
+                if state == "lapsed (subject absent)" {
+                    annotations.push(json!({"label":"subject absent","referents":[shown]}));
+                }
+                out.push(("disposition_change", json!({"arrival":arrival,"disposition":"waiting","annotations":annotations})));
+            }
+        }
+    }
+    out
+}
+
+/// At the person's end of a run (EXEC A-11, CE-17), live or after a relaunch,
+/// before `run_ended`: CE-10 for content changed since the last observation,
+/// then CE-5, CE-6, CE-8 for acts recorded since, from the run's entries
+/// (RC-10). While an arrival waits and the act records cannot be read, the
+/// limit naming them ([`acts_unread_limit`]); the end is not refused.
+pub(crate) fn end_observations(entries: &[Value], root: &Path) -> Vec<Output> {
+    let waiting = !waiting_arrivals(entries).is_empty();
+    if !waiting && !lapse_evaluable(entries) {
+        return vec![];
+    }
+    match project_act_records(root) {
+        Ok(read) => {
+            let mut out = observe_lapses(entries, &read, &crate::util::now_rfc3339(), &mut |subject| current_content(root, subject));
+            let all: Vec<Value> = entries.iter().cloned().chain(out.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect();
+            out.extend(count_acts(&all, &read, root));
+            out
+        }
+        Err(e) if waiting => vec![acts_unread_limit(&e)],
+        Err(_) => vec![],
+    }
 }
 
 /// The first non-empty line of a message, trimmed (WD OP-1).

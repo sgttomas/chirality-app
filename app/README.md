@@ -317,18 +317,36 @@ writes records or operates the act control." `src-tauri/` holds that host;
     The agent's next own action (RC-9) records `continued_past` once (CE-12),
     and the first action evidenced as started after the deciding act records
     `run_resumed` (CE-11; with no supplier start time none is claimed, A-9).
+    **Lapses (CE-10).** While the run is live, at each observation the App
+    reads the file each act answering an arrival's latest performance is
+    bound to (rehashing it only when its metadata changes) and compares it
+    with the act's bound content as the file-act view does. A changed identity
+    is written as `act_lapsed` *lapsed*, a missing file *lapsed (subject
+    absent)*, with the observation's own time and the act record unchanged.
+    Before the recorded resume point the arrival becomes *waiting* "waiting —
+    lapsed at ‹t›" (and "subject absent"), and an act on the content now
+    current performs it again with the next ordinal; after it, the arrival
+    stays *performed* with "act lapsed at ‹t›" and nothing re-holds (RC-8,
+    PH-8). A file that cannot be read is *unknown (unavailable)*, and content
+    back at the acted content "matches c0 again after observed lapse"; both
+    are written without changing the label (A-10; RS U-12). A repeated
+    observation is not written again. The file-act view reads these entries
+    as the act's lapse history.
     Recording never sends, opens, pauses or ends anything (RC-4). When the
-    person ends the run, acts recorded since the last observation are counted
-    first, also for a run ended after a relaunch (when the act records cannot
-    be read, the end still ends the run and a limit naming them is written
-    first), and `run_ended` lists the arrivals still waiting (CE-17). Each checkpoint shows its listing or
+    person ends the run, lapses since the last observation and then acts
+    recorded since are written first, also for a run ended after a relaunch
+    (when the act records cannot be read, the end still ends the run and, if
+    an arrival waits, a limit naming them is written first), and `run_ended`
+    lists the arrivals still waiting (CE-17). Each checkpoint shows its listing or
     finding, its arrivals with their labels, requests, counted and not-counted
-    acts and limits. A run record entry that cannot be
+    acts, lapses and limits. A run record entry that cannot be
     written is shown on the run (A-12). It is written later, in order, with a
     "record write failed" limit (CE-19), and is never written elsewhere. The
     App writes no host-outcome, A5 item or A12 entries (AW-8…AW-10, CE-7,
-    CE-9), and no lapse, observation-loss or after-end entries (CE-10,
-    CE-13…CE-16). A path is compared as text
+    CE-9), no observation-loss entries (CE-13, CE-14) and, since it observes
+    no run after its end, no after-end lapse or act (CE-10 *after run end*,
+    CE-16). An act on lapsed content after the resume point is not recorded
+    against the still *performed* arrival. A path is compared as text
     (U-E26). Recording follows the active home's view while the App
     refreshes, and when the person ends the run. Each declared output shows its
     promise apart from its standing facets (AS §8), which come only from the
@@ -590,7 +608,7 @@ narrows R-1 but does not close it: anything that can read that file, including
 an agent under Codex's default read access, can seal. Trustworthy persistent
 cold replay remains unfinished under AAC §6.3 U-AAC-3 and I3-CUST, and SEAL-2 stays
 deferred. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
@@ -599,9 +617,12 @@ REC stop-request records and the ledger `codex_stop` entry (item 22) are
 appended to the existing pointer ledger. Checkpoint entries (item 23) go to the
 run's own RS log. Neither opens a new store.
 
-The run panel (item 23) records only output arrivals (AW-6, AW-7). It does not
-yet record tool-call or host-outcome arrivals, act counting and its
-dispositions (CE-2, CE-4…CE-7), or output records. Conversation roles (item 24)
+The run panel (item 23) records output arrivals (AW-6, AW-7), harness-capability
+call starts (AW-3), requests, counted App-file acts and, while the run is live,
+their lapses (CE-1…CE-6, CE-8, CE-10…CE-12, CE-17). It does not yet record
+host-operation or host-outcome arrivals (CE-7, CE-9), observation loss or
+recovery (CE-13, CE-14), anything after the run's end (CE-10 *after run end*,
+CE-16), or output records. Conversation roles (item 24)
 keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 

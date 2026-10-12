@@ -122,6 +122,24 @@ test('counted and not-counted acts, requests, declines and declaration findings 
   assert.ok(guidance.includes('not listed: reported as a declaration finding (invalid, FB-03); no arrival is recorded for it (CE-2).'),guidance);
 });
 
+test('recorded lapses are shown against the arrival, and nothing is held because of them (CE-10, RC-8, SD-2)',()=>{
+  const a=arrival('CP-rely',1,'item:thread/turn/f1','output summary: file out/summary.md');
+  const at={checkpoint:'CP-rely',arrivalOrdinal:1};
+  const act={recordId:'rec:app:rely',actKind:'A7',capturedAt:'2026-09-21T15:00:00.000Z',capturingSurface:'app_act_control'};
+  const c0={method:'chirality.app.exact-bytes.sha256/v1',value:'00'},c1={method:'chirality.app.exact-bytes.sha256/v1',value:'11'};
+  const lapse=(state,when,time,over={})=>entry('act_lapsed',{act,state,referents:['/p/out/summary.md'],c0,c1,time,arrival:at,when,...over});
+  const before=[a,entry('act_counted',{arrival:at,act,relation:'after arrival',referents:['output summary: file out/summary.md']}),disposition('CP-rely',1,'performed'),
+    lapse('lapsed','before resume','2026-09-21T16:00:00.000Z'),disposition('CP-rely',1,'waiting')];
+  const html=h(ArrivalRecord,{arrival:a,all:before});
+  assert.ok(html.includes('Arrival 1: reached; act not yet recorded.'),html);
+  assert.ok(html.includes('Lapse observed for A7 rec:app:rely at 2026-09-21T16:00:00.000Z (before resume): the file&#x27;s content changed. Lapsed at 2026-09-21T16:00:00.000Z; the arrival is recorded as waiting again. Nothing is asked or stopped because of it.'),html);
+  const after=h(ArrivalRecord,{arrival:a,all:[...before.slice(0,3),lapse('lapsed','after resume','2026-09-21T17:00:00.000Z'),disposition('CP-rely',1,'performed'),
+    lapse('unknown (unavailable)','after resume','2026-09-21T17:30:00.000Z',{c1:{notObtainable:true,reason:'not a regular file'}})]});
+  assert.ok(after.includes('Arrival 1: performed.')&&after.includes('Act lapsed at 2026-09-21T17:00:00.000Z; the arrival stays performed.'),after);
+  assert.ok(after.includes('(after resume): lapse unknown: the file could not be read. Nothing is asked'),after);
+  assert.ok(!FORBIDDEN.test(html+after),(html+after).match(FORBIDDEN)?.[0]);
+});
+
 test('an arrival bound to an output is evidence of where it was put, never a standing',()=>{
   const output={name:'summary',promised_standing:[]};
   const bound=[entry('run_opened',{}),listedCheck,arrival('CP-sum',1,'item:thread/turn/m2','output summary: agentMessage m2'),disposition('CP-sum',1,'waiting')];

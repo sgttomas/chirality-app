@@ -599,8 +599,12 @@ capture time (or "not supplied by host", R14-4) and capturing surface.
 file acts and declines through each cited capture, with AAC §6.3 SEAL-C and RS
 correction relations; an unrelated file-naming record is an unresolvable limit,
 not an act. No App act binds an agent message, so an AW-6 arrival remains waiting.
-Later acts on decided arrivals (§4.6), acts after run end (CE-16), lapses (CE-10)
-and observation loss/recovery (CE-13/14) are not yet recorded. Host-operation
+While the run is live, CE-10 is recorded for the App-file acts that answer an
+arrival's latest performance, with the before- and after-resume labels of
+§2.4.3. Later acts on decided arrivals (§4.6), including an act on lapsed
+referents after the resume point, lapses and acts after run end (CE-10 *after
+run end*, CE-16) and observation loss/recovery (CE-13/14) are not yet recorded:
+the App does not observe a run after its end. Host-operation
 and host-outcome arrivals stay not evaluable without mapping (ADAPTER NM-2),
 so no CE-7 arises; an empty waiting list establishes no wider completeness.
 
@@ -616,7 +620,14 @@ resolves them. AW-7 reads one non-blocking regular-file snapshot up to 256 MiB
 with that limit. CE-4 uses App observation time and a conversation-item reference,
 not structured act meaning from a person-input request. AW-3 uses agent
 `collabAgentToolCall` items, not `subAgentActivity`. Act records are reread only
-when log/capture path, size or modification time changes. These interpretations
+when log/capture path, size or modification time changes. For CE-10 the App reads
+the act's bound file at each live observation and when the person ends the run;
+a file is rehashed only when its device, inode, size or modification or change
+time changes, or within two seconds of its change time. The resume point is the
+recorded `run_resumed` after the latest performance; without one a lapse is *before
+resume*. An unknown state is written once and changes no label; content back at
+c₀ is written and changes no label (RS U-12). After a lapse, acts count against
+the content the latest determinate lapse read. These interpretations
 remain disclosed pending governing treatment; they add no acceptance rule.
 
 #### 2.4.3 Transition table (per arrival, current phase)

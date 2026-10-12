@@ -86,6 +86,19 @@ const TIME_SOURCE: Record<string, string> = { supplier_item_time: "time Codex ga
 const writtenNote = (r: Json, all: Json[]): string => r?.written === false ? `Not yet written to the run record: ${text(r.limit) || "the write did not complete"}.`
   : r?.writtenLate === true || all.some((e: Json) => e?.kind === "evidence_limit" && e?.body?.label === "record write failed" && e?.body?.subjectRef === r?.recordId) ? "Written late; the run record carries a “record write failed” limit for it." : "";
 const ACT_RELATION: Record<string, string> = { "after arrival": "after the arrival", "earlier act": "before the arrival, on content still current (an earlier act counts)" };
+// EXEC CE-10 / SD-2 (RC-8): what a recorded lapse observation says, and no more.
+const LAPSE_STATE: Record<string, string> = {
+  lapsed: "the file's content changed",
+  "lapsed (subject absent)": "the file is absent",
+  "matches c0 again after observed lapse": "the file matches the content acted on again, after the observed lapse",
+  "unknown (incomparable)": "lapse unknown: the content identities are not comparable",
+  "unknown (unavailable)": "lapse unknown: the file could not be read",
+};
+const lapseLine = (b: Json): string => {
+  const lapsed = b?.state === "lapsed" || b?.state === "lapsed (subject absent)";
+  const label = !lapsed ? "" : b?.when === "after resume" ? ` Act lapsed at ${text(b?.time)}; the arrival stays performed.` : ` Lapsed at ${text(b?.time)}; the arrival is recorded as waiting again.`;
+  return `Lapse observed for ${text(b?.act?.actKind)} ${text(b?.act?.recordId)} at ${text(b?.time)} (${text(b?.when)}): ${LAPSE_STATE[text(b?.state)] ?? text(b?.state)}.${label} Nothing is asked or stopped because of it.`;
+};
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
@@ -110,6 +123,7 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
     {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Declined by the person (${text(c.body?.declinedEventRef)}).`))}
     {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
     {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the act the run went on with ${text(c.body?.firstActionRef)}.`))}
+    {related("act_lapsed").map((c: Json, i: number) => line(`x${i}`, lapseLine(c.body)))}
     {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
     {note && line("w", note)}
   </li>;
