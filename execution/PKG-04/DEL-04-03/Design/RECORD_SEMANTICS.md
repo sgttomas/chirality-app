@@ -1629,7 +1629,12 @@ It realizes §13.8's agent access and does not change what a record is.
   typed marker that no record content can be mistaken for,
   `{"rewrittenPath":"<project>/…"}` when the path, resolved through symbolic
   links and aliases, is in the project, otherwise
-  `{"withheldPath":"outside-project"}`; relative values stay as recorded. The
+  `{"withheldPath":"outside-project"}`; relative values stay as recorded.
+  Record content supplies these paths, so each is first compared lexically,
+  without the file system, with the project's canonical path and the path it
+  was configured by: one with `.` or `..` components, or under neither, is
+  withheld unresolved, so no record makes the App look up an automount or
+  network path. Only a path under one of them is resolved. The
   item's `pathsRewritten` counts them, so such an entry is the record with
   those values replaced, not its exact bytes. Every other string, free text
   included, is quoted exactly and may contain paths, including ones outside

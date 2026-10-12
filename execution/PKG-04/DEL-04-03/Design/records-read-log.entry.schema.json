@@ -58,7 +58,7 @@
         "limits": {"type": "integer", "minimum": 0}
       }
     },
-    "standing": {"const": "App-observed: what the App returned to the agent; not an act"}
+    "standing": {"const": "App-observed: what the App prepared to return to the agent; not an act"}
   },
   "allOf": [
     {"if": {"properties": {"outcome": {"const": "returned"}}}, "then": {"required": ["returned"], "not": {"required": ["refusal"]}}},

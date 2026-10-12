@@ -87,9 +87,9 @@
     },
     {
       "file": "records-read-log.entry.schema.json",
-      "sha256": "3b91c27e5a72e35b53c78a6d2a877ad0b7beec07290ff19833cd54187ab3c812",
+      "sha256": "d27144e866ac328f7c63716b5224ef6034b57637da7739e1fb18a3a92d8d74f2",
       "source": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/records-read-log.entry.schema.json",
-      "sourceSha256": "3b91c27e5a72e35b53c78a6d2a877ad0b7beec07290ff19833cd54187ab3c812",
+      "sourceSha256": "d27144e866ac328f7c63716b5224ef6034b57637da7739e1fb18a3a92d8d74f2",
       "standing": "maintained unchanged Design schema (PROPOSED 0.1); each records-capability read-log entry is validated against it before it is appended"
     },
     {

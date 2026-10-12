@@ -436,9 +436,13 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
 fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
     let f = Scratch::new();
     let a = f.project("project");
-    // (b) the project spelled through an alias: a symbolic link to it.
+    // (b) the project spelled as it was configured, through an alias: a
+    // symbolic link to it. Another link to it, never configured, is not
+    // followed: a path is resolved only under the project's two spellings.
     let alias = f.0.join("alias");
     std::os::unix::fs::symlink(&a, &alias).unwrap();
+    let other = f.0.join("other-link");
+    std::os::unix::fs::symlink(&a, &other).unwrap();
     let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
     opened["runId"] = json!("run:p");
     opened["body"]["runId"] = json!("run:p");
@@ -452,7 +456,10 @@ fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
     write_lines(&a, "run:p", &[opened.to_string(), prose.to_string()]);
     write_act(&a, "cap:in", &format!("{}/out/summary.md", alias.display()), "S");
     write_act(&a, "cap:out", "/etc/hosts", "S");
-    let cap = capability(&f, &a);
+    write_act(&a, "cap:link", &format!("{}/out/summary.md", other.display()), "S");
+    write_act(&a, "cap:dots", &format!("{}/../alias/out/summary.md", a.display()), "S");
+    write_act(&a, "cap:net", "/net/records-fixture-host/share/x", "S");
+    let cap = capability(&f, &alias);
     let page = returned(&cap.answer(&call(1, json!({"operation":"read_run","run":"run:p"})), Some(a.to_str().unwrap())));
     assert_eq!(page["items"][0]["quoted"]["body"]["workflow"]["sourceRoot"], json!({"rewrittenPath":"<project>/workflows/lib"}), "resolved through the alias");
     assert_eq!(page["items"][0]["pathsRewritten"], 1);
@@ -464,8 +471,11 @@ fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
     assert_eq!(runs["items"][0]["run"]["opened"]["workflow"]["sourceRoot"], json!({"rewrittenPath":"<project>/workflows/lib"}));
     let acts = returned(&cap.answer(&call(3, json!({"operation":"read_acts"})), Some(a.to_str().unwrap())));
     let subjects: Vec<Value> = acts["items"].as_array().unwrap().iter().map(|i| i["quoted"]["body"]["boundSubject"].clone()).collect();
-    assert!(subjects.contains(&json!([{"rewrittenPath":"<project>/out/summary.md"}])), "{subjects:?}");
-    assert!(subjects.contains(&json!([{"withheldPath":"outside-project"}])), "{subjects:?}");
+    let withheld = json!([{"withheldPath":"outside-project"}]);
+    assert_eq!(subjects.iter().filter(|s| **s == json!([{"rewrittenPath":"<project>/out/summary.md"}])).count(), 1, "only the configured spelling: {subjects:?}");
+    assert_eq!(subjects.iter().filter(|s| **s == withheld).count(), 4, "/etc/hosts, the unconfigured link, the `..` path and /net, unresolved: {subjects:?}");
     let text = serde_json::to_string(&acts).unwrap();
-    assert!(!text.contains("/etc/hosts") && !text.contains(alias.to_str().unwrap()));
+    for hidden in ["/etc/hosts", alias.to_str().unwrap(), other.to_str().unwrap(), "/net/"] {
+        assert!(!text.contains(hidden), "{hidden}");
+    }
 }

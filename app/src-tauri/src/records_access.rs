@@ -209,7 +209,7 @@ const ACT_KINDS: &[&str] = &["human_act", "act_declined", "act_lapsed", "act_req
 
 /// The page `request` asks for, from `corpus`, within the bounds above.
 /// `project` is the project folder, rewritten in quoted entries.
-pub fn page(corpus: &Corpus, request: &Request, project: &str) -> Page {
+pub(crate) fn page(corpus: &Corpus, request: &Request, project: &ProjectRoot) -> Page {
     let items: Vec<(Value, Option<String>)> = match request.operation.as_str() {
         "list_runs" => runs(corpus, project).into_iter().map(|r| (r, None)).collect(),
         "read_run" => corpus.entries.iter().filter(|e| e.entry["runId"].as_str() == request.run.as_deref()).map(|e| quoted(e, project)).collect(),
@@ -252,7 +252,7 @@ fn within_entry_limit(item: Value, stub: impl FnOnce(usize) -> Value) -> Value {
 fn identity_text(v: &Value) -> Value {
     v.as_str().map(|s| json!(bounded(s, 128))).unwrap_or(Value::Null)
 }
-fn quoted(e: &SourcedEntry, project: &str) -> (Value, Option<String>) {
+fn quoted(e: &SourcedEntry, project: &ProjectRoot) -> (Value, Option<String>) {
     let id = e.entry["recordId"].as_str().map(str::to_owned);
     let mut entry = e.entry.clone();
     let rewritten = rewrite_paths(&mut entry, project);
@@ -270,9 +270,10 @@ const PATH_FIELDS: &[&str] = &["sourceRoot", "boundSubject"];
 /// In a quoted entry, each absolute value of a [`PATH_FIELDS`] field becomes a
 /// typed marker that no record content can be mistaken for:
 /// `{"rewrittenPath":"<project>/…"}` when the path, resolved, is in the
-/// project, otherwise `{"withheldPath":"outside-project"}`. Relative values
-/// stay as recorded. Returns how many values were rewritten.
-fn rewrite_paths(v: &mut Value, project: &str) -> usize {
+/// project ([`ProjectRoot::inside`]), otherwise
+/// `{"withheldPath":"outside-project"}`. Relative values stay as recorded.
+/// Returns how many values were rewritten.
+fn rewrite_paths(v: &mut Value, project: &ProjectRoot) -> usize {
     match v {
         Value::Array(a) => a.iter_mut().map(|x| rewrite_paths(x, project)).sum(),
         Value::Object(o) => o
@@ -282,10 +283,10 @@ fn rewrite_paths(v: &mut Value, project: &str) -> usize {
         _ => 0,
     }
 }
-fn rewrite_path_value(v: &mut Value, project: &str) -> usize {
+fn rewrite_path_value(v: &mut Value, project: &ProjectRoot) -> usize {
     match v {
         Value::String(s) if s.starts_with('/') => {
-            *v = match resolved(Path::new(s.as_str())).and_then(|p| p.strip_prefix(project).ok().map(Path::to_path_buf)) {
+            *v = match project.inside(Path::new(s.as_str())) {
                 Some(rest) if rest.as_os_str().is_empty() => json!({"rewrittenPath":"<project>"}),
                 Some(rest) => json!({"rewrittenPath":format!("<project>/{}", rest.to_string_lossy())}),
                 None => json!({"withheldPath":"outside-project"}),
@@ -294,6 +295,39 @@ fn rewrite_path_value(v: &mut Value, project: &str) -> usize {
         }
         Value::Array(a) => a.iter_mut().map(|x| rewrite_path_value(x, project)).sum(),
         _ => 0,
+    }
+}
+/// The project folder that path fields are compared with: its canonical
+/// path, and the path it was configured by when that differs (an alias such
+/// as `/tmp` for `/private/tmp`).
+pub(crate) struct ProjectRoot {
+    canonical: PathBuf,
+    prefixes: Vec<PathBuf>,
+}
+impl ProjectRoot {
+    fn new(configured: &Path, canonical: &Path) -> Self {
+        let mut prefixes = vec![canonical.to_path_buf()];
+        if configured.is_absolute() && configured != canonical {
+            prefixes.push(configured.to_path_buf());
+        }
+        Self { canonical: canonical.to_path_buf(), prefixes }
+    }
+    /// `path`'s place under the project, if it is there. A record supplies
+    /// the path, so it is first checked lexically, without the file system:
+    /// a path with `.` or `..` components, or under neither the canonical
+    /// project nor its configured spelling, is outside. Only a path under one
+    /// of them is resolved (its symbolic links followed), so record content
+    /// never makes the App look up an automount or network path such as
+    /// `/net/host/…`.
+    fn inside(&self, path: &Path) -> Option<PathBuf> {
+        use std::path::Component;
+        if path.components().any(|c| !matches!(c, Component::RootDir | Component::Normal(_))) {
+            return None;
+        }
+        if !self.prefixes.iter().any(|prefix| path.starts_with(prefix)) {
+            return None;
+        }
+        resolved(path)?.strip_prefix(&self.canonical).ok().map(Path::to_path_buf)
     }
 }
 /// `path` resolved (symbolic links and aliases such as `/tmp`): its longest
@@ -320,7 +354,7 @@ fn resolved(path: &Path) -> Option<PathBuf> {
 }
 /// Each run once, in first-entry order: what the App derived from its
 /// entries, each fact bounded and the row no larger than an entry.
-fn runs(corpus: &Corpus, project: &str) -> Vec<Value> {
+fn runs(corpus: &Corpus, project: &ProjectRoot) -> Vec<Value> {
     let mut order: Vec<String> = Vec::new();
     let mut runs: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
     let fact = |v: &Value| {
@@ -427,6 +461,7 @@ impl ReadLog {
 /// The capability the host offers in its current project.
 pub struct RecordsCapability {
     project: PathBuf,
+    root: ProjectRoot,
     source: Box<dyn RecordsSource>,
     log: Mutex<ReadLog>,
 }
@@ -434,8 +469,10 @@ impl RecordsCapability {
     /// `project`: the App's current project folder. `read_log`: the App-private
     /// read log (its folder must exist).
     pub fn new(project: &Path, read_log: PathBuf) -> Result<Self, String> {
-        let project = project.canonicalize().map_err(|e| format!("records capability project unavailable: {e}"))?;
-        Self::with_source(&project, Box::new(ProjectPaths::new(&project)), read_log)
+        let canonical = project.canonicalize().map_err(|e| format!("records capability project unavailable: {e}"))?;
+        let mut capability = Self::with_source(&canonical, Box::new(ProjectPaths::new(&canonical)), read_log)?;
+        capability.root = ProjectRoot::new(project, &canonical);
+        Ok(capability)
     }
     pub fn with_source(project: &Path, source: Box<dyn RecordsSource>, read_log: PathBuf) -> Result<Self, String> {
         if read_log.starts_with(project) {
@@ -444,7 +481,7 @@ impl RecordsCapability {
         if !read_log.parent().is_some_and(Path::is_dir) {
             return Err("records read log folder unavailable".into());
         }
-        Ok(Self { project: project.to_path_buf(), source, log: Mutex::new(ReadLog { path: read_log, answered: HashSet::new(), recent: Vec::new(), limit: None }) })
+        Ok(Self { project: project.to_path_buf(), root: ProjectRoot::new(project, project), source, log: Mutex::new(ReadLog { path: read_log, answered: HashSet::new(), recent: Vec::new(), limit: None }) })
     }
     /// Whether a conversation started in `cwd` is in this project.
     pub fn offered_for(&self, cwd: &str) -> bool {
@@ -469,7 +506,7 @@ impl RecordsCapability {
             Err(reason) => (refusal_text(&read_id, &reason), false, json!({"outcome":"refused","refusal":reason})),
             Ok(request) => {
                 let corpus = self.source.read();
-                let (text, page) = bounded_document(&read_id, &request, page(&corpus, &request, &self.project.to_string_lossy()));
+                let (text, page) = bounded_document(&read_id, &request, page(&corpus, &request, &self.root));
                 match text {
                     Some(text) => {
                         let record = json!({"outcome":"returned","returned":{"items":page.items.len(),"bytes":text.len(),
@@ -486,7 +523,7 @@ impl RecordsCapability {
         let mut entry = json!({"format":"chirality.records-read-log","formatVersion":"0.1","readId":read_id,"at":now_rfc3339(),
             "appSession":call.app_session,"generation":call.generation,"requestIdentity":bounded(&serde_json::to_string(&call.request).unwrap_or_default(), 256),
             "threadId":bounded(&call.thread, 256),"turnId":bounded(&call.turn, 256),"callId":bounded(&call.call, 256),"tool":TOOL,"project":{"root":self.project.to_string_lossy()},
-            "arguments":bounded_arguments(&call.arguments),"standing":"App-observed: what the App returned to the agent; not an act"});
+            "arguments":bounded_arguments(&call.arguments),"standing":"App-observed: what the App prepared to return to the agent; not an act"});
         for (k, v) in record.as_object().unwrap() {
             entry[k] = v.clone();
         }
