@@ -1619,6 +1619,41 @@ last-wins dictionary is not the source warrant for cross-log precedence.
 | FC-8 | A referenced source becomes unresolvable after the write (e.g. SWBPIPE's receipts are session-only, SQ-09) | Resolution status at read "unresolvable"; what was recorded stays as recorded — a disposition already *performed* is not recomputed to *waiting* — and the record-out states the limit | Unchanged | Designed, not run |
 | FC-9 | The App restarts during a run with a submission in flight (ADAPTER PI-6), or the agent resubmits without first observing by identity (ADAPTER PI-2) | The in-flight submission stays *outcome unknown*, observer App (W-0 on relaunch opens the same run log; an interruption is not a run end, EXEC §4.12). Both conditions are R11 limits the writer records (R13-2): "resubmission without prior observation" on the resubmission's operation entry, "App-restart interruption" on relaunch; deriving them at read time is not adopted | The submission's entry, *outcome unknown*, observer App, and the limit entries | Designed, not run |
 
+**Measured on the App writer (2026-10-12; release build, macOS, one
+machine; `records::durability_tests`, and the ignored
+`records_scale_report`; current implementation, not a Design change).**
+- *FC-2.* 200 SIGKILLs at random points of a child appending 48 KiB
+  entries in a loop left only complete entries, in sequence, and no torn
+  tail. A short write (`RLIMIT_FSIZE`) leaves one. The reader reports it
+  as "partial entry at end (not read)", never as an entry. W-0's repair
+  is not implemented, so a reopened writer refuses that log ("ends in a
+  partial line … nothing written"). Because an append requires a
+  complete record set, it also refuses every other log of the project
+  ("record-set conflict/incomplete"). Only the person's explicit end
+  records beside it (`ReadableBesideIncomplete`). A directory-sync
+  failure after the line landed reports the append failed while the
+  reader shows the entry; a retry under the same reserved identity
+  refuses, so nothing is duplicated (FC-1). Not shown: survival of
+  OS-acknowledged data at a power failure, and a full device (ENOSPC).
+- *Scale.* Logs of 30 entries a run, and A7 act records citing sealed
+  captures. A first year is estimated at 1,000 runs and 3,000 acts.
+
+  | Runs / acts | Logs | `read_all` | One append | Act read (`project_act_records`) | Act-store fingerprint | Record tick writing 9 entries |
+  |---|---|---|---|---|---|---|
+  | 100 / 300 | 1.6 MB | 33 ms | 25 ms | 113 ms (98 MB peak) | 5 ms | 0.48 s |
+  | 1,000 / 3,000 | 17 MB | 172 ms | 217 ms | 0.91 s (0.71 GB) | 61 ms | 3.8 s |
+  | 10,000 / 100,000 | 234 MB | 2.1 s (1.9 GB) | 2.1 s | 16.8 s (9.1 GB) | 0.97 s | 53 s |
+
+  All of it is linear in the whole project record set; a quiet tick reads
+  nothing. Every append re-reads and re-validates every log of the
+  project (CC-ID collision check and W-0/W-1 completeness), so one append
+  costs one `read_all`, and a run's writing grows quadratically over the
+  project's life. The act read re-reads every log and capture whenever
+  the fingerprint changes, which each append does. What to bound first:
+  the per-append record-set read (identity collision and completeness
+  from an index or the owning log), then the act read (only records
+  since the last read).
+
 ## 15. Local prototype (R12-3)
 
 `prototype/` holds a prototype, not product code (its README says so):

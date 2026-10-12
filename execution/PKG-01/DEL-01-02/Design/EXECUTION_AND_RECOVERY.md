@@ -1225,3 +1225,44 @@ seen live is found. Readings this file leaves open, as implemented:
   only the later generation's state is.
 - `app_restart_interruption` is derived from the rows earlier App sessions
   wrote, so a recovery read in this session does not remove it.
+
+**App ledger durability and scale, measured (2026-10-12; release build,
+macOS, one machine; `records::durability_tests`, and the ignored
+`records_scale_report`).**
+- *Crash.* 200 SIGKILLs at random points of a child process appending
+  in a loop left only complete, schema-valid lines and no torn tail;
+  each reopened ledger read every line and appended again. A short write
+  (`RLIMIT_FSIZE`, part of the line landed, then EFBIG) is reported as
+  "append not confirmed" and is not kept in memory. The same writer's
+  next append refuses ("unclosed final record; bytes preserved"). The
+  reader then refuses the whole file ("final ledger record is not
+  newline-closed; bytes preserved"): the bytes are left in place, but
+  every earlier entry becomes unavailable to recovery. §7 asks instead
+  for an explicit limit that preserves the old evidence that can still
+  be read. Not shown: whether data the OS acknowledged survives a power
+  failure. `sync_data` is called, but a killed process leaves the page
+  cache intact, so this cannot be simulated. A full device (ENOSPC) was
+  not produced; the file-size limit stands in for it.
+- *Scale.* Rows estimated at about 340 a run: an index row as each item
+  opens and as it closes (`persist_execution`), at about 15 items a turn
+  and 10 turns a run, plus register summaries. That gives about 340,000
+  rows in a first year of 1,000 runs (an estimate from the code, not from
+  a live run).
+
+  | Rows (≈ years) | File | Open | Resident after open | Host snapshot (clone) | Host status JSON | One fact (append + snapshot) | Startup (`configure_recovery`) |
+  |---|---|---|---|---|---|---|---|
+  | 34,000 (0.1) | 14 MB | 44 ms | 97 MB | 24 ms | 14 MB | 34 ms | 78 ms |
+  | 340,000 (1) | 142 MB | 469 ms | 821 MB | 240 ms | 142 MB | 327 ms | 872 ms |
+  | 1,000,000 (3) | 419 MB | 1.25 s | 2.4 GB | 677 ms | 419 MB | 928 ms | 2.3 s |
+
+  Every cost grows linearly with the whole ledger. The host keeps every
+  row in memory, about 2.4 KB per row. Its snapshot carries all of them
+  (`recovery.entries`), so each tick and each 1 s `host_status` poll
+  clones the ledger and sends it to the web view. Each item start or
+  completion, and each request change, clones the history again under
+  the host lock (`persist_execution`, `persist_requests`). Peak resident
+  size in the measuring process was 0.26, 2.4 and 7.0 GB. What to bound
+  first: the snapshot's `entries` and the per-fact history clone. The
+  live readers seen (`persist_execution`, `persist_requests`, tags) search
+  them for the latest row of one conversation or request. Next: the
+  startup read.

@@ -10489,6 +10489,8 @@ for line in sys.stdin:
     }
     // WR TX-5 / SQ-END, (d), (j): restart residuals.
     include!("run_restart_tests.rs");
+    // RS §14 / DEL-01-02 §7: multi-year scale measurement (ignored; run on request).
+    include!("records_scale_tests.rs");
 }
 #[cfg(test)] #[path = "workflow_journey_tests.rs"] mod workflow_journey_tests;
 

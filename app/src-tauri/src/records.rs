@@ -410,7 +410,7 @@ pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), S
 }
 
 /// The RS entry `append_reserved` writes, with its writer sequence.
-fn envelope(kind: &str, recorder: &Recorder, body: Value, id: String, seq: u64, run: Option<&str>, observed_at: Option<&str>) -> Value {
+pub(crate) fn envelope(kind: &str, recorder: &Recorder, body: Value, id: String, seq: u64, run: Option<&str>, observed_at: Option<&str>) -> Value {
     let mut entry = json!({
         "format": "chirality.rs.record",
         "formatVersion": "0.1",
@@ -520,6 +520,10 @@ fn append_reserved(
     crate::storage::sync_publication(log)?;
     Ok(entry)
 }
+
+#[cfg(test)]
+#[path = "records_durability_tests.rs"]
+mod durability_tests;
 
 #[cfg(test)]
 mod tests {
