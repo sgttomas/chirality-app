@@ -336,7 +336,10 @@ export function RegisteredRevisions({ library, rows, busy, act }:{ library: stri
  * from the revision store (SL-4); nothing here picks a folder. ‹n› is the
  * revision's sequence as the library lists it, or its first 12 characters. */
 export function ReviewSelectButtons({ review, libraries, busy, act }:{ review: Json; libraries: Json[]; busy: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
-  const listed=(id:Json)=>libraries.flatMap((l:Json)=>Array.isArray(l.registered)?l.registered:[])
+  // Only the library that holds this tuple (its origin and source root): the same
+  // content may be registered under another sequence in another library.
+  const listed=(id:Json)=>libraries.filter((l:Json)=>l.origin===id?.origin&&l.sourceRoot===id?.source_root)
+    .flatMap((l:Json)=>Array.isArray(l.registered)?l.registered:[])
     .find((row:Json)=>row.name===id?.name&&row.revision===id?.revision)?.sequence;
   return <>{(review?.status?.entries??[]).filter((entry:Json)=>entry.state==="registered"||entry.state==="re-confirmed").map((entry:Json)=>
     <button key={entry.identity.revision} disabled={busy} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {listed(entry.identity)??String(entry.identity.revision).slice(0,12)}</button>)}</>;
