@@ -583,13 +583,16 @@ implemented behavior and qualification limits.
     Rust host answers on a worker thread by the App rule `records-read` and
     reads only this project's records. It never returns keys, capture
     evidence files, other projects' records, library acts (also when the
-    project is the library), refused lines' content or absolute paths
-    (rewritten to `<project>/…` or withheld inside quoted entries). Every
+    project is the library) or refused lines' content. Path-valued fields
+    (`workflow.sourceRoot`, `boundSubject`) come back as
+    `{"rewrittenPath":"<project>/…"}` or `{"withheldPath":"outside-project"}`;
+    every other string is quoted exactly and may contain paths. Every
     return is one JSON document marked as quoted evidence, not instructions
     or authority. Before the
     agent gets an answer, the call (returned or refused) is written to the
     App's read log `runtime/records-reads.jsonl` and synced, so a read that
-    cannot be recorded returns nothing. The host status shows the capability
+    cannot be recorded returns nothing. "returned" there means prepared for
+    return; whether the reply reached Codex is the request register's entry. The host status shows the capability
     and its latest 20 reads, never what was returned. The agent can still
     read the record files directly; Codex 0.160.0 cannot prevent that, and
     such reads are not recorded.

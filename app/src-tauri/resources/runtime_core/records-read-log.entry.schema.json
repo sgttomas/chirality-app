@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:records-read-log-entry:0.1",
   "title": "App records read log entry (RS §13.9)",
-  "description": "One agent call of the App's read-only records capability, recorded by the App before it answers. App-observed: what the App returned to the agent; never an act, a record of the project or authority.",
+  "description": "One agent call of the App's read-only records capability, recorded by the App before it answers. App-observed: what the App prepared to return to the agent; never an act, a record of the project or authority. outcome 'returned' means the page was prepared for return and recorded; whether the reply was written to Codex is the request register's entry (joined by generation and requestIdentity), not this line.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "formatVersion", "readId", "at", "appSession", "generation", "requestIdentity", "threadId", "turnId", "callId", "tool", "project", "arguments", "outcome", "standing"],

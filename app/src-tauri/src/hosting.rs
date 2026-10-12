@@ -740,7 +740,15 @@ impl Host {
             Err(error) => json!({"state":"unavailable","generation":generation,"reason":error}),
         }
     }
-    pub fn snapshot(&self) -> Value {let i=self.inner.0.lock().unwrap();Self::snapshot_inner(&i)}
+    pub fn snapshot(&self) -> Value {
+        let (mut snapshot,capability)={let i=self.inner.0.lock().unwrap();(Self::snapshot_inner(&i),i.records_capability.clone())};
+        Self::with_records_capability(&mut snapshot,capability);snapshot
+    }
+    /// RS §13.9: the capability's account, read with no Host lock held (it
+    /// waits while a read is being recorded and synced).
+    fn with_records_capability(snapshot:&mut Value,capability:Option<Arc<crate::records_access::RecordsCapability>>){
+        if let Some(capability)=capability{snapshot["recordsCapability"]=capability.snapshot();}
+    }
     /// Stop/Restart Codex confirmed for `generation`: from now on this Host
     /// sends no new `turn/start` or `turn/steer` there (text, mode, workflow or
     /// attachment), so no work begins that the stop would end unlabelled.
@@ -792,7 +800,8 @@ impl Host {
             "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
             "inFlightNativeWrites": i.source_requests.values().filter(|e|e.write_attempt_in_progress).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"attemptPosition":e.attempt_position,"effectiveOutcome":"unknown/in-progress","lastClientObservationOnly":true})).collect::<Vec<_>>(),
             "serverRequests": i.server_requests.records(),
-            "recordsCapability": i.records_capability.as_ref().map(|c|c.snapshot()).or_else(||i.records_capability_limit.as_ref().map(|l|json!({"offered":false,"limit":l}))),
+            // Filled outside Inner when offered (`with_records_capability`).
+            "recordsCapability": i.records_capability_limit.as_ref().map(|l|json!({"offered":false,"limit":l})),
             // NIR CS-7: why the process ended for each request it ended unanswered.
             "serverRequestEndContexts": i.server_requests.end_contexts(),
             "recovery": i.recovery_snapshot,"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
@@ -852,6 +861,7 @@ impl Host {
     pub fn observe(&self, generation: &Value, after: u64) -> Value {
         let i = self.inner.0.lock().unwrap();
         let snapshot = Self::snapshot_inner(&i);
+        let capability = i.records_capability.clone();
         let gap = *generation != i.generation || after > i.receipt_position || !matches!(i.state.as_str(), "ready" | "handshaking");
         let frames: Vec<_> = i.journal.iter().filter(|e| {
             e["generation"] == i.generation && e["position"].as_u64().map(|p| gap || p > after).unwrap_or(false)
@@ -861,6 +871,7 @@ impl Host {
         drop(i);
         let evidence = self.distribution_evidence(&current_generation);
         let mut snapshot = snapshot;
+        Self::with_records_capability(&mut snapshot, capability);
         snapshot["distributionEvidence"] = evidence;
         json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames})
     }
@@ -3142,9 +3153,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // The read and its log's sync run on a worker, so the frame reader
         // keeps receiving; the reply goes through the ordinary write path.
         if let Some(call)=records_call {
-            match self.this.lock().unwrap().upgrade() {
-                Some(host)=>{let _=std::thread::Builder::new().name("records-capability".into()).spawn(move||host.answer_records_call(call));}
-                None=>self.answer_records_call(call),
+            let host=self.this.lock().unwrap().upgrade();
+            // The call travels in a slot, so a worker that cannot be started
+            // leaves it here to be answered inline: never unanswered or unlogged.
+            let slot=Arc::new(Mutex::new(Some(call)));
+            let spawned=host.and_then(|host|{let taken=Arc::clone(&slot);std::thread::Builder::new().name("records-capability".into())
+                .spawn(move||{if let Some(call)=taken.lock().unwrap().take(){host.answer_records_call(call);}}).ok()});
+            if spawned.is_none() {
+                if let Some(call)=slot.lock().unwrap().take(){self.answer_records_call(call);}
             }
         }
         if let Some((bound,id,token_refresh))=private_auth_reply{

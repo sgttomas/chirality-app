@@ -269,30 +269,19 @@ fn probe_refused_lines_large_identities_and_large_workflow_names_stay_bounded() 
         assert!(!text_of(&answer).contains(&big_id));
     }
     assert!(f.logged().iter().all(|e| serde_json::to_string(e).unwrap().len() < 8 * 1024), "the read log's entries are bounded too");
-    // (c) a 60 KB workflow name in run_opened, and its absolute sourceRoot.
+    // (c) a 60 KB workflow name in run_opened.
     let c = f.project("project-c");
     let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
     opened["runId"] = json!("run:c");
     opened["body"]["runId"] = json!("run:c");
     opened["body"]["workflow"]["name"] = json!("W".repeat(60 * 1024));
-    let mut small = opened.clone();
-    small["recordId"] = json!("rec:app:c-2");
-    small["seq"] = json!(2);
-    small["kind"] = json!("evidence_limit");
-    small["body"] = json!({"label":"unresolvable reference","subjectRef":format!("{}/out/summary.md", c.display()),"detail":"/Users/someone/elsewhere"});
-    write_lines(&c, "run:c", &[opened.to_string(), small.to_string()]);
+    write_lines(&c, "run:c", &[opened.to_string()]);
     let cap_c = capability(&f, &c);
     for (n, args) in [(4, json!({"operation":"list_runs"})), (5, json!({"operation":"read_run","run":"run:c"}))] {
         let answer = cap_c.answer(&call(n, args), Some(c.to_str().unwrap()));
         let text = text_of(&answer);
         assert!(text.len() <= RESPONSE_LIMIT && !text.contains(&"W".repeat(1024)), "{} bytes", text.len());
-        assert!(!text.contains(c.to_str().unwrap()) && !text.contains("/Users/someone"), "absolute paths are rewritten or withheld");
     }
-    let page = returned(&cap_c.answer(&call(6, json!({"operation":"read_run","run":"run:c"})), Some(c.to_str().unwrap())));
-    let item = &page["items"][1];
-    assert_eq!(item["quoted"]["body"]["subjectRef"], "<project>/out/summary.md");
-    assert_eq!(item["quoted"]["body"]["detail"], "<absolute path outside the project; withheld>");
-    assert_eq!(item["pathsRewritten"], 2);
     // The bound is applied to the final text: a page that does not fit keeps fewer items.
     let d = f.project("project-d");
     let lines: Vec<String> = (1..=60).map(|seq| crate::records::envelope("evidence_limit", &crate::records::APP_WRITER,
@@ -439,4 +428,44 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
     assert!(!serde_json::to_string(&snapshot).unwrap().contains("JOURNEY"), "the host status carries no returned records");
     assert_eq!(snapshot["recordsCapability"]["recentReads"].as_array().unwrap().len(), 2);
     host.stop("fixture", "journey done").ok();
+}
+
+// #1313 re-review M2: only path-valued fields are rewritten, as typed markers,
+// after resolving aliases; every other string is quoted exactly.
+#[test]
+fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    // (b) the project spelled through an alias: a symbolic link to it.
+    let alias = f.0.join("alias");
+    std::os::unix::fs::symlink(&a, &alias).unwrap();
+    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
+    opened["runId"] = json!("run:p");
+    opened["body"]["runId"] = json!("run:p");
+    opened["body"]["workflow"]["sourceRoot"] = json!(format!("{}/workflows/lib", alias.display()));
+    let mut prose = opened.clone();
+    prose["recordId"] = json!("rec:app:p-2");
+    prose["seq"] = json!(2);
+    prose["kind"] = json!("evidence_limit");
+    // (a) a slash-led phrase, (c) a path inside prose, (d) a literal that looks like a marker.
+    prose["body"] = json!({"label":"unresolvable reference","subjectRef":"<project>/x","detail":"/compact was run by the person; see /Users/someone/notes"});
+    write_lines(&a, "run:p", &[opened.to_string(), prose.to_string()]);
+    write_act(&a, "cap:in", &format!("{}/out/summary.md", alias.display()), "S");
+    write_act(&a, "cap:out", "/etc/hosts", "S");
+    let cap = capability(&f, &a);
+    let page = returned(&cap.answer(&call(1, json!({"operation":"read_run","run":"run:p"})), Some(a.to_str().unwrap())));
+    assert_eq!(page["items"][0]["quoted"]["body"]["workflow"]["sourceRoot"], json!({"rewrittenPath":"<project>/workflows/lib"}), "resolved through the alias");
+    assert_eq!(page["items"][0]["pathsRewritten"], 1);
+    let body = &page["items"][1]["quoted"]["body"];
+    assert_eq!(body["detail"], "/compact was run by the person; see /Users/someone/notes", "free text is quoted exactly");
+    assert_eq!(body["subjectRef"], "<project>/x", "a literal stays a string; a rewritten path is an object");
+    assert_eq!(page["items"][1]["pathsRewritten"], 0);
+    let runs = returned(&cap.answer(&call(2, json!({"operation":"list_runs"})), Some(a.to_str().unwrap())));
+    assert_eq!(runs["items"][0]["run"]["opened"]["workflow"]["sourceRoot"], json!({"rewrittenPath":"<project>/workflows/lib"}));
+    let acts = returned(&cap.answer(&call(3, json!({"operation":"read_acts"})), Some(a.to_str().unwrap())));
+    let subjects: Vec<Value> = acts["items"].as_array().unwrap().iter().map(|i| i["quoted"]["body"]["boundSubject"].clone()).collect();
+    assert!(subjects.contains(&json!([{"rewrittenPath":"<project>/out/summary.md"}])), "{subjects:?}");
+    assert!(subjects.contains(&json!([{"withheldPath":"outside-project"}])), "{subjects:?}");
+    let text = serde_json::to_string(&acts).unwrap();
+    assert!(!text.contains("/etc/hosts") && !text.contains(alias.to_str().unwrap()));
 }
