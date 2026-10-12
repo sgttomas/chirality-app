@@ -613,7 +613,7 @@ completes (`turn/completed` *interrupted* or *failed*)" without a process loss
 writes no CE-13. An output that declares a gating checkpoint shows, in its
 human-act facet, the act standing the record holds for that checkpoint's latest
 arrival, including *lapsed* (PH-8, RH-1; AS OV-5); with no `act_lapsed` it reads
-"no lapse recorded", never *not lapsed*. An output with no gating checkpoint
+*not yet evaluated*, never *not lapsed*. An output with no gating checkpoint
 shows *unknown* acts once an act entry concerns an arrival bound to it, and an
 observation loss or recovery still makes every facet *unknown*. Host-operation
 and host-outcome arrivals stay not evaluable without mapping (ADAPTER NM-2),

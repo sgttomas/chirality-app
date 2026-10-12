@@ -412,7 +412,8 @@ writes records or operates the act control." `src-tauri/` holds that host;
     not counted" and other not-counted acts with their reasons, a decline, and
     the latest recorded lapse observation (lapsed, with c₀; lapsed (subject
     absent); matches c₀ again; unknown (incomparable / unavailable)). With no
-    lapse recorded it says so, never *not lapsed*. An output with no gating
+    lapse recorded it reads *not yet evaluated*, never *not lapsed*; a performed
+    label without its counted act reads unknown. An output with no gating
     checkpoint reads acts unknown once an act entry concerns an arrival bound
     to it. Other record entries this view does not read, an observation loss
     or recovery among them, make the facets unknown. The

@@ -171,7 +171,7 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   const base=[a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T1'),performed(['rec:app:rely'])];
   // Counted, no lapse recorded: never "not lapsed" (not yet evaluated is never shown as not lapsed).
   const f=facet(base);
-  assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: performed (performance 1); A7 rec:app:rely, captured T1; lapse: none recorded in this run (not evaluated beyond the record; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
+  assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: performed (performance 1); A7 rec:app:rely, captured T1; lapse: not yet evaluated (no lapse observation recorded; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
   assert.equal(f.hostChecks,'none reported','the other facets keep their rules');assert.equal(f.temporal,'unknown: no result for this output is recorded');
   // By earlier act.
   assert.ok(facet([a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T0','earlier act'),performed(['rec:app:rely'])]).humanActs.includes('A7 rec:app:rely, captured T0 — by earlier act rec:app:rely at T0;'));
@@ -191,9 +191,9 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   }
   // A new performance after a lapse: its own act, ordinal 2.
   const again=facet([...base,lapse('lapsed','T3',{when:'before resume'}),disposition('CP-rely',1,'waiting'),counted('rec:app:next','T6'),performed(['rec:app:next'],2)]).humanActs;
-  assert.ok(again.includes('performed (performance 2); A7 rec:app:next, captured T6; lapse: none recorded'),again);
+  assert.ok(again.includes('performed (performance 2); A7 rec:app:next, captured T6; lapse: not yet evaluated'),again);
   // Declined; joint answer; no arrival; an unknown disposition.
-  assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('declined (rec:app:no)'));
+  assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('resolved negatively — declined (rec:app:no)'));
   assert.ok(facet([...base.slice(0,3),counted('rec:app:two','T2'),performed(['rec:app:rely','rec:app:two'])]).humanActs.includes('answered by 2 acts: '));
   assert.equal(facet([]).humanActs,'none recorded in this run: checkpoint CP-rely, which gates this output, has no recorded arrival');
   assert.ok(facet([a,disposition('CP-rely',1,'unknown')]).humanActs.startsWith('unknown'));
@@ -204,6 +204,33 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   }
   // An output gated by another checkpoint is not given this checkpoint's act.
   assert.ok(outputStanding({...gated,gating_checkpoint:'CP-check'},run({lifecycle:{state:'open',records:base}})).humanActs.startsWith('none recorded in this run: checkpoint CP-check'));
+  // M-1 (PH-4, RC-2): never "performed" without the act: a label citing an act with no
+  // act_counted entry at this arrival, or citing none, is unknown with the reason.
+  const ghost=facet([a,disposition('CP-rely',1,'waiting'),performed(['rec:app:ghost'])]).humanActs;
+  assert.equal(ghost,'unknown: checkpoint CP-rely, arrival 1 is labelled performed but no act_counted entry at this arrival cites rec:app:ghost');
+  assert.equal(facet([a,disposition('CP-rely',1,'waiting'),performed([])]).humanActs,'unknown: checkpoint CP-rely, arrival 1 is labelled performed but the label names no act');
+  const elsewhere=entry('act_counted',{arrival:{checkpoint:'CP-rely',arrivalOrdinal:2},act:act('rec:app:rely','T1'),relation:'after arrival',referents:[]});
+  assert.ok(facet([a,disposition('CP-rely',1,'waiting'),elsewhere,performed(['rec:app:rely'])]).humanActs.startsWith('unknown'),'an act counted at another arrival does not answer this one');
+  // M-2: a body missing a field its kind requires is unreadable: every facet unknown.
+  const malformed=[
+    entry('act_counted',{arrival:at,act:{actKind:'A7',capturedAt:'T1',capturingSurface:'app_act_control'},relation:'after arrival',referents:[]}),
+    entry('act_counted',{arrival:at,act:act('rec:app:rely','T1'),referents:[]}),
+    entry('act_not_counted',{arrival:at,act:act('rec:app:old','T0'),capturedBeforeArrival:true}),
+    entry('act_lapsed',{act:act('rec:app:rely','T1'),referents:['/p'],c0,c1,arrival:at,when:'after resume'}),
+    entry('act_lapsed',{act:act('rec:app:rely','T1'),state:'lapsed',referents:['/p'],c1,time:'T3',arrival:at}),
+    entry('arrival_declined',{arrival:at}),
+    entry('run_resumed',{arrival:at,time:'T2'}),
+    entry('disposition_change',{arrival:at,disposition:'performed',performanceOrdinal:0,answeredBy:['rec:app:rely']}),
+    entry('disposition_change',{arrival:at,disposition:'performed',performanceOrdinal:1,answeredBy:'rec:app:rely'}),
+    entry('disposition_change',{arrival:at,disposition:'held'}),
+    entry('act_counted',{arrival:{checkpoint:'CP-rely',arrivalOrdinal:'1'},act:act('rec:app:rely','T1'),relation:'after arrival',referents:[]}),
+  ];
+  for(const bad of malformed){
+    const f=facet([...base,bad]);
+    assert.ok(Object.values(f).every(v=>v.startsWith('unknown')),`${JSON.stringify(bad.body)}: ${JSON.stringify(f)}`);
+  }
+  // Ungated, with no arrival bound to it: "none recorded for this output".
+  assert.equal(outputStanding({name:'other-output'},run({lifecycle:{state:'open',records:[entry('run_opened',{}),...base]}})).humanActs,'none recorded for this output (acts on App files are in their own act log)');
   const html=h(StandingFacets,{facets:f});
   assert.ok(!/\bchecked\b|verified|approved|accepted|relied|passed|not lapsed\)/i.test(html.replace('not shown as not lapsed','')),html);
   assert.ok(!FORBIDDEN.test(html));
@@ -213,7 +240,7 @@ test('standing facets show only what the run record supports',()=>{
   const output={name:'resolution-report',promised_standing:['host checks passed: spacing']};
   const facets=outputStanding(output,run());
   assert.deepEqual(facets,{temporal:'unknown: no result for this output is recorded',hostChecks:'none reported',limitations:'none reported',
-    humanActs:'none recorded in this run (acts on App files are in their own act log)',examination:'none recorded',
+    humanActs:'none recorded for this output (acts on App files are in their own act log)',examination:'none recorded',
     evidence:'missing: no record of resolution-report in the run record',route:'not recorded'});
   // A record holding entries this view does not read makes the facets unknown, never stronger.
   const withActs=outputStanding(output,run({lifecycle:{state:'open',records:record(['run_opened','human_act','examination_findings'])}}));
