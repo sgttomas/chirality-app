@@ -108,6 +108,39 @@ fn subset(grant: &Value, requested: &Value) -> bool {
         _ => grant == requested,
     }
 }
+/// The longest `rejection` text a person may write on a legacy decline, in
+/// characters (NIR §4.3 DM-3).
+pub const REJECTION_LIMIT: usize = 2000;
+/// NIR §4.3 DM-3: a legacy decline is `denied` with the person's own
+/// `rejection` text, empty unless they write one. It is sent to Codex as
+/// written; the App only bounds it: the native object with exactly
+/// `rejection`, a string of at most [`REJECTION_LIMIT`] characters, with no
+/// control characters other than line feed and tab (the text box's own) and
+/// no bidirectional formatting characters ([`BIDI_FORMATTING`]), so pasted
+/// text cannot make the confirmation read other than as sent.
+fn legacy_rejection(denied: &Value) -> Result<(), String> {
+    let fields = denied.as_object().filter(|f| f.len() == 1).ok_or("invalid-answer: a legacy decline carries only its rejection text")?;
+    let text = fields.get("rejection").and_then(Value::as_str).ok_or("invalid-answer: the rejection text must be text")?;
+    if text.chars().count() > REJECTION_LIMIT {
+        return Err(format!("invalid-answer: the rejection text is longer than {REJECTION_LIMIT} characters"));
+    }
+    if text.chars().any(|c| c.is_control() && c != '\n' && c != '\t') {
+        return Err("invalid-answer: the rejection text has a control character other than a line break or tab".into());
+    }
+    if text.chars().any(|c| BIDI_FORMATTING.contains(&c)) {
+        return Err("invalid-answer: the rejection text has a bidirectional formatting character".into());
+    }
+    Ok(())
+}
+/// The bidirectional formatting characters refused in a rejection text:
+/// embeddings and overrides, isolates and the implicit marks. Other format
+/// characters (such as the zero-width joiner in emoji) are allowed. The card
+/// refuses the same set (RequestCards.tsx `rejectionProblem`).
+pub const BIDI_FORMATTING: &[char] = &[
+    '\u{202A}', '\u{202B}', '\u{202C}', '\u{202D}', '\u{202E}',
+    '\u{2066}', '\u{2067}', '\u{2068}', '\u{2069}',
+    '\u{200E}', '\u{200F}', '\u{061C}',
+];
 fn validate_answer(method: &str, params: &Value, answer: &Value) -> Result<(), String> {
     let validator = validators()?.get(method).ok_or("invalid-answer")?;
     validator
@@ -116,6 +149,11 @@ fn validate_answer(method: &str, params: &Value, answer: &Value) -> Result<(), S
     if let Some(decision) = answer.get("decision") {
         if decision == "timed_out" {
             return Err("invalid-answer".into());
+        }
+        if matches!(method, "execCommandApproval" | "applyPatchApproval") {
+            if let Some(denied) = decision.get("denied") {
+                legacy_rejection(denied)?;
+            }
         }
         if let Some(offered) = params.get("availableDecisions").and_then(Value::as_array) {
             if !offered.contains(decision) {
@@ -416,6 +454,15 @@ impl RequestRegister {
             return Err("origin-not-permitted".into());
         }
         validate_answer(method, &e["nativeParameters"], answer)?;
+        // DM-3: the rejection text is the person's own; a legacy decline from
+        // any other origin (an App rule) carries none.
+        if !person && matches!(method, "execCommandApproval" | "applyPatchApproval") {
+            if let Some(denied) = answer.get("decision").and_then(|d| d.get("denied")) {
+                if denied["rejection"] != "" {
+                    return Err("invalid-answer: an App rule's legacy decline carries no rejection text".into());
+                }
+            }
+        }
         let mut secret_ids = Vec::new();
         if method == "item/tool/requestUserInput" {
             if let Some(qs) = e["nativeParameters"]["questions"].as_array() {
@@ -1124,5 +1171,123 @@ mod form_alias_validation_tests {
                 "origin-not-permitted"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod legacy_decline_text_tests {
+    //! NIR §4.3 DM-3: a legacy decline is `denied` with an empty `rejection`
+    //! text unless the person writes one; written text is sent as written,
+    //! within the App's bounds, and kept in the entry as person-written content.
+    use super::*;
+    const ACTOR: &str = "person:Invented/test/unknown (identity not verified)";
+    fn g() -> Value {
+        json!({"appSession":"s","home":"h","spawnCounter":1})
+    }
+    fn legacy(method: &str) -> RequestRegister {
+        let mut r = RequestRegister::default();
+        let params = json!({"conversationId":"t","callId":"c","command":["rm","x"],"cwd":"/work","parsedCmd":[],"fileChanges":{}});
+        r.receive(&g(), 1, &json!({"id":3,"method":method,"params":params}), &json!({})).unwrap();
+        r
+    }
+    fn denied(text: Value) -> Value {
+        json!({"decision":{"denied":{"rejection":text}}})
+    }
+    #[test]
+    fn empty_and_written_text_are_sent_as_given_and_the_entry_is_schema_valid() {
+        let schema: Value = serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();
+        let validator = jsonschema::options().offline().build(&schema).unwrap();
+        // Other format characters stay allowed: the zero-width joiner in an
+        // emoji, and right-to-left script without explicit formatting.
+        let written = "Not this folder.\n\tUse the scratch copy instead: ünïcödé, \"quotes\", a \\ backslash, 👩\u{200D}💻 and עברית.";
+        let longest = "x".repeat(REJECTION_LIMIT);
+        for method in ["execCommandApproval", "applyPatchApproval"] {
+            for text in ["", written, longest.as_str()] {
+                let mut r = legacy(method);
+                let reply = r.prepare(&g(), &json!(3), &denied(json!(text)), "person-via-interaction", Some(ACTOR)).unwrap();
+                assert_eq!(reply, json!({"id":3,"result":{"decision":{"denied":{"rejection":text}}}}), "sent verbatim");
+                for record in r.records() {
+                    validator.validate(&record).unwrap_or_else(|e| panic!("settling: {e}: {record}"));
+                }
+                r.written(&g(), &json!(3), true);
+                let record = &r.records()[0];
+                validator.validate(record).unwrap_or_else(|e| panic!("{method}: {e}: {record}"));
+                assert_eq!(record["state"], "declined");
+                assert_eq!(record["settlement"]["kind"], "decline");
+                assert_eq!(record["settlement"]["origin"], json!({"class":"person-via-interaction","actorRef":ACTOR}));
+                assert_eq!(record["settlement"]["nativeContent"]["decision"]["denied"]["rejection"], text, "the person's text, unchanged");
+                assert!(record["settlement"].get("redaction").is_none(), "not a secret answer");
+            }
+        }
+        // An App rule's decline carries no text of its own.
+        assert_eq!(decline("execCommandApproval", &json!({})), Some(denied(json!(""))));
+    }
+    #[test]
+    fn invalid_text_is_refused_before_anything_is_sent() {
+        let too_long = "x".repeat(REJECTION_LIMIT + 1);
+        for (answer, reason) in [
+            (denied(json!(7)), "invalid-answer"),
+            (denied(json!(null)), "invalid-answer"),
+            (json!({"decision":{"denied":{}}}), "invalid-answer"),
+            (json!({"decision":{"denied":{"rejection":"","extra":true}}}), "only its rejection text"),
+            (denied(json!(too_long)), "longer than 2000 characters"),
+            (denied(json!("bell\u{7}")), "control character"),
+            (denied(json!("carriage\rreturn")), "control character"),
+            (denied(json!("nul\u{0}")), "control character"),
+            (denied(json!("delete\u{7f}")), "control character"),
+            (denied(json!("c1\u{85}")), "control character"),
+            (denied(json!("escape\u{1b}[31m")), "control character"),
+            (denied(json!("embed\u{202A}x")), "bidirectional"),
+            (denied(json!("embed\u{202B}x")), "bidirectional"),
+            (denied(json!("pop\u{202C}x")), "bidirectional"),
+            (denied(json!("override\u{202D}x")), "bidirectional"),
+            (denied(json!("name\u{202E}txt.exe")), "bidirectional"),
+            (denied(json!("isolate\u{2066}x")), "bidirectional"),
+            (denied(json!("isolate\u{2067}x")), "bidirectional"),
+            (denied(json!("isolate\u{2068}x")), "bidirectional"),
+            (denied(json!("pop\u{2069}x")), "bidirectional"),
+            (denied(json!("mark\u{200E}")), "bidirectional"),
+            (denied(json!("mark\u{200F}")), "bidirectional"),
+            (denied(json!("arabic mark\u{061C}")), "bidirectional"),
+        ] {
+            let mut r = legacy("execCommandApproval");
+            let before = r.records();
+            let refused = r.prepare(&g(), &json!(3), &answer, "person-via-interaction", Some(ACTOR)).unwrap_err();
+            assert!(refused.starts_with("invalid-answer") && refused.contains(reason), "{answer}: {refused}");
+            assert_eq!(r.records(), before, "still outstanding, nothing settled");
+        }
+        // Other format characters stay allowed (the card's test checks the same).
+        for allowed in ['\u{200D}', '\u{200B}', '\u{2060}', '\u{FEFF}', '\u{2029}'] {
+            let mut r = legacy("execCommandApproval");
+            r.prepare(&g(), &json!(3), &denied(json!(format!("x{allowed}y"))), "person-via-interaction", Some(ACTOR)).unwrap();
+        }
+        // DM-3 at the register: an App rule's legacy decline carries no text.
+        for method in ["execCommandApproval", "applyPatchApproval"] {
+            let mut r = legacy(method);
+            for text in ["written by a rule", " "] {
+                let refused = r.prepare(&g(), &json!(3), &denied(json!(text)), "app-rule:on-stop", None).unwrap_err();
+                assert!(refused.contains("App rule's legacy decline carries no rejection text"), "{refused}");
+                assert_eq!(r.records()[0]["state"], "outstanding");
+            }
+            r.prepare(&g(), &json!(3), &denied(json!("")), "app-rule:on-stop", None).unwrap();
+            r.written(&g(), &json!(3), true);
+            let record = &r.records()[0];
+            assert_eq!((record["state"].as_str(), &record["settlement"]["origin"]), (Some("declined"), &json!({"class":"app-rule","ruleName":"on-stop"})));
+        }
+        // `abort` stays the native value with no text.
+        let mut r = legacy("applyPatchApproval");
+        assert!(r.prepare(&g(), &json!(3), &json!({"decision":"abort"}), "person-via-interaction", Some(ACTOR)).is_ok());
+    }
+    /// The answer command checks the answer before its native confirmation is
+    /// shown (`answer_preview`), so invalid text never reaches the dialog or Codex.
+    #[test]
+    fn the_answer_preview_refuses_invalid_text_before_the_confirmation() {
+        let r = legacy("execCommandApproval");
+        let snapshot = json!({"generation":g(),"state":"ready","serverRequests":r.records()});
+        let preview = |answer: &Value| crate::runtime_session::answer_preview(&snapshot, &g(), &json!(3), answer, ACTOR);
+        let written = "Use the scratch copy.\nThanks";
+        assert_eq!(preview(&denied(json!(written))).unwrap()["answer"]["decision"]["denied"]["rejection"], written);
+        assert!(preview(&denied(json!("bell\u{7}"))).unwrap_err().contains("control character"));
+        assert!(preview(&denied(json!("x".repeat(REJECTION_LIMIT + 1)))).unwrap_err().contains("longer than"));
     }
 }

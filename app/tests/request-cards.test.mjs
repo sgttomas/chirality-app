@@ -142,3 +142,50 @@ test('an ended request carries the context its process ended in, matched by gene
   assert.deepEqual(hostRequests(host).map(cardState),['Ended unanswered: the Codex process ended when you quit','Ended unanswered: the Codex process ended','Ended unanswered: the Codex process ended']);
   assert.deepEqual(hostRequests({}),[]);
 });
+
+test('DM-3: a legacy decline carries the person\'s reason as written, empty when none, and invalid text is not sent',async()=>{
+  const {REJECTION_LIMIT,rejectionProblem,deniedWith}=cards;
+  for(const r of [A14.execCommandApproval,A14.applyPatchApproval]){
+    const html=render(r);
+    assert.match(html,/<label>Reason for Codex with “Don&#x27;t allow; the agent tries something else” \(optional; sent exactly as written, up to 2000 characters\) <textarea/,'the card offers the field');
+    assert.match(html,/Don&#x27;t allow; the agent tries something else <code>\{&quot;denied&quot;:\{&quot;rejection&quot;:&quot;&quot;\}\}<\/code>/,'an empty field sends ""');
+    assert.match(html,/Don&#x27;t allow; the agent waits for your next message <code>&quot;abort&quot;<\/code>/,'abort keeps its label');
+    assert.doesNotMatch(appWords(html),/accept|approv/i);
+  }
+  for(const r of [command(),A14['item/fileChange/requestApproval']]) assert.doesNotMatch(render(r),/<textarea/,'only legacy requests take a reason');
+  assert.equal(REJECTION_LIMIT,2000);
+  const written='Not this folder.\n\tUse the scratch copy: ünïcödé 🙂 👩‍💻 עברית "quoted" \\ back';
+  for(const ok of ['',written,'x'.repeat(REJECTION_LIMIT),'🙂'.repeat(REJECTION_LIMIT)]) assert.equal(rejectionProblem(ok),null,'within bounds');
+  assert.deepEqual(deniedWith(written),{decision:{denied:{rejection:written}}},'verbatim');
+  assert.match(rejectionProblem('x'.repeat(REJECTION_LIMIT+1)),/longer than 2000 characters/);
+  for(const bad of ['bell\u0007','cr\r','nul\u0000','del\u007f','c1\u0085','esc\u001b[31m']) assert.match(rejectionProblem(bad),/control character/,JSON.stringify(bad));
+  // The host's BIDI_FORMATTING set, exactly; other format characters stay allowed.
+  for(const bad of ['‪','‫','‬','‭','‮','⁦','⁧','⁨','⁩','‎','‏','؜']) assert.match(rejectionProblem(`x${bad}y`),/bidirectional formatting character/,JSON.stringify(bad));
+  for(const allowed of ['‍','​','⁠','﻿',' ']) assert.equal(rejectionProblem(`x${allowed}y`),null,JSON.stringify(allowed));
+  // Mounted: what the decline sends as the person writes.
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();
+  const {createRoot}=await import('react-dom/client');
+  const sent=[];
+  const container=document.createElement('div');document.body.appendChild(container);
+  const root=createRoot(container);
+  await React.act(()=>root.render(React.createElement(NativeRequestCard,{request:A14.execCommandApproval,view:null,answer:async(_r,a)=>{sent.push(a);}})));
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const deny=()=>container.querySelectorAll(n=>n.localName==='button'&&n.textContent.startsWith("Don't allow; the agent tries something else"))[0];
+  const box=()=>container.querySelectorAll(n=>n.localName==='textarea')[0];
+  const type=async text=>React.act(()=>props(box()).onChange({target:{value:text}}));
+  await React.act(()=>props(deny()).onClick());
+  assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:''}}},'nothing written: ""');
+  await type(written);
+  assert.equal(deny().textContent,`Don't allow; the agent tries something else ${JSON.stringify({denied:{rejection:written}})}`,'the native value shown is the one sent');
+  await React.act(()=>props(deny()).onClick());
+  assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:written}}},'written text, verbatim');
+  assert.equal(props(box()).value,'','the draft is cleared once sent');
+  for(const bad of ['bell\u0007','x'.repeat(REJECTION_LIMIT+1),'name‮txt.exe']){
+    await type(bad);
+    assert.equal(props(deny()).disabled,true,'refused before sending');
+    assert.ok(container.querySelectorAll(n=>n.localName==='p'&&n.getAttribute?.('role')==='alert').length===1);
+  }
+  assert.equal(sent.length,2,'nothing more was sent');
+  await React.act(()=>root.unmount());
+});
