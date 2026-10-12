@@ -1780,6 +1780,70 @@ machine; `records::durability_tests`, and the ignored
   the per-append record-set read (identity collision and completeness
   from an index or the owning log), then the act read (only records
   since the last read).
+- *Bounded reads (current implementation; `records_index.rs`).* The
+  writer's guards (W-0/W-1, CC-ID, the open-run complete-set guard, the
+  W-2 reconciliations) and the act read now use an in-process index of
+  the project's logs. It is rebuilt from them, never a store, and keeps
+  at most four projects. Per log it keeps the record identities with
+  their byte positions and `seq`, the limits and any torn tail. Its
+  memory grows linearly with the total number of entries: one small
+  record per entry.
+
+  How it stays current:
+  - Each refresh re-walks the tree and takes every log's and directory's
+    stamp: device, inode, size, and modification and change times.
+  - A log that only grew (same file, larger) is read from its last
+    complete line, after a check that the 4 KiB before it are unchanged.
+    Any other change reads the log again in full: the same size, a
+    shrink, another inode, or a change before that point.
+  - A writer's first use of its owning log in a process reads that log
+    in full.
+  - A background verifier re-lists every directory and re-reads every
+    log in full, outside the index lock and off the record tick. A pass
+    starts every 60 s (`CHIRALITY_RECORDS_VERIFY_SECS`).
+  - A line read again from its stored position (entries by identity,
+    the act read's claims) is parsed and validated again (R-4), and must
+    still hold its indexed identity and `seq`. Otherwise the read fails
+    as incomplete and the log is read in full at the next refresh.
+
+  The guarantees are those of the full read. An identity held by a
+  readable entry anywhere is refused. An unreadable or invalid line, a
+  sequence gap, a duplicate identity or a failed discovery leaves the
+  set incomplete. A torn tail is a partial. Reconciliation reads the
+  matching entries by identity. The act read reprojects only act
+  records, corrections and entries sharing their identities (RS R-6,
+  R-8), in one look at the index. It keeps its result while the index's
+  act records, every capture it read (stamp, change time included) and
+  the seal key basis are unchanged.
+
+  Remaining blind spot: an in-place edit of a log's earlier bytes made
+  together with an append, outside the kept 4 KiB, is not seen at once.
+  Neither is a log added to a directory whose stamp did not change (a
+  coarse-timestamp file system). Both are found by the verifier's next
+  pass, within 60 s plus one pass, which takes about as long as one
+  full read of the project (2–5 s at 10,000 runs). Until then a guard
+  may answer from the earlier bytes.
+
+  Measured with the repairs above (2026-10-12, release build, same machine
+  and harness; the load on the machine varies between runs). "First" is
+  the first use in a process, which builds the index, as before; "next"
+  is every later one.
+
+  | Runs / acts (entries) | Append, first / next | Verifier pass | Index memory | Act read, first / after a run entry | Record tick writing again (2 entries) |
+  |---|---|---|---|---|---|
+  | 100 / 300 (3,300) | 60 / 30 ms | 26 ms | 21 MB | 113 / 2.5 ms | 62 ms |
+  | 1,000 / 3,000 (33,000) | 267 / 15 ms | 0.23 s | 42 MB | 0.79 s / 27 ms | 80 ms (was 3.8 s for 9) |
+  | 10,000 / 100,000 (400,000) | 2.9 s / 123 ms | 2.7 s | 223 MB | 16.5 s / 0.58 s | 1.3 s (was 53 s for 9) |
+
+  A next append no longer reads entries. What remains linear is one
+  metadata call per log and per directory, about 12 µs each, and the
+  index's memory (about 0.55 KB per entry, measured alone in a fresh
+  process). A kept act read costs one metadata call per capture it read.
+  The verifier's pass costs about one full read of the project, once a
+  minute, off the record tick. The act-store fingerprint (1.1 s at
+  100,000 captures) no longer runs on the record tick. The first act
+  read in a process still peaks at 6.2 GB at 100,000 acts (9.1 GB
+  before).
 
 ## 15. Local prototype (R12-3)
 

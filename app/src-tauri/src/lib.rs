@@ -48,6 +48,7 @@ pub mod native_requests;
 pub mod receiving;
 pub mod recorder;
 pub mod records;
+mod records_index;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;

@@ -1448,29 +1448,49 @@ pub(crate) fn waiting_arrivals(entries: &[Value]) -> Vec<Value> {
 /// corresponding in kind, choice, actor, subject, content, scope, purpose and
 /// time, and one record per capture (RS R-8). An incomplete record set is not
 /// read: nothing is counted from part of it.
+/// The last act read, kept while no act-relevant record (the index's act
+/// epoch), no capture file it read (stamp) and not the seal key basis
+/// (`capture_seal::verification_basis`) has changed.
+struct ActCache { root: std::path::PathBuf, epoch: u64, keys: String, captures: Vec<(std::path::PathBuf, Option<crate::records_index::Stamp>)>, read: ActRead }
+static ACT_CACHE: std::sync::Mutex<Option<ActCache>> = std::sync::Mutex::new(None);
+#[cfg(test)]
+pub(crate) fn forget_act_read_for_test() {
+    *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = None;
+}
+fn capture_stamp(path: &Path) -> Option<crate::records_index::Stamp> {
+    std::fs::symlink_metadata(path).ok().map(|m| crate::records_index::Stamp::of(&m))
+}
 pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
-    let paths = crate::storage::discover(&root)?;
-    // RS §14.2 R-2: a log's torn final line is a partial, never an entry, so it
-    // leaves the set complete; any other limit makes the act records unread.
-    let mut claims = Vec::new();
-    let mut complete = std::collections::HashSet::new();
-    let mut limits = Vec::new();
-    for path in &paths {
-        let log = path.to_string_lossy().into_owned();
-        let read = crate::records::read_log_parts(path);
-        if read.limits.is_empty() {
-            complete.insert(log.clone());
+    // The record set through the bounded index (`records_index`), in one
+    // look: a log's torn final line is a partial, never an entry (RS §14.2
+    // R-2), so it leaves the set complete; any other limit makes the act
+    // records unread. Only the act records, corrections and entries sharing
+    // their identities are read again (each line re-validated), and only when
+    // one of them, a capture read or the seal key basis changed.
+    enum Look { Kept(ActRead), Fresh(Vec<Value>, std::collections::HashSet<String>, u64) }
+    let keys = crate::capture_seal::verification_basis(&root);
+    let look = crate::records_index::with_index(&root, |ix| -> Result<Look, String> {
+        let limits = ix.limits();
+        if !limits.is_empty() {
+            return Err(format!("the project's record set is incomplete: {limits:?}"));
         }
-        limits.extend(read.limits);
-        for record in read.entries {
-            claims.push(json!({"source":{"log":log,"seq":record["seq"]},"record":record}));
+        let epoch = ix.act_epoch();
+        if let Some(cache) = ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            if cache.root == root && cache.epoch == epoch && cache.keys == keys
+                && cache.captures.iter().all(|(p, s)| capture_stamp(p) == *s) {
+                return Ok(Look::Kept(cache.read.clone()));
+            }
         }
-    }
-    if !limits.is_empty() {
-        return Err(format!("the project's record set is incomplete: {limits:?}"));
-    }
+        let claims = ix.act_claims().map_err(|e| format!("the project's record set is incomplete: [{e:?}]"))?;
+        Ok(Look::Fresh(claims, ix.paths().into_iter().map(|p| p.to_string_lossy().into_owned()).collect(), epoch))
+    })?;
+    let (claims, complete, epoch) = match look {
+        Look::Kept(read) => return Ok(read),
+        Look::Fresh(claims, complete, epoch) => (claims, complete, epoch),
+    };
     let projected = crate::decision_view::record_relations::project_from_read_claims(&claims, &complete);
+    let mut captures = Vec::new();
     let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()
         .filter(|d| d["state"] == "nonconformant").filter_map(|d| d["recordId"].as_str()).collect();
     let mut read = ActRead::default();
@@ -1498,6 +1518,10 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
             Err("not written by the App's capturing surface (PH-4)".into())
         } else {
+            if let Some(capture_id) = b["captureEvidence"][0]["ref"].as_str() {
+                let path = crate::storage::capture_path(&root, capture_id);
+                captures.push((path.clone(), capture_stamp(&path)));
+            }
             match crate::file_act_view::capture(&root, b) {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
                 Ok(capture) if !crate::file_act_view::corresponds(&capture, record) => Err("the record differs from the capture it cites".into()),
@@ -1519,6 +1543,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         read.acts = kept;
         read.unresolved.extend(refused.into_iter().map(|a| json!({"record":a["record"],"reason":"several records cite one capture (RS R-8)"})));
     }
+    *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = Some(ActCache { root, epoch, keys, captures, read: read.clone() });
     Ok(read)
 }
 /// The limit written before `run_ended` when the person ends a run while an

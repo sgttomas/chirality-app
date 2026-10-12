@@ -4814,7 +4814,6 @@ impl WorkflowRootSession {
             ended_after_turn: None,
             finished_report: None,
             checkpoints: None,
-            act_cache: None,
             run_tag: Value::Null,
             model_turns: Default::default(),
         };
@@ -6228,9 +6227,6 @@ pub(crate) struct WorkflowRun {
     finished_report: Option<crate::run_offers::FinishedReport>,
     /// EXEC §2.4 checkpoint recorder, from the run's opening (CE-1) on.
     checkpoints: Option<crate::checkpoint_recorder::CheckpointRecorder>,
-    /// The project's verified act records with the fingerprint of the logs and
-    /// capture store they were read from; read again only when it changes.
-    act_cache: Option<(Vec<(String, u64, i64, i64)>, crate::checkpoint_recorder::ActRead)>,
     /// EXEC A-2 / RECOVERY §4.1: the REC run tag written at `run_opened` (durable,
     /// or held in this run's memory only, with the reason).
     run_tag: Value,
@@ -6794,18 +6790,9 @@ impl WorkflowRun {
         let start = self.start_in(view);
         let entries = self.recorded_bodies();
         let root = self.project_root.clone();
-        let cache = &mut self.act_cache;
-        let mut acts = || {
-            let fingerprint = crate::checkpoint_recorder::act_records_fingerprint(&root);
-            if let (Some(now), Some((then, read))) = (&fingerprint, cache.as_ref()) {
-                if now == then {
-                    return Ok(read.clone());
-                }
-            }
-            let read = crate::checkpoint_recorder::project_act_records(&root)?;
-            *cache = fingerprint.map(|f| (f, read.clone()));
-            Ok(read)
-        };
+        // The act read keeps its own result while no act record, capture or
+        // seal key it depends on has changed (`project_act_records`).
+        let mut acts = || crate::checkpoint_recorder::project_act_records(&root);
         let outputs = recorder.observe(view, &crate::checkpoint_recorder::RunScope { home: &scope.home, conversation: &scope.conversation, start, project_root: &self.project_root, start_spawn: scope.generation["spawnCounter"].as_u64().unwrap_or(0) }, &entries, &mut acts);
         self.checkpoints = Some(recorder);
         let held = self.entries.iter().any(|e| e.pending());
