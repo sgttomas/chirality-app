@@ -48,6 +48,7 @@ pub mod native_requests;
 pub mod receiving;
 pub mod recorder;
 pub mod records;
+pub mod records_access;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
@@ -433,6 +434,8 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 let custody=account.host.app_runtime_custody()?;
                 let host=Arc::new(Host::new_with_app_custody(custody)?);
                 if let Some(store)=&account_store{host.configure_distribution_store(Ok(store.clone()));}
+                // RS §13.9: the same project's records capability on this home's conversations.
+                if let Some(capability)=account.host.records_capability(){host.configure_records_capability(capability);}
                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
@@ -1679,6 +1682,19 @@ pub fn run() {
                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
+            // RS §13.9 (owner U-STORE-4): the agents' read-only records
+            // capability in the current project, its read log in App data.
+            if let Some(ws) = state.workspace.as_ref() {
+                let capability = data.as_ref().map_err(Clone::clone).and_then(|data| {
+                    let runtime = data.join("runtime");
+                    std::fs::create_dir_all(&runtime).map_err(|e| format!("records read log folder unavailable: {e}"))?;
+                    records_access::RecordsCapability::new(ws, runtime.join("records-reads.jsonl"))
+                });
+                match capability {
+                    Ok(capability) => home.host.configure_records_capability(Arc::new(capability)),
+                    Err(reason) => home.host.records_capability_unavailable(reason),
+                }
+            }
             // WR §3: App-kept draft bases live in the App data folder.
             if let Ok(data) = data.as_ref() { state.workflows.lock().unwrap().set_app_user_data(data.clone()); }
             // Current account/probe protection is independent of a bad new key

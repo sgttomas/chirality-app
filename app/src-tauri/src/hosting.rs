@@ -148,6 +148,12 @@ impl HostConfig {
 #[derive(Default)]
 struct Inner {
     cce_offer: Option<call_custody::Offer>,
+    /// RS §13.9: the records capability offered in the App's current project,
+    /// and the (generation, thread) pairs whose `thread/start` carried it.
+    records_capability: Option<Arc<crate::records_access::RecordsCapability>>,
+    records_offers: Vec<(Value, Value)>,
+    /// Why the records capability is not offered, when it could not be set up.
+    records_capability_limit: Option<String>,
     aa_capture: Option<request_event_join::Core>,
     aa_epoch: u64,
     state: String,
@@ -782,6 +788,7 @@ impl Host {
             "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
             "inFlightNativeWrites": i.source_requests.values().filter(|e|e.write_attempt_in_progress).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"attemptPosition":e.attempt_position,"effectiveOutcome":"unknown/in-progress","lastClientObservationOnly":true})).collect::<Vec<_>>(),
             "serverRequests": i.server_requests.records(),
+            "recordsCapability": i.records_capability.as_ref().map(|c|c.snapshot()).or_else(||i.records_capability_limit.as_ref().map(|l|json!({"offered":false,"limit":l}))),
             // NIR CS-7: why the process ended for each request it ended unanswered.
             "serverRequestEndContexts": i.server_requests.end_contexts(),
             "recovery": i.recovery_snapshot,"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
@@ -1949,7 +1956,7 @@ impl Host {
     }
 
     pub fn thread_start_with_guidance_dispatch(&self, generation: &Value, cwd: &str, model: &str, model_provider: &str, guidance: &str) -> Result<SourceRequest,String> {
-        crate::recovery::generation_ref(generation)?;let params=Self::thread_start_params(cwd,model,model_provider,Some(guidance))?;
+        crate::recovery::generation_ref(generation)?;let params=self.offered_start_params(cwd,model,model_provider,Some(guidance))?;
         self.request_begin_scoped("thread/start",params,json!({"kind":"person-directed"}),false,Some(generation))
     }
     pub fn thread_start_dispatch_finish(&self, request: &SourceRequest) -> Result<Value,String> {
@@ -2196,6 +2203,31 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.thread_start_inner(cwd, model, model_provider, Some(developer_instructions))
     }
 
+    /// `thread/start` parameters with the App's offered tools: the records
+    /// capability (RS §13.9) when it is configured and `cwd` is its project.
+    fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<Value, String> {
+        let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        let capability = self.inner.0.lock().unwrap().records_capability.clone();
+        if capability.is_some_and(|c| c.offered_for(cwd)) {
+            params["dynamicTools"] = json!([crate::records_access::definition()]);
+        }
+        Ok(params)
+    }
+    /// RS §13.9: offer the agents' read-only records capability on the
+    /// conversations this host starts in `capability`'s project.
+    pub fn configure_records_capability(&self, capability: Arc<crate::records_access::RecordsCapability>) {
+        let mut i = self.inner.0.lock().unwrap();
+        i.records_capability = Some(capability);
+        i.records_capability_limit = None;
+    }
+    /// The records capability could not be set up: not offered, and shown why.
+    pub fn records_capability_unavailable(&self, reason: String) {
+        self.inner.0.lock().unwrap().records_capability_limit = Some(reason);
+    }
+    /// The capability this host offers, for another home's host in the same project.
+    pub fn records_capability(&self) -> Option<Arc<crate::records_access::RecordsCapability>> {
+        self.inner.0.lock().unwrap().records_capability.clone()
+    }
     fn thread_start_params(cwd: &str, model: &str, model_provider: &str,
         developer_instructions: Option<&str>) -> Result<Value, String> {
         if model.trim().is_empty() || model_provider.trim().is_empty() {
@@ -2208,13 +2240,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     fn thread_start_inner(&self, cwd: &str, model: &str, model_provider: &str,
         developer_instructions: Option<&str>) -> Result<Value, String> {
-        let params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        let params = self.offered_start_params(cwd, model, model_provider, developer_instructions)?;
         let sent_generation = self.inner.0.lock().unwrap().generation.clone();
-        let r = self.request_inner_scoped("thread/start", params, json!({"kind": "person-directed"}),
+        let r = self.request_inner_scoped("thread/start", params.clone(), json!({"kind": "person-directed"}),
             Duration::from_secs(20), false, Some(&sent_generation))?;
         #[cfg(test)]
         if let Some(hook) = self.before_thread_insert.lock().unwrap().take() { hook(); }
-        self.insert_start_response(&sent_generation,&Self::thread_start_params(cwd,model,model_provider,developer_instructions)?,&r,false)?;
+        self.insert_start_response(&sent_generation,&params,&r,false)?;
         Ok(r)
     }
     fn insert_start_response(&self, generation: &Value, params: &Value, response: &Value, no_duplicate: bool) -> Result<(),String> {
@@ -2223,6 +2255,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
         if no_duplicate&&i.state!="ready" {return Err("thread/start result is not ready for operational admission".into());}
         if no_duplicate&&i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("thread already operationally admitted in generation".into());}
+        if params["dynamicTools"].as_array().is_some_and(|tools| tools.iter().any(|t| t["name"]==crate::records_access::TOOL)) {i.records_offers.push((generation.clone(),t["id"].clone()));}
         let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
     }
 
@@ -2995,11 +3028,20 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
         let mut automatic_reply=None;
         let mut cce_call=None;
+        let mut records_call=None;
         let private_auth_reply=if let Some((id,token_refresh))=private_auth_id{Some((self.capture_pipe(&i),id,token_refresh))}else{None};
         if class == "server-request" && private_auth_reply.is_none() {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
-            let received=match offered.as_ref(){Some(Ok(a))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Ok(a)),Some(Err(e))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Err(*e)),None=>i.server_requests.receive(&gen,pos,&frame,&capabilities)};
+            let records=offered.is_none()&&frame["method"]=="item/tool/call"&&frame["params"]["tool"]==crate::records_access::TOOL&&frame["params"]["namespace"].is_null()
+                &&i.records_capability.is_some()&&i.records_offers.iter().any(|(g,t)|*g==gen&&*t==frame["params"]["threadId"]);
+            if records {
+                match i.server_requests.receive_named_tool(&gen,pos,&frame,"app-rule:records-read") {
+                    Ok(()) => records_call=Some(Self::records_call(&i,&gen,&frame)),
+                    Err(reason) => i.journal.push(json!({"generation":gen,"class":"request-custody-refused","reason":reason,"receiptPosition":pos})),
+                }
+            }
+            let received=if records {Ok(None)} else {match offered.as_ref(){Some(Ok(a))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Ok(a)),Some(Err(e))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Err(*e)),None=>i.server_requests.receive(&gen,pos,&frame,&capabilities)}};
             let accepted=received.is_ok();
             if accepted {if let Some(Ok(a))=offered {if let Some(index)=i.server_requests.original_offered_index(&gen,&frame["id"],pos){if let Some(offer)=i.cce_offer.as_mut(){offer.received(&gen,pos,index,&frame,a);cce_call=offer.take();}}}}
             match received {
@@ -3092,6 +3134,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         drop(i);
         if let Some(call)=cce_call {let _=self.cce_reply_unavailable(&call);}
+        if let Some(call)=records_call {self.answer_records_call(call);}
         if let Some((bound,id,token_refresh))=private_auth_reply{
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));
             let mut i=self.inner.0.lock().unwrap();
@@ -3101,6 +3144,32 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Some((bound,reply))=automatic_reply{let generation=bound.generation.clone();let id=reply["id"].clone();if self.write_reply(bound,&reply).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&id,false);Self::persist_requests(&mut i);}}}
     }
 
+    /// The facts of an offered records call, read under Inner (RS §13.9).
+    fn records_call(i:&Inner,generation:&Value,frame:&Value)->(Arc<crate::records_access::RecordsCapability>,crate::records_access::Call,Option<String>){
+        let p=&frame["params"];let text=|v:&Value|v.as_str().unwrap_or_default().to_owned();
+        let cwd=i.threads.iter().rev().find(|t|t["generation"]==*generation&&t["threadId"]==p["threadId"]).and_then(|t|t["cwd"].as_str()).map(str::to_owned);
+        let call=crate::records_access::Call{app_session:text(&generation["appSession"]),generation:crate::recovery::generation_ref(generation).unwrap_or_default(),
+            request:frame["id"].clone(),thread:text(&p["threadId"]),turn:text(&p["turnId"]),call:text(&p["callId"]),arguments:p["arguments"].clone()};
+        (Arc::clone(i.records_capability.as_ref().expect("checked at classification")),call,cwd)
+    }
+    /// Answers an offered records call: the capability reads and records it
+    /// with no Host lock held, then the reply is prepared and written as the
+    /// register's automatic replies are. A reply that cannot be written leaves
+    /// the read recorded; nothing is retried.
+    fn answer_records_call(&self,(capability,call,cwd):(Arc<crate::records_access::RecordsCapability>,crate::records_access::Call,Option<String>)){
+        let generation=crate::recovery::generation_from_ref(&call.generation).unwrap_or(Value::Null);
+        let answer=capability.answer(&call,cwd.as_deref());
+        let text=answer["contentItems"][0]["text"].as_str().unwrap_or_default();
+        let read_id=serde_json::from_str::<Value>(text).ok().map(|v|v["readId"].clone()).unwrap_or(Value::Null);
+        let reference=json!({"readId":read_id,"bytes":text.len(),"content":{"method":"chirality.app.exact-bytes.sha256/v1","value":sha256_hex(text.as_bytes())},"success":answer["success"]});
+        let prepared={let mut i=self.inner.0.lock().unwrap();
+            match i.server_requests.prepare_named_tool(&generation,&call.request,&answer,"app-rule:records-read",reference){
+                Ok(frame)=>match self.capture_pipe(&i){Ok(bound)=>Some((bound,frame)),Err(_)=>{i.server_requests.written(&generation,&call.request,false);Self::persist_requests(&mut i);None}},
+                Err(reason)=>{i.journal.push(json!({"generation":generation,"class":"records-call-not-answered","reason":reason,"requestIdentity":call.request}));None}
+            }};
+        if let Some((bound,frame))=prepared{if self.write_reply(bound,&frame).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&call.request,false);Self::persist_requests(&mut i);}}}
+        self.flush_recovery_observations();
+    }
     /// One immediate unsupported-auth-request duty, captured under the original source.
     /// Raw ID/bytes are transient and never copied into general request custody/evidence.
     fn write_private_auth_rejection(&self,mut bound:BoundPipe,id:Value,token_refresh:bool)->Result<(),String>{

@@ -86,6 +86,13 @@
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
+      "file": "records-read-log.entry.schema.json",
+      "sha256": "6067056ecd0b70d8f224cf22e549cb2715e7366b8402a6f631f25f4ad2f78652",
+      "source": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/records-read-log.entry.schema.json",
+      "sourceSha256": "6067056ecd0b70d8f224cf22e549cb2715e7366b8402a6f631f25f4ad2f78652",
+      "standing": "maintained unchanged Design schema (PROPOSED 0.1); each records-capability read-log entry is validated against it before it is appended"
+    },
+    {
       "file": "recovery.stop-request.schema.json",
       "sha256": "738bad11f825e9976ba9f8f1158b8938bf621c640ceae561c7e26d2899e6c5ef",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.stop-request.schema.json",

@@ -1,0 +1,316 @@
+//! The agents' records capability (RS §13.9): scope, bounds, quoting, the read
+//! log, refusals, and a fake-peer journey in which the agent calls it.
+use super::*;
+use std::time::{Duration, Instant};
+
+struct Scratch(PathBuf);
+impl Scratch {
+    fn new() -> Self {
+        let path = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("records-access-").unwrap());
+        std::fs::create_dir_all(path.join("app-data/runtime")).unwrap();
+        Self(path)
+    }
+    fn project(&self, name: &str) -> PathBuf {
+        let p = self.0.join(name);
+        std::fs::create_dir_all(&p).unwrap();
+        p
+    }
+    fn read_log(&self) -> PathBuf {
+        self.0.join("app-data/runtime/records-reads.jsonl")
+    }
+    fn logged(&self) -> Vec<Value> {
+        std::fs::read_to_string(self.read_log()).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+    }
+}
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// `entries` schema-valid RS entries of run `run` by one writer; every third
+/// a large one when `large`.
+fn write_run(project: &Path, run: &str, entries: usize, marker: &str, large: bool) {
+    use std::io::Write;
+    let log = crate::storage::project_log(project, Some(run), "app-writer:local");
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let mut out = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();
+    for seq in 1..=entries as u64 {
+        let (kind, body) = if seq == 1 {
+            ("evidence_limit", json!({"label":"unresolvable reference","subjectRef":marker,"detail":"first"}))
+        } else if seq == entries as u64 {
+            ("run_ended", json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}))
+        } else {
+            let detail = if large && seq % 3 == 0 { "x".repeat(ENTRY_LIMIT + 10) } else { format!("{marker} {seq}") };
+            ("evidence_limit", json!({"label":"unresolvable reference","subjectRef":marker,"detail":detail}))
+        };
+        let entry = crate::records::envelope(kind, &crate::records::APP_WRITER, body, format!("rec:app:{marker}-{run}-{seq}"), seq, Some(run), Some("2026-10-12T00:00:00.000Z"));
+        writeln!(out, "{entry}").unwrap();
+    }
+}
+/// One A7 act record outside any run, on `subject`, citing capture `id`, and
+/// the capture's evidence file in the project (never returned).
+fn write_act(project: &Path, id: &str, subject: &str, secret: &str) {
+    use std::io::Write;
+    let capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
+        "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)},"choice":"act","actKind":"A7",
+        "actor":{"osAccount":"fixture","identityVerified":false},"boundSubject":[subject],"boundContent":[{"method":"chirality.app.exact-bytes.sha256/v1","value":crate::util::sha256_hex(b"v1")}],
+        "scope":"The summary file.","purpose":"You decide.","capturedAt":"2026-10-12T00:00:00.000Z","surface":"App interface","inputSource":"host-native-confirmation",
+        "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
+    let path = crate::storage::capture_path(project, id);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut evidence = capture.clone();
+    evidence["fixtureSecret"] = json!(secret);
+    std::fs::write(path, serde_json::to_vec(&evidence).unwrap()).unwrap();
+    let kind = crate::records::capture_record_kind(&capture).unwrap();
+    let log = crate::storage::project_log(project, None, "fixture-act-writer");
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let seq = crate::records::read_log(&log).0.len() as u64 + 1;
+    let entry = crate::records::envelope(kind, &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture), format!("rec:app:act-{id}"), seq, None, None);
+    let mut out = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();
+    writeln!(out, "{entry}").unwrap();
+}
+fn call(n: u64, arguments: Value) -> Call {
+    Call { app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(n), thread: "thread".into(), turn: "turn".into(), call: format!("call-{n}"), arguments }
+}
+fn returned(answer: &Value) -> Value {
+    assert_eq!(answer["contentItems"].as_array().unwrap().len(), 1);
+    assert_eq!(answer["contentItems"][0]["type"], "inputText");
+    serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap()).unwrap()
+}
+fn capability(f: &Scratch, project: &Path) -> RecordsCapability {
+    RecordsCapability::new(project, f.read_log()).unwrap()
+}
+
+#[test]
+fn the_definition_is_a_valid_dynamic_tool_and_the_log_schema_is_the_design_copy() {
+    assert_eq!(LOG_SCHEMA.as_bytes(), include_bytes!("../../../execution/PKG-04/DEL-04-03/Design/records-read-log.entry.schema.json"), "the resource copy is byte-identical to the Design schema");
+    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+    schema["$ref"] = json!("#/definitions/v2/DynamicToolSpec");
+    jsonschema::options().offline().build(&schema).unwrap().validate(&definition()).unwrap();
+    jsonschema::options().build(&definition()["inputSchema"]).unwrap();
+}
+
+#[test]
+fn only_this_projects_records_are_returned_never_keys_captures_or_another_project() {
+    let f = Scratch::new();
+    let (a, b) = (f.project("project-a"), f.project("project-b"));
+    write_run(&a, "run:a", 4, "MARK-A", false);
+    write_run(&b, "run:b", 4, "MARK-B", false);
+    write_act(&a, "cap:a1", "out/summary.md", "CAPTURE-BYTES-A");
+    // Keys and other files under the project: never read.
+    std::fs::create_dir_all(a.join(".chirality/keys")).unwrap();
+    std::fs::write(a.join(".chirality/keys/seal.jsonl"), "{\"key\":\"SECRET-KEY\"}\n").unwrap();
+    let keys = f.0.join("app-data/capture-seal");
+    std::fs::create_dir_all(&keys).unwrap();
+    std::fs::write(keys.join("key.jsonl"), "SECRET-KEY-OUTSIDE\n").unwrap();
+    let cap = capability(&f, &a);
+    let mut text = String::new();
+    for (n, args) in [(1, json!({"operation":"list_runs"})), (2, json!({"operation":"read_run","run":"run:a"})), (3, json!({"operation":"read_acts"})), (4, json!({"operation":"read_run","run":"run:b"}))] {
+        let answer = cap.answer(&call(n, args), Some(a.to_str().unwrap()));
+        assert_eq!(answer["success"], true);
+        text.push_str(answer["contentItems"][0]["text"].as_str().unwrap());
+    }
+    assert!(text.contains("MARK-A") && text.contains("rec:app:act-cap:a1"), "this project's runs and acts");
+    for never in ["MARK-B", "run:b\",\"entries", "SECRET-KEY", "CAPTURE-BYTES-A", a.to_str().unwrap(), f.0.to_str().unwrap()] {
+        assert!(!text.contains(never), "{never} returned");
+    }
+    let other = returned(&cap.answer(&call(5, json!({"operation":"read_run","run":"run:b"})), Some(a.to_str().unwrap())));
+    assert_eq!(other["items"], json!([]), "another project's run is not in this project's records");
+    // A conversation in another project is refused, and the refusal is recorded.
+    let refused = cap.answer(&call(6, json!({"operation":"list_runs"})), Some(b.to_str().unwrap()));
+    assert_eq!(refused["success"], false);
+    assert!(returned(&refused)["refused"].as_str().unwrap().contains("not in this App's current project"));
+    assert_eq!(f.logged().last().unwrap()["outcome"], "refused");
+    assert!(!cap.offered_for(b.to_str().unwrap()) && cap.offered_for(a.to_str().unwrap()));
+    assert!(RecordsCapability::new(&a, a.join("reads.jsonl")).is_err(), "the read log is never in the project");
+}
+
+#[test]
+fn pages_are_bounded_and_continue_by_cursor() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:big", 120, "BIG", true);
+    let cap = capability(&f, &a);
+    let first = returned(&cap.answer(&call(1, json!({"operation":"read_run","run":"run:big"})), Some(a.to_str().unwrap())));
+    assert_eq!(first["items"].as_array().unwrap().len(), DEFAULT_ITEMS);
+    assert_eq!(first["next"], "o:20");
+    let mut seen = 0;
+    let mut cursor = Value::Null;
+    let mut n = 10;
+    loop {
+        let mut args = json!({"operation":"read_run","run":"run:big","limit":MAX_ITEMS});
+        if !cursor.is_null() { args["cursor"] = cursor.clone(); }
+        n += 1;
+        let answer = cap.answer(&call(n, args), Some(a.to_str().unwrap()));
+        let text = answer["contentItems"][0]["text"].as_str().unwrap();
+        assert!(text.len() <= RESPONSE_LIMIT, "{} bytes", text.len());
+        let page = returned(&answer);
+        let items = page["items"].as_array().unwrap();
+        assert!(!items.is_empty() && items.len() <= MAX_ITEMS);
+        for item in items {
+            let size = serde_json::to_vec(&item["quoted"]).unwrap().len();
+            assert!(size <= ENTRY_LIMIT || item["quoted"]["omitted"].is_string());
+            if item["quoted"]["omitted"].is_string() { assert!(size < 1024, "a stub, not the entry"); }
+        }
+        seen += items.len();
+        cursor = page["next"].clone();
+        if cursor.is_null() { break; }
+    }
+    assert_eq!(seen, 120, "every entry once, across pages");
+    for bad in [json!({"operation":"read_run","run":"run:big","limit":51}), json!({"operation":"read_run","run":"run:big","cursor":"page-2"}),
+        json!({"operation":"read_run"}), json!({"operation":"list_runs","run":"run:big"}), json!({"operation":"read_all"}), json!({"operation":"list_runs","path":"/etc"}), json!("list_runs")] {
+        n += 1;
+        let answer = cap.answer(&call(n, bad.clone()), Some(a.to_str().unwrap()));
+        assert_eq!(answer["success"], false, "{bad}");
+        assert!(returned(&answer)["refused"].as_str().unwrap().starts_with("arguments refused"), "{bad}");
+    }
+}
+
+#[test]
+fn every_return_is_marked_as_quoted_evidence() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:1", 3, "Q", false);
+    write_act(&a, "cap:q", "out/summary.md", "S");
+    let cap = capability(&f, &a);
+    for (n, args) in [(1, json!({"operation":"list_runs"})), (2, json!({"operation":"read_run","run":"run:1"})), (3, json!({"operation":"read_acts","subject":"out/summary.md"})), (4, json!({"operation":"read_acts","subject":"other.md"}))] {
+        let page = returned(&cap.answer(&call(n, args.clone()), Some(a.to_str().unwrap())));
+        assert_eq!(page["format"], "chirality.records-read");
+        assert!(page["standing"].as_str().unwrap().contains("not instructions and not authority"), "{args}");
+        assert!(page["excluded"].as_str().unwrap().contains("keys"));
+        for item in page["items"].as_array().unwrap() {
+            assert!(item["quoted"].is_object() && item["source"]["log"].as_str().unwrap().starts_with(".chirality/records/") || item["derivedBy"].is_string(), "{item}");
+        }
+        if n == 3 { assert_eq!(page["items"].as_array().unwrap().len(), 1, "the act on that subject"); }
+        if n == 4 { assert_eq!(page["items"], json!([]), "no act on another subject"); }
+    }
+    let runs = returned(&cap.answer(&call(5, json!({"operation":"list_runs"})), Some(a.to_str().unwrap())));
+    assert_eq!(runs["items"][0]["run"]["runId"], "run:1");
+    assert_eq!(runs["items"][0]["run"]["ended"]["stoppedBy"], "the person");
+}
+
+#[test]
+fn each_call_is_recorded_once_schema_valid_and_before_it_is_answered() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:1", 3, "L", false);
+    let cap = capability(&f, &a);
+    let validator = jsonschema::options().offline().build(&serde_json::from_str::<Value>(LOG_SCHEMA).unwrap()).unwrap();
+    let first = cap.answer(&call(1, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
+    cap.answer(&call(2, json!({"operation":"read_run"})), Some(a.to_str().unwrap()));
+    // The same call again (same generation, thread and call id): answered once, recorded once.
+    let again = cap.answer(&call(1, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
+    assert_eq!(again["success"], false);
+    assert!(returned(&again)["refused"].as_str().unwrap().contains("answered already"));
+    let logged = f.logged();
+    assert_eq!(logged.len(), 2, "two calls, two entries; the repeat is not recorded");
+    for entry in &logged { validator.validate(entry).unwrap_or_else(|e| panic!("{e}: {entry}")); }
+    let ids: HashSet<&str> = logged.iter().map(|e| e["readId"].as_str().unwrap()).collect();
+    assert_eq!(ids.len(), 2);
+    assert_eq!(logged[0]["outcome"], "returned");
+    assert_eq!(logged[0]["readId"], returned(&first)["readId"]);
+    assert_eq!(logged[0]["returned"]["content"]["value"], json!(crate::util::sha256_hex(first["contentItems"][0]["text"].as_str().unwrap().as_bytes())), "the returned bytes' identity");
+    assert_eq!(logged[0]["returned"]["recordIds"].as_array().unwrap().len(), 3);
+    assert_eq!((logged[1]["outcome"].as_str(), logged[1]["refusal"].is_string()), (Some("refused"), true));
+    assert_eq!(cap.snapshot()["recentReads"].as_array().unwrap().len(), 2);
+    // A read that cannot be recorded returns nothing.
+    std::fs::remove_dir_all(f.0.join("app-data/runtime")).unwrap();
+    let unrecorded = cap.answer(&call(3, json!({"operation":"read_run","run":"run:1"})), Some(a.to_str().unwrap()));
+    assert_eq!(unrecorded["success"], false);
+    let page = returned(&unrecorded);
+    assert!(page["refused"].as_str().unwrap().contains("could not be recorded") && page["items"] == json!([]), "{page}");
+    // A torn final line in the log refuses further appends; its bytes stay.
+    std::fs::create_dir_all(f.0.join("app-data/runtime")).unwrap();
+    std::fs::write(f.read_log(), b"{\"torn\":").unwrap();
+    assert_eq!(cap.answer(&call(4, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()))["success"], false);
+    assert_eq!(std::fs::read(f.read_log()).unwrap(), b"{\"torn\":");
+}
+
+/// A fake Codex: answers the handshake, `thread/start` and `turn/start`; after
+/// a turn starts it calls the offered records tool twice, as the model would.
+const PEER: &str = r#"#!/usr/bin/python3
+import sys,json,os
+if '--version' in sys.argv:
+ print('codex-cli 0.160.0');sys.exit(0)
+def emit(v):print(json.dumps(v),flush=True)
+def thread(cwd):return {'id':'thread','cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':cwd,'ephemeral':False,'modelProvider':'fixture-provider','preview':'fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+for line in sys.stdin:
+ f=json.loads(line)
+ with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
+ method=f.get('method')
+ if 'id' not in f or method is None:continue
+ if method=='initialize':emit({'id':f['id'],'result':{'userAgent':'records-capability-fixture'}})
+ elif method=='thread/start':
+  cwd=f['params'].get('cwd') or os.getcwd()
+  emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
+ elif method=='turn/start':
+  tid=f['params']['threadId']
+  emit({'id':f['id'],'result':{'turn':{'id':'turn','status':'inProgress','items':[],'error':None,'itemsView':'summary'}}})
+  emit({'id':'records-call-1','method':'item/tool/call','params':{'threadId':tid,'turnId':'turn','callId':'call-1','tool':'chirality_records_read_v1','namespace':None,'arguments':{'operation':'read_run','run':'run:journey'}}})
+  emit({'id':'records-call-2','method':'item/tool/call','params':{'threadId':tid,'turnId':'turn','callId':'call-2','tool':'chirality_records_read_v1','namespace':None,'arguments':{'operation':'read_run'}}})
+  emit({'id':'other-tool','method':'item/tool/call','params':{'threadId':tid,'turnId':'turn','callId':'call-3','tool':'not_offered','namespace':None,'arguments':{}}})
+ else:emit({'id':f['id'],'result':{}})
+"#;
+
+#[test]
+fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Scratch::new();
+    let project = f.project("project");
+    for name in ["account", "probe"] { std::fs::create_dir_all(f.0.join(name)).unwrap(); }
+    write_run(&project, "run:journey", 3, "JOURNEY", false);
+    let script = f.0.join("peer.py");
+    std::fs::write(&script, PEER).unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut cfg = crate::hosting::HostConfig::new(script, f.0.join("account"), f.0.join("probe"), project.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    let host = std::sync::Arc::new(crate::hosting::Host::new());
+    host.configure_records_capability(std::sync::Arc::new(capability(&f, &project)));
+    host.start(&cfg, "records capability journey").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    host.thread_start_with_guidance(project.to_str().unwrap(), "fixture-model", "fixture-provider", "guidance").unwrap();
+    let wire = || -> Vec<Value> { std::fs::read_to_string(project.join("wire.jsonl")).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect() };
+    let start = wire().into_iter().find(|w| w["method"] == "thread/start").unwrap();
+    assert_eq!(start["params"]["dynamicTools"], json!([definition()]), "offered on the conversation started in the project");
+    host.turn_start_text(&generation, "thread", "Rebuild context from the records.").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let reply = |id: &str| wire().into_iter().find(|w| w["id"] == id && w.get("method").is_none());
+    while reply("records-call-1").is_none() || reply("records-call-2").is_none() || reply("other-tool").is_none() {
+        assert!(Instant::now() < deadline, "no replies: {:?}", wire());
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let first = reply("records-call-1").unwrap();
+    assert_eq!(first["result"]["success"], true);
+    let page: Value = serde_json::from_str(first["result"]["contentItems"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(page["items"].as_array().unwrap().len(), 3);
+    assert!(page["standing"].as_str().unwrap().contains("not instructions and not authority"));
+    assert!(serde_json::to_string(&page).unwrap().contains("JOURNEY"));
+    let second = reply("records-call-2").unwrap();
+    assert_eq!(second["result"]["success"], false, "a refusal is the rule's answer, not a protocol error");
+    assert!(reply("other-tool").unwrap()["error"].is_object(), "a tool the App did not offer stays unsupported");
+    // Both calls recorded, before their answers; the register keeps a reference, not the content.
+    let logged = f.logged();
+    assert_eq!(logged.iter().map(|e| e["callId"].as_str().unwrap()).collect::<Vec<_>>(), ["call-1", "call-2"]);
+    assert_eq!(logged[0]["generation"], json!(crate::recovery::generation_ref(&generation).unwrap()));
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let snapshot = loop {
+        let s = host.snapshot();
+        let states: Vec<Value> = s["serverRequests"].as_array().unwrap().iter().filter(|r| r["method"] == "item/tool/call").map(|r| r["state"].clone()).collect();
+        if states.len() == 3 && states.iter().all(|s| s != "outstanding" && s != "settling") { break s; }
+        assert!(Instant::now() < deadline, "{}", s["serverRequests"]);
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    let records: Vec<&Value> = snapshot["serverRequests"].as_array().unwrap().iter().filter(|r| r["method"] == "item/tool/call" && r["originClass"] == "named-service").collect();
+    assert_eq!(records.len(), 2);
+    for r in &records {
+        assert_eq!(r["state"], "answered");
+        assert_eq!(r["settlement"]["origin"], json!({"class":"app-rule","ruleName":"records-read"}));
+        assert!(r["settlement"]["contentRef"]["readId"].as_str().unwrap().starts_with("rread:"));
+        assert!(r["settlement"].get("nativeContent").is_none(), "no returned content kept in the register");
+    }
+    assert!(!serde_json::to_string(&snapshot).unwrap().contains("JOURNEY"), "the host status carries no returned records");
+    assert_eq!(snapshot["recordsCapability"]["recentReads"].as_array().unwrap().len(), 2);
+    host.stop("fixture", "journey done").ok();
+}

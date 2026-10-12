@@ -546,6 +546,24 @@ writes records or operates the act control." `src-tauri/` holds that host;
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
 
+25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
+    "I choose option B"). Conversations the App starts in its current project
+    (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
+    `chirality_records_read_v1` (`dynamicTools` on `thread/start`; not on a
+    resume or fork). Its operations are `list_runs`, `read_run` and
+    `read_acts`. Pages hold at most 50 items and stay within 32 KiB; larger
+    entries come back as stubs, and a cursor continues the next page. The
+    Rust host answers by the App rule `records-read` and reads only this
+    project's records. It never reads keys, capture evidence files, other
+    projects' records or library acts. Every return is one JSON document
+    marked as quoted evidence, not instructions or authority. Before the
+    agent gets an answer, the call (returned or refused) is written to the
+    App's read log `runtime/records-reads.jsonl` and synced, so a read that
+    cannot be recorded returns nothing. The host status shows the capability
+    and its latest 20 reads, never what was returned. The agent can still
+    read the record files directly; Codex 0.160.0 cannot prevent that, and
+    such reads are not recorded.
+
 ## Modules
 
 | Module | Contribution |
@@ -556,6 +574,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
+| `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (today the §13.7 project logs), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/storage.rs` | Selected project/run/writer and library paths, legacy discovery, atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `act_control_a15.rs`, `act_control_file.rs`, `file_act_native.rs`, `canonical.rs` | A16, hot A15 and App-file offer/native custody; capture versus publication uncertainty, ordered retry and original content binding |
