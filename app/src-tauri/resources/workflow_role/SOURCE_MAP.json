@@ -27,7 +27,7 @@
   {
     "resource": "role-supply-record.schema.json",
     "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/role-supply-record.schema.json",
-    "sha256": "eaa6e682aa6077f8ab89858e3f52d0e91d7117b5c03ea4c68c72ec0d95c5f639"
+    "sha256": "abfbb70d77f37e2a80d3ccc05d015bf3432d21c6f3614cfb20fd80ea15417a87"
   },
   {
     "resource": "workflow-declaration.valid.example.json",

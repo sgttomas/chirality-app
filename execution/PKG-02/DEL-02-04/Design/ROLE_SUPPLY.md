@@ -741,12 +741,33 @@ known-store calls validate guidance only and never repair or recreate history.
 This record is mutable by anyone with file access and supplies no authenticated
 creation custody, native uptake or adoption.
 
-**Open source-history receiving condition.** Production guidance reads still
-receive the compiled release/default reference from the caller; they do not
-consume this history artifact. The source schema's *App release whose default
-was seeded* attribution therefore remains unestablished for older or changed
-stores. Initial record publication does not close that receiving gap or select
-GS-6/U-R9 release-update behavior.
+### 9.4 Receiving declared seed history
+
+Current production file reads use the `editable-copy` source variant. Its
+`reviewedDefault` names the current compiled release/content comparison used by
+GS-3 and LA-2. The guidance's default/modified classification still compares
+against those reviewed bytes. A mutable or older seed record cannot turn changed
+guidance into the reviewed default or establish its delegation statements.
+The historical `seeded-copy` source shape remains admitted unchanged.
+
+`seedHistory` separately reports either the captured record's declaration or
+unestablished history. A declared result names the exact record content identity,
+its release/default identity for this created path and equality with the supplied
+bytes. It explicitly supplies no authenticated creation custody. A preserved
+path, missing, invalid, unreadable or changed history invents no seed release or
+default identity. This uncertainty changes no supplied guidance bytes and is not
+a fallback to the shipped default. Existing guidance failures still refuse.
+
+The reader retains one instruction-root descriptor for both inputs, opens history
+no-follow/non-blocking, accepts only a regular record of at most 16 KiB and
+rechecks mutation/replacement before reporting its declaration. This bound is for
+internal seed metadata, not a guidance composition limit. The record must have
+the exact format, five-path partition, unique paths and content identities;
+duplicate/unexpected JSON fields refuse its declaration. These are bounded
+filesystem observations, not an atomic snapshot. The App never repairs or
+recreates history during this read. Source inspection carries the history
+alongside the same exact guidance buffer; it makes no native-uptake claim and
+selects no GS-6/U-R9 release-update behavior.
 
 ## 10. Prototype (R17-1)
 

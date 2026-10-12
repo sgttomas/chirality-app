@@ -610,12 +610,27 @@ logout, shutdown) cannot be held; it is recorded as AS-10
 *system-terminated* (`session_ended`, written first), each home's process is then stopped,
 and no question is asked. At the next start (AS-02, R-2) the App writes
 SR-08 for each stop request an earlier session left *sent*, *accepted* or
-*refused* with no final status; RQ-06 is not yet written.
+*refused* with no final status, and RQ-06 for eligible listed server requests.
 
-**Open startup condition — RQ-06.** AS-02/SQ-R R-2 require closing the previous
-session's listed requests as *ended-unanswered(process-exit)*, context
-*app-ended-without-record*. The App currently writes SR-08 for unsettled stop
-requests but does not write those RQ-06 request endings.
+**Startup request endings — RQ-06.** The Rust ledger writer closes listed
+requests from known earlier sessions without a `session_ended` record, including
+remaining requests from an interrupted startup batch. Exact full generation and
+request identities stay separate; closed requests, recorded session ends,
+current-session requests and unknown/legacy source generations gain no invented
+ending. The closure preserves method, subject and actual reply/acknowledgment
+facts, with context *app-ended-without-record*. It sends no reply and restores
+no live request.
+
+`session_started` precedes the endings. An unconfirmed session-marker or RQ-06
+append rejects further use of that writer; retry reopens and reconciles the real ledger. A
+reopened same-session retry retains its existing startup marker and prior-session
+link. A batch can be partially recorded; this is not an atomic transaction.
+Confirmed RQ-06 summaries supply historical `request_ended_unanswered` events in
+the separate custody `requestEndEvents` array, preserving their original writer
+session, time and stable identity across later launches. They remain metadata,
+not proof of live supplier state. The App presents these unanswerable endings
+beside the other recovery observations. Focused regression checks are in
+`recovery_startup_request_tests.rs`; actual native recovery witnesses remain open.
 
 **Codex's graceful-stop history note (R18-7 G-5; observed at 0.158.0, OBS-2
 §5.2 run A).** When a process is stopped by closing its input while a turn is

@@ -101,6 +101,7 @@ needs:
   gating: false
   evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/instruction_seed_history.rs
 - app/src-tauri/src/instruction_store.rs
 - app/src-tauri/src/conversation_roles.rs
 - app/src-tauri/src/role_lifecycle.rs
