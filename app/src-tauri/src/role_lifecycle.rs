@@ -60,8 +60,13 @@ impl FrozenGuidance {
             {
                 return Err("role selection/source part mismatch".into());
             }
-            if part["source"]["store"] != "seeded-copy"
-                || part["source"]["release"].as_str().is_none_or(str::is_empty)
+            let source = &part["source"];
+            let (release, default) = match source["store"].as_str() {
+                Some("seeded-copy") => (&source["release"], &source["defaultContent"]),
+                Some("editable-copy") => (&source["reviewedDefault"]["release"], &source["reviewedDefault"]["content"]),
+                _ => return Err("role source provenance incomplete".into()),
+            };
+            if release.as_str().is_none_or(str::is_empty)
                 || !matches!(
                     part["source"]["state"].as_str(),
                     Some("default" | "modified")
@@ -69,7 +74,6 @@ impl FrozenGuidance {
             {
                 return Err("role source provenance incomplete".into());
             }
-            let default = &part["source"]["defaultContent"];
             let default_value = default["value"]
                 .as_str()
                 .ok_or("default source identity absent")?;

@@ -101,6 +101,134 @@
      "then": {"properties": {"carried": {"properties": {"developerInstructions": {"properties": {"parts": {"items": {"not": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}}}}}}}}}}
   ],
   "$defs": {
+    "guidanceSource": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/seededGuidanceSource"
+        },
+        {
+          "$ref": "#/$defs/editableGuidanceSource"
+        }
+      ]
+    },
+    "editableGuidanceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store",
+        "path",
+        "reviewedDefault",
+        "state",
+        "seedHistory"
+      ],
+      "properties": {
+        "store": {
+          "const": "editable-copy"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+        },
+        "reviewedDefault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "release",
+            "content"
+          ],
+          "properties": {
+            "release": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content": {
+              "$ref": "#/$defs/contentIdentity"
+            }
+          }
+        },
+        "state": {
+          "enum": [
+            "default",
+            "modified"
+          ]
+        },
+        "seedHistory": {
+          "$ref": "#/$defs/seedHistory"
+        }
+      }
+    },
+    "seedHistory": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "unestablished"
+            },
+            "reason": {
+              "enum": [
+                "missing",
+                "invalid",
+                "unreadable",
+                "changed",
+                "preserved-path"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "standing",
+            "record",
+            "release",
+            "defaultContent",
+            "matchesSuppliedContent"
+          ],
+          "properties": {
+            "status": {
+              "const": "declared"
+            },
+            "standing": {
+              "const": "mutable seed-record declaration; creation custody not authenticated"
+            },
+            "record": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "const": ".seed-record.json"
+                },
+                "content": {
+                  "$ref": "#/$defs/contentIdentity"
+                }
+              }
+            },
+            "release": {
+              "type": "string",
+              "minLength": 1
+            },
+            "defaultContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "matchesSuppliedContent": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
     "contentIdentity": {
       "description": "Same shape as RS-v0.8 contentIdentity. Method designation required; the algorithm is open (HOSTING U-08).",
       "oneOf": [
@@ -110,7 +238,7 @@
          "properties": {"notObtainable": {"const": true}, "reason": {"type": "string", "minLength": 1}}}
       ]
     },
-    "guidanceSource": {
+    "seededGuidanceSource": {
       "type": "object",
       "required": ["store", "path", "release", "state"],
       "additionalProperties": false,
