@@ -15,15 +15,21 @@
 //!   the latest `register_entry_summary` per request and state while the
 //!   request is still listed. They are read by one indexed query
 //!   ([`Store::current_entries`]), never by loading the whole ledger.
-//! - Durability: rollback journal, `synchronous=FULL` and `fullfsync`, so a
-//!   commit that returns is on disk before the entry is reported persisted;
-//!   a new database file's directory entry is synced on creation.
+//! - Durability: rollback journal (`journal_mode=DELETE`) with
+//!   `synchronous=EXTRA` and `fullfsync`. In DELETE mode a commit is durable
+//!   when its journal is unlinked; SQLite syncs the directory after that
+//!   unlink only at EXTRA (3.46.0 `sqlite3OsDelete(…, pPager->extraSync)`), so
+//!   at FULL a power loss could bring the journal back and roll a returned
+//!   commit back. A new database file's directory entry is synced on creation.
 //! - The JSON Lines ledger of earlier builds is imported once, in order, every
-//!   complete and valid line up to the first that is not; the rest is reported
-//!   as a limit and never stored as an entry. The file is never written. The
-//!   import is recorded (source path, byte length, content identity, the
-//!   file's device, inode and modification time), in the
-//!   same transaction as its entries, so it happens at most once.
+//!   complete and valid line. A torn or invalid final line is a recorded limit,
+//!   never an entry. An invalid line before the end, a file changed since its
+//!   import and a file that appeared after the database was created fail the
+//!   open and import nothing (DEL-01-02 §7: no reading is derived from part of
+//!   a history). The file is never written. The import is recorded (source
+//!   path, byte length, content identity, the file's device, inode, length and
+//!   modification time) in the same transaction as its entries, so it happens
+//!   at most once.
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -31,6 +37,13 @@ use std::path::{Path, PathBuf};
 /// The exact-byte content method used for the imported file's identity.
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
 const SCHEMA_VERSION: &str = "1";
+/// How the `currency` and `subject` columns are derived from an entry
+/// ([`currency`], [`subject`]), recorded in `ledger_meta` as `index_format`.
+/// Migration rule: a later derivation gets a new number and never rewrites
+/// rows. A database whose recorded format differs (or is absent) is read by a
+/// full scan that derives the keys from each entry's JSON, ignoring the
+/// stored columns; entries this build inserts carry its own derivation.
+pub(crate) const INDEX_FORMAT: &str = "1";
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS ledger_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ledger_entry (
@@ -150,8 +163,11 @@ fn db_error(context: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
 pub(crate) struct Store {
     path: PathBuf,
     connection: Connection,
-    /// The opened file's device and inode; every write rechecks the path still names it.
+    /// The device and inode of the file SQLite has open; the path must name
+    /// it at open and before every write.
     opened: (u64, u64),
+    /// Whether the stored index columns follow [`INDEX_FORMAT`].
+    index_current: bool,
 }
 
 impl Store {
@@ -165,21 +181,36 @@ impl Store {
         if !existed && !create {
             return Err("App history unavailable: the ledger database is missing".into());
         }
-        let mut flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
+        // No symbolic link is followed, and the descriptor SQLite opened must be
+        // the file the path names.
+        let mut flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW;
         if create {
             flags |= OpenFlags::SQLITE_OPEN_CREATE;
         }
-        let connection = Connection::open_with_flags(path, flags).map_err(db_error("App history unavailable: ledger database not openable"))?;
+        // NOFOLLOW refuses a symbolic link anywhere in the name SQLite opens, so it
+        // opens the name under the folder's resolved path: the leaf is never followed.
+        let folder = path.parent().ok_or("ledger database has no parent directory")?.canonicalize().map_err(|e| format!("App history unavailable: ledger folder not resolvable: {e}"))?;
+        let resolved = folder.join(path.file_name().ok_or("ledger database has no file name")?);
+        let connection = Connection::open_with_flags(&resolved, flags).map_err(db_error("App history unavailable: ledger database not openable"))?;
+        let opened = descriptor_identity(&connection)?;
+        if identity(path)? != opened {
+            return Err("REC ledger database leaf changed while it was opened".into());
+        }
         connection.busy_timeout(busy_timeout()).map_err(db_error("ledger database busy timeout not set"))?;
-        // Rollback journal with full synchronous writes and macOS full fsync: a
-        // returned commit is durable (the JSON Lines writer's sync_data).
+        // Rollback journal; EXTRA also syncs the directory after the journal is
+        // unlinked, the moment a commit becomes durable (module text).
         let mode: String = connection.query_row("PRAGMA journal_mode=DELETE", [], |r| r.get(0)).map_err(db_error("ledger journal mode not set"))?;
         if !mode.eq_ignore_ascii_case("delete") {
             return Err(format!("ledger journal mode not established ({mode})"));
         }
-        connection.execute_batch("PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA checkpoint_fullfsync=ON;").map_err(db_error("ledger durability not set"))?;
-        let mut store = Self { path: path.to_path_buf(), opened: identity(path)?, connection };
+        connection.execute_batch("PRAGMA synchronous=EXTRA; PRAGMA fullfsync=ON; PRAGMA checkpoint_fullfsync=ON;").map_err(db_error("ledger durability not set"))?;
+        let durability = durability(&connection).map_err(db_error("ledger durability not readable"))?;
+        if (durability.0.as_str(), durability.1, durability.2, durability.3) != DURABILITY {
+            return Err(format!("ledger durability not established ({durability:?})"));
+        }
+        let mut store = Self { path: path.to_path_buf(), opened, connection, index_current: false };
         store.ensure_schema(legacy_present)?;
+        store.index_current = store.meta("index_format")?.as_deref() == Some(INDEX_FORMAT);
         if !existed {
             let parent = path.parent().ok_or("ledger database has no parent directory")?;
             crate::storage::sync_dir(parent).map_err(|e| format!("ledger database creation not durable: {e}"))?;
@@ -209,11 +240,21 @@ impl Store {
             None => {
                 tx.execute("INSERT INTO ledger_meta (key, value) VALUES ('schema', ?1)", [SCHEMA_VERSION]).map_err(db_error("ledger schema not recorded"))?;
                 tx.execute("INSERT INTO ledger_meta (key, value) VALUES ('legacy_at_creation', ?1)", [if legacy_present { "present" } else { "absent" }]).map_err(db_error("ledger schema not recorded"))?;
+                tx.execute("INSERT INTO ledger_meta (key, value) VALUES ('index_format', ?1)", [INDEX_FORMAT]).map_err(db_error("ledger schema not recorded"))?;
             }
             Some(SCHEMA_VERSION) => {}
             Some(other) => return Err(format!("App history unavailable: ledger database schema {other} is not this App's ({SCHEMA_VERSION})")),
         }
         tx.commit().map_err(db_error("ledger schema not committed"))
+    }
+    fn meta(&self, key: &str) -> Result<Option<String>, String> {
+        self.connection.query_row("SELECT value FROM ledger_meta WHERE key = ?1", [key], |r| r.get(0)).optional().map_err(db_error("ledger metadata not readable"))
+    }
+    /// The effective durability settings (journal mode, synchronous level,
+    /// fullfsync, checkpoint_fullfsync), for tests.
+    #[cfg(test)]
+    pub(crate) fn durability(&self) -> (String, i64, i64, i64) {
+        durability(&self.connection).unwrap()
     }
     /// The write guard: the path still names the opened regular single-link file.
     pub(crate) fn guard(&self) -> Result<(), String> {
@@ -246,6 +287,9 @@ impl Store {
     /// Each is validated with `validate`, and its stored columns must be the
     /// ones its JSON gives.
     pub(crate) fn current_entries(&self, validate: &dyn Fn(&Value) -> Result<(), String>) -> Result<Vec<Value>, String> {
+        if !self.index_current {
+            return self.current_entries_scanned(validate);
+        }
         let mut statement = self
             .connection
             .prepare(
@@ -270,6 +314,46 @@ impl Store {
             if entry["kind"] != kind.as_str() || currency(&entry) != held || subject(&entry) != request {
                 return Err("App history unavailable: a stored entry's index columns do not match its JSON".into());
             }
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+    /// [`Self::current_entries`] for a database whose index columns follow
+    /// another format: one pass over every entry, keys derived from its JSON
+    /// (the stored columns are not used). Holds only the current entries and
+    /// each request's latest state.
+    fn current_entries_scanned(&self, validate: &dyn Fn(&Value) -> Result<(), String>) -> Result<Vec<Value>, String> {
+        use std::collections::{BTreeMap, HashMap};
+        let mut statement = self.connection.prepare("SELECT seq, entry FROM ledger_entry ORDER BY seq").map_err(db_error("App history unavailable"))?;
+        let rows = statement.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))).map_err(db_error("App history unavailable"))?;
+        let mut held: BTreeMap<i64, (Value, Option<String>, Option<String>)> = BTreeMap::new();
+        let mut latest: HashMap<String, i64> = HashMap::new();
+        let mut settled: HashMap<String, bool> = HashMap::new();
+        for row in rows {
+            let (seq, text) = row.map_err(db_error("App history unavailable"))?;
+            let entry: Value = serde_json::from_str(&text).map_err(|e| format!("App history unavailable: stored entry is not JSON: {e}"))?;
+            let (key, request) = (currency(&entry), subject(&entry));
+            if let Some(request) = &request {
+                settled.insert(request.clone(), entry["state"] == "closed");
+            }
+            match &key {
+                Some(key) => {
+                    if let Some(earlier) = latest.insert(key.clone(), seq) {
+                        held.remove(&earlier);
+                    }
+                    held.insert(seq, (entry, Some(key.clone()), request));
+                }
+                None => {
+                    held.insert(seq, (entry, None, request));
+                }
+            }
+        }
+        let mut entries = Vec::new();
+        for (_, (entry, key, request)) in held {
+            if key.is_some() && request.as_ref().is_some_and(|r| settled.get(r) == Some(&true)) {
+                continue;
+            }
+            validate(&entry).map_err(|e| format!("App history unavailable: {e}"))?;
             entries.push(entry);
         }
         Ok(entries)
@@ -335,16 +419,16 @@ impl Store {
             let mut reading = json!({"state":"imported earlier","sourcePath":path,"byteLength":imported_length,
                 "content":{"method":EXACT_BYTES,"value":imported_content},"importedLines":lines,"limit":limit});
             if imported_content != content || imported_length != length {
-                reading["state"] = json!("changed since its import; not imported again");
-                reading["limit"] = json!(format!("the JSON Lines ledger now has {length} bytes with content {content}; only the import of {imported_length} bytes is in the ledger, and the change is not imported"));
+                // Fail closed (§7): entries written after the import are not in
+                // the database, so no startup reading may be derived from it.
+                return Err(format!("App history unavailable: the JSON Lines ledger changed after its import (it now has {length} bytes with content {content}; {imported_length} bytes were imported). Entries written to it since are not in the ledger database, so its history is incomplete and nothing is derived from it. The file is not written; move it aside to continue."));
             }
             return Ok(reading);
         }
         let at_creation: Option<String> = tx.query_row("SELECT value FROM ledger_meta WHERE key = 'legacy_at_creation'", [], |r| r.get(0)).optional().map_err(db_error("legacy ledger import record not readable"))?;
         if at_creation.as_deref() == Some("absent") {
             drop(tx);
-            return Ok(json!({"state":"not imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},"importedLines":0,
-                "limit":"this JSON Lines ledger appeared after the ledger database was created without one; it is not imported, so its entries would not follow the database's order"}));
+            return Err(format!("App history unavailable: a JSON Lines ledger ({length} bytes) appeared after the ledger database was created without one. Its entries would not follow the database's order and are not imported, so the history is incomplete and nothing is derived from it. The file is not written; move it aside to continue."));
         }
         // Every complete, valid line in order; the first that is not ends the
         // import. Each is inserted as it is read; none is held after.
@@ -358,9 +442,9 @@ impl Store {
         let mut offset = 0usize;
         let mut limit: Option<String> = None;
         let mut line = Vec::new();
-        // After the first line that is not imported: its offset and the
-        // newline-closed lines from it on, counted for the limit.
-        let mut refused: Option<(usize, String, usize)> = None;
+        // After the first line that is not imported: its offset, reason and
+        // length, and the newline-closed lines from it on.
+        let mut refused: Option<(usize, String, usize, usize)> = None;
         loop {
             line.clear();
             let read = reader.read_until(b'\n', &mut line).map_err(|e| format!("App history unavailable: {e}"))?;
@@ -369,7 +453,7 @@ impl Store {
             }
             hasher.update(&line);
             let closed = line.last() == Some(&b'\n');
-            if let Some((_, _, rest)) = refused.as_mut() {
+            if let Some((_, _, _, rest)) = refused.as_mut() {
                 *rest += closed as usize;
             } else if !closed {
                 limit = Some(format!("final line at byte {offset} is not newline-closed ({} bytes); not imported", line.len()));
@@ -384,7 +468,7 @@ impl Store {
                         last = Some(seq);
                         imported += 1;
                     }
-                    Err(reason) => refused = Some((offset, reason, 1)),
+                    Err(reason) => refused = Some((offset, reason, line.len(), 1)),
                 }
             }
             offset += line.len();
@@ -393,8 +477,13 @@ impl Store {
         if offset as i64 != length || digest != content {
             return Err("App history unavailable: the JSON Lines ledger changed while it was being imported; nothing imported".into());
         }
-        if let Some((at, reason, rest)) = refused {
-            limit = Some(format!("line {} at byte {at} is not a valid ledger entry ({reason}); it and the {} bytes after it ({rest} newline-closed lines in all) are not imported", imported + 1, offset - at));
+        if let Some((at, reason, size, rest)) = refused {
+            if at + size < offset {
+                // Not the final line (§7): later history would be missing, so
+                // nothing is imported; the file can be repaired or moved aside.
+                return Err(format!("App history unavailable: line {} at byte {at} of the JSON Lines ledger is not a valid ledger entry ({reason}), and {} bytes ({} newline-closed lines) follow it. Nothing is imported, since the history after it would be missing; the file is not written. Repair it or move it aside to continue.", imported + 1, offset - at - size, rest - 1));
+            }
+            limit = Some(format!("final line {} at byte {at} is not a valid ledger entry ({reason}); not imported", imported + 1));
         }
         let at = crate::util::now_rfc3339();
         tx.execute(
@@ -417,6 +506,48 @@ fn file_identity(file: &std::fs::File) -> Result<String, String> {
     use std::os::unix::fs::MetadataExt;
     let meta = file.metadata().map_err(|e| format!("App history unavailable: {e}"))?;
     Ok(json!([meta.dev(), meta.ino(), meta.len(), meta.mtime(), meta.mtime_nsec()]).to_string())
+}
+/// The durability settings [`Store::open`] establishes.
+const DURABILITY: (&str, i64, i64, i64) = ("delete", 3, 1, 1);
+fn durability(connection: &Connection) -> rusqlite::Result<(String, i64, i64, i64)> {
+    let mode: String = connection.query_row("PRAGMA journal_mode", [], |r| r.get(0))?;
+    let read = |pragma: &str| connection.query_row(&format!("PRAGMA {pragma}"), [], |r| r.get::<_, i64>(0));
+    Ok((mode.to_ascii_lowercase(), read("synchronous")?, read("fullfsync")?, read("checkpoint_fullfsync")?))
+}
+/// The device and inode of the file SQLite has open as `main`. The unix VFS's
+/// file object begins {methods, vfs, inode info, descriptor} (bundled SQLite
+/// 3.46.0, `struct unixFile`); the VFS name is checked before the descriptor
+/// is read, and the descriptor is examined with `fstat`.
+fn descriptor_identity(connection: &Connection) -> Result<(u64, u64), String> {
+    use rusqlite::ffi;
+    use std::os::raw::{c_char, c_int, c_void};
+    #[repr(C)]
+    struct UnixFileHead {
+        methods: *const c_void,
+        vfs: *const ffi::sqlite3_vfs,
+        inode: *const c_void,
+        descriptor: c_int,
+    }
+    let unavailable = || "REC ledger database descriptor unavailable; not opened".to_string();
+    // SAFETY: SQLITE_FCNTL_FILE_POINTER writes the main database's
+    // sqlite3_file pointer, owned by the open connection borrowed here; it is
+    // read only while that borrow lasts, and only after its VFS is a unix VFS.
+    unsafe {
+        let mut file: *mut ffi::sqlite3_file = std::ptr::null_mut();
+        let rc = ffi::sqlite3_file_control(connection.handle(), b"main\0".as_ptr() as *const c_char, ffi::SQLITE_FCNTL_FILE_POINTER, &mut file as *mut _ as *mut c_void);
+        if rc != ffi::SQLITE_OK || file.is_null() || (*file).pMethods.is_null() {
+            return Err(unavailable());
+        }
+        let head = &*(file as *const UnixFileHead);
+        if head.vfs.is_null() || (*head.vfs).zName.is_null() || !std::ffi::CStr::from_ptr((*head.vfs).zName).to_bytes().starts_with(b"unix") || head.descriptor < 0 {
+            return Err(unavailable());
+        }
+        let mut stat: libc::stat = std::mem::zeroed();
+        if libc::fstat(head.descriptor, &mut stat) != 0 || (stat.st_mode & libc::S_IFMT) != libc::S_IFREG {
+            return Err(unavailable());
+        }
+        Ok((stat.st_dev as u64, stat.st_ino as u64))
+    }
 }
 /// A file's length and exact-byte content identity, read in bounded pieces.
 fn read_identity(file: &mut std::fs::File) -> Result<(u64, String), String> {

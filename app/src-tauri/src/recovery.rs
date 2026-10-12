@@ -644,7 +644,7 @@ impl RecoveryLedger {
     /// entries. Bounded: what the ledger is and holds, never its entries
     /// (the host status carries this; DEL-01-02 §7).
     pub fn snapshot(&self) -> Value {
-        json!({"standing":"App-observed","oldRequestsAnswerable":false,"heldEntries":self.current.len(),
+        json!({"standing":"App-observed","oldRequestsAnswerable":false,"heldEntries":self.current.len(),"historyLimits":self.history_limits(),
             "entriesStanding":"the ledger's entries are read by the host from its database; they are not copied into this status",
             "store":{"database":self.database.to_string_lossy(),"created":self.store.is_some(),"legacyImport":self.legacy}})
     }
@@ -670,6 +670,12 @@ impl RecoveryLedger {
     /// How many entries the database holds.
     pub fn recorded_count(&self) -> Result<u64, String> {
         self.store.as_ref().map_or(Ok(0), store::Store::count)
+    }
+    /// Limits of the history this ledger holds, shown with the recovery
+    /// initialization and the custody view: today the JSON Lines import's
+    /// (a torn or invalid final line that was not imported).
+    pub fn history_limits(&self) -> Vec<String> {
+        self.legacy["limit"].as_str().map(|l| vec![format!("App history import: {l}")]).unwrap_or_default()
     }
     /// The JSON Lines import reading (null when there was no JSON Lines ledger).
     pub fn legacy_import(&self) -> &Value {
@@ -867,7 +873,7 @@ mod framing_repair_tests {
             remove_test_ledger(&path);
         }
         // A JSON Lines file that appears after the database was created is not
-        // imported (its entries would not follow the database's order); the
+        // imported (its entries would not follow the database's order), and the
         // App never writes to it.
         for tail in [complete, br#"{"kind":"session_started"#.to_vec()] {
             let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
@@ -876,10 +882,12 @@ mod framing_repair_tests {
             ledger.start_session("new", "c").unwrap();
             assert_eq!(std::fs::read(&path).unwrap(), tail);
             drop(ledger);
-            let reopened = RecoveryLedger::open(path.clone()).unwrap();
-            assert_eq!(reopened.recorded_entries().as_array().unwrap().len(), 2);
-            assert_eq!(reopened.legacy_import()["state"], "not imported", "{}", reopened.legacy_import());
-            drop(reopened);
+            // The history is then incomplete: the open fails visibly (§7).
+            let refused = RecoveryLedger::open(path.clone()).err().unwrap();
+            assert!(refused.contains("appeared after the ledger database was created"), "{refused}");
+            assert_eq!(std::fs::read(&path).unwrap(), tail);
+            std::fs::remove_file(&path).unwrap();
+            assert_eq!(RecoveryLedger::open(path.clone()).unwrap().recorded_entries().as_array().unwrap().len(), 2, "moved aside, the database opens");
             remove_test_ledger(&path);
         }
         // The same complete JSON with its committed delimiter is imported.
@@ -1199,6 +1207,19 @@ mod reviewed_later_error_adoption_tests {
 /// no Deserialize/JSON constructor or conversion to a live source capability.
 #[derive(Clone, Debug)]
 pub struct RecoveryCustodyView { document: Value }
+impl RecoveryCustodyView {
+    /// Adds limits of the ledger's history (its import's) to the view's limits.
+    pub(crate) fn with_history_limits(mut self, limits: &Value) -> Self {
+        for limit in limits.as_array().into_iter().flatten() {
+            if let Some(list) = self.document["limits"].as_array_mut() {
+                if !list.contains(limit) {
+                    list.push(limit.clone());
+                }
+            }
+        }
+        self
+    }
+}
 
 fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<String>) {
     use std::collections::{BTreeMap, BTreeSet};

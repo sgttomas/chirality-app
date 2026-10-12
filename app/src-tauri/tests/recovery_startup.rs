@@ -87,9 +87,14 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     .unwrap();
     assert!(called.get());
     assert_eq!(std::fs::read(&path).unwrap(), legacy);
+    // Configured, but visibly not as complete history: the import's limit is
+    // shown with the initialization and in the custody view.
     let status = startup.lock().unwrap().snapshot();
-    assert_eq!(status["state"], "configured");
+    assert_eq!(status["state"], "configured-with-limits");
     assert_eq!(status["historyFile"], "existing");
+    assert!(status["historyLimits"][0].as_str().unwrap().contains("not newline-closed"), "{status}");
+    let custody = host.recovery_custody().snapshot();
+    assert!(custody["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("App history import")), "{}", custody["limits"]);
     let import = &host.snapshot()["recovery"]["store"]["legacyImport"];
     assert_eq!(import["state"], "imported", "{import}");
     assert_eq!(import["importedLines"], 1);
@@ -104,7 +109,39 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     start_with_recovery(&next, &startup, Ok(&root), None, || Ok(())).unwrap();
     assert_eq!(next.snapshot()["recovery"]["store"]["legacyImport"]["state"], "imported earlier");
     assert_eq!(next.recorded_recovery_entries().as_array().unwrap().len(), 3);
+    assert_eq!(startup.lock().unwrap().snapshot()["state"], "configured-with-limits", "the limit stays visible at every start");
     assert_eq!(std::fs::read(path).unwrap(), legacy);
+}
+// #1309 B2: an invalid line before the end refuses configuration visibly, as
+// the JSON Lines reader did; nothing is imported or derived and the starter runs.
+#[test]
+fn malformed_line_before_the_end_refuses_configuration_preserves_bytes_and_still_runs_starter() {
+    let scratch = Scratch::new();
+    let root = scratch.0.join("app-data");
+    let path = reviewed_ledger_path(&root);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let start = json!({"kind":"session_started","session":"old-session","at":"synthetic","previousSessionEnd":"none","candidate":"synthetic"});
+    let mut legacy = serde_json::to_vec(&start).unwrap();
+    legacy.extend_from_slice(b"\n{\"kind\":\"unknown\"}\n");
+    legacy.extend(serde_json::to_vec(&start).unwrap());
+    legacy.push(b'\n');
+    std::fs::write(&path, &legacy).unwrap();
+    let host = Host::new();
+    let startup = Mutex::new(RecoveryStartup::default());
+    let called = std::cell::Cell::new(false);
+    start_with_recovery(&host, &startup, Ok(&root), None, || {
+        called.set(true);
+        assert!(host.snapshot()["recovery"].is_null());
+        Ok(())
+    })
+    .unwrap();
+    assert!(called.get());
+    let status = startup.lock().unwrap().snapshot();
+    assert_eq!(status["state"], "initialization-failed");
+    assert_eq!(status["hostConfigured"], false);
+    assert!(status["configurationError"].as_str().unwrap().contains("line 2"), "{status}");
+    assert_eq!(status["blocksSupplierStart"], false);
+    assert_eq!(std::fs::read(&path).unwrap(), legacy);
 }
 #[test]
 fn unavailable_root_and_codex_home_collision_are_visible_without_fallback_or_suppressed_start() {

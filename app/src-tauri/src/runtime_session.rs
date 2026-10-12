@@ -686,7 +686,11 @@ impl RecoveryStartup {
             "nativePath":{"encoding":"native_encoded_bytes","platform":std::env::consts::OS,"bytes":p.as_os_str().as_encoded_bytes()},
             "pathDisplayLimit":if p.to_str().is_some(){None}else{Some("native path is not Unicode; display is lossy")}}));
         let succeeded = result.is_ok();
-        self.status = json!({"state":if succeeded{"configured"}else{"initialization-failed"},
+        // The ledger's history limits (its import's) are shown with the
+        // initialization: configured, but not as complete history.
+        let limits = host.shared_recovery_observation()["recovery"]["historyLimits"].clone();
+        let limited = limits.as_array().is_some_and(|l| !l.is_empty());
+        self.status = json!({"state":if !succeeded{"initialization-failed"}else if limited{"configured-with-limits"}else{"configured"},"historyLimits":if limited{limits}else{json!([])},
             "hostConfigured":configured,"path":path,"database":database,"historyFile":if existing{"existing"}else if configured{"new"}else{"not-established"},
             "configurationError":result.err(),"directoryPublication":if succeeded{"sync-calls-succeeded"}else{"not-confirmed"},
             "blocksSupplierStart":false,"standing":"App-observed recovery pointers; no native human-act proof"});

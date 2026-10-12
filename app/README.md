@@ -61,10 +61,14 @@ writes records or operates the act control." `src-tauri/` holds that host;
    in a SQLite database at the App user-data `runtime/recovery.ledger.sqlite`
    path (DEL-01-02 §7; PRD R-STORE). Entries are only inserted (the schema's
    triggers refuse updates and deletes), batches that stand together are one
-   transaction, and each commit is synced before it is reported. The JSON Lines
-   ledger earlier builds wrote at `runtime/recovery.ledger.jsonl` is imported
-   once, every complete valid line in order, a torn or invalid tail kept as a
-   limit; the file itself is never written. The host holds only the ledger's
+   transaction, and an entry is reported recorded only after its commit has
+   returned with the journal's removal and its folder synced
+   (`synchronous=EXTRA`, `fullfsync`). The JSON Lines ledger earlier builds
+   wrote at `runtime/recovery.ledger.jsonl` is imported once, every complete
+   valid line in order; a torn or invalid final line is kept as a limit shown
+   with the recovery initialization, while an invalid line before the end, or a
+   file changed since its import, fails initialization visibly and imports
+   nothing. The file itself is never written. The host holds only the ledger's
    current entries and shows a bounded snapshot of it, not its entries.
    Initialization errors remain visible without blocking native protocol
    processing or relocating data.

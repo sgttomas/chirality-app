@@ -12,7 +12,7 @@
 //! `sync_data`/`sync_all` are called, but whether the device honours them is
 //! not observable from a process (a killed process leaves the page cache intact).
 use super::*;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -60,6 +60,10 @@ fn result_of(output: &std::process::Output) -> Value {
     let line = text.lines().find_map(|l| l.split_once("DURABILITY-RESULT ").map(|(_, r)| r)).unwrap_or_else(|| panic!("no child result: {text}"));
     serde_json::from_str(line).unwrap()
 }
+/// The side file a looping ledger child marks each confirmed append in.
+fn confirmed_log(path: &Path) -> PathBuf {
+    path.with_extension("confirmed")
+}
 fn ledger_entry() -> Value {
     crate::recovery::RecoveryLedger::session_end_entry(LEDGER_SESSION, "quit", &[]).unwrap()
 }
@@ -97,9 +101,13 @@ fn durability_child() {
     fn report(v: Value) -> ! { println!("DURABILITY-RESULT {v}"); std::process::exit(0) }
     match mode.as_str() {
         "ledger-loop" => {
+            // One byte per append the ledger confirmed, after it returned.
+            let confirmed = confirmed_log(&path);
             let mut ledger = match crate::recovery::RecoveryLedger::open(path) { Ok(l) => l, Err(e) => report(json!({"open":e})) };
+            let mut side = std::fs::OpenOptions::new().create(true).append(true).open(confirmed).unwrap();
             loop {
                 if let Err(e) = ledger.append(ledger_entry()) { report(json!({"append":e})) }
+                side.write_all(b".").unwrap();
             }
         }
         "rs-loop" => {
@@ -115,18 +123,21 @@ fn durability_child() {
             // writes past the limit (the database's size) after the journal.
             let line = if mode == "ledger-short" { 0 } else { 2048 };
             let mut ledger = (mode == "ledger-short").then(|| crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
-            let mut attempt = || match &mut ledger { Some(l) => l.append_batch(vec![ledger_entry(); 64]), None => append(&target, "evidence_limit", &APP_WRITER, rs_body(1800)).map(|_| ()) };
+            let mut attempt = || {
+                let result = match &mut ledger { Some(l) => l.append_batch(vec![ledger_entry(); 64]), None => append(&target, "evidence_limit", &APP_WRITER, rs_body(1800)).map(|_| ()) };
+                (result, ledger.as_ref().map(|l| l.current_entries().len()))
+            };
             unsafe { libc::signal(libc::SIGXFSZ, libc::SIG_IGN); }
             let mut limit = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
             unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut limit); }
             let original = limit.rlim_cur;
             limit.rlim_cur = size + (line as u64) / 2;
             unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
-            let first = attempt();
+            let (first, held_after_first) = attempt();
             limit.rlim_cur = original;
             unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
-            let second = attempt();
-            report(json!({"first":first.err(),"second":second.err(),"sizeBefore":size}));
+            let (second, held_after_second) = attempt();
+            report(json!({"first":first.err(),"second":second.err(),"sizeBefore":size,"heldAfterFirst":held_after_first,"heldAfterSecond":held_after_second}));
         }
         other => panic!("unknown child mode {other}"),
     }
@@ -179,13 +190,15 @@ fn sigkill_mid_ledger_append_leaves_only_committed_entries() {
     let mut rng = Rng::new();
     let (mut hot, mut appended) = (0, 0);
     for round in 0..kills() {
+        let _ = std::fs::remove_file(confirmed_log(&path));
         kill_mid_loop("ledger-loop", &path, &database, &mut rng);
+        let confirmed = std::fs::metadata(confirmed_log(&path)).map(|m| m.len() as usize).unwrap_or(0);
         if std::fs::symlink_metadata(&journal).is_ok() { hot += 1; }
         let rows = ledger_rows(&path);
         for row in &rows {
             crate::recovery::RecoveryLedger::validate_pointer_entry(row).unwrap();
         }
-        assert!(rows.len() >= appended, "round {round}: {} entries after {appended}", rows.len());
+        assert!(rows.len() >= appended + confirmed, "round {round}: {} entries after {appended}, and the child confirmed {confirmed} more", rows.len());
         let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap_or_else(|e| panic!("round {round}: {e}"));
         ledger.append(ledger_entry()).unwrap();
         drop(ledger);
@@ -248,6 +261,7 @@ fn a_short_ledger_write_is_reported_and_leaves_nothing_of_its_batch() {
     let first = result["first"].as_str().unwrap_or_else(|| panic!("{result}"));
     assert!(first.starts_with("recovery ledger append not confirmed"), "{result}");
     assert!(result["second"].is_null(), "{result}");
+    assert_eq!((result["heldAfterFirst"].as_u64(), result["heldAfterSecond"].as_u64()), (Some(3), Some(3 + 64)), "the held entries never include the failed batch: {result}");
     assert_eq!(ledger_rows(&path).len(), 3 + 64, "the failed batch left nothing; the next is whole");
     drop(crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
     println!("ledger short write: {first}");

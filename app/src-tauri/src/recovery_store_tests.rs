@@ -19,6 +19,13 @@ impl Scratch {
     fn entries(&self) -> Vec<Value> {
         crate::recovery::stored_entries(&self.ledger_path())
     }
+    /// The entries in the database, read without opening the ledger (no import).
+    fn entries_raw(&self) -> Vec<Value> {
+        let db = rusqlite::Connection::open(database_path(&self.ledger_path())).unwrap();
+        let mut statement = db.prepare("SELECT entry FROM ledger_entry ORDER BY seq").unwrap();
+        let rows: Vec<Value> = statement.query_map([], |r| r.get::<_, String>(0)).unwrap().map(|t| serde_json::from_str(&t.unwrap()).unwrap()).collect();
+        rows
+    }
 }
 impl Drop for Scratch {
     fn drop(&mut self) {
@@ -151,7 +158,7 @@ fn a_complete_json_lines_ledger_is_imported_once_and_never_written() {
 }
 
 #[test]
-fn a_torn_or_invalid_tail_is_a_limit_and_never_an_entry() {
+fn a_torn_or_invalid_final_line_is_a_limit_and_never_an_entry() {
     // Torn: the final line is not newline-closed.
     let f = Scratch::new();
     let mut bytes = lines(&[started("old")]);
@@ -160,59 +167,176 @@ fn a_torn_or_invalid_tail_is_a_limit_and_never_an_entry() {
     let ledger = f.open();
     assert_eq!(ledger.recorded_entries(), json!([started("old")]));
     assert!(ledger.legacy_import()["limit"].as_str().unwrap().contains("not newline-closed"), "{}", ledger.legacy_import());
+    assert!(ledger.history_limits()[0].contains("not newline-closed"), "the limit is shown with the ledger");
+    assert_eq!(ledger.snapshot()["historyLimits"], json!(ledger.history_limits()));
     drop(ledger);
     assert_eq!(std::fs::read(f.ledger_path()).unwrap(), bytes);
-    // Invalid: a complete line that is not a ledger entry ends the import; the
-    // later complete lines are not imported either.
+    // Invalid and final: a complete last line that is not a ledger entry.
     let g = Scratch::new();
     let mut bytes = lines(&[started("old")]);
     bytes.extend_from_slice(b"{\"kind\":\"session_started\",\"payload\":\"must-not-store\"}\n");
-    bytes.extend(lines(&[ended("old")]));
     std::fs::write(g.ledger_path(), &bytes).unwrap();
     let ledger = g.open();
     assert_eq!(ledger.recorded_entries(), json!([started("old")]));
     let limit = ledger.legacy_import()["limit"].as_str().unwrap().to_owned();
-    assert!(limit.contains("line 2") && limit.contains("is not a valid ledger entry") && limit.contains("2 newline-closed lines"), "{limit}");
-    assert_eq!(ledger.legacy_import()["importedLines"], 1);
+    assert!(limit.contains("final line 2") && limit.contains("is not a valid ledger entry"), "{limit}");
     drop(ledger);
     assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&g.ledger_path())).contains("must-not-store"), "{limit}");
     assert_eq!(std::fs::read(g.ledger_path()).unwrap(), bytes);
-    // A relaunch reports the recorded import and imports nothing again.
+    // A relaunch reports the recorded import, with its limit, and imports nothing again.
     let again = g.open();
     assert_eq!(again.legacy_import()["state"], "imported earlier");
     assert_eq!(again.legacy_import()["limit"], json!(limit));
+    assert!(again.history_limits()[0].contains(&limit));
     assert_eq!(again.recorded_entries(), json!([started("old")]));
 }
 
 #[test]
-fn a_changed_or_relocated_json_lines_ledger_is_not_imported_twice() {
+fn an_invalid_line_before_the_end_fails_closed_and_imports_nothing() {
     let f = Scratch::new();
-    let first = lines(&[started("old")]);
+    let mut bytes = lines(&[started("old")]);
+    bytes.extend_from_slice(b"{\"kind\":\"session_started\",\"payload\":\"must-not-store\"}\n");
+    bytes.extend(lines(&[ended("old")]));
+    std::fs::write(f.ledger_path(), &bytes).unwrap();
+    let refused = RecoveryLedger::open(f.ledger_path()).err().unwrap();
+    assert!(refused.contains("line 2") && refused.contains("Nothing is imported") && refused.contains("1 newline-closed lines"), "{refused}");
+    assert!(!refused.contains("must-not-store"), "a refused line's content is never echoed: {refused}");
+    assert_eq!(std::fs::read(f.ledger_path()).unwrap(), bytes, "the file is not written");
+    let db = rusqlite::Connection::open(database_path(&f.ledger_path())).unwrap();
+    let (entries, imports): (i64, i64) = db.query_row("SELECT (SELECT COUNT(*) FROM ledger_entry), (SELECT COUNT(*) FROM legacy_import)", [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+    assert_eq!((entries, imports), (0, 0), "nothing imported, no import recorded");
+    drop(db);
+    // Repaired, the file is imported whole at the next open.
+    let end = ended("old");
+    let repaired = lines(&[started("old"), end.clone()]);
+    std::fs::write(f.ledger_path(), &repaired).unwrap();
+    let ledger = f.open();
+    assert_eq!(ledger.legacy_import()["state"], "imported");
+    assert_eq!(ledger.recorded_entries(), json!([started("old"), end]));
+}
+
+fn listed(session: &str, id: u64) -> Value {
+    let request = json!({"generation":{"appSession":session,"home":"home","spawnCounter":1},"requestId":id,"method":"item/fileChange/requestApproval",
+        "state":"outstanding","replyWriteResult":"not-attempted","acknowledgment":null,"nativeParameters":{"threadId":"thread","itemId":"item"}});
+    RecoveryLedger::request_summary_entry(&request, &[]).unwrap().unwrap()
+}
+fn reading_after_start(f: &Scratch) -> (Value, usize) {
+    let mut ledger = f.open();
+    ledger.start_session("S3", "c").unwrap();
+    let entries = ledger.recorded_entries().as_array().unwrap().clone();
+    let start = entries.iter().rev().find(|e| e["kind"] == "session_started").unwrap().clone();
+    (start, entries.iter().filter(|e| e["transition"] == "RQ-06").count())
+}
+
+// The review's probe (#1309 B2): an invalid line in the middle once let the
+// import stop early and the App read S1 as the previous session, *clean*, with
+// no RQ-06 ending and no limit, and record that start for good.
+#[test]
+fn probe_mid_file_invalid_line_drives_startup_decisions() {
+    let history = vec![started("S1"), ended("S1"), json!({"kind":"session_started","session":"S2","at":"synthetic","previousSession":"S1","previousSessionEnd":"clean","candidate":"c"}), listed("S2", 7)];
+    // Control: the complete file.
+    let control = Scratch::new();
+    std::fs::write(control.ledger_path(), lines(&history)).unwrap();
+    let (start, endings) = reading_after_start(&control);
+    assert_eq!((start["previousSession"].as_str(), start["previousSessionEnd"].as_str(), endings), (Some("S2"), Some("ended-without-record"), 1));
+    // The same history with an invalid line after S1's end: nothing is derived from part of it.
+    let probe = Scratch::new();
+    let mut bytes = lines(&history[..2]);
+    bytes.extend_from_slice(b"{\"kind\":\"not-a-ledger-kind\"}\n");
+    bytes.extend(lines(&history[2..]));
+    std::fs::write(probe.ledger_path(), &bytes).unwrap();
+    let refused = RecoveryLedger::open(probe.ledger_path()).err().unwrap();
+    assert!(refused.contains("line 3") && refused.contains("Nothing is imported"), "{refused}");
+    assert_eq!(std::fs::read(probe.ledger_path()).unwrap(), bytes);
+    // No session start was recorded from the partial history.
+    let db = rusqlite::Connection::open(database_path(&probe.ledger_path())).unwrap();
+    assert_eq!(db.query_row("SELECT COUNT(*) FROM ledger_entry", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+    drop(db);
+    // Once repaired, the reading is the control's.
+    std::fs::write(probe.ledger_path(), lines(&history)).unwrap();
+    let (start, endings) = reading_after_start(&probe);
+    assert_eq!((start["previousSession"].as_str(), start["previousSessionEnd"].as_str(), endings), (Some("S2"), Some("ended-without-record"), 1));
+}
+
+#[test]
+fn a_changed_json_lines_ledger_fails_closed_and_is_never_imported_twice() {
+    let history = vec![started("S1"), ended("S1")];
+    let first = lines(&history);
+    // An earlier build appended after the import (S2 started and left a request listed).
+    let f = Scratch::new();
     std::fs::write(f.ledger_path(), &first).unwrap();
     drop(f.open());
-    // An earlier build appended after the import: reported, not imported.
-    let mut changed = first.clone();
-    changed.extend(lines(&[ended("old")]));
-    std::fs::write(f.ledger_path(), &changed).unwrap();
-    let ledger = f.open();
-    assert_eq!(ledger.legacy_import()["state"], "changed since its import; not imported again");
-    assert!(ledger.legacy_import()["limit"].as_str().unwrap().contains(&changed.len().to_string()));
-    assert_eq!(ledger.recorded_entries(), json!([started("old")]));
-    drop(ledger);
-    // The same content under another name beside the database: matched by its content identity.
+    let mut appended = first.clone();
+    appended.extend(lines(&[json!({"kind":"session_started","session":"S2","at":"synthetic","previousSession":"S1","previousSessionEnd":"clean","candidate":"c"}), listed("S2", 7)]));
+    std::fs::write(f.ledger_path(), &appended).unwrap();
+    let refused = RecoveryLedger::open(f.ledger_path()).err().unwrap();
+    assert!(refused.contains("changed after its import") && refused.contains(&appended.len().to_string()), "{refused}");
+    assert_eq!(f.entries_raw(), history, "nothing derived or recorded from the changed file");
+    assert_eq!(std::fs::read(f.ledger_path()).unwrap(), appended, "the file is not written");
+    // A restored backup (other bytes at the same path) is refused the same way.
+    let backup = lines(&[started("S0")]);
+    std::fs::write(f.ledger_path(), &backup).unwrap();
+    assert!(RecoveryLedger::open(f.ledger_path()).err().unwrap().contains("changed after its import"));
+    // The same bytes again (a later modification time): imported earlier, not twice.
     std::fs::write(f.ledger_path(), &first).unwrap();
     let ledger = f.open();
     assert_eq!(ledger.legacy_import()["state"], "imported earlier");
     let imports: i64 = ledger.store().unwrap().connection().query_row("SELECT COUNT(*) FROM legacy_import", [], |r| r.get(0)).unwrap();
     assert_eq!(imports, 1);
     drop(ledger);
-    // A database created without a JSON Lines ledger never imports one that appears later.
+    // Moved aside, the database opens with its own history.
+    std::fs::remove_file(f.ledger_path()).unwrap();
+    assert_eq!(f.open().recorded_entries(), json!(history));
+    // A database created without a JSON Lines ledger refuses one that appears later.
     let g = Scratch::new();
     g.open().start_session("new", "c").unwrap();
     std::fs::write(g.ledger_path(), &first).unwrap();
-    let ledger = g.open();
-    assert_eq!(ledger.legacy_import()["state"], "not imported");
-    assert_eq!(ledger.recorded_entries().as_array().unwrap().len(), 1);
+    assert!(RecoveryLedger::open(g.ledger_path()).err().unwrap().contains("appeared after the ledger database was created"));
+    assert_eq!(g.entries_raw().len(), 1);
+}
+
+#[test]
+fn the_database_opens_with_journal_delete_synchronous_extra_and_full_fsync() {
+    let f = Scratch::new();
+    let mut ledger = f.open();
+    ledger.start_session("s", "c").unwrap();
+    assert_eq!(ledger.store().unwrap().durability(), ("delete".to_string(), 3, 1, 1), "journal_mode, synchronous (3 = EXTRA), fullfsync, checkpoint_fullfsync");
+    drop(ledger);
+    assert_eq!(f.open().store().unwrap().durability(), ("delete".to_string(), 3, 1, 1), "and at every open");
+}
+
+#[test]
+fn the_open_descriptor_is_the_named_file_and_no_link_is_followed() {
+    let f = Scratch::new();
+    f.open().start_session("s", "c").unwrap();
+    let database = database_path(&f.ledger_path());
+    let ledger = f.open();
+    assert_eq!(descriptor_identity(ledger.store().unwrap().connection()).unwrap(), identity(&database).unwrap());
+    drop(ledger);
+    // A database name that is a symbolic link is refused, whatever it points at.
+    let g = Scratch::new();
+    std::os::unix::fs::symlink(&database, database_path(&g.ledger_path())).unwrap();
+    let refused = RecoveryLedger::open(g.ledger_path()).err().unwrap();
+    assert!(refused.contains("not a regular single-link file"), "{refused}");
+    // SQLite's own NOFOLLOW refuses it too, below the preflight.
+    let flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NOFOLLOW;
+    assert!(Connection::open_with_flags(database_path(&g.ledger_path()), flags).is_err());
+}
+
+#[test]
+fn an_older_index_format_is_read_by_a_full_scan_with_the_same_held_entries() {
+    let f = Scratch::new();
+    eventful_ledger(&f);
+    let held = f.open().current_entries().to_vec();
+    let format: String = f.open().store().unwrap().connection().query_row("SELECT value FROM ledger_meta WHERE key = 'index_format'", [], |r| r.get(0)).unwrap();
+    assert_eq!(format, INDEX_FORMAT);
+    // Another derivation's database: its format differs and its columns are not this build's.
+    let db = rusqlite::Connection::open(database_path(&f.ledger_path())).unwrap();
+    db.execute_batch("DROP TRIGGER ledger_meta_never_deleted; DELETE FROM ledger_meta WHERE key = 'index_format'; INSERT INTO ledger_meta (key, value) VALUES ('index_format', '0');
+        DROP TRIGGER ledger_entry_never_rewritten; UPDATE ledger_entry SET currency = 'other-derivation', subject = NULL;").unwrap();
+    drop(db);
+    let ledger = f.open();
+    assert_eq!(ledger.current_entries(), held.as_slice(), "the scan derives the same held entries from the JSON");
 }
 
 #[test]

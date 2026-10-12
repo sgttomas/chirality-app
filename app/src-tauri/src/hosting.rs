@@ -874,6 +874,7 @@ impl Host {
             &i.app_session, i.recovery_snapshot.as_ref().map(|o|o.rows.as_slice()), i.execution_custody.snapshot(),
             pending,
             i.recovery_initialization_error.as_deref().or(i.recovery_error.as_deref()))
+            .with_history_limits(i.recovery_snapshot.as_ref().map_or(&Value::Null, |o| &o.summary["historyLimits"]))
     }
     fn persist_execution(i:&mut Inner) {
         // The held entries and the queued facts, searched in place (no copy).

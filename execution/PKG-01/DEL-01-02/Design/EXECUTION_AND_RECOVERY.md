@@ -1247,8 +1247,14 @@ Readings §7 leaves open, as implemented:
   first write when neither exists; a configured location whose database or
   JSON Lines file exists but cannot be read is "App history unavailable".
   Each entry is stored as its exact JSON with indexed columns (kind,
-  session, home, thread, generation, and the keys below), validated against
-  the ledger schema before insert and again when read.
+  session, home, thread, generation, and the keys below). Each entry is
+  validated against the ledger schema before it is inserted; at startup the
+  held entries (below) are validated again as they are read, and the others
+  are left to SQLite's own checks. `ledger_meta` records the schema version
+  and the index format, the derivation of the two keys. Migration rule: a
+  later derivation takes a new format number and rewrites no row; a database
+  recording another format (or none) is read by one full scan that derives
+  the keys from each entry's JSON and ignores the stored columns.
 - *Append-only in the schema.* Triggers refuse every UPDATE and DELETE of an
   entry, of the import record and of the database's metadata.
 - *Transactions.* A batch is one `BEGIN IMMEDIATE` transaction: a session
@@ -1259,34 +1265,56 @@ Readings §7 leaves open, as implemented:
   reopen before another write, because a commit that reports an error may
   have reached the disk. SR-08 closures at startup remain separate
   best-effort appends, as before.
-- *Durability.* Rollback journal, `synchronous=FULL`, `fullfsync` and
-  `checkpoint_fullfsync`; a new database's directory is synced on creation.
-  An entry is reported persisted only after its commit returns. A database
+- *Durability.* Rollback journal (`journal_mode=DELETE`), `synchronous=EXTRA`,
+  `fullfsync` and `checkpoint_fullfsync`, checked at every open; a new
+  database's directory is synced on creation. In DELETE mode a commit is
+  durable when its journal is unlinked, and SQLite syncs the directory after
+  that unlink only at EXTRA (bundled 3.46.0: `sqlite3OsDelete(…,
+  pPager->extraSync)`, set only at `PAGER_SYNCHRONOUS_EXTRA`); at FULL a power
+  loss could bring the journal back and roll back a commit already reported
+  (found in review of #1309). An entry is reported persisted only after its
+  commit returns. Whether the device honours the syncs is not observable
+  from the App. A database
   another App instance holds past the busy wait (5 s), a read-only database
   or one that cannot be opened is a visible "append not confirmed" or
   "App history unavailable"; nothing falls back to another location or to
-  the JSON Lines file. Two App instances append in commit order.
+  the JSON Lines file. Two App instances append in commit order; nothing
+  prevents two instances from running (no single-instance guard, as before),
+  and their held entries do not include each other's appends.
 - *Guards.* The database and its `-journal`/`-wal`/`-shm` files must each be a
-  regular single-link file or absent, inside the bound namespaces, and every
-  write rechecks that the path still names the opened file (device and
-  inode): the equivalent, for a file SQLite opens itself, of the JSON Lines
-  writer's no-follow and descriptor checks.
+  regular single-link file or absent, inside the bound namespaces. SQLite
+  opens the name under its folder's resolved path with `SQLITE_OPEN_NOFOLLOW`,
+  the descriptor it opened (read from its unix VFS file object and examined
+  with `fstat`) must be the file the path names, and every write rechecks
+  that the path still names it (device and inode): the equivalent, for a
+  file SQLite opens itself, of the JSON Lines writer's no-follow and
+  descriptor checks.
 - *Import.* The JSON Lines file is read in bounded pieces: its length and
   content identity (`chirality.app.exact-bytes.sha256/v1`) on an open where
   it is not the same file (device, inode, length, modification time) as
   when it was imported, and its lines only when it is imported now (a change
-  between the two reads refuses the import). Every complete line that is a valid
-  entry is imported in order, in one transaction with the import record
-  (path, byte length, content identity, lines imported, first and last
-  entry, limit); the first torn or invalid line ends the import, and it and
-  the rest are a recorded limit, never entries, while the earlier entries
-  stay readable (the JSON Lines reader refused the whole file instead). A
-  refused line's content is never echoed into the limit. The file is never
-  written, truncated or removed. It is imported at most once: a file whose
-  path or content was imported is not imported again, and a changed one is
-  reported as changed and not imported. A JSON Lines file that appears
-  beside a database created without one is not imported (its entries would
-  not follow the database's order).
+  between the two reads refuses the import). Every complete line that is a
+  valid entry is imported in order, in one transaction with the import
+  record (path, byte length, content identity, file identity, lines
+  imported, first and last entry, limit). A torn or invalid **final** line is
+  not imported and is the import's recorded limit; the earlier entries are
+  the whole history before it (the JSON Lines reader refused the whole file
+  instead). That limit is shown at every start with the recovery
+  initialization ("configured-with-limits", `historyLimits`) and in the
+  custody view's limits. An invalid line **before the end** imports nothing:
+  the history after it would be missing, and §7 infers no historical answer
+  from incomplete storage, so a session end, RQ-06, SR-08 or CV-19 reading
+  derived from the part before it could be false and would be recorded for
+  good. The open fails visibly ("App history unavailable", initialization
+  failed, as with the JSON Lines reader), and the next start imports the
+  repaired file. A refused line's content is never echoed into a limit or
+  error. The file is never written, truncated or removed. It is imported at
+  most once: a file whose path or content was imported is not imported
+  again. A file that changed after its import (an earlier build appended to
+  it, or a backup was restored) and a JSON Lines file that appears beside a
+  database created without one fail closed the same way: their entries are
+  not in the database, so its history is incomplete; the error says to move
+  the file aside.
 - *Held entries.* The host never holds or copies the whole ledger. It holds
   the current entries: every session marker, quit, Codex stop, stop-request
   entry and RQ-06 ending; the latest `conversation_index` entry for each
@@ -1300,12 +1328,13 @@ Readings §7 leaves open, as implemented:
   the summaries' comparison with earlier ones, tags) give the same results
   over these entries; a limit repeated once per superseded entry is now
   given once per held entry. The per-fact readers search the held entries
-  and the queued facts in place, without a copy.
+  and the queued facts in place, without a copy. A retry after a commit
+  that reported an error but did land can append an entry twice; the
+  readers tolerate the repeated entry.
 - *Host status.* The status the web view polls carries the ledger's bounded
   snapshot (database, import reading, number of held entries), not its
   entries. The details pane "Recovery initialization and historical pointer
-  state" shows that snapshot. Entries not held are not re-validated at
-  startup; SQLite's own checks cover them.
+  state" shows that snapshot.
 
 **App ledger durability and scale, measured (2026-10-12; release build,
 macOS, one machine; `records::durability_tests`, and the ignored
@@ -1348,7 +1377,7 @@ macOS, one machine; `records::durability_tests`, and the ignored
   them for the latest row of one conversation or request. Next: the
   startup read.
 - These measurements are of the JSON Lines writer, which the SQLite store
-  and the bounded host state replace ("App ledger store", below). Measured
+  and the bounded host state replace ("App ledger store", above). Measured
   again (2026-10-12; release build, same machine, `records_scale_report`
   over the same fixtures; the first open imports the JSON Lines file):
 
