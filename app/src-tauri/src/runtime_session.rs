@@ -4556,17 +4556,23 @@ impl WorkflowRootSession {
     /// SL-1/SL-4: the person's selection of a held registered revision, resolved
     /// from `store` and verified there; it replaces (and cites) the one in force.
     fn choose_registered(&mut self, held: &crate::workflow_workspace::RegisteredRevision, store: std::path::PathBuf) -> Result<Value, String> {
+        self.selected = Some(self.resolve_registered(held, store)?);
+        Ok(self.snapshot())
+    }
+    /// SL-4: a held registered revision resolved from its revision `store` and
+    /// verified there; never the published copy, never a substitute. The new
+    /// selection cites the registered selection it would replace (SL-2 / §5.4).
+    fn resolve_registered(&self, held: &crate::workflow_workspace::RegisteredRevision, store: std::path::PathBuf) -> Result<WorkflowSelectionState, String> {
         let selection = held.select();
         crate::storage::check_path(&store)?;
         selection.verify_store(&store)?;
-        self.selected = Some(WorkflowSelectionState {
+        Ok(WorkflowSelectionState {
             reference: crate::util::opaque_id("workflow-selection:")?,
             selection,
             package: store,
             selected_at: crate::util::now_rfc3339(),
             replaces: self.replaced(),
-        });
-        Ok(self.snapshot())
+        })
     }
     pub fn create_selected_draft(&mut self, name: &str) -> Result<Value, String> {
         if !crate::workflow_workspace::valid_name(name) {
@@ -5411,22 +5417,18 @@ impl WorkflowRootSession {
             (Some((reference, _)), None) => return Err(format!("A workflow run is in force in this conversation ({reference}); the proposal is offered only as \"End and start\" (RE-7, CH-1). Nothing selected or started")),
             (_, Some(_)) => return Err("That run is no longer the run in force in this conversation; nothing ended or started".into()),
         };
-        let package = found
+        // SL-4: resolved from the revision store, through the same verified path
+        // as a selection from the library list; an edited published copy is
+        // neither used nor needed, and a store that does not verify refuses.
+        let store = found
             .library
             .owner
             .try_lock()
             .map_err(|_| "Original library owner busy; nothing selected")?
-            .revision_copies(&found.identity)
-            .into_iter()
-            .find(|path| crate::storage::check_path(path).is_ok() && found.revision.select().verify_store(path).is_ok())
-            .ok_or("No copy of the proposed revision verifies against its revision; select it in the workflow panel instead. Nothing selected or started")?;
-        let chosen = WorkflowSelectionState {
-            reference: crate::util::opaque_id("workflow-selection:")?,
-            selection: found.revision.select(),
-            package,
-            selected_at: crate::util::now_rfc3339(),
-            replaces: self.replaced(),
-        };
+            .store_copy(&found.identity);
+        let chosen = self
+            .resolve_registered(&found.revision, store)
+            .map_err(|cause| format!("proposed workflow {}: {cause}; nothing selected or started", named.text()))?;
         let previous = self.selected.replace(chosen);
         let proposal = json!({"conversation":thread,"item":message.item,"proposed_name":named.text()});
         let prepared = match live {
@@ -9705,6 +9707,96 @@ for line in sys.stdin:
         let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
         let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
         assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"ended to start coordinated-knowledge-work");
+    }
+    /// The revision store copy of the fixture's selected revision.
+    fn store_of(peer:&Peer,root:&WorkflowRootSession)->std::path::PathBuf{
+        let id=root.selected.as_ref().unwrap().selection.identity().clone();
+        peer.fixture.root.join(".chirality/workflow-revisions").join(&id.name).join(crate::storage::key(&id.revision)).join(&id.name)
+    }
+    // WR SL-4: a confirmed proposal is resolved from the revision store, never the
+    // published copy, whether or not the published copy still verifies or was edited.
+    #[test]
+    fn workflow_reselection_proposal_resolves_the_revision_store(){
+        for edited in [false,true]{
+            let peer=Peer::new();let mut root=peer.fixture.registered();
+            let store=store_of(&peer,&root);let first=root.selected.as_ref().unwrap().reference.clone();
+            let original=std::fs::read_to_string(store.join("WORKFLOW.md")).unwrap();
+            if edited{
+                let published=peer.fixture.root.join(".chirality/workflows/coordinated-knowledge-work/WORKFLOW.md");
+                std::fs::write(&published,"---\nname: coordinated-knowledge-work\n---\nedited outside registration\n").unwrap();
+            }
+            let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
+            let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap();
+            assert_eq!(root.selected.as_ref().unwrap().package,store,"resolved from the revision store (published copy edited: {edited})");
+            assert_eq!(root.selected.as_ref().unwrap().replaces.as_deref(),Some(first.as_str()));
+            let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
+            let text=last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+            let body=original.split_once("\n---\n").map_or(original.as_str(),|(_,b)|b);
+            assert!(text.contains(body)&&!text.contains("edited outside registration"),"the store's bytes were supplied (edited: {edited})");
+            let guard=root.lock().unwrap();let run=guard.runs[&b].lock().unwrap();
+            let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+            let selection=project.resolve(run.view(&b)["publication"]["selection"].as_str().unwrap()).unwrap();
+            assert_eq!(selection.body()["how"],"agent proposal confirmed by the person");
+            assert_eq!(selection.body()["holding_library"],store.parent().unwrap().to_str().unwrap());
+        }
+    }
+    // WR SL-4: a store that does not recompute is refused, with no fallback to a
+    // published copy that still verifies; nothing is selected, prepared or sent.
+    #[test]
+    fn workflow_reselection_proposal_refuses_a_tampered_store(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let store=store_of(&peer,&root);let before=root.selected.as_ref().unwrap().reference.clone();
+        let file=store.join("WORKFLOW.md");let kept=std::fs::read(&file).unwrap();
+        std::fs::write(&file,b"tampered store").unwrap();
+        let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
+        let refused=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap_err();
+        assert!(refused.contains("revision not verified")&&refused.contains("nothing selected or started"),"{refused}");
+        assert_eq!(root.selected.as_ref().unwrap().reference,before,"the person's selection stays");
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);
+        std::fs::write(&file,kept).unwrap();
+        root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).expect("restored store resolves");
+    }
+    // RC-2 / PR-3: a registered revision this process holds no result for is not
+    // offered and not started from a proposal.
+    #[test]
+    fn workflow_reselection_proposal_refuses_a_revision_not_held_here(){
+        let peer=Peer::new();let _registered=peer.fixture.registered();
+        let mut cold=WorkflowRootSession::default();
+        cold.open_library(peer.fixture.root.clone(),"project",Some(&peer.fixture.root),Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&peer.fixture.root))))).unwrap();
+        let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
+        let notice=cold.offers(&view)[0]["proposal"]["resolution"]["notice"].as_str().unwrap().to_owned();
+        assert!(notice.contains("registered but not selectable in this App session: re-confirm"),"{notice}");
+        let refused=cold.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap_err();
+        assert!(refused.contains("re-confirm"),"{refused}");
+        assert!(cold.selected.is_none()&&cold.runs.is_empty());
+    }
+    // SL-7 / PR-4 with SL-2: a chained run started from a proposal records how,
+    // proposal, prior_run and replaces as before; only the store resolution changed.
+    #[test]
+    fn workflow_reselection_proposal_chained_run_record_fields(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let first=root.selected.as_ref().unwrap().reference.clone();
+        let identity=root.selected.as_ref().unwrap().selection.identity().clone();
+        let both=format!("{FINISHED}\n{PROPOSED}");
+        let view=offer_view(&peer,&[("turn","m",1,&both,"live-observed")]);
+        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
+        let store=store_of(&peer,&root);
+        let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
+        let guard=root.lock().unwrap();let run=guard.runs[&b].lock().unwrap();
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let selection=project.resolve(run.view(&b)["publication"]["selection"].as_str().unwrap()).unwrap();
+        let body=selection.body();
+        let mut keys:Vec<&str>=body.as_object().unwrap().keys().map(|k|k.as_str()).collect();keys.sort();
+        assert_eq!(keys,["conversation","holding_library","how","identity","prior_run","proposal","record_kind","replaces","selected_at","selected_by","selection_id","standing"]);
+        assert_eq!(body["how"],"agent proposal confirmed by the person");
+        assert_eq!(body["proposal"],json!({"conversation":"thread","item":"m","proposed_name":"project:coordinated-knowledge-work"}));
+        assert_eq!(body["prior_run"],json!({"run":a,"workflow":identity,"ended":"completed"}));
+        assert_eq!(body["replaces"],first.as_str());
+        assert_eq!(body["identity"],json!(identity));
+        assert_eq!((body["standing"].as_str(),body["selected_by"].as_str(),body["conversation"].as_str()),(Some("registered"),Some("the person (App interface)"),Some("thread")));
+        assert_eq!(body["holding_library"],store.parent().unwrap().to_str().unwrap());
+        assert_eq!(run.prepared().record()["origin_of_start"],"agent proposal confirmed by the person");
+        assert_eq!(run.prepared().record()["chain"]["prior_run"],a.as_str());
     }
     // V10 G-2 with FN-2: if B does not start, an end on the agent's finished report stays
     // *completed* (only "ended to start ‹B›" depends on B), and the end notice becomes pending.
