@@ -37,7 +37,7 @@ fn person() -> Value {
     crate::stop_records::person("R · OS account r")
 }
 fn ledger_rows(path: &Path) -> Vec<Value> {
-    std::fs::read_to_string(path).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+    crate::recovery::stored_entries(path)
 }
 fn transitions(path: &Path) -> Vec<String> {
     ledger_rows(path).iter().filter(|e| e["kind"] == "stop_request").map(|e| e["record"]["transition"].as_str().unwrap().to_owned()).collect()
@@ -77,10 +77,15 @@ fn person_interrupt_writes_sr01_before_the_send_and_settles_from_the_observed_en
     let (host, g, path) = ledger_host(&root);
     event(&host, &g, "turn", "inProgress");
     let ledger = path.clone();
-    let (ack, outbound) = exchange(&host, &g, Some(json!({"result":{}})), move || {
-        // The request is being written now: SR-01, and nothing later, is already durable.
-        assert_eq!(transitions(&ledger), ["SR-01"], "SR-01 is on disk before the interrupt reaches Codex");
-    }, || host.turn_interrupt(&g, "thread", "turn", "H-acct", &person()));
+    // At the send (the host's own hook, just before the frame is written):
+    // SR-01, and nothing later, is already durable. Reading the ledger from the
+    // peer's side is not ordered with the host's next write, so it is not used.
+    let (seen_tx, seen_rx) = channel::<Vec<String>>();
+    *host.before_interrupt_send.lock().unwrap() = Some(Box::new(move || {
+        seen_tx.send(transitions(&ledger)).unwrap();
+    }));
+    let (ack, outbound) = exchange(&host, &g, Some(json!({"result":{}})), || {}, || host.turn_interrupt(&g, "thread", "turn", "H-acct", &person()));
+    assert_eq!(seen_rx.recv_timeout(Duration::from_secs(5)).unwrap(), ["SR-01"], "SR-01 is on disk before the interrupt reaches Codex");
     assert_eq!(ack.unwrap()["result"], json!({}));
     assert_eq!(outbound["method"], "turn/interrupt");
     let row = host.snapshot()["stopRequests"]["records"][0].clone();
@@ -101,7 +106,8 @@ fn person_interrupt_writes_sr01_before_the_send_and_settles_from_the_observed_en
     assert_eq!(records[0]["generation"], crate::recovery::generation_ref(&g).unwrap());
     // Every ledger line validates; nothing but pointers was written.
     RecoveryLedger::open(path.clone()).unwrap();
-    assert!(!std::fs::read_to_string(&path).unwrap().contains("\"text\""));
+    assert!(!serde_json::to_string(&ledger_rows(&path)).unwrap().contains("\"text\""));
+    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&path)).contains("\"text\""));
     // Relaunch: a new App session reads the outcome back from the ledger alone.
     drop(host);
     let relaunched = Host::new();
@@ -141,8 +147,9 @@ fn a_ledger_that_refuses_the_write_is_visible_and_the_stop_still_proceeds() {
     let (host, g, path) = ledger_host(&root);
     event(&host, &g, "turn", "inProgress");
     let saved = root.join("ledger-aside");
-    std::fs::rename(&path, &saved).unwrap();
-    std::fs::create_dir(&path).unwrap();
+    let database = crate::recovery::database_path(&path);
+    std::fs::rename(&database, &saved).unwrap();
+    std::fs::create_dir(&database).unwrap();
     let (ack, outbound) = exchange(&host, &g, Some(json!({"result":{}})), || {}, || host.turn_interrupt(&g, "thread", "turn", "H-acct", &person()));
     ack.unwrap();
     assert_eq!(outbound["method"], "turn/interrupt", "I-2: the person's stop is not blocked by bookkeeping");
@@ -152,8 +159,8 @@ fn a_ledger_that_refuses_the_write_is_visible_and_the_stop_still_proceeds() {
     assert!(snapshot["recoveryPersistenceError"].is_string(), "the failure is visible");
     // Never relocated: nothing was written anywhere else.
     assert_eq!(std::fs::read_dir(&root).unwrap().count(), 2);
-    std::fs::remove_dir(&path).unwrap();
-    std::fs::rename(&saved, &path).unwrap();
+    std::fs::remove_dir(&database).unwrap();
+    std::fs::rename(&saved, &database).unwrap();
     host.flush_recovery_observations();
     assert_eq!(transitions(&path), ["SR-01", "SR-02", "SR-04"], "kept in order and written once the ledger accepts it");
     assert_eq!(host.snapshot()["stopRequests"]["records"][0]["persistence"], "recorded in the App ledger");

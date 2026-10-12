@@ -81,9 +81,9 @@ fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
     let writer = f.host.recovery_writer.lock().unwrap();
     f.item("turn-A");
     f.item("turn-B");
-    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
+    let bytes = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
     let view = f.read();
-    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
+    assert_eq!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl")), bytes);
     assert_eq!(view["source"]["generation"], f.generation);
     assert!(view["custody"]["pendingPointerFacts"].as_u64().unwrap() > 0);
     assert_eq!(
@@ -118,11 +118,11 @@ fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
         HomeSession::new(HomeClass::Account, next.clone(), Err("no supplier".into())).unwrap(),
     );
     let router = Mutex::new(HomeRouter::new(home).unwrap());
-    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
+    let bytes = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
     let reopened =
         crate::read_recovery_custody_from_root(&router, HomeClass::Account.as_str(), &Value::Null)
             .unwrap();
-    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
+    assert_eq!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl")), bytes);
     assert_eq!(reopened["source"]["generation"], Value::Null);
     assert_eq!(
         reopened["custody"]["historicalConversations"][0]["executionGeneration"],
@@ -135,7 +135,8 @@ fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
     assert_eq!(reopened["custody"]["restartEvents"], json!([]));
     assert_eq!(reopened["custody"]["automaticResume"], false);
     assert_eq!(next.snapshot()["clientRequests"], json!([]));
-    assert!(!String::from_utf8(bytes).unwrap().contains("NATIVE_PAYLOAD"));
+    assert!(!serde_json::to_string(&bytes).unwrap().contains("NATIVE_PAYLOAD"));
+    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&f.root.join("ledger.jsonl"))).contains("NATIVE_PAYLOAD"));
 }
 #[test]
 fn recovery_root_missing_project_index_stays_memory_only_and_read_never_flushes() {
@@ -143,9 +144,9 @@ fn recovery_root_missing_project_index_stays_memory_only_and_read_never_flushes(
     f.item("known-source-turn");
     Host::close_generation(&mut f.host.inner.0.lock().unwrap());
     f.host.flush_recovery_observations();
-    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
+    let bytes = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
     let view = f.read();
-    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
+    assert_eq!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl")), bytes);
     assert_eq!(
         view["custody"]["live"]["observations"][0]["indexKnown"],
         false
@@ -199,10 +200,10 @@ fn recovery_root_foreign_home_generation_and_busy_root_cannot_retarget() {
     let runtime = f.home.runtime.lock().unwrap();
     let ledger = f.host.inner.0.lock().unwrap().recovery.clone().unwrap();
     let ledger_guard = ledger.lock().unwrap();
-    let before = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
+    let before = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
     let view = f.read();
     assert_eq!(view["source"]["generation"], f.generation);
-    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), before);
+    assert_eq!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl")), before);
     drop(ledger_guard);
     drop(runtime);
     drop(history);
@@ -213,7 +214,7 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     let f = Fixture::new(true);
     f.item("known-turn");
     let mut ledger = RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();
-    let mut row = ledger.snapshot()["entries"]
+    let mut row = ledger.recorded_entries()
         .as_array()
         .unwrap()
         .iter()
@@ -227,7 +228,7 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
         .push(json!({"itemId":"legacy-item","itemType":"reasoning"}));
     row["lastObservedExecution"]["liveTurn"] = json!("not-a-legacy-association");
     ledger.append(row.clone()).unwrap();
-    let prefix = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
+    let prefix = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
     let next = Arc::new(Host::new());
     next.configure_recovery(f.root.join("ledger.jsonl"))
         .unwrap();
@@ -237,7 +238,7 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     row["session"] = next_session.clone();
     row["tags"] = json!([{"owner":"synthetic-receiver","value":"later-metadata","seq":1}]);
     new_ledger.append(row).unwrap();
-    next.inner.0.lock().unwrap().recovery_snapshot = Some(new_ledger.snapshot());
+    next.inner.0.lock().unwrap().recovery_snapshot = Some(new_ledger.observation());
     let home = HomeSession::new(HomeClass::Account, next.clone(), Err("offline".into())).unwrap();
     let view =
         crate::recovery_root_view::read(&home, HomeClass::Account.as_str(), &Value::Null).unwrap();
@@ -249,7 +250,6 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     assert!(old["turnId"].is_null());
     assert!(old["fullTuple"].is_null());
     assert!(old["correlation"].as_str().unwrap().contains("unknown"));
-    assert!(std::fs::read(f.root.join("ledger.jsonl"))
-        .unwrap()
+    assert!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl"))
         .starts_with(&prefix));
 }

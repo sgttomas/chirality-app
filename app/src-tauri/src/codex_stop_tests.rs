@@ -556,7 +556,7 @@ for line in sys.stdin:
         assert_eq!(out["codexStopRecord"]["state"], "recorded");
         assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex");
         assert_eq!(out["turns"][0]["stopRequest"]["label"], "interrupted by Stop Codex", "the record carries the same label");
-        let rows: Vec<Value> = std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        let rows: Vec<Value> = crate::recovery::stored_entries(&f.ledger());
         let kinds: Vec<String> = rows.iter().map(|e| match e["kind"].as_str().unwrap() {
             "stop_request" => format!("stop_request {}", e["record"]["transition"].as_str().unwrap()),
             other => other.to_owned(),
@@ -688,7 +688,7 @@ for line in sys.stdin:
     // ---- K-4 / SQ-Q App quit through the real Host (`app_quit`).
 
     fn ledger_rows(f: &Fixture) -> Vec<Value> {
-        std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+        crate::recovery::stored_entries(&f.ledger())
     }
     fn kinds(rows: &[Value]) -> Vec<String> {
         rows.iter().map(|e| match e["kind"].as_str().unwrap() {
@@ -707,7 +707,7 @@ for line in sys.stdin:
     fn relaunch_reading(f: &Fixture) -> Value {
         let mut ledger = crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
         ledger.start_session("relaunch", "candidate").unwrap();
-        ledger.snapshot()["entries"].as_array().unwrap().iter().rev().find(|e| e["kind"] == "session_started").unwrap().clone()
+        ledger.recorded_entries().as_array().unwrap().iter().rev().find(|e| e["kind"] == "session_started").unwrap().clone()
     }
 
     /// AS-04, AS-06, Q-4…Q-7: asked first with the live turn listed; on Quit the
@@ -854,14 +854,14 @@ for line in sys.stdin:
         std::fs::write(&crashed, rows[..=last_sent].iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
         let mut ledger = crate::recovery::RecoveryLedger::open(crashed.clone()).unwrap();
         ledger.start_session("relaunch", "candidate").unwrap();
-        let after: Vec<Value> = ledger.snapshot()["entries"].as_array().unwrap().clone();
+        let after: Vec<Value> = ledger.recorded_entries().as_array().unwrap().clone();
         assert_eq!(after.iter().rev().find(|e| e["kind"] == "session_started").unwrap()["previousSessionEnd"], "ended-without-record");
         let closed: Vec<&Value> = after.iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").collect();
         assert_eq!(closed.len(), 1);
         assert_eq!((closed[0]["session"].as_str(), closed[0]["record"]["outcomeLabel"].as_str()), (Some("relaunch"), Some("interrupted by Stop Codex (final status not observed)")));
         let mut again = crate::recovery::RecoveryLedger::open(crashed).unwrap();
         again.start_session("relaunch-2", "candidate").unwrap();
-        assert_eq!(again.snapshot()["entries"].as_array().unwrap().iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").count(), 1, "closed once");
+        assert_eq!(again.recorded_entries().as_array().unwrap().iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").count(), 1, "closed once");
     }
 
     /// B-1: a quit asked while Stop Codex has closed the process (and is
@@ -961,7 +961,7 @@ for line in sys.stdin:
             ledger.append(crate::recovery::RecoveryLedger::session_end_entry("s1", "quit", &[]).unwrap()).unwrap();
             let mut next = crate::recovery::RecoveryLedger::open(path).unwrap();
             next.start_session("s2", "candidate").unwrap();
-            next.snapshot()["entries"].as_array().unwrap().iter().rev().find(|e| e["kind"] == "session_started").unwrap()["previousSessionEnd"].clone()
+            next.recorded_entries().as_array().unwrap().iter().rev().find(|e| e["kind"] == "session_started").unwrap()["previousSessionEnd"].clone()
         };
         let q = |m: &Value| crate::stop_records::quit_requested_entry("s1", &actor, m).unwrap();
         let a = |c: bool| crate::stop_records::quit_answered_entry("s1", &actor, c).unwrap();

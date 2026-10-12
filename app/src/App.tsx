@@ -835,8 +835,9 @@ export function App() {
       <section>
         <h2>Native requests and execution</h2>
         <p>Recovery initialization: {host?.recoveryInitialization?.state ?? "not-initialized"} · host configured: {String(host?.recoveryInitialization?.hostConfigured ?? false)}</p>
+        {(host?.recoveryInitialization?.historyLimits ?? []).map((limit: string) => <p role="alert" key={limit}>App history limit: {limit}</p>)}
         <p>Ledger: {host?.recoveryInitialization?.path?.displayPath ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
-        {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. Ledger failure does not block native supplier processing; App recovery recording remains limited.</p>}
+        {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. No App recovery recording happens until this is resolved (a JSON Lines ledger named here must be repaired or moved aside). Native supplier processing is not blocked.</p>}
         <p>Directory publication: {host?.recoveryInitialization?.directoryPublication ?? "not established"} · later persistence failure: {host?.recoveryPersistenceError ?? "none reported"}</p>
         <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
         <p>Observer: {JSON.stringify(host?.observerCursor)} · gap: {String(host?.observerGap ?? true)}</p>

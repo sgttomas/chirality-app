@@ -154,7 +154,7 @@ pub(crate) fn startup(homes: &[std::sync::Arc<crate::runtime_session::HomeSessio
     let mut limits = Vec::new();
     for home in homes {
         let recovery = home.recovery_startup.lock().unwrap().snapshot();
-        if recovery["state"] != "configured" {
+        if !matches!(recovery["state"].as_str(), Some("configured" | "configured-with-limits")) {
             limits.push(json!({"home":home.class().as_str(),"limit":format!("REC recovery projection not available ({}); no restart facts read",recovery["state"])}));
             continue;
         }

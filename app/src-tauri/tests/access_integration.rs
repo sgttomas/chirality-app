@@ -242,7 +242,8 @@ fn root_key_admission_uses_current_fixed_ledger_and_genuine_shared_session() {
         "configured"
     );
     let cap = account.app_runtime_custody().unwrap();
-    let leaf = reviewed_ledger_path(&fixture.data);
+    // The ledger database: the leaf the App writes (DEL-01-02 §7).
+    let leaf = chirality_app_v4_lib::recovery::database_path(&reviewed_ledger_path(&fixture.data));
     let before = std::fs::read(&leaf).unwrap();
     let admitted = prepare_native_key_namespace(&set, &fixture.data, &cap).unwrap();
     assert_eq!(
@@ -304,7 +305,8 @@ fn prospective_key_drift_refuses_setup_without_vetoing_current_account_binding()
         "configured"
     );
     let cap = host.app_runtime_custody().unwrap();
-    let leaf = reviewed_ledger_path(&fixture.data);
+    // The ledger database: the leaf the App writes (DEL-01-02 §7).
+    let leaf = chirality_app_v4_lib::recovery::database_path(&reviewed_ledger_path(&fixture.data));
     let before = std::fs::read(&leaf).unwrap();
     #[cfg(unix)]
     {
@@ -343,7 +345,8 @@ fn redirected_fixed_rec_leaf_refuses_before_key_creation_and_preserves_canary() 
         Ok(set.native_namespaces(false).unwrap()),
     );
     let cap = host.app_runtime_custody().unwrap();
-    let leaf = reviewed_ledger_path(&fixture.data);
+    // The ledger database: the leaf the App writes (DEL-01-02 §7).
+    let leaf = chirality_app_v4_lib::recovery::database_path(&reviewed_ledger_path(&fixture.data));
     let saved = fixture.data.join("runtime/saved-own-ledger");
     let before = std::fs::read(&leaf).unwrap();
     #[cfg(unix)]
@@ -536,7 +539,8 @@ fn connected_root_sources_keep_ordinary_input_reply_and_scoped_stop_during_key_a
         &peer
     ));
     ordinary_fixture_roundtrip(&peer, &key_generation, &key_path, "key original source");
-    let leaf = reviewed_ledger_path(&fixture.data);
+    // The ledger database: the leaf the App writes (DEL-01-02 §7).
+    let leaf = chirality_app_v4_lib::recovery::database_path(&reviewed_ledger_path(&fixture.data));
     let saved = fixture.data.join("runtime/saved-ledger");
     std::fs::rename(&leaf, &saved).unwrap();
     // The ledger append opens with create(true), so a late asynchronous
@@ -544,13 +548,21 @@ fn connected_root_sources_keep_ordinary_input_reply_and_scoped_stop_during_key_a
     // rename. Read the saved ledger after the move, and plant the link
     // atomically over whatever is at the leaf now (link at a temporary name in
     // the same folder, then rename over the leaf).
-    let before = std::fs::read(&saved).unwrap();
     let canary = fixture.targets[0].as_ref().unwrap();
     let untouched = std::fs::read(canary).unwrap();
-    let planted = leaf.with_file_name("recovery.ledger.jsonl.planted-link");
+    let planted = leaf.with_file_name("recovery.ledger.sqlite.planted-link");
     std::os::unix::fs::symlink(canary, &planted).unwrap();
     std::fs::rename(&planted, &leaf).unwrap();
     assert!(std::fs::symlink_metadata(&leaf).unwrap().file_type().is_symlink());
+    // A write transaction the App's open connection had begun before the move
+    // commits into the moved file; wait for it (an exclusive lock), then read
+    // the moved ledger. Nothing may change it after this point.
+    {
+        let settle = rusqlite::Connection::open(&saved).unwrap();
+        settle.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+        settle.execute_batch("BEGIN EXCLUSIVE; COMMIT;").unwrap();
+    }
+    let before = std::fs::read(&saved).unwrap();
     assert!(prepare_native_key_namespace(&set, &fixture.data, &cap).is_err());
     assert!(cap
         .preflight_native_namespaces(&admitted.namespaces)

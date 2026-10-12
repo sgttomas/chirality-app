@@ -360,9 +360,10 @@ fn reading(record: &Value, earlier: bool) -> (Option<String>, String, bool) {
 }
 
 /// The ledger's stop-request entries, indexed once as they are appended
-/// (a snapshot does not re-validate or re-scan the whole ledger). The ledger
-/// is append-only; if the snapshot no longer continues the indexed prefix
-/// (another ledger, or a shorter one) the index is rebuilt.
+/// (an update does not re-validate them). Every stop-request entry stays
+/// among the ledger's held entries (DEL-01-02 §7), in order; if those no
+/// longer continue the indexed prefix (another ledger, or a shorter one) the
+/// index is rebuilt.
 #[derive(Debug, Default)]
 pub(crate) struct LedgerIndex {
     seen: usize,
@@ -373,13 +374,14 @@ pub(crate) struct LedgerIndex {
     limits: Vec<String>,
 }
 impl LedgerIndex {
-    pub(crate) fn update(&mut self, ledger: Option<&Value>) {
-        let rows: &[Value] = ledger.and_then(|l| l["entries"].as_array()).map(Vec::as_slice).unwrap_or(&[]);
-        let continues = self.seen <= rows.len() && (self.seen == 0 || rows.get(self.seen - 1) == self.last.as_ref());
+    /// `held`: the ledger's held entries ([`crate::recovery::LedgerObservation`]).
+    pub(crate) fn update(&mut self, held: &[Value]) {
+        let rows: Vec<&Value> = held.iter().filter(|e| e["kind"] == "stop_request").collect();
+        let continues = self.seen <= rows.len() && (self.seen == 0 || rows.get(self.seen - 1).copied() == self.last.as_ref());
         if !continues {
             *self = Self::default();
         }
-        for entry in rows[self.seen..].iter().filter(|e| e["kind"] == "stop_request") {
+        for entry in rows[self.seen..].iter().copied() {
             let record = &entry["record"];
             if let Err(error) = validate(record) {
                 self.limits.push(format!("a stop_request ledger entry is not a valid stop-request record and is not shown: {error}"));
@@ -393,7 +395,7 @@ impl LedgerIndex {
             self.entries.entry(id).or_default().push(entry.clone());
         }
         self.seen = rows.len();
-        self.last = rows.last().cloned();
+        self.last = rows.last().map(|e| (*e).clone());
     }
     /// Every recorded stop request for one turn of one generation, each by its
     /// latest record and its last ledger entry, in request order (SR-09 after
@@ -414,9 +416,9 @@ impl LedgerIndex {
 /// record per request, every App session) and this process's requests, each
 /// with this process's own persistence reading. `current` names this App
 /// session. Pointer facts only; Codex's own history is read separately.
-pub(crate) fn outcomes(ledger: Option<&Value>, live: &[(Value, String)], current: &str) -> Value {
+pub(crate) fn outcomes(held: &[Value], live: &[(Value, String)], current: &str) -> Value {
     let mut index = LedgerIndex::default();
-    index.update(ledger);
+    index.update(held);
     outcomes_indexed(&index, live, current)
 }
 pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], current: &str) -> Value {

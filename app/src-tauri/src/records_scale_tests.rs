@@ -183,7 +183,7 @@ fn records_scale_child() {
             json!({"fingerprintMs":fingerprint_ms,"fingerprintPaths":fingerprint,"actReadMs":act_read,"actReadAfterRunEntryMs":act_again,"acts":read.acts.len(),"actsAgain":again.acts.len(),"unresolved":read.unresolved.len(),"peakRssBytes":scale_rss_bytes()})
         }
         "ledger" => {
-            let path = std::path::PathBuf::from(spec["ledger"].as_str().unwrap());
+            let path = std::path::PathBuf::from(spec["ledger"].as_str().unwrap()); // The first open imports the JSON Lines ledger (once); configure_recovery below reopens the database.
             let start = t();
             let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap();
             let open = scale_ms(start);
@@ -195,12 +195,12 @@ fn records_scale_child() {
             let bytes = serde_json::to_vec(&snapshot).unwrap().len();
             let serialize_ms = scale_ms(start);
             drop(snapshot);
-            // One fact as the Host persists it: append, then a fresh snapshot.
+            // One fact as the Host persists it: append, then the observation it caches.
             let start = t();
             ledger.append(crate::recovery::RecoveryLedger::session_end_entry("app-session:scale", "quit", &[]).unwrap()).unwrap();
-            let _ = ledger.snapshot();
+            let _ = ledger.observation();
             let append_ms = scale_ms(start);
-            let rows = ledger.snapshot()["entries"].as_array().unwrap().len();
+            let (rows, held) = (ledger.recorded_count().unwrap(), ledger.current_entries().len());
             drop(ledger);
             // App startup: the Host opens the ledger, starts its session and builds custody.
             let host = crate::hosting::Host::new();
@@ -211,7 +211,7 @@ fn records_scale_child() {
             let snap = host.snapshot();
             let host_snapshot_ms = scale_ms(start);
             drop(snap);
-            json!({"rows":rows,"openMs":open,"rssAfterOpenBytes":open_rss,"snapshotCloneMs":snapshot_ms,"snapshotJsonBytes":bytes,"snapshotSerializeMs":serialize_ms,
+            json!({"rows":rows,"heldEntries":held,"openMs":open,"rssAfterOpenBytes":open_rss,"snapshotCloneMs":snapshot_ms,"snapshotJsonBytes":bytes,"snapshotSerializeMs":serialize_ms,
                 "appendAndSnapshotMs":append_ms,"hostConfigureMs":configure,"hostSnapshotMs":host_snapshot_ms,"peakRssBytes":scale_rss_bytes()})
         }
         "tick" => {
@@ -283,6 +283,7 @@ fn records_scale_report() {
         println!("SCALE {tier}");
         let _ = std::fs::remove_dir_all(&root);
         let _ = std::fs::remove_file(&ledger);
+        let _ = std::fs::remove_file(crate::recovery::database_path(&ledger));
     }
     let _ = std::fs::remove_dir_all(&keys);
 }

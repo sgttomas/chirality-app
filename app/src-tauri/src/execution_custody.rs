@@ -87,7 +87,7 @@ impl ExecutionCustody {
         row.at=at.into();
     }
     /// Reconcile with the current owning index so concurrent tag additions survive.
-    pub(super) fn rows(&mut self,generation:&Value,history:&[Value])->Vec<Value> {
+    pub(super) fn rows(&mut self,generation:&Value,history:crate::recovery::History<'_>)->Vec<Value> {
         let Ok(g)=generation_ref(generation) else{return Vec::new();};
         let mut result=Vec::new();
         for ((key,thread),row) in self.conversations.iter_mut().filter(|((key,_),_)|key==&g) {
@@ -171,7 +171,7 @@ impl ExecutionCustody {
     /// CV-19: conversations an earlier App session left unsettled in this
     /// physical home, from their latest ledger rows, held recovery-pending
     /// until this home's process is ready. Each is adopted once.
-    pub(super) fn adopt(&mut self,session:&str,generation:&Value,rows:&[Value]) {
+    pub(super) fn adopt(&mut self,session:&str,generation:&Value,rows:crate::recovery::History<'_>) {
         let Ok(current)=generation_ref(generation) else{return;};
         if self.adopted_for.as_deref()==Some(current.as_str()) {return;}
         self.adopted_for=Some(current);
@@ -288,7 +288,7 @@ impl ExecutionCustody {
     /// its last loaded generation; recovering, unavailable and
     /// recovery-pending keep the lost turn and its items for a relaunch; an
     /// indexed row has nothing left to recover.
-    pub(super) fn recovery_rows(&mut self,session:&str,history:&[Value])->Vec<Value> {
+    pub(super) fn recovery_rows(&mut self,session:&str,history:crate::recovery::History<'_>)->Vec<Value> {
         let mut result=Vec::new();
         for ((key,thread),row) in self.conversations.iter_mut().filter(|(_,r)|r.dirty) {
             row.dirty=false;

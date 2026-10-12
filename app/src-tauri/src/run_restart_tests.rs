@@ -31,8 +31,8 @@ fn run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     assert_eq!(tags.iter().map(|t|t["value"].as_str().unwrap()).collect::<Vec<_>>(),[a.as_str(),b.as_str()],"ordered; the earlier run's tag is kept");
     assert!(tags[0]["seq"].as_u64()<tags[1]["seq"].as_u64());
     // Durable: the ledger file itself carries both tags, readable by a later process.
-    let ledger=crate::recovery::RecoveryLedger::open(peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap().snapshot();
-    let rows=ledger["entries"].as_array().unwrap().clone();
+    let ledger=crate::recovery::RecoveryLedger::open(peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap().recorded_entries();
+    let rows=ledger.as_array().unwrap().clone();
     assert_eq!(crate::recovery::tags_of(&rows,"H-acct","thread",owner),tags);
     // The conversation's latest index row itself still carries the earlier run's tag.
     let latest=rows.iter().rev().find(|r|r["kind"]=="conversation_index"&&r["threadId"]=="thread").unwrap();
@@ -49,12 +49,12 @@ fn run_tag_not_stored_keeps_the_run_going(){
     let view=root.runs[&a].lock().unwrap().view(&a);
     assert_eq!(view["runTag"]["persistence"],"memory-only","{view}");
     assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_opened"),"the run opened and was recorded");
-    use std::os::unix::fs::PermissionsExt;
     let peer=Peer::with_recovery();let mut root=peer.fixture.registered();
-    let ledger=peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl");
-    std::fs::set_permissions(&ledger,std::fs::Permissions::from_mode(0o400)).unwrap();
+    // The ledger refuses the append: its database leaf is displaced by a directory.
+    let ledger=crate::recovery::database_path(&peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl"));let aside=peer.fixture.root.join("ledger-aside");
+    std::fs::rename(&ledger,&aside).unwrap();std::fs::create_dir(&ledger).unwrap();
     let a=open_run(&peer,&mut root,"thread");
-    std::fs::set_permissions(&ledger,std::fs::Permissions::from_mode(0o600)).unwrap();
+    std::fs::remove_dir(&ledger).unwrap();std::fs::rename(&aside,&ledger).unwrap();
     let view=root.runs[&a].lock().unwrap().view(&a);
     assert_eq!(view["runTag"]["persistence"],"memory-only","{view}");assert!(view["runTag"]["limit"].as_str().unwrap().contains("append unavailable"));
     assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);

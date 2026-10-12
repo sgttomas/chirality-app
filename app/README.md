@@ -84,8 +84,23 @@ implemented behavior and qualification limits.
    explicit interrupt request. Native acknowledgment is separate from turn end or
    rollback. Contradictory late starts cannot revive a completed tuple.
 10. An App-owned pointer-only recovery ledger initializes before supplier startup
-   at the App user-data `runtime/recovery.ledger.jsonl` path. Initialization errors
-   remain visible without blocking native protocol processing or relocating data.
+   in a SQLite database at the App user-data `runtime/recovery.ledger.sqlite`
+   path (DEL-01-02 §7; PRD R-STORE). Entries are only inserted (the schema's
+   triggers refuse updates and deletes), batches that stand together are one
+   transaction. An entry is reported recorded only after its commit returned
+   (journal and database file synced with `F_FULLFSYNC`) and the App then
+   flushed the database's folder with `F_FULLFSYNC`, so the journal's removal
+   that makes the commit durable is on the device too. The JSON Lines ledger
+   earlier builds wrote at `runtime/recovery.ledger.jsonl` is imported once,
+   every complete valid line in order. Only a torn (not newline-closed) final
+   line is kept as a limit, shown with the recovery initialization. A complete
+   invalid line, a file changed since its import, or a file returned after the
+   App recorded without it fails initialization visibly and imports nothing;
+   no App recovery is recorded until the file is repaired or moved aside
+   (moving it aside gives up its entries). The file itself is never written. The host holds only the ledger's
+   current entries and shows a bounded snapshot of it, not its entries.
+   Initialization errors remain visible without blocking native protocol
+   processing or relocating data.
 
 11. Stored native history is read without making a thread operational. Explicit
     Continue uses the latest validated native response and current generation.
@@ -603,6 +618,7 @@ implemented behavior and qualification limits.
 |---|---|
 | `src-tauri/src/hosting.rs` | HOSTING/ACCESS lifecycle, generation, request correlation, ordered native journal, development verification and network disclosure; reviewed 0.160.0 protocol resources in `resources/supplier/` |
 | `native_requests.rs`, `recovery.rs`, `native_items.rs`, `access.rs` | Typed native request custody, pointer ledger, scoped live/ended activity and reported account/destination observations |
+| `src-tauri/src/recovery_store.rs`, `recovery_store_tests.rs` | The pointer ledger's SQLite store (DEL-01-02 §7): append-only triggers, one transaction per batch, synced commits, the held current entries' indexed query, the once-only JSON Lines import; tests include the flat cost from 1,000 to 100,000 rows |
 | `role_supply.rs`, `runtime_session.rs`, `resources/instructions/` | Reviewed v4 defaults, fixed composition bytes, seeding and generation-bound receiving/startup; supplier/model adoption remains a separate warrant |
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |

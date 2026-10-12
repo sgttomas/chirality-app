@@ -3,7 +3,6 @@
 use crate::util::now_rfc3339;
 use serde_json::{json, Value};
 use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use std::sync::{Arc,OnceLock};
 use crate::hosting::attachment_custody::NativeNamespaceBindings;
@@ -11,6 +10,8 @@ use crate::hosting::attachment_custody::NativeNamespaceBindings;
 #[cfg(test)]
 #[path = "recovery_startup_request_tests.rs"]
 mod startup_request_tests;
+#[path = "recovery_store.rs"]
+pub(crate) mod store;
 
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -273,9 +274,22 @@ pub fn look_up(rows: &[Value], owner: &str, value: &str) -> Vec<(String, String)
     found
 }
 
+/// The App ledger (DEL-01-02 §7). `path` is the configured ledger location:
+/// the JSON Lines file of earlier builds, read only to import it. Entries live
+/// in the SQLite database beside it ([`store::database_path`]), created at the
+/// first write when neither exists. In memory it holds only the current
+/// entries ([`store::currency`]), never the whole ledger.
 pub struct RecoveryLedger {
     path: PathBuf,
-    entries: Vec<Value>,
+    database: PathBuf,
+    store: Option<store::Store>,
+    /// The current entries, in ledger order; shared with the host's cached
+    /// observation without a copy.
+    current: Arc<Vec<Value>>,
+    /// Each current entry's [`store::currency`] key, in the same order.
+    currency: Vec<Option<String>>,
+    /// What the import of the JSON Lines ledger found (null when there is none).
+    legacy: Value,
     namespaces:Option<Arc<NativeNamespaceBindings>>,
     startup_requires_reopen: bool,
 }
@@ -285,45 +299,42 @@ impl RecoveryLedger {
     pub fn open(path: PathBuf) -> Result<Self, String> {Self::open_inner(path,None)}
     pub fn open_with_namespaces(path:PathBuf,namespaces:Arc<NativeNamespaceBindings>)->Result<Self,String>{Self::open_inner(path,Some(namespaces))}
     fn open_inner(path:PathBuf,namespaces:Option<Arc<NativeNamespaceBindings>>)->Result<Self,String>{
-        if let Some(binding)=&namespaces{binding.guard_domains(&[path.clone()])?;crate::storage::check_path(&path)?;}
-        let mut entries = Vec::new();
+        let database=store::database_path(&path);
+        if let Some(binding)=&namespaces{binding.guard_domains(&[path.clone(),database.clone()])?;crate::storage::check_path(&path)?;crate::storage::check_path(&database)?;}
+        // The JSON Lines ledger of an earlier build, read (never written) for its import.
+        let mut legacy_file=None;
         let mut options=OpenOptions::new();options.read(true);
         if namespaces.is_some(){use std::os::unix::fs::OpenOptionsExt;options.custom_flags(libc::O_NONBLOCK|libc::O_NOCTTY|libc::O_NOFOLLOW);}
         match options.open(&path) {
             Ok(file) => {
                 if let Some(binding)=&namespaces{Self::guard_descriptor(&path,binding,&file)?;}
-                let mut reader = BufReader::new(file);
-                let mut line = Vec::new();
-                loop {
-                    line.clear();
-                    let count = reader
-                        .read_until(b'\n', &mut line)
-                        .map_err(|e| format!("App history unavailable: {e}"))?;
-                    if count == 0 {
-                        break;
-                    }
-                    if line.last() != Some(&b'\n') {
-                        return Err("App history unavailable: final ledger record is not newline-closed; bytes preserved".into());
-                    }
-                    let entry: Value = serde_json::from_slice(&line)
-                        .map_err(|e| format!("App history unavailable: {e}"))?;
-                    validator()?
-                        .validate(&entry)
-                        .map_err(|e| format!("App history unavailable: {e}"))?;
-                    entries.push(entry);
-                }
+                legacy_file=Some(file);
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(format!("App history unavailable: {e}")),
         }
-        Ok(Self { path, entries, namespaces, startup_requires_reopen: false })
+        let exists=std::fs::symlink_metadata(&database).is_ok();
+        // Masked: a refused entry's content (it may bear a payload) is never echoed into the import's recorded limit.
+        let validate=|entry:&Value|validator()?.validate(entry).map_err(|e|format!("{} at {}",e.masked(),e.instance_path()));
+        let (store,current,legacy)=if exists||legacy_file.is_some(){
+            let mut store=store::Store::open(&database,true,legacy_file.is_some())?;
+            let legacy=match legacy_file.as_mut(){Some(file)=>store.import_legacy(&path,file,&validate)?,None=>Value::Null};
+            let current=store.current_entries(&validate)?;
+            (Some(store),current,legacy)
+        }else{(None,Vec::new(),Value::Null)};
+        let currency=current.iter().map(store::currency).collect();
+        Ok(Self { path, database, store, current: Arc::new(current), currency, legacy, namespaces, startup_requires_reopen: false })
     }
     pub(crate) fn preflight_namespaces(&self,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
         Self::preflight_path(&self.path,binding)
     }
+    /// The configured ledger location and its database: inside the bound
+    /// domains, each leaf a regular single-link file or absent.
     pub(crate) fn preflight_path(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
-        binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;
-        match std::fs::symlink_metadata(path){Ok(meta)=>{use std::os::unix::fs::MetadataExt;if !meta.is_file()||meta.nlink()!=1{return Err("REC owning leaf is not a regular single-link source".into());}},Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(format!("REC owning leaf metadata unavailable: {e}"))}Ok(())
+        let database=store::database_path(path);
+        binding.guard_domains(&[path.to_owned(),database.clone()])?;crate::storage::check_path(path)?;crate::storage::check_path(&database)?;
+        match std::fs::symlink_metadata(path){Ok(meta)=>{use std::os::unix::fs::MetadataExt;if !meta.is_file()||meta.nlink()!=1{return Err("REC owning leaf is not a regular single-link source".into());}},Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(format!("REC owning leaf metadata unavailable: {e}"))}
+        store::preflight(&database)
     }
     pub(crate) fn prepare_namespace_binding(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<PreparedNamespaceBinding<'_>,String>{self.preflight_namespaces(&binding)?;Ok(PreparedNamespaceBinding{ledger:self,binding})}
     pub(crate) fn bind_namespaces(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<(),String>{self.preflight_namespaces(&binding)?;self.namespaces=Some(binding);Ok(())}
@@ -335,38 +346,47 @@ impl RecoveryLedger {
         validator()?.validate(entry).map_err(|e|format!("execution pointer schema refused: {e}"))
     }
     pub fn append(&mut self, entry: Value) -> Result<(), String> {
+        self.append_batch(vec![entry])
+    }
+    /// Entries that must stand together, recorded in one transaction: all of
+    /// them, or none (DEL-01-02 §7). Each is validated before anything is written.
+    pub(crate) fn append_batch(&mut self, entries: Vec<Value>) -> Result<(), String> {
         if self.startup_requires_reopen {
             return Err("recovery startup append was not confirmed; reopen the ledger before writing".into());
         }
-        if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
-        validator()?
-            .validate(&entry)
-            .map_err(|e| format!("recovery ledger validation refused: {e}"))?;
-        let mut bytes = serde_json::to_vec(&entry).map_err(|e| e.to_string())?;
-        bytes.push(b'\n');
-        let mut options=OpenOptions::new();options.create(true).read(true).append(true);
-        if self.namespaces.is_some(){use std::os::unix::fs::OpenOptionsExt;options.custom_flags(libc::O_NONBLOCK|libc::O_NOCTTY|libc::O_NOFOLLOW);}
-        let mut file=options.open(&self.path).map_err(|e|e.to_string())?;
-        if let Some(binding)=&self.namespaces{Self::guard_descriptor(&self.path,binding,&file)?;}
-        // Recheck the actual tail for an external change or a previous partial
-        // write. Never concatenate a fresh record onto unclosed bytes, even
-        // when those bytes happen to parse as a complete JSON value.
-        let length = file.seek(SeekFrom::End(0)).map_err(|e| e.to_string())?;
-        if length > 0 {
-            file.seek(SeekFrom::End(-1)).map_err(|e| e.to_string())?;
-            let mut last = [0u8; 1];
-            file.read_exact(&mut last).map_err(|e| e.to_string())?;
-            if last[0] != b'\n' {
-                return Err(
-                    "recovery ledger append refused: unclosed final record; bytes preserved".into(),
-                );
-            }
+        if entries.is_empty() {
+            return Ok(());
         }
-        file.write_all(&bytes)
-            .and_then(|_| file.sync_data())
-            .map_err(|e| format!("recovery ledger append not confirmed: {e}"))?;
-        self.entries.push(entry);
+        if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
+        for entry in &entries {
+            validator()?
+                .validate(entry)
+                .map_err(|e| format!("recovery ledger validation refused: {e}"))?;
+        }
+        if self.store.is_none() {
+            // First creation of a known new ledger.
+            self.store = Some(store::Store::open(&self.database, true, false)?);
+        }
+        self.store.as_mut().expect("opened above").insert_batch(&entries)?;
+        self.hold(entries);
         Ok(())
+    }
+    /// Recorded entries join the current ones; each replaces the entry it
+    /// supersedes ([`store::currency`]). A request closed in this process stays
+    /// held (its later observations are compared with it); a reopen leaves it out.
+    fn hold(&mut self, entries: Vec<Value>) {
+        let current = Arc::make_mut(&mut self.current);
+        for entry in entries {
+            let key = store::currency(&entry);
+            if let Some(key) = &key {
+                if let Some(at) = self.currency.iter().position(|k| k.as_ref() == Some(key)) {
+                    self.currency.remove(at);
+                    current.remove(at);
+                }
+            }
+            self.currency.push(key);
+            current.push(entry);
+        }
     }
     /// §3.1 AS-09 (`how` *quit*) or AS-10 (*system-terminated*).
     pub(crate) fn session_end_entry(session:&str,how:&str,stop_requests:&[Value])->Result<Value,String>{
@@ -379,27 +399,31 @@ impl RecoveryLedger {
         }
         let result = self.start_session_inner(session, candidate);
         if result.is_err() {
-            // An append can land bytes before its sync fails. Do not retry from
-            // stale memory; actual Host initialization discards this writer.
+            // The batch is one transaction, but a commit that reports an I/O
+            // error can still have reached the disk. Do not retry from stale
+            // memory; actual Host initialization discards this writer and a
+            // reopen reads what the database holds.
             self.startup_requires_reopen = true;
         }
         result
     }
     fn start_session_inner(&mut self, session: &str, candidate: &str) -> Result<(), String> {
-        if let Some(last) = self.entries.iter().rev().find(|e| e["kind"] == "session_started") {
+        if let Some(last) = self.current.iter().rev().find(|e| e["kind"] == "session_started") {
             if last["session"] == session {
-                if last["candidate"] != candidate || self.entries.iter().any(|e| e["kind"] == "session_ended" && e["session"] == session) {
+                if last["candidate"] != candidate || self.current.iter().any(|e| e["kind"] == "session_ended" && e["session"] == session) {
                     return Err("startup session identity already has a different candidate or an end record".into());
                 }
-                // A reopened retry after a partial startup keeps the original
-                // prior-session link and never appends a self-linked marker.
+                // A reopened retry keeps the original prior-session link and never
+                // appends a self-linked marker. The marker and its RQ-06 endings
+                // are one transaction, so endings are pending here only for a
+                // ledger imported from an earlier build's JSON Lines file.
                 self.close_earlier_listed_requests(session)?;
                 self.close_earlier_stop_requests(session);
                 return Ok(());
             }
         }
         let previous = self
-            .entries
+            .current
             .iter()
             .rev()
             .find(|e| e["kind"] == "session_started");
@@ -407,7 +431,7 @@ impl RecoveryLedger {
             .and_then(|e| e["session"].as_str())
             .map(str::to_owned);
         let end = previous_id.as_deref().and_then(|id| {
-            self.entries
+            self.current
                 .iter()
                 .rev()
                 .find(|e| e["kind"] == "session_ended" && e["session"] == id)
@@ -417,7 +441,7 @@ impl RecoveryLedger {
         // what it could not resolve, which `quit_requested` cannot list. A
         // quit nothing was asked about (AS-03) reads *clean*.
         let quit_with_live_work = previous_id.as_deref().is_some_and(|id| {
-            self.entries.iter().any(|e| e["session"] == id && e["kind"] == "quit_answered" && e["answer"] == "confirmed")
+            self.current.iter().any(|e| e["session"] == id && e["kind"] == "quit_answered" && e["answer"] == "confirmed")
         });
         let previous_end = match (previous_id.as_ref(), end) {
             (None, _) => "none",
@@ -430,19 +454,19 @@ impl RecoveryLedger {
         if let Some(id) = previous_id {
             entry["previousSession"] = json!(id);
         }
-        self.append(entry)?;
-        self.close_earlier_listed_requests(session)?;
+        // The session marker and its RQ-06 endings stand together: one transaction.
+        let (pending, _) = startup_request_closures(&self.current, session);
+        let mut batch = vec![entry];
+        batch.extend(pending);
+        self.append_batch(batch).map_err(|e| format!("session start and its RQ-06 request endings not confirmed: {e}"))?;
         self.close_earlier_stop_requests(session);
         Ok(())
     }
-    /// RQ-06 includes pending closures from an interrupted startup batch. A
-    /// later session marker never makes those earlier listed requests live.
+    /// RQ-06 for requests an earlier session left listed, as one batch. A later
+    /// session marker never makes those earlier listed requests live.
     fn close_earlier_listed_requests(&mut self, session: &str) -> Result<(), String> {
-        let (pending, _) = startup_request_closures(&self.entries, session);
-        for entry in pending {
-            self.append(entry).map_err(|e| format!("RQ-06 request ending not confirmed: {e}"))?;
-        }
-        Ok(())
+        let (pending, _) = startup_request_closures(&self.current, session);
+        self.append_batch(pending).map_err(|e| format!("RQ-06 request ending not confirmed: {e}"))
     }
     /// AS-02 / SQ-R R-2: SR-08 for each stop request an earlier session left
     /// sent with no final status (its generation is closed). Best effort: a
@@ -450,7 +474,7 @@ impl RecoveryLedger {
     /// derived from the session end. Returns the records written.
     pub(crate) fn close_earlier_stop_requests(&mut self, session: &str) -> Vec<Value> {
         let mut latest = std::collections::BTreeMap::<String, Value>::new();
-        for e in self.entries.iter().filter(|e| e["kind"] == "stop_request") {
+        for e in self.current.iter().filter(|e| e["kind"] == "stop_request") {
             if let Some(id) = e["record"]["stopRequestId"].as_str() {
                 latest.insert(id.to_owned(), e["record"].clone());
             }
@@ -466,7 +490,7 @@ impl RecoveryLedger {
         written
     }
     pub fn request_summary(&mut self, request: &Value) -> Result<(), String> {
-        match Self::request_summary_entry(request, &self.entries)? {
+        match Self::request_summary_entry_in(request, History::new(&self.current, &[]))? {
             Some(entry) => self.append(entry),
             None => Ok(()),
         }
@@ -475,6 +499,14 @@ impl RecoveryLedger {
     pub fn request_summary_entry(
         request: &Value,
         prior_entries: &[Value],
+    ) -> Result<Option<Value>, String> {
+        Self::request_summary_entry_in(request, History::new(prior_entries, &[]))
+    }
+    /// [`Self::request_summary_entry`] over the held entries and the queued
+    /// facts, without copying either.
+    pub(crate) fn request_summary_entry_in(
+        request: &Value,
+        prior_entries: History<'_>,
     ) -> Result<Option<Value>, String> {
         let generation = &request["generation"];
         let state = request["state"].as_str().ok_or("request has no state")?;
@@ -608,10 +640,101 @@ impl RecoveryLedger {
         }
         Ok(Some(entry))
     }
-    /// Earlier sessions are historical observations, never replayed as live entries.
+    /// Earlier sessions are historical observations, never replayed as live
+    /// entries. Bounded: what the ledger is and holds, never its entries
+    /// (the host status carries this; DEL-01-02 §7).
     pub fn snapshot(&self) -> Value {
-        json!({"standing":"App-observed","entries":self.entries,"oldRequestsAnswerable":false})
+        json!({"standing":"App-observed","oldRequestsAnswerable":false,"heldEntries":self.current.len(),"historyLimits":self.history_limits(),
+            "entriesStanding":"the ledger's entries are read by the host from its database; they are not copied into this status",
+            "store":{"database":self.database.to_string_lossy(),"created":self.store.is_some(),"legacyImport":self.legacy}})
     }
+    /// The bounded snapshot with the current entries, shared without a copy:
+    /// what the host caches between its ledger reads.
+    pub fn observation(&self) -> LedgerObservation {
+        LedgerObservation { summary: self.snapshot(), rows: Arc::clone(&self.current) }
+    }
+    /// The current entries ([`store::currency`]) in ledger order.
+    pub fn current_entries(&self) -> &[Value] {
+        &self.current
+    }
+    /// Every entry the database holds, in order, as a JSON array (null when
+    /// none can be read). Reads the whole ledger: for inspection and tests;
+    /// the host never calls it.
+    pub fn recorded_entries(&self) -> Value {
+        let validate=|entry:&Value|validator()?.validate(entry).map_err(|e|e.masked().to_string());
+        match &self.store {
+            None => json!([]),
+            Some(store) => store.entries(&validate).map(Value::from).unwrap_or(Value::Null),
+        }
+    }
+    /// How many entries the database holds.
+    pub fn recorded_count(&self) -> Result<u64, String> {
+        self.store.as_ref().map_or(Ok(0), store::Store::count)
+    }
+    /// Limits of the history this ledger holds, shown with the recovery
+    /// initialization and the custody view: today the JSON Lines import's
+    /// (a torn final line, not newline-closed, that was not imported).
+    pub fn history_limits(&self) -> Vec<String> {
+        self.legacy["limit"].as_str().map(|l| vec![format!("App history import: {l}")]).unwrap_or_default()
+    }
+    /// The JSON Lines import reading (null when there was no JSON Lines ledger).
+    pub fn legacy_import(&self) -> &Value {
+        &self.legacy
+    }
+    #[cfg(test)]
+    pub(crate) fn store(&self) -> Option<&store::Store> {
+        self.store.as_ref()
+    }
+}
+
+/// The ledger database beside a configured ledger location (DEL-01-02 §7).
+pub fn database_path(ledger: &std::path::Path) -> PathBuf {
+    store::database_path(ledger)
+}
+
+/// What the host caches of its ledger between reads: the bounded snapshot it
+/// shows, and the current entries its readers search, shared with the ledger
+/// (DEL-01-02 §7). Never a copy of the whole ledger.
+#[derive(Clone, Debug)]
+pub struct LedgerObservation {
+    pub summary: Value,
+    pub rows: Arc<Vec<Value>>,
+}
+
+/// Entries a reader searches in ledger order: the held entries, then the
+/// facts queued for the ledger; borrowed, never copied.
+#[derive(Clone, Copy)]
+pub(crate) struct History<'a> {
+    parts: [&'a [Value]; 2],
+}
+impl<'a> History<'a> {
+    pub(crate) fn new(held: &'a [Value], queued: &'a [Value]) -> Self {
+        Self { parts: [held, queued] }
+    }
+    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &'a Value> + Clone + 'a {
+        let [a, b] = self.parts;
+        a.iter().chain(b.iter())
+    }
+}
+/// Test support: remove a scratch ledger location, its database and side files.
+#[cfg(test)]
+pub(crate) fn remove_test_ledger(path: &std::path::Path) {
+    let database = store::database_path(path);
+    let mut journal = database.as_os_str().to_owned();
+    journal.push("-journal");
+    for leaf in [path.to_path_buf(), database, PathBuf::from(journal)] {
+        let _ = std::fs::remove_file(leaf);
+    }
+}
+/// Test support: every entry the ledger at `path` holds, as a reopen reads them.
+#[cfg(test)]
+pub(crate) fn stored_entries(path: &std::path::Path) -> Vec<Value> {
+    RecoveryLedger::open(path.to_path_buf()).unwrap().recorded_entries().as_array().cloned().unwrap_or_default()
+}
+/// Test support: the database file's raw bytes (C-11 "never kept" checks).
+#[cfg(test)]
+pub(crate) fn stored_bytes(path: &std::path::Path) -> Vec<u8> {
+    std::fs::read(store::database_path(path)).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -634,33 +757,39 @@ mod tests {
             ledger.start_session("old", "candidate").unwrap();
             ledger.request_summary(&request).unwrap();
         }
-        let bytes = std::fs::read_to_string(&path).unwrap();
-        assert!(!bytes.contains("must-not-persist"));
+        assert!(!String::from_utf8_lossy(&stored_bytes(&path)).contains("must-not-persist"));
+        assert!(!serde_json::to_string(&stored_entries(&path)).unwrap().contains("must-not-persist"));
         let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
         ledger.start_session("new", "candidate").unwrap();
         let snapshot = ledger.snapshot();
+        let entries = ledger.recorded_entries();
         assert_eq!(
-            snapshot["entries"][2]["previousSessionEnd"],
+            entries[2]["previousSessionEnd"],
             "ended-without-record"
         );
         assert_eq!(snapshot["oldRequestsAnswerable"], false);
         assert_eq!(
-            generation_from_ref(snapshot["entries"][1]["generation"].as_str().unwrap()).unwrap(),
+            generation_from_ref(entries[1]["generation"].as_str().unwrap()).unwrap(),
             generation
         );
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
+    /// A payload-bearing entry is refused before anything is created; a JSON
+    /// Lines ledger whose only line is a complete malformed one imports nothing
+    /// and refuses the open (only a torn line is a limit).
     #[test]
-    fn malformed_or_payload_bearing_ledger_fails_closed_without_write() {
+    fn malformed_or_payload_bearing_ledger_is_never_stored() {
         let path = path();
         let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
         let bad = json!({"kind":"session_started","session":"s","at":"now","previousSessionEnd":"none","candidate":"candidate","payload":"secret"});
         assert!(ledger.append(bad).is_err());
         assert!(!path.exists());
+        assert!(!store::database_path(&path).exists(), "refused before the database is created");
         std::fs::write(&path, "{\n").unwrap();
-        assert!(RecoveryLedger::open(path.clone()).is_err());
+        let refused = RecoveryLedger::open(path.clone()).err().unwrap();
+        assert!(refused.contains("is a complete line that is not a valid ledger entry"), "{refused}");
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\n");
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
         assert!(generation_ref(&json!(1)).is_err());
     }
 }
@@ -714,6 +843,7 @@ mod generation_tests {
             assert!(generation_ref(&g).is_err());
             assert!(ledger.request_summary(&json!({"generation":g,"requestId":1,"method":"request","state":"outstanding","replyWriteResult":"not-attempted","acknowledgment":"not-observed"})).is_err());
             assert!(!path.exists());
+            assert!(!store::database_path(&path).exists());
         }
     }
 }
@@ -728,41 +858,53 @@ mod framing_repair_tests {
             crate::util::opaque_id("test").unwrap()
         ));
         let complete=serde_json::to_vec(&json!({"kind":"session_started","session":"s","at":"now","previousSessionEnd":"none","candidate":"c"})).unwrap();
+        // An unclosed final line of a JSON Lines ledger is never imported as an
+        // entry: it is reported as the import's limit, and the file is unchanged.
         for tail in [
             complete.clone(),
             br#"{"kind":"session_started","session":"torn"#.to_vec(),
         ] {
             std::fs::write(&path, &tail).unwrap();
-            let error = RecoveryLedger::open(path.clone()).err().unwrap();
-            assert!(error.contains("not newline-closed"));
+            let ledger = RecoveryLedger::open(path.clone()).unwrap();
+            assert_eq!(ledger.recorded_entries(), json!([]));
+            assert!(ledger.legacy_import()["limit"].as_str().unwrap().contains("not newline-closed"), "{}", ledger.legacy_import());
             assert_eq!(std::fs::read(&path).unwrap(), tail);
-            std::fs::remove_file(&path).unwrap();
+            drop(ledger);
+            remove_test_ledger(&path);
         }
-        // An already-open owner must also refuse after a torn/unclosed append,
-        // including a partial-write retry; opening once is not enough.
+        // A JSON Lines file that appears after the database was created is not
+        // imported (its entries would not follow the database's order), and the
+        // App never writes to it.
         for tail in [complete, br#"{"kind":"session_started"#.to_vec()] {
             let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
+            ledger.append(RecoveryLedger::session_end_entry("earlier", "quit", &[]).unwrap()).unwrap();
             std::fs::write(&path, &tail).unwrap();
-            let error = ledger.start_session("new", "c").unwrap_err();
-            assert!(error.contains("unclosed final record"));
+            ledger.start_session("new", "c").unwrap();
             assert_eq!(std::fs::read(&path).unwrap(), tail);
-            assert_eq!(ledger.snapshot()["entries"], json!([]));
+            drop(ledger);
+            // The history is then incomplete: the open fails visibly (§7).
+            let refused = RecoveryLedger::open(path.clone()).err().unwrap();
+            assert!(refused.contains("appeared after the ledger database was created"), "{refused}");
+            assert_eq!(std::fs::read(&path).unwrap(), tail);
             std::fs::remove_file(&path).unwrap();
+            assert_eq!(RecoveryLedger::open(path.clone()).unwrap().recorded_entries().as_array().unwrap().len(), 2, "moved aside, the database opens");
+            remove_test_ledger(&path);
         }
-        // The same complete JSON with its committed delimiter remains usable.
+        // The same complete JSON with its committed delimiter is imported.
         let mut closed=serde_json::to_vec(&json!({"kind":"session_started","session":"s","at":"now","previousSessionEnd":"none","candidate":"c"})).unwrap();
         closed.push(b'\n');
         std::fs::write(&path, &closed).unwrap();
         let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
         ledger.start_session("new", "c").unwrap();
         assert_eq!(
-            RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"]
+            RecoveryLedger::open(path.clone()).unwrap().recorded_entries()
                 .as_array()
                 .unwrap()
                 .len(),
             2
         );
-        std::fs::remove_file(&path).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), closed, "the JSON Lines file is never written");
+        remove_test_ledger(&path);
     }
 }
 
@@ -778,7 +920,7 @@ mod transition_repair_tests {
         let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
         let mut request = json!({"generation":{"appSession":"s","home":"h","spawnCounter":1},"requestId":1,"method":"future/request","classification":"unfamiliar","state":"errored","replyWriteResult":"write-failed","acknowledgment":"not-observed","settlement":{"origin":"app-explicit-error"}});
         ledger.request_summary(&request).unwrap();
-        assert_eq!(ledger.snapshot()["entries"][0]["transition"], "RQ-08");
+        assert_eq!(ledger.recorded_entries()[0]["transition"], "RQ-08");
         request["requestId"] = json!(2);
         request["method"] = json!("item/fileChange/requestApproval");
         request["classification"] = json!("known-answerable");
@@ -786,16 +928,16 @@ mod transition_repair_tests {
         request["replyWriteResult"] = json!("written");
         request["settlement"] = json!({"origin":"app-rule:invented-negative"});
         ledger.request_summary(&request).unwrap();
-        assert_eq!(ledger.snapshot()["entries"][1]["transition"], "RQ-03");
+        assert_eq!(ledger.recorded_entries()[1]["transition"], "RQ-03");
         request["nativeParameters"] = json!({"threadId":"t"});
         request["acknowledgment"] = json!({"observed":"serverRequest/resolved after written reply","generation":request["generation"],"native":{"threadId":"t","requestId":request["requestId"]}});
         ledger.request_summary(&request).unwrap();
-        assert_eq!(ledger.snapshot()["entries"][2]["transition"], "RQ-09");
+        assert_eq!(ledger.recorded_entries()[2]["transition"], "RQ-09");
         assert_eq!(
-            ledger.snapshot()["entries"][2]["acknowledgment"],
+            ledger.recorded_entries()[2]["acknowledgment"],
             "observed"
         );
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
 }
 
@@ -822,9 +964,9 @@ mod connected_transition_repair_tests {
         r.written(&g, &json!(1), false);
         r.resolved(&g, &json!({"threadId":"t","requestId":1}));
         ledger.request_summary(&r.entries()[0]).unwrap();
-        assert_eq!(ledger.snapshot()["entries"][0]["transition"], "RQ-08");
+        assert_eq!(ledger.recorded_entries()[0]["transition"], "RQ-08");
         assert_eq!(
-            ledger.snapshot()["entries"][0]["acknowledgment"],
+            ledger.recorded_entries()[0]["acknowledgment"],
             "not-observed"
         );
         for id in [2, 3, 4] {
@@ -849,7 +991,7 @@ mod connected_transition_repair_tests {
         for entry in r.entries() {
             ledger.request_summary(&entry).unwrap();
         }
-        let entries = ledger.snapshot()["entries"].as_array().unwrap().clone();
+        let entries = ledger.recorded_entries().as_array().unwrap().clone();
         let rows = |id: u64| {
             entries
                 .iter()
@@ -861,7 +1003,7 @@ mod connected_transition_repair_tests {
         assert_eq!(rows(2), vec!["RQ-01", "RQ-03", "RQ-09"]);
         assert_eq!(rows(3), vec!["RQ-01", "RQ-03", "RQ-05"]);
         assert_eq!(rows(4), vec!["RQ-01", "RQ-04"]);
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
 }
 
@@ -888,7 +1030,7 @@ mod reviewed_later_error_adoption_tests {
         .unwrap();
     }
     fn rows(ledger: &RecoveryLedger, id: u64) -> Vec<String> {
-        ledger.snapshot()["entries"]
+        ledger.recorded_entries()
             .as_array()
             .unwrap()
             .iter()
@@ -912,7 +1054,7 @@ mod reviewed_later_error_adoption_tests {
                 r.entries().last().unwrap()["nativeParameters"]["turnId"],
                 Value::Null
             );
-            assert!(ledger.snapshot()["entries"]
+            assert!(ledger.recorded_entries()
                 .as_array()
                 .unwrap()
                 .last()
@@ -953,11 +1095,11 @@ mod reviewed_later_error_adoption_tests {
         assert_eq!(rows(&ledger, 1), vec!["RQ-01", "RQ-03", "RQ-09"]);
         assert_eq!(rows(&ledger, 2), vec!["RQ-01", "RQ-03", "RQ-05"]);
         assert_eq!(rows(&ledger, 3), vec!["RQ-01", "RQ-03"]);
-        let before = ledger.snapshot();
+        let before = ledger.recorded_entries();
         r.resolved(&g(), &json!({"threadId":"t","requestId":2}));
         ledger.request_summary(&r.entries()[1]).unwrap();
-        assert_eq!(ledger.snapshot(), before);
-        let entries = before["entries"].as_array().unwrap();
+        assert_eq!(ledger.recorded_entries(), before);
+        let entries = before.as_array().unwrap();
         assert!(entries
             .iter()
             .filter(|e| e["requestIdentity"] == "3")
@@ -972,7 +1114,7 @@ mod reviewed_later_error_adoption_tests {
             generation_from_ref(entries[0]["generation"].as_str().unwrap()).unwrap(),
             g()
         );
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
     #[test]
     fn receipt_errors_remain_rq08_and_refused_later_errors_create_no_summary() {
@@ -1016,7 +1158,7 @@ mod reviewed_later_error_adoption_tests {
         assert_eq!(r.entries(), state);
         ledger.request_summary(&r.entries()[2]).unwrap();
         assert_eq!(ledger.snapshot(), before);
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
     #[test]
     fn receiving_guard_rejects_foreign_post_close_and_failed_write_ack_shapes() {
@@ -1036,7 +1178,7 @@ mod reviewed_later_error_adoption_tests {
         ledger.request_summary(&r.entries()[0]).unwrap();
         r.resolved(&g(), &json!({"threadId":"t","requestId":1}));
         let genuine = r.entries()[0].clone();
-        let before = std::fs::read(&path).unwrap();
+        let before = stored_entries(&path);
         let mut variants = Vec::new();
         let mut foreign = genuine.clone();
         foreign["acknowledgment"]["generation"]["appSession"] = json!("foreign");
@@ -1053,11 +1195,11 @@ mod reviewed_later_error_adoption_tests {
         variants.push(failed);
         for candidate in variants {
             assert!(ledger.request_summary(&candidate).is_err());
-            assert_eq!(std::fs::read(&path).unwrap(), before);
+            assert_eq!(stored_entries(&path), before);
         }
         ledger.request_summary(&genuine).unwrap();
         assert_eq!(rows(&ledger, 1), vec!["RQ-01", "RQ-03", "RQ-09"]);
-        std::fs::remove_file(path).unwrap();
+        remove_test_ledger(&path);
     }
 }
 
@@ -1065,6 +1207,19 @@ mod reviewed_later_error_adoption_tests {
 /// no Deserialize/JSON constructor or conversion to a live source capability.
 #[derive(Clone, Debug)]
 pub struct RecoveryCustodyView { document: Value }
+impl RecoveryCustodyView {
+    /// Adds limits of the ledger's history (its import's) to the view's limits.
+    pub(crate) fn with_history_limits(mut self, limits: &Value) -> Self {
+        for limit in limits.as_array().into_iter().flatten() {
+            if let Some(list) = self.document["limits"].as_array_mut() {
+                if !list.contains(limit) {
+                    list.push(limit.clone());
+                }
+            }
+        }
+        self
+    }
+}
 
 fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<String>) {
     use std::collections::{BTreeMap, BTreeSet};
@@ -1134,7 +1289,7 @@ fn recorded_startup_request_events(rows: &[Value]) -> Vec<Value> {
 /// generation's session start, its spawn counter, then ledger position, so a
 /// delayed older append cannot eclipse a later session or generation. Rows
 /// without a canonical generation or a known session start are left out.
-fn latest_by_source(rows:&[Value],keep:impl Fn(&Value)->bool)->std::collections::BTreeMap<(String,String,String),Value> {
+fn latest_by_source(rows:History<'_>,keep:impl Fn(&Value)->bool)->std::collections::BTreeMap<(String,String,String),Value> {
     let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
     let mut latest=std::collections::BTreeMap::<(String,String,String),((usize,u64,usize),Value)>::new();
     for (position,row) in rows.iter().enumerate().filter(|(_,r)|r["kind"]=="conversation_index"&&keep(r)) {
@@ -1151,12 +1306,13 @@ fn latest_by_source(rows:&[Value],keep:impl Fn(&Value)->bool)->std::collections:
 /// RECOVERY §3.2 CV-19: each conversation's latest persisted execution row,
 /// from which the Host reads which conversations an earlier session left
 /// unsettled. Pointer metadata only.
-pub(crate) fn latest_execution_rows(rows:&[Value])->Vec<Value> {latest_by_source(rows,|_|true).into_values().collect()}
+pub(crate) fn latest_execution_rows(rows:History<'_>)->Vec<Value> {latest_by_source(rows,|_|true).into_values().collect()}
 
 impl RecoveryCustodyView {
     pub fn snapshot(&self)->Value {self.document.clone()}
-    pub(crate) fn from_owner(session:&str,ledger:Option<&Value>,live:Value,pending:usize,error:Option<&str>)->Self {
-        let rows=ledger.and_then(|l|l["entries"].as_array()).cloned().unwrap_or_default();
+    /// `ledger`: the host's held ledger entries (None: no ledger).
+    pub(crate) fn from_owner(session:&str,ledger:Option<&[Value]>,live:Value,pending:usize,error:Option<&str>)->Self {
+        let rows=ledger.unwrap_or_default();
         let mut limits=Vec::<String>::new();
         if ledger.is_none(){limits.push("App history unavailable; no cold execution custody established".into());}
         if pending>0{limits.push("Captured pointer observations remain unpersisted; restart coverage is incomplete".into());}
@@ -1191,7 +1347,7 @@ impl RecoveryCustodyView {
         // A prior session's end is read from what earlier sessions recorded:
         // a row this session appends (a recovery read's outcome, CV-13) does
         // not remove the restart fact.
-        for (key,row) in latest_by_source(&rows,|r|r["session"]!=session) {
+        for (key,row) in latest_by_source(History::new(rows,&[]),|r|r["session"]!=session) {
             let thread=&key.2;
             let execution=&row["lastObservedExecution"];
             let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
