@@ -1839,12 +1839,37 @@ machine; `records::durability_tests`, and the ignored
 - *FC-2.* 200 SIGKILLs at random points of a child appending 48 KiB
   entries in a loop left only complete entries, in sequence, and no torn
   tail. A short write (`RLIMIT_FSIZE`) leaves one. The reader reports it
-  as "partial entry at end (not read)", never as an entry. W-0's repair
-  is not implemented, so a reopened writer refuses that log ("ends in a
-  partial line … nothing written"). Because an append requires a
-  complete record set, it also refuses every other log of the project
-  ("record-set conflict/incomplete"). Only the person's explicit end
-  records beside it (`ReadableBesideIncomplete`). A directory-sync
+  as "partial entry at end (not read)", never as an entry. W-0 as
+  implemented: the reopened writer (at an append or a reconciliation)
+  terminates the torn line in place with one `\n`, never truncating or
+  editing it. If that line is a whole, schema-valid entry (a short write
+  stopped just before its newline), the newline is all W-0 writes. The
+  entry is then written and is read as any entry: in sequence it simply
+  reads, and a W-2 retry finds it as its receipt; out of sequence it is
+  a sequence limit, so the owning log stays refused until repaired.
+  Only a genuine fragment is named. For a fragment, in the same write it appends `evidence_limit` "partial
+  entry not recovered", by the App writer with the next `seq` and the
+  `subjectRef` "line ‹n›; ‹len› bytes; sha256 ‹hex›". The log then
+  continues in sequence. The App act control's writer does the same on
+  its own act log, since AAC §5.2a keeps RS W-0 in force. A capture
+  whose own torn record is kept unread this way stays held: AAC treats
+  it as a torn append. Every other capture is recorded. Both RS readers
+  leave a line unread only when the limit directly after it names it,
+  its bytes match the named length and digest, and it is not itself a
+  valid entry. Otherwise the line is read as written, the mismatch is a
+  limit, and a reused `seq` is a sequence limit, so a forged limit
+  cannot silently hide an entry. Lines are read byte by byte, so a line
+  torn inside a character is still a partial. A torn final line in
+  another writer's log is a partial, not an entry (R-2; §3 *partial*
+  "never" written). It leaves the record set complete for every other
+  writer, including open runs' complete-set guard (§13.7), and for the
+  act read and the act control. An unreadable or invalid line elsewhere
+  still leaves the set incomplete, as before. Identity checks are
+  unchanged: an identity held by a readable entry is refused, and one
+  that appears only in torn bytes is not held. Limit: W-0's own write
+  can itself be cut short by a crash or a full device. The torn line is
+  then terminated but not named. It reads as an unreadable line, which
+  keeps that owning log refused until it is repaired by hand. A directory-sync
   failure after the line landed reports the append failed while the
   reader shows the entry; a retry under the same reserved identity
   refuses, so nothing is duplicated (FC-1). Not shown: survival of
@@ -1867,6 +1892,70 @@ machine; `records::durability_tests`, and the ignored
   the per-append record-set read (identity collision and completeness
   from an index or the owning log), then the act read (only records
   since the last read).
+- *Bounded reads (current implementation; `records_index.rs`).* The
+  writer's guards (W-0/W-1, CC-ID, the open-run complete-set guard, the
+  W-2 reconciliations) and the act read now use an in-process index of
+  the project's logs. It is rebuilt from them, never a store, and keeps
+  at most four projects. Per log it keeps the record identities with
+  their byte positions and `seq`, the limits and any torn tail. Its
+  memory grows linearly with the total number of entries: one small
+  record per entry.
+
+  How it stays current:
+  - Each refresh re-walks the tree and takes every log's and directory's
+    stamp: device, inode, size, and modification and change times.
+  - A log that only grew (same file, larger) is read from its last
+    complete line, after a check that the 4 KiB before it are unchanged.
+    Any other change reads the log again in full: the same size, a
+    shrink, another inode, or a change before that point.
+  - A writer's first use of its owning log in a process reads that log
+    in full.
+  - A background verifier re-lists every directory and re-reads every
+    log in full, outside the index lock and off the record tick. A pass
+    starts every 60 s (`CHIRALITY_RECORDS_VERIFY_SECS`).
+  - A line read again from its stored position (entries by identity,
+    the act read's claims) is parsed and validated again (R-4), and must
+    still hold its indexed identity and `seq`. Otherwise the read fails
+    as incomplete and the log is read in full at the next refresh.
+
+  The guarantees are those of the full read. An identity held by a
+  readable entry anywhere is refused. An unreadable or invalid line, a
+  sequence gap, a duplicate identity or a failed discovery leaves the
+  set incomplete. A torn tail is a partial. Reconciliation reads the
+  matching entries by identity. The act read reprojects only act
+  records, corrections and entries sharing their identities (RS R-6,
+  R-8), in one look at the index. It keeps its result while the index's
+  act records, every capture it read (stamp, change time included) and
+  the seal key basis are unchanged.
+
+  Remaining blind spot: an in-place edit of a log's earlier bytes made
+  together with an append, outside the kept 4 KiB, is not seen at once.
+  Neither is a log added to a directory whose stamp did not change (a
+  coarse-timestamp file system). Both are found by the verifier's next
+  pass, within 60 s plus one pass, which takes about as long as one
+  full read of the project (2–5 s at 10,000 runs). Until then a guard
+  may answer from the earlier bytes.
+
+  Measured with the repairs above (2026-10-12, release build, same machine
+  and harness; the load on the machine varies between runs). "First" is
+  the first use in a process, which builds the index, as before; "next"
+  is every later one.
+
+  | Runs / acts (entries) | Append, first / next | Verifier pass | Index memory | Act read, first / after a run entry | Record tick writing again (2 entries) |
+  |---|---|---|---|---|---|
+  | 100 / 300 (3,300) | 60 / 30 ms | 26 ms | 21 MB | 113 / 2.5 ms | 62 ms |
+  | 1,000 / 3,000 (33,000) | 267 / 15 ms | 0.23 s | 42 MB | 0.79 s / 27 ms | 80 ms (was 3.8 s for 9) |
+  | 10,000 / 100,000 (400,000) | 2.9 s / 123 ms | 2.7 s | 223 MB | 16.5 s / 0.58 s | 1.3 s (was 53 s for 9) |
+
+  A next append no longer reads entries. What remains linear is one
+  metadata call per log and per directory, about 12 µs each, and the
+  index's memory (about 0.55 KB per entry, measured alone in a fresh
+  process). A kept act read costs one metadata call per capture it read.
+  The verifier's pass costs about one full read of the project, once a
+  minute, off the record tick. The act-store fingerprint (1.1 s at
+  100,000 captures) no longer runs on the record tick. The first act
+  read in a process still peaks at 6.2 GB at 100,000 acts (9.1 GB
+  before).
 
 ## 15. Local prototype (R12-3)
 

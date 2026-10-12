@@ -141,11 +141,31 @@ fn records_scale_child() {
             let rss = scale_rss_bytes();
             let count = entries.len();
             drop(entries);
-            // The RS writer's own per-append record-set check (append_reserved).
+            // The RS writer's own per-append record-set check (append_reserved):
+            // the first append in a process reads the set once (the index is
+            // built); the next ones read only what changed.
+            let probe = |n: u32| crate::records::append_project_reserved(&root, "run:scale-probe", "app-writer:local", "evidence_limit", &crate::records::APP_WRITER,
+                json!({"label":"unresolvable reference","subjectRef":"scale probe"}), &format!("rec:app:scale-probe-{n}"), "2026-10-12T00:00:00.000Z");
             let start = t();
-            let appended = crate::records::append_project_reserved(&root, "run:scale-probe", "app-writer:local", "evidence_limit", &crate::records::APP_WRITER,
-                json!({"label":"unresolvable reference","subjectRef":"scale probe"}), "rec:app:scale-probe", "2026-10-12T00:00:00.000Z");
-            json!({"readAllMs":read,"entries":count,"limits":limits.len(),"peakRssBytes":rss,"oneAppendMs":scale_ms(start),"appendOk":appended.is_ok()})
+            let appended = probe(0);
+            let first = scale_ms(start);
+            let start = t();
+            for n in 1..=10 { probe(n).unwrap(); }
+            let next = scale_ms(start) / 10.0;
+            let rss_index = scale_rss_bytes();
+            // One pass of the background verifier (off the record tick).
+            let start = t();
+            let replaced = crate::records_index::verify(&root);
+            let verify_ms = scale_ms(start);
+            json!({"readAllMs":read,"entries":count,"limits":limits.len(),"peakRssBytes":rss,"oneAppendMs":first,"nextAppendMs":next,"appendOk":appended.is_ok(),"peakRssAfterAppendsBytes":rss_index,
+                "verifyPassMs":verify_ms,"verifyReplaced":replaced,"peakRssAfterVerifyBytes":scale_rss_bytes()})
+        }
+        "index" => {
+            // The index alone, built cold in its own process: its time and peak resident size.
+            let before = scale_rss_bytes();
+            let start = t();
+            let (limits, ids) = crate::records_index::with_index(&root, |ix| (ix.limits().len(), ix.holds("rec:app:none")));
+            json!({"buildMs":scale_ms(start),"limits":limits,"held":ids,"rssBeforeBytes":before,"peakRssBytes":scale_rss_bytes()})
         }
         "acts" => {
             let start = t();
@@ -153,7 +173,14 @@ fn records_scale_child() {
             let fingerprint_ms = scale_ms(start);
             let start = t();
             let read = crate::checkpoint_recorder::project_act_records(&root).unwrap();
-            json!({"fingerprintMs":fingerprint_ms,"fingerprintPaths":fingerprint,"actReadMs":scale_ms(start),"acts":read.acts.len(),"unresolved":read.unresolved.len(),"peakRssBytes":scale_rss_bytes()})
+            let act_read = scale_ms(start);
+            // After a run entry is written, the act read again (no act record changed).
+            crate::records::append_project(&root, Some("run:scale-acts"), "app-writer:local", "evidence_limit", &crate::records::APP_WRITER,
+                json!({"label":"unresolvable reference","subjectRef":"scale act probe"})).unwrap();
+            let start = t();
+            let again = crate::checkpoint_recorder::project_act_records(&root).unwrap();
+            let act_again = scale_ms(start);
+            json!({"fingerprintMs":fingerprint_ms,"fingerprintPaths":fingerprint,"actReadMs":act_read,"actReadAfterRunEntryMs":act_again,"acts":read.acts.len(),"actsAgain":again.acts.len(),"unresolved":read.unresolved.len(),"peakRssBytes":scale_rss_bytes()})
         }
         "ledger" => {
             let path = std::path::PathBuf::from(spec["ledger"].as_str().unwrap());
@@ -209,7 +236,15 @@ fn records_scale_child() {
             run.observe_checkpoints(&recorder_view(&peer, &summary_items()));
             let writing = scale_ms(start);
             let written = own_log(&peer, &a).len() - before;
-            json!({"firstTickMs":first,"quietTickMs":quiet,"writingTickMs":writing,"entriesWritten":written,"pending":run.has_pending_records(),"peakRssBytes":scale_rss_bytes()})
+            // A later tick writing again (another report arrives).
+            let mut more = summary_items().to_vec();
+            more.push(json!({"id":"m2","type":"agentMessage","text":"Spacing report"}));
+            let before_next = own_log(&peer, &a).len();
+            let start = t();
+            run.observe_checkpoints(&recorder_view(&peer, &more));
+            let next_writing = scale_ms(start);
+            let next_written = own_log(&peer, &a).len() - before_next;
+            json!({"firstTickMs":first,"quietTickMs":quiet,"writingTickMs":writing,"entriesWritten":written,"nextWritingTickMs":next_writing,"nextEntriesWritten":next_written,"pending":run.has_pending_records(),"peakRssBytes":scale_rss_bytes()})
         }
         other => panic!("unknown scale child {other}"),
     };
@@ -234,7 +269,7 @@ fn records_scale_report() {
         let size = |p: &std::path::Path| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
         let records_bytes: u64 = crate::storage::discover(&root).unwrap().iter().map(|p| size(p)).sum();
         let mut tier = json!({"runs":runs,"acts":acts,"ledgerLines":ledger_lines,"recordLogBytes":records_bytes,"ledgerBytes":size(&ledger),"generateMs":generated});
-        for what in ["read_all", "acts", "ledger", "tick"] {
+        for what in ["read_all", "index", "acts", "ledger", "tick"] {
             let spec = json!({"what":what,"root":root,"keys":keys,"ledger":ledger,"runs":runs,"acts":acts});
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([SCALE_CHILD, "--exact", "--ignored", "--nocapture", "--test-threads=1"])

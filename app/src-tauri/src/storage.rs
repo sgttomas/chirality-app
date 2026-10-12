@@ -286,17 +286,26 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(paths)
 }
 pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {
+    let (entries, mut limits, partial) = read_all_parts(root);
+    limits.extend(partial);
+    (entries, limits)
+}
+/// As [`read_all`], with each log's torn final line (a partial, never an
+/// entry; RS §14.2 R-2) apart from the limits that leave the set incomplete.
+pub(crate) fn read_all_parts(root: &Path) -> (Vec<Value>, Vec<String>, Vec<String>) {
     let paths = match discover(root) {
         Ok(p) => p,
-        Err(e) => return (vec![], vec![e]),
+        Err(e) => return (vec![], vec![e], vec![]),
     };
     let mut entries = Vec::new();
     let mut limits = Vec::new();
+    let mut partial = Vec::new();
     let mut ids = std::collections::HashSet::new();
     for path in paths {
-        let (e, l) = records::read_log(&path);
-        limits.extend(l);
-        for entry in e {
+        let read = records::read_log_parts(&path);
+        limits.extend(read.limits);
+        partial.extend(read.partial_tail);
+        for entry in read.entries {
             if let Some(id) = entry["recordId"].as_str() {
                 if !ids.insert(id.to_owned()) {
                     limits.push(format!("duplicate record identity: {id}"));
@@ -305,7 +314,7 @@ pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {
             entries.push(entry);
         }
     }
-    (entries, limits)
+    (entries, limits, partial)
 }
 /// Both selected project paths and the portable library path have this common records root.
 pub fn records_root(log: &Path) -> Option<PathBuf> {

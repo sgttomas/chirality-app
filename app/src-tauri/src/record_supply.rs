@@ -86,7 +86,7 @@ pub(crate) fn append_live(
     {
         return Err("R3 supplier joins changed since preparation; nothing written".into());
     }
-    let (entries, own) = match crate::records::append_record_set(&root, &run_log(&root, &pending.run), set) {
+    let (entries, own) = match crate::records::append_record_set(&root, &run_log(&root, &pending.run), set, &pending.record_id) {
         Ok(entries) => entries,
         Err(error) => { pending.failure.get_or_insert(error.clone()); return Err(error); }
     };
@@ -220,7 +220,7 @@ pub(crate) fn permanent_refusal_in(
     if let Some(reason) = crate::records::nonconformance(kind, body, record_id, run, observed_at) {
         return Some(format!("it is nonconformant (RS W-1 (a)): {reason}"));
     }
-    let (entries, own) = crate::records::append_record_set(root, &run_log(root, run), set).ok()?;
+    let (entries, own) = crate::records::append_record_set(root, &run_log(root, run), set, record_id).ok()?;
     // An exact owning receipt may have landed before an uncertain sync. A
     // later collision cannot make that observation truthfully "never written".
     if own.iter().any(|e| e["recordId"] == record_id && e["kind"] == kind
@@ -270,7 +270,7 @@ pub(crate) fn append_run_entry_in(
     if let Some(written) = &entry.written {
         return Ok(written.clone());
     }
-    let (entries, own) = match crate::records::append_record_set(root, &run_log(root, run), set) {
+    let (entries, own) = match crate::records::append_record_set(root, &run_log(root, run), set, &entry.record_id) {
         Ok(entries) => entries,
         Err(error) => { entry.failure.get_or_insert(error.clone()); return Err(error); }
     };

@@ -49,6 +49,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod records_access;
+mod records_index;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;

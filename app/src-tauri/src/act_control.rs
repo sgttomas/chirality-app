@@ -978,7 +978,7 @@ impl ActControl {
     /// AX-01 / AX-02. Compose an A16 offer for the `act_request` `request_ref`.
     pub fn compose_a16(&mut self, request_ref: &str) -> Result<Value, String> {
         refuse_unresolved_capture(&self.workspace, request_ref)?;
-        let (entries, limits) = storage::read_all(&self.workspace);
+        let (entries, limits) = records::writer_record_set(&self.workspace);
         if !limits.is_empty() {
             return Err(format!("not offered: incomplete record set: {limits:?}"));
         }
@@ -1560,7 +1560,23 @@ fn recover_capture(
         }
         return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
     }
-    let (entries, limits) = storage::read_all(root);
+    // RS W-0 when the act control opens its own log (AAC §5.2a keeps it in
+    // force); a torn append of this capture's own record holds its replay.
+    let owning = root.join(&target_log);
+    if let Err(e) = records::open_owning_log(root, &owning) {
+        if let Some(h) = hot.as_deref_mut() {
+            pending_failure(root, h, &e);
+        }
+        return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
+    }
+    if records::recovered_lines_hold(&owning, id) {
+        let e = format!("a torn append naming this capture is kept unread in {} (RS W-0); automatic replay held (AAC §5.2a)", target_log);
+        if let Some(h) = hot.as_deref_mut() {
+            pending_failure(root, h, &e);
+        }
+        return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
+    }
+    let (entries, limits) = records::writer_record_set(root);
     if !limits.is_empty() {
         let e = format!("incomplete/ambiguous record set: {limits:?}; no replay");
         if let Some(h) = hot.as_deref_mut() {
@@ -1737,7 +1753,7 @@ fn has_recorded_capture_claim(
     capture: &Value,
     expected: Option<&str>,
 ) -> Result<bool, String> {
-    let (entries, limits) = storage::read_all(root);
+    let (entries, limits) = records::writer_record_set(root);
     if !limits.is_empty() {
         return Err(format!("not offered: incomplete record set: {limits:?}"));
     }
@@ -1918,7 +1934,7 @@ mod persistence_tests {
             control.present(&next_id).unwrap();
             let before = std::fs::read(root.join(LOG)).unwrap();
             let mut torn = before.clone();
-            torn.extend(b"{torn");
+            torn.extend(b"{torn\n");
             std::fs::write(root.join(LOG), torn).unwrap();
             FIXED_CAPTURE_TIME
                 .with(|time| *time.borrow_mut() = Some("2026-10-04T00:00:00Z".into()));
