@@ -200,10 +200,19 @@ fn existing_historical_pointer_entries_stay_nonanswerable_and_never_copy_native_
     assert_eq!(snapshot["recovery"]["oldRequestsAnswerable"], false);
     assert!(snapshot["serverRequests"].as_array().unwrap().is_empty());
     let entries = snapshot["recovery"]["entries"].as_array().unwrap();
+    let start_position = entries.iter().rposition(|e| e["kind"] == "session_started").unwrap();
     assert_eq!(
-        entries.last().unwrap()["previousSessionEnd"],
+        entries[start_position]["previousSessionEnd"],
         "ended-without-record"
     );
+    let ending_position = entries.iter().position(|e| e["transition"] == "RQ-06").unwrap();
+    assert!(ending_position > start_position);
+    let ending = &entries[ending_position];
+    assert_eq!(ending["state"], "closed");
+    assert_eq!(ending["requestIdentity"], "\"old-request\"");
+    assert_eq!(ending["context"], "app-ended-without-record");
+    assert_eq!(ending["replyWrite"], "not-attempted");
+    assert_eq!(ending["acknowledgment"], "not-observed");
     assert_eq!(
         startup.lock().unwrap().snapshot()["historyFile"],
         "existing"

@@ -98,9 +98,10 @@ selects the actual eligible pin; fixture 9.9.9 and historical 0.160.0 are not ch
 **Open production and packaged receiving conditions.** The stock Codex
 0.160.0 macOS arm64 expected reference under
 `references/codex-0.160.0-macos-arm64/` is supplied with its separate attestation
-(S3). Main has not supplied the production build selection and connected runtime
-verification (S2), complete receiving joins (S4) or actual packaged native witness
-(S5). A prepared tree, equal main-binary digest, static reference-equality result
+(S3). The compiled build-selection and preflight implementation (S2) is supplied
+below. Installed custody and verified production runtime, complete receiving joins
+(S4) and the actual packaged native witness (S5) remain open. A prepared tree,
+equal main-binary digest, static reference-equality result
 or development bundle does not establish these. Signature/build integrity and
 installed custody remain required by the selected method. The attested
 `generation-correspondence.json` still cites its earlier SQ Design identity;
