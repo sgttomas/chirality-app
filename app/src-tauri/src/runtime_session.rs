@@ -635,7 +635,8 @@ impl RecoveryStartup {
                 }
             }
             // Reject redirection of the App-owned root/runtime/file, preserving it.
-            for target in [root.to_path_buf(), root.join("runtime"), path.clone()] {
+            let database = crate::recovery::database_path(&path);
+            for target in [root.to_path_buf(), root.join("runtime"), path.clone(), database.clone()] {
                 match std::fs::symlink_metadata(&target) {
                     Ok(meta) if meta.file_type().is_symlink() => {
                         return Err(format!(
@@ -643,7 +644,7 @@ impl RecoveryStartup {
                             target.display()
                         ))
                     }
-                    Ok(_) if target == path => existing = true,
+                    Ok(_) if target == path || target == database => existing = true,
                     Ok(_) => {}
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                     Err(e) => return Err(e.to_string()),
@@ -680,12 +681,13 @@ impl RecoveryStartup {
             }
             Ok(())
         })();
+        let database = selected_path.as_ref().map(|p| crate::recovery::database_path(p).to_string_lossy().into_owned());
         let path = selected_path.as_ref().map(|p|json!({"displayPath":p.to_string_lossy(),
             "nativePath":{"encoding":"native_encoded_bytes","platform":std::env::consts::OS,"bytes":p.as_os_str().as_encoded_bytes()},
             "pathDisplayLimit":if p.to_str().is_some(){None}else{Some("native path is not Unicode; display is lossy")}}));
         let succeeded = result.is_ok();
         self.status = json!({"state":if succeeded{"configured"}else{"initialization-failed"},
-            "hostConfigured":configured,"path":path,"historyFile":if existing{"existing"}else if configured{"new"}else{"not-established"},
+            "hostConfigured":configured,"path":path,"database":database,"historyFile":if existing{"existing"}else if configured{"new"}else{"not-established"},
             "configurationError":result.err(),"directoryPublication":if succeeded{"sync-calls-succeeded"}else{"not-confirmed"},
             "blocksSupplierStart":false,"standing":"App-observed recovery pointers; no native human-act proof"});
         self.snapshot()

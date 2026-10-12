@@ -25,7 +25,7 @@ fn source_to_durable_loss_and_restart_without_ui_poll(){
     assert_eq!(event["inFlightItems"][0]["itemId"],"i");assert_eq!(event["cause"],"supplier-exit");
     let rows=f.rows();let index=rows.iter().rev().find(|r|r["kind"]=="conversation_index").unwrap();
     assert_eq!(index["lastObservedExecution"]["state"],"observation-lost");assert_eq!(index["lastObservedExecution"]["openItems"][0]["itemId"],"i");
-    let bytes=std::fs::read_to_string(f.root.join("ledger.jsonl")).unwrap();assert!(!bytes.contains("NEVER_"));
+    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&f.root.join("ledger.jsonl"))).contains("NEVER_"));assert!(!serde_json::to_string(&crate::recovery::stored_entries(&f.root.join("ledger.jsonl"))).unwrap().contains("NEVER_"));
     let mut reopened=RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();reopened.start_session("new-app-session","candidate").unwrap();
     let restored=crate::recovery::RecoveryCustodyView::from_owner("new-app-session",Some(&reopened.snapshot()),json!({}),0,None).snapshot();
     validate_event(&restored["restartEvents"][0]);assert_eq!(restored["restartEvents"][0]["priorSessionEnd"],"ended-without-record");assert_eq!(restored["automaticResume"],false);
@@ -59,7 +59,7 @@ fn queued_facts_stay_distinct_and_context_tags_survive(){
 }
 #[test]
 fn append_failure_keeps_original_execution_rows_for_later_flush(){
-    let f=Fixture::new();f.index();let path=f.root.join("ledger.jsonl");let backup=f.root.join("original");std::fs::rename(&path,&backup).unwrap();std::fs::create_dir(&path).unwrap();
+    let f=Fixture::new();f.index();let path=crate::recovery::database_path(&f.root.join("ledger.jsonl"));let backup=f.root.join("original");std::fs::rename(&path,&backup).unwrap();std::fs::create_dir(&path).unwrap();
     f.turn("inProgress");f.item("item/started","i");f.close();let pending=f.host.snapshot()["recoveryPendingObservations"].clone();assert!(!pending.as_array().unwrap().is_empty());assert!(!f.host.recovery_custody().snapshot()["limits"].as_array().unwrap().is_empty());
     std::fs::remove_dir(&path).unwrap();std::fs::rename(&backup,&path).unwrap();f.host.flush_recovery_observations();let rows=f.rows();for row in pending.as_array().unwrap(){assert_eq!(rows.iter().filter(|r|*r==row).count(),1);}assert_eq!(f.host.recovery_custody().snapshot()["pendingPointerFacts"],0);
 }
@@ -143,8 +143,8 @@ fn cold03_item_completion_and_terminal_settle_only_matching_turn_tuples(){
 #[test]
 fn cold03_legacy_unknown_stays_unknown_beside_live_turn_without_migration(){
     let f=Fixture::new();f.index();let mut ledger=RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();let mut row=ledger.snapshot()["entries"].as_array().unwrap().last().unwrap().clone();
-    row["lastObservedExecution"]=json!({"state":"turn-live","at":"old","liveTurn":"not-an-item-association","openItems":[{"itemId":"legacy","itemType":"reasoning"},{"turnId":"known-turn","itemId":"new","itemType":"reasoning"}]});ledger.append(row).unwrap();let prior=std::fs::read(f.root.join("ledger.jsonl")).unwrap();ledger.start_session("cold03","c").unwrap();
-    let view=crate::recovery::RecoveryCustodyView::from_owner("cold03",Some(&ledger.snapshot()),json!({}),0,None).snapshot();let items=view["historicalConversations"][0]["openItemAssociations"].as_array().unwrap();assert!(items[0]["turnId"].is_null());assert!(items[0]["fullTuple"].is_null());assert_eq!(items[0]["correlation"],"unknown; historical row supplies no per-item turn");assert_eq!(items[1]["turnId"],"known-turn");assert!(!items[1]["fullTuple"].is_null());assert!(std::fs::read(f.root.join("ledger.jsonl")).unwrap().starts_with(&prior));
+    row["lastObservedExecution"]=json!({"state":"turn-live","at":"old","liveTurn":"not-an-item-association","openItems":[{"itemId":"legacy","itemType":"reasoning"},{"turnId":"known-turn","itemId":"new","itemType":"reasoning"}]});ledger.append(row).unwrap();let prior=crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));ledger.start_session("cold03","c").unwrap();
+    let view=crate::recovery::RecoveryCustodyView::from_owner("cold03",Some(&ledger.snapshot()),json!({}),0,None).snapshot();let items=view["historicalConversations"][0]["openItemAssociations"].as_array().unwrap();assert!(items[0]["turnId"].is_null());assert!(items[0]["fullTuple"].is_null());assert_eq!(items[0]["correlation"],"unknown; historical row supplies no per-item turn");assert_eq!(items[1]["turnId"],"known-turn");assert!(!items[1]["fullTuple"].is_null());assert!(crate::recovery::stored_entries(&f.root.join("ledger.jsonl")).starts_with(&prior));
 }
 #[test]
 fn cold03_exact_adopted_schema_examples_and_old_reader_boundary(){

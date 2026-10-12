@@ -1,6 +1,7 @@
 //! Crash and torn-write witnesses for the two append-only writers: the App
-//! recovery ledger (`recovery::RecoveryLedger::append`, DEL-01-02 §7) and the
-//! RS run/act log writer (`records::append_reserved`, RS §14.1).
+//! recovery ledger (`recovery::RecoveryLedger::append`, DEL-01-02 §7; its
+//! SQLite database) and the RS run/act log writer (`records::append_reserved`,
+//! RS §14.1).
 //!
 //! A real child process (this test binary, re-run on `durability_child`)
 //! appends in a loop and is SIGKILLed at random points; a short write is
@@ -108,11 +109,13 @@ fn durability_child() {
             }
         }
         "ledger-short" | "rs-short" => {
-            let target = if mode == "ledger-short" { path.clone() } else { rs_log(&path) };
-            let line = if mode == "ledger-short" { serde_json::to_vec(&ledger_entry()).unwrap().len() } else { 2048 };
+            let target = if mode == "ledger-short" { crate::recovery::database_path(&path) } else { rs_log(&path) };
             let size = std::fs::metadata(&target).map(|m| m.len()).unwrap_or(0);
+            // The ledger: a batch that needs new database pages, so its commit
+            // writes past the limit (the database's size) after the journal.
+            let line = if mode == "ledger-short" { 0 } else { 2048 };
             let mut ledger = (mode == "ledger-short").then(|| crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
-            let mut attempt = || match &mut ledger { Some(l) => l.append(ledger_entry()), None => append(&target, "evidence_limit", &APP_WRITER, rs_body(1800)).map(|_| ()) };
+            let mut attempt = || match &mut ledger { Some(l) => l.append_batch(vec![ledger_entry(); 64]), None => append(&target, "evidence_limit", &APP_WRITER, rs_body(1800)).map(|_| ()) };
             unsafe { libc::signal(libc::SIGXFSZ, libc::SIG_IGN); }
             let mut limit = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
             unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut limit); }
@@ -149,38 +152,47 @@ fn kill_mid_loop(mode: &str, path: &Path, file: &Path, rng: &mut Rng) {
     c.wait().unwrap();
 }
 
+/// Every entry the ledger database holds, read on a separate connection after
+/// SQLite's own integrity check (the open also rolls back a hot journal).
+fn ledger_rows(path: &Path) -> Vec<Value> {
+    let db = rusqlite::Connection::open(crate::recovery::database_path(path)).unwrap();
+    let check: String = db.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
+    assert_eq!(check, "ok");
+    let mut statement = db.prepare("SELECT entry FROM ledger_entry ORDER BY seq").unwrap();
+    let rows = statement.query_map([], |r| r.get::<_, String>(0)).unwrap();
+    rows.map(|r| serde_json::from_str(&r.unwrap()).unwrap()).collect()
+}
+
 // DEL-01-02 §7: after a SIGKILL at a random point of the ledger writer's loop,
-// every complete line parses and validates, at most the final line is torn,
-// and a reopened ledger reads every complete line and appends again; an
-// unclosed tail is refused by the reader ("not newline-closed; bytes
-// preserved"), never read as a record, and its bytes are left as they are.
+// the database passes its integrity check, every entry validates, no
+// committed entry is lost (the count only grows), and a reopened ledger
+// appends again. A transaction cut by the kill leaves nothing of itself: its
+// journal is rolled back by the next open, so there is no torn tail to refuse.
 #[test]
-fn sigkill_mid_ledger_append_leaves_complete_lines_or_a_refused_torn_tail() {
+fn sigkill_mid_ledger_append_leaves_only_committed_entries() {
     let dir = scratch("ledger-kill-");
     let path = dir.join("recovery.ledger.jsonl");
+    let database = crate::recovery::database_path(&path);
+    let mut journal = database.as_os_str().to_owned();
+    journal.push("-journal");
+    let journal = PathBuf::from(journal);
     let mut rng = Rng::new();
-    let (mut torn, mut appended) = (0, 0);
+    let (mut hot, mut appended) = (0, 0);
     for round in 0..kills() {
-        kill_mid_loop("ledger-loop", &path, &path, &mut rng);
-        let (complete, tail) = lines(&path);
-        for line in &complete {
-            crate::recovery::RecoveryLedger::validate_pointer_entry(&serde_json::from_slice(line).unwrap()).unwrap();
+        kill_mid_loop("ledger-loop", &path, &database, &mut rng);
+        if std::fs::symlink_metadata(&journal).is_ok() { hot += 1; }
+        let rows = ledger_rows(&path);
+        for row in &rows {
+            crate::recovery::RecoveryLedger::validate_pointer_entry(row).unwrap();
         }
-        appended = complete.len();
-        if tail.is_empty() {
-            let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap_or_else(|e| panic!("round {round}: {e}"));
-            assert_eq!(ledger.snapshot()["entries"].as_array().unwrap().len(), complete.len());
-            ledger.append(ledger_entry()).unwrap();
-        } else {
-            torn += 1;
-            let bytes = std::fs::read(&path).unwrap();
-            let error = crate::recovery::RecoveryLedger::open(path.clone()).err().unwrap();
-            assert!(error.contains("final ledger record is not newline-closed; bytes preserved"), "{error}");
-            assert_eq!(std::fs::read(&path).unwrap(), bytes, "the reader leaves the bytes");
-            cut_tail(&path);
-        }
+        assert!(rows.len() >= appended, "round {round}: {} entries after {appended}", rows.len());
+        let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap_or_else(|e| panic!("round {round}: {e}"));
+        ledger.append(ledger_entry()).unwrap();
+        drop(ledger);
+        appended = ledger_rows(&path).len();
+        assert!(!path.exists(), "no JSON Lines file is written");
     }
-    println!("ledger: {} kills, {torn} torn tails, {appended} complete lines", kills());
+    println!("ledger: {} kills, {hot} left a journal, {appended} entries", kills());
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -220,27 +232,25 @@ fn sigkill_mid_rs_append_leaves_complete_entries_or_a_refused_torn_tail() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-// A short write (RLIMIT_FSIZE: part of the line lands, then EFBIG) in a child:
-// the ledger reports the append not confirmed and keeps nothing in memory; its
-// next append in the same process refuses ("unclosed final record; bytes
-// preserved"); a reopened ledger refuses the file; the bytes stay as written.
+// A short write (RLIMIT_FSIZE at the database's size: the commit's write of
+// new pages fails with EFBIG) in a child: the ledger reports the batch not
+// confirmed and keeps none of it; once the limit is lifted the same writer's
+// next batch is recorded whole; the database passes its integrity check and
+// holds the earlier entries and that batch only.
 #[test]
-fn a_short_ledger_write_is_reported_and_its_torn_tail_refused() {
+fn a_short_ledger_write_is_reported_and_leaves_nothing_of_its_batch() {
     let dir = scratch("ledger-short-");
     let path = dir.join("recovery.ledger.jsonl");
     let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap();
     for _ in 0..3 { ledger.append(ledger_entry()).unwrap(); }
+    drop(ledger);
     let result = result_of(&child("ledger-short", &path).output().unwrap());
     let first = result["first"].as_str().unwrap_or_else(|| panic!("{result}"));
     assert!(first.starts_with("recovery ledger append not confirmed"), "{result}");
-    assert!(result["second"].as_str().unwrap().contains("unclosed final record; bytes preserved"), "{result}");
-    let (complete, tail) = lines(&path);
-    assert_eq!(complete.len(), 3);
-    assert!(!tail.is_empty(), "part of the line landed: {} bytes", tail.len());
-    let bytes = std::fs::read(&path).unwrap();
-    assert!(crate::recovery::RecoveryLedger::open(path.clone()).err().unwrap().contains("not newline-closed; bytes preserved"));
-    assert_eq!(std::fs::read(&path).unwrap(), bytes);
-    println!("ledger short write: {} of {} bytes landed; {first}", tail.len(), serde_json::to_vec(&ledger_entry()).unwrap().len() + 1);
+    assert!(result["second"].is_null(), "{result}");
+    assert_eq!(ledger_rows(&path).len(), 3 + 64, "the failed batch left nothing; the next is whole");
+    drop(crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
+    println!("ledger short write: {first}");
     std::fs::remove_dir_all(dir).unwrap();
 }
 

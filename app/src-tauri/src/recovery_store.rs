@@ -1,0 +1,330 @@
+//! The App ledger's SQLite store (DEL-01-02 §7; owner direction 2026-10-12,
+//! PRD R-STORE). App-private operational state, not a record.
+//!
+//! - Entries are only ever inserted: triggers refuse every UPDATE and DELETE of
+//!   an entry or an import record, so a rewrite fails in the database itself,
+//!   not only in this code.
+//! - Each entry is stored with its exact JSON (validated against the ledger
+//!   schema by the caller before insert, and again on every read) and the
+//!   indexed columns readers use: kind, session, home, thread, generation.
+//! - Entries that must stand together are inserted in one transaction.
+//! - Durability: rollback journal, `synchronous=FULL` and `fullfsync`, so a
+//!   commit that returns is on disk before the entry is reported persisted;
+//!   a new database file's directory entry is synced on creation.
+//! - The JSON Lines ledger of earlier builds is imported once, in order, every
+//!   complete and valid line up to the first that is not; the rest is reported
+//!   as a limit and never stored as an entry. The file is never written. The
+//!   import is recorded (source path, byte length, content identity), in the
+//!   same transaction as its entries, so it happens at most once.
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBehavior};
+use serde_json::{json, Value};
+use std::path::{Path, PathBuf};
+
+/// The exact-byte content method used for the imported file's identity.
+const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
+const SCHEMA_VERSION: &str = "1";
+const SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS ledger_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ledger_entry (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    session TEXT,
+    home TEXT,
+    thread TEXT,
+    generation TEXT,
+    origin TEXT NOT NULL CHECK (origin IN ('app', 'legacy-import')),
+    batch INTEGER NOT NULL,
+    entry TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ledger_entry_kind ON ledger_entry (kind, seq);
+CREATE INDEX IF NOT EXISTS ledger_entry_session ON ledger_entry (session, seq);
+CREATE INDEX IF NOT EXISTS ledger_entry_thread ON ledger_entry (home, thread, seq);
+CREATE INDEX IF NOT EXISTS ledger_entry_generation ON ledger_entry (generation, seq);
+CREATE TABLE IF NOT EXISTS legacy_import (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_path TEXT NOT NULL,
+    byte_length INTEGER NOT NULL,
+    content_method TEXT NOT NULL,
+    content_value TEXT NOT NULL,
+    imported_lines INTEGER NOT NULL,
+    first_seq INTEGER,
+    last_seq INTEGER,
+    tail_limit TEXT,
+    imported_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS ledger_entry_never_rewritten BEFORE UPDATE ON ledger_entry
+    BEGIN SELECT RAISE(ABORT, 'ledger entries are never rewritten'); END;
+CREATE TRIGGER IF NOT EXISTS ledger_entry_never_deleted BEFORE DELETE ON ledger_entry
+    BEGIN SELECT RAISE(ABORT, 'ledger entries are never deleted'); END;
+CREATE TRIGGER IF NOT EXISTS legacy_import_never_rewritten BEFORE UPDATE ON legacy_import
+    BEGIN SELECT RAISE(ABORT, 'import records are never rewritten'); END;
+CREATE TRIGGER IF NOT EXISTS legacy_import_never_deleted BEFORE DELETE ON legacy_import
+    BEGIN SELECT RAISE(ABORT, 'import records are never deleted'); END;
+CREATE TRIGGER IF NOT EXISTS ledger_meta_never_rewritten BEFORE UPDATE ON ledger_meta
+    BEGIN SELECT RAISE(ABORT, 'ledger metadata is never rewritten'); END;
+CREATE TRIGGER IF NOT EXISTS ledger_meta_never_deleted BEFORE DELETE ON ledger_meta
+    BEGIN SELECT RAISE(ABORT, 'ledger metadata is never deleted'); END;
+";
+
+#[cfg(test)]
+thread_local! {
+    /// Test hook: the next batch fails after inserting this many entries.
+    pub(crate) static FAIL_BATCH_AFTER: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+/// The database beside the configured ledger location.
+pub(crate) fn database_path(ledger: &Path) -> PathBuf {
+    ledger.with_extension("sqlite")
+}
+
+/// The database file and its side files: a regular, single-link leaf (or
+/// absent), never a symbolic link (the equivalent of today's O_NOFOLLOW and
+/// hard-link checks for a file SQLite opens itself).
+pub(crate) fn preflight(database: &Path) -> Result<(), String> {
+    use std::os::unix::fs::MetadataExt;
+    for path in side_files(database) {
+        match std::fs::symlink_metadata(&path) {
+            Ok(meta) if !meta.is_file() || meta.nlink() != 1 => {
+                return Err(format!("REC ledger database leaf {} is not a regular single-link file", path.display()))
+            }
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(format!("REC ledger database leaf metadata unavailable: {e}")),
+        }
+    }
+    Ok(())
+}
+fn side_files(database: &Path) -> [PathBuf; 4] {
+    let name = |suffix: &str| {
+        let mut s = database.as_os_str().to_owned();
+        s.push(suffix);
+        PathBuf::from(s)
+    };
+    [database.to_path_buf(), name("-journal"), name("-wal"), name("-shm")]
+}
+fn identity(path: &Path) -> Result<(u64, u64), String> {
+    use std::os::unix::fs::MetadataExt;
+    let meta = std::fs::symlink_metadata(path).map_err(|e| format!("REC ledger database metadata unavailable: {e}"))?;
+    Ok((meta.dev(), meta.ino()))
+}
+fn db_error(context: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
+    move |e| format!("{context}: {e}")
+}
+
+pub(crate) struct Store {
+    path: PathBuf,
+    connection: Connection,
+    /// The opened file's device and inode; every write rechecks the path still names it.
+    opened: (u64, u64),
+}
+
+impl Store {
+    /// Opens (creating when absent) the database. `create` is false when the
+    /// caller expects an existing database: a missing one is then an error.
+    /// `legacy_present`: whether a JSON Lines ledger exists beside it now; a
+    /// database created without one never imports a file that appears later.
+    pub(crate) fn open(path: &Path, create: bool, legacy_present: bool) -> Result<Self, String> {
+        preflight(path)?;
+        let existed = std::fs::symlink_metadata(path).is_ok();
+        if !existed && !create {
+            return Err("App history unavailable: the ledger database is missing".into());
+        }
+        let mut flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
+        if create {
+            flags |= OpenFlags::SQLITE_OPEN_CREATE;
+        }
+        let connection = Connection::open_with_flags(path, flags).map_err(db_error("App history unavailable: ledger database not openable"))?;
+        connection.busy_timeout(busy_timeout()).map_err(db_error("ledger database busy timeout not set"))?;
+        // Rollback journal with full synchronous writes and macOS full fsync: a
+        // returned commit is durable (the JSON Lines writer's sync_data).
+        let mode: String = connection.query_row("PRAGMA journal_mode=DELETE", [], |r| r.get(0)).map_err(db_error("ledger journal mode not set"))?;
+        if !mode.eq_ignore_ascii_case("delete") {
+            return Err(format!("ledger journal mode not established ({mode})"));
+        }
+        connection.execute_batch("PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA checkpoint_fullfsync=ON;").map_err(db_error("ledger durability not set"))?;
+        let mut store = Self { path: path.to_path_buf(), opened: identity(path)?, connection };
+        store.ensure_schema(legacy_present)?;
+        if !existed {
+            let parent = path.parent().ok_or("ledger database has no parent directory")?;
+            crate::storage::sync_dir(parent).map_err(|e| format!("ledger database creation not durable: {e}"))?;
+        }
+        preflight(path)?;
+        if identity(path)? != store.opened {
+            return Err("REC ledger database leaf changed while it was opened".into());
+        }
+        Ok(store)
+    }
+    fn ensure_schema(&mut self, legacy_present: bool) -> Result<(), String> {
+        // An established database is only read: no write lock is taken to open it.
+        let established: Option<String> = self.connection
+            .query_row("SELECT value FROM ledger_meta WHERE key = 'schema'", [], |r| r.get(0))
+            .optional()
+            .or_else(|e| if e.to_string().contains("no such table") { Ok(None) } else { Err(e) })
+            .map_err(db_error("ledger schema not readable"))?;
+        match established.as_deref() {
+            Some(SCHEMA_VERSION) => return Ok(()),
+            Some(other) => return Err(format!("App history unavailable: ledger database schema {other} is not this App's ({SCHEMA_VERSION})")),
+            None => {}
+        }
+        let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("ledger schema not established"))?;
+        tx.execute_batch(SCHEMA).map_err(db_error("ledger schema not established"))?;
+        let version: Option<String> = tx.query_row("SELECT value FROM ledger_meta WHERE key = 'schema'", [], |r| r.get(0)).optional().map_err(db_error("ledger schema not readable"))?;
+        match version.as_deref() {
+            None => {
+                tx.execute("INSERT INTO ledger_meta (key, value) VALUES ('schema', ?1)", [SCHEMA_VERSION]).map_err(db_error("ledger schema not recorded"))?;
+                tx.execute("INSERT INTO ledger_meta (key, value) VALUES ('legacy_at_creation', ?1)", [if legacy_present { "present" } else { "absent" }]).map_err(db_error("ledger schema not recorded"))?;
+            }
+            Some(SCHEMA_VERSION) => {}
+            Some(other) => return Err(format!("App history unavailable: ledger database schema {other} is not this App's ({SCHEMA_VERSION})")),
+        }
+        tx.commit().map_err(db_error("ledger schema not committed"))
+    }
+    /// The write guard: the path still names the opened regular single-link file.
+    pub(crate) fn guard(&self) -> Result<(), String> {
+        preflight(&self.path)?;
+        if identity(&self.path)? != self.opened {
+            return Err("REC ledger database leaf is redirected or replaced".into());
+        }
+        Ok(())
+    }
+    /// Every entry in order, each validated again with `validate`.
+    pub(crate) fn entries(&self, validate: &dyn Fn(&Value) -> Result<(), String>) -> Result<Vec<Value>, String> {
+        let mut statement = self.connection.prepare("SELECT entry FROM ledger_entry ORDER BY seq").map_err(db_error("App history unavailable"))?;
+        let rows = statement.query_map([], |r| r.get::<_, String>(0)).map_err(db_error("App history unavailable"))?;
+        let mut entries = Vec::new();
+        for row in rows {
+            let text = row.map_err(db_error("App history unavailable"))?;
+            let entry: Value = serde_json::from_str(&text).map_err(|e| format!("App history unavailable: stored entry is not JSON: {e}"))?;
+            validate(&entry).map_err(|e| format!("App history unavailable: {e}"))?;
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+    /// One transaction: every entry is recorded, or none is.
+    pub(crate) fn insert_batch(&mut self, entries: &[Value]) -> Result<(), String> {
+        self.guard()?;
+        let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("recovery ledger append not confirmed"))?;
+        let batch: i64 = tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("recovery ledger append not confirmed"))?;
+        for (n, entry) in entries.iter().enumerate() {
+            #[cfg(test)]
+            if FAIL_BATCH_AFTER.with(|f| f.get()) == Some(n) {
+                FAIL_BATCH_AFTER.with(|f| f.set(None));
+                return Err("recovery ledger append not confirmed: injected failure inside the batch; nothing recorded".into());
+            }
+            let _ = n;
+            let text = serde_json::to_string(entry).map_err(|e| format!("recovery ledger append not confirmed: {e}"))?;
+            insert(&tx, entry, &text, "app", batch).map_err(db_error("recovery ledger append not confirmed"))?;
+        }
+        tx.commit().map_err(db_error("recovery ledger append not confirmed"))
+    }
+    /// The JSON Lines ledger at `legacy`, imported once (see the module text).
+    /// `read` reads its bytes (with the caller's descriptor guards). Returns
+    /// the import reading shown with the ledger.
+    pub(crate) fn import_legacy(
+        &mut self,
+        legacy: &Path,
+        bytes: &[u8],
+        validate: &dyn Fn(&Value) -> Result<(), String>,
+    ) -> Result<Value, String> {
+        let source = legacy.to_string_lossy().into_owned();
+        let content = crate::util::sha256_hex(bytes);
+        let length = bytes.len() as i64;
+        let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("legacy ledger import not recorded"))?;
+        let earlier: Option<(String, i64, String, i64, Option<String>)> = tx
+            .query_row(
+                "SELECT source_path, byte_length, content_value, imported_lines, tail_limit FROM legacy_import WHERE source_path = ?1 OR content_value = ?2 ORDER BY id LIMIT 1",
+                params![source, content],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+            )
+            .optional()
+            .map_err(db_error("legacy ledger import record not readable"))?;
+        if let Some((path, imported_length, imported_content, lines, limit)) = earlier {
+            drop(tx);
+            let mut reading = json!({"state":"imported earlier","sourcePath":path,"byteLength":imported_length,
+                "content":{"method":EXACT_BYTES,"value":imported_content},"importedLines":lines,"limit":limit});
+            if imported_content != content || imported_length != length {
+                reading["state"] = json!("changed since its import; not imported again");
+                reading["limit"] = json!(format!("the JSON Lines ledger now has {length} bytes with content {content}; only the import of {imported_length} bytes is in the ledger, and the change is not imported"));
+            }
+            return Ok(reading);
+        }
+        let at_creation: Option<String> = tx.query_row("SELECT value FROM ledger_meta WHERE key = 'legacy_at_creation'", [], |r| r.get(0)).optional().map_err(db_error("legacy ledger import record not readable"))?;
+        if at_creation.as_deref() == Some("absent") {
+            drop(tx);
+            return Ok(json!({"state":"not imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},"importedLines":0,
+                "limit":"this JSON Lines ledger appeared after the ledger database was created without one; it is not imported, so its entries would not follow the database's order"}));
+        }
+        // Every complete, valid line in order; the first that is not ends the import.
+        let mut entries = Vec::new();
+        let mut offset = 0usize;
+        let mut limit: Option<String> = None;
+        while offset < bytes.len() {
+            let Some(end) = bytes[offset..].iter().position(|b| *b == b'\n') else {
+                limit = Some(format!("final line at byte {offset} is not newline-closed ({} bytes); not imported", bytes.len() - offset));
+                break;
+            };
+            let line = &bytes[offset..offset + end + 1];
+            let parsed: Result<Value, String> = serde_json::from_slice(line).map_err(|e| e.to_string()).and_then(|v| validate(&v).map(|()| v));
+            match parsed {
+                // The line's exact bytes are kept, without its line feed.
+                Ok(entry) => entries.push((entry, String::from_utf8_lossy(&line[..line.len() - 1]).into_owned())),
+                Err(reason) => {
+                    let rest = bytes[offset..].iter().filter(|b| **b == b'\n').count();
+                    limit = Some(format!("line {} at byte {offset} is not a valid ledger entry ({reason}); it and the {} bytes after it ({} newline-closed lines in all) are not imported", entries.len() + 1, bytes.len() - offset, rest));
+                    break;
+                }
+            }
+            offset += end + 1;
+        }
+        let batch: i64 = tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("legacy ledger import not recorded"))?;
+        let mut first = None;
+        let mut last = None;
+        for (entry, text) in &entries {
+            let seq = insert(&tx, entry, text, "legacy-import", batch).map_err(db_error("legacy ledger import not recorded"))?;
+            first.get_or_insert(seq);
+            last = Some(seq);
+        }
+        let at = crate::util::now_rfc3339();
+        tx.execute(
+            "INSERT INTO legacy_import (source_path, byte_length, content_method, content_value, imported_lines, first_seq, last_seq, tail_limit, imported_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![source, length, EXACT_BYTES, content, entries.len() as i64, first, last, limit, at],
+        )
+        .map_err(db_error("legacy ledger import not recorded"))?;
+        tx.commit().map_err(db_error("legacy ledger import not committed"))?;
+        Ok(json!({"state":"imported","sourcePath":source,"byteLength":length,"content":{"method":EXACT_BYTES,"value":content},
+            "importedLines":entries.len(),"limit":limit,"importedAt":at}))
+    }
+    #[cfg(test)]
+    pub(crate) fn connection(&self) -> &Connection {
+        &self.connection
+    }
+}
+
+fn insert(tx: &rusqlite::Transaction, entry: &Value, text: &str, origin: &str, batch: i64) -> rusqlite::Result<i64> {
+    let column = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
+    let generation = column("generation").or_else(|| column("lastLoadedGeneration"));
+    tx.execute(
+        "INSERT INTO ledger_entry (kind, session, home, thread, generation, origin, batch, entry) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![column("kind").unwrap_or_default(), column("session"), column("home"), column("threadId"), generation, origin, batch, text],
+    )?;
+    Ok(tx.last_insert_rowid())
+}
+
+/// How long a write waits for another App instance's transaction before it
+/// is reported not confirmed.
+fn busy_timeout() -> std::time::Duration {
+    #[cfg(test)]
+    if let Some(ms) = BUSY_TIMEOUT_MS.with(|t| t.get()) {
+        return std::time::Duration::from_millis(ms);
+    }
+    std::time::Duration::from_secs(5)
+}
+#[cfg(test)]
+thread_local! {
+    /// Test hook: a shorter busy timeout for connections opened on this thread.
+    pub(crate) static BUSY_TIMEOUT_MS: std::cell::Cell<Option<u64>> = const { std::cell::Cell::new(None) };
+}
+
+#[cfg(test)]
+#[path = "recovery_store_tests.rs"]
+mod tests;

@@ -556,7 +556,7 @@ for line in sys.stdin:
         assert_eq!(out["codexStopRecord"]["state"], "recorded");
         assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex");
         assert_eq!(out["turns"][0]["stopRequest"]["label"], "interrupted by Stop Codex", "the record carries the same label");
-        let rows: Vec<Value> = std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        let rows: Vec<Value> = crate::recovery::stored_entries(&f.ledger());
         let kinds: Vec<String> = rows.iter().map(|e| match e["kind"].as_str().unwrap() {
             "stop_request" => format!("stop_request {}", e["record"]["transition"].as_str().unwrap()),
             other => other.to_owned(),
@@ -688,7 +688,7 @@ for line in sys.stdin:
     // ---- K-4 / SQ-Q App quit through the real Host (`app_quit`).
 
     fn ledger_rows(f: &Fixture) -> Vec<Value> {
-        std::fs::read_to_string(f.ledger()).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+        crate::recovery::stored_entries(&f.ledger())
     }
     fn kinds(rows: &[Value]) -> Vec<String> {
         rows.iter().map(|e| match e["kind"].as_str().unwrap() {

@@ -3,7 +3,7 @@
 use chirality_app_v4_lib::{
     hosting::Host,
     native_requests::RequestRegister,
-    recovery::RecoveryLedger,
+    recovery::{database_path, RecoveryLedger},
     runtime_session::{reviewed_ledger_path, start_with_recovery, RecoveryStartup},
 };
 use serde_json::json;
@@ -37,15 +37,16 @@ fn automatic_and_manual_start_helper_initialize_actual_host_once_at_fixed_app_pa
             host.snapshot()["recovery"]["entries"][0]["kind"],
             "session_started"
         );
-        assert!(path.exists());
+        assert!(database_path(&path).exists(), "the ledger database is written before the start");
+        assert!(!path.exists(), "no JSON Lines ledger is written");
         Ok(json!({"syntheticStartCallback":"observed configured Host before start"}))
     })
     .unwrap();
     assert!(result["syntheticStartCallback"].is_string());
-    let before = std::fs::read(&path).unwrap();
+    let before = std::fs::read(database_path(&path)).unwrap();
     let other = scratch.0.join("must-not-relocate");
     start_with_recovery(&host, &startup, Ok(&other), Some(&codex), || Ok(())).unwrap();
-    assert_eq!(std::fs::read(&path).unwrap(), before);
+    assert_eq!(std::fs::read(database_path(&path)).unwrap(), before);
     assert!(!other.exists());
     assert!(!codex.exists());
     let status = startup.lock().unwrap().snapshot();
@@ -58,42 +59,52 @@ fn automatic_and_manual_start_helper_initialize_actual_host_once_at_fixed_app_pa
         status["path"]["nativePath"]["bytes"],
         json!(path.as_os_str().as_encoded_bytes())
     );
-    assert_eq!(std::str::from_utf8(&before).unwrap().lines().count(), 1);
+    assert_eq!(status["database"], database_path(&path).to_str().unwrap());
+    assert_eq!(RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().len(), 1);
 }
+/// DEL-01-02 §7 (SQLite direction): a JSON Lines ledger of an earlier build
+/// is imported once; its torn tail is reported as a limit, never stored as an
+/// entry, and the file is never written. A later start imports nothing again.
 #[test]
-fn malformed_tail_refuses_configuration_preserves_bytes_and_still_runs_starter() {
+fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     let scratch = Scratch::new();
     let root = scratch.0.join("app-data");
     let path = reviewed_ledger_path(&root);
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
-    ledger.start_session("old-session", "synthetic").unwrap();
-    drop(ledger);
-    let mut tail = std::fs::read(&path).unwrap();
-    assert_eq!(tail.pop(), Some(b'\n'));
-    std::fs::write(&path, &tail).unwrap();
+    let complete = json!({"kind":"session_started","session":"old-session","at":"synthetic","previousSessionEnd":"none","candidate":"synthetic"});
+    let mut legacy = serde_json::to_vec(&complete).unwrap();
+    legacy.push(b'\n');
+    legacy.extend_from_slice(br#"{"kind":"session_ended","session":"old-sess"#);
+    std::fs::write(&path, &legacy).unwrap();
     let host = Host::new();
     let startup = Mutex::new(RecoveryStartup::default());
     let called = std::cell::Cell::new(false);
     start_with_recovery(&host, &startup, Ok(&root), None, || {
         called.set(true);
-        assert!(host.snapshot()["recovery"].is_null());
+        assert_eq!(host.snapshot()["recovery"]["entries"][0], complete, "the complete line is imported");
         Ok(())
     })
     .unwrap();
     assert!(called.get());
-    assert_eq!(std::fs::read(&path).unwrap(), tail);
+    assert_eq!(std::fs::read(&path).unwrap(), legacy);
     let status = startup.lock().unwrap().snapshot();
-    assert_eq!(status["state"], "initialization-failed");
-    assert_eq!(status["hostConfigured"], false);
-    assert!(status["configurationError"]
-        .as_str()
-        .unwrap()
-        .contains("not newline-closed"));
-    assert_eq!(status["blocksSupplierStart"], false);
-    assert!(host.snapshot()["recoveryPersistenceError"].is_null()); // error custody is explicitly App startup-owned
-    start_with_recovery(&host, &startup, Ok(&root), None, || Ok(())).unwrap();
-    assert_eq!(std::fs::read(path).unwrap(), tail);
+    assert_eq!(status["state"], "configured");
+    assert_eq!(status["historyFile"], "existing");
+    let import = &host.snapshot()["recovery"]["store"]["legacyImport"];
+    assert_eq!(import["state"], "imported", "{import}");
+    assert_eq!(import["importedLines"], 1);
+    assert_eq!(import["byteLength"], legacy.len());
+    assert!(import["limit"].as_str().unwrap().contains("not newline-closed"), "{import}");
+    let entries = host.snapshot()["recovery"]["entries"].as_array().unwrap().clone();
+    assert_eq!(entries.len(), 2, "the import and this session's start; the torn tail is no entry");
+    assert_eq!(entries[1]["previousSessionEnd"], "ended-without-record");
+    // A later App start reads the database; the file is not imported twice.
+    let next = Host::new();
+    let startup = Mutex::new(RecoveryStartup::default());
+    start_with_recovery(&next, &startup, Ok(&root), None, || Ok(())).unwrap();
+    assert_eq!(next.snapshot()["recovery"]["store"]["legacyImport"]["state"], "imported earlier");
+    assert_eq!(next.snapshot()["recovery"]["entries"].as_array().unwrap().len(), 3);
+    assert_eq!(std::fs::read(path).unwrap(), legacy);
 }
 #[test]
 fn unavailable_root_and_codex_home_collision_are_visible_without_fallback_or_suppressed_start() {
@@ -155,8 +166,9 @@ fn unwritable_existing_ledger_reports_actual_permission_error_without_byte_chang
     let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
     ledger.start_session("previous", "synthetic").unwrap();
     drop(ledger);
-    let before = std::fs::read(&path).unwrap();
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let database = database_path(&path);
+    let before = std::fs::read(&database).unwrap();
+    std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o400)).unwrap();
     let host = Host::new();
     let startup = Mutex::new(RecoveryStartup::default());
     let called = std::cell::Cell::new(false);
@@ -171,8 +183,8 @@ fn unwritable_existing_ledger_reports_actual_permission_error_without_byte_chang
     assert!(status["configurationError"].is_string());
     assert!(called.get());
     assert!(host.snapshot()["recovery"].is_null());
-    assert_eq!(std::fs::read(&path).unwrap(), before);
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(std::fs::read(&database).unwrap(), before);
+    std::fs::set_permissions(database, std::fs::Permissions::from_mode(0o600)).unwrap();
 }
 #[test]
 fn existing_historical_pointer_entries_stay_nonanswerable_and_never_copy_native_payload() {
@@ -187,15 +199,14 @@ fn existing_historical_pointer_entries_stay_nonanswerable_and_never_copy_native_
     ledger.start_session("old", "synthetic").unwrap();
     ledger.request_summary(&register.entries()[0]).unwrap();
     drop(ledger);
-    let before = std::fs::read(&path).unwrap();
+    let before = RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().clone();
     let host = Host::new();
     let startup = Mutex::new(RecoveryStartup::default());
     start_with_recovery(&host, &startup, Ok(&root), None, || Ok(())).unwrap();
-    let after = std::fs::read(&path).unwrap();
-    assert!(after.starts_with(&before));
-    assert!(!std::str::from_utf8(&after)
-        .unwrap()
-        .contains("synthetic-must-not-copy"));
+    let after = RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"].as_array().unwrap().clone();
+    assert!(after.starts_with(&before), "earlier entries are kept as they were");
+    assert!(!serde_json::to_string(&after).unwrap().contains("synthetic-must-not-copy"));
+    assert!(!String::from_utf8_lossy(&std::fs::read(database_path(&path)).unwrap()).contains("synthetic-must-not-copy"));
     let snapshot = host.snapshot();
     assert_eq!(snapshot["recovery"]["oldRequestsAnswerable"], false);
     assert!(snapshot["serverRequests"].as_array().unwrap().is_empty());
@@ -235,5 +246,6 @@ fn linked_runtime_directory_is_refused_without_recording_at_another_location() {
         .unwrap()
         .contains("symbolic link"));
     assert!(!alternate.join("recovery.ledger.jsonl").exists());
+    assert!(!alternate.join("recovery.ledger.sqlite").exists());
     assert!(host.snapshot()["recovery"].is_null());
 }

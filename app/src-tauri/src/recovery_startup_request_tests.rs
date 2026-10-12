@@ -128,19 +128,19 @@ fn failed_startup_writer_refuses_reuse_and_reopen_reconciles_landed_bytes() {
     let f = Scratch::new(); let mut ledger = f.ledger();
     ledger.start_session("old", "candidate").unwrap();
     ledger.request_summary(&request("old", "home", 1, json!(1), "outstanding")).unwrap();
-    let path = f.0.join("ledger.jsonl"); let saved = f.0.join("saved");
+    // The database leaf is replaced: the startup batch is refused.
+    let path = store::database_path(&f.0.join("ledger.jsonl")); let saved = f.0.join("saved");
     std::fs::rename(&path, &saved).unwrap(); std::fs::create_dir(&path).unwrap();
     assert!(ledger.start_session("failed", "candidate").is_err());
     std::fs::remove_dir(&path).unwrap(); std::fs::rename(&saved, &path).unwrap();
-    let before = std::fs::read(&path).unwrap();
+    let before = RecoveryLedger::open(f.0.join("ledger.jsonl")).unwrap().snapshot()["entries"].clone();
     assert!(ledger.start_session("retry", "candidate").unwrap_err().contains("reopen"));
     assert!(ledger.append(RecoveryLedger::session_end_entry("old", "quit", &[]).unwrap()).unwrap_err().contains("reopen"));
-    assert_eq!(std::fs::read(&path).unwrap(), before);
-    // Reproduce a full closure line landing without entering the writer's
-    // in-memory index, as can happen when the subsequent sync is unconfirmed.
+    assert_eq!(RecoveryLedger::open(f.0.join("ledger.jsonl")).unwrap().snapshot()["entries"], before, "nothing written by the refused writer");
+    // Reproduce a closure that reached the disk without entering the writer's
+    // in-memory index, as a commit reported failed after landing can.
     let landed = startup_request_closures(&ledger.entries, "failed").0.remove(0);
-    let mut file = OpenOptions::new().append(true).open(&path).unwrap();
-    let mut raw = serde_json::to_vec(&landed).unwrap(); raw.push(b'\n'); file.write_all(&raw).unwrap(); drop(file);
+    RecoveryLedger::open(f.0.join("ledger.jsonl")).unwrap().append(landed.clone()).unwrap();
     drop(ledger);
     let mut reopened = f.ledger(); reopened.start_session("retry", "candidate").unwrap();
     assert_eq!(endings(&reopened), vec![landed]);

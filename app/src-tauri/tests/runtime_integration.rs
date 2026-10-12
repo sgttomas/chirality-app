@@ -84,7 +84,8 @@ fn receiving_request_tool_answer_ack_and_explicit_scratch_ledger_are_connected()
         r.records()[0]["acknowledgmentObservation"]["status"],
         "observed"
     );
-    let disk = std::fs::read_to_string(path).unwrap();
+    // The stored entries and the database file itself (C-11: never kept).
+    let disk = format!("{}{}", String::from_utf8_lossy(&std::fs::read(chirality_app_v4_lib::recovery::database_path(&path)).unwrap()), RecoveryLedger::open(path.clone()).unwrap().snapshot()["entries"]);
     assert!(!disk.contains("nativeUnknown"));
     assert!(!disk.contains("availableDecisions"));
     std::fs::remove_dir_all(root).unwrap();

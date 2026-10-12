@@ -129,7 +129,7 @@ impl Fixture {
     }
     fn methods(&self) -> Vec<String> { self.wire().iter().map(|f| f["method"].as_str().unwrap_or("").to_owned()).collect() }
     fn ledger(&self) -> Vec<Value> {
-        std::fs::read_to_string(self.root.join("recovery.ledger.jsonl")).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+        crate::recovery::stored_entries(&self.root.join("recovery.ledger.jsonl"))
     }
     fn states(&self) -> Vec<String> {
         self.ledger().iter().filter(|r| r["kind"] == "conversation_index").map(|r| r["lastObservedExecution"]["state"].as_str().unwrap().to_owned()).collect()
@@ -219,8 +219,8 @@ fn vcr05_exit_restart_read_failure_retry_and_recovery_from_codex() {
     let states = f.states();
     let lost_at = states.iter().position(|s| s == "observation-lost").unwrap();
     assert_eq!(states[lost_at..], ["observation-lost", "recovering", "unavailable", "recovering", "indexed"]);
-    let bytes = std::fs::read_to_string(f.root.join("recovery.ledger.jsonl")).unwrap();
-    assert!(!bytes.contains("NEVER_"));
+    assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&f.root.join("recovery.ledger.jsonl"))).contains("NEVER_"));
+    assert!(!serde_json::to_string(&crate::recovery::stored_entries(&f.root.join("recovery.ledger.jsonl"))).unwrap().contains("NEVER_"));
     crate::recovery::RecoveryLedger::open(f.root.join("recovery.ledger.jsonl")).unwrap();
     // The stale rendered view is replaced: the ready generation's view has
     // the recovered turn, and the prior one stays observation-ended.
@@ -339,6 +339,58 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     assert_eq!(crate::host_tick::recovery_tick_home(&third), 0);
     assert_eq!(f.wire().len(), wire);
     let _ = third.host.stop("fixture", "test ended");
+}
+
+/// DEL-01-02 §7 (SQLite direction): the CV-19 relaunch over a ledger imported
+/// from an earlier build's JSON Lines file reads as the relaunch over the
+/// ledger database: the restart fact, CV-19's recovery reads and outcome, and
+/// SR-08 then SR-09 for the earlier session's stop request.
+#[test]
+fn cv19_relaunch_over_an_imported_json_lines_ledger_reads_as_over_the_database() {
+    let f = Fixture::new();
+    f.live_work();
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
+    f.crash();
+    let _ = f.home.host.stop("fixture", "test relaunch");
+    f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
+    f.set("history-pages", "2");
+    // The same earlier session, as an earlier build's JSON Lines ledger elsewhere.
+    let earlier = f.ledger();
+    let legacy_root = f.root.join("legacy-app-data");
+    std::fs::create_dir(&legacy_root).unwrap();
+    let mut lines = Vec::new();
+    for entry in &earlier {
+        lines.extend(serde_json::to_vec(entry).unwrap());
+        lines.push(b'\n');
+    }
+    std::fs::write(legacy_root.join("recovery.ledger.jsonl"), &lines).unwrap();
+    let relaunch = |root: &std::path::Path| {
+        let host = Arc::new(Host::new());
+        host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
+        host.start(&f.cfg, "recovery fixture").unwrap();
+        let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(f.cfg.clone())).unwrap());
+        let restart = home.host.recovery_custody().snapshot()["restartEvents"].clone();
+        assert_eq!(crate::host_tick::recovery_tick_home(&home), 3, "thread/read and two turn pages");
+        let outcome = Fixture::events(&home, "turn_outcome")[0].clone();
+        let back = home.host.snapshot()["stopRequests"]["records"][0].clone();
+        let view = home.host.recovery_custody().snapshot();
+        let entries = crate::recovery::stored_entries(&root.join("recovery.ledger.jsonl"));
+        let transitions: Vec<String> = entries.iter().filter(|e| e["kind"] == "stop_request").map(|e| e["record"]["transition"].as_str().unwrap().to_owned()).collect();
+        let legacy = home.host.snapshot()["recovery"]["store"]["legacyImport"].clone();
+        let _ = home.host.stop("fixture", "test ended");
+        (json!({"priorSessionEnd":restart[0]["priorSessionEnd"],"outcome":outcome["outcome"],"cause":outcome["cause"],
+            "label":back["label"],"earlierSession":back["earlierSession"],"transitions":transitions,
+            "state":view["historicalConversations"][0]["index"]["lastObservedExecution"]["state"],
+            "earlierEntries":entries[..earlier.len()].to_vec()}), legacy)
+    };
+    let (imported, legacy) = relaunch(&legacy_root);
+    assert_eq!((legacy["state"].as_str(), legacy["importedLines"].as_u64()), (Some("imported"), Some(earlier.len() as u64)), "{legacy}");
+    assert!(legacy["limit"].is_null(), "{legacy}");
+    let (database, _) = relaunch(&f.root);
+    assert_eq!(imported, database);
+    assert_eq!(imported["transitions"].as_array().unwrap().iter().rev().take(2).rev().cloned().collect::<Vec<_>>(), [json!("SR-08"), json!("SR-09")]);
+    assert_eq!(imported["earlierEntries"], json!(earlier), "every earlier entry is read back exactly");
+    assert_eq!(std::fs::read(legacy_root.join("recovery.ledger.jsonl")).unwrap(), lines, "the JSON Lines ledger is never written");
 }
 
 #[test]

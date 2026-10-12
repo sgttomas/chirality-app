@@ -23,6 +23,8 @@ libc = "0.2"
 uuid = "=1.23.1"
 getrandom = "=0.4.2"
 jsonschema = { version = "=0.58.5", default-features = false }
+# The App-private recovery ledger (DEL-01-02 §7; PRD R-STORE direction).
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # Hashing the 240 MB supplier binary (HOSTING §7.2) is slow unoptimized.
 [profile.dev.package.sha2]
