@@ -54,11 +54,15 @@ def role_description(body):
 
 
 class Native:
-    def __init__(self, binary, root):
+    def __init__(self, binary, root, local_oss_port=None):
         self.frames, self.incoming, self.counter = [], queue.Queue(), 0
         env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR", "USER", "LOGNAME")
                if key in os.environ}
         env["CODEX_HOME"] = str(root / "home")
+        if local_oss_port is not None:
+            if not isinstance(local_oss_port, int) or not 1 <= local_oss_port <= 65535:
+                raise ValueError("local OSS port must be an integer in 1..65535")
+            env["CODEX_OSS_BASE_URL"] = f"http://127.0.0.1:{local_oss_port}/v1"
         self.stderr = (root / "stderr.log").open("w")
         self.process = subprocess.Popen(
             ["/usr/bin/sandbox-exec", "-f", str(root / "network.sb"), str(binary), "app-server"],

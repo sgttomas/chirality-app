@@ -590,8 +590,12 @@ implemented behavior and qualification limits.
 25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
     "I choose option B"). Conversations the App starts in its current project
     (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
-    `chirality_records_read_v1` (`dynamicTools` on `thread/start`; not on a
-    resume or fork). Its operations are `list_runs`, `read_run` and
+    `chirality_records_read_v1` (`dynamicTools` on `thread/start`). Stock
+    0.160.0 retains its declaration through hot and cold resume and fork in
+    the opt-in [records supplier check](supplier_checks/records_delivery.py).
+    That capture-only fixture uses the actual App definition, has no model
+    prediction or App handler, and observes only `namespaceTools: true`
+    routes (RS §13.9). Its operations are `list_runs`, `read_run` and
     `read_acts`. Pages hold at most 50 items and the final text stays within
     32 KiB (fewer items, or a refusal, when it would not); larger entries and
     summaries come back as stubs, and a cursor continues the next page. The
@@ -692,6 +696,21 @@ layout. Include the package's `codex-path` directory in the child process's
 its required host and will fail closed. The approved 0.160.0 archive's complete layout was separately
 verified and probed; earlier flat-binary observations remain source-specific.
 This development setup does not establish qualified distribution identity.
+
+On macOS, the opt-in records supplier check uses that already prepared binary
+with fresh credential-free homes and a localhost-only OS sandbox. It captures
+declarations for started, resumed and forked threads, includes threads without
+the capability as negative controls, and returns HTTP400 without a model
+prediction. Decoded frames and requests stay in the reported private scratch
+directory. From `app/`:
+
+```sh
+records_probe_dir=$(mktemp -d)
+CHIRALITY_SKIP_CODEX=1 cargo run --offline --locked --manifest-path src-tauri/Cargo.toml \
+  --example records_tool_definition > "$records_probe_dir/definition.json"
+python3 supplier_checks/records_delivery.py --codex "$CHIRALITY_CODEX_BIN" \
+  --definition "$records_probe_dir/definition.json"
+```
 
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture

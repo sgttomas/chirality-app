@@ -1920,9 +1920,19 @@ It realizes §13.8's agent access and does not change what a record is.
   was returned is accounted for by the read log, joined by generation and
   request identity. `dynamicTools` is experimental-only at Codex
   0.160.0, which the App already declares (`experimentalApi`). The pinned
-  `thread/resume` and `thread/fork` carry no `dynamicTools`, so a conversation
-  continued or copied is not offered the tool unless Codex keeps it with the
-  thread (not observed). The tool is the App's own capability, not a tool a
+  `thread/resume` and `thread/fork` carry no `dynamicTools`. The maintained
+  opt-in `app/supplier_checks/records_delivery.py` check observes stock
+  0.160.0 retaining the supplied capability through resume and fork, both
+  within its process and after a restart into the same scratch Codex home.
+  It uses the actual App definition and invented HTTP400 capture-only
+  providers, with no model prediction or App handler; threads started
+  without the capability remain without it. Both the custom provider and
+  built-in `lmstudio` route redirected to that fixture reported
+  `namespaceTools: true` and carried the declaration in the Code Mode
+  `functions.exec` description for the selected `gpt-6.1-sol` model. Delivery
+  when a provider reports `namespaceTools: false`, actual provider behavior,
+  and the resumed/forked App handler join remain unobserved. The tool is the
+  App's own capability, not a tool a
   workflow can supply: it does not make WD's `dynamic-tool-call` present
   (EXEC compatibility row), and no act or act control is reachable through
   it (AAC NA-1).
