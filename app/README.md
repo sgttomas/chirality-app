@@ -601,7 +601,11 @@ implemented behavior and qualification limits.
     the opt-in [records supplier check](supplier_checks/records_delivery.py).
     That capture-only fixture uses the actual App definition, has no model
     prediction or App handler, and observes only `namespaceTools: true`
-    routes (RS §13.9). Its operations are `list_runs`, `read_run` and
+    routes (RS §13.9). A fork admitted from a known offered source in the
+    same Codex generation inherits the App's handler binding; a fake-peer
+    Host journey verifies its read-log and project-scope behavior. Cold
+    continuation has no such binding, so its retained declaration still
+    receives an unsupported reply. Its operations are `list_runs`, `read_run` and
     `read_acts`. Pages hold at most 50 items and the final text stays within
     32 KiB (fewer items, or a refusal, when it would not); larger entries and
     summaries come back as stubs, and a cursor continues the next page. The

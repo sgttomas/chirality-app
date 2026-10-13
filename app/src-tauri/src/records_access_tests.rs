@@ -341,7 +341,8 @@ import sys,json,os
 if '--version' in sys.argv:
  print('codex-cli 0.160.0');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
-def thread(cwd):return {'id':'thread','cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':cwd,'ephemeral':False,'modelProvider':'fixture-provider','preview':'fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+def thread(cwd,identity='thread'):return {'id':identity,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':cwd,'ephemeral':False,'modelProvider':'fixture-provider','preview':'fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+threads={}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
@@ -350,7 +351,13 @@ for line in sys.stdin:
  if method=='initialize':emit({'id':f['id'],'result':{'userAgent':'records-capability-fixture'}})
  elif method=='thread/start':
   cwd=f['params'].get('cwd') or os.getcwd()
+  threads['thread']=cwd
   emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
+ elif method=='thread/fork':
+  src=f['params']['threadId'];cwd=threads[src]
+  if os.path.exists('fork-cwd'):cwd=open('fork-cwd').read()
+  t=thread(cwd,'fork');t['forkedFromId']=src;threads['fork']=cwd
+  emit({'id':f['id'],'result':{'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
  elif method=='turn/start':
   tid=f['params']['threadId']
   emit({'id':f['id'],'result':{'turn':{'id':'turn','status':'inProgress','items':[],'error':None,'itemsView':'summary'}}})
@@ -428,6 +435,65 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
     assert!(!serde_json::to_string(&snapshot).unwrap().contains("JOURNEY"), "the host status carries no returned records");
     assert_eq!(snapshot["recordsCapability"]["recentReads"].as_array().unwrap().len(), 2);
     host.stop("fixture", "journey done").ok();
+}
+
+/// The forked tool reaches the actual Host rule only from a known offered
+/// source in the current generation. A changed native cwd still refuses data.
+#[test]
+fn records_access_fork_inherits_only_known_offer_and_keeps_project_scope() {
+    use std::os::unix::fs::PermissionsExt;
+    for mode in ["offered", "unoffered", "foreign-cwd"] {
+        let f = Scratch::new();
+        let project = f.project("project");
+        let other = f.project("other-project");
+        for name in ["account", "probe"] { std::fs::create_dir_all(f.0.join(name)).unwrap(); }
+        write_run(&project, "run:journey", 3, "FORK_PROJECT_EVIDENCE", false);
+        let script = f.0.join("peer.py");
+        std::fs::write(&script, PEER).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut cfg = crate::hosting::HostConfig::new(script, f.0.join("account"), f.0.join("probe"), project.clone());
+        cfg.allow_unverified_dev = true;
+        cfg.wait_limit = Duration::from_secs(2);
+        let host = std::sync::Arc::new(crate::hosting::Host::new());
+        host.configure_records_capability(std::sync::Arc::new(capability(&f, &project)));
+        host.start(&cfg, "records fork fixture").unwrap();
+        let generation = host.snapshot()["generation"].clone();
+        let source = if mode == "unoffered" { &other } else { &project };
+        host.thread_start_with_guidance(source.to_str().unwrap(), "fixture-model", "fixture-provider", "guidance").unwrap();
+        let fork_cwd = if mode == "foreign-cwd" { &other } else { &project };
+        std::fs::write(project.join("fork-cwd"), fork_cwd.to_str().unwrap()).unwrap();
+        let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+        host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+        let fork = host.thread_fork_finish(&request).unwrap();
+        assert_eq!(fork["threadId"], "fork");
+        let wire = || -> Vec<Value> { std::fs::read_to_string(project.join("wire.jsonl")).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect() };
+        let outbound = wire().into_iter().find(|w| w["method"] == "thread/fork").unwrap();
+        assert_eq!(outbound["params"], json!({"threadId":"thread","deferGoalContinuation":true}));
+        host.turn_start_text(&generation, "fork", "Read the records in this project.").unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let reply = |id: &str| wire().into_iter().find(|w| w["id"] == id && w.get("method").is_none());
+        while reply("records-call-1").is_none() || reply("records-call-2").is_none() || reply("other-tool").is_none() {
+            assert!(Instant::now() < deadline, "{mode}: no replies: {:?}", wire());
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let first = reply("records-call-1").unwrap();
+        if mode == "unoffered" {
+            assert!(first["error"].is_object(), "a same-cwd fork cannot mint an unknown source's offer");
+            assert!(f.logged().is_empty());
+        } else {
+            assert_eq!(first["result"]["success"], mode == "offered");
+            let page: Value = serde_json::from_str(first["result"]["contentItems"][0]["text"].as_str().unwrap()).unwrap();
+            assert_eq!(page["items"].as_array().unwrap().len(), if mode == "offered" { 3 } else { 0 });
+            assert_eq!(f.logged().len(), 2, "offered calls are recorded, returned or refused");
+            assert!(f.logged().iter().all(|r| r["threadId"] == "fork"));
+            let snapshot = host.snapshot();
+            let first = snapshot["serverRequests"].as_array().unwrap().iter().find(|r| r["requestIdentity"] == "records-call-1").unwrap();
+            assert_eq!(first["originClass"], "named-service");
+            assert_eq!(first["settlement"]["origin"], json!({"class":"app-rule","ruleName":"records-read"}));
+        }
+        assert!(reply("other-tool").unwrap()["error"].is_object());
+        host.stop("fixture", "records fork done").ok();
+    }
 }
 
 // #1313 re-review M2: only path-valued fields are rewritten, as typed markers,
