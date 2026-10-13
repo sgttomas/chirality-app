@@ -111,7 +111,11 @@ impl RecordsSource for ProjectPaths {
             let label = crate::storage::log_label(&self.root, &path);
             let log = bounded(if Path::new(&label).is_absolute() { "<outside the project>" } else { &label }, 200);
 
-            let bytes = match std::fs::read(&path) {
+            let bytes = match crate::records_index::open_log(&path).and_then(|mut file| {
+                let mut bytes = Vec::new();
+                file.read_to_end(&mut bytes)?;
+                Ok(bytes)
+            }) {
                 Ok(bytes) => bytes,
                 Err(_) => {
                     corpus.limits.push(format!("{log}: not readable (no entry of it is returned)"));

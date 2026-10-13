@@ -44,6 +44,167 @@ fn push(path: &Path, bytes: &[u8]) {
 }
 
 #[test]
+fn opened_log_preserves_lossless_absolute_and_relative_components_and_refuses_leaf_links() {
+    use std::os::unix::ffi::OsStringExt;
+    let root = scratch();
+    struct Cleanup(PathBuf);
+    impl Drop for Cleanup { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+    let _cleanup = Cleanup(root.clone());
+    // APFS refuses invalid UTF-8 names with EILSEQ. Exercise non-ASCII bytes
+    // there, and genuinely non-UTF-8 components on the other Unix platforms.
+    let parent = if cfg!(target_os = "macos") { b"parent-\xc3\xa9".to_vec() } else { b"parent-\xff".to_vec() };
+    let leaf = if cfg!(target_os = "macos") { b"log-\xc3\xb8.jsonl".to_vec() } else { b"log-\xfe.jsonl".to_vec() };
+    let log = root.join(std::ffi::OsString::from_vec(parent)).join(std::ffi::OsString::from_vec(leaf));
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::write(&log, b"invented regular bytes\n").unwrap();
+    let cwd = std::env::current_dir().unwrap();
+    let cwd_parts: Vec<_> = cwd.components().collect();
+    let log_parts: Vec<_> = log.components().collect();
+    let shared = cwd_parts.iter().zip(&log_parts).take_while(|(a, b)| a == b).count();
+    let mut relative = PathBuf::from(".");
+    for _ in shared..cwd_parts.len() { relative.push(".."); }
+    for part in &log_parts[shared..] { relative.push(part.as_os_str()); }
+    for path in [&log, &relative] {
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut open_log(path).unwrap(), &mut bytes).unwrap();
+        assert_eq!(bytes, b"invented regular bytes\n");
+    }
+    let other = root.join("second-invented-log.jsonl");
+    std::fs::write(&other, b"second fixture must not be followed\n").unwrap();
+    let leaf = log.clone();
+    let _hook = log_open_hook_for_test(&log, None, 0, move || {
+        std::fs::remove_file(&leaf).unwrap();
+        std::os::unix::fs::symlink(&other, &leaf).unwrap();
+    });
+    assert!(open_log(&log).is_err(), "a final link substituted after the check is still refused");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn the_index_binds_its_captured_stamp_to_the_opened_log_and_discards_changed_sources() {
+    use crate::records_store::{self, Placement, Store};
+    struct Fixture(PathBuf);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            records_store::use_store_for_test(None);
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    for (warm, parent_already_open) in [(false, false), (true, false), (false, true), (true, true)] {
+        let f = Fixture(scratch());
+        let (project, other) = (f.0.join("project"), f.0.join("second-invented-project"));
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&other).unwrap();
+        records_store::use_store_for_test(Some(Ok(Store {
+            root: f.0.join("store"), placement: Placement::Test, limits: vec![],
+        })));
+        let mut fixtures = Vec::new();
+        for (root, marker) in [(&project, "intended"), (&other, "second-invented")] {
+            let entry = append_project(root, Some("run:stamp"), "app-writer:fixture", "evidence_limit", &APP_WRITER, json!({"label":"unresolvable reference","subjectRef":marker})).unwrap();
+            fixtures.push((crate::storage::project_log(root, Some("run:stamp"), "app-writer:fixture").unwrap(), entry["recordId"].as_str().unwrap().to_owned()));
+        }
+        let mut emitted = 0;
+        let unknown = read_state(&fixtures[0].0, None, 1, None, None, &mut |_| emitted += 1);
+        assert_eq!(emitted, 0, "a missing captured stamp cannot establish any source entries");
+        assert!(unknown.limits().any(|l| l.contains("incomplete record:") && l.contains("stamp could not be read")));
+        if warm {
+            append_project(&project, Some("run:stamp"), "app-writer:fixture", "evidence_limit", &APP_WRITER, body(2)).unwrap();
+            with_index(&project, |index| {
+                assert!(index.holds(&fixtures[0].1));
+                assert!(index.logs[&fixtures[0].0].prefix_end > 0, "a real indexed prefix is reused");
+            });
+            append_project(&project, Some("run:stamp"), "app-writer:fixture", "evidence_limit", &APP_WRITER, body(3)).unwrap();
+        }
+        let log = fixtures[0].0.clone();
+        let parent = log.parent().unwrap().to_owned();
+        let second = fixtures[1].0.clone();
+        let held = f.0.join("original-source");
+        let after_directory = parent_already_open.then(|| parent.clone());
+        let target = log.clone();
+        // Growth checks open the guard once before read_state's own open.
+        let _hook = log_open_hook_for_test(&target, after_directory.as_deref(), usize::from(warm), move || {
+            if parent_already_open {
+                std::fs::rename(&parent, &held).unwrap();
+                std::os::unix::fs::symlink(second.parent().unwrap(), &parent).unwrap();
+            } else {
+                std::fs::rename(&log, &held).unwrap();
+                std::fs::copy(&second, &log).unwrap();
+            }
+        });
+        with_index(&project, |index| {
+            assert!(index.limits().iter().any(|l| l.starts_with("incomplete record:")), "the stamp/source discrepancy stays explicit");
+            for (_, id) in &fixtures {
+                assert!(!index.holds(id), "failed source positions do not establish either identity");
+                assert!(index.entries_with(id).unwrap().is_empty());
+            }
+        });
+    }
+}
+
+#[test]
+fn a_verifier_source_refusal_clears_warm_positions_and_retries_the_restored_original() {
+    use crate::records_store::{self, Placement, Store};
+    struct Fixture(PathBuf);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            records_store::use_store_for_test(None);
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let f = Fixture(scratch());
+    let root = &f.0;
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: root.join("store"), placement: Placement::Test, limits: vec![],
+    })));
+    let log = crate::storage::project_log(root, None, "app-writer:verifier-fixture").unwrap();
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let mut correction = crate::records::envelope("evidence_limit", &APP_WRITER, body(0), "rec:app:fixture-correction".into(), 1, None, None);
+    correction["corrects"] = json!("rec:app:fixture-target");
+    correction["correctionReason"] = json!("invented fixture correction");
+    correction["prevLine"] = crate::record_lines::link(None);
+    crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();
+    push(&log, format!("{correction}\n").as_bytes());
+    append(&log, "evidence_limit", &APP_WRITER, body(1)).unwrap();
+    append(&log, "evidence_limit", &APP_WRITER, body(2)).unwrap();
+    let before = with_index(root, |index| {
+        assert!(index.logs[&log].prefix_end > 0);
+        assert_eq!(index.act_claims().unwrap().len(), 1);
+        index.act_epoch()
+    });
+    append(&log, "evidence_limit", &APP_WRITER, body(3)).unwrap();
+    let parent = log.parent().unwrap().to_owned();
+    let held = root.join("held-original-parent");
+    let (swapped, moved) = (parent.clone(), held.clone());
+    let _hook = log_open_hook_for_test(&log, None, 0, move || {
+        std::fs::rename(&swapped, &moved).unwrap();
+        std::os::unix::fs::symlink(&moved, &swapped).unwrap();
+    });
+    assert!(verify(root) >= 1, "the same leaf stamp with a refused parent installs an explicit incomplete state");
+    let failed_epoch = {
+        let all = INDEXES.lock().unwrap();
+        let index = &all.iter().find(|(r, _)| r == root).unwrap().1;
+        assert!(index.logs[&log].limits().any(|l| l.starts_with("incomplete record:")));
+        assert!(index.db.as_ref().unwrap().unchanged());
+        assert!(!index.holds("rec:app:fixture-correction"));
+        assert!(index.entries_with("rec:app:fixture-correction").unwrap().is_empty());
+        assert!(index.act_claims().unwrap().is_empty());
+        assert_ne!(before, index.act_epoch(), "refusal invalidates the earlier act projection");
+        index.act_epoch()
+    };
+    std::fs::remove_file(&parent).unwrap();
+    std::fs::rename(&held, &parent).unwrap();
+    with_index(root, |index| {
+        assert!(index.limits().is_empty());
+        assert!(index.holds("rec:app:fixture-correction"));
+        assert_eq!(index.entries_with("rec:app:fixture-correction").unwrap(), vec![correction.clone()]);
+        let claims = index.act_claims().unwrap();
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0]["record"], correction);
+        assert_ne!(failed_epoch, index.act_epoch(), "the restored source invalidates the failed act projection");
+    });
+}
+
+#[test]
 fn the_index_reports_what_the_full_reader_reports_through_every_change() {
     let root = scratch();
     agree(&root, "empty project");

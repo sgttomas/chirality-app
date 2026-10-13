@@ -2140,7 +2140,18 @@ It realizes §13.8's agent access and does not change what a record is.
   records store subtree with the registered legacy log's imported copy, or
   before an import the §13.7 project logs under `.chirality/records/` and the
   registered legacy log in place), read by the R-2 reader; the move to the
-  store changed the source, not the tool. It never reads or returns keys (the capture-seal folder
+  store changed the source, not the tool. The capability and index open each
+  parent component without following links, relative to a held directory
+  descriptor, then open the regular log leaf without following links or
+  waiting for a pipe. Renaming an already-held parent cannot redirect that
+  read to its replacement. A refused log retains the existing unreadable
+  limit. The index also checks its captured stamp against the opened log
+  before parsing and against both the descriptor and pathname afterward;
+  a failed source read produces an incomplete-record limit and discards its
+  staged positions. The failed reading has no accepted stamp, so an ordinary refresh
+  retries it even when the original file's stamp is unchanged after recovery.
+  Its final growth guard comes from that same descriptor.
+  It never reads or returns keys (the capture-seal folder
 
   in App data), capture evidence files (act records cite them by reference),
   another project's records, workflow library acts (§13.8 keeps them with
