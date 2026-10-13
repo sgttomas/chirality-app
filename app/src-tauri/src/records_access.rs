@@ -85,9 +85,11 @@ impl ProjectPaths {
     }
 }
 impl RecordsSource for ProjectPaths {
-    /// Each discovered log is read by the R-2 reader's rules (the same as
-    /// `records::read_log`: a schema-valid line is an entry; anything else,
-    /// and an unclosed final line, is a limit), here with each entry's file
+    /// Each discovered log is read by the R-2 reader's rules as RS §13.8 reads
+    /// them (the same as `records::read_log`: a schema-valid line is an entry,
+    /// a valid group line its entries, all at that line; anything else, a
+    /// broken chain and an unclosed final line are limits, and unchained
+    /// (legacy) lines are named), here with each entry's file
     /// line, and limits written by the App: a log name, a line and what was
     /// not read, never the refused line's content or the validator's text.
     fn read(&self) -> Corpus {
@@ -102,7 +104,6 @@ impl RecordsSource for ProjectPaths {
         // A workflow library's acts stay with the library (RS §13.8, U-STORE-2),
         // even when the library is the project itself.
         let library = crate::storage::library_log(&self.root);
-        let validator = crate::schema_validation::bundled();
         let mut ids = HashSet::new();
         for path in paths.into_iter().filter(|p| *p != library) {
             // Named in the project's records store subtree (`records-store:…`)
@@ -110,44 +111,52 @@ impl RecordsSource for ProjectPaths {
             let label = crate::storage::log_label(&self.root, &path);
             let log = bounded(if Path::new(&label).is_absolute() { "<outside the project>" } else { &label }, 200);
 
-            let text = match std::fs::read_to_string(&path) {
-                Ok(text) => text,
+            let bytes = match std::fs::read(&path) {
+                Ok(bytes) => bytes,
                 Err(_) => {
                     corpus.limits.push(format!("{log}: not readable (no entry of it is returned)"));
                     continue;
                 }
             };
-            let lines = text.lines().count();
-            let mut expected = 1u64;
-            for (n, line) in text.lines().enumerate() {
-                if line.trim().is_empty() {
+            // R-2 as RS §13.8 reads it: one entry or one group per line (a group
+            // taken whole), each line linked to the one before. The limits here
+            // are the App's own words, never a line's content or a validator's.
+            let parsed = crate::record_lines::parse(&bytes, &log, 0, 0, 1, Default::default());
+            for line in parsed.lines {
+                let at = line.no;
+                if !line.notes.is_empty() {
+                    corpus.limits.push(format!("{log}: line {at} is a torn line its writer terminated (not read; not a chain link)"));
+                }
+                if line.entries.is_empty() {
+                    if line.limits.iter().any(|l| l.contains(": unreadable line ")) {
+                        corpus.limits.push(format!("{log}: line {at} is not JSON (not read)"));
+                    } else if !line.limits.is_empty() {
+                        corpus.limits.push(format!("{log}: line {at} is not a valid record (not read)"));
+                    }
                     continue;
                 }
-                let at = n + 1;
-                if at == lines && !text.ends_with('\n') {
-                    corpus.limits.push(format!("{log}: partial entry at end (not read)"));
-                    continue;
+                if line.limits.iter().any(|l| l.contains("chain broken")) {
+                    corpus.limits.push(format!("{log}: the chain is broken at line {at}"));
                 }
-                let Ok(entry) = serde_json::from_str::<Value>(line) else {
-                    corpus.limits.push(format!("{log}: line {at} is not JSON (not read)"));
-                    continue;
-                };
-                if !validator.as_ref().is_ok_and(|v| v.validate(&entry).is_ok()) {
-                    corpus.limits.push(format!("{log}: line {at} is not a valid record (not read)"));
-                    continue;
-                }
-                let seq = entry["seq"].as_u64().unwrap_or(0);
-                if seq != expected {
+                if line.limits.iter().any(|l| l.contains("sequence incomplete")) {
                     corpus.limits.push(format!("{log}: sequence incomplete or out of order at line {at}"));
                 }
-                expected = seq.saturating_add(1);
-                if let Some(id) = entry["recordId"].as_str() {
-                    if !ids.insert(id.to_owned()) {
-                        corpus.limits.push(format!("{log}: line {at} repeats the record identity {}", bounded(id, 128)));
+                for entry in line.entries {
+                    if let Some(id) = entry["recordId"].as_str() {
+                        if !ids.insert(id.to_owned()) {
+                            corpus.limits.push(format!("{log}: line {at} repeats the record identity {}", bounded(id, 128)));
+                        }
                     }
+                    corpus.entries.push(SourcedEntry { entry, log: log.clone(), line: at });
                 }
-                corpus.entries.push(SourcedEntry { entry, log: log.clone(), line: at });
             }
+            if parsed.partial_tail.is_some() {
+                corpus.limits.push(format!("{log}: partial entry at end (not read)"));
+            }
+            if parsed.chain.unchained > 0 {
+                corpus.limits.push(format!("{log}: {} line(s) carry no chain link ({})", parsed.chain.unchained, crate::record_lines::UNCHAINED));
+            }
+
         }
         corpus
     }

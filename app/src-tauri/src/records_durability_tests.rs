@@ -72,6 +72,14 @@ fn ledger_entry() -> Value {
 fn rs_body(pad: usize) -> Value {
     json!({"label":"unresolvable reference","subjectRef":"durability witness","detail":"x".repeat(pad)})
 }
+/// A unit of two 24 KiB entries (RS §13.8 "Units written together").
+fn unit() -> Vec<Spec<'static>> {
+    (0..2).map(|_| Spec { kind: "evidence_limit", recorder: &APP_WRITER, body: rs_body(24 * 1024), id: crate::util::opaque_id("rec:app:").unwrap(), observed_at: None }).collect()
+}
+/// The chain limits of a log (RS §13.8 Tamper-evidence): none, on every round.
+fn chain_broken(log: &Path) -> Vec<Value> {
+    crate::record_lines::chain_head(log)["broken"].as_array().cloned().unwrap_or_default()
+}
 /// The RS log a witness writes, in project `root`.
 fn rs_log(root: &Path) -> PathBuf {
     crate::storage::project_log(root, None, "durability-writer").unwrap()
@@ -118,15 +126,29 @@ fn durability_child() {
                 if let Err(e) = append(&log, "evidence_limit", &APP_WRITER, rs_body(48 * 1024)) { report(json!({"append":e})) }
             }
         }
-        "ledger-short" | "rs-short" | "rs-short-only" => {
+        "rs-group-loop" => {
+            let log = rs_log(&path);
+            loop {
+                if let Err(e) = append_group(&log, unit(), None, RecordSet::Complete) { report(json!({"append":e})) }
+            }
+        }
+        "ledger-short" | "rs-short" | "rs-short-only" | "rs-group-short" => {
             let target = if mode == "ledger-short" { crate::recovery::database_path(&path) } else { rs_log(&path) };
             let size = std::fs::metadata(&target).map(|m| m.len()).unwrap_or(0);
             // The ledger: a batch that needs new database pages, so its commit
             // writes past the limit (the database's size) after the journal.
             let line = if mode == "ledger-short" { 0 } else { 2048 };
+            // The RS line must exceed the limit counted from the descriptor's
+            // offset (macOS applies RLIMIT_FSIZE to an O_APPEND write from its
+            // descriptor offset, not the file's end), so it grows with the log.
+            let pad = size as usize + 1800;
             let mut ledger = (mode == "ledger-short").then(|| crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
             let mut attempt = || {
-                let result = match &mut ledger { Some(l) => l.append_batch(vec![ledger_entry(); 64]), None => append(&target, "evidence_limit", &APP_WRITER, rs_body(1800)).map(|_| ()) };
+                let result = match &mut ledger {
+                    Some(l) => l.append_batch(vec![ledger_entry(); 64]),
+                    None if mode == "rs-group-short" => append_group(&target, unit(), None, RecordSet::Complete).map(|_| ()),
+                    None => append(&target, "evidence_limit", &APP_WRITER, rs_body(pad)).map(|_| ()),
+                };
                 (result, ledger.as_ref().map(|l| l.current_entries().len()))
             };
             unsafe { libc::signal(libc::SIGXFSZ, libc::SIG_IGN); }
@@ -138,7 +160,7 @@ fn durability_child() {
             let (first, held_after_first) = attempt();
             limit.rlim_cur = original;
             unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
-            let (second, held_after_second) = if mode == "rs-short-only" { (Ok(()), None) } else { attempt() };
+            let (second, held_after_second) = if matches!(mode.as_str(), "rs-short-only" | "rs-group-short") { (Ok(()), None) } else { attempt() };
             report(json!({"first":first.err(),"second":second.err(),"sizeBefore":size,"heldAfterFirst":held_after_first,"heldAfterSecond":held_after_second}));
         }
         other => panic!("unknown child mode {other}"),
@@ -234,6 +256,7 @@ fn sigkill_mid_rs_append_leaves_complete_entries_or_a_recovered_torn_tail() {
         let recovered = recovered_partial_lines(&std::fs::read(&log).unwrap(), 0).0.len();
         assert_eq!(read.len() + recovered, complete.len(), "round {round}: every complete line not named by W-0 is an entry");
         assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), (1..=read.len() as u64).collect::<Vec<_>>());
+        assert!(chain_broken(&log).is_empty(), "round {round}: the chain holds: {:?}", chain_broken(&log));
         entries = read.len();
         if tail.is_empty() {
             assert!(limits.is_empty(), "round {round}: {limits:?}");
@@ -251,6 +274,74 @@ fn sigkill_mid_rs_append_leaves_complete_entries_or_a_recovered_torn_tail() {
         }
     }
     println!("rs: {} kills, {torn} torn tails, {entries} complete entries", kills());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS §13.8: after a SIGKILL at a random point of the writer's loop of group
+// lines (two 24 KiB entries each), every complete line not named by W-0 is a
+// whole group, the reader never returns half of one, the sequence is
+// complete, and the chain is unbroken; a torn group is a partial only, and
+// the reopened writer terminates it outside the chain and continues it.
+#[test]
+fn sigkill_mid_rs_group_append_leaves_whole_groups_and_an_unbroken_chain() {
+    let root = scratch("rs-group-kill-");
+    let log = rs_log(&root);
+    let mut rng = Rng::new();
+    let (mut torn, mut groups) = (0, 0);
+    for round in 0..kills() {
+        kill_mid_loop("rs-group-loop", &root, &log, &mut rng);
+        let (read, limits) = read_log(&log);
+        let (complete, tail) = lines(&log);
+        let recovered = recovered_partial_lines(&std::fs::read(&log).unwrap(), 0).0.len();
+        // Every complete line not named by W-0: a group of two, or a W-0 limit or the follow-up entry of an earlier round.
+        let singles = read.iter().filter(|e| e["body"]["subjectRef"] != "durability witness" || e["body"]["detail"].as_str().is_some_and(|d| d.len() < 64)).count();
+        assert_eq!((read.len() - singles) % 2, 0, "round {round}: no half group");
+        assert_eq!(read.len() - singles + 2 * singles, 2 * (complete.len() - recovered), "round {round}: each line not named by W-0 is two entries or one single");
+        assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), (1..=read.len() as u64).collect::<Vec<_>>());
+        assert!(chain_broken(&log).is_empty(), "round {round}: {:?}", chain_broken(&log));
+        groups = (read.len() - singles) / 2;
+        if tail.is_empty() {
+            assert!(limits.is_empty(), "round {round}: {limits:?}");
+        } else {
+            torn += 1;
+            assert_eq!(limits.len(), 1, "{limits:?}");
+            assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
+        }
+        let bytes = std::fs::read(&log).unwrap();
+        append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+        assert!(std::fs::read(&log).unwrap().starts_with(&bytes), "the torn bytes are kept");
+        assert!(read_log(&log).1.is_empty() && chain_broken(&log).is_empty());
+    }
+    println!("rs groups: {} kills, {torn} torn tails, {groups} whole groups", kills());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS §13.8 under a short write: a group line cut by the kernel is a partial
+// only (none of its entries is read); the reopened writer terminates it in
+// place and names it, outside the chain, and the log continues unbroken.
+#[test]
+fn a_short_group_write_is_a_partial_only_and_the_chain_continues_past_it() {
+    let root = scratch("rs-group-short-");
+    let log = rs_log(&root);
+    for _ in 0..3 { append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
+    let result = result_of(&child("rs-group-short", &root).output().unwrap());
+    assert!(result["first"].as_str().unwrap_or_else(|| panic!("{result}")).starts_with("write: "), "{result}");
+    let (complete, tail) = lines(&log);
+    assert_eq!(complete.len(), 3);
+    assert!(tail.len() > 1024 && tail.starts_with(br#"{"entries":["#), "a group line, cut");
+    let (read, limits) = read_log(&log);
+    assert_eq!(read.len(), 3, "no entry of the cut group");
+    assert_eq!(limits.len(), 1);
+    assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
+    let next = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (read, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3, 4, 5]);
+    assert_eq!(read[3]["body"]["label"], PARTIAL_NOT_RECOVERED);
+    let (complete, _) = lines(&log);
+    assert_eq!(read[3]["prevLine"]["value"], crate::record_lines::line_identity(&complete[2]), "the torn line is not a link");
+    assert_eq!(next["prevLine"]["value"], crate::record_lines::line_identity(&complete[4]));
+    assert!(chain_broken(&log).is_empty());
     std::fs::remove_dir_all(root).unwrap();
 }
 

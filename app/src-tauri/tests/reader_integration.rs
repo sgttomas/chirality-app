@@ -431,10 +431,13 @@ fn actual_offer_request_binding_refuses_changed_sole_request_before_native_captu
     }
     std::fs::write(
         &path,
-        entries
-            .iter()
-            .map(|e| serde_json::to_string(e).unwrap() + "\n")
-            .collect::<String>(),
+        common::rechain(
+            entries
+                .iter()
+                .map(|e| serde_json::to_string(e).unwrap() + "\n")
+                .collect::<String>()
+                .as_bytes(),
+        ),
     )
     .unwrap();
     assert!(records::read_log(&path).1.is_empty());

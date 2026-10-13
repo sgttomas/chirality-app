@@ -118,13 +118,16 @@ pub(crate) fn compile_targets(
         .collect()
 }
 
-pub struct RecordValidator(Validator);
+/// RS §13.8 "Units written together": a group line, its own target in the RS schema.
+pub const RS_GROUP_REF: &str = "urn:chirality:app-v4:del-04-03:rs-record:0.1#/$defs/groupLine";
+pub struct RecordValidator(Validator, Validator);
 impl RecordValidator {
     /// Compile by declared IDs only. Every resource is required and every reachable
     /// subschema is compiled, including definitions outside the root entry path.
     pub fn from_resources(resources: &[(&str, &str)]) -> Result<Self, String> {
-        let mut validators = compile_targets(resources, REQUIRED_IDS, &[RS_ID])?;
-        Ok(Self(validators.remove(0)))
+        let mut validators = compile_targets(resources, REQUIRED_IDS, &[RS_ID, RS_GROUP_REF])?;
+        let group = validators.remove(1);
+        Ok(Self(validators.remove(0), group))
     }
 
     pub fn validate(&self, entry: &Value) -> Result<(), String> {
@@ -132,7 +135,14 @@ impl RecordValidator {
             .validate(entry)
             .map_err(|e| format!("RS W-1 validation refused: {e}"))
     }
+    /// A group line (RS §13.8): two or more entries written as one line.
+    pub fn validate_group(&self, line: &Value) -> Result<(), String> {
+        self.1
+            .validate(line)
+            .map_err(|e| format!("RS W-1 validation refused (group line): {e}"))
+    }
 }
+
 
 /// Setup failure is retained and refuses every append; it never falls back.
 pub fn bundled() -> Result<&'static RecordValidator, String> {

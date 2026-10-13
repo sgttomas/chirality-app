@@ -1149,7 +1149,8 @@ fn wr_vc_19_dismissal_staleness_and_loss_have_no_effect() {
     let renamed = String::from_utf8(kept.clone())
         .unwrap()
         .replace(first.act_ref(), "rec:app:renamed-elsewhere");
-    fs::write(&log, renamed).unwrap();
+    // Linked again as written (an unlinked edit is a broken chain: RS §13.8).
+    fs::write(&log, crate::record_lines::fixture::rechain(renamed.as_bytes())).unwrap();
     let mut attempt = session.begin_hot_registration(r).unwrap();
     let outcome = attempt.advance();
     fs::write(&log, kept).unwrap();

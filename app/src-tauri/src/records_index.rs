@@ -60,7 +60,8 @@ impl Stamp {
     }
 }
 #[derive(Clone, Debug, PartialEq)]
-struct Line { id: Option<String>, offset: u64, len: usize, seq: u64, act: bool, corrects: Option<String>, late_subject: Option<String> }
+/// One entry, at its line: `member` is its place in a group line (RS §13.8).
+struct Line { id: Option<String>, offset: u64, len: usize, seq: u64, act: bool, corrects: Option<String>, late_subject: Option<String>, member: Option<usize> }
 #[derive(Clone, Default, PartialEq)]
 struct LogState {
     /// This log's number in the index (identities name logs by number).
@@ -79,12 +80,18 @@ struct LogState {
     partial: Option<String>,
     /// The end of the last complete line (where a torn tail starts).
     complete_end: u64,
+    /// The chain where the last complete line starts, and after it.
+    prefix_chain: crate::record_lines::Chain,
+    chain: crate::record_lines::Chain,
+    /// Limits that do not make the log incomplete (torn lines W-0 named).
+    prefix_notes: Vec<String>,
+    tail_notes: Vec<String>,
 }
 impl LogState {
     fn entries(&self) -> impl Iterator<Item = &Line> { self.prefix_entries.iter().chain(&self.tail_entries) }
     fn limits(&self) -> impl Iterator<Item = &String> { self.prefix_limits.iter().chain(&self.tail_limits) }
     /// What a full read of the log establishes (positions, not how it was read).
-    fn reading(&self) -> (Vec<&Line>, Vec<&String>, &Option<String>) { (self.entries().collect(), self.limits().collect(), &self.partial) }
+    fn reading(&self) -> (Vec<&Line>, Vec<&String>, &Option<String>, &crate::record_lines::Chain) { (self.entries().collect(), self.limits().collect(), &self.partial, &self.chain) }
 }
 type Dirs = HashMap<PathBuf, (Stamp, Vec<(PathBuf, bool)>)>;
 #[derive(Default)]
@@ -134,6 +141,19 @@ fn with_index_for<R>(root: &Path, log: Option<&Path>, f: impl FnOnce(&ProjectInd
     all.insert(0, (key, index));
     all.truncate(INDEXED_PROJECTS);
     result
+}
+/// RS §13.8 Tamper-evidence, for the host's status: each log's chain head and
+/// the chain limits, as the bounded index last read them (nothing is read
+/// here). Signed checkpoints wait for App signing (OI-011).
+pub(crate) fn chain_status(root: Option<&Path>) -> Value {
+    let signed = "not written: signed checkpoints wait for App signing (OI-011)";
+    let Some(root) = root else { return serde_json::json!({"state":"no project open","signedCheckpoints":signed}) };
+    // Never the first read of a project: only an index a reader or writer opened.
+    if !INDEXES.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|(r, _)| r == root) {
+        return serde_json::json!({"state":"not read yet in this process","signedCheckpoints":signed});
+    }
+    with_index(root, |ix| serde_json::json!({"state":"as the records index reads it (incremental; a full pass verifies it)","method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),
+        "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),"signedCheckpoints":signed}))
 }
 fn start_verifier() {
     VERIFIER.call_once(|| {
@@ -203,6 +223,22 @@ impl ProjectIndex {
     }
     /// Each log's torn final line (a partial, never an entry; RS §14.2 R-2).
     pub(crate) fn partials(&self) -> Vec<String> { self.logs.values().filter_map(|l| l.partial.clone()).collect() }
+    /// Each log's chain as the index last read it (RS §13.8 Tamper-evidence):
+    /// its head (the identity of its last link line), lines and unchained lines.
+    pub(crate) fn chains(&self) -> Vec<Value> {
+        self.logs.iter().map(|(path, log)| serde_json::json!({"log":path.display().to_string(),"head":log.chain.last,"lines":log.chain.lines,
+            "linked":log.chain.linked,"unchained":log.chain.unchained})).collect()
+    }
+    /// Limits that do not make the set incomplete (RS §13.8): each log's
+    /// unchained (legacy) lines, and torn lines W-0 named (not chain links).
+    pub(crate) fn notes(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        for (path, log) in &self.logs {
+            out.extend(log.prefix_notes.iter().chain(&log.tail_notes).cloned());
+            out.extend(log.chain.unchained_note(&path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()));
+        }
+        out
+    }
     pub(crate) fn discovery_failed(&self) -> bool { self.discovery_error.is_some() }
     /// Whether a readable entry holds `id`.
     pub(crate) fn holds(&self, id: &str) -> bool { self.ids.contains_key(id) }
@@ -232,7 +268,9 @@ impl ProjectIndex {
             limits: s.limits().cloned().collect(), partial: s.partial.is_some(),
             next_seq: s.entries().map(|l| l.seq).max().unwrap_or(0).checked_add(1), complete_end: s.complete_end,
             complete_lines: if s.complete_end > 0 { s.prefix_lines + 1 } else { 0 },
+            chain_last: s.chain.last.clone(),
         })
+
     }
     pub(crate) fn act_epoch(&self) -> u64 { self.act_epoch }
     /// RS §14.2 R-1…R-6 claims for the act read: every act record (or
@@ -277,12 +315,19 @@ impl ProjectIndex {
             if let Err(e) = f.seek(SeekFrom::Start(line.offset)).and_then(|_| f.read_exact(&mut b)) {
                 return failed(format!("the entry at byte {} is no longer there ({e})", line.offset));
             }
-            let Ok(v) = serde_json::from_slice::<Value>(b.strip_suffix(b"\r").unwrap_or(&b)) else {
-                return failed(format!("the entry at byte {} no longer parses", line.offset));
+            // The line decoded whole (an entry, or a group taken whole), then its entry.
+            let decoded = match &validator {
+                Ok(val) => crate::record_lines::decode_line(&b, val).map_err(|e| format!("{e:?}")),
+                Err(e) => Err(e.clone()),
             };
-            if let Err(e) = validator.as_ref().map_err(|e| e.clone()).and_then(|val| val.validate(&v)) {
-                return failed(format!("the entry at byte {} is no longer valid: {e}", line.offset));
-            }
+            let entries = match decoded {
+                Ok((entries, _)) => entries,
+                Err(e) => return failed(format!("the line at byte {} no longer reads as written ({e})", line.offset)),
+            };
+            let Some(v) = entries.into_iter().nth(line.member.unwrap_or(0)) else {
+                return failed(format!("the group at byte {} no longer holds its entry", line.offset));
+            };
+
             if v["recordId"].as_str() != line.id.as_deref() || v["seq"].as_u64() != Some(line.seq) {
                 return failed(format!("the entry at byte {} no longer holds the indexed identity and seq", line.offset));
             }
@@ -429,6 +474,7 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
     state.stamp = stamp;
     state.tail_limits.clear();
     state.tail_entries.clear();
+    state.tail_notes.clear();
     state.partial = None;
     let bytes = match std::fs::File::open(path).and_then(|mut f| {
         use std::io::{Read, Seek, SeekFrom};
@@ -440,70 +486,54 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
         Ok(b) => b,
         Err(e) => return LogState { number, stamp, tail_limits: vec![format!("incomplete record: {}: {e}", path.display())], ..LogState::default() },
     };
-    let mut segments: Vec<(u64, &[u8])> = Vec::new();
-    let mut at = 0usize;
-    for part in bytes.split(|b| *b == b'\n') {
-        segments.push((state.prefix_end + at as u64, part));
-        at += part.len() + 1;
-    }
-    let tail = segments.pop().unwrap_or((state.prefix_end, b""));
-    let complete_bytes = &bytes[..bytes.len() - tail.1.len()];
-    let (recovered, mismatched) = crate::records::recovered_partial_lines(complete_bytes, state.prefix_lines);
-    let mismatched: HashMap<usize, String> = mismatched.into_iter().collect();
-    let validator = crate::schema_validation::bundled();
-    let mut expected = state.prefix_seq.max(1);
-    let mut results: Vec<(u64, Result<Option<Line>, String>, u64)> = Vec::new();
-    for (i, (offset, raw)) in segments.iter().enumerate() {
-        let n = state.prefix_lines + i;
-        let before = expected;
-        if let Some(m) = mismatched.get(&i) {
-            results.push((*offset, Err(format!("{name}: {m}")), before));
-        }
-        let text = std::str::from_utf8(raw.strip_suffix(b"\r").unwrap_or(raw));
-        let outcome = if recovered.contains(&i) || text.is_ok_and(|t| t.trim().is_empty()) {
-            Ok(None)
+    // R-2 as RS §13.8 reads it (one entry or one group per line, each line
+    // linked to the one before), continued from the stable prefix.
+    // Everything before the last complete line becomes the stable prefix: each
+    // line is kept back until the next one shows it is not the last.
+    let mut held: Option<crate::record_lines::ParsedLine> = None;
+    let mut count = 0usize;
+    let take = |state: &mut LogState, line: crate::record_lines::ParsedLine, into_prefix: bool| {
+        let grouped = line.entries.len() > 1;
+        let entries = line.entries.iter().enumerate().map(|(k, v)| Line {
+            id: v["recordId"].as_str().map(str::to_owned), offset: line.offset, len: line.len, seq: v["seq"].as_u64().unwrap_or(0),
+            act: act_kind(v), corrects: v["corrects"].as_str().map(str::to_owned),
+            late_subject: (v["kind"] == "evidence_limit" && v["body"]["label"] == "record write failed").then(|| v["body"]["subjectRef"].as_str().map(str::to_owned)).flatten(),
+            member: grouped.then_some(k),
+        });
+        if into_prefix {
+            state.prefix_entries.extend(entries);
+            state.prefix_limits.extend(line.limits);
+            state.prefix_notes.extend(line.notes);
         } else {
-            match text.ok().and_then(|t| serde_json::from_str::<Value>(t).ok()) {
-                Some(v) => match validator.as_ref().map_err(|e| e.clone()).and_then(|val| val.validate(&v)) {
-                    Ok(()) => {
-                        let seq = v["seq"].as_u64().unwrap_or(0);
-                        let entry = Line { id: v["recordId"].as_str().map(str::to_owned), offset: *offset, len: raw.len(), seq, act: act_kind(&v), corrects: v["corrects"].as_str().map(str::to_owned),
-                            late_subject: (v["kind"] == "evidence_limit" && v["body"]["label"] == "record write failed").then(|| v["body"]["subjectRef"].as_str().map(str::to_owned)).flatten() };
-                        if seq != expected {
-                            results.push((*offset, Err(format!("{name}: sequence incomplete/disagrees: expected {expected}, found {seq} at line {}", n + 1)), before));
-                        }
-                        expected = seq.checked_add(1).unwrap_or(seq);
-                        Ok(Some(entry))
-                    }
-                    Err(e) => Err(format!("{name}: invalid line {}: {e}", n + 1)),
-                },
-                None => Err(format!("{name}: unreadable line {}", n + 1)),
-            }
-        };
-        results.push((*offset, outcome, before));
-    }
-    // Everything before the last complete line becomes the stable prefix.
-    let last_start = segments.last().map(|(o, _)| *o);
-    for (offset, outcome, _) in results.iter() {
-        let into_prefix = last_start.is_some_and(|s| *offset < s);
-        match (outcome, into_prefix) {
-            (Ok(Some(l)), true) => state.prefix_entries.push(l.clone()),
-            (Ok(Some(l)), false) => state.tail_entries.push(l.clone()),
-            (Err(e), true) => state.prefix_limits.push(e.clone()),
-            (Err(e), false) => state.tail_limits.push(e.clone()),
-            (Ok(None), _) => {}
+            state.tail_entries.extend(entries);
+            state.tail_limits.extend(line.limits);
+            state.tail_notes.extend(line.notes);
         }
+    };
+    let parsed = {
+        let state = &mut state;
+        crate::record_lines::parse_with(&bytes, &name, state.prefix_lines, state.prefix_end, state.prefix_seq.max(1), state.prefix_chain.clone(), &mut |line| {
+            count += 1;
+            if let Some(before) = held.replace(line) {
+                take(state, before, true);
+            }
+        })
+    };
+    let last = held.map(|line| {
+        let kept = (line.offset, line.expected_before, line.chain_before.clone());
+        take(&mut state, line, false);
+        kept
+    });
+    if let Some((offset, expected_before, chain_before)) = last {
+        state.prefix_lines += count - 1;
+        // The expected seq and the chain where the last complete line starts.
+        state.prefix_seq = expected_before;
+        state.prefix_chain = chain_before;
+        state.prefix_end = offset;
+        state.complete_end = parsed.tail_offset;
     }
-    if let Some(start) = last_start {
-        state.prefix_lines += segments.len() - 1;
-        // The expected seq where the last complete line starts.
-        state.prefix_seq = results.iter().find(|(o, _, _)| *o == start).map(|(_, _, b)| *b).unwrap_or(expected);
-        state.prefix_end = start;
-        state.complete_end = tail.0;
-    }
-    if !tail.1.is_empty() && !tail.1.iter().all(u8::is_ascii_whitespace) {
-        state.partial = Some(format!("{name}: partial entry at end (not read)"));
-    }
+    state.chain = parsed.chain;
+    state.partial = parsed.partial_tail;
     let guard_from = state.prefix_end.saturating_sub(GUARD);
     state.guard = read_at(path, guard_from, (state.prefix_end - guard_from) as usize).unwrap_or_default();
     state
@@ -515,7 +545,10 @@ pub(crate) struct OwnLog {
     pub next_seq: Option<u64>,
     pub complete_end: u64,
     pub complete_lines: usize,
+    /// The identity of its last link line (its chain head), if any.
+    pub chain_last: Option<String>,
 }
+
 fn read_at(path: &Path, offset: u64, len: usize) -> Option<Vec<u8>> {
     use std::io::{Read, Seek, SeekFrom};
     let mut f = std::fs::File::open(path).ok()?;

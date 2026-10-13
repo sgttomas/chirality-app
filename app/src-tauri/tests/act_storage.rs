@@ -479,6 +479,8 @@ fn duplicate_and_disagreeing_discovered_capture_records_never_replay() {
         std::fs::create_dir_all(foreign.parent().unwrap()).unwrap();
         let mut record = out["record"].clone();
         record["seq"] = json!(1);
+        // The first line of its log (RS §13.8 Tamper-evidence).
+        record["prevLine"] = chirality_app_v4_lib::record_lines::link(None);
         if disagree {
             record["recordId"] = json!("rec:fixture:disagreement");
             record["body"]["scope"] = json!("different original act scope");

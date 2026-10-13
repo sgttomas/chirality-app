@@ -5137,11 +5137,14 @@ impl WorkflowRootSession {
         // with its own time, and acts recorded while the run was interrupted are written
         // before its waiting arrivals are listed. As
         // for a live end, unreadable act records give a limit, not a refusal (A-11).
-        for (kind, body) in end_counting(&run_entries, project) {
-            let mut entry = crate::records::supply::PendingRunEntry::new(kind, body.clone(), crate::util::now_rfc3339())?;
-            crate::records::supply::append_run_entry_in(project, run, &mut entry, crate::records::RecordSet::ReadableBesideIncomplete)
+        // RS §13.8: an event and the disposition change it makes, as one unit.
+        let outputs = end_counting(&run_entries, project);
+        for unit in crate::checkpoint_recorder::units(&outputs) {
+            let observed_at = crate::util::now_rfc3339();
+            let mut members = outputs[unit].iter().map(|(kind, body)| crate::records::supply::PendingRunEntry::new(kind, body.clone(), observed_at.clone())).collect::<Result<Vec<_>, _>>()?;
+            crate::records::supply::append_run_group_in(project, run, &mut members, crate::records::RecordSet::ReadableBesideIncomplete)
                 .map_err(|e| format!("A checkpoint entry could not be recorded, so the run was not ended: {e}"))?;
-            run_entries.push(json!({"kind":kind,"body":body}));
+            run_entries.extend(members.iter().map(|m| json!({"kind":m.kind,"body":m.body})));
         }
         let waiting = crate::checkpoint_recorder::waiting_arrivals(&run_entries);
         let mut entry = crate::records::supply::PendingRunEntry::new(
@@ -6437,22 +6440,32 @@ impl WorkflowRun {
             }
             let Some((kind, index, _)) = next else { break };
             let progressed = match kind {
-                0 => match crate::records::supply::append_run_entry_in(&self.project_root, &run, &mut self.entries[index], set) {
-                    Ok(_) => true,
-                    Err(_) => {
-                        let e = &self.entries[index];
-                        let refusal = crate::records::supply::permanent_refusal_in(&self.project_root, &run, e.kind, &e.record_id, &e.body, &e.observed_at, set)
-                            .and_then(|reason| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok().map(|limit| (reason, limit)));
-                        match refusal {
-                            Some((reason, limit)) => {
-                                self.entries[index].refused = Some(reason);
-                                self.insert_never_written_limit(limit);
-                                true
+                0 => {
+                    // RS §13.8: the entry's unit (its consecutive pending
+                    // entries of the same group), written whole or not at all.
+                    let group = self.entries[index].group.clone();
+                    let end = index + 1 + self.entries[index + 1..].iter().take_while(|e| group.is_some() && e.group == group && e.pending()).count();
+                    match crate::records::supply::append_run_group_in(&self.project_root, &run, &mut self.entries[index..end], set) {
+                        Ok(_) => true,
+                        Err(_) => {
+                            let unit = &self.entries[index..end];
+                            let refusal = crate::records::supply::permanent_group_refusal_in(&self.project_root, &run, unit, set)
+                                .and_then(|reason| unit.iter().map(|e| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok()).collect::<Option<Vec<_>>>().map(|limits| (reason, limits)));
+                            match refusal {
+                                Some((reason, limits)) => {
+                                    for e in &mut self.entries[index..end] {
+                                        e.refused = Some(reason.clone());
+                                    }
+                                    // In the unit's order, where its next pending entry stands.
+                                    let at = self.entries.iter().position(|e| e.pending()).unwrap_or(self.entries.len());
+                                    self.entries.splice(at..at, limits);
+                                    true
+                                }
+                                None => false,
                             }
-                            None => false,
                         }
                     }
-                },
+                }
                 1 => {
                     let ready = self.entry_settled("run_opened");
                     if let Some(limit) = self.checks[index].advance(&self.project, ready, set) {
@@ -6746,24 +6759,43 @@ impl WorkflowRun {
     }
     /// Recorder outputs become this run's pending entries, in order, each
     /// with its reserved identity and observation time (RS W-1/W-2).
+    /// RS §13.8 "Units written together": the outputs of one unit
+    /// (`checkpoint_recorder::units`), and a request with its requester limit,
+    /// share a group and are written as one line; a unit missing an identity
+    /// is not queued at all.
     fn push_recorder_outputs(&mut self, outputs: Vec<crate::checkpoint_recorder::Output>, observed_at: &str) {
-        for (kind, body) in outputs {
-            match crate::records::supply::PendingRunEntry::new(kind, body, observed_at.to_owned()) {
-                Ok(entry) => {
-                    // CC-R RS §13.6 requester identity: a request whose requester identity is not observed
-                    // carries RS's separate limit, citing the request's record.
-                    let limit = (kind == "act_request").then(|| json!({"label":"requester identity not established","subjectRef":entry.record_id,
-                        "detail":"supplier request observed; the agent or MCP server that authored it is not identified"}));
-                    self.entries.push(entry);
-                    if let Some(limit) = limit {
-                        match crate::records::supply::PendingRunEntry::new("evidence_limit", limit, observed_at.to_owned()) {
-                            Ok(entry) => self.entries.push(entry),
-                            Err(e) => self.status["recordLimit"] = json!(format!("evidence_limit identity unavailable: {e}")),
+        for unit in crate::checkpoint_recorder::units(&outputs) {
+            let mut members = Vec::new();
+            let mut unavailable = None;
+            for (kind, body) in outputs[unit].iter().cloned() {
+                match crate::records::supply::PendingRunEntry::new(kind, body, observed_at.to_owned()) {
+                    Ok(entry) => {
+                        // CC-R RS §13.6 requester identity: a request whose requester identity is not observed
+                        // carries RS's separate limit, citing the request's record.
+                        let limit = (kind == "act_request").then(|| json!({"label":"requester identity not established","subjectRef":entry.record_id,
+                            "detail":"supplier request observed; the agent or MCP server that authored it is not identified"}));
+                        members.push(entry);
+                        if let Some(limit) = limit {
+                            match crate::records::supply::PendingRunEntry::new("evidence_limit", limit, observed_at.to_owned()) {
+                                Ok(entry) => members.push(entry),
+                                Err(e) => unavailable = Some(format!("evidence_limit identity unavailable: {e}")),
+                            }
                         }
                     }
+                    Err(e) => unavailable = Some(format!("{kind} identity unavailable: {e}")),
                 }
-                Err(e) => self.status["recordLimit"] = json!(format!("{kind} identity unavailable: {e}")),
             }
+            if let Some(e) = unavailable {
+                self.status["recordLimit"] = json!(e);
+                continue;
+            }
+            if members.len() > 1 {
+                let group = members[0].record_id.clone();
+                for m in &mut members {
+                    m.group = Some(group.clone());
+                }
+            }
+            self.entries.extend(members);
         }
     }
     /// RS R5 (HOSTING §8.3): the `model_turn` entries this view shows are due,

@@ -582,6 +582,7 @@ fn a_corrected_act_does_not_count() {
     correction["corrects"] = original["recordId"].clone();
     correction["correctionReason"] = json!("purpose restated");
     correction["body"]["purpose"] = json!("A restated purpose.");
+    correction["prevLine"] = crate::record_lines::fixture::next_link(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap());
     crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();
     let mut line = serde_json::to_string(&correction).unwrap();
     line.push('\n');

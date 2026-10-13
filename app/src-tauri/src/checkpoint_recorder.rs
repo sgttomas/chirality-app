@@ -183,6 +183,26 @@ fn stamp(m: &std::fs::Metadata) -> Stamp {
 
 /// One recorder output: the RS entry kind and its CE body.
 pub(crate) type Output = (&'static str, Value);
+/// RS §13.8 "Units written together": the outputs that must stand together,
+/// as consecutive ranges covering `outputs` in order. An event that changes
+/// an arrival's disposition (`act_counted`, `act_not_counted`,
+/// `arrival_declined`, `act_lapsed`) and the `disposition_change` it makes for
+/// that arrival, directly after it, are one unit: neither is read without the
+/// other. Every other output stands alone (a lapse label repaired after its
+/// lapse was recorded alone, a settlement, a limit).
+pub(crate) fn units(outputs: &[Output]) -> Vec<std::ops::Range<usize>> {
+    const EVENTS: [&str; 4] = ["act_counted", "act_not_counted", "arrival_declined", "act_lapsed"];
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < outputs.len() {
+        let paired = EVENTS.contains(&outputs[i].0)
+            && outputs.get(i + 1).is_some_and(|(kind, body)| *kind == "disposition_change" && body["arrival"] == outputs[i].1["arrival"]);
+        let end = if paired { i + 2 } else { i + 1 };
+        out.push(i..end);
+        i = end;
+    }
+    out
+}
 /// The project's human-act and act-declined records, read only when needed.
 pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 

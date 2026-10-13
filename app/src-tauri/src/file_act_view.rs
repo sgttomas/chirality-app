@@ -137,59 +137,19 @@ fn read_log(root: &Path, path: &Path) -> (Vec<Value>, Vec<String>) {
         Ok(b) => b,
         Err(e) => return (Vec::new(), vec![e]),
     };
+    // R-2 as RS §13.8 reads it: one entry or one group per line (a group
+    // taken whole), each line linked to the one before; a torn line W-0
+    // terminated and named is never read (and is not a chain link).
+    let name = path.display().to_string();
+    let parsed = crate::record_lines::parse(&data, &name, 0, 0, 1, Default::default());
     let mut entries = Vec::new();
     let mut limits = Vec::new();
-    let mut expected = 1u64;
-    // Line by line on the bytes: a torn line may end inside a character.
-    let mut lines: Vec<&[u8]> = data.split(|b| *b == b'\n').collect();
-    if data.ends_with(b"\n") || data.is_empty() {
-        lines.pop();
+    for line in parsed.lines {
+        limits.extend(line.limits);
+        entries.extend(line.entries);
     }
-    let count = lines.len();
-    // RS §14.1 W-0: a torn line its writer terminated and named (its bytes
-    // matching) is never read; a mismatched name is a limit.
-    let (recovered, mismatched) = crate::records::recovered_partial_lines(&data, 0);
-    limits.extend(mismatched.into_iter().map(|(_, m)| format!("{}: {m}", path.display())));
-    for (n, raw) in lines.iter().enumerate() {
-        if recovered.contains(&n) {
-            continue;
-        }
-        if n + 1 == count && !data.ends_with(b"\n") {
-            if !raw.iter().all(u8::is_ascii_whitespace) {
-                limits.push(format!("{}: partial final entry not read", path.display()));
-            }
-            continue;
-        }
-        let line = match std::str::from_utf8(raw.strip_suffix(b"\r").unwrap_or(raw)) {
-            Ok(line) => line,
-            Err(e) => {
-                limits.push(format!("{}: line {}: {e}", path.display(), n + 1));
-                continue;
-            }
-        };
-        if line.trim().is_empty() {
-            continue;
-        }
-        match serde_json::from_str::<Value>(line) {
-            Ok(v) => match crate::schema_validation::bundled()
-                .and_then(|validator| validator.validate(&v))
-            {
-                Ok(()) => {
-                    let seq = v["seq"].as_u64().unwrap();
-                    if seq != expected {
-                        limits.push(format!(
-                            "{}: incomplete sequence at line {}",
-                            path.display(),
-                            n + 1
-                        ));
-                    }
-                    expected = seq.saturating_add(1);
-                    entries.push(v);
-                }
-                Err(e) => limits.push(e),
-            },
-            Err(e) => limits.push(e.to_string()),
-        }
+    if parsed.partial_tail.is_some() {
+        limits.push(format!("{name}: partial final entry not read"));
     }
     (entries, limits)
 }

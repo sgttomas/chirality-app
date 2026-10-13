@@ -73,3 +73,29 @@ pub fn evidence_output() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("skeleton-output"))
 }
+
+/// A log's bytes with every complete line linked again to the one before (RS
+/// §13.8 Tamper-evidence): a fixture's in-place edit, made consistent as the
+/// App would have written it. An unlinked edit reads as a broken chain.
+#[allow(dead_code)]
+pub fn rechain(bytes: &[u8]) -> Vec<u8> {
+    use chirality_app_v4_lib::record_lines::{line_identity, link};
+    let mut out = Vec::new();
+    let mut previous: Option<String> = None;
+    let mut parts: Vec<&[u8]> = bytes.split(|b| *b == b'\n').collect();
+    let tail = parts.pop().unwrap_or(b"");
+    for raw in parts {
+        let line = match serde_json::from_slice::<serde_json::Value>(raw) {
+            Ok(mut v) if v.is_object() => {
+                v["prevLine"] = link(previous.as_deref());
+                serde_json::to_vec(&v).unwrap()
+            }
+            _ => raw.to_vec(),
+        };
+        previous = Some(line_identity(&line));
+        out.extend(&line);
+        out.push(b'\n');
+    }
+    out.extend(tail);
+    out
+}

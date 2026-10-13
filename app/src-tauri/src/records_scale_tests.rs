@@ -42,6 +42,8 @@ fn scale_runs(root: &std::path::Path, runs: usize) {
         let log = crate::storage::project_log(root, Some(&run), "app-writer:local").unwrap();
         std::fs::create_dir_all(log.parent().unwrap()).unwrap();
         let mut out = std::io::BufWriter::new(std::fs::File::create(&log).unwrap());
+        // Chained as the App writes them (RS §13.8 Tamper-evidence).
+        let mut previous: Option<String> = None;
         for seq in 1..=SCALE_ENTRIES_PER_RUN as u64 {
             let (kind, body) = match seq {
                 n if n == SCALE_ENTRIES_PER_RUN as u64 => ("run_ended", json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]})),
@@ -49,9 +51,12 @@ fn scale_runs(root: &std::path::Path, runs: usize) {
                 n if n % 7 == 0 => ("evidence_limit", json!({"label":"lost acknowledgement","subjectRef":format!("server-request:1/{n}"),"detail":"synthetic scale entry"})),
                 n => ("model_turn", json!({"turn":n,"scope":"turn","requested":"fixture-provider/fixture-model","effective":"fixture-provider/fixture-model","destinationClass":"local model server"})),
             };
-            let entry = crate::records::envelope(kind, rec, body, format!("rec:app:scale-{r}-{seq}"), seq, Some(&run), Some("2026-10-12T00:00:00.000Z"));
+            let mut entry = crate::records::envelope(kind, rec, body, format!("rec:app:scale-{r}-{seq}"), seq, Some(&run), Some("2026-10-12T00:00:00.000Z"));
+            entry["prevLine"] = crate::record_lines::link(previous.as_deref());
             if r == 0 { validator.validate(&entry).unwrap_or_else(|e| panic!("{kind}: {e}")); }
-            writeln!(out, "{}", serde_json::to_string(&entry).unwrap()).unwrap();
+            let line = serde_json::to_string(&entry).unwrap();
+            previous = Some(crate::record_lines::line_identity(line.as_bytes()));
+            writeln!(out, "{line}").unwrap();
         }
     }
 }
@@ -63,6 +68,7 @@ fn scale_acts(root: &std::path::Path, acts: usize) {
     let log = crate::storage::project_log(root, None, "scale-act-writer").unwrap();
     std::fs::create_dir_all(log.parent().unwrap()).unwrap();
     let mut out = std::io::BufWriter::new(std::fs::File::create(&log).unwrap());
+    let mut previous: Option<String> = None;
     let file = root.join("out/summary.md");
     for a in 0..acts {
         let id = format!("cap:scale-{a}");
@@ -77,9 +83,12 @@ fn scale_acts(root: &std::path::Path, acts: usize) {
         if a == 0 { std::fs::create_dir_all(path.parent().unwrap()).unwrap(); }
         std::fs::write(path, serde_json::to_vec(&capture).unwrap()).unwrap();
         let kind = crate::records::capture_record_kind(&capture).unwrap();
-        let entry = crate::records::envelope(kind, &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture), format!("rec:app:scale-act-{a}"), a as u64 + 1, None, None);
+        let mut entry = crate::records::envelope(kind, &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture), format!("rec:app:scale-act-{a}"), a as u64 + 1, None, None);
+        entry["prevLine"] = crate::record_lines::link(previous.as_deref());
         if a == 0 { validator.validate(&entry).unwrap(); }
-        writeln!(out, "{}", serde_json::to_string(&entry).unwrap()).unwrap();
+        let line = serde_json::to_string(&entry).unwrap();
+        previous = Some(crate::record_lines::line_identity(line.as_bytes()));
+        writeln!(out, "{line}").unwrap();
     }
 }
 /// A ledger of `lines` schema-valid rows: one session start, then per

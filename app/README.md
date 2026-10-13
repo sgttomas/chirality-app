@@ -623,6 +623,7 @@ implemented behavior and qualification limits.
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
+| `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
@@ -816,6 +817,17 @@ tested). A
 no longer read. Storage keys are separate from governed identities.
 Explicitly registered legacy `records/coordination.rs.jsonl` stays intact (imported, not rewritten).
 Unwritable or incomplete targets report limits without silent relocation.
+
+Each RS line the App writes is linked to the line before it in its log (RS
+§13.8 Tamper-evidence: the SHA-256 of that line's bytes), and entries that
+must stand together, such as an act counted and the disposition change it
+makes, are written as one group line and read whole or not at all. Lines
+written before the chain, imported ones included, read as "unchained
+(legacy)", a limit that leaves the log complete; the chain starts after
+them. An edited, removed or unlinked line after the chain started is a broken
+chain: the log is incomplete and nothing repairs it. The host status
+(`recordChain`) shows each log's chain head as the records index reads it.
+Signed checkpoints wait for App signing (OI-011).
 
 Attachment metadata arrays and pointer-only client request records live under
 the App user-data `runtime/nir/attachment-supplies/` and

@@ -50,6 +50,7 @@ pub mod recorder;
 pub mod records;
 pub mod records_access;
 mod records_index;
+pub mod record_lines;
 pub mod records_store;
 pub mod recovery;
 mod recovery_root_view;
@@ -247,6 +248,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
 
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
