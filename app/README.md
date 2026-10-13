@@ -601,7 +601,10 @@ implemented behavior and qualification limits.
     the opt-in [records supplier check](supplier_checks/records_delivery.py).
     That capture-only fixture uses the actual App definition, has no model
     prediction or App handler, and observes only `namespaceTools: true`
-    routes (RS §13.9). A fork admitted from a known offered source in the
+    routes (RS §13.9). Its optional `--include-flat-model` case checks the
+    catalogue-reported `gpt-5.5` model's flat function declarations; that
+    renderer omits scalar length/range bounds, while the App separately
+    validates actual call arguments. A fork admitted from a known offered source in the
     same Codex generation inherits the App's handler binding; a fake-peer
     Host journey verifies its read-log and project-scope behavior. An actual
     offered/admitted start keeps a compact unverified receipt in REC's existing
@@ -729,6 +732,10 @@ CHIRALITY_SKIP_CODEX=1 cargo run --offline --locked --manifest-path src-tauri/Ca
 python3 supplier_checks/records_delivery.py --codex "$CHIRALITY_CODEX_BIN" \
   --definition "$records_probe_dir/definition.json"
 ```
+
+Add `--include-flat-model` to exercise the supported alternate flat function
+renderer as well. The check reports the actual model/provider and hot/cold
+`namespaceTools` values; a flat declaration does not establish a false value.
 
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture

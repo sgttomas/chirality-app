@@ -2052,7 +2052,17 @@ It realizes §13.8's agent access and does not change what a record is.
   without the capability remain without it. Both the custom provider and
   built-in `lmstudio` route redirected to that fixture reported
   `namespaceTools: true` and carried the declaration in the Code Mode
-  `functions.exec` description for the selected `gpt-6.1-sol` model. Delivery
+  `functions.exec` description for the selected `gpt-6.1-sol` model. The
+  optional `--include-flat-model` case uses the supplier-catalogue-reported
+  `gpt-5.5` model with the same custom capture-only provider. Its five offered
+  start/hot-resume/hot-fork/cold-resume/cold-fork turns carry one flat function
+  declaration, and both unoffered controls carry none. Hot and cold capability
+  reads still report `namespaceTools: true`. The observed flat parameters omit
+  string length and integer range bounds, preserving the types, enum, required
+  fields, `additionalProperties` and description. The detector accepts only
+  the exact App schema or that exact observed projection; it establishes
+  typed declaration carriage, not delivery or enforcement of the omitted
+  bounds. Actual App calls retain their separate input validation below. Delivery
   when a provider reports `namespaceTools: false` and actual provider behavior
   remain unobserved. The App carries a known source's offer to a correlated,
   operationally admitted fork within the same generation. The maintained

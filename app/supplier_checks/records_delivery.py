@@ -6,6 +6,7 @@ Homes are fresh, the environment excludes credentials, and the native process
 is restricted to localhost by the maintained Native helper's OS sandbox.
 """
 import argparse
+import copy
 import hashlib
 import http.server
 import json
@@ -15,6 +16,9 @@ import threading
 import time
 
 from child_roles import BINARY_SHA, Native, save
+
+DEFAULT_MODEL = "gpt-6.1-sol"
+FLAT_MODEL = "gpt-5.5"
 
 
 def sha_file(path):
@@ -41,13 +45,23 @@ def named_tools(body, definition):
         fields.append(f"{key}{optional}: {rendered};")
     declaration = f"declare const tools: {{ {name}(args: {{ {' '.join(fields)} }}): Promise<unknown>; }};"
     section = f"### `{name}`\n{definition['description']}\n\nexec tool declaration:\n```ts\n{declaration}\n```"
+    # The observed stock flat renderer omits these scalar bounds. Match that
+    # specific projection, retaining all other schema fields; this establishes
+    # declaration carriage, not transmission or enforcement of omitted bounds.
+    flat_schema = copy.deepcopy(schema)
+    for prop in flat_schema["properties"].values():
+        omitted = {"string": ("minLength", "maxLength"), "integer": ("minimum", "maximum")}.get(prop["type"], ())
+        for key in omitted:
+            prop.pop(key, None)
     found = []
     def walk(value, path, namespace=None):
         if isinstance(value, dict):
             if (value.get("type") == "function" and value.get("name") == name
-                    and value.get("description") == definition["description"]
-                    and value.get("parameters", value.get("inputSchema")) == schema):
-                found.append({"representation": "function", "path": path, "tool": value})
+                    and value.get("description") == definition["description"]):
+                parameters = value.get("parameters", value.get("inputSchema"))
+                if parameters == schema or parameters == flat_schema:
+                    found.append({"representation": "function", "path": path, "tool": value,
+                        "schemaRendering": "exact" if parameters == schema else "stock-scalar-projection"})
             if (namespace == "functions" and value.get("type") == "custom" and value.get("name") == "exec"
                     and isinstance(value.get("description"), str)):
                 text = value["description"]
@@ -65,7 +79,17 @@ def named_tools(body, definition):
     return found
 
 
-def run_case(binary, root, definition, provider):
+def reported_route(config, capabilities, model, provider):
+    effective = config.get("config", {})
+    if effective.get("model") != model or effective.get("model_provider") != provider:
+        raise RuntimeError("effective model/provider did not match the scripted route")
+    namespace_tools = capabilities.get("namespaceTools")
+    if not isinstance(namespace_tools, bool):
+        raise RuntimeError("supplier did not report boolean namespaceTools capability")
+    return {"model": model, "providerId": provider, "namespaceTools": namespace_tools}
+
+
+def run_case(binary, root, definition, provider, model=DEFAULT_MODEL, representation="code-exec"):
     root.mkdir()
     (root / "home").mkdir()
     (root / "work").mkdir()
@@ -98,7 +122,7 @@ def run_case(binary, root, definition, provider):
     provider_config = (f'[model_providers.{provider}]\nname = "Invented records provider"\n'
         f'base_url = "http://127.0.0.1:{server.server_port}/v1"\nwire_api = "responses"\n') if provider == "fixture" else ""
     config_text = (
-        f'model_provider = "{provider}"\nmodel = "gpt-6.1-sol"\n'
+        f'model_provider = "{provider}"\nmodel = "{model}"\n'
         + provider_config +
         '[features]\nplugins = false\n[analytics]\nenabled = false\n')
     native, all_frames = None, []
@@ -143,9 +167,13 @@ def run_case(binary, root, definition, provider):
         metadata = captures[-1].get("client_metadata", {})
         if metadata.get("thread_id") != thread or metadata.get("turn_id") != turn_id:
             raise RuntimeError(f"{label}: captured request identity did not match the turn")
+        if captures[-1].get("model") != model:
+            raise RuntimeError(f"{label}: captured request did not use the selected model")
         found = named_tools(captures[-1], definition)
         if len(found) != (1 if expected else 0):
             raise RuntimeError(f"{label}: expected {int(expected)} capability declaration, found {len(found)}")
+        if expected and found[0]["representation"] != representation:
+            raise RuntimeError(f"{label}: expected {representation} declaration, found {found[0]['representation']}")
         return {"step":label, "threadId":thread, "turnId":turn_id, "requestOrdinal":before + 1,
             "offered":bool(found), "definitions":found}
     def fork(thread):
@@ -153,6 +181,10 @@ def run_case(binary, root, definition, provider):
         if result["id"] == thread or result.get("forkedFromId") != thread:
             raise RuntimeError("fork reply did not identify a new copy of the source thread")
         return result["id"]
+    def check_start(result):
+        if result.get("model") != model or result.get("modelProvider") != provider:
+            raise RuntimeError("thread/start reply did not identify the scripted model/provider")
+        return result
     try:
         (root / "home/config.toml").write_text(config_text)
         native = open_native()
@@ -160,9 +192,14 @@ def run_case(binary, root, definition, provider):
         save(root / "effective-config.json", config)
         capabilities = native.send("modelProvider/capabilities/read", {})
         save(root / "capabilities.json", capabilities)
-        control = native.send("thread/start", {"model":"gpt-6.1-sol", "modelProvider":provider, "cwd":str(root / "work")})
+        route = reported_route(config, capabilities, model, provider)
+        catalog = native.send("model/list", {"includeHidden":True})
+        save(root / "catalog.json", catalog)
+        if not any(row.get("model") == model for row in catalog.get("data", [])):
+            raise RuntimeError("scripted model was not reported by the supplier catalogue")
+        control = check_start(native.send("thread/start", {"model":model, "modelProvider":provider, "cwd":str(root / "work")}))
         results = [turn("unoffered-before", control["thread"]["id"], False)]
-        started = native.send("thread/start", {"model":"gpt-6.1-sol", "modelProvider":provider, "cwd":str(root / "work"), "dynamicTools":[definition]})
+        started = check_start(native.send("thread/start", {"model":model, "modelProvider":provider, "cwd":str(root / "work"), "dynamicTools":[definition]}))
         thread = started["thread"]["id"]
         results.append(turn("start", thread))
         native.send("thread/resume", {"threadId":thread})
@@ -175,12 +212,20 @@ def run_case(binary, root, definition, provider):
             all_frames.extend(ended.frames)
         (root / "stderr.log").rename(root / "stderr-hot.log")
         native = open_native()
+        cold_config = native.send("config/read", {"includeLayers":True, "cwd":str(root / "work")})
+        save(root / "effective-config-cold.json", cold_config)
+        cold_capabilities = native.send("modelProvider/capabilities/read", {})
+        save(root / "capabilities-cold.json", cold_capabilities)
+        cold_route = reported_route(cold_config, cold_capabilities, model, provider)
+        if cold_route != route:
+            raise RuntimeError("reported route changed across supplier restart")
         native.send("thread/resume", {"threadId":thread})
         results.append(turn("resume-cold", thread))
         results.append(turn("fork-cold", fork(thread)))
         native.send("thread/resume", {"threadId":control["thread"]["id"]})
         results.append(turn("unoffered-after-cold", control["thread"]["id"], False))
-        return {"providerId":provider, "capabilities":capabilities, "steps":results}
+        return {**route, "capabilities":capabilities, "coldCapabilities":cold_capabilities,
+            "expectedRepresentation":representation, "steps":results}
     finally:
         try:
             if native is not None:
@@ -201,6 +246,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--codex", required=True, type=Path)
     parser.add_argument("--definition", required=True, type=Path, help="JSON emitted by records_tool_definition")
+    parser.add_argument("--include-flat-model", action="store_true",
+        help="also check supported gpt-5.5 flat function rendering; reported namespaceTools remains separate")
     args = parser.parse_args()
     binary = args.codex.resolve(strict=True)
     if sha_file(binary) != BINARY_SHA:
@@ -211,8 +258,11 @@ def main():
     root = Path(tempfile.mkdtemp(prefix="chirality-records-delivery-", dir="/private/tmp"))
     print(f"Private evidence: {root}", flush=True)
     results = [run_case(binary, root / provider, definition, provider) for provider in ("fixture", "lmstudio")]
+    if args.include_flat_model:
+        results.append(run_case(binary, root / "fixture-flat", definition, "fixture", FLAT_MODEL, "function"))
     summary = {"format":"chirality.records-tool-carriage/1", "binarySha256":BINARY_SHA,
-        "definitionSha256":sha_file(args.definition), "cases":results,
+        "definitionSha256":sha_file(args.definition), "checkSha256":sha_file(Path(__file__)),
+        "nativeHelperSha256":sha_file(Path(__file__).with_name("child_roles.py")), "cases":results,
         "standing":"stock supplier declarations to an invented capture-only provider; no model prediction, App handler or qualification witness"}
     save(root / "result.json", summary)
     print(json.dumps(summary, indent=2))
