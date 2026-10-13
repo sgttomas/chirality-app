@@ -1738,12 +1738,13 @@ pub fn run() {
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
             // RS §13.9 (owner U-STORE-4): the agents' read-only records
-            // capability in the current project, its read log in App data.
+            // capability in the current project. Each read is recorded in the
+            // project's records store folder; the App-wide read log an earlier
+            // build kept in App data stays there unchanged and is shown.
             if let Some(ws) = state.workspace.as_ref() {
-                let capability = data.as_ref().map_err(Clone::clone).and_then(|data| {
-                    let runtime = data.join("runtime");
-                    std::fs::create_dir_all(&runtime).map_err(|e| format!("records read log folder unavailable: {e}"))?;
-                    records_access::RecordsCapability::new(ws, runtime.join("records-reads.jsonl"))
+                let capability = records_access::RecordsCapability::new(ws).map(|capability| match data.as_ref() {
+                    Ok(data) => capability.with_legacy_read_log(&data.join("runtime").join("records-reads.jsonl")),
+                    Err(_) => capability,
                 });
                 match capability {
                     Ok(capability) => home.host.configure_records_capability(Arc::new(capability)),

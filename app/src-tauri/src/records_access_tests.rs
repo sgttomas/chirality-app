@@ -79,7 +79,7 @@ fn returned(answer: &Value) -> Value {
     serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap()).unwrap()
 }
 fn capability(f: &Scratch, project: &Path) -> RecordsCapability {
-    RecordsCapability::new(project, f.read_log()).unwrap()
+    RecordsCapability::at(project, f.read_log()).unwrap()
 }
 
 #[test]
@@ -123,7 +123,7 @@ fn only_this_projects_records_are_returned_never_keys_captures_or_another_projec
     assert!(returned(&refused)["refused"].as_str().unwrap().contains("not in this App's current project"));
     assert_eq!(f.logged().last().unwrap()["outcome"], "refused");
     assert!(!cap.offered_for(b.to_str().unwrap()) && cap.offered_for(a.to_str().unwrap()));
-    assert!(RecordsCapability::new(&a, a.join("reads.jsonl")).is_err(), "the read log is never in the project");
+    assert!(RecordsCapability::at(&a, a.join("reads.jsonl")).is_err(), "the read log is never in the project");
 }
 
 #[test]
@@ -478,4 +478,85 @@ fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
     for hidden in ["/etc/hosts", alias.to_str().unwrap(), other.to_str().unwrap(), "/net/"] {
         assert!(!text.contains(hidden), "{hidden}");
     }
+}
+
+/// A run log an earlier build wrote in the project (§13.7), read in place
+/// until the person imports it.
+fn write_legacy_run(project: &Path, run: &str, marker: &str) {
+    use std::io::Write;
+    let log = project.join(".chirality/records").join(crate::storage::log_rel(Some(run), "app-writer:local"));
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let mut out = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap();
+    let entry = crate::records::envelope("evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":marker,"detail":"legacy"}),
+        format!("rec:app:{marker}-1"), 1, Some(run), Some("2026-10-12T00:00:00.000Z"));
+    writeln!(out, "{entry}").unwrap();
+}
+fn lines(path: &Path) -> Vec<Value> {
+    std::fs::read_to_string(path).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+}
+
+/// §13.9 / U-STORE-6: each read is recorded in the project's records store
+/// folder, before the project's records are imported (they are read in place)
+/// and after (they are read from the store). The App-wide read log of an
+/// earlier build stays in App data unchanged and is only shown.
+#[test]
+fn reads_are_recorded_in_the_projects_store_folder_before_and_after_import() {
+    let f = Scratch::new();
+    let p = f.project("legacy-project");
+    write_legacy_run(&p, "run:old", "MARK-LEGACY");
+    std::fs::write(f.read_log(), "{\"earlier\":\"App-wide read\"}\n").unwrap();
+    let app_wide = std::fs::read(f.read_log()).unwrap();
+    let cap = RecordsCapability::new(&p).unwrap().with_legacy_read_log(&f.read_log());
+    let before = cap.answer(&call(1, json!({"operation":"read_run","run":"run:old"})), Some(p.to_str().unwrap()));
+    assert_eq!(before["success"], true, "{before}");
+    assert!(before["contentItems"][0]["text"].as_str().unwrap().contains("MARK-LEGACY"), "the legacy records are read in place");
+    let log = crate::records_store::read_log_path(&p).unwrap();
+    assert!(log.starts_with(crate::records_store::store_root().unwrap()), "{}", log.display());
+    assert_eq!(lines(&log).len(), 1);
+    assert_eq!(lines(&log)[0]["outcome"], "returned");
+    let status = crate::records_store::status(Some(&p));
+    assert_eq!(status["project"]["importNeeded"], true, "a read does not make the store hold the records: {status}");
+    // After the import the records are read from the store; reads go on in
+    // the same log.
+    assert_eq!(crate::records_store::import(&p).unwrap()["state"], "imported");
+    let after = cap.answer(&call(2, json!({"operation":"read_run","run":"run:old"})), Some(p.to_str().unwrap()));
+    assert!(after["contentItems"][0]["text"].as_str().unwrap().contains("MARK-LEGACY"));
+    assert!(after["contentItems"][0]["text"].as_str().unwrap().contains("records-store:"), "read from the store copy");
+    assert_eq!(lines(&log).len(), 2);
+    let snapshot = cap.snapshot();
+    assert_eq!(snapshot["readLog"], log.to_string_lossy().as_ref());
+    assert!(snapshot["readLogPlace"].as_str().unwrap().contains("records store"));
+    assert_eq!(snapshot["legacyReadLog"]["bytes"], app_wide.len());
+    assert!(snapshot["legacyReadLog"]["standing"].as_str().unwrap().contains("not imported"));
+    assert_eq!(std::fs::read(f.read_log()).unwrap(), app_wide, "the App-wide log is never written or rewritten");
+}
+/// A project the store cannot attach (its link is missing): the read is
+/// refused, visibly, and recorded nowhere else.
+#[test]
+fn a_read_that_cannot_be_recorded_in_the_store_is_refused_and_written_nowhere() {
+    let f = Scratch::new();
+    let p = f.project("unlinked");
+    write_run(&p, "run:a", 2, "MARK-A", false);
+    std::fs::remove_file(p.join(crate::records_store::PROJECT_LINK)).unwrap();
+    let cap = RecordsCapability::new(&p).unwrap();
+    let answer = cap.answer(&call(1, json!({"operation":"list_runs"})), Some(p.to_str().unwrap()));
+    assert_eq!(answer["success"], false);
+    let refused = returned(&answer)["refused"].as_str().unwrap().to_owned();
+    assert!(refused.contains("could not be recorded") && refused.contains("link missing"), "{refused}");
+    assert!(!refused.contains("MARK-A"));
+    assert!(!f.read_log().exists(), "nothing in App data");
+    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("link missing"));
+}
+/// The records store unavailable: the read is refused, never recorded in App data.
+#[test]
+fn without_a_records_store_reads_are_refused() {
+    let f = Scratch::new();
+    let p = f.project("no-store");
+    let cap = RecordsCapability::new(&p).unwrap();
+    crate::records_store::use_store_for_test(Some(Err("no records store configured".into())));
+    let answer = cap.answer(&call(1, json!({"operation":"list_runs"})), Some(p.to_str().unwrap()));
+    crate::records_store::use_store_for_test(None);
+    assert_eq!(answer["success"], false);
+    assert!(returned(&answer)["refused"].as_str().unwrap().contains("records store unavailable"));
+    assert!(!f.read_log().exists());
 }

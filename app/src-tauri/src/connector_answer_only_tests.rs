@@ -10,6 +10,10 @@ use std::{
 };
 struct Fixture {
     root: PathBuf,
+    /// The account folder (the project's records store folder) and the
+    /// folder bindings are relative to.
+    dir: PathBuf,
+    anchor: PathBuf,
     account: Value,
     base: BoundReference,
     path: PathBuf,
@@ -24,13 +28,13 @@ impl Fixture {
         let root =
             std::env::temp_dir().join(format!("ao-cold-{}", crate::util::opaque_id("").unwrap()));
         fs::create_dir(&root).unwrap();
-        let store = ProjectRouteStore::open(&root).unwrap();
+        let store = ProjectRouteStore::open_for_write(&root).unwrap();
         let base: Value = serde_json::from_str(include_str!(
             "../resources/connector_route/record_reconstruction_v04.fixture.json"
         ))
         .unwrap();
         let bound = store.write(&base).unwrap();
-        let bytes = fs::read(root.join(&bound.relative_path)).unwrap();
+        let bytes = fs::read(store.anchor().join(&bound.relative_path)).unwrap();
         let mut a: Value = serde_json::from_str::<Value>(include_str!(
             "../resources/connector_route/contribution_evidence_v01.fixture.json"
         ))
@@ -40,7 +44,7 @@ impl Fixture {
             a[k] = Value::Null;
         }
         let id = store.project_identity();
-        a["base_account"]["relative_path"] = json!(bound.relative_path);
+        a["base_account"]["relative_path"] = json!(format!("{LEGACY_DIRECTORY}/{}", bound.relative_path.rsplit('/').next().unwrap()));
         a["base_account"]["sha256"] = json!(bound.sha256);
         a["base_account"]["byte_length"] = json!(bytes.len());
         a["base_account"]["project_identity"] =
@@ -50,11 +54,13 @@ impl Fixture {
         body["account_sha256"] = a["base_account"]["sha256"].clone();
         Self::body(&mut a, body);
         a["gaps"].as_array_mut().unwrap().push(json!({"gap":"Manager review and integration outstanding","effect":"No reviewed or integrated answer","responsibility":"manager"}));
-        let path = root
-            .join(DIRECTORY)
-            .join("22222222-2222-4222-8222-222222222222.json");
+        let dir = store.accounts_directory();
+        let anchor = store.anchor().to_path_buf();
+        let path = dir.join("22222222-2222-4222-8222-222222222222.json");
         let f = Self {
             root,
+            dir,
+            anchor,
             account: a,
             base: bound,
             path,
@@ -107,9 +113,9 @@ fn connector_answer_only_actual_read_projection_and_write_barrier() {
     f.save();
     let before = (
         metadata(&f.root),
-        metadata(&f.root.join(DIRECTORY)),
+        metadata(&f.dir.clone()),
         metadata(&f.path),
-        metadata(&f.root.join(&f.base.relative_path)),
+        metadata(&f.anchor.join(&f.base.relative_path)),
     );
     assert_eq!(
         validate_account(&f.account).unwrap_err().kind,
@@ -159,9 +165,9 @@ fn connector_answer_only_actual_read_projection_and_write_barrier() {
         before,
         (
             metadata(&f.root),
-            metadata(&f.root.join(DIRECTORY)),
+            metadata(&f.dir.clone()),
             metadata(&f.path),
-            metadata(&f.root.join(&f.base.relative_path))
+            metadata(&f.anchor.join(&f.base.relative_path))
         )
     );
     if let Some(path) = std::env::var_os("CHIRALITY_AO_VIEW_EXPORT") {
@@ -214,7 +220,7 @@ fn connector_answer_only_base_negatives_and_race() {
         "race",
     ] {
         let mut f = Fixture::new();
-        let path = f.root.join(&f.base.relative_path);
+        let path = f.anchor.join(&f.base.relative_path);
         match kind {
             "hash" => f.account["base_account"]["sha256"] = json!("0".repeat(64)),
             "length" => f.account["base_account"]["byte_length"] = json!(1),
@@ -242,9 +248,7 @@ fn connector_answer_only_base_negatives_and_race() {
             "duplicate" => {
                 fs::copy(
                     &path,
-                    f.root
-                        .join(DIRECTORY)
-                        .join("33333333-3333-4333-8333-333333333333.json"),
+                    f.dir.join("33333333-3333-4333-8333-333333333333.json"),
                 )
                 .unwrap();
             }
@@ -319,7 +323,7 @@ fn connector_answer_only_strict_messages_receipts_and_reference_negatives() {
                 f.account["answer"]["receipt"]["content_sha256"] = json!(sha);
             }
             "base-duplicate" => {
-                let path = f.root.join(&f.base.relative_path);
+                let path = f.anchor.join(&f.base.relative_path);
                 let b = fs::read_to_string(&path).unwrap();
                 let bytes = format!("{},\"formatVersion\":\"0.4\"}}", &b[..b.len() - 1]);
                 fs::write(path, &bytes).unwrap();
@@ -409,7 +413,7 @@ fn connector_answer_only_caps_growth_and_changed_known_version() {
         .detail
         .contains("sentinel"));
     f.save();
-    let dir = fs::File::open(f.root.join(DIRECTORY)).unwrap();
+    let dir = fs::File::open(f.dir.clone()).unwrap();
     let name = f.path.file_name().unwrap().to_str().unwrap();
     let err = platform::read_account_mode(
         &dir,
@@ -426,7 +430,7 @@ fn connector_answer_only_caps_growth_and_changed_known_version() {
     )
     .unwrap_err();
     assert!(err.detail.contains("sentinel"), "{err}");
-    let base = f.root.join(&f.base.relative_path);
+    let base = f.anchor.join(&f.base.relative_path);
     let name = base.file_name().unwrap().to_str().unwrap();
     let err = platform::read_account_mode(
         &dir,

@@ -62,11 +62,11 @@ fn embedded_schemas_match_maintained_design_and_validate_exact_versions() {
     validate_account(&v1).unwrap();
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let r1 = store.write(&v1).unwrap();
     let r2 = store.write(&v2).unwrap();
     drop(store);
-    let cold = ProjectRouteStore::open(&p).unwrap();
+    let cold = ProjectRouteStore::open_for_write(&p).unwrap();
     assert_eq!(cold.resolve(&r1).unwrap().account, v1);
     assert_eq!(cold.resolve(&r2).unwrap().account, v2);
     let mut mislabeled = v2.clone();
@@ -110,7 +110,7 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
     let p = scratch.project();
     let alias = scratch.0.join("alias");
     symlink(&p, &alias).unwrap();
-    let store = ProjectRouteStore::open(&alias).unwrap();
+    let store = ProjectRouteStore::open_for_write(&alias).unwrap();
     assert_eq!(store.resolved_project(), p);
     let data = account("ra:unrelated-governed-id");
     let reference = store.write(&data).unwrap();
@@ -119,7 +119,7 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
     ));
     assert!(!reference.relative_path.contains("unrelated"));
     assert_eq!(
-        fs::read(p.join(&reference.relative_path)).unwrap(),
+        fs::read(store.anchor().join(&reference.relative_path)).unwrap(),
         serde_json::to_vec(&data).unwrap()
     );
     let moved = scratch.0.join("moved");
@@ -128,6 +128,11 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
         store.resolve(&reference).unwrap_err().kind,
         ErrorKind::LocationMismatch
     );
+    // RS §13.8: a moved project attaches nothing until the person adopts it.
+    let unadopted = ProjectRouteStore::open(&moved).unwrap();
+    assert!(unadopted.discover().directory_absent, "read in place: nothing there");
+    assert!(unadopted.location().contains("nothing written"), "{}", unadopted.location());
+    crate::records_store::adopt(&moved).unwrap();
     let cold = ProjectRouteStore::open(&moved).unwrap();
     let discovery = cold.discover();
     assert!(discovery.enumeration_complete);
@@ -140,13 +145,22 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
 fn invalid_accounts_and_paths_create_nothing() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    // Reading mints no project identity (RS §13.8): nothing is created.
+    let reader = ProjectRouteStore::open(&p).unwrap();
     let mut invalid = account("../../escape");
-    assert!(store.write(&invalid).is_err());
+    assert!(reader.write(&invalid).is_err());
     assert!(!p.join(".chirality").exists());
+    assert!(reader.discover().directory_absent);
+    assert!(!p.join(".chirality").exists());
+    // A reader opened with no identity in the store writes nowhere.
+    let refused = reader.write(&account("ra:test")).unwrap_err();
+    assert_eq!(refused.kind, ErrorKind::RecordingRefused, "{refused}");
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     invalid = account("ra:test");
     invalid["format"] = json!("wrong");
     assert!(store.write(&invalid).is_err());
+    assert!(!store.accounts_directory().exists(), "an invalid account creates no folder");
+    assert!(!p.join(".chirality/records").exists(), "and nothing in the project but its identity link");
     assert!(ProjectRouteStore::open(Path::new(".")).is_err());
     assert!(ProjectRouteStore::open(&p.join("../project")).is_err());
     let mut reference = store.write(&account("ra:test")).unwrap();
@@ -170,11 +184,11 @@ fn invalid_accounts_and_paths_create_nothing() {
 fn collision_and_failed_repeated_writes_preserve_original_bytes() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let reference = store
         .write_inner(&account("ra:first"), KEY, |_| Ok(()))
         .unwrap();
-    let bytes = fs::read(p.join(&reference.relative_path)).unwrap();
+    let bytes = fs::read(store.anchor().join(&reference.relative_path)).unwrap();
     for _ in 0..2 {
         let err = store
             .write_inner(&account("ra:second"), KEY, |_| Ok(()))
@@ -182,7 +196,7 @@ fn collision_and_failed_repeated_writes_preserve_original_bytes() {
         assert_eq!(err.kind, ErrorKind::Collision);
         assert!(!err.uncertain_commit);
         assert!(err.temporary_leftover.is_some());
-        assert_eq!(fs::read(p.join(&reference.relative_path)).unwrap(), bytes);
+        assert_eq!(fs::read(store.anchor().join(&reference.relative_path)).unwrap(), bytes);
     }
     assert_eq!(store.discover().accounts.len(), 1);
     assert_eq!(
@@ -199,7 +213,7 @@ fn collision_and_failed_repeated_writes_preserve_original_bytes() {
 fn malformed_unknown_duplicate_temporary_and_link_entries_stay_visible() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     assert!(store.discover().directory_absent);
     let reference = store.write(&account("ra:duplicate")).unwrap();
     store.write(&account("ra:duplicate")).unwrap();
@@ -207,7 +221,7 @@ fn malformed_unknown_duplicate_temporary_and_link_entries_stay_visible() {
         store.resolve(&reference).unwrap_err().kind,
         ErrorKind::DuplicateIdentity
     );
-    let d = p.join(DIRECTORY);
+    let d = store.accounts_directory();
     fs::write(d.join(format!("{KEY}.json")), b"{").unwrap();
     let mut unknown = account("ra:unknown");
     unknown["formatVersion"] = json!("100");
@@ -219,7 +233,7 @@ fn malformed_unknown_duplicate_temporary_and_link_entries_stay_visible() {
     fs::write(d.join(".route-interrupted.tmp"), b"partial").unwrap();
     fs::write(d.join("ra:bad.json"), b"{}").unwrap();
     symlink(
-        p.join(&reference.relative_path),
+        store.anchor().join(&reference.relative_path),
         d.join("32345678-1234-4234-8234-123456789abc.json"),
     )
     .unwrap();
@@ -241,24 +255,26 @@ fn malformed_unknown_duplicate_temporary_and_link_entries_stay_visible() {
 }
 #[test]
 fn every_ancestor_symlink_and_non_directory_refuse_without_relocation() {
-    for depth in 0..PARTS.len() {
+    // The account folder chain in the records store below the project's own
+    // store folder (`connectors`, `route-accounts`).
+    for depth in 0..2 {
         for link in [true, false] {
             let scratch = Scratch::new();
             let p = scratch.project();
             let outside = scratch.0.join("outside");
             fs::create_dir(&outside).unwrap();
-            let mut parent = p.clone();
-            for part in &PARTS[..depth] {
-                parent.push(part);
-                fs::create_dir(&parent).unwrap();
+            let store = ProjectRouteStore::open_for_write(&p).unwrap();
+            let accounts = store.accounts_directory();
+            let parts = [accounts.parent().unwrap().to_path_buf(), accounts.clone()];
+            if depth == 1 {
+                fs::create_dir_all(&parts[0]).unwrap();
             }
-            let target = parent.join(PARTS[depth]);
+            let target = &parts[depth];
             if link {
-                symlink(&outside, &target).unwrap();
+                symlink(&outside, target).unwrap();
             } else {
-                fs::write(&target, b"not a directory").unwrap();
+                fs::write(target, b"not a directory").unwrap();
             }
-            let store = ProjectRouteStore::open(&p).unwrap();
             assert!(store.write(&account("ra:test")).is_err());
             let d = store.discover();
             assert!(!d.enumeration_complete);
@@ -272,16 +288,16 @@ fn every_ancestor_symlink_and_non_directory_refuse_without_relocation() {
 fn target_links_fifo_unreadable_and_changed_binding_refuse() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let reference = store.write(&account("ra:test")).unwrap();
-    let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
-    symlink(p.join(&reference.relative_path), &target).unwrap();
+    let target = store.accounts_directory().join(format!("{KEY}.json"));
+    symlink(store.anchor().join(&reference.relative_path), &target).unwrap();
     let err = store
         .write_inner(&account("ra:other"), KEY, |_| Ok(()))
         .unwrap_err();
     assert_eq!(err.kind, ErrorKind::Collision);
     fs::remove_file(&target).unwrap();
-    fs::hard_link(p.join(&reference.relative_path), &target).unwrap();
+    fs::hard_link(store.anchor().join(&reference.relative_path), &target).unwrap();
     assert_eq!(
         store
             .write_inner(&account("ra:other"), KEY, |_| Ok(()))
@@ -302,7 +318,7 @@ fn target_links_fifo_unreadable_and_changed_binding_refuse() {
         .iter()
         .any(|i| i.kind == ErrorKind::UnsafeEntry));
     fs::remove_file(&target).unwrap();
-    let file = p.join(&reference.relative_path);
+    let file = store.anchor().join(&reference.relative_path);
     fs::set_permissions(&file, fs::Permissions::from_mode(0)).unwrap();
     assert!(!store.discover().issues.is_empty());
     fs::set_permissions(&file, fs::Permissions::from_mode(0o600)).unwrap();
@@ -330,9 +346,9 @@ fn target_links_fifo_unreadable_and_changed_binding_refuse() {
 fn unwritable_directory_is_definite_and_never_relocated() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     store.write(&account("ra:first")).unwrap();
-    let d = p.join(DIRECTORY);
+    let d = store.accounts_directory();
     fs::set_permissions(&d, fs::Permissions::from_mode(0o500)).unwrap();
     let result = store.write(&account("ra:blocked"));
     fs::set_permissions(&d, fs::Permissions::from_mode(0o700)).unwrap();
@@ -342,11 +358,16 @@ fn unwritable_directory_is_definite_and_never_relocated() {
 }
 #[test]
 fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
-    for depth in 0..=PARTS.len() {
+    for depth in 0..3 {
         let scratch = Scratch::new();
         let p = scratch.project();
-        let store = ProjectRouteStore::open(&p).unwrap();
-        let original = PARTS[..depth].iter().fold(p.clone(), |p, s| p.join(s));
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
+        // The project's store folder, `connectors` or `route-accounts`, made
+        // by a first account so each exists before the race.
+        store.write(&account("ra:before")).unwrap();
+        let accounts = store.accounts_directory();
+        let chain = [accounts.parent().unwrap().parent().unwrap().to_path_buf(), accounts.parent().unwrap().to_path_buf(), accounts.clone()];
+        let original = chain[depth].clone();
         let moved = scratch.0.join("moved");
         let err = store
             .write_inner(&account("ra:race"), KEY, |stage| {
@@ -360,10 +381,7 @@ fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
         assert!(err.uncertain_commit);
         assert_eq!(err.kind, ErrorKind::LocationMismatch);
         assert_eq!(fs::read_dir(&original).unwrap().count(), 0); // replacement receives no write.
-        let published = PARTS[depth..]
-            .iter()
-            .fold(moved.clone(), |p, s| p.join(s))
-            .join(format!("{KEY}.json"));
+        let published = moved.join(accounts.strip_prefix(&original).unwrap()).join(format!("{KEY}.json"));
         assert_eq!(
             crate::util::sha256_hex(&fs::read(&published).unwrap()),
             err.attempt.as_ref().unwrap().sha256
@@ -371,22 +389,22 @@ fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
         assert!(store.reconcile(err.attempt.as_ref().unwrap()).is_err());
         fs::remove_dir(&original).unwrap();
         fs::rename(&moved, &original).unwrap();
-        let cold = ProjectRouteStore::open(&p).unwrap();
+        let cold = ProjectRouteStore::open_for_write(&p).unwrap();
         assert_eq!(
             cold.reconcile(err.attempt.as_ref().unwrap())
                 .unwrap()
                 .account["account_id"],
             "ra:race"
         );
-        assert_eq!(cold.discover().accounts.len(), 1); // no automatic retry.
+        assert_eq!(cold.discover().accounts.len(), 2); // the first, and no automatic retry.
     }
 }
 #[test]
 fn prewrite_substitution_aborts_and_transient_move_is_not_continuous_containment() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
-    let d = p.join(DIRECTORY);
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let d = store.accounts_directory();
     let moved = scratch.0.join("moved");
     let error = store
         .write_inner(&account("ra:pre"), KEY, |stage| {
@@ -435,7 +453,7 @@ fn injected_failures_before_and_after_publication_preserve_recovery_details() {
     ] {
         let scratch = Scratch::new();
         let p = scratch.project();
-        let store = ProjectRouteStore::open(&p).unwrap();
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
         let e = store
             .write_inner(&account("ra:interrupted"), KEY, |s| {
                 if s == stage {
@@ -453,7 +471,7 @@ fn injected_failures_before_and_after_publication_preserve_recovery_details() {
         if after_publish {
             store.reconcile(e.attempt.as_ref().unwrap()).unwrap();
         } else {
-            assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+            assert!(!store.accounts_directory().join(format!("{KEY}.json")).exists());
         }
     }
 }
@@ -468,7 +486,7 @@ fn concurrent_distinct_writers_and_identical_target_contention() {
                 let p = p.clone();
                 let barrier = barrier.clone();
                 std::thread::spawn(move || {
-                    let store = ProjectRouteStore::open(&p).unwrap();
+                    let store = ProjectRouteStore::open_for_write(&p).unwrap();
                     let data = account(&format!("ra:writer-{i}"));
                     let key = if same {
                         KEY.into()
@@ -493,7 +511,7 @@ fn concurrent_distinct_writers_and_identical_target_contention() {
             assert_eq!(e.kind, ErrorKind::Collision);
             assert!(!e.uncertain_commit);
         }
-        let store = ProjectRouteStore::open(&p).unwrap();
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
         let d = store.discover();
         assert_eq!(
             d.issues
@@ -512,11 +530,16 @@ fn concurrent_distinct_writers_and_identical_target_contention() {
 fn explicit_legacy_binding_reads_only_supplied_path() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let mut reference = store.write(&account("ra:legacy")).unwrap();
-    fs::rename(p.join(&reference.relative_path), p.join("legacy.json")).unwrap();
-    reference.relative_path = "legacy.json".into();
-    reference.directories.truncate(1);
+    // An explicitly supplied binding outside the canonical account folder (one
+    // folder up, in the project's store folder) is read at that path only.
+    let elsewhere = store.accounts_directory().parent().unwrap().join("legacy.json");
+    fs::rename(store.anchor().join(&reference.relative_path), &elsewhere).unwrap();
+    let mut parts: Vec<&str> = reference.relative_path.split('/').collect();
+    parts.truncate(parts.len() - 2);
+    reference.relative_path = format!("{}/legacy.json", parts.join("/"));
+    reference.directories.truncate(reference.directories.len() - 1);
     assert!(store.discover().accounts.is_empty());
     assert_eq!(
         store.resolve(&reference).unwrap().account["account_id"],
@@ -536,10 +559,12 @@ fn abrupt_process_exit_leaves_visible_pre_and_post_publication_evidence() {
             ])
             .env("CHIRALITY_ROUTE_TEST_PROJECT", &p)
             .env("CHIRALITY_ROUTE_TEST_PHASE", phase)
+            // The child writes in this process's records store.
+            .env(crate::records_store::OVERRIDE_ENV, crate::records_store::store_root().unwrap())
             .status()
             .unwrap();
         assert_eq!(status.code(), Some(73));
-        let store = ProjectRouteStore::open(&p).unwrap();
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
         let d = store.discover();
         assert_eq!(
             d.issues
@@ -547,7 +572,7 @@ fn abrupt_process_exit_leaves_visible_pre_and_post_publication_evidence() {
                 .any(|i| i.kind == ErrorKind::TemporaryLeftover),
             phase == "before"
         );
-        let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
+        let target = store.accounts_directory().join(format!("{KEY}.json"));
         assert_eq!(target.exists(), phase == "after");
         if phase == "after" {
             assert!(d.issues.is_empty());
@@ -564,7 +589,7 @@ fn interruption_child() {
         return;
     };
     let phase = std::env::var("CHIRALITY_ROUTE_TEST_PHASE").unwrap();
-    let store = ProjectRouteStore::open(Path::new(&project)).unwrap();
+    let store = ProjectRouteStore::open_for_write(Path::new(&project)).unwrap();
     store
         .write_inner(&account("ra:abrupt"), KEY, |stage| {
             if (phase == "before" && stage == Stage::TempSynced)
@@ -582,8 +607,8 @@ fn postpublication_readback_detects_content_and_identity_tampering() {
     for identical_bytes in [false, true] {
         let scratch = Scratch::new();
         let p = scratch.project();
-        let store = ProjectRouteStore::open(&p).unwrap();
-        let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
+        let target = store.accounts_directory().join(format!("{KEY}.json"));
         let error = store
             .write_inner(&account("ra:original"), KEY, |stage| {
                 if stage == Stage::Published {
@@ -606,7 +631,7 @@ fn postpublication_readback_detects_content_and_identity_tampering() {
         assert_eq!(error.kind, ErrorKind::ChangedContent);
         assert!(target.exists());
         assert!(store.reconcile(error.attempt.as_ref().unwrap()).is_err());
-        assert_eq!(fs::read_dir(p.join(DIRECTORY)).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(store.accounts_directory()).unwrap().count(), 1);
     }
 }
 
@@ -614,8 +639,8 @@ fn postpublication_readback_detects_content_and_identity_tampering() {
 fn postpublication_symlink_substitution_never_follows_replacement() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
-    let d = p.join(DIRECTORY);
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let d = store.accounts_directory();
     let moved = scratch.0.join("moved");
     let outside = scratch.0.join("outside");
     fs::create_dir(&outside).unwrap();
@@ -639,8 +664,8 @@ fn postpublication_symlink_substitution_never_follows_replacement() {
 fn retained_temporary_and_unreadable_directory_are_not_empty_discovery() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
-    let d = p.join(DIRECTORY);
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let d = store.accounts_directory();
     let error = store
         .write_inner(&account("ra:cleanup"), KEY, |stage| {
             if stage == Stage::TempSynced {
@@ -677,7 +702,7 @@ fn substituted_temporary_is_neither_published_nor_removed() {
         for same_bytes in [false, true] {
             let scratch = Scratch::new();
             let p = scratch.project();
-            let store = ProjectRouteStore::open(&p).unwrap();
+            let store = ProjectRouteStore::open_for_write(&p).unwrap();
             let original = account("ra:original");
             let foreign = serde_json::to_vec(&account(if same_bytes {
                 "ra:original"
@@ -689,7 +714,7 @@ fn substituted_temporary_is_neither_published_nor_removed() {
             let error = store
                 .write_inner(&original, KEY, |stage| {
                     if stage == Stage::TempSynced {
-                        let temp = fs::read_dir(p.join(DIRECTORY))
+                        let temp = fs::read_dir(store.accounts_directory())
                             .unwrap()
                             .map(|e| e.unwrap().path())
                             .find(|p| p.extension().is_some_and(|e| e == "tmp"))
@@ -711,7 +736,7 @@ fn substituted_temporary_is_neither_published_nor_removed() {
                 fs::read(p.join("original-private-bytes")).unwrap(),
                 serde_json::to_vec(&original).unwrap()
             );
-            assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+            assert!(!store.accounts_directory().join(format!("{KEY}.json")).exists());
             if !fail_before_publication {
                 assert_eq!(error.kind, ErrorKind::ChangedContent);
             }
@@ -723,14 +748,14 @@ fn substituted_temporary_is_neither_published_nor_removed() {
 fn publication_consumes_temp_and_preserves_later_same_name_entry() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let mut temporary = None;
     let original = account("ra:original");
     let error = store
         .write_inner(&original, KEY, |stage| {
             if stage == Stage::TempChecked {
                 temporary = Some(
-                    fs::read_dir(p.join(DIRECTORY))
+                    fs::read_dir(store.accounts_directory())
                         .unwrap()
                         .map(|e| e.unwrap().path())
                         .find(|p| p.extension().is_some_and(|e| e == "tmp"))
@@ -753,7 +778,7 @@ fn publication_consumes_temp_and_preserves_later_same_name_entry() {
         b"unrelated later entry"
     );
     assert_eq!(
-        fs::read(p.join(DIRECTORY).join(format!("{KEY}.json"))).unwrap(),
+        fs::read(store.accounts_directory().join(format!("{KEY}.json"))).unwrap(),
         serde_json::to_vec(&original).unwrap()
     );
     assert_eq!(
@@ -775,7 +800,7 @@ fn source_name_race_after_final_check_is_exposed_without_rollback_or_retry() {
         for collision in [false, true] {
             let scratch = Scratch::new();
             let p = scratch.project();
-            let store = ProjectRouteStore::open(&p).unwrap();
+            let store = ProjectRouteStore::open_for_write(&p).unwrap();
             let original = account("ra:original");
             let intended = serde_json::to_vec(&original).unwrap();
             let foreign = serde_json::to_vec(&account(if variant == "identical" {
@@ -784,13 +809,13 @@ fn source_name_race_after_final_check_is_exposed_without_rollback_or_retry() {
                 "ra:foreign"
             }))
             .unwrap();
-            let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
+            let target = store.accounts_directory().join(format!("{KEY}.json"));
             let saved = p.join("original-aside");
             let mut temporary = None;
             let error = store
                 .write_inner(&original, KEY, |stage| {
                     if stage == Stage::TempChecked {
-                        let temp = fs::read_dir(p.join(DIRECTORY))
+                        let temp = fs::read_dir(store.accounts_directory())
                             .unwrap()
                             .map(|e| e.unwrap().path())
                             .find(|p| p.extension().is_some_and(|e| e == "tmp"))
@@ -878,12 +903,12 @@ fn observed_nonregular_source_substitutions_refuse_before_publication() {
     for variant in ["symlink", "directory", "missing"] {
         let scratch = Scratch::new();
         let p = scratch.project();
-        let store = ProjectRouteStore::open(&p).unwrap();
+        let store = ProjectRouteStore::open_for_write(&p).unwrap();
         let mut replacement = None;
         let error = store
             .write_inner(&account("ra:original"), KEY, |stage| {
                 if stage == Stage::TempSynced {
-                    let temp = fs::read_dir(p.join(DIRECTORY))
+                    let temp = fs::read_dir(store.accounts_directory())
                         .unwrap()
                         .map(|e| e.unwrap().path())
                         .find(|p| p.extension().is_some_and(|e| e == "tmp"))
@@ -901,7 +926,7 @@ fn observed_nonregular_source_substitutions_refuse_before_publication() {
             .unwrap_err();
         assert!(!error.uncertain_commit);
         assert!(error.temporary_leftover.is_some());
-        assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+        assert!(!store.accounts_directory().join(format!("{KEY}.json")).exists());
         assert_eq!(
             fs::symlink_metadata(replacement.unwrap()).is_ok(),
             variant != "missing"
@@ -915,7 +940,7 @@ fn unsupported_exclusive_rename_flag_refuses_without_fallback() {
     use std::os::fd::AsRawFd;
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let error = store
         .write_using(
             &account("ra:unsupported"),
@@ -952,15 +977,15 @@ fn unsupported_exclusive_rename_flag_refuses_without_fallback() {
     assert_eq!(error.kind, ErrorKind::UnsupportedCapability);
     assert!(!error.uncertain_commit);
     assert!(error.temporary_leftover.is_some());
-    assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
-    assert_eq!(fs::read_dir(p.join(DIRECTORY)).unwrap().count(), 1);
+    assert!(!store.accounts_directory().join(format!("{KEY}.json")).exists());
+    assert_eq!(fs::read_dir(store.accounts_directory()).unwrap().count(), 1);
 }
 
 #[test]
 fn ambiguous_syscall_failure_reports_absent_observation_and_retains_temporary() {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let error = store
         .write_using(
             &account("ra:ambiguous"),
@@ -973,9 +998,9 @@ fn ambiguous_syscall_failure_reports_absent_observation_and_retains_temporary() 
     assert!(error.temporary_leftover.is_some());
     let attempt = error.attempt.as_ref().unwrap();
     assert_eq!(attempt.observed_final.as_ref().unwrap().state, "absent");
-    assert!(p.join(&attempt.temporary_relative_path).exists());
+    assert!(store.anchor().join(&attempt.temporary_relative_path).exists());
     assert!(attempt.file.is_some());
-    assert!(!p.join(&attempt.relative_path).exists());
+    assert!(!store.anchor().join(&attempt.relative_path).exists());
     assert_eq!(
         store.reconcile(attempt).unwrap_err().kind,
         ErrorKind::Missing
@@ -985,7 +1010,7 @@ fn ambiguous_syscall_failure_reports_absent_observation_and_retains_temporary() 
 fn inspection_fixture() -> (Scratch, PathBuf, ProjectRouteStore, BoundReference) {
     let scratch = Scratch::new();
     let p = scratch.project();
-    let store = ProjectRouteStore::open(&p).unwrap();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
     let binding = store
         .write(&crate::connector_materialization::tests::direct_account())
         .unwrap();
@@ -994,11 +1019,11 @@ fn inspection_fixture() -> (Scratch, PathBuf, ProjectRouteStore, BoundReference)
 #[test]
 fn published_inspection_direct_only_ignores_hostile_unrelated_and_duplicate_accounts() {
     let (_scratch, p, store, binding) = inspection_fixture();
-    let dir = p.join(DIRECTORY);
+    let dir = store.accounts_directory();
     let unrelated = fs::File::create(dir.join("unrelated-large.json")).unwrap();
     unrelated.set_len(64 * 1024 * 1024).unwrap();
     fs::copy(
-        p.join(&binding.relative_path),
+        store.anchor().join(&binding.relative_path),
         dir.join(format!("{KEY}.json")),
     )
     .unwrap();
@@ -1021,7 +1046,7 @@ fn published_inspection_direct_only_ignores_hostile_unrelated_and_duplicate_acco
 fn published_inspection_missing_replaced_links_fifo_and_root_refusals() {
     for kind in 0..6 {
         let (_scratch, p, store, binding) = inspection_fixture();
-        let path = p.join(&binding.relative_path);
+        let path = store.anchor().join(&binding.relative_path);
         let saved = path.with_extension("saved");
         fs::rename(&path, &saved).unwrap();
         match kind {
@@ -1067,7 +1092,7 @@ fn published_inspection_actual_growth_sentinel_and_io_error_are_unavailable() {
         if step == InspectionStep::BeforeRead {
             fs::OpenOptions::new()
                 .write(true)
-                .open(p.join(&binding.relative_path))?
+                .open(store.anchor().join(&binding.relative_path))?
                 .set_len((crate::connector_materialization::BYTE_LIMIT + 1) as u64)?;
         }
         Ok(())
@@ -1090,9 +1115,9 @@ fn published_inspection_post_read_replacement_and_ancestor_change_are_not_match(
         let result = store.inspect_published_with(&binding, &p, |step| {
             if step == InspectionStep::BeforePostcheck {
                 let path = if ancestor {
-                    p.join(".chirality")
+                    store.accounts_directory().parent().unwrap().to_path_buf()
                 } else {
-                    p.join(&binding.relative_path)
+                    store.anchor().join(&binding.relative_path)
                 };
                 let moved = path.with_extension("moved");
                 fs::rename(&path, &moved)?;
@@ -1115,7 +1140,7 @@ fn published_inspection_strict_json_and_semantic_checks_not_just_matching_hash()
         b"{\"formatVersion\":\"0.3\",\"account_id\":\"wrong\"}".to_vec(),
     ] {
         let (_scratch, p, store, mut binding) = inspection_fixture();
-        fs::write(p.join(&binding.relative_path), &bytes).unwrap();
+        fs::write(store.anchor().join(&binding.relative_path), &bytes).unwrap();
         binding.sha256 = crate::util::sha256_hex(&bytes);
         assert_eq!(store.inspect_published(&binding, &p)["status"], "changed");
     }
@@ -1133,8 +1158,8 @@ fn published_inspection_strict_json_and_semantic_checks_not_just_matching_hash()
 fn published_inspection_unsafe_ancestors_and_valid_deep_json_refuse() {
     for kind in 0..3 {
         let (_scratch, p, store, binding) = inspection_fixture();
-        let ancestor = p.join(".chirality");
-        let saved = p.join("saved-control");
+        let ancestor = store.accounts_directory().parent().unwrap().to_path_buf();
+        let saved = ancestor.with_extension("saved-control");
         fs::rename(&ancestor, &saved).unwrap();
         match kind {
             0 => symlink(&saved, &ancestor).unwrap(),
@@ -1151,7 +1176,7 @@ fn published_inspection_unsafe_ancestors_and_valid_deep_json_refuse() {
     }
     let (_scratch, p, store, mut binding) = inspection_fixture();
     let bytes = format!("{}0{}", "[".repeat(200), "]".repeat(200)).into_bytes();
-    fs::write(p.join(&binding.relative_path), &bytes).unwrap();
+    fs::write(store.anchor().join(&binding.relative_path), &bytes).unwrap();
     binding.sha256 = crate::util::sha256_hex(&bytes);
     let result = store.inspect_published(&binding, &p);
     assert_eq!(result["status"], "changed");
@@ -1161,7 +1186,7 @@ fn published_inspection_unsafe_ancestors_and_valid_deep_json_refuse() {
 #[test]
 fn published_inspection_hash_then_private_binding_semantic_version_checks() {
     let (_scratch, p, store, mut binding) = inspection_fixture();
-    let path = p.join(&binding.relative_path);
+    let path = store.anchor().join(&binding.relative_path);
     let mut account: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     account["duties"][1] = account["duties"][0].clone();
     let bytes = serde_json::to_vec(&account).unwrap();
@@ -1180,4 +1205,115 @@ fn published_inspection_hash_then_private_binding_semantic_version_checks() {
     fs::write(&path, &bytes).unwrap();
     binding.sha256 = crate::util::sha256_hex(&bytes);
     assert!(store.inspect_published(&binding, &p)["detail"].as_str().unwrap().contains("ID/version"));
+}
+
+// ---- RS §13.8 "Split by who writes": accounts in the records store ----
+
+/// An account an earlier build wrote in the project, at its earlier place.
+fn legacy_account(p: &Path, name: &str, data: &Value) -> PathBuf {
+    let dir = p.join(LEGACY_DIRECTORY);
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join(name);
+    fs::write(&path, serde_json::to_vec(data).unwrap()).unwrap();
+    path
+}
+fn snapshot(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+    fs::read_dir(dir)
+        .unwrap()
+        .map(|e| {
+            let e = e.unwrap();
+            (e.file_name().to_string_lossy().into_owned(), fs::read(e.path()).unwrap_or_default())
+        })
+        .collect()
+}
+#[test]
+fn accounts_in_the_project_are_read_in_place_until_imported_then_only_from_the_store() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let data = account("ra:legacy");
+    legacy_account(&p, &format!("{KEY}.json"), &data);
+    fs::write(p.join(LEGACY_DIRECTORY).join(".route-interrupted.tmp"), b"partial").unwrap();
+    let originals = snapshot(&p.join(LEGACY_DIRECTORY));
+    // Before the import: read in place; nothing written anywhere.
+    let in_place = ProjectRouteStore::open(&p).unwrap();
+    assert!(in_place.location().contains("import needed"), "{}", in_place.location());
+    let before = in_place.discover();
+    assert_eq!(before.accounts.len(), 1);
+    assert!(before.issues.iter().any(|i| i.kind == ErrorKind::TemporaryLeftover));
+    let held = before.accounts[0].reference.clone();
+    assert!(held.relative_path.starts_with(LEGACY_DIRECTORY));
+    assert_eq!(in_place.resolve(&held).unwrap().account, data);
+    let refused = in_place.write(&account("ra:new")).unwrap_err();
+    assert_eq!(refused.kind, ErrorKind::RecordingRefused);
+    assert!(refused.detail.contains("import needed"), "{refused}");
+    let refused = ProjectRouteStore::open_for_write(&p).unwrap_err();
+    assert!(refused.detail.contains("import needed"), "{refused}");
+    // The accounts are project history like the §13.7 records: no other
+    // recording until they are imported either.
+    assert!(crate::records_store::write_dir(&p).unwrap_err().contains("import needed"));
+    // The import copies both entries byte for byte; the originals stay.
+    let imported = crate::records_store::import(&p).unwrap();
+    assert_eq!((imported["state"].as_str(), imported["copied"].as_u64()), (Some("imported"), Some(2)), "{imported}");
+    assert_eq!(snapshot(&p.join(LEGACY_DIRECTORY)), originals, "originals never rewritten or deleted");
+    let store = ProjectRouteStore::open(&p).unwrap();
+    assert!(store.location().contains("records store"), "{}", store.location());
+    assert_eq!(snapshot(&store.accounts_directory()), originals, "byte-identical copies");
+    let after = store.discover();
+    assert_eq!(after.accounts.len(), 1, "read once, from the store");
+    assert!(after.issues.iter().any(|i| i.kind == ErrorKind::TemporaryLeftover), "the leftover is still shown");
+    let fresh = after.accounts[0].reference.clone();
+    assert!(fresh.relative_path.starts_with("projects/"));
+    assert_eq!(fresh.sha256, held.sha256);
+    // A binding taken before the import names the original: explicit
+    // reconciliation, never silently the copy.
+    let mismatch = store.resolve(&held).unwrap_err();
+    assert_eq!(mismatch.kind, ErrorKind::LocationMismatch);
+    assert!(mismatch.detail.contains("reconcile explicitly"), "{mismatch}");
+    assert_eq!(store.resolve(&fresh).unwrap().account, data);
+    // Writes go to the store now, never to the project.
+    let writer = ProjectRouteStore::open_for_write(&p).unwrap();
+    let written = writer.write(&account("ra:new")).unwrap();
+    assert_eq!(writer.resolve(&written).unwrap().account["account_id"], "ra:new");
+    assert_eq!(snapshot(&p.join(LEGACY_DIRECTORY)), originals);
+    // An account that appears in the project later is not read; it is a note.
+    legacy_account(&p, "22345678-1234-4234-8234-123456789abc.json", &account("ra:late"));
+    assert_eq!(ProjectRouteStore::open(&p).unwrap().discover().accounts.len(), 2);
+    let notes = crate::records_store::notes(&p);
+    assert!(notes.iter().any(|n| n.contains("22345678-1234-4234-8234-123456789abc.json") && n.contains("not read")), "{notes:?}");
+}
+#[test]
+fn unsafe_account_entries_are_never_imported_as_clean_copies() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let good = legacy_account(&p, &format!("{KEY}.json"), &account("ra:good"));
+    let linked = p.join(LEGACY_DIRECTORY).join("22345678-1234-4234-8234-123456789abc.json");
+    fs::hard_link(&good, scratch.0.join("second-link")).unwrap();
+    symlink(&good, &linked).unwrap();
+    let in_place = ProjectRouteStore::open(&p).unwrap().discover();
+    assert_eq!(in_place.accounts.len(), 0, "in place, the hard-linked file and the link are both refused");
+    let imported = crate::records_store::import(&p).unwrap();
+    let conflicts = imported["conflicts"].to_string();
+    assert!(conflicts.contains("hard-linked") && conflicts.contains("symbolic link"), "{imported}");
+    assert_eq!(imported["copied"], 0);
+    let store = ProjectRouteStore::open(&p).unwrap();
+    assert!(!store.accounts_directory().exists(), "nothing copied");
+    assert!(store.discover().accounts.is_empty());
+    // Repeating the import records nothing new for the same refusals.
+    let again = crate::records_store::import(&p).unwrap();
+    assert!(again["importId"].is_null(), "{again}");
+    assert!(crate::records_store::notes(&p).iter().filter(|n| n.contains("not read")).count() >= 2);
+}
+#[test]
+fn an_unavailable_records_store_refuses_visibly_and_relocates_nothing() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    crate::records_store::use_store_for_test(Some(Err("no records store configured".into())));
+    let opened = ProjectRouteStore::open(&p).unwrap_err();
+    let for_write = ProjectRouteStore::open_for_write(&p).unwrap_err();
+    crate::records_store::use_store_for_test(None);
+    for e in [opened, for_write] {
+        assert_eq!(e.kind, ErrorKind::RecordingRefused);
+        assert!(e.detail.contains("records store unavailable"), "{e}");
+    }
+    assert!(!p.join(".chirality").exists(), "nothing written in the project");
 }

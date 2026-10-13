@@ -649,7 +649,7 @@ fn store_holds(dir: &Path) -> bool {
         Ok(i) if i.completed => true,
         Ok(i) if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         Ok(i) if i.any => false,
-        Ok(_) => ["runs", "acts", "captures", "workflow", "legacy"].iter().any(|n| dir.join(n).exists()),
+        Ok(_) => ["runs", "acts", "captures", "workflow", "legacy", "connectors"].iter().any(|n| dir.join(n).exists()),
         // An unreadable import record: the store's state is unknown, so
         // writes are refused (`write_dir`) and the history is read in place.
         Err(_) => false,
@@ -707,6 +707,10 @@ pub(crate) struct LegacyFile {
     pub rel: String,
     /// Relative to the project's store folder.
     pub copy: String,
+    /// Why the import does not copy it (a connector account entry that is a
+    /// symbolic link, hard-linked or not a regular file): it is reported as
+    /// a conflict and is not read from the store.
+    pub refusal: Option<String>,
 }
 /// The §13.7 project records in the project: run and act logs, WR WP-1
 /// records, and capture evidence (with pending submissions) other than A15
@@ -748,18 +752,18 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
                 todo.push(path);
             } else if path.extension().is_some_and(|e| e == "jsonl") {
                 let inner = path.strip_prefix(&records).unwrap().to_string_lossy().into_owned();
-                out.push(LegacyFile { rel: rel(&path), copy: inner, original: path });
+                out.push(LegacyFile { rel: rel(&path), copy: inner, original: path, refusal: None });
             }
         }
     }
     for (path, is_dir) in list(&records.join("acts"))? {
         if !is_dir && path.extension().is_some_and(|e| e == "jsonl") {
-            out.push(LegacyFile { rel: rel(&path), copy: format!("acts/{}", name(&path)), original: path });
+            out.push(LegacyFile { rel: rel(&path), copy: format!("acts/{}", name(&path)), original: path, refusal: None });
         }
     }
     for (path, is_dir) in list(&records.join("workflow"))? {
         if !is_dir && path.extension().is_some_and(|e| e == "json") {
-            out.push(LegacyFile { rel: rel(&path), copy: format!("workflow/{}", name(&path)), original: path });
+            out.push(LegacyFile { rel: rel(&path), copy: format!("workflow/{}", name(&path)), original: path, refusal: None });
         }
     }
     for (dir, prefix, pending) in [(captures.clone(), "captures", false), (captures.join("pending"), "captures/pending", true)] {
@@ -768,7 +772,7 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
                 continue;
             }
             if !is_a15(&path, pending) {
-                out.push(LegacyFile { rel: rel(&path), copy: format!("{prefix}/{}", name(&path)), original: path });
+                out.push(LegacyFile { rel: rel(&path), copy: format!("{prefix}/{}", name(&path)), original: path, refusal: None });
             }
         }
     }
@@ -776,9 +780,111 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let registered = root.join(crate::storage::LEGACY_LOG);
     crate::storage::check_path(&registered)?;
     if registered.is_file() {
-        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered });
+        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None });
     }
+    out.extend(connector_census(root)?);
     Ok(out)
+}
+/// The DEL-07-02 connector route accounts in the project (§13.8 "Split by who
+/// writes"): every entry of the account folder, interrupted temporary files
+/// (`.route-….tmp`) and other names included, so discovery in the store shows
+/// what it showed in place. An entry the account reader would refuse in place
+/// (a symbolic link, a hard-linked file, anything not a regular file) is
+/// named with its refusal and never copied: a copy would be a clean file.
+fn connector_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
+    use std::os::unix::fs::MetadataExt;
+    let dir = root.join(crate::connector_route_store::LEGACY_DIRECTORY);
+    crate::storage::check_path(&dir)?;
+    let rd = match std::fs::read_dir(&dir) {
+        Ok(rd) => rd,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => return Ok(vec![]),
+        Err(e) => return Err(format!("connector route accounts could not all be listed: {}: {e}", dir.display())),
+    };
+    let mut out = Vec::new();
+    for entry in rd {
+        let entry = entry.map_err(|e| format!("connector route accounts could not all be listed: {e}"))?;
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let meta = std::fs::symlink_metadata(&path).map_err(|e| format!("connector route accounts could not all be listed: {}: {e}", path.display()))?;
+        let refusal = if meta.file_type().is_symlink() {
+            Some("a symbolic link, which the account reader refuses; not copied".to_string())
+        } else if !meta.is_file() {
+            Some("not a regular file, which the account reader refuses; not copied".to_string())
+        } else if meta.nlink() != 1 {
+            Some("a hard-linked file, which the account reader refuses; not copied (a copy would be a clean file)".to_string())
+        } else {
+            None
+        };
+        out.push(LegacyFile { rel: format!("{}/{name}", crate::connector_route_store::LEGACY_DIRECTORY), copy: format!("{CONNECTOR_COPY}/{name}"), original: path, refusal });
+    }
+    out.sort_by(|a, b| a.rel.cmp(&b.rel));
+    Ok(out)
+}
+/// Where imported (and new) connector route accounts are kept in a project's
+/// store folder.
+pub(crate) const CONNECTOR_COPY: &str = "connectors/route-accounts";
+/// The project's records read log (§13.9) in its store folder.
+pub(crate) const READ_LOG: &str = "reads/records-reads.jsonl";
+
+/// §13.9: the project's records read log, in its store folder. The project is
+/// attached (an identity minted if it has none). The read log is the App's
+/// own log, not §13.7 history, so it is written before an import too; a
+/// project that cannot be attached refuses, and nothing is written elsewhere.
+pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
+    let attachment = attach(root, true).map_err(|e| format!("records store unavailable: {e}"))?;
+    let dir = attachment.dir.ok_or_else(|| format!("no project identity in the records store: {}", attachment.refusal.unwrap_or_default()))?;
+    Ok(dir.join(READ_LOG))
+}
+
+/// Where a project's connector route accounts are read now (DEL-07-02;
+/// §13.8 "Split by who writes"): an anchor folder and the folder names below
+/// it, opened one by one without following links.
+#[derive(Clone, Debug)]
+pub(crate) struct AccountsPlace {
+    pub anchor: PathBuf,
+    pub parts: Vec<String>,
+    /// The project's store folder (writes go only there), when the place is the store.
+    pub store_dir: Option<PathBuf>,
+    /// Shown with the accounts: where they are read and why.
+    pub location: String,
+}
+/// The project's accounts place. With `mint` (a writer opening them) the
+/// project is attached and minted an identity if it has none; reading mints
+/// nothing. Once the store holds the
+/// project's records the accounts are in its store folder; before that,
+/// accounts in the project are read in place (writes refused, "import
+/// needed"); a project with none is placed in the store. A folder the store
+/// cannot attach, or one with no identity yet, is read in place and written
+/// nowhere.
+pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
+    let (store, _) = opened()?;
+    let attachment = attach(root, mint)?;
+    let in_place = || AccountsPlace {
+        anchor: attachment.root.clone(),
+        parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
+        store_dir: None,
+        location: String::new(),
+    };
+    let in_project = !connector_census(&attachment.root)?.is_empty();
+    let Some(dir) = attachment.dir.clone() else {
+        let mut place = in_place();
+        place.location = match (&attachment.refusal, in_project) {
+            (Some(refusal), _) => format!("the project, read in place; nothing written: {refusal}"),
+            (None, true) => "the project, read in place: import needed before accounts are written in the records store".into(),
+            (None, false) => "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)".into(),
+        };
+        return Ok(place);
+    };
+    let store_mode = store_holds(&dir);
+    if !store_mode && in_project {
+        let mut place = in_place();
+        place.location = "the project, read in place: import needed before accounts are written in the records store".into();
+        return Ok(place);
+    }
+    let key = dir.file_name().ok_or("project store folder has no name")?.to_string_lossy().into_owned();
+    let mut parts = vec!["projects".to_owned(), key.clone()];
+    parts.extend(CONNECTOR_COPY.split('/').map(str::to_owned));
+    Ok(AccountsPlace { anchor: store, parts, store_dir: Some(dir), location: format!("the records store (projects/{key}/{CONNECTOR_COPY})") })
 }
 /// Where the registered legacy log's imported copy is kept.
 pub(crate) const REGISTERED_COPY: &str = "legacy/coordination.rs.jsonl";
@@ -864,6 +970,10 @@ pub fn import(root: &Path) -> Result<Value, String> {
     let mut read = Vec::new();
     let mut conflicts = Vec::new();
     for file in &census {
+        if let Some(reason) = &file.refusal {
+            conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":reason}));
+            continue;
+        }
         match read_stable(&file.original) {
             Ok((bytes, meta)) => read.push((file, sha256_hex(&bytes), bytes, meta)),
             Err(e) => conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":e})),
@@ -886,7 +996,12 @@ pub fn import(root: &Path) -> Result<Value, String> {
         }
     }
     let pending: Vec<_> = read.iter().filter(|(file, sha, ..)| state.covered.get(&file.rel).is_none_or(|(_, s, _)| s != sha)).collect();
-    let fresh_conflict = conflicts.iter().any(|c| !state.covered.contains_key(c["original"].as_str().unwrap_or_default()));
+    // A conflict is new unless the latest completed import already recorded
+    // it with the same reason (a refused entry is reported, not re-imported).
+    let fresh_conflict = conflicts.iter().any(|c| {
+        let original = c["original"].as_str().unwrap_or_default();
+        !state.covered.contains_key(original) && state.refused.get(original).map(String::as_str) != c["reason"].as_str()
+    });
     if pending.is_empty() && !fresh_conflict && state.incomplete.is_none() {
         // Nothing new: an import repeated after it completed records nothing.
         let drifted: Vec<Value> = read.iter().filter_map(|(file, sha, ..)| {

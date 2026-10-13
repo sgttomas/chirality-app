@@ -423,8 +423,19 @@ pub struct Call {
 
 /// The App's read log (RS §13.9): one validated JSON line per call, synced
 /// before the call is answered. App-private, outside every project.
+/// Where the read log is written (§13.9).
+enum LogPlace {
+    /// The project's records store folder (`records_store::read_log_path`),
+    /// resolved at each read: the project is attached then, and a project that
+    /// cannot be attached refuses the read.
+    Store(PathBuf),
+    /// An explicit file outside the project (tests).
+    Fixed(PathBuf),
+}
 struct ReadLog {
-    path: PathBuf,
+    place: LogPlace,
+    /// The file the last append was written to (or tried).
+    path: Option<PathBuf>,
     /// Calls answered or being answered (generation, thread, call).
     answered: HashSet<(String, String, String)>,
     recent: Vec<Value>,
@@ -433,20 +444,35 @@ struct ReadLog {
 }
 impl ReadLog {
     fn append(&mut self, entry: &Value) -> Result<(), String> {
-        let result = self.write(entry);
+        let result = self.target().and_then(|path| {
+            self.path = Some(path.clone());
+            Self::write(&path, entry)
+        });
         self.limit = result.as_ref().err().cloned();
         result
     }
-    fn write(&self, entry: &Value) -> Result<(), String> {
+    /// The read log's file for this read: in the project's store folder (its
+    /// folder made if needed), never anywhere else.
+    fn target(&self) -> Result<PathBuf, String> {
+        match &self.place {
+            LogPlace::Fixed(path) => Ok(path.clone()),
+            LogPlace::Store(root) => {
+                let path = crate::records_store::read_log_path(root).map_err(|e| format!("read log unavailable: {e}"))?;
+                crate::storage::ensure_directory(path.parent().ok_or("read log has no folder")?).map_err(|e| format!("read log unavailable: {e}"))?;
+                Ok(path)
+            }
+        }
+    }
+    fn write(path: &Path, entry: &Value) -> Result<(), String> {
         static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
         let validator = VALIDATOR
             .get_or_init(|| serde_json::from_str::<Value>(LOG_SCHEMA).map_err(|e| e.to_string()).and_then(|s| jsonschema::options().offline().build(&s).map_err(|e| e.to_string())))
             .as_ref()
             .map_err(Clone::clone)?;
         validator.validate(entry).map_err(|e| format!("read log entry refused: {} at {}", e.masked(), e.instance_path()))?;
-        crate::storage::check_path(&self.path)?;
-        let created = !self.path.exists();
-        let mut file = std::fs::OpenOptions::new().create(true).read(true).append(true).open(&self.path).map_err(|e| format!("read log unavailable: {e}"))?;
+        crate::storage::check_path(path)?;
+        let created = !path.exists();
+        let mut file = std::fs::OpenOptions::new().create(true).read(true).append(true).open(path).map_err(|e| format!("read log unavailable: {e}"))?;
         let length = file.metadata().map_err(|e| e.to_string())?.len();
         if length > 0 {
             let mut last = [0u8];
@@ -459,7 +485,7 @@ impl ReadLog {
         line.push(b'\n');
         file.write_all(&line).and_then(|_| file.sync_data()).map_err(|e| format!("read not recorded: {e}"))?;
         if created {
-            crate::storage::sync_dir(self.path.parent().ok_or("read log has no folder")?)?;
+            crate::storage::sync_dir(path.parent().ok_or("read log has no folder")?)?;
         }
         Ok(())
     }
@@ -471,11 +497,21 @@ pub struct RecordsCapability {
     root: ProjectRoot,
     source: Box<dyn RecordsSource>,
     log: Mutex<ReadLog>,
+    /// The App-wide read log an earlier build kept in App data, if present.
+    legacy: Option<Value>,
 }
 impl RecordsCapability {
-    /// `project`: the App's current project folder. `read_log`: the App-private
-    /// read log (its folder must exist).
-    pub fn new(project: &Path, read_log: PathBuf) -> Result<Self, String> {
+    /// `project`: the App's current project folder. Each read is recorded in
+    /// the project's records store folder (§13.9), whether or not its records
+    /// have been imported yet.
+    pub fn new(project: &Path) -> Result<Self, String> {
+        let canonical = project.canonicalize().map_err(|e| format!("records capability project unavailable: {e}"))?;
+        let mut capability = Self::build(&canonical, Box::new(ProjectPaths::new(&canonical)), LogPlace::Store(canonical.clone()));
+        capability.root = ProjectRoot::new(project, &canonical);
+        Ok(capability)
+    }
+    /// As [`Self::new`] with an explicit read log file (tests), outside the project.
+    pub fn at(project: &Path, read_log: PathBuf) -> Result<Self, String> {
         let canonical = project.canonicalize().map_err(|e| format!("records capability project unavailable: {e}"))?;
         let mut capability = Self::with_source(&canonical, Box::new(ProjectPaths::new(&canonical)), read_log)?;
         capability.root = ProjectRoot::new(project, &canonical);
@@ -488,7 +524,22 @@ impl RecordsCapability {
         if !read_log.parent().is_some_and(Path::is_dir) {
             return Err("records read log folder unavailable".into());
         }
-        Ok(Self { project: project.to_path_buf(), root: ProjectRoot::new(project, project), source, log: Mutex::new(ReadLog { path: read_log, answered: HashSet::new(), recent: Vec::new(), limit: None }) })
+        Ok(Self::build(project, source, LogPlace::Fixed(read_log)))
+    }
+    fn build(project: &Path, source: Box<dyn RecordsSource>, place: LogPlace) -> Self {
+        Self { project: project.to_path_buf(), root: ProjectRoot::new(project, project), source, legacy: None,
+            log: Mutex::new(ReadLog { place, path: None, answered: HashSet::new(), recent: Vec::new(), limit: None }) }
+    }
+    /// §13.9: the App-wide read log an earlier build kept in App data
+    /// (`runtime/records-reads.jsonl`). It holds reads of every project, so it
+    /// is neither imported into one project's store folder nor split (a split
+    /// would rewrite it): it is kept unchanged, never read, and shown.
+    pub fn with_legacy_read_log(mut self, path: &Path) -> Self {
+        if let Ok(meta) = std::fs::symlink_metadata(path) {
+            self.legacy = Some(json!({"path":path.to_string_lossy(),"bytes":meta.len(),
+                "standing":"App-wide read log written before reads were recorded in each project's records store folder; kept unchanged in App data, not read and not imported (it holds reads of several projects)"}));
+        }
+        self
     }
     /// Whether a conversation started in `cwd` is in this project.
     pub fn offered_for(&self, cwd: &str) -> bool {
@@ -551,7 +602,12 @@ impl RecordsCapability {
     /// failed (if it did) and this process's latest reads (bounded).
     pub fn snapshot(&self) -> Value {
         let log = self.log.lock().unwrap();
-        json!({"tool":TOOL,"project":self.project.to_string_lossy(),"readLog":log.path.to_string_lossy(),"readLogLimit":log.limit,"recentReads":log.recent,
+        let place = match &log.place {
+            LogPlace::Store(_) => "the project's records store folder (reads/records-reads.jsonl)",
+            LogPlace::Fixed(_) => "an explicit file outside the project",
+        };
+        json!({"tool":TOOL,"project":self.project.to_string_lossy(),"readLog":log.path.as_ref().map(|p| p.to_string_lossy().into_owned()),"readLogPlace":place,
+            "legacyReadLog":self.legacy,"readLogLimit":log.limit,"recentReads":log.recent,
             "standing":"agents' reads of this project's records; each is recorded in the read log before it is answered"})
     }
 }

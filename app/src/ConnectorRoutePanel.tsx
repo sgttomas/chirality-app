@@ -4,7 +4,7 @@ export type RouteAvailability = { enabled: boolean; status: string; reason: stri
 type Account = { answerOnly?:any; recordedAnswerAccount?:any; reconstruction?:any; draftSources?:any[]; interpretations?:any[]; formatVersion?:string; standing?:string; questionText?: string; gaps?: {gap:string;effect:string;responsible:string|{standing:string;identity:string|null}}[]; duties?: {duty:string;actor_role:string;standing:string;actor?:string;evidence?:string;reason?:string}[]; relativePath: string; accountId: string; bindingText: string; accountText: string; sourceCount: number; sections: {label: string; text: string}[] };
 export type RouteView = {
   status: string; availability?: RouteAvailability; error?: unknown;
-  projectDisplay?: string; projectIdentityText?: string; directoryAbsent?: boolean; enumerationComplete?: boolean;
+  projectDisplay?: string; projectIdentityText?: string; accountsLocation?: string; directoryAbsent?: boolean; enumerationComplete?: boolean;
   accounts?: Account[]; issues?: {relative_path: string; kind: string; detail: string}[]; byAccountId?: Record<string, string[]>;
 };
 export type RouteReadState = { busy: boolean; view: RouteView | null; error: string | null };
@@ -31,6 +31,7 @@ export function ConnectorRoutePanel({availability, state, onRead}: {availability
     {view?.status === "project_open_failed" && <><p role="alert">The associated project could not be opened.</p><pre>{JSON.stringify(view.error, null, 2)}</pre></>}
     {view?.status === "observed" && <>
       <p>Observed project: {view.projectDisplay}</p>
+      {view.accountsLocation && <p>Accounts read from: {view.accountsLocation}. The App writes accounts only in its records store, never in the project.</p>}
       <details><summary>Lossless project identity</summary><pre>{view.projectIdentityText}</pre></details>
       <p>Cold observation at this read only; no continuously current pathname guarantee. These bindings were discovered, not resolved against a separately held prior reference. No source files or cited anchors were read by this view.</p>
       {view.directoryAbsent && <p>The canonical account directory is absent. Nothing was created.</p>}

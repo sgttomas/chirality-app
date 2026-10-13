@@ -57,8 +57,12 @@ needs:
   gating: false
   evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/connector_route_store.rs
+- app/src-tauri/src/connector_route_view.rs
 - app/src-tauri/src/connector_standing.rs
+- app/src-tauri/src/records_store.rs
 checks:
 - app/src-tauri/src/connector_route_store_tests.rs
+- app/tests/connector-route-presentation.test.mjs
 - execution/PKG-07/DEL-07-02/Design/check_record_reconstruction_v04.py
 - execution/PKG-07/DEL-07-02/Design/check_route_account_v02.py
