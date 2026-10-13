@@ -10,8 +10,10 @@ use std::{
     sync::OnceLock,
 };
 
-pub const DIRECTORY: &str = ".chirality/records/connectors/route-accounts";
-const PARTS: &[&str] = &[".chirality", "records", "connectors", "route-accounts"];
+/// Where accounts were kept in the project before they joined the records
+/// store (RS §13.8 "Split by who writes"; CRP-v0.3 §1). Accounts found there
+/// are read in place until the person imports them, and never written there.
+pub const LEGACY_DIRECTORY: &str = ".chirality/records/connectors/route-accounts";
 const IDS: &[&str] = &[
     "urn:chirality:app-v4:del-07-02:route-account:0.1",
     "urn:chirality:app-v4:del-07-02:route-account:0.2",
@@ -98,6 +100,9 @@ pub enum ErrorKind {
     ChangedContent,
     DuplicateIdentity,
     TemporaryLeftover,
+    /// The records store refuses the write (no store, no project identity,
+    /// records waiting for import); nothing is written anywhere else.
+    RecordingRefused,
     InvalidName,
     IncompleteDiscovery,
 }
@@ -188,6 +193,8 @@ pub struct DiscoveryIssue {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Discovery {
     pub resolved_project: PathBuf,
+    /// Where the accounts were read (the records store, or the project in place).
+    pub location: String,
     pub accounts: Vec<ObservedAccount>,
     /// All matching paths are retained; duplicates have no selected winner.
     pub by_account_id: BTreeMap<String, Vec<String>>,
@@ -507,9 +514,24 @@ mod platform {
     /// no operation consults cwd. Descendants are always opened no-follow.
     #[derive(Debug)]
     pub struct ProjectRouteStore {
+        /// The resolved project folder: association, display and the source
+        /// checks compare this, never the account folder's anchor.
         root: PathBuf,
+        project_identity: FileIdentity,
+        /// The folder the account folder chain starts from: the records store
+        /// root, or the project itself for accounts read in place.
+        anchor: PathBuf,
         directory: File,
+        /// The anchor's identity (the first of every binding's directories).
         root_identity: FileIdentity,
+        /// The folder names from the anchor to the account folder.
+        parts: Vec<String>,
+        /// `parts` joined: every binding's path starts with it.
+        prefix: String,
+        /// The project's store folder when accounts are in the store; writes
+        /// go only there.
+        store_dir: Option<PathBuf>,
+        location: String,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(super) enum Stage {
@@ -538,7 +560,20 @@ mod platform {
         json!({"status":status,"detail":e.detail.chars().take(512).collect::<String>(),"limit":"Direct exact-file observation only; namespace uniqueness not checked; original publication outcome unchanged"})
     }
     impl ProjectRouteStore {
+        /// The project's accounts for reading (and writing, when they are in
+        /// the records store): reading mints no project identity (RS §13.8).
         pub fn open(explicit_project: &Path) -> Result<Self> {
+            Self::open_place(explicit_project, false)
+        }
+        /// The project's accounts for a writer: the project is attached to the
+        /// records store, minted an identity if it has none, and a store that
+        /// would refuse the write refuses here, visibly (RS §13.8 Failures).
+        pub fn open_for_write(explicit_project: &Path) -> Result<Self> {
+            let store = Self::open_place(explicit_project, true)?;
+            drop(store.writable()?);
+            Ok(store)
+        }
+        fn open_place(explicit_project: &Path, mint: bool) -> Result<Self> {
             if !explicit_project.is_absolute()
                 || explicit_project
                     .components()
@@ -552,24 +587,114 @@ mod platform {
             let root = explicit_project
                 .canonicalize()
                 .map_err(|e| ioerr("resolve explicit project", e))?;
-            let directory = open_path(&root)?;
-            let root_identity = identity(&directory)?;
+            let project = open_path(&root)?;
+            let project_identity = identity(&project)?;
+            // RS §13.8: accounts are App-written, so they are kept in the
+            // project's records store folder; the project is attached here as
+            // when the App opens it. No store means a visible refusal.
+            let place = crate::records_store::route_accounts_place(&root, mint)
+                .map_err(|e| StoreError::new(ErrorKind::RecordingRefused, format!("records store unavailable for connector accounts: {e}")))?;
+            let (directory, root_identity) = if place.anchor == root {
+                (project, project_identity.clone())
+            } else {
+                let directory = open_path(&place.anchor)?;
+                let id = identity(&directory)?;
+                (directory, id)
+            };
             let store = Self {
                 root,
+                project_identity,
+                anchor: place.anchor,
                 directory,
                 root_identity,
+                prefix: place.parts.join("/"),
+                parts: place.parts,
+                store_dir: place.store_dir,
+                location: place.location,
             };
             store.check_root()?;
             Ok(store)
         }
         pub(crate) fn project_identity(&self) -> FileIdentity {
-            self.root_identity.clone()
+            self.project_identity.clone()
+        }
+        /// Where the accounts are read and written now.
+        pub fn location(&self) -> &str {
+            &self.location
+        }
+        /// The folder the account folder chain starts from (tests).
+        #[cfg(test)]
+        pub(crate) fn anchor(&self) -> &Path {
+            &self.anchor
+        }
+        /// The account folder's path (tests and display; operations use handles).
+        pub fn accounts_directory(&self) -> PathBuf {
+            self.parts.iter().fold(self.anchor.clone(), |p, s| p.join(s))
+        }
+        fn parts(&self) -> Vec<&str> {
+            self.parts.iter().map(String::as_str).collect()
+        }
+        /// A path recorded inside an account (a 0.5 answer's base) as it is
+        /// read here: an imported account keeps the name it had in the
+        /// project, so in the store a base named by its project path is read
+        /// at its imported copy (same bytes, checked by hash and length).
+        fn account_path(&self, recorded: &str) -> String {
+            if self.store_dir.is_some() {
+                if let Some(name) = recorded.strip_prefix(&format!("{LEGACY_DIRECTORY}/")) {
+                    if !name.contains('/') {
+                        return format!("{}/{name}", self.prefix);
+                    }
+                }
+            }
+            recorded.to_owned()
+        }
+        /// A held binding that names an account in the project while the
+        /// accounts are in the store: the import made a verified copy, a
+        /// different file, so the binding is not that file. Explicit
+        /// reconciliation, never a silent rebinding.
+        fn refuse_pre_import_binding(&self, path: &str) -> Result<()> {
+            if self.store_dir.is_some() && path.starts_with(&format!("{LEGACY_DIRECTORY}/")) {
+                return Err(StoreError::new(
+                    ErrorKind::LocationMismatch,
+                    format!("this binding names the account in the project ({path}); the accounts are now in the records store, where the import made a verified copy of it (a different file, {}). The binding is not accepted for the copy: reconcile explicitly from a fresh discovery", self.account_path(path)),
+                ));
+            }
+            Ok(())
+        }
+        /// The write's permission and the project's writer lock: accounts are
+        /// written only in the records store, and only when the store would
+        /// accept any of the project's records (RS §13.8 Failures).
+        fn writable(&self) -> Result<crate::storage::Ownership> {
+            let refused = |e: String| StoreError::new(ErrorKind::RecordingRefused, format!("connector account not written: {e}"));
+            // A place read in place is never written, and checking it mints nothing.
+            let Some(dir) = &self.store_dir else {
+                return Err(refused(format!("the accounts are read in place from the project ({}); nothing is written there", self.location)));
+            };
+            let current = crate::records_store::write_dir(&self.root).map_err(refused)?;
+            if &current != dir {
+                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's records store folder changed since its accounts were opened; reopen"));
+            }
+            // Shared: account writers do not wait on each other (distinct
+            // storage keys), only on an import, which holds the lock
+            // exclusively; the permission is checked again once it is held.
+            crate::records_store::writer_lock(dir, true).map_err(refused)
         }
         pub fn resolved_project(&self) -> &Path {
             &self.root
         }
         fn check_root(&self) -> Result<()> {
-            let current = open_path(&self.root).map_err(|e| {
+            if self.anchor != self.root {
+                let project = open_path(&self.root).map_err(|e| {
+                    StoreError::new(
+                        ErrorKind::LocationMismatch,
+                        format!("project path comparison unavailable: {e}"),
+                    )
+                })?;
+                if identity(&project)? != self.project_identity {
+                    return Err(StoreError::new(ErrorKind::LocationMismatch, "opened project identity no longer at resolved path; caller reconciliation required"));
+                }
+            }
+            let current = open_path(&self.anchor).map_err(|e| {
                 StoreError::new(
                     ErrorKind::LocationMismatch,
                     format!("project path comparison unavailable: {e}"),
@@ -615,7 +740,7 @@ mod platform {
                 .try_clone()
                 .map_err(|e| ioerr("duplicate inspection root", e))?];
             let mut ids = vec![self.root_identity.clone()];
-            for (index, part) in PARTS.iter().enumerate() {
+            for (index, part) in self.parts.iter().enumerate() {
                 let dir = child(handles.last().unwrap(), part, false)?;
                 let id = identity(&dir)?;
                 if expected.get(index + 1) != Some(&id) {
@@ -631,7 +756,9 @@ mod platform {
         }
         #[cfg(test)]
         pub(crate) fn retained_size(&self) -> usize {
-            std::mem::size_of::<Self>() + self.root.capacity()
+            std::mem::size_of::<Self>() + self.root.capacity() + self.anchor.capacity() + self.prefix.capacity()
+                + self.location.capacity() + self.parts.iter().map(|p| p.capacity()).sum::<usize>()
+                + self.store_dir.as_ref().map_or(0, |d| d.capacity())
         }
         /// A direct, bounded comparison, deliberately not full unique reference resolution.
         pub(crate) fn inspect_published(&self, reference: &BoundReference, project: &Path) -> Value {
@@ -650,11 +777,12 @@ mod platform {
                         "Direct published inspection supports only known0.3/0.4",
                     ));
                 }
+                self.refuse_pre_import_binding(&reference.relative_path)?;
                 let parts = relative_parts(&reference.relative_path)?;
                 let (name, ancestors) = parts.split_last().unwrap();
-                if ancestors != PARTS
+                if ancestors != self.parts().as_slice()
                     || !canonical_name(name)
-                    || reference.directories.len() != PARTS.len() + 1
+                    || reference.directories.len() != self.parts.len() + 1
                     || reference.directories.first() != Some(&self.root_identity)
                 {
                     return Err(StoreError::new(
@@ -664,8 +792,14 @@ mod platform {
                 }
                 let check_project = || -> Result<()> {
                     // Keep original errors, unlike the legacy compare wrapper.
-                    let current = open_path(&self.root)?;
+                    let current = open_path(&self.anchor)?;
                     if identity(&current)? != self.root_identity {
+                        return Err(StoreError::new(
+                            ErrorKind::ChangedContent,
+                            "Original project root was replaced",
+                        ));
+                    }
+                    if self.anchor != self.root && identity(&open_path(&self.root)?)? != self.project_identity {
                         return Err(StoreError::new(
                             ErrorKind::ChangedContent,
                             "Original project root was replaced",
@@ -858,17 +992,19 @@ mod platform {
             }
             let bytes = serde_json::to_vec(account)
                 .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
+            let _writer = self.writable()?;
             self.check_root()?;
-            let chain = self.chain(PARTS, true)?;
+            let parts = self.parts();
+            let chain = self.chain(&parts, true)?;
             let temporary = format!(
                 ".route-{}.tmp",
                 crate::util::opaque_id("").map_err(|e| StoreError::new(ErrorKind::Io, e))?
             );
             let mut attempt = Attempt {
                 resolved_project: self.root.clone(),
-                temporary_relative_path: format!("{DIRECTORY}/{temporary}"),
+                temporary_relative_path: format!("{}/{temporary}", self.prefix),
                 observed_final: None,
-                relative_path: format!("{DIRECTORY}/{name}"),
+                relative_path: format!("{}/{name}", self.prefix),
                 account_id: account["account_id"].as_str().unwrap().to_owned(),
                 format_version: account["formatVersion"].as_str().unwrap().to_owned(),
                 sha256: crate::util::sha256_hex(&bytes),
@@ -879,7 +1015,7 @@ mod platform {
             let mut published = false;
             let operation = (|| {
                 hook(Stage::BeforeWrite)?;
-                self.compare(PARTS, &chain.ids)?;
+                self.compare(&parts, &chain.ids)?;
                 let mut file = open_at(
                     chain.last(),
                     OsStr::new(&temporary),
@@ -945,7 +1081,7 @@ mod platform {
                 temp_created = false; // rename consumed this source name atomically.
                 hook(Stage::Published)?;
                 sync(chain.last(), "sync published account directory")?;
-                self.compare(PARTS, &chain.ids)?;
+                self.compare(&parts, &chain.ids)?;
                 let observed = read_account(
                     chain.last(),
                     &name,
@@ -988,15 +1124,17 @@ mod platform {
         ) -> Discovery {
             let mut out = Discovery {
                 resolved_project: self.root.clone(),
+                location: self.location.clone(),
                 accounts: vec![],
                 by_account_id: BTreeMap::new(),
                 issues: vec![],
                 directory_absent: false,
                 enumeration_complete: false,
             };
+            let parts = self.parts();
             let mut run = || -> Result<()> {
                 self.check_root()?;
-                let chain = match self.chain(PARTS, false) {
+                let chain = match self.chain(&parts, false) {
                     Ok(c) => c,
                     Err(e) if e.kind == ErrorKind::Missing => {
                         self.check_root()?;
@@ -1005,10 +1143,10 @@ mod platform {
                     }
                     Err(e) => return Err(e),
                 };
-                self.compare(PARTS, &chain.ids)?;
+                self.compare(&parts, &chain.ids)?;
                 let (names, enumeration_error) = names(chain.last())?;
                 for name in names {
-                    let path = format!("{DIRECTORY}/{}", name.to_string_lossy());
+                    let path = format!("{}/{}", self.prefix, name.to_string_lossy());
                     let result = match name.to_str() {
                         Some(s) if s.starts_with(".route-") && s.ends_with(".tmp") => {
                             Err(StoreError::new(
@@ -1044,7 +1182,7 @@ mod platform {
                         }),
                     }
                 }
-                self.compare(PARTS, &chain.ids)?;
+                self.compare(&parts, &chain.ids)?;
                 if let Some(e) = enumeration_error {
                     return Err(e);
                 }
@@ -1053,7 +1191,7 @@ mod platform {
             match run() {
                 Ok(()) => out.enumeration_complete = true,
                 Err(e) => out.issues.push(DiscoveryIssue {
-                    relative_path: DIRECTORY.into(),
+                    relative_path: self.prefix.clone(),
                     kind: e.kind,
                     detail: e.detail,
                 }),
@@ -1101,7 +1239,8 @@ mod platform {
                     }
                     let base = &a.account["base_account"];
                     let id = base["account_id"].as_str().unwrap();
-                    let path = base["relative_path"].as_str().unwrap();
+                    let path = self.account_path(base["relative_path"].as_str().unwrap());
+                    let path = path.as_str();
                     if index.get(id).map(|p| p.as_slice()) != Some(&[path.to_owned()][..]) {
                         return Err(StoreError::new(
                             ErrorKind::UnresolvedReference,
@@ -1176,20 +1315,21 @@ mod platform {
         }
         fn read_base(&self, base: &Value) -> Result<ObservedAccount> {
             let identity = &base["project_identity"];
-            if identity["device"] != self.root_identity.device.to_string()
-                || identity["inode"] != self.root_identity.inode.to_string()
+            if identity["device"] != self.project_identity.device.to_string()
+                || identity["inode"] != self.project_identity.inode.to_string()
             {
                 return Err(StoreError::new(
                     ErrorKind::LocationMismatch,
                     "Base recorded project identity differs from opened root",
                 ));
             }
-            let path = base["relative_path"]
+            let path = self.account_path(base["relative_path"]
                 .as_str()
-                .ok_or_else(|| StoreError::new(ErrorKind::InvalidInput, "Missing base path"))?;
+                .ok_or_else(|| StoreError::new(ErrorKind::InvalidInput, "Missing base path"))?);
+            let path = path.as_str();
             let parts = relative_parts(path)?;
             let (name, ancestors) = parts.split_last().unwrap();
-            if ancestors != PARTS || !canonical_name(name) {
+            if ancestors != self.parts().as_slice() || !canonical_name(name) {
                 return Err(StoreError::new(
                     ErrorKind::InvalidInput,
                     "Base must use canonical UUID account path",
@@ -1220,10 +1360,11 @@ mod platform {
         /// Resolve the complete held binding in this explicit project. An explicit
         /// legacy relative binding uses the same checks; there is no legacy crawl.
         pub fn resolve(&self, reference: &BoundReference) -> Result<ObservedAccount> {
+            self.refuse_pre_import_binding(&reference.relative_path)?;
             if reference.format_version == "0.5" {
                 let parts = relative_parts(&reference.relative_path)?;
                 let (name, ancestors) = parts.split_last().unwrap();
-                if ancestors != PARTS || !canonical_name(name) {
+                if ancestors != self.parts().as_slice() || !canonical_name(name) {
                     return Err(StoreError::new(
                         ErrorKind::InvalidInput,
                         "Known0.5 binding requires canonical path",
@@ -1272,7 +1413,7 @@ mod platform {
             if &observed.reference != reference {
                 return Err(StoreError::new(ErrorKind::ChangedContent, "held reference differs from current file identity, hash, account or format; reconciliation required"));
             }
-            if ancestors == PARTS {
+            if ancestors == self.parts().as_slice() {
                 let discovery = self.discover();
                 if !discovery.enumeration_complete || discovery.directory_absent {
                     return Err(StoreError::new(
@@ -1394,6 +1535,9 @@ pub struct ProjectRouteStore;
 impl ProjectRouteStore {
     pub fn open(_: &Path) -> Result<Self> {
         Err(StoreError::new(ErrorKind::UnsupportedPlatform, "route persistence requires qualified no-follow directory handles and no-replace publication; no fallback"))
+    }
+    pub fn open_for_write(p: &Path) -> Result<Self> {
+        Self::open(p)
     }
 }
 

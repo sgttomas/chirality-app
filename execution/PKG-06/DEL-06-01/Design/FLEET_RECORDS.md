@@ -74,12 +74,33 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   their ordinary file tools. The **App writer** writes only what the App
   observes: `dispatch_observed`, `child_observed`, `observation_ended` and
   `related_conversation`. The schema refuses those from any other recorder
-  (INV-FL-2). Reason: HOSTING §6.1 has no App-offered tool in this increment
-  ("none defined in this increment", the `item/tool/call` row at L783 of
-  HOSTING-v0.9), and adding one would change the whole App's tool set
-  (ADAPTER F-9). Files written with ordinary tools keep the file-native route
+  (INV-FL-2). Reason: when this was written HOSTING §6.1 had no App-offered
+  tool ("none defined in this increment", the `item/tool/call` row at L783
+  of HOSTING-v0.9), and adding one changes the whole App's tool set
+  (ADAPTER F-9). HOSTING §6.1 now defines one, the read-only records
+  capability (RS §13.9); it writes nothing, so agents still write their
+  fleet entries with their file tools. Files written with ordinary tools keep the file-native route
   working with or without the App (DEL-10-02; REQ-005; AC-007). The App
   validates and reads them; it does not take over their authorship.
+  *Where the App's observations are kept* (owner, 2026-10-12: "Write to
+  both (Recommended)"; RS §13.8). The coordination log stays one co-written
+  file in the project (FR-D2, FR-D3): the App writes its observations
+  (`dispatch_observed`, `child_observed`, `observation_ended`,
+  `related_conversation`) there once DEL-06-01's writer exists, so agents and file-native readers
+  keep every entry, PEC, DEL-10-02's route "with or without the App" and
+  FR-D4's child index included. The App also writes each of its
+  observations to its records store, in the project's subtree at
+  `fleet/coordination.fleet.jsonl`, outside the agents' writable workspace,
+  and that copy governs. Inside the App, an App-observation entry in the
+  project file that does not match the store's copy is shown as a limit, or
+  as the claim of the recorder it names, never as an App observation.
+  File-native readers have no such protection: they read the project file as
+  it is. INV-FL-2 refuses App-observation kinds only from a recorder other
+  than the App, so an entry an agent writes there naming the App as its
+  recorder passes it; file-native readers cannot tell it from a real one. The project log's shape
+  and format are unchanged, so REQ-005's consumers need no new account. This
+  is Design only: it is built with DEL-06-01's App reader and writer, and no
+  App code writes either copy today.
 - **FR-D2 Format (PROPOSED).** Its own versioned JSON records,
   `chirality.fleet.record` 0.1 (`fleet.record.schema.json`): one file per
   brief and per graph revision, and one append-only JSON Lines log. Reason:
@@ -107,12 +128,18 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   initiates. It never writes records or operates the act control." Neither
   decides OI-013 or OI-014. On 2026-10-12 the owner moved decisions, accepted
   records and run records to the App's records store (PRD R-STORE). The owner
-  then split the fleet files by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"). The App-written
-  `coordination.fleet.jsonl` joins the records store (RS §13.8); briefs and
-  graphs, which the person and agents edit with ordinary tools, stay in
-  `<project>/.chirality/fleet/`. Until the log joins the records store (RS §13.8;
-  its first step moved only the run, act, capture and WR records) it stays
-  here.
+  then split the fleet files by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"). That split first
+  called the coordination log App-written; the log is co-written, so the
+  owner refined it for the log
+  (2026-10-12: "Write to both (Recommended)"): the log, with every entry,
+  stays in `<project>/.chirality/fleet/coordination.fleet.jsonl`, and the
+  App also keeps its own observations in the records store, whose copy
+  governs inside the App (FR-D1 "Where the App's observations are kept").
+  Briefs and graphs stay in `<project>/.chirality/fleet/`. The App has no
+  fleet writer yet, so nothing in `.chirality/fleet/` is in the records
+  store's import census. This log is not the registered legacy log
+  `records/coordination.rs.jsonl` (RS §13.7), which is an RS record log, a
+  different file in a different format.
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
   children: every `dispatch_observed`, associated with a brief or not.
   RECOVERY's ledger is unchanged.

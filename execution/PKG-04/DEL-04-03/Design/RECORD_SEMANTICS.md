@@ -1481,10 +1481,12 @@ records-storage recommendations and accepted an App-managed records store
 outside the project working tree "as a new direction". The direction is
 settled. **Implemented** (App `records_store.rs`, `storage.rs`): Placement,
 Project identity, Existing records and Failures below, for a project's run
-logs, outside-run act logs, captures and WR WP-1 records. The other
-mechanisms are not built yet (proposed, or owner decisions awaiting their
-slice); the fleet coordination log and connector route accounts have not yet
-joined the store.
+logs, outside-run act logs, captures and WR WP-1 records, and (U-STORE-6,
+"Split by who writes") for its connector route accounts (DEL-07-02,
+`connector_route_store.rs`) and the agents' records read log (§13.9). The
+other mechanisms are not built yet (proposed, or owner decisions awaiting
+their slice); the store's copy of the App's fleet coordination observations
+has its place below, but DEL-06-01 has no App writer or reader yet.
 
 - **Placement** (implemented). The App keeps its records in its own records
   store at `<App-own-user-data>/records/` (the Tauri App data folder),
@@ -1493,7 +1495,11 @@ joined the store.
   identity), with `runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl`,
   `acts/<safe-writer-storage-key>.jsonl`, `captures/` (and
   `captures/pending/`) and `workflow/` (WR §16.8 WP-1 records), keyed as in
-  §13.7, beside the store's own records: `store.json` (the store's identity,
+  §13.7, `connectors/route-accounts/<uuid>.json` (DEL-07-02 accounts, CRP
+  §2), `reads/records-reads.jsonl` (the §13.9 read log) and, when DEL-06-01
+  is built, `fleet/coordination.fleet.jsonl` (the App's own coordination
+  observations, also written to the project's log, below), beside the
+  store's own records: `store.json` (the store's identity,
   written once), `roots.jsonl` (every project root the store has seen) and,
   per project, `project.json` (its identity record) and `imports.jsonl` (each
   import). Every file is a plain file written once or only appended; a
@@ -1564,12 +1570,50 @@ joined the store.
   registration: a workflow from such a library is selectable here only after
   the person registers it with their own A15.
 - **Split by who writes** (owner, 2026-10-12: "Split by who writes (Recommended)"). Records the App writes join the
-  store: the fleet coordination log (DEL-06-01 `coordination.fleet.jsonl`)
-  and connector route accounts (DEL-07-02). Working files that the person and
-  agents edit with ordinary tools stay in the project: fleet briefs and graphs
-  (DEL-06-01 FR-D1, FR-D3). *Not yet implemented:* the coordination log and
-  route accounts are still written in the project; the store's per-project
-  subtree is where they will join it.
+  store: connector route accounts (DEL-07-02) and the App's own fleet
+  coordination observations. Working files that the person and agents edit
+  with ordinary tools stay in the project: fleet briefs and graphs (DEL-06-01
+  FR-D1, FR-D3). The decision first named the whole coordination log
+  (`coordination.fleet.jsonl`) as App-written; it is co-written (FR-D1), so
+  the owner refined it for the log (2026-10-12: "Write to both
+  (Recommended)"), below.
+  *Connector route accounts* (implemented) are per project, as CRP-v0.3 §1
+  places them: the App writes them only in the project's store subtree,
+  `connectors/route-accounts/`, with CRP's handle-anchored, no-follow,
+  exclusive-rename writer anchored at the store root; a binding's
+  `relative_path` is relative to the store root
+  (`projects/<key>/connectors/route-accounts/<uuid>.json`), and moving the
+  project does not change it. Reading the accounts mints no project
+  identity; a writer opening them attaches the project (minting its identity
+  if it has none), and a store that would refuse any of the project's
+  records refuses the account too. Accounts an earlier build wrote in the
+  project (`.chirality/records/connectors/route-accounts/`) are existing
+  records (below).
+  *Fleet coordination log* (owner, 2026-10-12: "Write to both
+  (Recommended)"; Design only, to be built with DEL-06-01, which has no App
+  writer or reader yet). The log is co-written (FR-D1): the App writes only
+  its observations (`dispatch_observed`, `child_observed`,
+  `observation_ended`, `related_conversation`), and agents and the person
+  write the entries they are the actors or recorders of with ordinary file
+  tools. It stays one co-written file in the project,
+  `.chirality/fleet/coordination.fleet.jsonl`, so agents and file-native
+  readers keep every entry: PEC, DEL-10-02's route "with or without the
+  App", and FR-D4's child index. The App also records each of its own
+  observations in the project's store subtree at
+  `fleet/coordination.fleet.jsonl`, and the store copy governs. Inside the
+  App, an App-observation entry in the project file that does not match the
+  store's copy is shown as a limit, or as the claim of the recorder it
+  names, never as an App observation. File-native readers have no such
+  protection: they read the project file as it is, and an agent can write
+  into it an entry that names the App as its recorder; INV-FL-2 refuses
+  App-observation kinds only from other recorders, so it does not catch
+  that. This adds no
+  file and changes no entry in the project log, so the log's shape and
+  format are unchanged and REQ-005's consumers need no new account. Until
+  DEL-06-01 is built no App code writes either copy, and nothing in
+  `.chirality/fleet/` is in the import census. The registered legacy log
+  `records/coordination.rs.jsonl` (§13.7) is a different file: an RS record
+  log, not DEL-06-01's `chirality.fleet.record` log.
 - **Units written together** (proposed). Entries that must stand together, such as an
   `act_counted` entry and its label, a lapse and its label, or a batch of request
   endings, are written as one line that holds the group. The reader accepts a
@@ -1628,7 +1672,26 @@ joined the store.
   submissions under `.chirality/captures/` other than A15 captures, and the
   explicitly registered legacy log `records/coordination.rs.jsonl` (copied
   to `legacy/coordination.rs.jsonl`); the library's own act log and A15
-  captures stay with the library. While the store holds nothing for the
+  captures stay with the library. The project's connector route accounts
+  (`.chirality/records/connectors/route-accounts/`, every entry, interrupted
+  temporary files included, copied to `connectors/route-accounts/`) are in
+  the same census and import, so they are read in place, and every
+  recording refused, until the import, exactly as the §13.7 records are. An
+  account entry the account reader refuses in place (a symbolic link, a
+  hard-linked file, anything not a regular file) is not copied, since a copy
+  would be a clean file: the import reports it as a conflict, it is not read
+  from the store, and repeating the import records nothing new for it. A
+  binding taken before the import names the original file; resolved after
+  it, it is refused as a location mismatch for explicit reconciliation
+  (CRP §4), never silently the copy. The import reads each original
+  through one descriptor opened without following links; it must be a
+  regular, single-link file with the stamp the census recorded, unchanged
+  while it is read, and an entry swapped after the census (for a link, a
+  hard link or other bytes) or a name that is not UTF-8 is a conflict, never
+  copied. A connector account writer checks its permission again once it
+  holds the project's writer lock, so a writer that waited behind an import
+  that stopped after its "started" line writes nothing; the RS run and act
+  writers take that lock in `records.rs` and do not yet check again. While the store holds nothing for the
   project and such records exist, they are read in place and every new
   recording is refused with "import needed" (the act control's recovery
   included), so no history is split across two homes. The import is the
@@ -1801,7 +1864,8 @@ It realizes §13.8's agent access and does not change what a record is.
   entry) with its `source` (log and line), or a derived summary marked
   `derivedBy`. Nothing returned is an act, a record or a basis for one.
 - **Each read is recorded.** Every call, returned or refused, is one line of
-  the App's read log, `<App-own-user-data>/runtime/records-reads.jsonl`. The
+  the App's read log, in the project's records store subtree
+  (`reads/records-reads.jsonl`, §13.8). The
   line is written before the reply is prepared, so `returned` means the page
   was prepared for return and recorded; whether the reply was then written to
   Codex is the request register's entry for that call (joined by generation
@@ -1819,9 +1883,20 @@ It realizes §13.8's agent access and does not change what a record is.
   the cause of its read log's last failed append (a torn final line, for
   example) and its latest 20 reads (metadata only). No RS entry kind is added: a read is the App's observation
   of what it gave the agent, not a run event, and it happens in and outside
-  runs. The read log has not moved with the project's records (§13.8 first
-  step): it stays in `<App-own-user-data>/runtime/` until it joins the
-  project's store subtree with the App's other own logs (U-STORE-6).
+  runs. The read log is the App's own log, not project history, so it is
+  written in the project's store subtree whether or not the project's
+  records have been imported: before an import the records are read in
+  place and the reads are still recorded in the store. An agent's read never
+  mints the project's identity (the App mints it when it opens the project)
+  and takes no store-wide lock; a project with no identity yet, one the
+  store cannot attach (its link missing, say) or a store that is
+  unavailable refuses the read, visibly, and nothing is written in App data
+  or the project. The App-wide read log of earlier builds,
+  `<App-own-user-data>/runtime/records-reads.jsonl`, is not imported: it
+  holds reads of several projects, so it belongs to no one project's
+  subtree, and splitting it would rewrite it. It stays in App data
+  unchanged, is never read, and the host status shows it as App-wide legacy
+  history (`legacyReadLog`).
 - **Limit (§13.8).** Codex 0.160.0's sandbox does not exclude paths from
   reading, so the agent can still read the record files directly; such reads
   are not recorded. The capability is the way guidance points to. The
@@ -2232,7 +2307,7 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-STORE-3 *Decided 2026-10-12:* tamper-evidence strength (owner: "Chain + signed checkpoints") | — | — | Per-log hash chain; signed checkpoints after App signing, key in the OS keychain; no external anchoring (§13.8; OI-011) |
 | U-STORE-4 *Decided 2026-10-12:* agent reads through an App-provided, project-scoped, read-only records capability (owner: "I choose option B") | — | — | Direct file reads cannot be prevented under Codex 0.160.0; the limit is stated (§13.8). The capability is §13.9 |
 | U-STORE-5 *Decided 2026-10-12:* backup and export package format (owner: "BagIt + signed manifest") | — | — | BagIt (RFC 8493) package, SHA-256 manifest with chain heads, signed after App signing (§13.8) |
-| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)") | — | — | App-written coordination log and connector accounts join the store; briefs and graphs stay in the project (§13.8) |
+| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"); *refined 2026-10-12* for the coordination log (owner: "Write to both (Recommended)") | — | — | Connector accounts and the agents' read log join the store (implemented); briefs and graphs stay in the project. The decision first called the coordination log App-written; it is co-written, so it stays one file in the project with every entry, and the App also records its own observations in the store, whose copy governs inside the App (§13.8; Design only until DEL-06-01) |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
 | U-21 Host-loop per-turn guidance identities | Host owner (relay) | Before connected integration | R3 *unknown* where absent |

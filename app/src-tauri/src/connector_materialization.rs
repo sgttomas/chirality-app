@@ -580,7 +580,7 @@ mod registry {
         if e.project != project.canonicalize().map_err(|e| e.to_string())? {
             return Err("Explicit App project differs from source project".into());
         }
-        let store = Arc::new(ProjectRouteStore::open(project).map_err(|e| e.to_string())?);
+        let store = Arc::new(ProjectRouteStore::open_for_write(project).map_err(|e| e.to_string())?);
         if store.project_identity() != e.root.project_identity()? {
             return Err("Opened writer/source project identity mismatch".into());
         }

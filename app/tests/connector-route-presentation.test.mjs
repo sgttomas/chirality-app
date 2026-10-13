@@ -110,3 +110,9 @@ test('answer-only view consumes actual filesystem read-backend projection and pr
   assert.ok(html.includes('&lt;script&gt;Recorded answer&lt;/script&gt;'));assert.ok(!html.includes('<script>'));assert.ok(html.includes(ao.recordedAnswerAccount.base_account.sha256));assert.ok(!html.includes('No sources are recorded'));assert.ok(!html.includes('Recorded duties'));assert.ok(html.includes(ao.answerOnly.answer.claims[0].claim_id));
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+test('RS §13.8: the panel says where the accounts were read, and that the App writes them only in its records store',()=>{
+  const html=render({...observed(),accountsLocation:'the records store (projects/k/connectors/route-accounts)'});
+  assert.match(html,/Accounts read from: the records store \(projects\/k\/connectors\/route-accounts\)\. The App writes accounts only in its records store, never in the project\./);
+  assert.match(render({...observed(),accountsLocation:'the project, read in place: import needed before accounts are written in the records store'}),/read in place: import needed/);
+  assert.doesNotMatch(render(observed()),/Accounts read from/,'no location claimed when the host gives none');
+});
