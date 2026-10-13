@@ -233,11 +233,38 @@ fn validate_answer(method: &str, params: &Value, answer: &Value) -> Result<(), S
     Ok(())
 }
 
+/// One admitted source reply's actual IO observation. Publishing a completed
+/// result takes no host lifecycle lock, so generation closure can retain it
+/// while the writing caller is still waiting to update the register.
+#[derive(Clone)]
+pub(crate) struct ReplyWriteObservation(std::sync::Arc<std::sync::atomic::AtomicU8>);
+impl ReplyWriteObservation {
+    fn new() -> Self { Self(std::sync::Arc::new(std::sync::atomic::AtomicU8::new(0))) }
+    pub(crate) fn complete(&self, success: bool) {
+        let _ = self.0.fetch_update(
+            std::sync::atomic::Ordering::Release, std::sync::atomic::Ordering::Relaxed,
+            |before| (before & 3 == 0).then_some(before | if success { 1 } else { 2 }));
+    }
+    fn result(&self) -> Option<bool> {
+        match self.0.load(std::sync::atomic::Ordering::Acquire) & 3 { 1 => Some(true), 2 => Some(false), _ => None }
+    }
+    fn result_at_close(&self) -> Option<bool> {
+        // Completion and this request's closure observation have one atomic
+        // order. Later IO results remain retained without changing that order.
+        match self.0.fetch_or(4, std::sync::atomic::Ordering::AcqRel) & 3 {
+            1 => Some(true), 2 => Some(false), _ => None,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct RequestRegister {
     entries: Vec<Value>,
     closed: Vec<Value>,
+    // Entry indices are stable: the register retains every original H5/id.
+    reply_writes: HashMap<usize, ReplyWriteState>,
 }
+enum ReplyWriteState { Prepared, Admitted(ReplyWriteObservation) }
 impl RequestRegister {
     pub fn entries(&self) -> Vec<Value> {
         self.entries.clone()
@@ -254,7 +281,8 @@ impl RequestRegister {
             let mut subject=serde_json::Map::new();
             for (native,key) in [("threadId","thread"),("turnId","turn"),("itemId","item"),("callId","call")] {if let Some(value)=e["nativeParameters"].get(native){subject.insert(key.into(),value.clone());}}
             if !subject.is_empty(){record["subjectReferences"]=Value::Object(subject);}
-            if e["state"]=="ended-unanswered" {record["endCause"]=json!("process-exit");}
+            if let Some(closed)=e.get("closedGeneration") {record["closedGeneration"]=closed.clone();}
+            if matches!(e["state"].as_str(), Some("ended-unanswered"|"reply-outcome-unknown")) {record["endCause"]=json!("process-exit");}
             if e.get("resolution").is_some() {record["supplierResolution"]=json!({"source":"serverRequest/resolved"});if let Some(cause)=e["resolution"].get("cause"){record["supplierResolution"]["cause"]=cause.clone();}}
             if let Some(settlement)=e.get("settlement") {
                 let origin=settlement["origin"].as_str().unwrap_or("");
@@ -310,6 +338,7 @@ impl RequestRegister {
         e["settlement"]=json!({"origin":rule,"contentRef":content_ref});
         e["negative"]=json!(false);
         e["state"]=json!("settling");
+        self.reply_writes.insert(idx, ReplyWriteState::Prepared);
         Ok(json!({"id":id,"result":answer}))
     }
     fn admissible(&self,generation:&Value,frame:&Value)->Result<(),String>{
@@ -395,7 +424,9 @@ impl RequestRegister {
             entry["state"] = json!("settling");
             json!({"id":frame["id"],"error":content})
         });
+        let idx = self.entries.len();
         self.entries.push(entry);
+        if reply.is_some() { self.reply_writes.insert(idx, ReplyWriteState::Prepared); }
         Ok(reply)
     }
     pub(crate) fn original_offered_index(&self,generation:&Value,id:&Value,position:u64)->Option<usize>{
@@ -412,6 +443,7 @@ impl RequestRegister {
         if e["state"]!="outstanding"{return Err("original offered call already settled/resolved".into())}
         let content=crate::hosting::call_custody::unavailable();let e=&mut self.entries[index];
         e["settlement"]=json!({"origin":"app-rule:managed-service-unavailable","content":content});e["state"]=json!("settling");
+        self.reply_writes.insert(index, ReplyWriteState::Prepared);
         Ok(json!({"id":id,"result":content}))
     }
     fn index(&self, generation: &Value, id: &Value) -> Result<usize, String> {
@@ -486,6 +518,7 @@ impl RequestRegister {
         };
         e["negative"] = json!(is_negative);
         e["state"] = json!("settling");
+        self.reply_writes.insert(idx, ReplyWriteState::Prepared);
         Ok(json!({"id":id,"result":answer}))
     }
     /// Explicit protocol errors belong only to the boundary or a named App rule.
@@ -523,12 +556,47 @@ impl RequestRegister {
         // operation sets it. Receipt RT02/03 errors never acquire RT14/15.
         e["laterProtocolError"] = json!(true);
         e["state"] = json!("settling");
+        self.reply_writes.insert(idx, ReplyWriteState::Prepared);
         Ok(json!({"id":id,"error":error}))
+    }
+    pub(crate) fn begin_reply_write(&mut self, generation: &Value, id: &Value) -> Result<ReplyWriteObservation, String> {
+        let idx = self.index(generation, id)?;
+        if self.closed.contains(generation) || self.entries[idx]["state"] != "settling"
+            || self.entries[idx]["replyWriteResult"] != "not-attempted"
+            || !matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Prepared)) {
+            return Err("reply write no longer eligible; nothing sent".into());
+        }
+        let observation = ReplyWriteObservation::new();
+        self.reply_writes.insert(idx, ReplyWriteState::Admitted(observation.clone()));
+        Ok(observation)
+    }
+    /// Completed IO always belongs to its original entry, including after
+    /// closure or replacement. Return its settlement observation separately
+    /// from the source's closed flag, so REC keeps both in receipt order.
+    pub(crate) fn observe_completed_reply_writes(&mut self) -> Vec<Value> {
+        let mut observed = Vec::new();
+        for idx in 0..self.entries.len() {
+            if !matches!(self.entries[idx]["state"].as_str(), Some("settling"|"reply-outcome-unknown")) { continue; }
+            let result = match self.reply_writes.get(&idx) {
+                Some(ReplyWriteState::Admitted(observation)) => observation.result(), _ => None,
+            };
+            if let Some(success) = result {
+                let generation = self.entries[idx]["generation"].clone();
+                let id = self.entries[idx]["requestId"].clone();
+                self.written(&generation, &id, success);
+                let mut settlement = self.entries[idx].clone();
+                settlement["closedGeneration"] = json!(false);
+                observed.push(settlement);
+            }
+        }
+        observed
     }
     pub fn written(&mut self, generation: &Value, id: &Value, success: bool) {
         if let Ok(idx) = self.index(generation, id) {
+            let late_result = self.entries[idx]["state"] == "reply-outcome-unknown"
+                && matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Admitted(observation)) if observation.result() == Some(success));
             let e = &mut self.entries[idx];
-            if e["state"] != "settling" {
+            if e["state"] != "settling" && !late_result {
                 return;
             }
             e["replyWriteResult"] = json!(if success { "written" } else { "write-failed" });
@@ -555,11 +623,14 @@ impl RequestRegister {
             return;
         }
         if let Ok(idx) = self.index(generation, &params["requestId"]) {
+            let unattempted_preparation = self.entries[idx]["state"] == "settling"
+                && self.entries[idx]["replyWriteResult"] == "not-attempted"
+                && matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Prepared));
             let e = &mut self.entries[idx];
             if e["nativeParameters"]["threadId"] != params["threadId"] {
                 return;
             }
-            if e["state"] == "outstanding" {
+            if e["state"] == "outstanding" || unattempted_preparation {
                 e["state"] = json!("resolved-by-supplier");
                 e["resolution"] = params.clone();
             } else if (matches!(e["state"].as_str(), Some("answered" | "declined"))
@@ -574,18 +645,20 @@ impl RequestRegister {
             }
         }
     }
+    /// The guarded offered writer has its own receipt cut. A resolution seen
+    /// before its canonical settlement is not an acknowledgment of that reply.
+    pub(crate) fn offered_resolution_before_settlement(&self, generation: &Value, id: &Value) -> bool {
+        self.index(generation, id).ok().is_some_and(|idx|
+            self.entries[idx]["cceOfferedProvenance"] == true && self.entries[idx]["state"] == "settling")
+    }
     /// [`close`](Self::close), keeping why the process ended on each entry it
     /// ends unanswered (RECOVERY RQ-04 context: *supplier-exit*, *supplier-stop*,
     /// *app-quit*), for the card's words (NIR CS-7).
     pub fn close_for(&mut self, generation: &Value, context: &str) -> usize {
-        let before: Vec<bool> = self.entries.iter().map(|e| e["state"] == "ended-unanswered").collect();
-        let ended = self.close(generation);
-        for (e, was) in self.entries.iter_mut().zip(before) {
-            if !was && e["state"] == "ended-unanswered" {
-                e["endContext"] = json!(context);
-            }
-        }
-        ended
+        self.close_source(generation, Some(context)).0
+    }
+    pub(crate) fn close_for_observed(&mut self, generation: &Value, context: &str) -> (usize, Vec<Value>) {
+        self.close_source(generation, Some(context))
     }
     /// Each entry ended unanswered with the context its process ended in.
     pub fn end_contexts(&self) -> Vec<Value> {
@@ -593,21 +666,44 @@ impl RequestRegister {
             .map(|e| json!({"generation":e["generation"],"requestIdentity":e["requestId"],"context":e["endContext"]})).collect()
     }
     pub fn close(&mut self, generation: &Value) -> usize {
-        if !self.closed.contains(generation) {
-            self.closed.push(generation.clone());
-        }
+        self.close_source(generation, None).0
+    }
+    fn close_source(&mut self, generation: &Value, context: Option<&str>) -> (usize, Vec<Value>) {
+        if self.closed.contains(generation) { return (0, Vec::new()); }
+        self.closed.push(generation.clone());
         let mut ended = 0;
-        for e in &mut self.entries {
+        let mut settlements = Vec::new();
+        for idx in 0..self.entries.len() {
+            if self.entries[idx]["generation"] != *generation { continue; }
+            let prepared = matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Prepared));
+            let completed = match self.reply_writes.get(&idx) {
+                Some(ReplyWriteState::Admitted(observation)) => observation.result_at_close(), _ => None,
+            };
+            if self.entries[idx]["state"] == "settling" {
+                if let Some(success) = completed {
+                    let id = self.entries[idx]["requestId"].clone();
+                    self.written(generation, &id, success);
+                    settlements.push(self.entries[idx].clone());
+                }
+            }
+            let e = &mut self.entries[idx];
             if e["generation"] == *generation {
                 e["closedGeneration"] = json!(true);
             }
-            if e["generation"] == *generation && e["state"] == "outstanding" {
+            if e["state"] == "outstanding"
+                || (e["state"] == "settling" && prepared && e["replyWriteResult"] == "not-attempted") {
                 e["state"] = json!("ended-unanswered");
                 e["endCause"] = json!("process-exit");
+                if let Some(context) = context { e["endContext"] = json!(context); }
                 ended += 1;
+            } else if e["state"] == "settling" && matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Admitted(_))) {
+                e["state"] = json!("reply-outcome-unknown");
+                e["replyWriteResult"] = json!("unknown");
+                e["endCause"] = json!("process-exit");
+                if let Some(context) = context { e["endContext"] = json!(context); }
             }
         }
-        ended
+        (ended, settlements)
     }
 }
 
@@ -627,6 +723,108 @@ mod tests {
         )
         .unwrap()
     }
+    #[test]
+    fn closed_unknown_and_late_write_keep_secret_reply_values_removed() {
+        let mut r=RequestRegister::default();receive(&mut r,"item/tool/requestUserInput",json!({"threadId":"t","questions":[{"id":"secret","isSecret":true,"isOther":true}]}));
+        let wire=r.prepare(&gen(),&json!("opaque"),&json!({"answers":{"secret":{"answers":["invented-private-answer"]}}}),"person-via-interaction",Some(ACTOR)).unwrap();assert_eq!(wire["result"]["answers"]["secret"]["answers"][0],"invented-private-answer");
+        let actual=r.begin_reply_write(&gen(),&json!("opaque")).unwrap();r.close_for(&gen(),"supplier-stop");let unknown=r.records()[0].clone();assert_eq!(unknown["state"],"reply-outcome-unknown");assert_eq!(unknown["settlement"]["redaction"]["questionIds"],json!(["secret"]));assert!(unknown["settlement"].get("nativeContent").is_none());
+        let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();jsonschema::options().offline().build(&schema).unwrap().validate(&unknown).unwrap();actual.complete(true);r.observe_completed_reply_writes();assert!(!serde_json::to_string(&r.entries()).unwrap().contains("invented-private-answer"));assert!(!serde_json::to_string(&r.records()).unwrap().contains("invented-private-answer"));
+    }
+    #[test]
+    fn closed_unobserved_reply_is_explicit_across_cold_recovery_and_late_results() {
+        use crate::recovery::RecoveryLedger;
+        for success in [false,true] {
+            let root=std::env::temp_dir().join(format!("reply-unknown-{}-{success}",std::process::id()));let _=std::fs::remove_dir_all(&root);std::fs::create_dir(&root).unwrap();let path=root.join("ledger.jsonl");
+            let mut r=RequestRegister::default();receive(&mut r,"item/tool/requestUserInput",json!({"threadId":"t","turnId":"turn","questions":[]}));
+            let mut ledger=RecoveryLedger::open(path.clone()).unwrap();ledger.start_session("s","synthetic-close").unwrap();ledger.request_summary(&r.entries()[0]).unwrap();
+            r.prepare_error(&gen(),&json!("opaque"),&json!({"code":-32000,"message":"original prepared error"}),"app-rule:synthetic-error").unwrap();
+            let original=r.entries()[0].clone();let actual=r.begin_reply_write(&gen(),&json!("opaque")).unwrap();assert_eq!(r.close_for(&gen(),"app-quit"),0);
+            let unknown=r.entries()[0].clone();assert_eq!(unknown["state"],"reply-outcome-unknown");assert_eq!(unknown["replyWriteResult"],"unknown");assert_eq!(unknown["settlement"],original["settlement"]);
+            let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();let validator=jsonschema::options().offline().build(&schema).unwrap();validator.validate(&r.records()[0]).unwrap();
+            assert_eq!(schema["$id"],"urn:chirality:del-01-01:hosting-boundary:v0.11:server-request-entry");
+            let older:Value=serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.v0.10.schema.json")).unwrap();assert!(jsonschema::options().offline().build(&older).unwrap().validate(&r.records()[0]).is_err(),"older reader cannot claim it reads the closed unknown shape");
+            assert!(r.prepare_error(&gen(),&json!("opaque"),&json!({"code":-1,"message":"again"}),"app-rule:again").is_err());
+            ledger.request_summary(&unknown).unwrap();ledger.append(RecoveryLedger::session_end_entry("s","system-terminated",&[]).unwrap()).unwrap();drop(ledger);
+            let mut ledger=RecoveryLedger::open(path).unwrap();ledger.start_session("another-session","synthetic-cold").unwrap();let rows=ledger.recorded_entries();let cold=rows.as_array().unwrap().iter().rev().find(|e|e["kind"]=="register_entry_summary").unwrap();
+            assert_eq!(cold["state"],"closed");assert_eq!(cold["transition"],"RQ-10");assert_eq!(cold["endedAs"],"reply-outcome-unknown");assert_eq!(cold["replyWrite"],"unknown");assert_eq!(cold["context"],"app-quit");
+            let older:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.app-ledger-entry.v0.3.schema.json")).unwrap();assert!(jsonschema::options().offline().build(&older).unwrap().validate(cold).is_err(),"older ledger reader must disclose its incompatible-row limit");
+            let mut late_ack=unknown.clone();late_ack["state"]=json!("errored");late_ack["replyWriteResult"]=json!("written");late_ack["closedGeneration"]=json!(false);late_ack["acknowledgment"]=json!({"generation":gen(),"native":{"threadId":"t","requestId":"opaque"}});
+            assert!(RecoveryLedger::request_summary_entry(&late_ack,rows.as_array().unwrap()).unwrap_err().contains("new observation after closure"),"persisted RQ-10 fences acknowledgment even if an incoming snapshot drops its closed flag");
+            let mut successor=gen();successor["home"]=json!("other-home");successor["spawnCounter"]=json!(2);r.receive(&successor,2,&json!({"id":"opaque","method":"item/tool/requestUserInput","params":{"threadId":"other","questions":[]}}),&json!({})).unwrap();let later=r.entries()[1].clone();
+            actual.complete(success);actual.complete(!success);let observations=r.observe_completed_reply_writes();assert_eq!(observations.len(),1);ledger.request_summary(&observations[0]).unwrap();ledger.request_summary(&r.entries()[0]).unwrap();
+            assert_eq!(r.entries()[0]["state"],if success {"errored"} else {"settle-write-failed"});assert_eq!(r.entries()[0]["closedGeneration"],true);assert_eq!(r.entries()[0]["endContext"],"app-quit");assert_eq!(r.entries()[0]["settlement"],original["settlement"]);assert_eq!(r.entries()[1],later);
+            assert!(RecoveryLedger::request_summary_entry(&late_ack,ledger.recorded_entries().as_array().unwrap()).unwrap_err().contains("new observation after closure"),"a later actual-result row does not erase the earlier RQ-10 closure fact");
+            r.resolved(&gen(),&json!({"threadId":"t","requestId":"opaque"}));assert_eq!(r.entries()[0]["acknowledgment"],"not-observed");validator.validate(&r.records()[0]).unwrap();assert!(r.observe_completed_reply_writes().is_empty());drop(ledger);std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    #[test]
+    fn prepared_unattempted_replies_close_with_the_original_source_and_context() {
+        for context in ["supplier-exit", "supplier-stop", "app-quit", "system-termination"] {
+            for error in [false,true] {
+                let mut r=RequestRegister::default();
+                receive(&mut r,"item/tool/requestUserInput",json!({"threadId":"t","turnId":"turn","itemId":"item","questions":[]}));
+                let original=r.entries()[0].clone();
+                if error { r.prepare_error(&gen(),&json!("opaque"),&json!({"code":-32000,"message":"synthetic error"}),"app-rule:synthetic-error").unwrap(); }
+                else { r.prepare(&gen(),&json!("opaque"),&json!({"answers":{}}),"app-rule:synthetic-negative",None).unwrap(); }
+                assert_eq!(r.close_for(&gen(),context),1);
+                assert_eq!(r.close_for(&gen(),"another close"),0);
+                let closed=&r.entries()[0];
+                assert_eq!(closed["state"],"ended-unanswered");
+                assert_eq!(closed["replyWriteResult"],"not-attempted");
+                assert_eq!(closed["endContext"],context);
+                assert_eq!(closed["generation"],original["generation"]);
+                assert_eq!(closed["nativeParameters"],original["nativeParameters"]);
+                assert_eq!(closed["receiptPosition"],original["receiptPosition"]);
+                assert!(r.begin_reply_write(&gen(),&json!("opaque")).is_err());
+                r.written(&gen(),&json!("opaque"),true);
+                assert_eq!(r.entries()[0]["state"],"ended-unanswered","late bookkeeping creates no write/answer");
+            }
+        }
+    }
+    #[test]
+    fn close_captures_the_completed_source_settlement_before_its_close_flag() {
+        for success in [true,false] {
+            let mut r=RequestRegister::default();
+            receive(&mut r,"item/tool/requestUserInput",json!({"threadId":"t","questions":[]}));
+            r.prepare_error(&gen(),&json!("opaque"),&json!({"code":-32000,"message":"synthetic error"}),"app-rule:synthetic-error").unwrap();
+            let observed=r.begin_reply_write(&gen(),&json!("opaque")).unwrap();
+            assert!(r.observe_completed_reply_writes().is_empty());
+            observed.complete(success);
+            let (ended,settlements)=r.close_for_observed(&gen(),"supplier-exit");
+            assert_eq!(ended,0);
+            assert_eq!(settlements.len(),1,"completion between a prior read and closure is captured");
+            assert_ne!(settlements[0]["closedGeneration"],true);
+            assert_eq!(settlements[0]["state"],if success {"errored"} else {"settle-write-failed"});
+            assert_eq!(settlements[0]["replyWriteResult"],if success {"written"} else {"write-failed"});
+            assert_eq!(r.entries()[0]["closedGeneration"],true);
+            assert_eq!(r.entries()[0]["generation"],gen());
+            assert_eq!(r.entries()[0]["acknowledgment"],"not-observed");
+            assert!(r.close_for_observed(&gen(),"another close").1.is_empty());
+        }
+    }
+
+    #[test]
+    fn completed_reply_observations_are_immutable_and_do_not_rebind_reused_ids() {
+        let mut r=RequestRegister::default();
+        receive(&mut r,"item/tool/requestUserInput",json!({"threadId":"t","questions":[]}));
+        r.prepare_error(&gen(),&json!("opaque"),&json!({"code":-32000,"message":"synthetic error"}),"app-rule:synthetic-error").unwrap();
+        let observed=r.begin_reply_write(&gen(),&json!("opaque")).unwrap();
+        assert!(r.begin_reply_write(&gen(),&json!("opaque")).is_err());
+        observed.complete(true); observed.complete(false);
+        assert_eq!(r.observe_completed_reply_writes().len(),1);
+        assert!(r.observe_completed_reply_writes().is_empty());
+        assert_eq!(r.entries()[0]["state"],"errored");
+        assert_eq!(r.entries()[0]["replyWriteResult"],"written");
+        assert_eq!(r.entries()[0]["acknowledgment"],"not-observed");
+        r.close_for(&gen(),"supplier-stop");
+        let prior=r.entries()[0].clone();
+        let mut successor=gen(); successor["spawnCounter"]=json!(2);
+        r.receive(&successor,2,&json!({"id":"opaque","method":"item/tool/requestUserInput","params":{"threadId":"other","questions":[]}}),&json!({"experimentalApi":false})).unwrap();
+        assert!(r.observe_completed_reply_writes().is_empty());
+        assert_eq!(r.entries()[0],prior);
+        assert_eq!(r.entries()[1]["state"],"outstanding");
+    }
+
     #[test]
     fn unfamiliar_and_unsupported_explicit_error_keeps_unknown_ack() {
         for method in [

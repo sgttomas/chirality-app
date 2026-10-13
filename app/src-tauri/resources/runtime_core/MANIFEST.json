@@ -10,10 +10,10 @@
     },
     {
       "file": "hosting.server-request-entry.schema.json",
-      "sha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
+      "sha256": "4e51acd3be61cad9e0daeda47cbca14bec7fee345b0d802334f6a9f172fe5e3b",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.server-request-entry.schema.json",
-      "sourceSha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
-      "standing": "maintained unchanged Design schema"
+      "sourceSha256": "4e51acd3be61cad9e0daeda47cbca14bec7fee345b0d802334f6a9f172fe5e3b",
+      "standing": "exact current Design schema v0.11; owner-selected closed reply outcome unknown, original-source later IO; older versions retain their standing"
     },
     {
       "file": "npt.plan-revision.schema.json",
@@ -31,10 +31,10 @@
     },
     {
       "file": "recovery.app-ledger-entry.schema.json",
-      "sha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
+      "sha256": "7db3cfb5ad41c614872cc3f07f98b84a7b9601d9f18c4415fdb442606626cead",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.schema.json",
-      "sourceSha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
-      "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
+      "sourceSha256": "7db3cfb5ad41c614872cc3f07f98b84a7b9601d9f18c4415fdb442606626cead",
+      "standing": "exact current Design schema 0.4; owner-selected closed reply outcome unknown, original-source later IO; older versions retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.v0.2.schema.json",
@@ -98,6 +98,20 @@
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.stop-request.schema.json",
       "sourceSha256": "738bad11f825e9976ba9f8f1158b8938bf621c640ceae561c7e26d2899e6c5ef",
       "standing": "maintained unchanged Design schema (PROPOSED 0.2); REC stop-request records are validated against it before the ledger append"
+    },
+    {
+      "file": "hosting.server-request-entry.v0.10.schema.json",
+      "sha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.server-request-entry.v0.10.schema.json",
+      "sourceSha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
+      "standing": "exact pre-change v0.10 Design schema; archived older-reader receiving evidence"
+    },
+    {
+      "file": "recovery.app-ledger-entry.v0.3.schema.json",
+      "sha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.v0.3.schema.json",
+      "sourceSha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
+      "standing": "exact pre-change 0.3 Design schema; archived older-reader receiving evidence"
     }
   ]
 }

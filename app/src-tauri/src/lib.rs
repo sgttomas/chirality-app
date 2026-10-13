@@ -52,6 +52,7 @@ pub mod recorder;
 pub mod records;
 pub mod records_access;
 mod fleet_records;
+mod after_run_end;
 mod records_index;
 pub mod record_lines;
 pub mod records_store;
@@ -1922,7 +1923,7 @@ pub fn run() {
                 std::thread::Builder::new().name("chirality-host-tick".into()).spawn(move || loop {
                     std::thread::sleep(host_tick::INTERVAL);
                     let state = handle.state::<AppState>();
-                    host_tick::guarded("record", || host_tick::tick(&state.homes, &state.workflows));
+                    host_tick::guarded("record", || host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
                 // TT-9 reads wait on Codex; their own thread never delays the record tick.
                 let handle = app.handle().clone();

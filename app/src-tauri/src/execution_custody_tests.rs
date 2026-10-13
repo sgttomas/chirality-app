@@ -149,9 +149,10 @@ fn cold03_legacy_unknown_stays_unknown_beside_live_turn_without_migration(){
 #[test]
 fn cold03_exact_adopted_schema_examples_and_old_reader_boundary(){
     let new:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.app-ledger-entry.schema.json")).unwrap();let old:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.app-ledger-entry.v0.2.schema.json")).unwrap();
-    assert_eq!(new["$id"],"urn:chirality:app-v4:del-01-02:app-ledger-entry:0.3");assert_eq!(old["$id"],"urn:chirality:app-v4:del-01-02:app-ledger-entry:0.2");let newer=jsonschema::options().offline().build(&new).unwrap();let older=jsonschema::options().offline().build(&old).unwrap();
+    let previous:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.app-ledger-entry.v0.3.schema.json")).unwrap();
+    assert_eq!(new["$id"],"urn:chirality:app-v4:del-01-02:app-ledger-entry:0.4");assert_eq!(previous["$id"],"urn:chirality:app-v4:del-01-02:app-ledger-entry:0.3");assert_eq!(old["$id"],"urn:chirality:app-v4:del-01-02:app-ledger-entry:0.2");let newer=jsonschema::options().offline().build(&new).unwrap();let prior=jsonschema::options().offline().build(&previous).unwrap();let older=jsonschema::options().offline().build(&old).unwrap();
     let examples=[(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.item-only.valid.json"),true,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.competing-turns.valid.json"),true,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json"),true,true),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.empty-turn.invalid.json"),false,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.null-turn.invalid.json"),false,false),(include_str!("../resources/runtime_core/recovery.app-ledger-entry.item-turn.payload.invalid.json"),false,false)];
-    for (bytes,n,o) in examples {let row:Value=serde_json::from_str(bytes).unwrap();assert_eq!(newer.is_valid(&row),n);assert_eq!(older.is_valid(&row),o);}
+    for (bytes,n,o) in examples {let row:Value=serde_json::from_str(bytes).unwrap();assert_eq!(newer.is_valid(&row),n);assert_eq!(prior.is_valid(&row),n);assert_eq!(older.is_valid(&row),o);}
 }
 
 // RECOVERY RQ-04, RQ-05 at a generation's close: an outstanding entry ended unanswered and a

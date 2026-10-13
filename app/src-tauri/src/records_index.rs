@@ -408,6 +408,24 @@ impl ProjectIndex {
         })?;
         Ok(claims)
     }
+    /// Current source revision for a consumer retaining a validated log read.
+    pub(crate) fn log_revision(&self, path: &Path) -> Option<u64> { self.logs.get(path).map(|s|s.revision) }
+    /// One discovered log's entries, through the same checked source-line
+    /// reader as act claims. A failed cache query never establishes absence.
+    pub(crate) fn entries_in_log(&self, path: &Path) -> Result<Vec<Value>,String> {
+        let number=self.logs.get(path).ok_or("record log no longer discovered")?.number;
+        let mut out=Vec::new();let mut file=None;
+        let mut read=|n:u32,line:Line| { if n==number {out.push(self.read_line(path,&line,&mut file)?);} Ok(()) };
+        if let Some(db)=self.db.as_ref().filter(|d|d.unchanged()) {
+            let result=db.lines("WHERE log=?",Some(&number.to_string()),&mut read);
+            if result.is_ok(){return Ok(out);}
+            self.cache_fault.set(true);
+            if !self.suspect.borrow().is_empty(){return result.map(|_|out);}
+        }
+        out.clear();self.cache_fault.set(true);
+        self.source_lines(&mut |n,line|{if n==number{out.push(self.read_line(path,&line,&mut file)?);}Ok(())})?;
+        Ok(out)
+    }
     /// Every discovered log (sorted).
     pub(crate) fn paths(&self) -> Vec<PathBuf> { self.logs.keys().cloned().collect() }
 

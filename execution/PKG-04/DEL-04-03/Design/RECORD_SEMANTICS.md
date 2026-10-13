@@ -2534,6 +2534,15 @@ machine; `records::durability_tests`, and the ignored
   record or capture bodies. A reader's earlier observation remains unchanged
   after the cache is replaced. A new read still checks the same completeness,
   act epoch, capture stamps and seal-key basis before using a kept snapshot.
+  The ended-run observer (`after_run_end.rs`; EXEC §4.9 RE-2 and its current
+  implementation conditions) shares that verified observation and its compact
+  correction/identity assessment. It records CE-16 for later A4/A6/A7 App-file
+  captures against eligible recorded arrivals without changing ended
+  dispositions. It caches owning-log projections and exact-subject candidates;
+  unchanged ticks reuse them, and each publication rechecks current evidence.
+  Relaunch reads the durable relations. A correction or ambiguous arrival
+  coordinate withholds an unproved display association while retaining the raw
+  record and an explicit limit. Post-end lapse observation remains unimplemented.
   Checkpoint eligibility uses the public correction reader's shared analysis
   over borrowed source claims, then moves the original records and verified
   captures into that snapshot. Public views materialize their correction

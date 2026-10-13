@@ -2831,7 +2831,7 @@ pub fn assess_native_home_work(
     let (cursor, position) = runtime.cursor();
     let observation = home.host.observe(cursor, position);
     let snapshot = &observation["snapshot"];
-    if snapshot["generation"] != *generation || snapshot["state"] != "ready" {
+    if snapshot["generation"] != *generation || snapshot["state"] != "ready" || snapshot["generationClosed"] == true {
         return Err("Selected native home/full generation is unavailable for assessment; no window/home fallback".into());
     }
     let received = runtime.receive(&observation);
@@ -2867,7 +2867,7 @@ pub fn assess_native_home_work(
             unresolved_turns.push(json!({"threadId":turn["threadId"],"turnId":turn["turnId"],"reportedStatus":turn["nativeTurn"]["status"],"terminalEventObserved":turn["terminalEventObserved"],"observationEnded":turn["observationEnded"],"limit":"progress memo lacks current target warrant or is contradictory; activity not established, no ended inference"}));
         }
     }
-    let requests=snapshot["serverRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&request["state"]=="outstanding").map(|request|json!({"generation":request["generation"],"requestIdentity":request["requestIdentity"],"method":request["method"],"state":request["state"],"threadId":request["nativeParameters"]["threadId"],"turnId":request["nativeParameters"]["turnId"]})).collect::<Vec<_>>();
+    let requests=snapshot["serverRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&request["closedGeneration"]!=true&&matches!(request["state"].as_str(),Some("outstanding"|"settling"))).map(|request|json!({"generation":request["generation"],"requestIdentity":request["requestIdentity"],"method":request["method"],"state":request["state"],"threadId":request["nativeParameters"]["threadId"],"turnId":request["nativeParameters"]["turnId"]})).collect::<Vec<_>>();
     let native = &received["nativeView"];
     let valid_view =
         native["generation"] == *generation && received["nativeViewObservationEnded"] != true;
@@ -4241,6 +4241,7 @@ fn run_admission(selection: &crate::workflow_workspace::Selection) -> Result<(),
     }
 }
 pub(crate) struct WorkflowRootSession {
+    after_run_end: crate::after_run_end::Observer,
     selected: Option<WorkflowSelectionState>,
     pub libraries: std::collections::HashMap<String, std::sync::Arc<WorkflowLibraryContext>>,
     pub active_library: Option<String>,
@@ -4291,6 +4292,7 @@ const DRAFT_TRANSITIONS_KEPT: usize = 100;
 impl Default for WorkflowRootSession {
     fn default() -> Self {
         Self {
+            after_run_end: Default::default(),
             selected: None,
             libraries: Default::default(),
             active_library: None,
@@ -4315,10 +4317,12 @@ impl Default for WorkflowRootSession {
 }
 impl WorkflowRootSession {
     pub(crate) fn retention_ready(&self)->Result<(),String>{
+        if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
         for run in self.runs.values(){let run=run.try_lock().map_err(|_|"A workflow operation is pending; settle it before closing project records")?;
             if run.retention_activity.is_some() || run.has_pending_records(){return Err("A workflow run or its record publication is still open/pending; explicitly end or settle it before closing project records".into());}}
         Ok(())
     }
+    pub(crate) fn observe_ended_runs(&mut self,project:&std::path::Path){self.after_run_end.observe(project);}
     pub fn snapshot(&self) -> Value {
         // Inventory describes verified build inputs, never release registration.
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
@@ -4337,7 +4341,8 @@ impl WorkflowRootSession {
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
-            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>self.after_run_end.decorate(id,run.view(id)),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
             "restartLimits":self.restart_limits,
             "endedAfterRelaunch":self.reopened_ends_view(),
@@ -7539,10 +7544,10 @@ for line in sys.stdin:
   if mode('turn-mode')=='slow':
    import time;time.sleep(1.5)
   text=f['params']['input'][0]['text'];client=f['params'].get('clientUserMessageId','');inputs=[e.get('text','') for e in f['params']['input']];result={'turn':turn()}
-  if mode('notify-mode')=='checkpoint':
+  if mode('notify-mode') in ('checkpoint','checkpoint-file'):
    emit({'id':f['id'],'result':result})
    tid=f['params']['threadId']
-   for n,item in enumerate([{'id':'start-user','type':'userMessage','content':[]},{'id':'m1','type':'agentMessage','text':'Spacing report'}]):
+   for n,item in enumerate([{'id':'start-user','type':'userMessage','content':[]}] + ([{'id':'f1','type':'fileChange','status':'completed','changes':[{'path':'out/summary.md','kind':{'type':'add'},'diff':''}]}] if mode('notify-mode')=='checkpoint-file' else [{'id':'m1','type':'agentMessage','text':'Spacing report'}])):
     emit({'method':'item/started','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
     emit({'method':'item/completed','params':{'threadId':tid,'turnId':result['turn']['id'],'item':item}})
    continue
@@ -9482,6 +9487,158 @@ for line in sys.stdin:
     }
     // CE-5 through the actual run and RS writer (AAC §6.3 / EXEC §2.4–2.5): the person's act on the file
     // output is counted, so run_ended lists only the arrival whose act was not recorded.
+    // Actual owned supplier → Host → explicit-project record tick. Every
+    // capture is synthetic source evidence, never a native human witness.
+    fn after_run_end_fixture(peer:&Peer,kind:&str)->(Mutex<WorkflowRootSession>,Mutex<HomeRouter>,String){
+        peer.set_mode("notify-mode","checkpoint-file");
+        let file=peer.fixture.root.join("out/summary.md");std::fs::create_dir_all(file.parent().unwrap()).unwrap();std::fs::write(&file,b"v1").unwrap();
+        let mut root=peer.fixture.registered_with(|draft|{
+            let path=draft.join("WORKFLOW.md");let mut text=std::fs::read_to_string(&path).unwrap();
+            let declaration=crate::checkpoint_recorder::tests::DECLARATION.replace("\"required_act\":\"A7\"",&format!("\"required_act\":\"{kind}\""));
+            text.push_str(&format!("\n```workflow-declaration\n{declaration}\n```\n"));std::fs::write(&path,text).unwrap();
+        });
+        let a=open_run(peer,&mut root,"thread");let root=Mutex::new(root);let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let until=std::time::Instant::now()+Duration::from_secs(5);
+        while !rs_for(peer,&a).iter().any(|e|e["kind"]=="checkpoint_arrival") && std::time::Instant::now()<until{crate::host_tick::tick_project(&homes,&root,peer.project());std::thread::sleep(Duration::from_millis(10));}
+        assert!(rs_for(peer,&a).iter().any(|e|e["kind"]=="checkpoint_arrival"&&e["body"]["requiredAct"]==kind));
+        let view=crate::host_tick::receive_view(&peer.home);root.lock().unwrap().end_plain(&a,&view).unwrap();
+        std::thread::sleep(Duration::from_millis(2));(root,homes,a)
+    }
+    #[test]
+    fn after_run_end_actual_tick_reopen_and_new_run_keep_finality(){
+        for kind in ["A4","A6","A7"]{
+            let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,kind);
+            let act=record_file_act(&peer,"out/summary.md",kind,b"v1",&crate::util::now_rfc3339());
+            for _ in 0..3{crate::host_tick::tick_project(&homes,&root,peer.project());}
+            let old=rs_for(&peer,&a);let marked:Vec<_>=old.iter().filter(|e|e["kind"]=="act_after_run_end").collect();assert_eq!(marked.len(),1,"{old:#?}");
+            assert_eq!(marked[0]["body"]["act"]["recordId"],act);assert!(!old.iter().any(|e|e["kind"]=="act_counted"));
+            assert_eq!(old.iter().filter(|e|e["kind"]=="disposition_change").last().unwrap()["body"]["disposition"],"waiting");
+            let hot=root.lock().unwrap().snapshot();assert!(hot["runs"][0]["lifecycle"]["records"].as_array().unwrap().iter().any(|e|e["kind"]=="act_after_run_end"));
+            let mut fresh=WorkflowRootSession::default();fresh.reopen(&peer.fixture.root,&[]).unwrap();let fresh=Mutex::new(fresh);
+            crate::host_tick::tick_project(&homes,&fresh,peer.project());assert_eq!(rs_for(&peer,&a),old,"durable dedup after Root state loss");
+            assert_eq!(fresh.lock().unwrap().snapshot()["afterRunEnd"]["runs"].as_array().unwrap().len(),1);
+            peer.set_mode("turn-id","next-turn");let b={let mut root=root.lock().unwrap();open_run(&peer,&mut root,"thread")};
+            assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="checkpoint_arrival"||e["kind"]=="act_counted"));
+            let until=std::time::Instant::now()+Duration::from_secs(5);
+            while !rs_for(&peer,&b).iter().any(|e|e["kind"]=="act_counted")&&std::time::Instant::now()<until{crate::host_tick::tick_project(&homes,&root,peer.project());std::thread::sleep(Duration::from_millis(10));}
+            let next=rs_for(&peer,&b);assert_eq!(next.iter().find(|e|e["kind"]=="run_opened").unwrap()["body"]["follows"],a,"sequential continuation has its own run identity");let counted=next.iter().find(|e|e["kind"]=="act_counted").unwrap();assert_eq!(counted["body"]["act"]["recordId"],act);assert_eq!(counted["body"]["relation"],"earlier act");assert_eq!(rs_for(&peer,&a),old);
+            if kind=="A7"{println!("AFTER_END_DTO:{}",serde_json::to_string(&hot).unwrap());}
+        }
+    }
+    #[test]
+    fn after_run_end_uses_capture_time_and_bound_subject_not_current_file(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        let ended=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();let time=ended["observedAt"].as_str().unwrap();
+        let pre=record_file_act(&peer,"out/summary.md","A7",b"v1","2026-01-01T00:00:00.000Z");
+        let equal=record_file_act(&peer,"out/summary.md","A7",b"v1",time);
+        let bad=record_file_act(&peer,"out/summary.md","A7",b"v1","not a timestamp");
+        let later=record_file_act(&peer,"out/summary.md","A6",b"v1",&crate::util::now_rfc3339());
+        let file=peer.fixture.root.join("out/summary.md");std::fs::rename(&file,peer.fixture.root.join("out/moved.md")).unwrap();
+        let another=record_file_act(&peer,"out/moved.md","A7",b"v1",&crate::util::now_rfc3339());
+        std::os::unix::fs::symlink(peer.fixture.root.join("out/moved.md"),&file).unwrap();
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        let records=rs_for(&peer,&a);let marked:Vec<_>=records.iter().filter(|e|e["kind"]=="act_after_run_end").collect();assert_eq!(marked.len(),1);assert_eq!(marked[0]["body"]["act"]["recordId"],later);
+        for id in [pre,equal,bad,another]{assert!(!marked.iter().any(|e|e["body"]["act"]["recordId"]==id));}
+        assert!(root.lock().unwrap().snapshot()["afterRunEnd"]["limits"].as_array().unwrap().iter().any(|s|s.as_str().unwrap().contains("time not comparable")));
+        std::fs::remove_file(file).unwrap();crate::host_tick::tick_project(&homes,&root,peer.project());assert_eq!(rs_for(&peer,&a),records,"deleted/aliased current file changes no ended relation/disposition");
+    }
+    #[test]
+    fn after_run_end_uncertain_write_keeps_identity_time_and_recovers_once(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        let log=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let folder=log.parent().unwrap().to_owned();
+        crate::after_run_end::BEFORE_WRITE.with(|h|*h.borrow_mut()=Some(Box::new(move||crate::storage::fail_directory_for_test(Some(folder)))));
+        crate::host_tick::tick_project(&homes,&root,peer.project());crate::storage::fail_directory_for_test(None);
+        let status=root.lock().unwrap().snapshot();assert_eq!(status["afterRunEnd"]["pending"],true,"{status}");
+        assert!(root.lock().unwrap().retention_ready().is_err());
+        let pending=status["afterRunEnd"]["runs"][0]["records"].as_array().unwrap().iter().find(|e|e["kind"]=="act_after_run_end").unwrap().clone();
+        assert_eq!(pending["written"],false);assert_eq!(pending["body"]["act"]["recordId"],act);
+        for _ in 0..3{crate::host_tick::tick_project(&homes,&root,peer.project());}
+        let records=rs_for(&peer,&a);let marked:Vec<_>=records.iter().filter(|e|e["kind"]=="act_after_run_end").collect();assert_eq!(marked.len(),1);assert_eq!(marked[0]["recordId"],pending["recordId"]);assert_eq!(marked[0]["observedAt"],pending["observedAt"]);
+        assert!(records.iter().any(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"));
+        assert_eq!(root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],false);
+    }
+
+    // The shared act read includes non-act correction targets from other logs;
+    // a warm owning run must not keep deriving from its obsolete subject.
+    #[test]
+    fn after_run_end_persisted_observation_is_not_rebound_to_corrected_subject(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        let original=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="checkpoint_arrival").unwrap();
+        let log=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let mut correction=original.clone();
+        correction["recordId"]=json!(crate::util::opaque_id("rec:app:").unwrap());correction["seq"]=json!(rs_for(&peer,&a).last().unwrap()["seq"].as_u64().unwrap()+1);correction["corrects"]=original["recordId"].clone();correction["correctionReason"]=json!("Synthetic correction of historical arrival subject");correction["body"]["referents"][0]["subject"]=json!("output summary: file out/new.md");correction["prevLine"]=crate::record_lines::fixture::next_link(&log);
+        crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();let mut file=std::fs::OpenOptions::new().append(true).open(log).unwrap();std::io::Write::write_all(&mut file,format!("{correction}\n").as_bytes()).unwrap();drop(file);
+        let mut fresh=WorkflowRootSession::default();fresh.reopen(&peer.fixture.root,&[]).unwrap();let fresh=Mutex::new(fresh);crate::host_tick::tick_project(&homes,&fresh,peer.project());
+        let dto=fresh.lock().unwrap().snapshot();let records=dto["afterRunEnd"]["runs"][0]["records"].as_array().unwrap();
+        assert_eq!(records.iter().filter(|r|r["kind"]=="act_after_run_end").count(),1,"raw observation is retained exactly once");
+        assert!(records.iter().filter(|r|r["kind"]=="checkpoint_arrival").all(|r|r["afterRunEndRelationLimit"].as_str().is_some_and(|s|s.contains("correction"))));
+        crate::host_tick::tick_project(&homes,&root,peer.project());let hot=root.lock().unwrap().snapshot();assert!(hot["runs"][0]["lifecycle"]["records"].as_array().unwrap().iter().filter(|r|r["kind"]=="checkpoint_arrival").all(|r|r["afterRunEndRelationLimit"].is_string()));
+        println!("AFTER_END_CORRECTED_DTO:{}",dto);
+    }
+
+    #[test]
+    fn after_run_end_warm_cross_log_correction_refuses_old_subject(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        let original=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="checkpoint_arrival").unwrap();
+        let mut correction=original.clone();let id=crate::util::opaque_id("rec:app:").unwrap();
+        correction["recordId"]=json!(id);correction["seq"]=json!(1);correction["corrects"]=original["recordId"].clone();correction["correctionReason"]=json!("Synthetic source repairs the misrecorded file subject");
+        correction["body"]["referents"][0]["subject"]=json!("output summary: file out/new.md");
+        correction["prevLine"]=crate::record_lines::link(None);
+        crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();
+        let log=crate::storage::project_log(&peer.fixture.root,Some(&a),"synthetic-correction").unwrap();std::fs::create_dir_all(log.parent().unwrap()).unwrap();std::fs::write(&log,format!("{}\n",correction)).unwrap();
+        let before=root.lock().unwrap().after_run_end.work.clone();
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_after_run_end"&&e["body"]["act"]["recordId"]==act));
+        let state=root.lock().unwrap();assert!(state.snapshot()["afterRunEnd"]["limits"].as_array().unwrap().iter().any(|s|s.as_str().unwrap().contains("recorded correction")));
+        assert!(state.after_run_end.work.candidate_builds>before.candidate_builds);
+    }
+    #[test]
+    fn after_run_end_warm_ticks_reuse_projections_but_refresh_capture_evidence(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        let before=root.lock().unwrap().after_run_end.work.clone();
+        for _ in 0..4 { crate::host_tick::tick_project(&homes,&root,peer.project()); }
+        assert_eq!(root.lock().unwrap().after_run_end.work,before,"warm ticks must check freshness without decoding/rebuilding full projections");
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        assert_eq!(rs_for(&peer,&a).iter().filter(|e|e["kind"]=="act_after_run_end"&&e["body"]["act"]["recordId"]==act).count(),1);
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        let settled=root.lock().unwrap().after_run_end.work.clone();
+        for _ in 0..4 { crate::host_tick::tick_project(&homes,&root,peer.project()); }
+        assert_eq!(root.lock().unwrap().after_run_end.work,settled);
+    }
+    #[test]
+    fn after_run_end_later_publication_rechecks_shared_act_freshness(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        let second="run:workflow:synthetic-second-ended";let log=crate::records::supply::run_log(&peer.fixture.root,second).unwrap();let mut text=String::new();
+        for entry in rs_for(&peer,&a) {let mut e=entry;e["runId"]=json!(second);if e["kind"]=="run_opened"{e["body"]["runId"]=json!(second);}e["recordId"]=json!(crate::util::opaque_id("rec:app:").unwrap());text.push_str(&format!("{e}\n"));}
+        std::fs::create_dir_all(log.parent().unwrap()).unwrap();std::fs::write(log,crate::record_lines::fixture::rechain(text.as_bytes())).unwrap();
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let cap=read.acts.iter().find(|c|c["record"]["recordId"]==act).unwrap()["capture"]["captureId"].as_str().unwrap();let path=crate::storage::capture_path(&peer.fixture.root,cap).unwrap();let bytes=std::fs::read(&path).unwrap();let changed=path.clone();
+        crate::after_run_end::AFTER_WRITE.with(|h|*h.borrow_mut()=Some(Box::new(move||std::fs::remove_file(changed).unwrap())));
+        crate::host_tick::tick_project(&homes,&root,peer.project());let records=peer.fixture.rs_entries();assert_eq!(records.iter().filter(|r|r["kind"]=="act_after_run_end").count(),1,"later publication must not reuse stale capture evidence");let status=root.lock().unwrap().snapshot();assert_eq!(status["afterRunEnd"]["pending"],true);
+        std::fs::write(path,bytes).unwrap();for _ in 0..3 {crate::host_tick::tick_project(&homes,&root,peer.project());}assert_eq!(peer.fixture.rs_entries().iter().filter(|r|r["kind"]=="act_after_run_end").count(),2);assert_eq!(root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],false);
+    }
+
+    #[test]
+    fn after_run_end_prewrite_changed_act_is_held_then_recovers_original_identity(){
+        let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
+        let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let capture=read.acts.iter().find(|r|r["record"]["recordId"]==act).unwrap()["capture"]["captureId"].as_str().unwrap().to_owned();
+        let path=crate::storage::capture_dir(&peer.fixture.root).unwrap().join(format!("{}.json",crate::storage::key(&capture)));let bytes=std::fs::read(&path).unwrap();let changed=path.clone();
+        crate::after_run_end::BEFORE_WRITE.with(|h|*h.borrow_mut()=Some(Box::new(move||std::fs::remove_file(changed).unwrap())));
+        crate::host_tick::tick_project(&homes,&root,peer.project());
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="act_after_run_end"));
+        let status=root.lock().unwrap().snapshot();assert_eq!(status["afterRunEnd"]["pending"],true);
+        let pending=status["afterRunEnd"]["runs"][0]["records"].as_array().unwrap().iter().find(|e|e["kind"]=="act_after_run_end").unwrap().clone();assert!(pending["limit"].as_str().unwrap().contains("unavailable/changed"));
+        std::fs::write(path,bytes).unwrap();for _ in 0..3 { crate::host_tick::tick_project(&homes,&root,peer.project()); }
+        let records=rs_for(&peer,&a);let written=records.iter().find(|e|e["kind"]=="act_after_run_end").unwrap();assert_eq!(written["recordId"],pending["recordId"]);assert_eq!(written["observedAt"],pending["observedAt"]);
+        assert!(records.iter().any(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"));
+    }
+
     #[test]
     fn end_counts_recorded_acts_so_waiting_arrivals_exclude_performed_ones(){
         let peer=Peer::new();let mut root=declared(&peer);let a=open_run(&peer,&mut root,"thread");let run=root.runs[&a].clone();

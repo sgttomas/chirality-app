@@ -50,10 +50,11 @@
 //! pauses, re-holds or refuses anything; the outputs are entries for the run
 //! record and nothing else. CE-7 never arises in an App run: A5 is valid only
 //! at a host outcome (FB-16), which this App does not evaluate (AW-8…AW-10).
-//! Nothing is observed after the run's end, so no *after run end* lapse
-//! (CE-10) and no CE-16 `act_after_run_end` is written.
+//! The live recorder stops at run end. The distinct `after_run_end` observer
+//! records CE-16 against ended arrivals without counting or changing them.
+//! Post-end lapse observations (CE-10) remain unimplemented.
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// The App's exact-byte content method (RS §6.2a, CC-CONTENT-RX).
@@ -214,7 +215,7 @@ pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 /// cannot be so verified; they never become acts (RS §13.7) and are shown as
 /// an "unresolvable reference" limit on an arrival whose file they name.
 #[derive(Clone, Debug, Default)]
-pub(crate) struct ActRead(std::sync::Arc<ActReadData>);
+pub(crate) struct ActRead(std::sync::Arc<ActReadData>, std::sync::Arc<BTreeMap<String, String>>);
 
 /// A completed observation is immutable. The cache and its readers share
 /// these same records and captures until the existing read basis changes;
@@ -225,8 +226,13 @@ pub(crate) struct ActReadData {
     pub unresolved: Vec<Value>,
 }
 impl ActRead {
+    /// The immutable verified observation, including correction/key/capture basis.
+    pub(crate) fn same_observation(&self, other: &Self) -> bool { std::sync::Arc::ptr_eq(&self.0, &other.0) }
+    /// Shared RS relation assessment also names corrected or unresolved non-act
+    /// targets. Ended-arrival observers must not derive from those old claims.
+    pub(crate) fn record_limit(&self, id: &str) -> Option<&str> { self.1.get(id).map(String::as_str) }
     fn new(data: ActReadData) -> Self {
-        Self(std::sync::Arc::new(data))
+        Self(std::sync::Arc::new(data), Default::default())
     }
 }
 impl std::ops::Deref for ActRead {
@@ -1549,6 +1555,16 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         let analysis = crate::decision_view::record_relations::analyze(&claims, &complete);
         claims.iter().map(|claim| analysis.claim_state(claim["record"]["recordId"].as_str().unwrap_or(""))).collect()
     }; // Drop the analysis's borrows before moving the original record bodies.
+    let mut relation_limits = BTreeMap::new();
+    for (claim, state) in claims.iter().zip(&states) {
+        let reason = if state.corrected { Some("record has a recorded correction") }
+            else if state.nonconformant { Some("nonconformant record relation") }
+            else if state.identity_resolution == "conflicting identity" { Some("conflicting record identity") }
+            else { state.relation_limit };
+        if let (Some(id), Some(reason)) = (claim["record"]["recordId"].as_str(), reason) {
+            relation_limits.insert(id.to_owned(), reason.to_owned());
+        }
+    }
     let mut captures = Vec::new();
     let mut reusable = true;
     let mut read = ActReadData::default();
@@ -1603,7 +1619,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             ("reason".into(), Value::String("several records cite one capture (RS R-8)".into())),
         ]))));
     }
-    let read = ActRead::new(read);
+    let read = ActRead(std::sync::Arc::new(read), std::sync::Arc::new(relation_limits));
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = reusable.then(|| ActCache { root, epoch, keys, captures, read: read.clone() });
     Ok(read)
 }
