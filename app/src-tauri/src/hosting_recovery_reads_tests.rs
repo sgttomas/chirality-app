@@ -701,34 +701,61 @@ fn a_request_open_at_a_supplier_exit_ends_unanswered_in_that_context() {
     run.written_once(&f);
 }
 
-// Review M-1 probe through the real Host: the person's answer is still being written
-// (`settling`) when the process ends. The host never records a write result for a closed
-// generation (HOSTING write path: "reply write finished for closed/superseded source; no
-// successor settlement inferred"), so the entry stays settling with no write recorded,
-// RQ-04 (RT-11, outstanding only) and RQ-05 (a reply was written) do not apply, and the run
-// records no R13 or R11 for it: nothing claims it answered, written or acknowledged. What a
-// reply settling at a close should become is not designed (reported).
+// The frame writer is held before the caller prepares its answer, and throughout
+// supplier exit. The actual write guard/admission cannot run: this is a queued
+// Prepared reply, not an Admitted write with an unknown outcome. REQ-003 ends it
+// unanswered; RQ-04 and the run retain that ending without claiming the prepared
+// answer was written, failed, acknowledged or made into a human act.
 #[test]
-fn a_reply_still_settling_at_the_close_is_never_recorded_as_written() {
+fn a_prepared_reply_waiting_for_the_frame_writer_ends_unanswered_without_io() {
     let f = Fixture::new();
     f.live_work();
     let mut run = SettlementRun::new(&f);
     assert!(run.tick(&f).is_empty());
     let host = f.home.host.clone();
+    let received = host.snapshot()["serverRequests"][0].clone();
+    let wire_before = f.wire();
     let serial = host.frame_write.lock().unwrap();
     let (caller, generation) = (host.clone(), f.first.clone());
     let writer = std::thread::spawn(move || caller.answer_server_request(&generation, &json!(7), &json!({"decision":"accept"}), "person-via-interaction", Some(PERSON)));
     let state = || host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|e| e["requestIdentity"] == 7).map(|e| e["state"].clone()).unwrap();
     f.until("settling", || state() == "settling");
+    assert_eq!(f.wire(), wire_before, "the queued preparation has sent no frame");
     f.crash();
     drop(serial);
-    assert!(writer.join().unwrap().is_err(), "the write is refused or its result discarded after the close");
+    assert!(writer.join().unwrap().is_err(), "the closed source refuses the queued write before IO admission");
+    assert_eq!(f.wire(), wire_before, "the owned peer received no reply frame after closure either");
+    assert!(!f.wire().iter().any(|frame| frame["id"] == 7 && (frame.get("result").is_some() || frame.get("error").is_some())));
     let entry = host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|e| e["requestIdentity"] == 7).cloned().unwrap();
-    assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("settling"), Some("not-attempted")), "{entry}");
-    for kind in ["request_ended_unanswered", "acknowledgment_not_observed"] {
-        assert!(Fixture::events(&f.home, kind).is_empty(), "{kind}");
-    }
+    assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("ended-unanswered"), Some("not-attempted")), "{entry}");
+    assert_eq!(entry["closedGeneration"], true);
+    for field in ["generation", "requestIdentity", "receiptPosition", "nativeParameters"] { assert_eq!(entry[field], received[field], "original {field}"); }
+    assert_eq!(entry["settlement"]["nativeContent"], json!({"decision":"accept"}), "preparation is retained without becoming a written answer");
+    assert_eq!(entry["settlement"]["origin"]["class"], "person-via-interaction");
+    assert_eq!(entry["acknowledgmentObservation"]["status"], "not-observed");
+    assert_eq!(f.end_context(7), "supplier-exit");
+    assert_eq!(f.rq04_contexts(), [json!("supplier-exit")]);
+    let ended = Fixture::events(&f.home, "request_ended_unanswered");
+    assert_eq!(ended.len(), 1);assert_eq!(ended[0]["context"], "supplier-exit");validate_event(&ended[0]);
+    assert!(Fixture::events(&f.home, "acknowledgment_not_observed").is_empty(), "there was no written reply to lose acknowledgment for");
     let outputs = run.tick(&f);
-    assert!(outputs.iter().all(|(k, _)| *k == "observation_lost"), "{outputs:?}");
-    assert!(run.settlements().is_empty() && run.limits().is_empty());
+    let ending = json!({"request":format!("server-request:{}/7", f.first["spawnCounter"]),"settledBy":"none — ended unanswered",
+        "settlement":"ended unanswered (process exit)","context":"supplier exit","custodyEventRef":ended[0]["eventId"]});
+    assert_eq!(outputs.into_iter().filter(|(kind, _)| *kind != "observation_lost").collect::<Vec<_>>(), vec![("tool_permission_settlement", ending.clone())]);
+    assert_eq!(run.settlements(), vec![ending]);assert!(run.limits().is_empty(), "no reply was written, so no lost acknowledgment is invented");
+    assert!(run.tick(&f).is_empty());run.written_once(&f);
+
+    host.flush_recovery_observations();
+    let generation = crate::recovery::generation_ref(&f.first).unwrap();
+    let source_rows = |rows: &Value| rows.as_array().unwrap().iter().filter(|row| row["kind"] == "register_entry_summary" && row["generation"] == generation && row["requestIdentity"] == "7").cloned().collect::<Vec<_>>();
+    let hot = source_rows(&host.recorded_recovery_entries());
+    assert_eq!(hot.iter().map(|row| row["transition"].as_str().unwrap()).collect::<Vec<_>>(), ["RQ-01", "RQ-04"]);
+    std::fs::copy(f.root.join("recovery.ledger.sqlite"), f.root.join("queued-reply-cold.sqlite")).unwrap();
+    let mut cold = crate::recovery::RecoveryLedger::open(f.root.join("queued-reply-cold.jsonl")).unwrap();
+    cold.append(crate::recovery::RecoveryLedger::session_end_entry(f.first["appSession"].as_str().unwrap(), "system-terminated", &[]).unwrap()).unwrap();
+    cold.start_session("queued-reply-cold-session", "owned-peer-reopen").unwrap();
+    let after_restart = source_rows(&cold.recorded_entries());
+    assert_eq!(after_restart, hot, "cold history retains the actual closed source without synthesizing an unanswered RQ-06 or a write result");
+    let final_row = after_restart.last().unwrap();
+    assert_eq!(final_row["state"], "closed");assert_eq!(final_row["transition"], "RQ-04");assert_eq!(final_row["replyWrite"], "not-attempted");assert_eq!(final_row["acknowledgment"], "not-observed");assert_eq!(final_row["context"], "supplier-exit");
 }

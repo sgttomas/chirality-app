@@ -102,6 +102,18 @@ test('card states use the person words for each register state (CS)',()=>{
   assert.equal(refusalWords('generation-closed: closed'),'Last answer not taken: Codex restarted since this was asked (generation-closed: closed)');
 });
 
+test('closed unknown retains the answer and cannot claim receipt, action or permit another answer',()=>{
+  const prepared=entry({state:'reply-outcome-unknown',closedGeneration:true,replyWriteResult:'unknown',settlement:{kind:'answer',origin:{class:'person-via-interaction',actorRef:'person:synthetic (identity not verified)'},nativeContent:{decision:'accept'}}});
+  assert.match(cardState(prepared),/^Reply outcome unknown:/);
+  assert.match(cardState(prepared),/Whether Codex received or acted on the reply is unknown/);
+  assert.equal(answerable(prepared),false);const html=render(prepared);assert.doesNotMatch(html,/<button/);assert.match(html,/&quot;decision&quot;: &quot;accept&quot;/,'original answer is kept in the visible native evidence');
+  for(const state of ['answered','declined','errored']) {
+    const known={...prepared,state,replyWriteResult:'written'};if(state==='errored')known.settlement={...known.settlement,kind:'error'};
+    assert.match(cardState(known),/written locally/);assert.match(cardState(known),/whether Codex received or acted on it is unknown/);assert.equal(answerable(known),false);
+  }
+  assert.match(cardState({...prepared,state:'settle-write-failed',replyWriteResult:'write-failed'}),/whether Codex received it is unknown/);
+});
+
 test('questions and input requests say they are conversation input and offer the act control plainly (LB-4)',()=>{
   const q=request('item/tool/requestUserInput',{...at,isBlocking:false,questions:[{id:'q1',header:'Pick',question:'Which?',options:[{label:'A',description:'first'}],isOther:false,isSecret:false}]});
   const html=render(q);

@@ -393,13 +393,40 @@ fn call_custody_post_cut_resolution_does_not_unsend_or_imply_ack() {
     }
 }
 #[test]
-fn call_custody_post_cut_closure_keeps_private_actual_write_not_canonical_success() {
+fn call_custody_reply_close_preserves_original_admitted_and_completed_io() {
+    for after_write in [false,true] {
+        let root=std::env::temp_dir().canonicalize().unwrap().join(crate::hosting::opaque_id("offered-reply-close-").unwrap());std::fs::create_dir(&root).unwrap();
+        let mut f=Fixture::new(Role::WORKING_ITEMS);
+        {let mut i=f.host.inner.0.lock().unwrap();i.state="absent".into();i.app_session="call-app".into();}
+        f.host.configure_recovery(root.join("ledger.jsonl")).unwrap();f.host.inner.0.lock().unwrap().state="ready".into();
+        f.start(true);
+        let hook:Box<dyn FnOnce(&Host,&IncomingCall)+Send>=Box::new(move|h,_|{let mut i=h.inner.0.lock().unwrap();Host::close_generation(&mut i);let source=&i.server_requests.entries()[0];assert_eq!(source["state"],if after_write {"answered"} else {"reply-outcome-unknown"});});
+        if after_write {*f.host.cce_after_write.lock().unwrap()=Some(hook);} else {*f.host.cce_after_cut.lock().unwrap()=Some(hook);}
+        feed(&f.host,&call(json!(10)));
+        assert_eq!(f.drain(),json!({"id":10,"result":unavailable()}),"actual complete original reply captured");
+        let i=f.host.inner.0.lock().unwrap();let source=i.server_requests.entries()[0].clone();
+        assert_eq!(source["generation"],generation());assert_eq!(source["requestId"],10);assert_eq!(source["cceOfferedProvenance"],true);
+        assert_eq!(source["nativeParameters"],call(json!(10))["params"]);assert_eq!(source["closedGeneration"],true);assert_eq!(source["acknowledgment"],"not-observed");
+        assert_eq!(source["state"],"answered");
+        assert_eq!(source["replyWriteResult"],"written");
+        assert_ne!(source["state"],"ended-unanswered","admitted IO is never called a zero-attempt reply");
+        assert!(!i.execution_custody.events().iter().any(|e|e["kind"]=="request_ended_unanswered"));drop(i);
+        assert_eq!(f.view()["state"],3);assert_eq!(f.view()["canonicalUpdated"],false,"private flag names the original caller's bookkeeping, not observer/close retention");
+        let flush=f.host.flush_recovery_observations();let recorded=f.host.recorded_recovery_entries();
+        let transitions=recorded.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").map(|e|e["transition"].as_str().unwrap()).collect::<Vec<_>>();
+        assert_eq!(transitions,if after_write {vec!["RQ-01","RQ-03","RQ-05"]} else {vec!["RQ-01","RQ-10","RQ-03","RQ-05"]},"flush={flush} source limits={:?}",f.host.inner.0.lock().unwrap().recovery_error);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
+fn call_custody_post_cut_closure_observes_late_io_without_delivery_or_ack() {
     for new_generation in [false, true] {
         let mut f = Fixture::new(Role::HELP_HUMAN);
         f.start(true);
         *f.host.cce_after_cut.lock().unwrap() = Some(Box::new(move |h, _| {
             let mut i = h.inner.0.lock().unwrap();
             Host::close_generation(&mut i);
+            assert_eq!(i.server_requests.entries()[0]["state"],"reply-outcome-unknown");
             if new_generation {
                 i.generation["spawnCounter"] = json!(2);
             }
@@ -409,7 +436,7 @@ fn call_custody_post_cut_closure_keeps_private_actual_write_not_canonical_succes
         assert_eq!(f.view()["state"], 3);
         assert_eq!(f.view()["canonicalUpdated"], false);
         let r = f.host.inner.0.lock().unwrap().server_requests.records();
-        assert_eq!(r[0]["replyWriteResult"], "not-attempted");
+        assert_eq!(r[0]["replyWriteResult"], "written");
         assert_eq!(r[0]["acknowledgmentObservation"]["status"], "not-observed");
     }
 }

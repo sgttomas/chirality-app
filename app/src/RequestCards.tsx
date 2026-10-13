@@ -125,13 +125,16 @@ export function cardState(request: Json): string {
   const method = text(request?.method);
   switch (request?.state) {
     case "received": return "Received; not yet shown for an answer";
-    case "errored": return origin?.class === "app-rule" ? `Codex asked for something the App does not provide (${method}): answered with an error by rule ${text(origin.ruleName)}` : `Unrecognized request from Codex (${method}): answered with an error`;
+    case "errored":
+      if (request?.closedGeneration) return request?.replyWriteResult === "written" ? "The error reply was written locally; whether Codex received or acted on it is unknown" : "The error reply could not be completely written; whether Codex received or acted on it is unknown";
+      return origin?.class === "app-rule" ? `Codex asked for something the App does not provide (${method}): answered with an error by rule ${text(origin.ruleName)}` : `Unrecognized request from Codex (${method}): answered with an error`;
     case "outstanding": return "Waiting for your answer";
     case "settling": return "Sending your answer: not yet written to Codex";
-    case "answered": return confirmed ? "Your answer was written; Codex reported the request resolved" : "Your answer was written to Codex; Codex has not confirmed it";
+    case "reply-outcome-unknown": return "Reply outcome unknown: the Codex process ended before a write result was observed. Whether Codex received or acted on the reply is unknown";
+    case "answered": return confirmed ? "Your answer was written; Codex reported the request resolved" : request?.closedGeneration ? "Your answer was written locally; whether Codex received or acted on it is unknown" : "Your answer was written to Codex; Codex has not confirmed it";
     case "declined":
       if (origin?.class === "app-rule") return `Declined by App rule ${text(origin.ruleName)}, not by you`;
-      return confirmed ? "You declined; written; Codex reported the request resolved" : "You declined; written to Codex; Codex has not confirmed it";
+      return confirmed ? "You declined; written; Codex reported the request resolved" : request?.closedGeneration ? "You declined; the reply was written locally; whether Codex received or acted on it is unknown" : "You declined; written to Codex; Codex has not confirmed it";
     case "settle-write-failed": return "Your answer could not be written; whether Codex received it is unknown";
     case "resolved-by-supplier": return `Resolved by Codex before you answered (cause: ${text(request?.supplierResolution?.cause) || "not reported"})`;
     case "ended-unanswered": return request?.endContext === "app-quit" ? "Ended unanswered: the Codex process ended when you quit" : "Ended unanswered: the Codex process ended";
@@ -288,6 +291,11 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
     </div>}
     {error && <p role="alert">{error}</p>}
     <p><small>Register: state <code>{text(request.state)}</code> · reply <code>{text(request.replyWriteResult)}</code> · Codex confirmation <code>{text(request.acknowledgmentObservation?.status ?? "not-observed")}</code>{request.settlement && <> · settled by <code>{text(request.settlement.origin)}</code> as <code>{text(request.settlement.kind)}</code></>}</small></p>
+    {request.closedGeneration && request.settlement && <section aria-label="Retained reply">
+      <p>Prepared reply:</p>
+      {request.settlement.nativeContent !== undefined && <pre style={pre}>{JSON.stringify(request.settlement.nativeContent, null, 2)}</pre>}
+      {request.settlement.redaction && <p>Secret answer values are removed; the original question references are retained.</p>}
+    </section>}
     <details><summary>Native request parameters and owning generation (as received)</summary><pre style={pre}>{JSON.stringify({ method, requestIdentity: request.requestIdentity, generation: request.generation, parameters: p }, null, 2)}</pre></details>
   </article>;
 }

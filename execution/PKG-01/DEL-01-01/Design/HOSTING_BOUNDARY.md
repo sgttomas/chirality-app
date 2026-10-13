@@ -2427,3 +2427,38 @@ rules run as written, not a VER pass.
 | VC-29 Double fidelity (v0.8) | The eight committed transcripts | Replay each transcript's App frames against the double seeded from it, then against the double seeded from `A-bin-freshhome` | Supplier frames byte-identical and exit code 0; across seeds equal except `emittedAtMs`; constructed and mutated frames valid against the committed bundle | Yes. **Ran 2026-09-30: pass** (8/8 byte-identical; cross-seed equal) | VER-001, VER-002 |
 | VC-30 Capability account completeness (v0.8; §8.4) | Committed bundles, `_spike/inventory.txt`, the recorded accepted-method list, the five TS-only names | Parse §8.4 | Each of 19 item kinds, 11 server-request kinds, 170 client methods and 85 notifications in exactly one group; variant and (obs) marks match the sources. The (obs) marks stay the spike's; OBS-1 and OBS-1b observations are in §10.1, not in the marks | Yes. **Ran 2026-09-30: pass**; rerun at the RP-3 repair: pass | OUT-002; DEP-02-01-025 |
 | VC-31 Name-to-group mapping (RP-3 repair; R14-5) | WD-v0.8 §4.2.5 and this §8.4 | Resolve each portable name's group and every supplier name its row cites | Each of WD's ten names resolves to one Part A group; every cited supplier name that §8.4 places in a group is a member of that group | Yes. **Ran 2026-09-30: pass**, as DEL-02-01's prototype check S-11 (`wdproto.py selftest`), which reads this file | OUT-002; DEP-02-01-025 |
+
+## Current implementation conditions
+
+**Reply outcome at generation close (Rust host).** The owner chose:
+
+> Close as “Reply outcome unknown” (Recommended)
+
+Preparation does not establish an actual write. Explicit private preparation
+and admission facts distinguish a queued reply from an admitted write. Closing
+while queued ends the request unanswered with its actual context and
+`not-attempted` result. Closing while an admitted write remains unobserved gives
+`reply-outcome-unknown`, result `unknown`, and the original close context. The
+prepared reply stays available, with secret values removed as before. Neither
+branch invents a write failure, successful reply or acknowledgment.
+
+Each existing guarded writer, including the dormant offered-call writer,
+publishes its immutable actual IO result outside the lifecycle lock. Observers
+and close retain a result completed before closure; a later observed result
+updates only the original full H5/request identity, even after replacement.
+The source stays closed. A local write proves neither Codex receipt nor action.
+Post-close supplier frames cannot acknowledge or re-admit that source. The
+guarded offered writer retains its receipt-cut resolution semantics; its
+private `canonicalUpdated` flag names the original caller's bookkeeping, not
+whether an observer/closer retained the source result. No issuer is activated.
+Live-home assessments keep eligible queued/in-progress work pending and refuse
+closed or superseded sources.
+
+The current public schema has a distinct `v0.11` identity and accepts prior
+`v0.10` records unchanged. The exact pre-change `v0.10` schema is retained
+beside it and in the compiled resources. It rejects the new unknown state and
+closed-source field; an older reader must report that limitation rather than
+claim a complete reading. The current source and embedded bytes are identical
+and bound in `runtime_core/MANIFEST.json`. The historical transition table
+above is unchanged. Local checks use owned stdio peers and actual REC storage;
+they establish no native walkthrough or supplier behavior.

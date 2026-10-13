@@ -135,7 +135,7 @@ impl ExecutionCustody {
                     items.push(json!({"threadId":thread,"turnId":turn,"itemId":id,"itemType":kind,"lastObservedStatus":"inProgress"}));
                 }
             }
-            let outstanding=requests.iter().filter(|r|r["generation"]==*generation&&r["state"]=="outstanding"&&r["nativeParameters"]["threadId"].as_str().is_some_and(|t|threads.iter().any(|s|s==t))).filter_map(|r|{
+            let outstanding=requests.iter().filter(|r|r["generation"]==*generation&&(r["state"]=="outstanding" || (r["state"]=="ended-unanswered" && r["closedGeneration"]==true))&&r["nativeParameters"]["threadId"].as_str().is_some_and(|t|threads.iter().any(|s|s==t))).filter_map(|r|{
                 let method=r["method"].as_str()?;let id=r.get("requestId")?;
                 let mut subject=json!({"threadId":r["nativeParameters"]["threadId"]});
                 for k in ["turnId","itemId"] {if let Some(v)=r["nativeParameters"][k].as_str().filter(|s|!s.is_empty()){subject[k]=json!(v);}}
@@ -147,6 +147,13 @@ impl ExecutionCustody {
         // still outstanding ended unanswered, and each written reply whose
         // acknowledgment was never observed (§8.2 `request_ended_unanswered`,
         // `acknowledgment_not_observed`). The entry is cited by reference only.
+        self.closed_request_outcomes(generation,cause,requests,at);
+    }
+    /// A late actual result stays on a source already closed, with no native
+    /// acknowledgment. Keep its custody limit once without reopening a source.
+    pub(super) fn closed_request_outcomes(&mut self,generation:&Value,cause:&str,requests:&[Value],at:&str) {
+        let Ok(g)=generation_ref(generation) else{return;};
+        if !self.closed.contains(&g){return;}
         for r in requests.iter().filter(|r| r["generation"] == *generation) {
             let (Some(method), Ok(identity)) = (r["method"].as_str(), serde_json::to_string(&r["requestId"])) else { continue };
             let mut entry = json!({"generation":g,"requestIdentity":identity,"method":method});
@@ -159,7 +166,8 @@ impl ExecutionCustody {
             }
             let origin = r["settlement"]["origin"].as_str().unwrap_or_default();
             let written = matches!(r["state"].as_str(), Some("answered" | "declined")) || (r["state"] == "errored" && r["laterProtocolError"] == true);
-            if r["state"] == "outstanding" {
+            if (r["state"] == "outstanding" || (r["state"] == "ended-unanswered" && r["closedGeneration"] == true))
+                && !self.events.iter().any(|e|e["eventId"] == format!("cev:rq04:{g}:{identity}")) {
                 self.events.push(json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq04:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"context":cause}));
             } else if written && r["replyWriteResult"] == "written" && !r["acknowledgment"].is_object()
                 && !self.events.iter().any(|e| e["eventId"] == format!("cev:rq05:{g}:{identity}"))
