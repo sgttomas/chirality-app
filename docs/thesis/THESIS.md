@@ -29,11 +29,9 @@ required to achieve it.
 This essay develops the operative view of the work introduced in the
 [shared introduction][S1]. Root asks what responsible participation should
 preserve; the App asks how those commitments become usable activity; SWBPIPE
-examines the resulting means in a particular engineering practice. The emphases
-do not divide philosophy into three separate territories. Each view asks what
-the work concerns, what supports its claims, how it proceeds and what matters.
-The [support-arrangement example][S2] follows these questions through one
-illustrative revision, rather than reporting a completed integration witness.
+examines the resulting means in a particular engineering practice. The
+[support-arrangement example][S2] connects the three through one illustrative
+revision, rather than reporting a completed integration witness.
 
 ## 1. The problem behind the application
 
@@ -51,7 +49,15 @@ was examined. A result must be understood under the conditions that produced
 it. If an agent and a person act through different versions of those meanings,
 they can appear to collaborate while changing different things.
 
-**why and under what conditions should an
+Interruption makes the problem concrete. In one observed App configuration,
+interrupting a turn running `sleep 90` ended the turn but did not establish that
+the command had stopped; later supplier history reported its completion.[O1]
+The person needed to know what happened before deciding how to continue.
+[Section 7.1](#71-a-counterexample-supplied-by-the-running-application) examines
+that observation and the limits of the App's display. The application needs to
+show what is known about the outcome and what remains uncertain.
+
+**Why and under what conditions should an
 application enable a general agent to participate in its work, and why should
 workflow authoring be the first exemplar of that participation?**
 
