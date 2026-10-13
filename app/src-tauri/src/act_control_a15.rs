@@ -611,6 +611,7 @@ impl ActControl {
         slot.capture_id = Some(cap_id.clone());
         slot.state = OfferState::Captured;
         let mut native = NativeCapture {
+            retention_activity: None,
             ordinal: self.native_captures.len(),
             target_log,
             a15: Some(A15Custody {

@@ -186,6 +186,14 @@ impl ProjectRecords {
             store: std::sync::Mutex::new(None),
         })
     }
+    fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
+        // A previously resolved reader belongs to that original store identity,
+        // even if another folder now stands at the project path. Consult its
+        // retention state without reassociating through the replacement path.
+        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir);}
+        let attachment=crate::records_store::attach(&self.root,false)?;
+        match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
+    }
     /// The explicit opened-project path this handle was opened from.
     pub fn root(&self) -> &Path {
         &self.root
@@ -198,6 +206,7 @@ impl ProjectRecords {
     /// dangling) or otherwise non-plain folder on the way is reported as an
     /// error, never as "no records".
     pub fn list_references(&self) -> Result<Vec<String>, String> {
+        let _admission=self.read_admission()?;
         let Some(dir) = self.workflow_dir(false)? else {
             return Ok(vec![]);
         };
@@ -271,6 +280,7 @@ impl ProjectRecords {
     }
 
     fn read_raw(&self, reference: &str) -> Result<ResolvedRecord, ResolutionError> {
+        let _admission=self.read_admission().map_err(ResolutionError::Unreadable)?;
         let k = key(reference)?;
         let dir = self.records(false).map_err(ResolutionError::Unreadable)?;
         let mut f = open_at(&dir, &format!("{k}.json"), libc::O_RDONLY).map_err(ioerr)?;
@@ -345,11 +355,14 @@ impl ProjectRecords {
         Ok(())
     }
     pub fn resolve(&self, reference: &str) -> Result<ResolvedRecord, ResolutionError> {
+        let _admission=self.read_admission().map_err(ResolutionError::Unreadable)?;
         let r = self.read_raw(reference)?;
         self.relations(r.envelope())?;
         Ok(r)
     }
     pub fn publish(&self, pending: &PendingRecord) -> Result<ResolvedRecord, String> {
+        let owning=crate::records_store::write_dir(&self.root)?;
+        let _admission=crate::records_retention::write_path(&owning)?;
         if pending.project != self.identity {
             return Err("pending WR record belongs to another project".into());
         }

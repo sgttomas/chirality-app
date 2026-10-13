@@ -54,6 +54,7 @@ enum FileActState {
     RecordPending,
 }
 pub(super) struct FileActSlot {
+    retention_activity: Option<storage::Ownership>,
     root: PathBuf,
     path: PathBuf,
     bytes: Vec<u8>,
@@ -66,6 +67,7 @@ pub(super) struct FileActSlot {
     uncertain_capture: Option<Value>,
 }
 impl FileActSlot {
+    pub(super) fn pending_native(&self)->bool{matches!(self.state,FileActState::CaptureUncertain|FileActState::RecordPending)}
     pub(super) fn set_recording_state(&mut self, recorded: bool) {
         self.state = if recorded {
             FileActState::Recorded
@@ -170,6 +172,7 @@ impl ActControl {
         self.file_offers.insert(
             id.clone(),
             FileActSlot {
+                retention_activity: None,
                 root: self.workspace.clone(),
                 path: path.to_path_buf(),
                 bytes,
@@ -302,6 +305,7 @@ impl ActControl {
         // The native event is not itself an admitted capture. Definite failure
         // before publication means nothing captured (AAC 4.1 step 6).
         let root = slot.root.clone();
+        let retention_activity=crate::records_retention::activity(&root)?;
         slot.state = FileActState::Dismissed; // consume this confirmation even on failure
         // The project's records store subtree (RS §13.8).
         let capture_file = storage::capture_file_for(&root, &capture)
@@ -321,12 +325,14 @@ impl ActControl {
                 // Keep the actual native facts but do not admit them to the writer
                 // or recreate absent bytes. Reconciliation requires stored bytes.
                 slot.state = FileActState::CaptureUncertain;
+                slot.retention_activity=retention_activity;
                 slot.uncertain_capture = Some(capture);
                 return Ok(
                     json!({"state":"capture publication uncertain","captureId":id,"captureDurability":"not established","recorded":false,"writeFailure":error}),
                 );
             }
         }
+        self.file_offers.get_mut(&reference.id).unwrap().retention_activity=retention_activity;
         self.admit_file_capture(reference, capture);
         let results = self.flush_native_locked();
         results
@@ -348,6 +354,7 @@ impl ActControl {
         self.native_captures.insert(
             id,
             NativeCapture {
+                retention_activity: slot.retention_activity.take(),
                 ordinal: self.native_captures.len(),
                 target_log: LOG.into(),
                 a15: None,

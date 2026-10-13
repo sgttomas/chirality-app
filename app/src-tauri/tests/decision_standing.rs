@@ -187,7 +187,13 @@ fn restoration_uses_only_existing_referent_bound_act_lapsed_history() {
 }
 #[test]
 fn historical_test_value_bytes_and_method_remain_unchanged() {
-    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1");
+    // This reader uses the same explicit store and physical root as the App;
+    // the historical fixture is read in place without minting its identity.
+    common::records_store();
+    let src = std::fs::canonicalize(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1"),
+    )
+    .unwrap();
     let log = src.join("records/coordination.rs.jsonl");
     let before = std::fs::read(&log).unwrap();
     let view = derive(&src, &["records/coordination.rs.jsonl"]);

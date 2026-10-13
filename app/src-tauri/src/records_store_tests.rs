@@ -577,7 +577,7 @@ fn the_registered_legacy_log_is_imported_and_its_original_never_read_again() {
     import(&root).unwrap();
     let dir = attach(&root, false).unwrap().dir.unwrap();
     assert_eq!(std::fs::read(dir.join(REGISTERED_COPY)).unwrap(), std::fs::read(&registered).unwrap());
-    assert_eq!(storage::registered_legacy_log(&root), dir.join(REGISTERED_COPY));
+    assert_eq!(storage::registered_legacy_log(&root).unwrap(), dir.join(REGISTERED_COPY));
     assert_eq!(storage::read_all(&root).0, vec![entry.clone()], "read from the imported copy");
     // A forged line added to the original afterwards: not read, a note.
     let copy = std::fs::read(dir.join(REGISTERED_COPY)).unwrap();
