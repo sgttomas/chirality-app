@@ -610,6 +610,8 @@ struct Imports {
     /// Imported originals (completed imports only): relative path ->
     /// (copy, sha256, stamp at import).
     covered: HashMap<String, (String, String, Value)>,
+    /// Originals the latest completed import refused, with its reason.
+    refused: HashMap<String, String>,
 }
 fn imports(dir: &Path) -> Result<Imports, String> {
     let lines = read_lines(&dir.join("imports.jsonl"))?;
@@ -626,6 +628,9 @@ fn imports(dir: &Path) -> Result<Imports, String> {
                         out.covered.insert(original.to_owned(), (copy.to_owned(), sha.to_owned(), file["stamp"].clone()));
                     }
                 }
+                out.refused = line["conflicts"].as_array().into_iter().flatten()
+                    .filter_map(|c| Some((c["original"].as_str()?.to_owned(), c["reason"].as_str()?.to_owned()))).collect();
+
             }
             _ => {}
         }
@@ -926,13 +931,13 @@ pub fn import(root: &Path) -> Result<Value, String> {
             // A late log that would bring a record identity the store's set
             // already holds is not copied: R-1 counts each identity once.
             Err(e) if e.kind() == std::io::ErrorKind::NotFound && store_held && file.copy.ends_with(".jsonl")
-                && held_identity(&attachment.root, bytes).is_some() => {
-                let held = held_identity(&attachment.root, bytes).unwrap_or_default();
-                conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("it holds record identity {held}, which the records store already holds; not copied, so each identity is counted once (R-1)")}));
+                && !held_identities(&attachment.root, bytes).is_empty() => {
+                let held = held_identities(&attachment.root, bytes);
+                conflicts.push(json!({"original":file.rel,"copy":file.copy,"heldIdentities":held.iter().take(HELD_SHOWN).collect::<Vec<_>>(),"heldCount":held.len(),
+                    "reason":format!("it holds record identities the records store already holds ({}); not copied, so each identity is counted once (R-1)", name_bounded(&held))}));
                 continue;
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-
                 #[cfg(test)]
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
@@ -958,12 +963,21 @@ pub fn import(root: &Path) -> Result<Value, String> {
         "files":files,"conflicts":conflicts,"censusChanged":census_changed}))?;
     Ok(outcome(&attachment, Some(id), census.len(), copied, present, conflicts, census_changed))
 }
-/// A record identity in a log's `bytes` that the project's record set (the
-/// store, read through the index) already holds.
-fn held_identity(root: &Path, bytes: &[u8]) -> Option<String> {
+/// Every record identity in a log's `bytes` that the project's record set
+/// (the store, read through the index) already holds, in log order.
+fn held_identities(root: &Path, bytes: &[u8]) -> Vec<String> {
     let ids: Vec<String> = bytes.split(|b| *b == b'\n').filter_map(|l| serde_json::from_slice::<Value>(l).ok())
         .filter_map(|v| v["recordId"].as_str().map(str::to_owned)).collect();
-    crate::records_index::with_index(root, |ix| ids.into_iter().find(|id| ix.holds(id)))
+    let mut held = crate::records_index::with_index(root, |ix| ids.into_iter().filter(|id| ix.holds(id)).collect::<Vec<_>>());
+    let mut seen = std::collections::HashSet::new();
+    held.retain(|id| seen.insert(id.clone()));
+    held
+}
+/// How many held identities a conflict names before "and N more".
+const HELD_SHOWN: usize = 20;
+fn name_bounded(ids: &[String]) -> String {
+    let shown = ids.iter().take(HELD_SHOWN).cloned().collect::<Vec<_>>().join(", ");
+    if ids.len() > HELD_SHOWN { format!("{shown}, and {} more", ids.len() - HELD_SHOWN) } else { shown }
 }
 /// What `import` reports, with the trust its copies carry.
 fn outcome(attachment: &Attachment, id: Option<String>, census: usize, copied: usize, present: usize, conflicts: Vec<Value>, census_changed: Vec<String>) -> Value {
@@ -1071,9 +1085,14 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
             return notes;
         }
     };
+    let refused = imports(&dir).map(|i| i.refused).unwrap_or_default();
     for file in census {
         match covered.get(&file.rel) {
-            None => notes.push(format!("{} is a §13.7 record not imported into the records store; it is not read (import to include it)", file.rel)),
+            None => match refused.get(&file.rel) {
+                // Refused by the last completed import (each identity is counted once).
+                Some(reason) => notes.push(format!("{} is a §13.7 record not imported into the records store: {reason}; it is not read", file.rel)),
+                None => notes.push(format!("{} is a §13.7 record not imported into the records store; it is not read (import to include it)", file.rel)),
+            },
             Some((copy, sha, stamp)) => {
                 if drifted(&file.original, sha, stamp) {
                     notes.push(format!("{} differs from its imported copy {copy} (sha256 {sha} at import); the records store copy governs", file.rel));

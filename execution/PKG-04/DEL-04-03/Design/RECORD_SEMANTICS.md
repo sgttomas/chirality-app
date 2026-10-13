@@ -1653,12 +1653,16 @@ joined the store.
   imported (not read)"; neither refuses recording. Such a late file is
   imported by the same explicit act. Its "started" line records that the
   store already held the project's records, so while that import is
-  incomplete the project is still read from the store, as before it started,
-  and only writes wait for its completion. Once it completes, its copies
-  join the store set at their keys (a run or act log under `runs/` or
-  `acts/`, the registered log at `legacy/coordination.rs.jsonl`); a late log
-  that holds a record identity the store already holds is a conflict and is
-  not copied, so R-1 counts each identity once. An imported copy carries
+  incomplete the project is still read from the store, with the copies made
+  so far, and only writes wait for its completion. Those copies are
+  byte-identical to their originals (verified by SHA-256) and were checked
+  against the store's identities before they were made. Once it completes,
+  its copies join the store set at their keys (a run or act log under
+  `runs/` or `acts/`, the registered log at `legacy/coordination.rs.jsonl`);
+  a late log that holds record identities the store already holds is a
+  conflict and is not copied, so R-1 counts each identity once. The conflict
+  names every such identity (the first 20, then how many more) in the
+  import's result, its "completed" line and the note shown for the file. An imported copy carries
   only the trust of the project folder it came from, which an agent could
   write: the import proves the copy equals the file, not who wrote it (the
   import result and the host view say so). A pending submission written

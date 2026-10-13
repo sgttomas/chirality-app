@@ -657,7 +657,8 @@ fn probe_r17_interrupted_late_import_in_a_store_project() {
 #[test]
 fn a_completed_late_import_counts_each_identity_once() {
     let (root, held, late) = store_project_with_a_late_file();
-    // An agent also copies a store log into a §13.7 path under another key.
+    // An agent also copies a store log (two entries) into a §13.7 path under another key.
+    let second = records::append_project(&root, Some("run:s"), "writer:s", "evidence_limit", &APP_WRITER, body("second in the store")).unwrap();
     let store_log = storage::project_log(&root, Some("run:s"), "writer:s").unwrap();
     let copied_back = root.join(".chirality/records/acts/copy-of-store-log.jsonl");
     std::fs::copy(&store_log, &copied_back).unwrap();
@@ -665,14 +666,33 @@ fn a_completed_late_import_counts_each_identity_once() {
     assert_eq!(done["state"], "imported with conflicts", "{done}");
     assert!(done["conflicts"].as_array().unwrap().iter().any(|c| c["original"].as_str().unwrap().ends_with("copy-of-store-log.jsonl")
         && c["reason"].as_str().unwrap().contains("already holds")), "{done}");
+    // Every held identity is named: in the result, the completed line and the note.
+    let ids = [held["recordId"].as_str().unwrap(), second["recordId"].as_str().unwrap()];
+    let conflict = done["conflicts"].as_array().unwrap().iter().find(|c| c["original"].as_str().unwrap().ends_with("copy-of-store-log.jsonl")).unwrap();
+    assert_eq!(conflict["heldCount"], 2);
+    assert!(ids.iter().all(|id| conflict["reason"].as_str().unwrap().contains(id) && conflict["heldIdentities"].as_array().unwrap().iter().any(|h| h == id)), "{conflict}");
     let dir = attach(&root, false).unwrap().dir.unwrap();
+    let completed = read_lines(&dir.join("imports.jsonl")).unwrap().into_iter().rev().find(|l| l["event"] == "completed").unwrap();
+    assert!(completed["conflicts"].as_array().unwrap().iter().any(|c| ids.iter().all(|id| c["reason"].as_str().unwrap().contains(id))));
+    assert!(notes(&root).iter().any(|n| n.contains("copy-of-store-log.jsonl") && ids.iter().all(|id| n.contains(id))), "{:?}", notes(&root));
     assert!(!dir.join("acts/copy-of-store-log.jsonl").exists(), "not copied");
     assert!(dir.join("acts/late-writer.jsonl").exists());
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "no duplicate identity: {limits:?}");
-    assert_eq!(entries.len(), 2);
+    assert_eq!(entries.len(), 3);
+    assert_eq!(entries.iter().filter(|e| e["recordId"] == second["recordId"]).count(), 1);
     assert_eq!(entries.iter().filter(|e| e["recordId"] == held["recordId"]).count(), 1);
     assert_eq!(entries.iter().filter(|e| e["recordId"] == late["recordId"]).count(), 1);
     assert!(records::append_project(&root, Some("run:s"), "writer:s", "evidence_limit", &APP_WRITER, body("after")).is_ok());
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn held_identities_are_named_up_to_a_bound() {
+    let ids: Vec<String> = (0..23).map(|n| format!("rec:app:held-{n}")).collect();
+    let named = name_bounded(&ids);
+    assert!(named.contains("rec:app:held-19") && !named.contains("rec:app:held-20"), "{named}");
+    assert!(named.ends_with(", and 3 more"), "{named}");
+    assert_eq!(name_bounded(&ids[..2]), "rec:app:held-0, rec:app:held-1");
+}
+
