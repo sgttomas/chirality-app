@@ -132,10 +132,31 @@ test('quoted moved/foreign registration history exposes no action even with forg
   assert.match(h(RegistrationEvidence,{evidence:{rows:[{...old,claims:[{decisionActor:{},installation:{reference:null}}]}],limits:[]}}),/Capturing installation unknown/);
 });
 
-
 test('records capability binding reports cold unknown and publication limits for the current generation',()=>{
   const {RecordsCapabilityBindings}=loadSrc('App');const generation={appSession:'current',home:'home',spawnCounter:1};
   const host={generation,threads:[{generation,threadId:'cold',recordsCapabilityBinding:{state:'unknown/unsupported',limit:'original receipt absent'}},{generation,threadId:'hot',recordsCapabilityBinding:{state:'bound in current generation',persistence:'memory-only',limit:'folder flush unconfirmed'}},{generation:{...generation,appSession:'old'},threadId:'stale',recordsCapabilityBinding:{state:'bound in old generation'}}]};
   assert.deepEqual(buttons(RecordsCapabilityBindings({host})),[]);
   const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
+});
+
+test('one existing library entry goes from in-place review to an explicit native registration press',async()=>{
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {ok:true};};
+  let data={selection:null,activeLibrary:'lib-one',libraries:[{reference:'lib-one',registered:[]}],reviews:[]};
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
+  const render=()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act}));
+  await React.act(render);
+  const [name]=container.querySelectorAll(e=>e.localName==='input');
+  await React.act(()=>props(name).onChange({target:{value:'sample'}}));
+  const [review]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Review this unregistered in-place library entry');
+  assert.ok(review);assert.equal(props(review).disabled,false);
+  await React.act(async()=>{props(review).onClick();await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(calls,[['workflow_review',{names:['sample'],inPlace:true}]],'review requests no draft creation or act');
+  data={...data,activeReview:'review-one',reviews:[{reference:'review-one',status:{entries:[]}}]};
+  await React.act(render);
+  const [register]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Register this review through native A15 confirmation…');
+  assert.ok(register);assert.equal(props(register).disabled,false);
+  await React.act(async()=>{props(register).onClick();await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(calls[1],['workflow_register_native',{reviewRef:'review-one'}],'the press only opens host-owned native confirmation');
+  await React.act(()=>root.unmount());
 });

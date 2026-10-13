@@ -335,8 +335,10 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert!(count_acts(&all, &read, &root).is_empty(), "rebuildable: acts already cited are not read again (RC-10)");
     // While the arrival still waits, an act already not counted is not cited again.
     let waiting: Vec<Value> = all.iter().take_while(|e| e["kind"] != "act_counted").cloned().collect();
-    let mut first_two = read.clone();
-    first_two.acts.retain(|a| a["record"]["recordId"] == a4.as_str() || a["record"]["recordId"] == old.as_str());
+    let first_two = ActRead::new(ActReadData {
+        acts: read.acts.iter().filter(|a| a["record"]["recordId"] == a4.as_str() || a["record"]["recordId"] == old.as_str()).cloned().collect(),
+        unresolved: read.unresolved.clone(),
+    });
     assert!(count_acts(&waiting, &first_two, &root).is_empty(), "the not-counted acts are cited once");
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -1107,7 +1109,7 @@ fn unavailable_or_incomparable_content_claims_no_lapse() {
     let legacy = json!({"method":crate::util::LEGACY_FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(b"v1")});
     let run = vec![json!({"kind":"checkpoint_arrival","body":arrival}),
         json!({"kind":"disposition_change","body":{"arrival":cp_rely(),"disposition":"performed","performanceOrdinal":1,"answeredBy":[id]}})];
-    let read = ActRead { acts: vec![json!({"record":{"kind":"human_act","recordId":id,"body":{"actKind":"A7","captureTime":AFTER,"boundSubject":[file_str(&root)],"boundContent":[legacy]}}})], unresolved: vec![] };
+    let read = ActRead::new(ActReadData { acts: vec![json!({"record":{"kind":"human_act","recordId":id,"body":{"actKind":"A7","captureTime":AFTER,"boundSubject":[file_str(&root)],"boundContent":[legacy]}}})], unresolved: vec![] });
     let mut reads = Vec::new();
     let outputs = observe_lapses(&run, &read, AFTER, &mut |p| { reads.push(p.to_path_buf()); Current::Present(crate::util::sha256_hex(b"v2")) });
     valid(&outputs);
@@ -1604,5 +1606,42 @@ fn the_act_read_is_kept_only_while_its_records_and_captures_are_unchanged() {
     let changed = project_act_records(&root).unwrap();
     assert_eq!((changed.acts.len(), changed.unresolved.len()), (1, 1), "a changed capture is verified again: {changed:?}");
     assert_eq!(format!("{changed:?}"), format!("{:?}", fresh(&root)));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A reader may finish with an earlier observation after its cache has been
+// replaced. Rechecking the source must not mutate that observation or let the
+// new read count the capture that has since ceased to resolve.
+#[test]
+fn a_held_act_observation_survives_cache_replacement_unchanged() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let valid = act(&root, "A7", &file, "v1", AFTER);
+    record_for(&root, &capture_of("act", "A7", &file, &digest("v1"), LATER), &crate::records::APP_INTERFACE);
+    let (all, _, held) = observe_with(&root);
+    assert_eq!((held.acts.len(), held.unresolved.len()), (1, 1));
+    let original_acts = serde_json::to_vec(&held.acts).unwrap();
+    let original_unresolved = serde_json::to_vec(&held.unresolved).unwrap();
+    let waiting: Vec<_> = all.iter().take_while(|e| e["kind"] != "act_counted").cloned().collect();
+    let counted = count_acts(&waiting, &held, &root);
+    assert!(counted.iter().any(|(kind, body)| *kind == "act_counted" && body["act"]["recordId"] == valid));
+
+    let capture = crate::storage::write_capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let mut changed: Value = serde_json::from_slice(&std::fs::read(&capture).unwrap()).unwrap();
+    changed["purpose"] = json!("Changed after the earlier observation.");
+    std::fs::write(&capture, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let current = project_act_records(&root).unwrap();
+    assert_eq!((current.acts.len(), current.unresolved.len()), (0, 2));
+    assert!(!count_acts(&waiting, &current, &root).iter().any(|(kind, _)| *kind == "act_counted"));
+    assert_eq!(serde_json::to_vec(&held.acts).unwrap(), original_acts);
+    assert_eq!(serde_json::to_vec(&held.unresolved).unwrap(), original_unresolved);
+    assert_eq!(count_acts(&waiting, &held, &root), counted);
+    let unreadable = crate::storage::project_log(&root, None, "incomplete-observation").unwrap();
+    std::fs::create_dir_all(unreadable.parent().unwrap()).unwrap();
+    std::fs::write(&unreadable, b"not a record\n").unwrap();
+    assert!(project_act_records(&root).unwrap_err().contains("record set is incomplete"), "an immutable cached observation cannot answer a new incomplete source read");
+    assert_eq!(serde_json::to_vec(&held.unresolved).unwrap(), original_unresolved);
+    forget_act_read_for_test();
+    assert_eq!(serde_json::to_vec(&held.acts).unwrap(), original_acts, "dropping the cached observation leaves a reader's snapshot intact");
     std::fs::remove_dir_all(root).unwrap();
 }

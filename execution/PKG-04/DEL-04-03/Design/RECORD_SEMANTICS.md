@@ -573,6 +573,11 @@ operations (proposals, applications, undo) are never flagged or annotated
   draft** and the **prior revision** (or none) (R17-11; C-01); purpose:
   "make it available in the project library" or "… in the user library"
   (ACT-POLICY-v0.9 §2.1). **Re-confirmation (CC-WR-RECONFIRM; WR-v0.2 §4.8).** An A15 composed from a WR descriptor with disposition *re-confirmation* re-confirms a registered revision for use in the App session that captured it: bound subject that revision; bound content its identity; relations the reviewed draft and that revision's own prior revision (or none); purpose "make it available again in this App session from the project library" or "… from the user library". It registers no new revision. It is new capture evidence of the person's act; it makes no earlier A15, capture or record trusted, and §14.1a and R-7 are unchanged. **Several entries in one act (DECISION-L L-4):**
+  A single existing entry reviewed in place uses the single A15 form with
+  `relations.reviewedDraft.draft` as WR ID-3 `entry:` and null `priorRevision`;
+  its singular wording and scope refer to that entry (owner, 2026-10-13:
+  "Allow direct single-entry registration (Recommended)"). The compatibility
+  relation name implies no created draft. For two or more entries,
   one A15 may register several library entries in place, each entry's bytes
   bound (*registered entries*, §6.1), like a batch A5 listing several items;
   wording "register workflow revisions", purpose "make them available in
@@ -2477,6 +2482,11 @@ machine; `records::durability_tests`, and the ignored
   R-8), in one look at the index. It keeps its result while the index's
   act records, every capture it read (stamp, change time included) and
   the seal key basis are unchanged.
+  The completed checkpoint act read is an immutable in-process snapshot
+  shared by the cache and its readers; keeping or returning it copies no
+  record or capture bodies. A reader's earlier observation remains unchanged
+  after the cache is replaced. A new read still checks the same completeness,
+  act epoch, capture stamps and seal-key basis before using a kept snapshot.
 
   Remaining blind spot: an in-place edit of a log's earlier bytes made
   together with an append, outside the kept 4 KiB, is not seen at once.
@@ -2554,6 +2564,26 @@ machine; `records::durability_tests`, and the ignored
   cache and source changes refuse a staged transfer. New and removed logs are
   included even when no reader or writer refreshes the index. Earlier full act
   projection and diagnostic memory limits remain separate.
+
+  **Shared checkpoint act snapshot measurement (2026-10-13, debug build).**
+  The maintained ignored `records_scale_report`, with
+  `CHIRALITY_SCALE_TIERS=10:300:1000,100:3000:1000`, ran before and after this
+  sharing change, in fresh child processes on the same macOS machine. Baseline
+  is `4e240843bd`, which already has the derived SQLite index. Each run log has
+  30 entries; each act cites its own sealed synthetic capture; each tier has
+  1,000 ledger rows. The act child retains the first read while reading again
+  after a run entry, so its peak includes both observations and the cache.
+
+  | Runs / acts | First act read, before / shared | Kept read after a run entry, before / shared | Peak act-child RSS, before / shared |
+  |---|---|---|---|
+  | 10 / 300 | 561 / 553 ms | 3.6 / 1.9 ms | 61.2 / 57.9 MB |
+  | 100 / 3,000 | 2.39 / 2.47 s | 28.5 / 12.6 ms | 201.7 / 155.8 MB |
+
+  These are bounded debug observations, not release latency estimates or a
+  claim that the first read became faster. A kept read still checks every
+  capture's stamp, and first-use source validation, full correction projection
+  and capture verification remain. No 100,000-act measurement was repeated;
+  the earlier large full-projection memory limit is not claimed resolved.
 
 ## 15. Local prototype (R12-3)
 

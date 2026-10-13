@@ -122,6 +122,9 @@ impl BoundReview {
             {
                 return Err("A15 complete ordered content/ID-3/tuple binding disagreement".into());
             }
+            if b.reviewed_id3.starts_with("entry:") && b.prior.is_some() {
+                return Err("A15 in-place entries must have no prior revision in this source-qualified slot".into());
+            }
             if kind == "a15_multi_descriptor"
                 && (!b.reviewed_id3.starts_with("entry:") || b.prior.is_some())
             {
@@ -147,6 +150,9 @@ impl BoundReview {
         // Closed source and mirrored field facts must ALSO match the descriptor.
         if kind == "a15_descriptor" {
             let b = &bindings[0];
+            if b.reviewed_id3.starts_with("entry:") && (descriptor["disposition"] != "in place" || descriptor["wording"] != "register workflow revision") {
+                return Err("A15 single in-place entry requires singular registration disposition".into());
+            }
             if descriptor["subject"]
                 != serde_json::to_value(&b.subject).map_err(|e| e.to_string())?
                 || descriptor["bound_content"] != b.content()
@@ -1382,4 +1388,82 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn a15_single_entry_native_offer_capture_is_singular_and_bound_to_actual_entry() {
+        let (root, session) = library(&["sample"], true);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let slot = &ac.a15_offers[&offer.id];
+        assert_eq!(slot.offer["wording"], "register workflow revision");
+        assert_eq!(slot.offer["descriptorKind"], "a15_descriptor");
+        assert!(slot.offer["entries"][0]["reviewedDraft"]["draft"]
+            .as_str()
+            .unwrap()
+            .starts_with("entry:"));
+        assert_eq!(slot.offer["entries"][0]["priorRevision"], Value::Null);
+        let current = session.current().unwrap();
+        let HotA15Result::Recorded(receipt) = ac
+            .confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current)
+            .unwrap()
+        else {
+            panic!("synthetic explicit native event must record")
+        };
+        assert_eq!(
+            receipt.witness.original_capture["descriptorKind"],
+            "a15_descriptor"
+        );
+        assert_eq!(
+            receipt.witness.original_capture["entries"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            receipt.witness.durable_record["body"],
+            a15_body(&receipt.witness.original_capture)
+        );
+        assert!(
+            receipt.witness.durable_record["body"]["relations"]["reviewedDraft"]["draft"]
+                .as_str()
+                .unwrap()
+                .starts_with("entry:")
+        );
+        assert_eq!(
+            receipt.witness.original_capture["installation"]["verification"],
+            "unverified"
+        );
+        assert!(!root.join(".chirality/workflow-drafts").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn a15_single_entry_stale_content_actor_or_context_cannot_capture() {
+        for mode in ["content", "actor", "context"] {
+            let (root, session) = library(&["sample"], true);
+            let (mut ac, offer, mut actor, mut context, digest) = ready(&root, &session);
+            if mode == "content" {
+                std::fs::write(
+                    root.join(".chirality/workflows/sample/WORKFLOW.md"),
+                    b"changed",
+                )
+                .unwrap();
+                assert!(session.current().is_err());
+            } else {
+                if mode == "actor" {
+                    actor["displayName"] = json!("changed fixture person");
+                } else {
+                    context["home"] = json!("changed fixture home");
+                }
+                assert!(ac
+                    .confirm_a15_after_native_event(
+                        &offer,
+                        event(&offer, digest, actor, context),
+                        &session.current().unwrap()
+                    )
+                    .is_err());
+            }
+            assert!(!storage::library_log(&root).exists());
+            assert!(!root.join(".chirality/workflow-drafts").exists());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
 }

@@ -33,7 +33,7 @@ needs:
 - from: DEL-02-02
   condition: 'Receive source-qualified draft identity and actual draft/registration/collision/refusal
     transitions from the workflow workspace for native presentation, the A15 descriptor (one per act:
-    one reviewed draft, or several library entries registered in place) bound to the exact reviewed content,
+    one reviewed draft, one existing entry reviewed in place, or several library entries registered in place) bound to the exact reviewed content,
     and the run-start text and run-end line App DEL-02-02 supplies for the turns this slice composes.
 
 
