@@ -509,6 +509,7 @@ impl ReadLog {
 /// The capability the host offers in its current project.
 pub struct RecordsCapability {
     project: PathBuf,
+    project_identity: Option<Value>,
     root: ProjectRoot,
     source: Box<dyn RecordsSource>,
     log: Mutex<ReadLog>,
@@ -542,7 +543,7 @@ impl RecordsCapability {
         Ok(Self::build(project, source, LogPlace::Fixed(read_log)))
     }
     fn build(project: &Path, source: Box<dyn RecordsSource>, place: LogPlace) -> Self {
-        Self { project: project.to_path_buf(), root: ProjectRoot::new(project, project), source, legacy: None,
+        Self { project: project.to_path_buf(), project_identity: Self::directory_identity(project).ok(), root: ProjectRoot::new(project, project), source, legacy: None,
             log: Mutex::new(ReadLog { place, path: None, answered: HashSet::new(), recent: Vec::new(), limit: None }) }
     }
     /// §13.9: the App-wide read log an earlier build kept in App data
@@ -556,6 +557,18 @@ impl RecordsCapability {
         }
         self
     }
+    fn directory_identity(project: &Path) -> Result<Value, String> {
+        use std::os::unix::fs::MetadataExt;
+        let canonical = project.canonicalize().map_err(|_| "records capability physical project unavailable")?;
+        let metadata = std::fs::metadata(&canonical).map_err(|_| "records capability physical project unavailable")?;
+        if !metadata.is_dir() { return Err("records capability physical project is not a directory".into()); }
+        Ok(json!({"canonical":crate::attachments::native_path_identity(&canonical),"device":metadata.dev(),"inode":metadata.ino()}))
+    }
+    pub(crate) fn project_identity(&self) -> Result<Value, String> {
+        let current = Self::directory_identity(&self.project)?;
+        if self.project_identity.as_ref() != Some(&current) { return Err("records capability physical project changed; configure it again explicitly".into()); }
+        Ok(current)
+    }
     /// Whether a conversation started in `cwd` is in this project.
     pub fn offered_for(&self, cwd: &str) -> bool {
         Path::new(cwd).canonicalize().is_ok_and(|c| c == self.project)
@@ -565,11 +578,14 @@ impl RecordsCapability {
     /// recorded returns nothing. The records are read without the log held,
     /// so calls of other conversations do not wait on this read.
     pub fn answer(&self, call: &Call, cwd: Option<&str>) -> Value {
+        let physical_project = self.project_identity();
         let read_id = crate::util::opaque_id("rread:").unwrap_or_else(|_| "rread:unavailable".into());
         let key = (call.generation.clone(), call.thread.clone(), call.call.clone());
         let repeat = !self.log.lock().unwrap().answered.insert(key.clone());
         let request = if repeat {
             Err("this call was answered already; nothing read again".to_string())
+        } else if let Err(limit) = physical_project {
+            Err(limit)
         } else if !cwd.is_some_and(|c| self.offered_for(c)) {
             Err("the conversation is not in this App's current project; nothing read".to_string())
         } else {
@@ -579,8 +595,10 @@ impl RecordsCapability {
             Err(reason) => (refusal_text(&read_id, &reason), false, json!({"outcome":"refused","refusal":reason})),
             Ok(request) => {
                 let corpus = self.source.read();
-                let (text, page) = bounded_document(&read_id, &request, page(&corpus, &request, &self.root));
-                match text {
+                let prepared = self.project_identity().map(|_|bounded_document(&read_id, &request, page(&corpus, &request, &self.root)));
+                match prepared {
+                    Err(reason) => (refusal_text(&read_id,&reason), false, json!({"outcome":"refused","refusal":reason})),
+                    Ok((text,page)) => match text {
                     Some(text) => {
                         let record = json!({"outcome":"returned","returned":{"items":page.items.len(),"bytes":text.len(),
                             "content":{"method":EXACT_BYTES,"value":crate::util::sha256_hex(text.as_bytes())},"next":page.next,"recordIds":page.record_ids,"limits":page.limits.len()}});
@@ -590,8 +608,13 @@ impl RecordsCapability {
                         let reason = "no page of these records fits the 32 KiB bound; nothing returned";
                         (refusal_text(&read_id, reason), false, json!({"outcome":"refused","refusal":reason}))
                     }
+                    },
                 }
             }
+        };
+        let (text,success,record) = match self.project_identity() {
+            Ok(_) => (text,success,record),
+            Err(reason) => (refusal_text(&read_id,&reason),false,json!({"outcome":"refused","refusal":reason})),
         };
         let mut entry = json!({"format":"chirality.records-read-log","formatVersion":"0.1","readId":read_id,"at":now_rfc3339(),
             "appSession":call.app_session,"generation":call.generation,"requestIdentity":bounded(&serde_json::to_string(&call.request).unwrap_or_default(), 256),
