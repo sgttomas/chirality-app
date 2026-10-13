@@ -2722,7 +2722,7 @@ pub fn assess_native_home_work(
     let (cursor, position) = runtime.cursor();
     let observation = home.host.observe(cursor, position);
     let snapshot = &observation["snapshot"];
-    if snapshot["generation"] != *generation || snapshot["state"] != "ready" {
+    if snapshot["generation"] != *generation || snapshot["state"] != "ready" || snapshot["generationClosed"] == true {
         return Err("Selected native home/full generation is unavailable for assessment; no window/home fallback".into());
     }
     let received = runtime.receive(&observation);
@@ -2758,7 +2758,7 @@ pub fn assess_native_home_work(
             unresolved_turns.push(json!({"threadId":turn["threadId"],"turnId":turn["turnId"],"reportedStatus":turn["nativeTurn"]["status"],"terminalEventObserved":turn["terminalEventObserved"],"observationEnded":turn["observationEnded"],"limit":"progress memo lacks current target warrant or is contradictory; activity not established, no ended inference"}));
         }
     }
-    let requests=snapshot["serverRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&request["state"]=="outstanding").map(|request|json!({"generation":request["generation"],"requestIdentity":request["requestIdentity"],"method":request["method"],"state":request["state"],"threadId":request["nativeParameters"]["threadId"],"turnId":request["nativeParameters"]["turnId"]})).collect::<Vec<_>>();
+    let requests=snapshot["serverRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&request["closedGeneration"]!=true&&matches!(request["state"].as_str(),Some("outstanding"|"settling"))).map(|request|json!({"generation":request["generation"],"requestIdentity":request["requestIdentity"],"method":request["method"],"state":request["state"],"threadId":request["nativeParameters"]["threadId"],"turnId":request["nativeParameters"]["turnId"]})).collect::<Vec<_>>();
     let native = &received["nativeView"];
     let valid_view =
         native["generation"] == *generation && received["nativeViewObservationEnded"] != true;

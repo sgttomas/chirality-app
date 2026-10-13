@@ -914,8 +914,11 @@ correlation limits remain explicit and cannot become a valid full custody tuple.
 
 **Version and older-reader boundary.** The existing contract versions schemas
 by `$id`, not by a record field or ledger header. Preserve the exact 0.2 schema
-as `recovery.app-ledger-entry.v0.2.schema.json`; the current schema file receives
-the distinct `…:app-ledger-entry:0.3` identity. 0.3 accepts old 0.2 rows unchanged
+as `recovery.app-ledger-entry.v0.2.schema.json`; the item-association format has
+the distinct `…:app-ledger-entry:0.3` identity and is now retained as
+`recovery.app-ledger-entry.v0.3.schema.json`. The current request-close format
+has identity `…:app-ledger-entry:0.4` (Current implementation conditions).
+0.3 accepts old 0.2 rows unchanged
 and new known references; mixed old/new rows use that reader. No historical row
 is rewritten, migrated, deleted or backfilled, and no record version/header,
 ledger kind, sidecar, tag convention or second recorder is introduced. Schema
@@ -947,7 +950,7 @@ item across restart and covered no App quit or relaunch.
 |---|---|---|---|
 | `recovery.stop-request.schema.json` | `urn:chirality:app-v4:del-01-02:stop-request:0.2` | One stop-request record (§3.4); v0.2 adds `home`, cause *codex-stop* with its labels, `itemsNotCompleted` | `…example.valid.json`: a person's interrupt in H-acct, settled *interrupted*, one item completed after the request, one reasoning item not completed, one child still active. `…example.invalid.json`: *settled* with outcome source *not-observed* (a settled outcome must be observed) |
 | `recovery.custody-event.schema.json` | `urn:chirality:app-v4:del-01-02:custody-event:0.2` | The custody facts offered to receivers: `observation_lost`, `observation_recovered`, `turn_outcome`, `request_ended_unanswered`, `acknowledgment_not_observed`, `app_restart_interruption`. Every event has standing `App-observed`. v0.2 adds `home`; `turn_outcome` causes *codex-stop* and *cancel-answer* (with `causeRequest`, never with a stop request) and `itemsNotCompleted`; `historyNote` on a recovered turn (G-5) | Valid: an `observation_lost` after a supplier exit with a live turn, an in-flight MCP call and an outstanding approval. Invalid: an `observation_lost` with cause `window-closed` (observer loss is not observation loss, DEF-1) |
-| `recovery.app-ledger-entry.schema.json` | `urn:chirality:app-v4:del-01-02:app-ledger-entry:0.3` | The App ledger (§7); v0.2 adds `home`, `forkedFrom`, ordered tags (`seq`), `openItems`, `abortNoteExpected`, and the kind `codex_stop` | Valid: a `register_entry_summary` ended unanswered at a supplier exit. Invalid: a summary carrying the request's native parameters (a command line): content is never copied |
+| `recovery.app-ledger-entry.schema.json` | `urn:chirality:app-v4:del-01-02:app-ledger-entry:0.4` | The App ledger (§7 and Current implementation conditions); v0.2 adds `home`, `forkedFrom`, ordered tags (`seq`), `openItems`, `abortNoteExpected`, and the kind `codex_stop` | Valid: a `register_entry_summary` ended unanswered at a supplier exit. Invalid: a summary carrying the request's native parameters (a command line): content is never copied |
 
 No kind in these formats is a human act, an approval, an acceptance, a run
 end or an operation outcome; the schemas have no place for one (C-08 checks
@@ -1207,6 +1210,37 @@ qualified.
 | *Closed in v0.2:* U-R9 (C-12: DEL-01-04 offers Stop Codex and Restart Codex); U-R10 (C-03: closed generations are not re-read); U-R11 (C-19: owners keep their own App-kept logs) | — | — | — |
 
 ## Current implementation conditions
+
+**Reply observations at close.** The owner chose:
+
+> Close as “Reply outcome unknown” (Recommended)
+
+A prepared reply with no admitted actual write ends unanswered on generation
+close, preserving its original full H5/request reference, prepared origin and
+close context (REQ-003). RQ-04 and its custody event survive a cold reopen with
+or without a recorded session end. An admitted write without a completed result
+at close has a closed RQ-10 pointer: `endedAs: reply-outcome-unknown`,
+`replyWrite: unknown`, original origin and context, acknowledgment unobserved.
+It is neither unanswered nor failed/written and does not synthesize RQ-06 on
+restart. A completed result is recorded before its closure facts. A later actual
+result follows RQ-10 on the same original source: ordinary RQ-03, then RQ-05
+for a written reply whose acknowledgment was not observed. Actual failed writes
+retain their failure/unknown-receipt meaning; receipt-time explicit errors keep
+RQ-08 rather than becoming later R9 errors. No result proves Codex receipt,
+action, a grant or a post-close acknowledgment. Unknown and later results do
+not reopen a request or settle one in a successor generation.
+
+A queued supplier resolution before any reply remains `resolved-by-supplier`,
+without acknowledgment or fabricated failure. Live-home assessments list
+eligible prepared replies while pending, omit closed/known-completed ones,
+and refuse a superseded source; incomplete-coverage qualifications remain.
+The current ledger schema is `0.4`, with the closed unknown representation and
+the existing optional supplier `callId` pointer that the producer already
+carries. Exact pre-change `0.3` and earlier `0.2` schemas are retained in Design
+and compiled resources; `0.4` accepts their rows unchanged. Older schemas
+reject new shapes and must expose that reading limit. No historical row,
+ledger header or SQLite physical schema is rewritten. Source and embedded
+schemas are identical and bound by `runtime_core/MANIFEST.json`.
 
 **Open allocation correspondence — DEF-2.** The "O-1 arrangement" label in
 DEF-2 predates the owner's OI-008 Rust-host allocation (§0 and §4.1). Its pipe
