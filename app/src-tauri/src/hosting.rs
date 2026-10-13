@@ -2046,6 +2046,12 @@ impl Host {
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
+        // Stock Codex retains the dynamic tool in a fork. Admit its calls only
+        // after the correlated fork of a source offered it in this generation.
+        // The capability still checks the fork's observed cwd on every read.
+        if i.records_offers.iter().any(|(g,thread)|g==generation&&thread==source) {
+            i.records_offers.push((generation.clone(),t["id"].clone()));
+        }
         i.threads.push(row.clone());Ok(row)
     }
     #[cfg(test)]

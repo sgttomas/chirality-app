@@ -1930,8 +1930,15 @@ It realizes §13.8's agent access and does not change what a record is.
   built-in `lmstudio` route redirected to that fixture reported
   `namespaceTools: true` and carried the declaration in the Code Mode
   `functions.exec` description for the selected `gpt-6.1-sol` model. Delivery
-  when a provider reports `namespaceTools: false`, actual provider behavior,
-  and the resumed/forked App handler join remain unobserved. The tool is the
+  when a provider reports `namespaceTools: false` and actual provider behavior
+  remain unobserved. The App carries a known source's offer to a correlated,
+  operationally admitted fork within the same generation. The maintained
+  `records_access_fork` fake-peer journey exercises the actual Host handler,
+  its prior-to-reply read log and project-cwd refusal; it grants nothing to
+  a fork whose source was not offered the tool. Cold resume/fork has no
+  App-held offer binding in the new generation, so an inherited supplier
+  declaration alone still gets an unsupported reply. No native walkthrough
+  has witnessed these handler joins. The tool is the
   App's own capability, not a tool a
   workflow can supply: it does not make WD's `dynamic-tool-call` present
   (EXEC compatibility row), and no act or act control is reachable through
