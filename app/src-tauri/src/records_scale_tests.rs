@@ -174,7 +174,16 @@ fn records_scale_child() {
             let before = scale_rss_bytes();
             let start = t();
             let (limits, ids) = crate::records_index::with_index(&root, |ix| (ix.limits().len(), ix.holds("rec:app:none")));
-            json!({"buildMs":scale_ms(start),"limits":limits,"held":ids,"rssBeforeBytes":before,"peakRssBytes":scale_rss_bytes()})
+            let build = scale_ms(start);
+            // The host status's chain part (polled every second; RS §13.8), and the heads on demand.
+            let start = t();
+            let mut status = 0;
+            for _ in 0..10 { status = crate::records_index::chain_status(Some(&root)).to_string().len(); }
+            let status_ms = scale_ms(start) / 10.0;
+            let start = t();
+            let heads = crate::records_index::chain_heads(&root).to_string().len();
+            json!({"buildMs":build,"limits":limits,"held":ids,"rssBeforeBytes":before,"peakRssBytes":scale_rss_bytes(),
+                "chainStatusMs":status_ms,"chainStatusBytes":status,"chainHeadsMs":scale_ms(start),"chainHeadsBytes":heads})
         }
         "acts" => {
             let start = t();

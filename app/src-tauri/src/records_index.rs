@@ -142,18 +142,46 @@ fn with_index_for<R>(root: &Path, log: Option<&Path>, f: impl FnOnce(&ProjectInd
     all.truncate(INDEXED_PROJECTS);
     result
 }
-/// RS §13.8 Tamper-evidence, for the host's status: each log's chain head and
-/// the chain limits, as the bounded index last read them (nothing is read
-/// here). Signed checkpoints wait for App signing (OI-011).
+/// How many log names the host status carries for each chain state.
+pub(crate) const STATUS_NAMES: usize = 5;
+/// RS §13.8 Tamper-evidence, for the host's status (polled every second):
+/// bounded counts of the logs by chain state, and at most [`STATUS_NAMES`]
+/// names of logs with a broken chain or unchained (legacy) lines. Only the
+/// cached index is looked at, under its lock; nothing is read or refreshed
+/// here, so it shows the index as its last reader, writer or verifier pass
+/// left it. Heads come on demand ([`chain_heads`]). Signed checkpoints wait
+/// for App signing (OI-011).
 pub(crate) fn chain_status(root: Option<&Path>) -> Value {
     let signed = "not written: signed checkpoints wait for App signing (OI-011)";
     let Some(root) = root else { return serde_json::json!({"state":"no project open","signedCheckpoints":signed}) };
-    // Never the first read of a project: only an index a reader or writer opened.
-    if !INDEXES.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|(r, _)| r == root) {
+    let all = INDEXES.lock().unwrap_or_else(|p| p.into_inner());
+    let Some((_, ix)) = all.iter().find(|(r, _)| r == root) else {
         return serde_json::json!({"state":"not read yet in this process","signedCheckpoints":signed});
+    };
+    let (mut chained, mut legacy, mut broken) = (0usize, 0usize, 0usize);
+    let (mut broken_logs, mut legacy_logs) = (Vec::new(), Vec::new());
+    for (path, log) in &ix.logs {
+        let name = || path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if log.limits().any(|l| l.contains("chain broken")) {
+            broken += 1;
+            if broken_logs.len() < STATUS_NAMES { broken_logs.push(name()); }
+        }
+        if log.chain.unchained > 0 {
+            legacy += 1;
+            if legacy_logs.len() < STATUS_NAMES { legacy_logs.push(name()); }
+        }
+        if log.chain.linked { chained += 1; }
     }
-    with_index(root, |ix| serde_json::json!({"state":"as the records index reads it (incremental; a full pass verifies it)","method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),
-        "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),"signedCheckpoints":signed}))
+    serde_json::json!({"state":"as the records index last read it","method":crate::record_lines::LINE_METHOD,"logs":ix.logs.len(),
+        "chained":chained,"legacy":legacy,"broken":broken,"brokenLogs":broken_logs,"legacyLogs":legacy_logs,
+        "heads":"on demand (host command records_chain_heads)","signedCheckpoints":signed})
+}
+/// Each log's chain head and the chain limits, as the bounded index reads
+/// them now (refreshed): on demand, for the person and later for export.
+pub(crate) fn chain_heads(root: &Path) -> Value {
+    with_index(root, |ix| serde_json::json!({"method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),
+        "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),
+        "signedCheckpoints":"not written: signed checkpoints wait for App signing (OI-011)"}))
 }
 fn start_verifier() {
     VERIFIER.call_once(|| {
@@ -534,6 +562,7 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
     }
     state.chain = parsed.chain;
     state.partial = parsed.partial_tail;
+    state.tail_limits.extend(crate::record_lines::links_removed(path, &name, &state.chain));
     let guard_from = state.prefix_end.saturating_sub(GUARD);
     state.guard = read_at(path, guard_from, (state.prefix_end - guard_from) as usize).unwrap_or_default();
     state

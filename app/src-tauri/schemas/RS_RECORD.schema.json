@@ -2651,8 +2651,7 @@
           "const": "chirality.rs.group"
         },
         "formatVersion": {
-          "type": "string",
-          "pattern": "^[0-9]+\\.[0-9]+$"
+          "const": "0.1"
         },
         "groupId": {
           "type": "string",

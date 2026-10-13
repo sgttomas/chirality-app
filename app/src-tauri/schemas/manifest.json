@@ -3,7 +3,7 @@
     {
       "file": "RS_RECORD.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RS_RECORD.schema.json",
-      "sha256": "2da1957f5c51dbe83e80fef448373f777c99f36a5adc5a0beceacb2439a0b17e",
+      "sha256": "066798995dbce9d6c8fcfaffcb6c8983c55f9d5ca4e8c6c00fa2b670d18a76ee",
       "id": "urn:chirality:app-v4:del-04-03:rs-record:0.1"
     },
     {

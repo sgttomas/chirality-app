@@ -186,6 +186,7 @@ pub(crate) fn read_log_parts(path: &Path) -> LogRead {
         read.notes.extend(line.notes);
         read.entries.extend(line.entries);
     }
+    read.limits.extend(crate::record_lines::links_removed(path, &name, &read.chain));
     read.notes.extend(read.chain.unchained_note(&name));
     read
 }

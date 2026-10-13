@@ -144,6 +144,22 @@ impl Chain {
     }
 }
 
+/// The logs this process has read with a chain (RS §13.8).
+static LINKED: std::sync::Mutex<BTreeSet<std::path::PathBuf>> = std::sync::Mutex::new(BTreeSet::new());
+/// RS §13.8: a log this process read with a chain that now reads with
+/// unchained lines and no link at all had its links removed. That is a broken
+/// chain, never unchained (legacy). Remembered per process only, by the R-2
+/// readers (`records::read_log_parts`, the bounded index).
+pub(crate) fn links_removed(path: &std::path::Path, name: &str, chain: &Chain) -> Option<String> {
+    let mut linked = LINKED.lock().unwrap_or_else(|p| p.into_inner());
+    if chain.linked {
+        linked.insert(path.to_path_buf());
+        return None;
+    }
+    (chain.unchained > 0 && linked.contains(path))
+        .then(|| format!("{name}: chain broken: read with a chain earlier in this process, it now has no line carrying a link; never repaired"))
+}
+
 /// One complete line as read.
 #[derive(Clone, Debug)]
 pub(crate) struct ParsedLine {

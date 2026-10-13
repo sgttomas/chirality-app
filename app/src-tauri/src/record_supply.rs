@@ -240,14 +240,55 @@ pub(crate) fn permanent_refusal_in(
 /// RS §14.1 Permanent refusals for a unit (RS §13.8): a unit stands whole, so
 /// when the writer refuses any of its entries permanently, it refuses the
 /// unit; the reason names the entry refused.
+#[cfg(test)]
 pub(crate) fn permanent_group_refusal_in(
     root: &std::path::Path,
     run: &str,
     group: &[PendingRunEntry],
     set: crate::records::RecordSet,
 ) -> Option<String> {
-    group.iter().find_map(|e| permanent_refusal_in(root, run, e.kind, &e.record_id, &e.body, &e.observed_at, set)
-        .map(|reason| if group.len() > 1 { format!("{reason} (its unit of {} entries stands whole: RS §13.8)", group.len()) } else { reason }))
+    unit_refusal(root, run, group, set).map(|(reason, _)| reason)
+}
+/// RS §14.1 Permanent refusals for a unit, with which of its entries are
+/// already in the owning log. Beside a refusal of one of its entries, a unit
+/// only partly in its log (an earlier write of it that left some entries
+/// alone, as no App writer does) can never be reconciled: logs only grow, and
+/// a unit is written whole. Its entries in the log stay there, alone.
+fn unit_refusal(
+    root: &std::path::Path,
+    run: &str,
+    group: &[PendingRunEntry],
+    set: crate::records::RecordSet,
+) -> Option<(String, Vec<bool>)> {
+    let refused = group.iter().find_map(|e| permanent_refusal_in(root, run, e.kind, &e.record_id, &e.body, &e.observed_at, set)
+        .map(|reason| if group.len() > 1 { format!("{reason} (its unit of {} entries stands whole: RS §13.8)", group.len()) } else { reason }));
+    if let Some(reason) = refused {
+        return Some((reason, vec![false; group.len()]));
+    }
+    if group.len() < 2 {
+        return None;
+    }
+    let ids: Vec<&str> = group.iter().map(|e| e.record_id.as_str()).collect();
+    let (_, own) = crate::records::append_record_set_ids(root, &run_log(root, run).ok()?, set, &ids).ok()?;
+    let present: Vec<bool> = group.iter().map(|p| own.iter().any(|e| e["recordId"] == p.record_id.as_str() && e["kind"] == p.kind
+        && e["body"] == p.body && e["runId"] == run && e["observedAt"] == p.observed_at.as_str())).collect();
+    let alone: Vec<&str> = group.iter().zip(&present).filter(|(_, p)| **p).map(|(e, _)| e.record_id.as_str()).collect();
+    (!alone.is_empty() && alone.len() < group.len()).then(|| (format!("its unit is only partly in its log ({} there alone); a unit is written whole (RS §13.8), so the rest of it can never be written", alone.join(", ")), present))
+}
+/// The "record write failed" limits for a unit the writer refuses
+/// permanently (RS §14.1 Permanent refusals, §13.8): one for each of its
+/// entries not in the log, in order, and the reason. The flush then continues
+/// past the unit.
+pub(crate) fn unit_refusal_limits(
+    root: &std::path::Path,
+    run: &str,
+    group: &[PendingRunEntry],
+    set: crate::records::RecordSet,
+) -> Option<(String, Vec<PendingRunEntry>)> {
+    let (reason, present) = unit_refusal(root, run, group, set)?;
+    let limits = group.iter().zip(present).filter(|(_, p)| !p)
+        .map(|(e, _)| never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok()).collect::<Option<Vec<_>>>()?;
+    Some((reason, limits))
 }
 /// The "record write failed" limit for an entry the writer refuses permanently:
 /// it names the entry's reserved identity and says it can never be written, why,

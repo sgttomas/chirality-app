@@ -44,6 +44,15 @@ fn write_lines(log: &Path, lines: &[Vec<u8>]) {
     }
     std::fs::write(log, out).unwrap();
 }
+/// `n` App entries without chain links, as a writer before the chain wrote
+/// them, at `log` (never read with a chain in this process).
+fn legacy_log(log: &Path, n: u64, run: Option<&str>) -> Vec<Vec<u8>> {
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let lines: Vec<Vec<u8>> = (1..=n).map(|seq| serde_json::to_vec(&records::envelope("evidence_limit", &APP_WRITER, body(&format!("legacy {seq}")),
+        crate::util::opaque_id("rec:app:").unwrap(), seq, run, run.map(|_| "2026-10-01T00:00:00.000Z"))).unwrap()).collect();
+    write_lines(log, &lines);
+    lines
+}
 fn without_link(raw: &[u8]) -> Vec<u8> {
     let mut v = value(raw);
     v.as_object_mut().unwrap().remove("prevLine");
@@ -166,6 +175,7 @@ fn a_group_that_breaks_its_rules_is_not_read_at_all() {
     bad(&|g| g["entries"][1]["prevLine"] = g["prevLine"].clone());
     bad(&|g| g["entries"][1]["kind"] = json!("not a kind"));
     bad(&|g| { g["entries"].as_array_mut().unwrap().pop(); });
+    bad(&|g| g["formatVersion"] = json!("0.2"));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -200,6 +210,20 @@ fn each_line_links_to_the_one_before_and_the_head_is_the_last() {
     if status["logs"].is_array() {
         assert!(status["broken"].as_array().unwrap().is_empty(), "{status}");
     }
+    // Bounded whatever the number of logs: counts and at most STATUS_NAMES names.
+    for n in 0..8 {
+        legacy_log(&storage::project_log(&root, None, &format!("writer:legacy-{n}")).unwrap(), 1, None);
+    }
+    crate::records_index::with_index(&root, |_| ());
+    let status = crate::records_index::chain_status(Some(&root));
+    if status["logs"].is_u64() {
+        assert_eq!((status["chained"].as_u64(), status["legacy"].as_u64(), status["broken"].as_u64()), (Some(1), Some(8), Some(0)), "{status}");
+        assert_eq!(status["legacyLogs"].as_array().unwrap().len(), crate::records_index::STATUS_NAMES);
+        assert!(status.get("notes").is_none() && status["heads"].is_string(), "no per-log heads or notes: {status}");
+    }
+    let heads = crate::records_index::chain_heads(&root);
+    assert_eq!(heads["logs"].as_array().unwrap().len(), 9);
+    assert_eq!(heads["notes"].as_array().unwrap().len(), 8);
     let unopened = folder("chain-unopened-");
     assert_eq!(crate::records_index::chain_status(Some(&unopened))["state"], "not read yet in this process", "status never reads a project first");
     let _ = std::fs::remove_dir_all(&unopened);
@@ -239,6 +263,12 @@ fn an_edited_or_removed_line_breaks_the_chain_and_nothing_repairs_it() {
     let mut restarted = value(&lines[2]);
     restarted["prevLine"] = link(None);
     broken(vec![lines[0].clone(), lines[1].clone(), serde_json::to_vec(&restarted).unwrap()], 3);
+    // Every link removed from the log this process read with a chain: a
+    // break in the index (the writers' guard), never unchained (legacy).
+    write_lines(&log, &lines.iter().map(|l| without_link(l)).collect::<Vec<_>>());
+    let limits = crate::records_index::with_index(&root, |ix| ix.limits());
+    assert!(limits.iter().any(|l| l.contains("chain broken: read with a chain earlier in this process")), "{limits:?}");
+    assert!(records::append(&log, "evidence_limit", &APP_WRITER, body("refused")).unwrap_err().contains("chain broken"));
     // Restored, the log reads and records again.
     write_lines(&log, &lines);
     assert!(records::read_log(&log).1.is_empty());
@@ -250,11 +280,7 @@ fn an_edited_or_removed_line_breaks_the_chain_and_nothing_repairs_it() {
 fn pre_chain_lines_read_as_unchained_legacy_and_the_chain_starts_after_them() {
     let root = folder("chain-legacy-");
     let log = log_in(&root);
-    for n in 0..2 {
-        records::append(&log, "evidence_limit", &APP_WRITER, body(&format!("legacy {n}"))).unwrap();
-    }
-    let legacy: Vec<Vec<u8>> = raw_lines(&log).iter().map(|l| without_link(l)).collect();
-    write_lines(&log, &legacy);
+    let legacy = legacy_log(&log, 2, None);
     let read = records::read_log_parts(&log);
     assert!(read.limits.is_empty(), "unchained is not incomplete: {:?}", read.limits);
     assert_eq!(read.entries.len(), 2);
@@ -287,10 +313,7 @@ fn an_imported_pre_chain_log_reads_unchained_and_recording_links_to_it() {
     let root = folder("chain-import-project-");
     // A §13.7 run log written before the chain (no line carries a link).
     let original = root.join(".chirality/records").join(storage::log_rel(Some("run:legacy"), "writer:legacy"));
-    records::append(&original, "evidence_limit", &APP_WRITER, body("legacy 1")).unwrap();
-    records::append(&original, "evidence_limit", &APP_WRITER, body("legacy 2")).unwrap();
-    let legacy: Vec<Vec<u8>> = raw_lines(&original).iter().map(|l| without_link(l)).collect();
-    write_lines(&original, &legacy);
+    let legacy = legacy_log(&original, 2, Some("run:legacy"));
     let imported = crate::records_store::import(&root).unwrap();
     assert_eq!(imported["state"], "imported", "{imported}");
     let (entries, limits) = storage::read_all(&root);
@@ -355,6 +378,13 @@ fn a_unit_retried_after_a_failure_is_written_once_whole_with_its_late_limits() {
     records::append_project_reserved_in(&root, run, crate::records::supply::LIVE_WRITER, partly[0].kind, &APP_WRITER, partly[0].body.clone(), &partly[0].record_id, &partly[0].observed_at, RecordSet::Complete).unwrap();
     assert!(append_run_group_in(&root, run, &mut partly, RecordSet::Complete).unwrap_err().contains("only partly in its log"));
     assert_eq!(raw_lines(&log).len(), 5);
+    // It can never be reconciled: the flush settles it with a "record write
+    // failed" limit for the entry not in the log, and continues past it.
+    let (reason, limits) = crate::records::supply::unit_refusal_limits(&root, run, &partly, RecordSet::Complete).unwrap();
+    assert!(reason.contains(&format!("only partly in its log ({} there alone)", partly[0].record_id)), "{reason}");
+    assert_eq!(limits.len(), 1);
+    assert_eq!(limits[0].body["subjectRef"], partly[1].record_id.as_str());
+    assert!(permanent_group_refusal_in(&root, run, &partly, RecordSet::Complete).is_some());
     // A permanent refusal of one entry refuses its unit.
     let mut refused = vec![pending("evidence_limit", "fine"), crate::records::supply::PendingRunEntry::new("act_counted", json!({}), "2026-10-12T00:00:00.000Z".into()).unwrap()];
     assert!(append_run_group_in(&root, run, &mut refused, RecordSet::Complete).is_err());

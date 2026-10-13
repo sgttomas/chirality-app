@@ -1606,11 +1606,15 @@ joined the store.
   - R-1 counts each entry's identity; an entry's line (the records
     capability's `line`) is its group's line.
   - W-2 keeps a unit whole. Every identity present with the same content is
-    the receipt of an uncertain write. A unit only partly present cannot be
-    reconciled, and nothing is written. After a late write, each entry is
+    the receipt of an uncertain write. After a late write, each entry is
     named by its own "record write failed" limit. A permanent refusal of one
     entry refuses its unit, and each entry gets its "record write failed"
     limit.
+  - A unit only partly present (some of its entries alone in the log, which
+    no App write leaves) can never be reconciled, since logs only grow. Its
+    write is a permanent refusal: nothing more of it is written, each entry
+    not in the log gets its "record write failed" limit, and the run's later
+    entries proceed. The entries already there stay, alone.
   - A lapse recorded alone (an earlier label write failed) still gets its
     label alone.
 - **Tamper-evidence** (chain implemented; signed checkpoints wait for App
@@ -1635,10 +1639,21 @@ joined the store.
   - *Chain head.* A log's head is the identity of its last link line with its
     line count, read from the log itself (`record_lines::chain_head`). Export
     (U-STORE-5) records it in its manifest. The host status `recordChain`
-    shows each log's head as the bounded index reads it.
+    carries only bounded counts (logs, chained, legacy, broken) and at most
+    five names of broken and of legacy logs, from the index as last read; the
+    heads come on demand (host command `records_chain_heads`).
+  - *Links removed in this process's sight.* A log that this process read
+    with a chain and that later reads with no link at all is a broken chain,
+    not unchained (legacy). The R-2 reader and the index remember this per
+    process only.
   - *Verification.* The bounded index checks the links of each log's growth
     as it reads it; the verifier's pass checks every link in full (§14.3,
     *Bounded reads*).
+  - *Not detected.* Until a chain head is kept elsewhere (signed checkpoints,
+    or export manifests), removing a log's last lines, or all its links
+    outside the case above, is not detected. A log stripped of every link
+    reads as unchained (legacy), a limit, and the App's next line starts its
+    chain again.
   - *Signed checkpoints* are not built. A checkpoint will be an entry naming
     the head it covers, with its signature; it waits for App signing (OI-011),
     when SEAL-C's key moves to the OS keychain. Until then the chain shows an
@@ -2202,6 +2217,12 @@ machine; `records::durability_tests`, and the ignored
   | 100 / 300 | 46 / 5 ms (40 / 7) | 34 ms (31) | 61 ms (66) | 28 MB (23) | 148 / 2.3 ms (185 / 3.8) |
   | 1,000 / 3,000 | 388 / 16 ms (266 / 20) | 0.32 s (0.26) | 0.36 s (0.30) | 47 MB (45) | 1.18 s / 28 ms (1.15 s / 27) |
   | 10,000 / 100,000 | 4.5 s / 150 ms (5.1 s / 152) | 4.3 s (3.1) | 4.5 s (3.4) | 257 MB (243) | 26.5 s / 0.55 s (24.5 s / 0.60) |
+
+  The host status's chain part (`recordChain`, polled every second) looks at
+  the cached index only: 0.05 ms and about 300 bytes at 10,000 runs (10,001
+  logs), at every tier. The heads on demand (`records_chain_heads`) refresh
+  the index and list every log: 1.3 ms and 43 KB at 100 runs, 12 ms and
+  0.42 MB at 1,000, and 131 ms and 4.2 MB at 10,000.
 
   Earlier code in brackets. Full reads cost up to about a third more; next
   appends and the record tick (1.2 s writing again at 10,000 runs, both) are

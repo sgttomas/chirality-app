@@ -6449,8 +6449,9 @@ impl WorkflowRun {
                         Ok(_) => true,
                         Err(_) => {
                             let unit = &self.entries[index..end];
-                            let refusal = crate::records::supply::permanent_group_refusal_in(&self.project_root, &run, unit, set)
-                                .and_then(|reason| unit.iter().map(|e| crate::records::supply::never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok()).collect::<Option<Vec<_>>>().map(|limits| (reason, limits)));
+                            // A refused unit, or one only partly in its log, is settled
+                            // with its limits and the flush continues past it.
+                            let refusal = crate::records::supply::unit_refusal_limits(&self.project_root, &run, unit, set);
                             match refusal {
                                 Some((reason, limits)) => {
                                     for e in &mut self.entries[index..end] {

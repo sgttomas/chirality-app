@@ -265,6 +265,13 @@ fn records_store_import(state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing imported")?;
     records_store::import(project)
 }
+/// RS §13.8 Tamper-evidence: each log's chain head of the open project, on
+/// demand (the host status carries only bounded counts).
+#[tauri::command(async)]
+fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
+    let project = state.workspace.as_ref().ok_or("no project is open")?;
+    Ok(records_index::chain_heads(project))
+}
 /// RS §13.8 "Project identity": the person resolves a project identity limit.
 #[tauri::command(async)]
 fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
@@ -1865,7 +1872,7 @@ pub fn run() {
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
-            records_store_import, records_store_identity, records_store_choose,
+            records_store_import, records_store_identity, records_store_choose, records_chain_heads,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,

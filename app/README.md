@@ -825,8 +825,12 @@ makes, are written as one group line and read whole or not at all. Lines
 written before the chain, imported ones included, read as "unchained
 (legacy)", a limit that leaves the log complete; the chain starts after
 them. An edited, removed or unlinked line after the chain started is a broken
-chain: the log is incomplete and nothing repairs it. The host status
-(`recordChain`) shows each log's chain head as the records index reads it.
+chain: the log is incomplete and nothing repairs it. Until a chain head is
+kept elsewhere (signed checkpoints, export manifests), removing a log's last
+lines, or every link of a log this process has not read chained, is not
+detected. The host status
+(`recordChain`) shows bounded counts of chained, legacy and broken logs;
+each log's chain head comes on demand (`records_chain_heads`).
 Signed checkpoints wait for App signing (OI-011).
 
 Attachment metadata arrays and pointer-only client request records live under
