@@ -1605,8 +1605,9 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   store's copy is shown as a limit, or as the claim of the recorder it
   names, never as an App observation. File-native readers have no such
   protection: they read the project file as it is, and an agent can write
-  into it an entry that claims to be an App observation (INV-FL-2 refuses it
-  only for a reader that checks the schema's recorder rule). This adds no
+  into it an entry that names the App as its recorder; INV-FL-2 refuses
+  App-observation kinds only from other recorders, so it does not catch
+  that. This adds no
   file and changes no entry in the project log, so the log's shape and
   format are unchanged and REQ-005's consumers need no new account. Until
   DEL-06-01 is built no App code writes either copy, and nothing in

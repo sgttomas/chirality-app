@@ -1342,7 +1342,7 @@ pub fn status(project: Option<&Path>) -> Value {
                 // §13.7 files no import has copied (all of them before the first).
                 let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
                 json!({"attachment":home.attachment.view(),
-                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"§13.7 records in place (import needed)"} else {"no records yet"},
+                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
                     "legacyFiles":census.len(),"notImported":to_import,
                     "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})

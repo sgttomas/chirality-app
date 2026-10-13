@@ -74,17 +74,19 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   their ordinary file tools. The **App writer** writes only what the App
   observes: `dispatch_observed`, `child_observed`, `observation_ended` and
   `related_conversation`. The schema refuses those from any other recorder
-  (INV-FL-2). Reason: HOSTING §6.1 has no App-offered tool in this increment
-  ("none defined in this increment", the `item/tool/call` row at L783 of
-  HOSTING-v0.9), and adding one would change the whole App's tool set
-  (ADAPTER F-9). Files written with ordinary tools keep the file-native route
+  (INV-FL-2). Reason: when this was written HOSTING §6.1 had no App-offered
+  tool ("none defined in this increment", the `item/tool/call` row at L783
+  of HOSTING-v0.9), and adding one changes the whole App's tool set
+  (ADAPTER F-9). HOSTING §6.1 now defines one, the read-only records
+  capability (RS §13.9); it writes nothing, so agents still write their
+  fleet entries with their file tools. Files written with ordinary tools keep the file-native route
   working with or without the App (DEL-10-02; REQ-005; AC-007). The App
   validates and reads them; it does not take over their authorship.
   *Where the App's observations are kept* (owner, 2026-10-12: "Write to
   both (Recommended)"; RS §13.8). The coordination log stays one co-written
   file in the project (FR-D2, FR-D3): the App writes its observations
   (`dispatch_observed`, `child_observed`, `observation_ended`,
-  `related_conversation`) there as now, so agents and file-native readers
+  `related_conversation`) there once DEL-06-01's writer exists, so agents and file-native readers
   keep every entry, PEC, DEL-10-02's route "with or without the App" and
   FR-D4's child index included. The App also writes each of its
   observations to its records store, in the project's subtree at
@@ -93,8 +95,9 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   project file that does not match the store's copy is shown as a limit, or
   as the claim of the recorder it names, never as an App observation.
   File-native readers have no such protection: they read the project file as
-  it is, so an entry an agent writes there claiming to be an App observation
-  is caught only by a reader that checks INV-FL-2. The project log's shape
+  it is. INV-FL-2 refuses App-observation kinds only from a recorder other
+  than the App, so an entry an agent writes there naming the App as its
+  recorder passes it; file-native readers cannot tell it from a real one. The project log's shape
   and format are unchanged, so REQ-005's consumers need no new account. This
   is Design only: it is built with DEL-06-01's App reader and writer, and no
   App code writes either copy today.

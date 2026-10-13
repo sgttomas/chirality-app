@@ -477,7 +477,7 @@ fn probe_r16_interrupted_import() {
     let refused = write_dir(&root).unwrap_err();
     assert!(refused.starts_with("import incomplete"), "{refused}");
     assert!(records::append_project(&root, None, "writer:x", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("import incomplete"));
-    assert_eq!(status(Some(&root))["project"]["reading"], "§13.7 records in place (import needed)");
+    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project (import needed)");
     // The census changes before the rerun: reported, and the rerun resumes.
     let acts = root.join(".chirality/records").join(crate::recorder::LOG);
     records::append(&acts, "evidence_limit", &APP_WRITER, body("written before the rerun")).unwrap();

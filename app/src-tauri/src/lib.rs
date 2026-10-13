@@ -1718,7 +1718,7 @@ pub fn run() {
 
                 records_store::configure(records_store::for_app(std::env::var_os(records_store::OVERRIDE_ENV).filter(|p| !p.is_empty()).map(PathBuf::from), data.as_deref().map_err(Clone::clone), tauri::is_dev(), workspace.as_deref(), &codex_homes));
                 if let Some(ws) = workspace.as_ref() {
-                    let _ = records_store::attach(ws, true);
+                    if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
                 }
             }
             // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
