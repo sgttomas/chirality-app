@@ -132,6 +132,13 @@ test('quoted moved/foreign registration history exposes no action even with forg
   assert.match(h(RegistrationEvidence,{evidence:{rows:[{...old,claims:[{decisionActor:{},installation:{reference:null}}]}],limits:[]}}),/Capturing installation unknown/);
 });
 
+test('records capability binding reports cold unknown and publication limits for the current generation',()=>{
+  const {RecordsCapabilityBindings}=loadSrc('App');const generation={appSession:'current',home:'home',spawnCounter:1};
+  const host={generation,threads:[{generation,threadId:'cold',recordsCapabilityBinding:{state:'unknown/unsupported',limit:'original receipt absent'}},{generation,threadId:'hot',recordsCapabilityBinding:{state:'bound in current generation',persistence:'memory-only',limit:'folder flush unconfirmed'}},{generation:{...generation,appSession:'old'},threadId:'stale',recordsCapabilityBinding:{state:'bound in old generation'}}]};
+  assert.deepEqual(buttons(RecordsCapabilityBindings({host})),[]);
+  const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
+});
+
 test('one existing library entry goes from in-place review to an explicit native registration press',async()=>{
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {ok:true};};
   let data={selection:null,activeLibrary:'lib-one',libraries:[{reference:'lib-one',registered:[]}],reviews:[]};

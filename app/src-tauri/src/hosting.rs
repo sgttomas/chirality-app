@@ -23,6 +23,8 @@
 //! outstanding: automatic restart rules (§4.4), quit/relaunch integration and
 //! the per-home configuration link.
 
+#[path = "records_continuity.rs"]
+mod records_continuity;
 #[path = "execution_custody.rs"]
 mod execution_custody;
 #[path = "hosting_recovery_reads.rs"]
@@ -155,6 +157,9 @@ struct Inner {
     /// and the (generation, thread) pairs whose `thread/start` carried it.
     records_capability: Option<Arc<crate::records_access::RecordsCapability>>,
     records_offers: Vec<(Value, Value)>,
+    records_offer_projects: Vec<(Value, Value, Value)>,
+    records_receipts: Vec<(Value, String, records_continuity::Receipt)>,
+    records_project_context: Option<crate::recovery::ExplicitAppProjectContext>,
     /// Why the records capability is not offered, when it could not be set up.
     records_capability_limit: Option<String>,
     aa_capture: Option<request_event_join::Core>,
@@ -257,6 +262,7 @@ struct SourceEvidence {
     auth_policy_standing: Option<String>,
     auth_response_shape: Option<bool>,
     source_pipe:Option<(u64,(u64,u64))>,
+    records_project: Option<records_continuity::Project>,
 }
 impl SourceRequest {
     pub fn generation(&self) -> &Value { &self.generation }
@@ -601,6 +607,8 @@ pub struct Host {
     #[cfg(test)]
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
+    before_records_receipt_bind: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     /// Runs with each delegation read's request after its write and before
     /// its wait (a reply that arrives before the wait starts).
@@ -672,6 +680,8 @@ impl Host {
             aa_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_thread_insert: Mutex::new(None),
+            #[cfg(test)]
+            before_records_receipt_bind: Mutex::new(None),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
@@ -957,6 +967,11 @@ impl Host {
     fn context_rows(snapshot:Option<&crate::recovery::LedgerObservation>)->Vec<Value>{snapshot.map(|o|o.rows.iter().filter(|e|e["kind"]=="conversation_index").cloned().collect()).unwrap_or_default()}
     /// New CURRENT known admission only; historical P is never overwritten by Q.
     pub fn observe_conversation_project(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
+        let observation = self.observe_conversation_project_inner(generation,thread,home,context)?;
+        self.persist_records_receipt(generation,thread,home);
+        Ok(observation)
+    }
+    fn observe_conversation_project_inner(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
         {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
         let _writer=self.recovery_writer.lock().unwrap();self.drain_recovery_owned();self.refresh_recovery_observation();
         let(ledger,rows)={let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;(i.recovery.clone(),Self::context_rows(i.recovery_snapshot.as_ref()))};
@@ -1576,9 +1591,9 @@ impl Host {
     }
     fn request_begin_scoped_private(&self, method: &str, params: Value, initiator: Value,
         handshake: bool, expected_generation: Option<&Value>, private_credential: bool, oauth_cancel:Option<&SourceRequest>, aa_reservation:Option<request_event_join::CaptureReservation>) -> Result<SourceRequest, String> {
-        self.request_begin_with_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,None)
+        self.request_begin_with_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,None,None)
     }
-    fn request_begin_with_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>)->Result<SourceRequest,String>{
+    fn request_begin_with_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>)->Result<SourceRequest,String>{
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
@@ -1611,7 +1626,7 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,records_project});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -1997,12 +2012,14 @@ impl Host {
         if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
-        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());Ok(row)
+        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());drop(i);
+        self.restore_records_receipt(generation,native["id"].as_str().unwrap_or_default());
+        let i=self.inner.0.lock().unwrap();Ok(i.threads.iter().rev().find(|t|t["generation"]==*generation&&t["threadId"]==native["id"]).cloned().unwrap_or(row))
     }
 
     pub fn thread_start_with_guidance_dispatch(&self, generation: &Value, cwd: &str, model: &str, model_provider: &str, guidance: &str) -> Result<SourceRequest,String> {
-        crate::recovery::generation_ref(generation)?;let params=self.offered_start_params(cwd,model,model_provider,Some(guidance))?;
-        self.request_begin_scoped("thread/start",params,json!({"kind":"person-directed"}),false,Some(generation))
+        crate::recovery::generation_ref(generation)?;let (params,project)=self.offered_start_params(cwd,model,model_provider,Some(guidance))?;
+        self.request_begin_with_offer("thread/start",params,json!({"kind":"person-directed"}),false,Some(generation),false,None,None,None,project)
     }
     pub fn thread_start_dispatch_finish(&self, request: &SourceRequest) -> Result<Value,String> {
         self.check_source(request)?;let evidence=request.evidence();
@@ -2058,8 +2075,24 @@ impl Host {
         // The capability still checks the fork's observed cwd on every read.
         if i.records_offers.iter().any(|(g,thread)|g==generation&&thread==source) {
             i.records_offers.push((generation.clone(),t["id"].clone()));
+            if let Some((_,_,project)) = i.records_offer_projects.iter().find(|(g,thread,_)|g == generation && thread == source).cloned() {
+                i.records_offer_projects.push((generation.clone(),t["id"].clone(),project));
+            }
         }
-        i.threads.push(row.clone());Ok(row)
+        let inherited = i.records_receipts.iter().find(|(g,thread,_)|g == generation && Some(thread.as_str()) == source.as_str())
+            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference()) == Some(receipt.project.as_str())
+                &&i.records_capability.as_ref().and_then(|capability|capability.project_identity().ok()).as_ref() == Some(&receipt.directory))
+            .and_then(|(_,_,receipt)|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
+        let context = i.records_project_context.clone();
+        let home = inherited.as_ref().map(|receipt|receipt.home_class.clone());
+        if let Some(receipt) = inherited { i.records_receipts.push((generation.clone(),receipt.thread.clone(),receipt)); }
+        i.threads.push(row.clone());drop(i);
+        if let (Some(context),Some(home)) = (context,home) {
+            // CURRENT indexing comes from the genuine fork of a known offered
+            // project, never the fork's native cwd or a native projectId.
+            let _ = self.observe_conversation_project(generation,t["id"].as_str().unwrap_or_default(),Some(&home),&context);
+        } else { self.persist_records_receipt(generation,t["id"].as_str().unwrap_or_default(),None); }
+        let i=self.inner.0.lock().unwrap();Ok(i.threads.iter().rev().find(|row|row["generation"] == *generation && row["threadId"] == t["id"]).cloned().unwrap_or(row))
     }
     #[cfg(test)]
     fn cce_thread_start(&self,generation:&Value,cwd:&str,composition:&crate::role_supply::Composition,supply_ref:&str)->Result<SourceRequest,String>{
@@ -2067,7 +2100,7 @@ impl Host {
         let mut params=Self::thread_start_params(cwd,"synthetic","synthetic",Some(&composition.text))?;
         params["dynamicTools"]=json!([call_custody::definition()]);
         call_custody::bounded(&params,65536,65536).map_err(|e|e.message())?;
-        self.request_begin_with_offer("thread/start",params,json!({"kind":"synthetic-offered-start"}),false,Some(generation),false,None,None,Some(intent))
+        self.request_begin_with_offer("thread/start",params,json!({"kind":"synthetic-offered-start"}),false,Some(generation),false,None,None,Some(intent),None)
     }
     pub(crate) fn cce_original_start_pin(&self,request:&SourceRequest)->Result<Option<call_custody::StartPin>,String>{
         let i=self.inner.0.lock().unwrap();let Some(offer)=i.cce_offer.as_ref() else{return Ok(None)};
@@ -2159,7 +2192,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -2256,13 +2289,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     /// `thread/start` parameters with the App's offered tools: the records
     /// capability (RS §13.9) when it is configured and `cwd` is its project.
-    fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<Value, String> {
+    fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<(Value,Option<records_continuity::Project>), String> {
         let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
-        let capability = self.inner.0.lock().unwrap().records_capability.clone();
-        if capability.is_some_and(|c| c.offered_for(cwd)) {
-            params["dynamicTools"] = json!([crate::records_access::definition()]);
+        let mut inner = self.inner.0.lock().unwrap();
+        let capability = inner.records_capability.clone();
+        let mut project = None;
+        if let Some(capability) = capability.filter(|capability|capability.offered_for(cwd)) {
+            match capability.project_identity() {
+                Ok(directory) => {
+                    params["dynamicTools"] = json!([crate::records_access::definition()]);
+                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory });
+                }
+                Err(limit) => inner.records_capability_limit = Some(limit),
+            }
         }
-        Ok(params)
+        Ok((params,project))
     }
     /// RS §13.9: offer the agents' read-only records capability on the
     /// conversations this host starts in `capability`'s project.
@@ -2270,6 +2311,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let mut i = self.inner.0.lock().unwrap();
         i.records_capability = Some(capability);
         i.records_capability_limit = None;
+        i.records_project_context = None;
+    }
+    /// The actual Root project context accompanies the capability; native cwd
+    /// or the existing index cannot supply this current explicit reference.
+    pub fn configure_records_capability_with_context(&self, capability: Arc<crate::records_access::RecordsCapability>, context: crate::recovery::ExplicitAppProjectContext) {
+        let mut inner = self.inner.0.lock().unwrap();
+        inner.records_capability = Some(capability);
+        inner.records_capability_limit = None;
+        inner.records_project_context = Some(context);
+    }
+    pub fn records_project_context(&self) -> Option<crate::recovery::ExplicitAppProjectContext> {
+        self.inner.0.lock().unwrap().records_project_context.clone()
     }
     /// The records capability could not be set up: not offered, and shown why.
     pub fn records_capability_unavailable(&self, reason: String) {
@@ -2291,10 +2344,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     fn thread_start_inner(&self, cwd: &str, model: &str, model_provider: &str,
         developer_instructions: Option<&str>) -> Result<Value, String> {
-        let params = self.offered_start_params(cwd, model, model_provider, developer_instructions)?;
+        let (params,project) = self.offered_start_params(cwd, model, model_provider, developer_instructions)?;
         let sent_generation = self.inner.0.lock().unwrap().generation.clone();
-        let r = self.request_inner_scoped("thread/start", params.clone(), json!({"kind": "person-directed"}),
-            Duration::from_secs(20), false, Some(&sent_generation))?;
+        let source = self.request_begin_with_offer("thread/start",params.clone(),json!({"kind":"person-directed"}),false,Some(&sent_generation),false,None,None,None,project)?;
+        let r = self.wait_source_response(&source,Duration::from_secs(20))?;
         #[cfg(test)]
         if let Some(hook) = self.before_thread_insert.lock().unwrap().take() { hook(); }
         self.insert_start_response(&sent_generation,&params,&r,false)?;
@@ -2306,7 +2359,33 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
         if no_duplicate&&i.state!="ready" {return Err("thread/start result is not ready for operational admission".into());}
         if no_duplicate&&i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("thread already operationally admitted in generation".into());}
-        if params["dynamicTools"].as_array().is_some_and(|tools| tools.iter().any(|t| t["name"]==crate::records_access::TOOL)) {i.records_offers.push((generation.clone(),t["id"].clone()));}
+        let supported = params["dynamicTools"].as_array().is_some_and(|tools| {
+            let definitions = tools.iter().filter(|definition| definition["name"] == crate::records_access::TOOL).collect::<Vec<_>>();
+            definitions.len() == 1 && *definitions[0] == crate::records_access::definition()
+        });
+        if supported && Self::validate_native_result("ThreadStartResponse", &response["result"]).is_ok()
+            &&matches!(t["status"]["type"].as_str(),Some("idle"|"active"))&&t["canAcceptDirectInput"]!=false {
+            let original = i.source_requests.get(&response["id"].to_string()).filter(|source| {
+                source.request.generation == *generation && source.request.frame["method"] == "thread/start"
+                    && source.request.frame["params"] == *params && source.written && !source.write_attempt_in_progress
+                    && source.write_error.is_none() && source.source_limit.is_none()
+                    && source.response.as_ref() == Some(response)
+                    && i.client_requests[source.index]["outcome"] == "response-observed-result"
+            });
+            if let Some(source) = original {
+                let proof = records_continuity::Source::new(generation, &source.request.request_ref, &response["id"], "thread/start", t["id"].as_str().unwrap_or_default());
+                let project = source.records_project.clone();
+                let receipt = match (proof, project.as_ref().and_then(|project|project.reference.as_deref())) {
+                    (Ok(proof), Some(reference)) => Some(records_continuity::Receipt::start(generation["home"].as_str().unwrap_or_default(), t["id"].as_str().unwrap_or_default(), reference, project.as_ref().unwrap().directory.clone(), proof)),
+                    _ => None,
+                };
+                if let Some(project) = project {
+                    i.records_offers.push((generation.clone(), t["id"].clone()));
+                    i.records_offer_projects.push((generation.clone(),t["id"].clone(),project.directory));
+                }
+                if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
+            }
+        }
         let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
     }
 
@@ -3085,7 +3164,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
             let records=offered.is_none()&&frame["method"]=="item/tool/call"&&frame["params"]["tool"]==crate::records_access::TOOL&&frame["params"]["namespace"].is_null()
-                &&i.records_capability.is_some()&&i.records_offers.iter().any(|(g,t)|*g==gen&&*t==frame["params"]["threadId"]);
+                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"]);
             if records {
                 match i.server_requests.receive_named_tool(&gen,pos,&frame,"app-rule:records-read") {
                     Ok(()) => records_call=Some(Self::records_call(&i,&gen,&frame)),
@@ -4583,3 +4662,7 @@ mod stop_records_host_tests;
 #[cfg(test)]
 #[path = "hosting_delegation_reply_tests.rs"]
 mod hosting_delegation_reply_tests;
+
+#[cfg(test)]
+#[path = "records_continuity_tests.rs"]
+mod records_continuity_tests;

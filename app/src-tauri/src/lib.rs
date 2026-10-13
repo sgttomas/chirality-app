@@ -535,7 +535,9 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 let host=Arc::new(Host::new_with_app_custody(custody)?);
                 if let Some(store)=&account_store{host.configure_distribution_store(Ok(store.clone()));}
                 // RS §13.9: the same project's records capability on this home's conversations.
-                if let Some(capability)=account.host.records_capability(){host.configure_records_capability(capability);}
+                if let Some(capability)=account.host.records_capability(){
+                    if let Some(context)=account.host.records_project_context(){host.configure_records_capability_with_context(capability,context);}else{host.configure_records_capability(capability);}
+                }
                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
@@ -1804,7 +1806,7 @@ pub fn run() {
                     Err(_) => capability,
                 });
                 match capability {
-                    Ok(capability) => home.host.configure_records_capability(Arc::new(capability)),
+                    Ok(capability) => home.host.configure_records_capability_with_context(Arc::new(capability), state.project_context.clone()),
                     Err(reason) => home.host.records_capability_unavailable(reason),
                 }
             }
