@@ -2315,3 +2315,187 @@ fn workflow_reselection_select_offered_only_while_the_store_verifies() {
     assert!(rows.as_array().unwrap().iter().all(|r| r["selectable"] == true), "{rows}");
     assert_eq!(owner.newer_registered(first.identity()).unwrap().unwrap().2, Ok(true));
 }
+
+#[test]
+fn u_store_2_foreign_and_moved_root_history_stays_quoted_after_local_registration() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "Portable bytes");
+    let local = register(&s.persistent_owner(), one.revision());
+    let mut foreign = ledger(&s)[0].clone();
+    foreign["identity"]["source_root"] = json!("another-installation-library");
+    foreign["ledger_seq"] = json!(2);
+    foreign["act"]["record_id"] = json!("rec:foreign-installation-history");
+    let log = storage::library_log(&s.0);
+    let mut foreign_act = crate::records::read_log(&log).0[0].clone();
+    foreign_act["recordId"] = json!("rec:foreign-installation-history");
+    foreign_act["seq"] = json!(2);
+    foreign_act["prevLine"] = crate::record_lines::fixture::next_link(&log);
+    foreign_act["body"]["installation"]["reference"] = json!("chirality-installation:11111111-1111-4111-8111-111111111111");
+    let subject = foreign_act["body"]["boundSubject"][0].as_str().unwrap().strip_prefix("workflow revision ").unwrap();
+    let mut subject: Value = serde_json::from_str(subject).unwrap(); subject["sourceRoot"] = json!("another-installation-library");
+    foreign_act["body"]["boundSubject"][0] = json!(format!("workflow revision {subject}"));
+    use std::io::Write;
+    fs::OpenOptions::new().append(true).open(&log).unwrap().write_all(format!("{foreign_act}\n").as_bytes()).unwrap();
+    append_line(&s.0, &foreign).unwrap();
+    let owner = s.persistent_owner();
+    assert!(!owner.is_held(local.identity()));
+    reconfirmed(&reconfirm(&owner, one.revision()).0[0]);
+    assert!(owner.is_held(local.identity()));
+    let evidence = owner.registration_evidence();
+    let rows = evidence["rows"].as_array().unwrap();
+    let old = rows.iter().find(|r| r["identity"]["source_root"] == "another-installation-library").unwrap();
+    assert_eq!(old["quoted"], true);
+    assert_eq!(old["selectable"], false, "matching name/revision never borrows local held authority");
+    assert_eq!(old["sameRecordedLibrary"], false);
+    assert_eq!(old["claims"][0]["installation"]["reference"], "chirality-installation:11111111-1111-4111-8111-111111111111");
+    assert_eq!(old["claims"][0]["installation"]["verification"], "unverified");
+    assert_eq!(old["identity"]["revision"], local.identity().revision);
+    assert_eq!(owner.registered_listing().as_array().unwrap().len(), 1, "separate local selection listing");
+    // Opening exactly these bytes under a new source context retains every
+    // historical tuple; it does not reinterpret those tuples as local.
+    let moved = LibraryOwner::open(s.0.clone(), "project", "new-physical-library-root").unwrap();
+    assert!(moved.registered_listing().as_array().unwrap().is_empty());
+    let history = moved.registration_evidence();
+    assert_eq!(history["rows"].as_array().unwrap().len(), rows.len());
+    assert!(history["rows"].as_array().unwrap().iter().all(|r| r["selectable"] == false && r["sameRecordedLibrary"] == false));
+}
+
+#[test]
+fn u_store_2_new_a15_has_unverified_provenance_and_old_a15_is_unknown() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    let first = register(&owner, one.revision());
+    let log = storage::library_log(&s.0);
+    let (mut records, limits) = crate::records::read_log(&log); assert!(limits.is_empty());
+    let reference = records[0]["body"]["installation"]["reference"].as_str().unwrap().to_owned();
+    assert!(reference.starts_with("chirality-installation:"));
+    assert_eq!(records[0]["body"]["installation"]["verification"], "unverified");
+    records[0]["body"].as_object_mut().unwrap().remove("installation");
+    let bytes = crate::record_lines::fixture::rechain(format!("{}\n", records[0]).as_bytes());
+    fs::write(&log, bytes).unwrap();
+    let cold = s.persistent_owner();
+    let history = cold.registration_evidence();
+    assert!(history["rows"][0]["claims"][0]["installation"]["reference"].is_null());
+    assert_eq!(history["rows"][0]["claims"][0]["installation"]["verification"], "unverified");
+    assert!(history["rows"][0]["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("attribution unknown")));
+    let second = reconfirmed(&reconfirm(&cold, one.revision()).0[0]);
+    assert_eq!(second.identity(), first.identity()); assert_ne!(second.act_ref(), first.act_ref());
+    let (records, limits) = crate::records::read_log(&log); assert!(limits.is_empty());
+    assert_eq!(records[1]["body"]["installation"]["reference"], reference);
+    assert_eq!(records[1]["body"]["installation"]["verification"], "unverified");
+    assert!(cold.is_held(second.identity()));
+    let restarted = s.persistent_owner();
+    assert!(!restarted.is_held(second.identity()), "persistent attribution never restores selection authority");
+}
+
+fn registered(outcome: &EntryOutcome) -> &RegisteredRevision {
+    match outcome {
+        EntryOutcome::Registered { revision, .. } => revision,
+        other => panic!("new local hot registration required: {other:?}"),
+    }
+}
+
+#[test]
+fn u_store_2_a_physically_moved_library_registers_its_local_copy_with_a_new_hot_a15() {
+    let s = Scratch::new();
+    s.put("sample", true, "Portable bytes");
+    s.put("other", true, "Other portable bytes");
+    let names = ["sample".into(), "other".into()];
+    let foreign_data = s.0.with_extension("foreign-install-data");
+    let local_data = s.0.with_extension("local-install-data");
+    let moved_root = s.0.with_extension("moved-library");
+    crate::installation::folder_for_test(Some(Some(foreign_data.clone())));
+    let original_owner = LibraryOwner::open(s.0.clone(), "project", s.0.to_str().unwrap()).unwrap();
+    let session = original_owner.review_in_place(&names).unwrap();
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let originals = attempt.advance();
+    let original = registered(&originals[0]);
+    let old_identity = original.identity().clone();
+    drop(attempt);
+    let old_ledger = fs::read(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    let old_acts = fs::read(storage::library_log(&s.0)).unwrap();
+    let foreign_reference = crate::records::read_log(&storage::library_log(&s.0)).0[0]["body"]["installation"]["reference"].clone();
+    fs::rename(&s.0, &moved_root).unwrap();
+    crate::installation::folder_for_test(Some(Some(local_data.clone())));
+    let owner = LibraryOwner::open(moved_root.clone(), "project", moved_root.to_str().unwrap()).unwrap();
+    assert!(owner.registered_listing().as_array().unwrap().is_empty(), "the old source identity is never reinterpreted as local");
+    let quoted = owner.registration_evidence();
+    assert_eq!(quoted["rows"][0]["identity"], serde_json::to_value(&old_identity).unwrap());
+    assert!(quoted["rows"].as_array().unwrap().iter().all(|row| row["selectable"] == false));
+    let store = store_path(&moved_root, &old_identity);
+    let store_before = Snapshot::capture(&store).unwrap().files().clone();
+    // A real move changes the source-qualified tuples. The adopted multiple-
+    // entry DS-7 route records this library's unchanged bytes with a fresh
+    // synthetic native confirmation, reusing the immutable stores only.
+    // The single entry: descriptor condition remains open in AAC.
+    let session = owner.review_in_place(&names).unwrap();
+    assert_eq!(session.current().unwrap().descriptor_kind(), "a15_multi_descriptor");
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let outcomes = attempt.advance();
+    assert_eq!(outcomes.len(), 2);
+    let local = registered(&outcomes[0]);
+    assert_ne!(local.identity(), &old_identity);
+    assert_eq!(local.identity().revision, old_identity.revision);
+    assert_eq!(local.identity().source_root, moved_root.to_str().unwrap());
+    assert_ne!(local.act_ref(), original.act_ref());
+    for outcome in &outcomes { assert!(owner.is_held(registered(outcome).identity())); }
+    assert_eq!(Snapshot::capture(&store).unwrap().files(), &store_before);
+    assert!(fs::read(moved_root.join(".chirality/workflow-registry.jsonl")).unwrap().starts_with(&old_ledger));
+    assert!(fs::read(storage::library_log(&moved_root)).unwrap().starts_with(&old_acts));
+    let history = owner.registration_evidence();
+    assert_eq!(history["rows"].as_array().unwrap().len(), 4);
+    assert_eq!(history["rows"][0]["identity"], serde_json::to_value(&old_identity).unwrap());
+    assert_eq!(history["rows"][0]["claims"][0]["installation"]["reference"], foreign_reference);
+    assert_eq!(history["rows"][2]["claims"][0]["installation"]["verification"], "unverified");
+    assert_ne!(history["rows"][2]["claims"][0]["installation"]["reference"], foreign_reference);
+    for row in history["rows"].as_array().unwrap() {
+        assert_eq!(row["selectable"], false);
+        assert!(!row["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("relationship")), "both multi subjects match their complete ledger tuples: {row}");
+    }
+    let restarted = LibraryOwner::open(moved_root.clone(), "project", moved_root.to_str().unwrap()).unwrap();
+    assert!(!restarted.is_held(local.identity()));
+    crate::installation::folder_for_test(None);
+    fs::remove_dir_all(moved_root).unwrap(); fs::remove_dir_all(foreign_data).unwrap(); fs::remove_dir_all(local_data).unwrap();
+}
+
+#[test]
+fn u_store_2_history_discloses_cross_kind_duplicates_and_full_tuple_mismatch() {
+    let s = Scratch::new();
+    let package = s.put("sample", false, "Same bytes");
+    let owner = s.owner();
+    register(&owner, package.revision());
+    let original = ledger(&s)[0].clone();
+    let mut foreign = original.clone();
+    foreign["identity"]["source_root"] = json!("different-recorded-library");
+    foreign["ledger_seq"] = json!(2);
+    append_line(&s.0, &foreign).unwrap();
+    let log = storage::library_log(&s.0);
+    let original_act = crate::records::read_log(&log).0[0].clone();
+    let fixtures: Vec<Value> = serde_json::from_str(include_str!("../schemas/fixtures/valid-records.json")).unwrap();
+    let mut duplicate = fixtures.into_iter().find(|record| record["kind"] == "evidence_limit").unwrap();
+    duplicate["recordId"] = original_act["recordId"].clone();
+    duplicate["seq"] = json!(2);
+    duplicate["prevLine"] = crate::record_lines::fixture::next_link(&log);
+    fs::OpenOptions::new().append(true).open(&log).unwrap().write_all(format!("{duplicate}\n").as_bytes()).unwrap();
+    let evidence = owner.registration_evidence();
+    assert!(evidence["limits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("duplicate record identity")));
+    for row in evidence["rows"].as_array().unwrap() {
+        assert_eq!(row["claims"].as_array().unwrap().len(), 1, "retain the readable A15 even when another kind shares its ID");
+        assert!(row["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("attribution ambiguous")));
+        assert_eq!(row["claims"][0]["boundSubject"], original_act["body"]["boundSubject"]);
+        assert_eq!(row["selectable"], false);
+    }
+    assert!(!evidence["rows"][0]["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("relationship")));
+    assert!(evidence["rows"][1]["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("relationship mismatched")));
+    // Older subject strings are quoted unchanged and the missing full tuple
+    // is a relationship limit, never filled from the ledger by the reader.
+    let mut legacy = original_act;
+    legacy["body"]["boundSubject"][0] = json!("workflow revision legacy:sample");
+    fs::write(&log, crate::record_lines::fixture::rechain(format!("{legacy}\n").as_bytes())).unwrap();
+    let evidence = owner.registration_evidence();
+    assert_eq!(evidence["rows"][0]["claims"][0]["boundSubject"][0], "workflow revision legacy:sample");
+    assert!(evidence["rows"][0]["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("relationship to this ledger identity unknown")));
+}

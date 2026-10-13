@@ -405,6 +405,8 @@ code_paths:
 - app/src/ConversationRoles.tsx
 - app/src/exactText.ts
 - app/src-tauri/src/conversation_roles.rs
+- app/src-tauri/src/installation.rs
+- app/src-tauri/src/act_control_a15.rs
 checks:
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs
@@ -416,3 +418,6 @@ checks:
 - app/tests/run-offers.test.mjs
 - app/tests/workflow-drafts.test.mjs
 - app/tests/validate-records.test.mjs
+- app/src-tauri/src/installation.rs
+- app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/tests/schema_validation.rs

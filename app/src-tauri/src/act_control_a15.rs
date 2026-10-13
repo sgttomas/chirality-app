@@ -588,7 +588,7 @@ impl ActControl {
         let cap_id = crate::util::opaque_id("cap:")?;
         let o = slot.offer.clone();
         let es = o["entries"].as_array().ok_or("A15 entries absent")?;
-        let capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":cap_id,"offerId":offer.id,
+        let mut capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":cap_id,"offerId":offer.id,
             "offerDigest":o["offerDigest"],"choice":"act","actKind":"A15","actor":event.actor(),
             "boundSubject":es.iter().map(|e|e["subject"]["ref"].clone()).collect::<Vec<_>>(),
             "boundContent":es.iter().map(|e|e["subject"]["contentIdentity"].clone()).collect::<Vec<_>>(),
@@ -596,6 +596,9 @@ impl ActControl {
             "answers":o["answers"],"descriptorId":o["descriptorId"],"descriptorKind":o["descriptorKind"],
             "entries":es.iter().map(|e|json!({"revision":e["subject"]["ref"],"reviewedDraft":e["reviewedDraft"],"priorRevision":e["priorRevision"]})).collect::<Vec<_>>(),
             "evidenceLimits":["identity not verified"]});
+        let (installation, limit) = crate::installation::capture_claim(&self.workspace);
+        capture["installation"] = installation;
+        if let Some(limit) = limit { capture["evidenceLimits"].as_array_mut().unwrap().push(json!(limit)); }
         crate::schema_validation::validate_capture(&capture)?;
         let root = self.workspace.clone();
         let target_log = storage::library_log(&root)
@@ -762,10 +765,12 @@ pub(super) fn a15_body(capture: &Value) -> Value {
     } else {
         json!({"registeredEntries":entries.map(|es|es.iter().map(|e|json!({"subject":e["revision"],"reviewedDraft":e["reviewedDraft"],"priorRevision":e["priorRevision"]})).collect::<Vec<_>>()).unwrap_or_default()})
     };
-    json!({"actKind":"A15","actClass":{"value":"person's act (V4-WF-02)"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
+    let mut body = json!({"actKind":"A15","actClass":{"value":"person's act (V4-WF-02)"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
         "boundSubject":capture["boundSubject"],"boundContent":capture["boundContent"],"scope":capture["scope"],"purpose":capture["purpose"],
         "captureEvidence":[{"kind":"capture evidence","ref":capture["captureId"],"resolutionAtWrite":"resolved"}],
-        "captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"],"relations":relations})
+        "captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"],"relations":relations});
+    if let Some(installation) = capture.get("installation") { body["installation"] = installation.clone(); }
+    body
 }
 
 #[cfg(test)]
@@ -1206,6 +1211,25 @@ mod tests {
             std::fs::read(storage::library_log(&root)).unwrap(),
             before_cold
         );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn u_store_2_identity_failure_retains_the_native_a15_and_its_hot_effect() {
+        crate::installation::folder_for_test(Some(None));
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let current = session.current().unwrap();
+        let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current).unwrap();
+        let HotA15Result::Recorded(receipt) = result else { panic!("actual synthetic capture must survive attribution failure") };
+        assert!(receipt.witness.original_capture["installation"]["reference"].is_null());
+        assert_eq!(receipt.witness.original_capture["installation"]["verification"], "unverified");
+        assert!(receipt.witness.original_capture["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("installation attribution unavailable")));
+        assert_eq!(receipt.witness.durable_record["body"], a15_body(&receipt.witness.original_capture));
+        drop(current);
+        let mut attempt = session.begin_hot_registration(receipt).unwrap();
+        let outcomes = attempt.advance();
+        assert!(matches!(&outcomes[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        crate::installation::folder_for_test(None);
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

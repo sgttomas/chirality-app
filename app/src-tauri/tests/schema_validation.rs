@@ -138,3 +138,37 @@ fn full_package_and_authoritative_offer_capture_reject_malformed_objects() {
     let mut malformed = capture; malformed.as_object_mut().unwrap().remove("requestRef");
     assert!(schema_validation::validate_capture(&malformed).is_err());
 }
+
+#[test]
+fn u_store_2_installation_claim_remains_optional_unverified_a15_metadata() {
+    let validator = schema_validation::bundled().unwrap();
+    let capture = capture_fixtures()["instances"].as_array().unwrap().iter()
+        .find(|capture| capture["actKind"] == "A15").unwrap().clone();
+    let entry = fixtures().into_iter()
+        .find(|entry| entry["kind"] == "human_act" && entry["body"]["actKind"] == "A15").unwrap();
+    schema_validation::validate_capture(&capture).unwrap();
+    validator.validate(&entry).unwrap();
+    for reference in [Value::Null, json!("chirality-installation:11111111-1111-4111-8111-111111111111")] {
+        let installation = json!({"reference":reference,"verification":"unverified"});
+        let mut attributed_capture = capture.clone(); attributed_capture["installation"] = installation.clone();
+        let mut attributed_entry = entry.clone(); attributed_entry["body"]["installation"] = installation.clone();
+        schema_validation::validate_capture(&attributed_capture).unwrap();
+        validator.validate(&attributed_entry).unwrap();
+        for invalid in [
+            json!({"reference":reference,"verification":"verified"}),
+            json!({"reference":"path-derived-identity","verification":"unverified"}),
+            json!({"reference":reference,"verification":"unverified","authenticated":true}),
+        ] {
+            attributed_capture["installation"] = invalid.clone(); attributed_entry["body"]["installation"] = invalid;
+            assert!(schema_validation::validate_capture(&attributed_capture).is_err());
+            assert!(validator.validate(&attributed_entry).is_err());
+        }
+        let mut other_capture = capture_fixtures()["instances"].as_array().unwrap().iter()
+            .find(|capture| capture["actKind"] == "A16").unwrap().clone();
+        let mut other_entry = fixtures().into_iter()
+            .find(|entry| entry["kind"] == "human_act" && entry["body"]["actKind"] == "A16").unwrap();
+        other_capture["installation"] = installation.clone(); other_entry["body"]["installation"] = installation;
+        assert!(schema_validation::validate_capture(&other_capture).is_err());
+        assert!(validator.validate(&other_entry).is_err());
+    }
+}
