@@ -539,6 +539,22 @@ readable by `thread/read` (OBS-2 O-4, adapter). After a relaunch the view
 finds children from `receiverThreadIds` in the parent's history and reads
 them.
 
+**Current0.160.0 history metadata receiving.** The selected history receiver
+also recognizes a native `subAgentActivity` with `kind: started` and a
+nonempty `agentThreadId`/item identity. It retains the owning page query and
+revision, thread, turn and item as discovery provenance. This is a candidate
+for an on-demand `thread/read` with `includeTurns: false`, not a confirmed
+parent edge. A matching native parent in that child's metadata confirms the
+relationship; missing, conflicting or different parent metadata stays quoted
+with an unknown relationship and its limit. Later activity does not replace
+the original discovery source. Root/self and known ancestor/path references
+are excluded, including copied fork/history rows; contradictory started paths
+retain a limit. Legacy completed `spawnAgent` sources retain their own meaning.
+These joins are exercised through the maintained native-history and genuine
+Host-receipt fixtures. They establish no App child guidance supply or child-start dispatch,
+child completion, return, review or integration. ROLE §5.3's actual App
+child-configuration join remains separate.
+
 ### 7.3 Display rules
 
 - **DR-1 Last observed, always sourced.**

@@ -3907,6 +3907,50 @@ mod conversation_transport_tests {
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     fn history_exchange(host:&Arc<Host>,query:&HistoryQuery,response:Option<Value>)->(HistoryDispatch,Value,Value) {let mut receipt=None;let(result,outbound)=exchange(host,response,vec![],||{let r=host.history_dispatch(query)?;let evidence=host.history_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(evidence)});(receipt.unwrap(),result.unwrap(),outbound)}
     #[test]
+    fn history_bridge_current_started_child_reaches_metadata_without_guidance_or_admission() {
+        use crate::native_history::Direction;
+        use crate::runtime_session::HistorySession;
+        fn deliver(host: &Arc<Host>, session: &mut HistorySession, query: &HistoryQuery, result: Value) -> Value {
+            let (receipt, evidence, outbound) = history_exchange(host, query, Some(json!({"result":result})));
+            assert_eq!(evidence["writeResult"], "written");
+            assert_eq!(evidence["outcome"], "response-observed-result");
+            assert_eq!(evidence["sentFrame"], outbound);
+            assert_eq!(outbound["params"], *query.params());
+            session.dispatched(receipt);
+            session.reconcile(host);
+            outbound
+        }
+        let host = host();
+        { let mut inner = host.inner.0.lock().unwrap(); inner.threads.clear(); inner.next_id = 80; }
+        let mut session = HistorySession::default();
+        let q = session.prepare(&host.snapshot(), &g(), 0, "list", None, Direction::Desc, None).unwrap();
+        deliver(&host, &mut session, &q, json!({"data":[history_thread("notLoaded")],"nextCursor":null}));
+        session.select(&host.snapshot(), &g(), 0, "stored").unwrap();
+        let q = session.prepare(&host.snapshot(), &g(), 1, "turns", None, Direction::Desc, None).unwrap();
+        deliver(&host, &mut session, &q, json!({"data":[{"id":"native-turn","status":"completed","items":[],"itemsView":"summary","error":null}]}));
+        let q = session.prepare(&host.snapshot(), &g(), 1, "items", None, Direction::Desc, Some("native-turn")).unwrap();
+        deliver(&host, &mut session, &q, json!({"data":[{"turnId":"native-turn","completedAtMs":1,"item":{"id":"native-start","type":"subAgentActivity","kind":"started","agentPath":"/root/task","agentThreadId":"native-child"}}]}));
+        let original = session.snapshot(None)["selected"]["knownChildren"][0].clone();
+        assert!(original.get("parentThreadId").is_none());
+        assert_eq!(original["sourceQuery"], serde_json::to_value(&q).unwrap());
+        for parent in [None, Some("foreign-parent"), Some("stored")] {
+            let q = session.prepare(&host.snapshot(), &g(), 1, "child", None, Direction::Desc, Some("native-child")).unwrap();
+            assert_eq!(q.params(), &json!({"threadId":"native-child","includeTurns":false}));
+            let mut native = history_thread("idle"); native["id"] = json!("native-child");
+            if let Some(parent) = parent { native["parentThreadId"] = json!(parent); }
+            let outbound = deliver(&host, &mut session, &q, json!({"thread":native.clone()}));
+            assert_ne!(outbound["id"], json!(q.id()));
+            let snapshot = session.snapshot(None);
+            assert_eq!(snapshot["selected"]["childReads"]["native-child"]["native"]["thread"], native);
+            assert_eq!(snapshot["selected"]["childReads"]["native-child"]["appRole"]["standing"], "unknown");
+            assert_eq!(snapshot["selected"]["childReads"]["native-child"]["parentRelationship"]["standing"], if parent == Some("stored") {"native-parent-confirmed"} else {"unknown"});
+            assert_eq!(session.role("conversation-home", "native-child")["standing"], "unknown");
+            assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());
+            assert_eq!(snapshot["activeBindingPerformed"], false);
+            assert_eq!(snapshot["selected"]["knownChildren"][0]["sourceQuery"], original["sourceQuery"]);
+        }
+    }
+    #[test]
     fn history_bridge_actual_rpc_receipt_before_wait_timeout_clone_and_late_correlation() {
         let host=host();host.inner.0.lock().unwrap().next_id=40;let mut view=history_selected();let query=view.read_metadata().unwrap();let(receipt,evidence,outbound)=history_exchange(&host,&query,None);
         assert_ne!(receipt.source().request_id(),&json!(query.id()));assert_eq!(receipt.source().request_id(),&json!(41));assert_eq!(receipt.query(),&query);assert_eq!(evidence["sentFrame"],outbound);assert_eq!(outbound["params"],*query.params());assert_eq!(evidence["writeResult"],"written");assert_eq!(evidence["outcome"],"pending");assert_eq!(evidence["waitingEnded"],true);assert!(evidence["response"].is_null());assert!(!receipt.source().request_ref().is_empty());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
