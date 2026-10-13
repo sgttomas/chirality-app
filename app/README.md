@@ -167,12 +167,17 @@ implemented behavior and qualification limits.
     **Select revision ‹n›** is offered only when this process holds that
     revision; following it is a new selection whose `selection_record` cites
     the one it replaces (`replaces`). Any person's selection of a registered
-    revision replacing another registered selection cites it the same way
-    (§5.4); a candidate selection that cannot run is not cited. The selection
-    stays App-wide, not per conversation as WR §5.4 is headed. A selection is
-    recorded when a run of it is prepared, since the record names the run's
-    conversation, so a replaced selection no run used has no record of its
-    own. Bundled (LS-5) entries remain inspect-only candidates.
+    revision replacing another registered selection in the same chat cites it
+    the same way (§5.4); a candidate selection that cannot run is not cited.
+    The owner chose: "Each chat keeps its own selection (Recommended)".
+    Each chat keeps its pending choice in its actual App home source; started
+    runs retain their own revision, and a new chat has no selection. Library
+    browsing and explicit no-chat inspection stay shared; inspection supplies
+    no next-workflow default. The App constructs a selection record when a run
+    is prepared and publishes it before dispatch, since the record names the
+    run's conversation; a replaced selection no run used has no record of its
+    own. Whether a record is due at selection itself remains open with the WR
+    owner. Bundled (LS-5) entries remain inspect-only candidates.
 17. The selected conversation shows its native activity readably: messages,
     reasoning summaries, plan items and checklist revisions, tool rows and
     descendants, grouped by turn in native start order and, within a turn, in

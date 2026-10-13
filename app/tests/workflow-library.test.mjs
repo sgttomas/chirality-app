@@ -62,29 +62,33 @@ test('the newer-revision notice shows beside the selection and only the press fo
   assert.match(h(NewerRevisionNotice,{selection:selection({limit:'library busy; newer revisions not read now'}),busy:false,act:()=>{}}),/Newer revisions: library busy/);
 });
 
-test('the workflow panel places the list offers and the notice',()=>{
+test('the workflow panel keeps shared library offers but supplies no chat default',()=>{
   const data={selection:selection({sequence:2,revision:'b'.repeat(64),notice:'newer revision 2 available',selectable:true,offered:'Select revision 2'}),
     activeLibrary:'lib-1',libraries:[{reference:'lib-1',registered:[held,cold]}],reviews:[]};
   const html=h(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act:async()=>{}});
-  assert.match(html,/aria-label="Newer revision"[^>]*>newer revision 2 available/);
-  assert.match(html,/<button>Select revision 2<\/button>/);
-  assert.match(html,/<button>Select revision 1<\/button>/);
+  assert.doesNotMatch(html,/aria-label="Newer revision"/,'no chat has been chosen');
+  assert.match(html,/No chat — inspect library content/);
+  assert.match(html,/<button disabled="">Select revision 1<\/button>/);
 });
 
 // Review finding 1: the press names the library whose list was shown, so the
 // host can refuse it once another library is active.
 test('the panel sends the shown library with a list Select',async()=>{
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {ok:true};};
-  const data={selection:null,activeLibrary:'lib-2',libraries:[{reference:'lib-1',registered:[held]},{reference:'lib-2',registered:[{...held,sequence:3}]}],reviews:[]};
+  const g={appSession:'invented-session',home:'invented-home',spawnCounter:1};
+  const data={context:{sourceRef:'home:owned',generation:g,historyEpoch:0},selections:[],activeLibrary:'lib-2',libraries:[{reference:'lib-1',registered:[held]},{reference:'lib-2',registered:[{...held,sequence:3}]}],reviews:[]};
   const container=document.createElement('div');document.body.appendChild(container);
   const root=createRoot(container);
-  await React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act})));
+  await React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,workflowRoot:data,threads:[{generation:g,threadId:'chat-1'}]},act})));
   const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
   assert.equal(container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 1').length,0,'only the active library is listed');
   const [b]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
   assert.ok(b);
-  await React.act(async()=>{props(b).onClick();await new Promise(r=>setTimeout(r,0));});
-  assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64)}]);
+  const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat'));
+  await React.act(()=>props(chat).onChange({target:{value:'chat-1'}}));
+  const [selectedButton]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
+  await React.act(async()=>{props(selectedButton).onClick();await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64),context:{sourceRef:'home:owned',generation:g,historyEpoch:0,threadId:'chat-1',selectionRef:null,inspectionRef:null,libraryRef:'lib-2'}}]);
   await React.act(()=>root.unmount());
 });
 

@@ -21,7 +21,7 @@ fn limits_named(peer:&Peer,run:&str,label:&str)->Vec<Value>{rs_for(peer,run).int
 #[test]
 fn run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
     let owner=crate::run_restart::RUN_TAG_OWNER;
-    let peer=Peer::with_recovery();let mut root=peer.fixture.registered();
+    let peer=Peer::with_recovery();let mut root=peer.registered();
     let a=open_run(&peer,&mut root,"thread");
     let tag=root.runs[&a].lock().unwrap().view(&a)["runTag"].clone();
     assert_eq!(tag["persistence"],"durable App metadata","{tag}");assert_eq!(tag["tag"]["value"],a.as_str());
@@ -44,12 +44,12 @@ fn run_tag_written_at_run_opened_ordered_and_earlier_tag_kept(){
 // and never blocks the run: no ledger, or a ledger that refuses the append.
 #[test]
 fn run_tag_not_stored_keeps_the_run_going(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let a=open_run(&peer,&mut root,"thread");
     let view=root.runs[&a].lock().unwrap().view(&a);
     assert_eq!(view["runTag"]["persistence"],"memory-only","{view}");
     assert!(rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_opened"),"the run opened and was recorded");
-    let peer=Peer::with_recovery();let mut root=peer.fixture.registered();
+    let peer=Peer::with_recovery();let mut root=peer.registered();
     // The ledger refuses the append: its database leaf is displaced by a directory.
     let ledger=crate::recovery::database_path(&peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl"));let aside=peer.fixture.root.join("ledger-aside");
     std::fs::rename(&ledger,&aside).unwrap();std::fs::create_dir(&ledger).unwrap();
@@ -70,7 +70,7 @@ fn run_tag_not_stored_keeps_the_run_going(){
 #[test]
 fn restart_limit_written_once_on_the_current_run(){
     let label=crate::run_restart::RESTART_LABEL;
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let a=open_run(&peer,&mut root,"thread");root.runs[&a].lock().unwrap().end_run(None,None).unwrap();
     let b=open_run(&peer,&mut root,"thread");
     let t2=peer.second_thread();let c=open_run(&peer,&mut root,&t2);root.runs[&c].lock().unwrap().end_run(None,None).unwrap();
@@ -107,8 +107,8 @@ fn restart_limit_written_once_on_the_current_run(){
 // start in that conversation is held back (EXEC CH-2 / RE-7).
 #[test]
 fn end_after_relaunch_notice_from_recorded_run_text_carried_once(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
-    let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
+    let mut fresh=WorkflowRootSession::default();fresh.selected=std::mem::take(&mut root.selected);drop(root);
     let ended=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,Some(peer.home.clone())).unwrap();
     assert!(ended["endNotice"]["state"].as_str().unwrap().starts_with("pending"),"{ended}");
     let blocked=fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","next".into(),peer.project());
@@ -132,9 +132,9 @@ fn end_after_relaunch_notice_from_recorded_run_text_carried_once(){
 // notice is sent and the reason is given; the person's end is still recorded.
 #[test]
 fn end_after_relaunch_refuses_a_notice_without_a_matching_record(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let t2=peer.second_thread();let b=open_run(&peer,&mut root,&t2);
-    let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+    let mut fresh=WorkflowRootSession::default();fresh.selected=std::mem::take(&mut root.selected);drop(root);
     // Mismatch: the recorded start of `b` checked against another revision or conversation.
     let records=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
     let mut workflow=rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").unwrap()["body"]["workflow"].clone();
@@ -157,8 +157,8 @@ fn end_after_relaunch_refuses_a_notice_without_a_matching_record(){
 #[test]
 fn reopened_notice_record_failure_offers_retry_or_recorded_skip(){
     use std::os::unix::fs::PermissionsExt;
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
-    let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
+    let mut fresh=WorkflowRootSession::default();fresh.selected=std::mem::take(&mut root.selected);drop(root);
     fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,Some(peer.home.clone())).unwrap();
     let root=Mutex::new(fresh);let starts=peer.turn_starts();
     std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
@@ -177,7 +177,7 @@ fn reopened_notice_record_failure_offers_retry_or_recorded_skip(){
 // written, and the later run_ended and R3 are written in order.
 #[test]
 fn permanently_refused_r3_gets_its_limit_and_later_records_proceed(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
     let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
@@ -205,7 +205,7 @@ fn permanently_refused_r3_gets_its_limit_and_later_records_proceed(){
 // holds every later entry in strict order.
 #[test]
 fn nonconformant_entry_is_refused_but_transient_failure_keeps_strict_order(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();std::fs::write(&runs,b"blocked").unwrap();
     let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
@@ -316,7 +316,7 @@ fn an_open_run_records_beside_another_writers_torn_tail(){
 // waits and there is no reason to read acts or invent an unread-act limit.
 #[test]
 fn live_end_beside_a_torn_log_with_nothing_waiting_is_recorded_plainly(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let (other,_)=break_act_log(&peer);let torn=std::fs::read(&other).unwrap();
     let ended=root.runs[&a].lock().unwrap().end_run(None,None).unwrap();
     assert_eq!(ended["recorded"],true,"{ended}");
@@ -364,7 +364,7 @@ fn live_end_drains_pending_checkpoint_and_r3_before_its_end_beside_a_torn_log(){
 // recorded after it, beside another incomplete log.
 #[test]
 fn live_end_recovers_its_own_torn_log_beside_another_incomplete_log(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let own=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();
     let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn").unwrap();drop(f);
     let torn=std::fs::read(&own).unwrap();let (other,_)=break_act_log(&peer);let other_bytes=std::fs::read(&other).unwrap();
@@ -382,7 +382,7 @@ fn live_end_recovers_its_own_torn_log_beside_another_incomplete_log(){
 // retries preserve the original end.
 #[test]
 fn live_end_own_unreadable_log_holds_writes_until_repair_even_beside_another_incomplete_log(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let own=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let before=std::fs::read(&own).unwrap();
     let mut f=std::fs::OpenOptions::new().append(true).open(&own).unwrap();std::io::Write::write_all(&mut f,b"{\"torn\n").unwrap();drop(f);
     let torn=std::fs::read(&own).unwrap();let (other,_)=break_act_log(&peer);let other_bytes=std::fs::read(&other).unwrap();
@@ -435,7 +435,7 @@ fn live_end_reconciles_uncertain_own_writes_when_discovery_fails_but_refuses_own
 #[test]
 fn live_end_matching_own_entry_does_not_hide_readable_conflicting_content(){
     for detail in ["different content","d"] {
-        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
         let mut entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();
         let pending=entry.clone();crate::records::supply::append_run_entry(&peer.fixture.root,&a,&mut entry).unwrap();
         let own=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let before=std::fs::read(&own).unwrap();
@@ -452,7 +452,7 @@ fn live_end_matching_own_entry_does_not_hide_readable_conflicting_content(){
 
 #[test]
 fn live_end_exact_foreign_copy_cannot_supply_an_owning_write_receipt(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let pending=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();let id=pending.record_id.clone();
     crate::records::append_project_reserved(&peer.fixture.root,&a,"foreign-copy",pending.kind,&crate::records::APP_WRITER,pending.body.clone(),&id,&pending.observed_at).unwrap();
     break_act_log(&peer);let own=crate::records::supply::run_log(&peer.fixture.root,&a).unwrap();let before=std::fs::read(&own).unwrap();
@@ -482,7 +482,7 @@ fn live_end_conflicting_late_limit_keeps_its_already_landed_parent_pending(){
 // owning log is complete, and the landed R3 is settled once with its late limit.
 #[test]
 fn live_end_r3_landed_before_a_torn_own_tail_is_settled_once_after_w0(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();peer.select_history();run.check_native_supply().unwrap();
     let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
     let slot=run.checks.last_mut().unwrap();
@@ -504,7 +504,7 @@ fn live_end_r3_landed_before_a_torn_own_tail_is_settled_once_after_w0(){
 // An unreadable own line holds the R3 pending until repaired.
 #[test]
 fn live_end_r3_matching_prefix_in_an_unreadable_own_log_stays_pending(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();peer.select_history();run.check_native_supply().unwrap();
     let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
     let slot=run.checks.last_mut().unwrap();
@@ -529,7 +529,7 @@ fn live_end_r3_matching_prefix_in_an_unreadable_own_log_stays_pending(){
 // dropping the conflict or holding the run forever.
 #[test]
 fn live_end_readable_collision_is_refused_with_a_limit_before_end(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
     let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();
     let entry=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"x","detail":"d"}),crate::util::now_rfc3339()).unwrap();let id=entry.record_id.clone();
     crate::records::append_with_id(&crate::storage::project_log(&peer.fixture.root,None,"conflict-fixture").unwrap(),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),&id).unwrap();
@@ -545,7 +545,7 @@ fn live_end_readable_collision_is_refused_with_a_limit_before_end(){
 #[test]
 fn live_end_unconfirmed_start_is_refused_beside_an_incomplete_log(){
     for failure in ["error","exit"] {
-        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let peer=Peer::new();let mut root=peer.registered();
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         peer.set_mode("turn-mode",failure);let shared=root.runs[&a].clone();let mut run=shared.lock().unwrap();assert!(run.send().is_err());
         break_act_log(&peer);
@@ -558,7 +558,7 @@ fn live_end_unconfirmed_start_is_refused_beside_an_incomplete_log(){
 // before the limit or before that entry.
 #[test]
 fn never_written_limit_keeps_observation_order_with_a_later_check(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
     let runs=crate::storage::project_file(&peer.fixture.root, "runs").unwrap();let aside=crate::storage::project_file(&peer.fixture.root, "runs-aside").unwrap();
@@ -599,7 +599,7 @@ fn conversation_home_comes_from_the_ledger_or_is_refused(){
 // established.
 #[test]
 fn last_tag_naming_an_unrecorded_run_writes_no_limit(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let b=open_run(&peer,&mut root,"thread");drop(root);
     let owner=crate::run_restart::RUN_TAG_OWNER;
     let rows=vec![index_row("thread",json!([{"owner":owner,"value":b,"seq":1},{"owner":owner,"value":"run:workflow:never-recorded","seq":2}]))];
@@ -612,8 +612,8 @@ fn last_tag_naming_an_unrecorded_run_writes_no_limit(){
 #[test]
 fn unrecordable_skip_is_refused_and_the_notice_stays_pending(){
     use std::os::unix::fs::PermissionsExt;
-    let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
-    let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+    let peer=Peer::new();let mut root=peer.registered();let a=open_run(&peer,&mut root,"thread");
+    let mut fresh=WorkflowRootSession::default();fresh.selected=std::mem::take(&mut root.selected);drop(root);
     fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false,Some(peer.home.clone())).unwrap();
     let root=Mutex::new(fresh);let starts=peer.turn_starts();
     std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
@@ -635,7 +635,7 @@ fn unrecordable_skip_is_refused_and_the_notice_stays_pending(){
 // write failed" limit, and the run's later entries proceed.
 #[test]
 fn a_unit_only_partly_in_its_log_is_settled_and_the_flush_continues(){
-    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let peer=Peer::new();let mut root=peer.registered();
     let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
     let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
     let run_id=run.prepared().scope().run.clone();

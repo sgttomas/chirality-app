@@ -301,7 +301,7 @@ fn register_and_select(
     let mut r = root.lock().unwrap();
     // workflow_open_library, workflow_create_draft, workflow_review.
     r.open_library(library.to_path_buf(), origin, Some(project), workspace_control).unwrap();
-    let draft = r.create_selected_draft(NAME).unwrap();
+    let draft = r.create_selected_draft(Some(&crate::workflow_selection::Chat::in_home(home, THREAD)),NAME).unwrap();
     assert_eq!(draft["name"], NAME);
     r.begin_review(home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
         .unwrap();
@@ -370,13 +370,14 @@ fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &st
     assert!(limits.is_empty(), "{limits:?}");
     assert!(acts.iter().any(|e| e["recordId"] == line["act"]["record_id"]), "the ledger cites the recorded A15 act");
     // workflow_select_registered: the hot registered revision, resolved from its revision store (SL-4).
-    let snapshot = r.select_hot_registered_copy(&reference, &revision).unwrap();
-    assert_eq!(snapshot["selection"]["standing"], "registered revision");
-    assert_eq!(snapshot["selection"]["runnable"], true);
-    assert_eq!(snapshot["selection"]["identity"]["revision"], revision.as_str());
-    assert_eq!(snapshot["selection"]["identity"]["origin"], origin);
+    let chat = crate::workflow_selection::Chat::in_home(&r.reviews[&reference].lock().unwrap().home, THREAD);
+    let snapshot = r.select_hot_registered_copy(&chat, &reference, &revision).unwrap();
+    assert_eq!(snapshot["choice"]["standing"], "registered revision");
+    assert_eq!(snapshot["choice"]["runnable"], true);
+    assert_eq!(snapshot["choice"]["identity"]["revision"], revision.as_str());
+    assert_eq!(snapshot["choice"]["identity"]["origin"], origin);
     let store = library.join(".chirality/workflow-revisions").join(NAME).join(crate::storage::key(&revision)).join(NAME);
-    assert_eq!(r.selected.as_ref().unwrap().package, store, "resolved from the revision store");
+    assert_eq!(r.selected.values().next().unwrap().package, store, "resolved from the revision store");
     (reference, revision)
 }
 
@@ -403,7 +404,7 @@ fn refine_register_and_select(
     let in_place = r.begin_review(home.clone(), context.clone(), vec![NAME.into()], true);
     assert!(in_place.as_ref().is_err_and(|e| e.contains("registration history")), "{in_place:?}");
     // D-1: the kept draft is never overwritten by an App action.
-    assert!(r.create_selected_draft(NAME).is_err_and(|e| e.contains("no overwrite")));
+    assert!(r.create_selected_draft(None,NAME).is_err_and(|e| e.contains("no overwrite")));
     // The person refines the kept draft (J-8), then reviews it.
     let workflow = library.join(".chirality/workflow-drafts").join(NAME).join("WORKFLOW.md");
     let mut text = std::fs::read_to_string(&workflow).unwrap();
@@ -430,8 +431,8 @@ fn refine_register_and_select(
     assert_eq!(line["prior_revision"]["revision"], previous, "the new act names the disclosed prior");
     assert_eq!(line["identity"]["derived_from"]["revision"], previous, "derived from the App-kept base");
     // The disclosed prior is not promoted: the old revision is not selectable, even through the new review.
-    assert!(r.select_hot_registered_copy(&reference, previous).is_err(), "old revision stays cold");
-    r.select_hot_registered_copy(&reference, &revision).unwrap();
+    assert!(r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(home, THREAD), &reference, previous).is_err(), "old revision stays cold");
+    r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(home, THREAD), &reference, &revision).unwrap();
     (reference, revision)
 }
 
@@ -465,9 +466,9 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
-        let selected = r.select_development_copy(disk.package.clone()).unwrap();
-        assert_eq!(selected["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING);
-        assert_eq!(selected["selection"]["runnable"], false);
+        let selected = r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
+        assert_eq!(selected["choice"]["standing"], crate::workflow_workspace::development_catalog::STANDING);
+        assert_eq!(selected["choice"]["runnable"], false);
         // workflow_prepare_run on a development selection (TT-1/TX-1, WR TT-1/TX-1).
         let refused = r.prepare_run(one.home.clone(), &one.generation, THREAD, "person".into(), Some(&project));
         assert!(refused.as_ref().is_err_and(|e| e.contains("TT-1") && e.contains("TX-1")), "{refused:?}");
@@ -761,7 +762,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert!(reading.possibly_live_in(THREAD).is_empty());
     assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty());
     assert!(
-        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one).is_err(),
+        root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_one, &revision_one).is_err(),
         "the lost process's hot registration is not recreated from files"
     );
     // A new start in that conversation is allowed because the run ended. The fresh
@@ -769,7 +770,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     // library (a refinement of the kept draft, new genuine A15) and selects that
     // registered revision (J4 finding 1).
     let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
-    root.lock().unwrap().select_development_copy(disk.package.clone()).unwrap();
+    root.lock().unwrap().select_development_copy(None,disk.package.clone()).unwrap();
     let (review_two, revision_two) = refine_register_and_select(
         &root,
         &two.home,
@@ -781,11 +782,11 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         "\nRefined after relaunch (journey step 7).\n",
     );
     assert!(
-        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one).is_err(),
+        root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_one, &revision_one).is_err(),
         "re-registration does not recreate the lost process's registration"
     );
     // The selection is the new revision; re-select it after the negative check.
-    root.lock().unwrap().select_hot_registered_copy(&review_two, &revision_two).unwrap();
+    root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_two, &revision_two).unwrap();
     let b = root
         .lock()
         .unwrap()
@@ -836,7 +837,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(reading.possibly_live_in(THREAD).iter().map(|r| r.run.as_str()).collect::<Vec<_>>(), [b.as_str()]);
     assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty(), "no live process run is recreated");
     let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
-    root.lock().unwrap().select_development_copy(disk.package.clone()).unwrap();
+    root.lock().unwrap().select_development_copy(None,disk.package.clone()).unwrap();
     // Step 8 re-registration also stays in the same library: a second refinement.
     let (review_three, revision_three) = refine_register_and_select(
         &root,
@@ -898,7 +899,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
         // Not selectable cold (RC-2, SEAL-2 deferred).
-        let cold = r.select_hot_registered_copy(&review_three, &revision_three).unwrap_err();
+        let cold = r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&four.home, THREAD), &review_three, &revision_three).unwrap_err();
         assert!(cold.contains("re-confirm to use in this App session"), "{cold}");
         r.begin_review(four.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
             .expect("DS-8 after relaunch, with no edit");
@@ -960,10 +961,10 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(crate::workflow_workspace::Snapshot::capture(&copy).unwrap().files(), copy_before.files(), "no copy written");
     {
         let mut r = root.lock().unwrap();
-        let selected = r.select_hot_registered_copy(&reference, &revision_three).unwrap();
-        assert_eq!(selected["selection"]["standing"], "registered revision");
-        assert_eq!(selected["selection"]["runnable"], true);
-        assert_eq!(selected["selection"]["identity"]["revision"], revision_three.as_str());
+        let selected = r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&four.home, THREAD), &reference, &revision_three).unwrap();
+        assert_eq!(selected["choice"]["standing"], "registered revision");
+        assert_eq!(selected["choice"]["runnable"], true);
+        assert_eq!(selected["choice"]["identity"]["revision"], revision_three.as_str());
         // WR-VC-17: in this process identical bytes are DS-4 ("select it instead").
         let again = r.begin_review(four.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false);
         assert!(again.as_ref().is_err_and(|e| e.contains("DS-4") && e.contains("select it instead")), "{again:?}");
@@ -1028,17 +1029,17 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
     let revision_one = {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
-        r.select_development_copy(disk.package.clone()).unwrap();
-        r.create_selected_draft(NAME).unwrap();
+        r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
+        r.create_selected_draft(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),NAME).unwrap();
         // SL-5: a draft is refused for selection with its standing and Review to register.
         let draft = crate::workflow_workspace::Snapshot::capture(&project.join(".chirality/workflow-drafts").join(NAME)).unwrap();
         let project_library = r.active_library.clone().unwrap();
-        let refused = r.select_listed_registered(&project_library, NAME, draft.revision()).unwrap_err();
+        let refused = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, draft.revision()).unwrap_err();
         assert!(refused.contains("draft — not registered") && refused.contains("Review to register"), "{refused}");
         // Review finding 3: another content identity of a name with a draft is not called the draft.
-        let unknown = r.select_listed_registered(&project_library, NAME, &"f".repeat(64)).unwrap_err();
+        let unknown = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &"f".repeat(64)).unwrap_err();
         assert!(!unknown.contains("draft") && unknown.contains("not registered in this slot"), "{unknown}");
-        assert_eq!(r.snapshot()["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
+        assert_eq!(r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null)["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
         r.begin_review(one.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false).unwrap();
         let revision_one = register_only(&mut r);
         let library = r.snapshot()["libraries"][0].clone();
@@ -1050,27 +1051,27 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
         std::fs::create_dir(&user_root).unwrap();
         r.open_library(user_root, "user", Some(&project), act.clone()).unwrap();
         assert_ne!(r.active_library.as_deref(), Some(project_library.as_str()));
-        let moved = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap_err();
+        let moved = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap_err();
         assert!(moved.contains("active library changed"), "{moved}");
-        assert_eq!(r.snapshot()["selection"]["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
+        assert_eq!(r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null)["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
         assert_eq!(r.active_library.as_deref(), Some(project_library.as_str()), "reopening re-activates the same library");
         // SL-4: the selection resolves from the revision store, not the published copy.
         let published = project.join(".chirality/workflows").join(NAME).join("WORKFLOW.md");
         let kept = std::fs::read(&published).unwrap();
         std::fs::write(&published, b"edited outside registration").unwrap();
-        let selected = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap();
+        let selected = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap();
         std::fs::write(&published, kept).unwrap();
-        let selection = &selected["selection"];
+        let selection = &selected["choice"];
         assert_eq!(selection["standing"], "registered revision");
         assert_eq!(selection["runnable"], true);
         assert_eq!(selection["identity"]["revision"], revision_one.as_str());
-        assert_eq!(r.selected.as_ref().unwrap().package, store(&revision_one), "resolved from the revision store");
+        assert_eq!(r.selected.values().next().unwrap().package, store(&revision_one), "resolved from the revision store");
         assert!(selection["replaces"].is_null(), "a development candidate is not cited: {selection}");
         assert!(selection["newerRevision"].is_null(), "{selection}");
         revision_one
     };
-    let first_selection = root.lock().unwrap().selected.as_ref().unwrap().reference.clone();
+    let first_selection = root.lock().unwrap().selected.values().next().unwrap().reference.clone();
 
     // A run of revision 1 records its selection (the record needs the run's conversation).
     let a = root.lock().unwrap().prepare_run(one.home.clone(), &one.generation, THREAD, "first".into(), Some(&project)).unwrap();
@@ -1095,7 +1096,7 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
         let revision_two = register_only(&mut r);
         assert_ne!(revision_two, revision_one);
         // SL-2 / SL-4: the notice is shown; the selection is unchanged.
-        let selection = r.snapshot()["selection"].clone();
+        let selection = r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null).clone();
         assert_eq!(selection["reference"], first_selection.as_str());
         assert_eq!(selection["identity"]["revision"], revision_one.as_str());
         let newer = &selection["newerRevision"];
@@ -1105,20 +1106,20 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
         assert_eq!(newer["selectable"], true);
         assert_eq!(newer["offered"], "Select revision 2");
         // A stale notice selects nothing.
-        assert!(r.follow_newer_revision("workflow-selection:other", &revision_two).is_err());
-        assert!(r.follow_newer_revision(&first_selection, &revision_one).unwrap_err().contains("changed since the notice"));
-        assert_eq!(r.selected.as_ref().unwrap().reference, first_selection, "still the first selection");
+        assert!(r.follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),"workflow-selection:other", &revision_two).is_err());
+        assert!(r.follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&first_selection, &revision_one).unwrap_err().contains("changed since the notice"));
+        assert_eq!(r.selected.values().next().unwrap().reference, first_selection, "still the first selection");
         revision_two
     };
 
     // Following it: a new selection that cites the one it replaces.
-    let followed = root.lock().unwrap().follow_newer_revision(&first_selection, &revision_two).unwrap();
-    let selection = &followed["selection"];
+    let followed = root.lock().unwrap().follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD), &first_selection, &revision_two).unwrap();
+    let selection = &followed["choice"];
     assert_eq!(selection["identity"]["revision"], revision_two.as_str());
     assert_eq!(selection["replaces"], first_selection.as_str());
     assert_ne!(selection["reference"], first_selection.as_str());
     assert!(selection["newerRevision"].is_null(), "{selection}");
-    assert_eq!(root.lock().unwrap().selected.as_ref().unwrap().package, store(&revision_two));
+    assert_eq!(root.lock().unwrap().selected.values().next().unwrap().package, store(&revision_two));
     let b = root.lock().unwrap().prepare_run(one.home.clone(), &one.generation, THREAD, "second".into(), Some(&project)).unwrap();
     start_workflow_run(&root, &b).unwrap();
     let b_selection = root.lock().unwrap().runs[&b].lock().unwrap().view(&b)["publication"]["selection"].as_str().unwrap().to_owned();
@@ -1139,13 +1140,13 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
     // it replaces, also across a candidate inspected in between (never cited).
     {
         let mut r = root.lock().unwrap();
-        let second_selection = r.selected.as_ref().unwrap().reference.clone();
-        r.select_development_copy(disk.package.clone()).unwrap();
+        let second_selection = r.selected.values().next().unwrap().reference.clone();
+        r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
         let project_library = r.active_library.clone().unwrap();
-        let back = r.select_listed_registered(&project_library, NAME, &revision_one).unwrap();
-        assert_eq!(back["selection"]["identity"]["revision"], revision_one.as_str());
-        assert_eq!(back["selection"]["replaces"], second_selection.as_str());
-        assert_eq!(back["selection"]["newerRevision"]["notice"], "newer revision 2 available");
+        let back = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap();
+        assert_eq!(back["choice"]["identity"]["revision"], revision_one.as_str());
+        assert_eq!(back["choice"]["replaces"], second_selection.as_str());
+        assert_eq!(back["choice"]["newerRevision"]["notice"], "newer revision 2 available");
     }
 
     // Another App process: the revisions are registered but held by no result
@@ -1157,7 +1158,7 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
     let rows = c.snapshot()["libraries"][0]["registered"].clone();
     assert!(rows.as_array().unwrap().iter().all(|row| row["selectable"] == false), "{rows}");
     let cold_library = c.active_library.clone().unwrap();
-    let refused = c.select_listed_registered(&cold_library, NAME, &revision_two).unwrap_err();
+    let refused = c.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&cold_library, NAME, &revision_two).unwrap_err();
     assert!(refused.contains("re-confirm to use in this App session") && refused.contains("Refine (RF-1)"), "{refused}");
     assert!(c.snapshot()["selection"].is_null());
     drop(c);
@@ -1182,14 +1183,14 @@ fn v11_j5_2_draft_copy_is_not_left_without_its_app_kept_base() {
     let root = root_session(&disk);
     let mut r = root.lock().unwrap();
     r.open_library(project.clone(), "project", Some(&project), act).unwrap();
-    r.select_development_copy(disk.package.clone()).unwrap();
+    r.select_development_copy(None,disk.package.clone()).unwrap();
     let draft = project.join(".chirality/workflow-drafts").join(NAME);
-    let failed = r.create_selected_draft(NAME).unwrap_err();
+    let failed = r.create_selected_draft(None,NAME).unwrap_err();
     assert!(failed.contains("App-kept base not recorded") && failed.contains("copy was removed"), "{failed}");
     assert!(!draft.exists(), "no draft is left without its App-kept base");
     // The way out: with the App data folder writable again, Refine succeeds and records the base.
     std::fs::remove_file(&blocker).unwrap();
-    r.create_selected_draft(NAME).unwrap();
+    r.create_selected_draft(None,NAME).unwrap();
     assert!(draft.join("WORKFLOW.md").is_file());
     let records = std::fs::read_dir(disk.app_data.join(crate::workflow_workspace::registration::BASE_STORE))
         .unwrap()
