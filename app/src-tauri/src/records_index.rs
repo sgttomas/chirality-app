@@ -656,6 +656,13 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
 /// Open every component relative to a held directory without following links.
 /// The final nonblocking descriptor must be a regular log, for both readers.
 pub(crate) fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
+    open_node(path, false)
+}
+/// The same component-bound open, for a caller enumerating a held directory.
+pub(crate) fn open_directory(path: &Path) -> std::io::Result<std::fs::File> {
+    open_node(path, true)
+}
+fn open_node(path: &Path, directory: bool) -> std::io::Result<std::fs::File> {
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::os::unix::ffi::OsStrExt;
     use std::os::unix::fs::OpenOptionsExt;
@@ -671,7 +678,8 @@ pub(crate) fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
             other => components.push(other.as_os_str()),
         }
     }
-    let leaf = components.pop().ok_or_else(|| std::io::Error::other("record log has no leaf"))?;
+    let leaf = components.pop();
+    if leaf.is_none() && !directory { return Err(std::io::Error::other("record log has no leaf")); }
     let base = if path.is_absolute() { Path::new("/") } else { Path::new(".") };
     let mut parent = std::fs::OpenOptions::new().read(true)
         .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -694,8 +702,10 @@ pub(crate) fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
             log_open_hook(path, Some(&opened_path));
         }
     }
-    let f = open_at(&parent, leaf, false)?;
-    if !f.metadata()?.is_file() { return Err(std::io::Error::other("record log is not a regular file")); }
+    let f = match leaf { Some(leaf) => open_at(&parent, leaf, directory)?, None => parent };
+    let metadata = f.metadata()?;
+    if directory && !metadata.is_dir() { return Err(std::io::Error::other("source folder is not a directory")); }
+    if !directory && !metadata.is_file() { return Err(std::io::Error::other("record log is not a regular file")); }
     Ok(f)
 }
 #[cfg(test)]

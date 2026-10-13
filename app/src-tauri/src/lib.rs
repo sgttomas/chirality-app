@@ -50,6 +50,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod records_access;
+mod fleet_records;
 mod records_index;
 pub mod record_lines;
 pub mod records_store;
@@ -275,6 +276,15 @@ fn records_store_import(state: State<'_, AppState>) -> Result<Value, String> {
 fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open")?;
     Ok(records_index::chain_heads(project))
+}
+/// Manual DEL-06-01 source read: only the Root's selected workspace. The
+/// webview supplies no path, graph selection, record or association.
+#[tauri::command(async)]
+fn read_fleet_records(state: State<'_, AppState>) -> Result<Value, String> {
+    read_fleet_records_for_workspace(state.workspace.as_deref())
+}
+fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Result<Value,String> {
+    fleet_records::read_for_workspace(workspace)
 }
 /// The person picks the parent of a new, verified records export package.
 #[tauri::command(async)]
@@ -1923,6 +1933,7 @@ pub fn run() {
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
+            read_fleet_records,
             records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export, records_store_retention,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,

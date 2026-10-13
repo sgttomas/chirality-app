@@ -103,7 +103,7 @@ fn publish(from: &Path, to: &Path) -> Result<(), String> {
 pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
     let home = crate::records_store::home(project)?;
     let source = home.attachment.dir.ok_or("project has no attached records in the store; nothing exported")?;
-    if !home.store_mode { return Err("project records need import before export".into()); }
+    crate::records_store::export_permitted(&source,&home.attachment.root)?;
     let project_id = home.attachment.project.ok_or("project identity unavailable")?;
     crate::storage::check_path(destination)?;
     let parent = std::fs::canonicalize(destination.parent().ok_or("export has no parent folder")?).map_err(io)?;
@@ -115,6 +115,9 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
     // that same order here. Other changes are caught by the final census.
     let _captures = crate::storage::read_lock(&source.join("captures/.capture.lock"))?;
     let _writers = crate::storage::read_lock(&source.join(".writer.lock"))?;
+    // A waiting importer may have completed or stopped after eligibility was
+    // first checked. Fleet payload never bypasses the ordinary import state.
+    crate::records_store::export_permitted(&source,&home.attachment.root)?;
     let before = files(&source, true)?;
     let administration=crate::records_retention::export_snapshot(&source,&project_id,None)?;
     let stage = parent.join(crate::util::opaque_id(".records-export-")?);

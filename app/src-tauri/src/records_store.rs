@@ -94,6 +94,13 @@ pub struct Store {
 static STORE: RwLock<Option<Result<Store, String>>> = RwLock::new(None);
 /// The opened store: its canonical root and identity.
 static OPENED: Mutex<Option<(PathBuf, PathBuf, String)>> = Mutex::new(None);
+/// Existing process custody only; no store open, identity write or cache change.
+/// Read-only consumers preserve an already opened store's identity/alias binding.
+pub(crate) fn known_identity_for_read(configured: &Path, physical: &Path) -> Option<(PathBuf,String)> {
+    OPENED.lock().unwrap_or_else(|p|p.into_inner()).as_ref()
+        .filter(|(at,root,_)| at == configured || root == physical)
+        .map(|(_,root,id)|(root.clone(),id.clone()))
+}
 /// Store project folder -> the project root it was attached from in this process.
 static DIRS: Mutex<Vec<(PathBuf, PathBuf)>> = Mutex::new(Vec::new());
 /// The roots record, parsed: (length read, stamp of the file, lines).
@@ -680,11 +687,58 @@ fn store_holds(dir: &Path) -> bool {
         Ok(i) if i.completed => true,
         Ok(i) if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         Ok(i) if i.any => false,
-        Ok(_) => ["runs", "acts", "captures", "workflow", "legacy", "connectors"].iter().any(|n| dir.join(n).exists()),
+        Ok(_) => ["runs", "acts", "workflow", "legacy", "connectors"].iter().any(|n| dir.join(n).exists()) || captures_hold_records(dir),
         // An unreadable import record: the store's state is unknown, so
         // writes are refused (`write_dir`) and the history is read in place.
         Err(_) => false,
     }
+}
+
+/// Export may acquire capture ownership before any capture was recorded.
+/// That exact control file (or an empty folder) establishes no RS home. Any
+/// unknown/non-control member or unreadable inventory remains conservative.
+fn captures_hold_records(dir: &Path) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    let folder = dir.join("captures");
+    match std::fs::symlink_metadata(&folder) {
+        Ok(meta) if meta.is_dir() => {},
+        Ok(_) => return true,
+        Err(error) => return error.kind() != std::io::ErrorKind::NotFound,
+    }
+    match std::fs::read_dir(folder) {
+        Ok(mut entries) => entries.any(|entry|match entry {
+            Ok(entry) if entry.file_name() == ".capture.lock" => !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1),
+            _ => true,
+        }),
+        Err(_) => true,
+    }
+}
+/// Whole retained payload export is distinct from ordinary RS source routing.
+/// A fleet-only store can be exported without importing nonexistent RS history;
+/// it never hides real in-place history or bypasses an unfinished/unknown import.
+pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
+    // The legacy import reader skips a torn last line for replay/recovery. An
+    // export cannot interpret that uncertain state as no import ever started.
+    let path=dir.join("imports.jsonl");
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => {
+            let bytes=crate::records_retention::read_plain(&path).map_err(|error|format!("project import state is unknown; nothing exported: {error}"))?;
+            if !bytes.is_empty() && !bytes.ends_with(b"\n") {
+                return Err("project import state has an unclosed final line; nothing exported".into());
+            }
+        },
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound => {},
+        Err(error) => return Err(format!("project import state is unknown; nothing exported: {error}")),
+    }
+    let state = imports(dir).map_err(|error|format!("project import state is unknown; nothing exported: {error}"))?;
+    if state.incomplete.is_some() {
+        return Err("project import incomplete; finish the explicit import before export".into());
+    }
+    if store_holds(dir) { return Ok(()); }
+    if !state.any && std::fs::symlink_metadata(dir.join("fleet")).is_ok() && legacy_census(root)?.is_empty() {
+        return Ok(());
+    }
+    Err("project records need import before export".into())
 }
 
 /// Where a project's records are read and written now.

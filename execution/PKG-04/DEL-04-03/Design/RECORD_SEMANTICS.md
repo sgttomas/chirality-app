@@ -1509,8 +1509,9 @@ logs, outside-run act logs, captures and WR WP-1 records, and (U-STORE-6,
 written together and the chain of Tamper-evidence (App `record_lines.rs`,
 `records.rs`, `records_index.rs`) for every RS log the App writes. The
 derived SQLite index, BagIt export and recorded retention controls below
-are also implemented; the other mechanisms await their slices; the store's copy of the App's fleet coordination observations
-has its place below, but DEL-06-01 has no App writer or reader yet.
+are also implemented; the other mechanisms await their slices. DEL-06-01's
+manual source reader compares the co-written fleet log with the store's copy
+as described below; its App observation writer remains unbuilt.
 
 - **Placement** (implemented). The App keeps its records in its own records
   store at `<App-own-user-data>/records/` (the Tauri App data folder),
@@ -1634,8 +1635,8 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   project (`.chirality/records/connectors/route-accounts/`) are existing
   records (below).
   *Fleet coordination log* (owner, 2026-10-12: "Write to both
-  (Recommended)"; Design only, to be built with DEL-06-01, which has no App
-  writer or reader yet). The log is co-written (FR-D1): the App writes only
+  (Recommended)"; the manual reader is implemented in DEL-06-01 FR §6.1;
+  the App observation writer remains Design). The log is co-written (FR-D1): the App writes only
   its observations (`dispatch_observed`, `child_observed`,
   `observation_ended`, `related_conversation`), and agents and the person
   write the entries they are the actors or recorders of with ordinary file
@@ -1654,8 +1655,29 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   that. This adds no
   file and changes no entry in the project log, so the log's shape and
   format are unchanged and REQ-005's consumers need no new account. Until
-  DEL-06-01 is built no App code writes either copy, and nothing in
-  `.chirality/fleet/` is in the import census. The registered legacy log
+  DEL-06-01's writer is built no App code writes either copy. The manual
+  reader preserves exact store line bytes and their written order as the
+  governing copy; project replays cannot move an observation in that order.
+  A missing, incomplete or conflicting protected source supplies no App
+  observation projection. A per-process length/hash proof retains the longest
+  accepted prefix of this identified store/project source: shrinking,
+  rewriting or removing it withholds the governing projection until the
+  original prefix is restored. An unchanged prefix may grow by append.
+  Unsigned cold files alone cannot establish that earlier history was removed.
+  The existing placement check also withholds that
+  provenance for a known agent-writable development store, whose matching
+  bytes and order remain quoted evidence with the limit. Reads create,
+  attach, import and repair nothing. Protected `fleet/coordination.fleet.jsonl`
+  is retained project payload for export and disposal; neither fleet log is
+  part of the RS corpus, derived query index, records capability or RS
+  chain-head manifest or ordinary RS-home decision, and nothing in
+  `.chirality/fleet/` is in the import census. A Fleet-only export requires
+  no waiting ordinary legacy records and no incomplete, unknown or torn
+  import state, checked again under the export's capture/writer locks.
+  An empty capture folder or one containing only the exact regular,
+  single-link capture lock establishes no ordinary RS home; actual captures
+  and unknown/non-control members retain the existing home meaning.
+  The registered legacy log
   `records/coordination.rs.jsonl` (§13.7) is a different file: an RS record
   log, not DEL-06-01's `chirality.fleet.record` log.
 - **Units written together** (implemented; App `record_lines.rs`, `records.rs`
@@ -2736,7 +2758,7 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-STORE-3 *Decided 2026-10-12:* tamper-evidence strength (owner: "Chain + signed checkpoints") | — | — | Per-log hash chain; signed checkpoints after App signing, key in the OS keychain; no external anchoring (§13.8; OI-011) |
 | U-STORE-4 *Decided 2026-10-12:* agent reads through an App-provided, project-scoped, read-only records capability (owner: "I choose option B") | — | — | Direct file reads cannot be prevented under Codex 0.160.0; the limit is stated (§13.8). The capability is §13.9 |
 | U-STORE-5 *Decided 2026-10-12:* backup and export package format (owner: "BagIt + signed manifest") | — | — | BagIt (RFC 8493) package, SHA-256 manifest with chain heads, signed after App signing (§13.8) |
-| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"); *refined 2026-10-12* for the coordination log (owner: "Write to both (Recommended)") | — | — | Connector accounts and the agents' read log join the store (implemented); briefs and graphs stay in the project. The decision first called the coordination log App-written; it is co-written, so it stays one file in the project with every entry, and the App also records its own observations in the store, whose copy governs inside the App (§13.8; Design only until DEL-06-01) |
+| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"); *refined 2026-10-12* for the coordination log (owner: "Write to both (Recommended)") | — | — | Connector accounts and the agents' read log join the store (implemented); briefs and graphs stay in the project. The decision first called the coordination log App-written; it is co-written, so it stays one file in the project with every entry, and the App also records its own observations in the store, whose copy governs inside the App (§13.8; manual reader implemented in FR §6.1, App observation writer remains Design) |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
 | U-21 Host-loop per-turn guidance identities | Host owner (relay) | Before connected integration | R3 *unknown* where absent |
