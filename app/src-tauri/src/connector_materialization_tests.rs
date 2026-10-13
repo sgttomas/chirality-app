@@ -8,7 +8,10 @@ use std::{fs, sync::Mutex};
 fn prepared() -> (Repo, Mutex<Session>, PrepareInput) { prepared_layout(false) }
 fn prepared_layout(existing_store:bool) -> (Repo, Mutex<Session>, PrepareInput) {
     let r = Repo::new("sha1");
-    if existing_store {fs::create_dir_all(r.root.join(".chirality/records/connectors/route-accounts")).unwrap();}
+    // The App mints the project's records store identity when it opens the
+    // project (RS §13.8), before any source is observed.
+    crate::records_store::attach(&r.root, true).unwrap();
+    if existing_store {fs::create_dir_all(ProjectRouteStore::open_for_write(&r.root).unwrap().accounts_directory()).unwrap();}
     let mut s = Session::default();
     let prepared = s
         .prepare(
@@ -225,7 +228,7 @@ fn connector_materialization_gaps_only_utf8_and_escaped_size_limits() {
         "Assigned by caller"
     );
     assert!(
-        !r.root.join(".chirality").exists(),
+        !ProjectRouteStore::open(&r.root).unwrap().accounts_directory().exists(),
         "prepare must not publish"
     );
     let mut e = s
@@ -254,7 +257,7 @@ fn connector_materialization_real_writer_cold_semantics_and_original_byte_cap() 
     let store = ProjectRouteStore::open(&r.root).unwrap();
     let reference = store.write(&v).unwrap();
     assert_eq!(store.resolve(&reference).unwrap().account, v);
-    let path = r.root.join(&reference.relative_path);
+    let path = store.anchor().join(&reference.relative_path);
     let mut bytes = serde_json::to_vec(&v).unwrap();
     bytes.extend(vec![b' '; BYTE_LIMIT]);
     fs::write(&path, bytes).unwrap();
@@ -272,7 +275,7 @@ fn connector_materialization_real_writer_cold_semantics_and_original_byte_cap() 
     let oldref = store.write(&old).unwrap();
     let mut bytes = serde_json::to_vec(&old).unwrap();
     bytes.extend(vec![b' '; BYTE_LIMIT]);
-    fs::write(r.root.join(oldref.relative_path), bytes).unwrap();
+    fs::write(store.anchor().join(oldref.relative_path), bytes).unwrap();
     let cold = store.discover();
     assert_eq!(
         cold.accounts.len(),
@@ -488,7 +491,7 @@ fn connector_materialization_prepublication_root_duplicate_incomplete_and_cancel
                 .unwrap();
             }
             "incomplete" => {
-                fs::write(r.root.join(".chirality"), b"not a directory").unwrap();
+                fs::write(ProjectRouteStore::open(&r.root).unwrap().accounts_directory().parent().unwrap(), b"not a directory").unwrap();
             }
             _ => {
                 registry.lock().unwrap().cancel(t, g).unwrap();
@@ -948,7 +951,7 @@ fn connector_reconstruction_byte_limit_and_cold_forgery_boundary() {
     assert!(crate::connector_reconstruction::compose(&e, &input, "app-test").is_err());
     input.draft.gaps[0].gap = "\u{1}".repeat(BYTE_LIMIT / 6);
     assert!(crate::connector_reconstruction::compose(&e, &input, "app-test").is_err());
-    let file = r.root.join(&bound.relative_path);
+    let file = store.anchor().join(&bound.relative_path);
     let mut padded = fs::read(&file).unwrap();
     padded.push(b' ');
     fs::write(file, padded).unwrap();
@@ -986,7 +989,7 @@ fn connector_reconstruction_prepublication_refusals_and_atomic_stale_freeze() {
                     .write(&frozen["entries"][0]["draft"]["account"])
                     .unwrap();
             }
-            "incomplete" => fs::write(r.root.join(".chirality"), b"not directory").unwrap(),
+            "incomplete" => fs::write(ProjectRouteStore::open(&r.root).unwrap().accounts_directory().parent().unwrap(), b"not directory").unwrap(),
             "reread" => {
                 connector_source::select(
                     &s,

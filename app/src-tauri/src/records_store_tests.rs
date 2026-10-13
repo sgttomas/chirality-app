@@ -289,7 +289,7 @@ fn records_in_the_project_are_read_in_place_and_recording_waits_for_import() {
     assert!(limits.is_empty(), "{limits:?}");
     assert_eq!(entries.len(), 3, "the §13.7 logs, read in place; the library's act log is not the project's set");
     let refused = records::append_project(&root, Some("run:new"), "writer:new", "evidence_limit", &APP_WRITER, body("new")).unwrap_err();
-    assert!(refused.starts_with("import needed: 5 §13.7 record file(s)"), "{refused}");
+    assert!(refused.starts_with("import needed: 5 record file(s) in this project (1 WR workflow record(s), 2 capture file(s), 2 run/act log(s))"), "{refused}");
     assert!(storage::write_capture_dir(&root).unwrap_err().contains("import needed"));
     let status = status(Some(&root));
     assert_eq!(status["project"]["importNeeded"], true);
@@ -477,7 +477,7 @@ fn probe_r16_interrupted_import() {
     let refused = write_dir(&root).unwrap_err();
     assert!(refused.starts_with("import incomplete"), "{refused}");
     assert!(records::append_project(&root, None, "writer:x", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("import incomplete"));
-    assert_eq!(status(Some(&root))["project"]["reading"], "§13.7 records in place (import needed)");
+    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project (import needed)");
     // The census changes before the rerun: reported, and the rerun resumes.
     let acts = root.join(".chirality/records").join(crate::recorder::LOG);
     records::append(&acts, "evidence_limit", &APP_WRITER, body("written before the rerun")).unwrap();
@@ -696,3 +696,66 @@ fn held_identities_are_named_up_to_a_bound() {
     assert_eq!(name_bounded(&ids[..2]), "rec:app:held-0, rec:app:held-1");
 }
 
+
+/// An original swapped after the import's census, for a link, a hard link or
+/// other bytes, is refused and never copied as a clean file: each read opens
+/// one descriptor without following links and checks it against the census.
+#[test]
+fn an_original_swapped_after_the_census_is_never_copied() {
+    for swap in ["symlink", "hard link", "other bytes", "fifo"] {
+        let _store = OwnStore::new();
+        let root = legacy_project();
+        let run = root.join(".chirality/records").join(storage::log_rel(Some("run:legacy"), "writer:legacy"));
+        let outside = root.parent().unwrap().join(crate::util::opaque_id("outside-").unwrap());
+        std::fs::write(&outside, b"{\"not\":\"a record\"}\n").unwrap();
+        let (run2, outside2) = (run.clone(), outside.clone());
+        AFTER_CENSUS.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+            match swap {
+                "symlink" => {
+                    std::fs::remove_file(&run2).unwrap();
+                    std::os::unix::fs::symlink(&outside2, &run2).unwrap();
+                }
+                "hard link" => std::fs::hard_link(&run2, outside2.with_extension("second")).unwrap(),
+                "other bytes" => {
+                    let mut bytes = std::fs::read(&run2).unwrap();
+                    bytes.extend_from_slice(b"{\"appended\":\"after the census\"}\n");
+                    std::fs::write(&run2, bytes).unwrap();
+                }
+                _ => {
+                    std::fs::remove_file(&run2).unwrap();
+                    let name = std::ffi::CString::new(run2.as_os_str().as_encoded_bytes()).unwrap();
+                    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+                }
+            }
+        })));
+        let outcome = import(&root).unwrap();
+        AFTER_CENSUS.with(|h| h.borrow_mut().take());
+        let rel = run.strip_prefix(&root).unwrap().to_string_lossy().into_owned();
+        let conflict = outcome["conflicts"].as_array().unwrap().iter().find(|c| c["original"] == rel.as_str()).unwrap_or_else(|| panic!("{swap}: {outcome}")).clone();
+        let reason = conflict["reason"].as_str().unwrap();
+        assert!(reason.contains("not copied"), "{swap}: {reason}");
+        let dir = attach(&root, false).unwrap().dir.unwrap();
+        assert!(!dir.join(storage::log_rel(Some("run:legacy"), "writer:legacy")).exists(), "{swap}: nothing copied for it");
+        let _ = std::fs::remove_file(&outside);
+        let _ = std::fs::remove_file(outside.with_extension("second"));
+    }
+}
+/// A name that is not UTF-8 is never copied under a lossy name.
+#[test]
+fn an_original_whose_name_is_not_utf8_is_not_copied() {
+    use std::os::unix::ffi::OsStrExt;
+    let _store = OwnStore::new();
+    let root = legacy_project();
+    let dir = root.join(crate::connector_route_store::LEGACY_DIRECTORY);
+    std::fs::create_dir_all(&dir).unwrap();
+    // APFS (macOS) refuses such names itself (EILSEQ); other file systems
+    // accept them, and the census must then refuse to copy them.
+    if let Err(e) = std::fs::write(dir.join(std::ffi::OsStr::from_bytes(b"bad-\xff.json")), b"{}") {
+        assert_eq!(e.raw_os_error(), Some(libc::EILSEQ), "{e}");
+        return;
+    }
+    let outcome = import(&root).unwrap();
+    assert!(outcome["conflicts"].to_string().contains("not UTF-8"), "{outcome}");
+    let store_dir = attach(&root, false).unwrap().dir.unwrap();
+    assert!(std::fs::read_dir(store_dir.join(CONNECTOR_COPY)).map_or(true, |mut d| d.next().is_none()), "nothing copied under a lossy name");
+}

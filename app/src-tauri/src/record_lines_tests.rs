@@ -416,3 +416,36 @@ fn recorder_units_pair_an_event_with_the_disposition_change_it_makes() {
     assert_eq!(units(&outputs), vec![0..1, 1..2, 2..4, 4..5, 5..6, 6..8, 8..10, 10..11, 11..12, 12..13]);
     assert!(units(&[]).is_empty());
 }
+
+// ---- The writer lock (RS §13.8 Existing records) ----
+
+// An RS writer that waited behind an import holding the project's writer
+// lock checks its permission again once it holds the lock: the import
+// stopped after its "started" line, so the append writes nothing.
+#[test]
+fn an_rs_writer_waiting_behind_an_import_that_did_not_complete_writes_nothing() {
+    let root = folder("rs-writer-import-");
+    let log = storage::project_log(&root, Some("run:waiting"), "writer:waiting").unwrap();
+    records::append_project(&root, Some("run:waiting"), "writer:waiting", "evidence_limit", &APP_WRITER, body("first")).unwrap();
+    let dir = crate::records_store::project_dir_of(&log).unwrap();
+    let before = std::fs::read(&log).unwrap();
+    // Held as an import holds it, exclusively.
+    let import_lock = crate::storage::lock(&dir.join(".writer.lock")).unwrap();
+    let writer = {
+        let root = root.clone();
+        std::thread::spawn(move || records::append_project(&root, Some("run:waiting"), "writer:waiting", "evidence_limit", &APP_WRITER, body("waiting")))
+    };
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    // The import stops after its "started" line (a late import: the store held the records).
+    let line = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"started","importId":"import:interrupted","at":"2026-10-12T00:00:00.000Z",
+        "root":root.display().to_string(),"method":"sha-256 of the exact bytes","census":[],"storeHeld":true,"resumes":null});
+    let mut text = serde_json::to_vec(&line).unwrap();
+    text.push(b'\n');
+    use std::io::Write as _;
+    std::fs::OpenOptions::new().create(true).append(true).open(dir.join("imports.jsonl")).unwrap().write_all(&text).unwrap();
+    drop(import_lock);
+    let refused = writer.join().unwrap().unwrap_err();
+    assert!(refused.contains("import incomplete"), "{refused}");
+    assert_eq!(std::fs::read(&log).unwrap(), before, "nothing written");
+    let _ = std::fs::remove_dir_all(&root);
+}

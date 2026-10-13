@@ -645,10 +645,20 @@ pub(crate) fn writer_record_set(root: &Path) -> (Vec<Value>, Vec<String>) {
     let (entries, limits, _partials) = crate::storage::read_all_parts(root);
     (entries, limits)
 }
+/// The writer lock of `log`'s records. For a log in a store project folder it
+/// is that folder's writer lock with the write permission checked again once
+/// held (`records_store::writer_lock`, RS §13.8): an import may have started,
+/// or stopped after only its "started" line, while this writer waited.
+fn writer_ownership(log: &Path) -> Result<crate::storage::Ownership, String> {
+    if let Some(dir) = crate::records_store::project_dir_of(log) {
+        return crate::records_store::writer_lock(&dir, false);
+    }
+    let lock_path = crate::storage::records_root(log).map(|r| r.join(".writer.lock")).unwrap_or_else(|| log.with_extension("ownership.lock"));
+    crate::storage::lock(&lock_path)
+}
 fn w0_open(root: &Path, log: &Path) -> Result<(), String> {
     let validator = crate::schema_validation::bundled().map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
-    let lock_path = crate::storage::records_root(log).map(|r| r.join(".writer.lock")).unwrap_or_else(|| log.with_extension("ownership.lock"));
-    let _ownership = crate::storage::lock(&lock_path)?;
+    let _ownership = writer_ownership(log)?;
     let existing = std::fs::read(log).map_err(|e| format!("read owning log: {e}"))?;
     if existing.is_empty() || existing.ends_with(b"\n") {
         return Ok(());
@@ -720,12 +730,7 @@ fn append_unit(
         return Err("one record identity twice in one unit; nothing written".into());
     }
     crate::storage::check_path(log)?;
-    let records_root = crate::storage::records_root(log);
-    let lock_path = records_root
-        .as_ref()
-        .map(|r| r.join(".writer.lock"))
-        .unwrap_or_else(|| log.with_extension("ownership.lock"));
-    let _ownership = crate::storage::lock(&lock_path)?;
+    let _ownership = writer_ownership(log)?;
     let project = crate::storage::project_of_log(log)?;
     // The owning log and the project's record set, through the bounded index
     // (`records_index`): limits, identities, the next `seq` and the chain head

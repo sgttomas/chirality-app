@@ -89,7 +89,7 @@ fn project(discovery: Discovery) -> Value {
         "sections":([("Question", "question"), ("Trigger", "trigger"), ("Sources and revisions", "sources"), ("Anchored facts", "facts"), ("Gaps, effects and responsibility", "gaps"), ("Supported, unsupported and prohibited conclusions", "conclusions"), ("Duties", "duties"), ("Recorder", "recorder"), ("Written time", "written_at"), ("Time provenance", "written_at_source")].iter().chain(if observed.account["formatVersion"]=="0.3" {[("Draft standing","standing"),("Compact evidence receipt and limits","evidence"),("Unreviewed caller interpretations","interpretations")].as_slice()}else if observed.account["formatVersion"]=="0.4" {[("Comparison standing","standing"),("Compact evidence receipt and limits","evidence"),("Checked comparisons","comparisons"),("Attributed claims","claims"),("Unresolved contradictions","contradictions"),("Unverified contribution reports","contribution_reports")].as_slice()}else{&[]}).map(|(label,key)|json!({"label":label,"text":observed.account.get(*key).map(|value|serde_json::to_string_pretty(value).unwrap()).unwrap_or_else(||"Not recorded".into())})).collect::<Vec<_>>()),
         "sourceCount":observed.account["sources"].as_array().map_or(0, Vec::len),
     })}).collect();
-    json!({"status":"observed","projectDisplay":discovery.resolved_project.to_string_lossy(),
+    json!({"status":"observed","projectDisplay":discovery.resolved_project.to_string_lossy(),"accountsLocation":discovery.location,
         "projectIdentityText":attachments::native_path_identity(&discovery.resolved_project).to_string(),
         "directoryAbsent":discovery.directory_absent,"enumerationComplete":discovery.enumeration_complete,
         "accounts":accounts,"issues":discovery.issues,"byAccountId":discovery.by_account_id})
@@ -158,7 +158,7 @@ mod tests {
     fn connector_route_view_preserves_claims_duplicates_issues_and_files() {
         let path = std::env::temp_dir().join(crate::util::opaque_id("route-view-test-").unwrap());
         fs::create_dir(&path).unwrap();
-        let store = ProjectRouteStore::open(&path).unwrap();
+        let store = ProjectRouteStore::open_for_write(&path).unwrap();
         let mut value: Value = serde_json::from_str(include_str!(
             "../../tests/fixtures/connector-route-source-walk.json"
         ))
@@ -166,7 +166,7 @@ mod tests {
         value["facts"][0]["data"] = json!({"integer":9007199254740993u64});
         let first = store.write(&value).unwrap();
         let second = store.write(&value).unwrap();
-        let directory = path.join(".chirality/records/connectors/route-accounts");
+        let directory = store.accounts_directory();
         fs::write(
             directory.join("12345678-1234-4234-8234-123456789abc.json"),
             b"{broken",

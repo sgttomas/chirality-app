@@ -1727,7 +1727,7 @@ pub fn run() {
 
                 records_store::configure(records_store::for_app(std::env::var_os(records_store::OVERRIDE_ENV).filter(|p| !p.is_empty()).map(PathBuf::from), data.as_deref().map_err(Clone::clone), tauri::is_dev(), workspace.as_deref(), &codex_homes));
                 if let Some(ws) = workspace.as_ref() {
-                    let _ = records_store::attach(ws, true);
+                    if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
                 }
             }
             // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
@@ -1747,12 +1747,13 @@ pub fn run() {
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
             // RS §13.9 (owner U-STORE-4): the agents' read-only records
-            // capability in the current project, its read log in App data.
+            // capability in the current project. Each read is recorded in the
+            // project's records store folder; the App-wide read log an earlier
+            // build kept in App data stays there unchanged and is shown.
             if let Some(ws) = state.workspace.as_ref() {
-                let capability = data.as_ref().map_err(Clone::clone).and_then(|data| {
-                    let runtime = data.join("runtime");
-                    std::fs::create_dir_all(&runtime).map_err(|e| format!("records read log folder unavailable: {e}"))?;
-                    records_access::RecordsCapability::new(ws, runtime.join("records-reads.jsonl"))
+                let capability = records_access::RecordsCapability::new(ws).map(|capability| match data.as_ref() {
+                    Ok(data) => capability.with_legacy_read_log(&data.join("runtime").join("records-reads.jsonl")),
+                    Err(_) => capability,
                 });
                 match capability {
                     Ok(capability) => home.host.configure_records_capability(Arc::new(capability)),
