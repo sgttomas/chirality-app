@@ -1935,6 +1935,7 @@ pub fn run() {
                 let st: State<'_, AppState> = app.state();
                 let homes = st.homes.lock().unwrap().entries();
                 let _ = app_quit::finish_exit(&homes, st.app_quit.proceeding());
+                records_index::close_all();
             }
             _ => {}
         });

@@ -629,6 +629,7 @@ implemented behavior and qualification limits.
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
+| `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
@@ -848,6 +849,17 @@ detected. The host status
 (`recordChain`) shows bounded counts of chained, legacy and broken logs;
 each log's chain head comes on demand (`records_chain_heads`).
 Signed checkpoints wait for App signing (OI-011).
+
+The derived records index keeps identities, positions and membership counts in
+process-owned SQLite files under the store's `indexes/`; record bodies stay in
+their logs. Cold use rebuilds from authoritative sources, and returned entries
+are reread and revalidated, including their exact line hash. Changed or unusable
+caches rebuild or use source scans. A private temporary cache can serve a process
+when the store cannot host derived metadata; records themselves have no fallback.
+Index metadata for ordinary valid entries is per log and directory; diagnostics
+grow with reported limits. Full act projections retain their
+separate result-sized memory cost (RS §13.8, §14.3).
+
 
 Attachment metadata arrays and pointer-only client request records live under
 the App user-data `runtime/nir/attachment-supplies/` and

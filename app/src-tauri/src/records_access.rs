@@ -226,16 +226,17 @@ const ACT_KINDS: &[&str] = &["human_act", "act_declined", "act_lapsed", "act_req
 /// The page `request` asks for, from `corpus`, within the bounds above.
 /// `project` is the project folder, rewritten in quoted entries.
 pub(crate) fn page(corpus: &Corpus, request: &Request, project: &ProjectRoot) -> Page {
-    let items: Vec<(Value, Option<String>)> = match request.operation.as_str() {
-        "list_runs" => runs(corpus, project).into_iter().map(|r| (r, None)).collect(),
-        "read_run" => corpus.entries.iter().filter(|e| e.entry["runId"].as_str() == request.run.as_deref()).map(|e| quoted(e, project)).collect(),
-        _ => corpus
+    // Quote only the requested page. Large projects must not create a second
+    // full set of copied/rewritten record bodies merely to return a few items.
+    let items: Box<dyn Iterator<Item = (Value, Option<String>)> + '_> = match request.operation.as_str() {
+        "list_runs" => Box::new(runs(corpus, project).into_iter().map(|r| (r, None))),
+        "read_run" => Box::new(corpus.entries.iter().filter(|e| e.entry["runId"].as_str() == request.run.as_deref()).map(|e| quoted(e, project))),
+        _ => Box::new(corpus
             .entries
             .iter()
             .filter(|e| e.entry["kind"].as_str().is_some_and(|k| ACT_KINDS.contains(&k)))
             .filter(|e| request.subject.as_deref().is_none_or(|s| has_string(&e.entry["body"], s)))
-            .map(|e| quoted(e, project))
-            .collect(),
+            .map(|e| quoted(e, project))),
     };
     let mut limits: Vec<String> = corpus.limits.iter().take(MAX_LIMITS).map(|l| bounded(l, 300)).collect();
     if corpus.limits.len() > MAX_LIMITS {
@@ -243,19 +244,19 @@ pub(crate) fn page(corpus: &Corpus, request: &Request, project: &ProjectRoot) ->
     }
     let mut page = Page { items: Vec::new(), next: None, limits, record_ids: Vec::new() };
     let mut bytes = 0usize;
-    for (n, (item, id)) in items.iter().enumerate().skip(request.offset) {
-        let size = serde_json::to_vec(item).map(|v| v.len()).unwrap_or(usize::MAX);
+    for (n, (item, id)) in items.enumerate().skip(request.offset) {
+        let size = serde_json::to_vec(&item).map(|v| v.len()).unwrap_or(usize::MAX);
         if page.items.len() == request.limit || (!page.items.is_empty() && bytes + size > RESPONSE_LIMIT / 2) {
             page.next = Some(format!("o:{n}"));
             break;
         }
         bytes += size;
-        page.items.push(item.clone());
+        page.items.push(item);
         if let Some(id) = id {
-            page.record_ids.push(bounded(id, 256));
+            page.record_ids.push(bounded(&id, 256));
         }
     }
-    if request.operation == "read_run" && items.is_empty() {
+    if request.operation == "read_run" && !corpus.entries.iter().any(|e| e.entry["runId"].as_str() == request.run.as_deref()) {
         page.limits.push(format!("no readable entries for run {}", bounded(request.run.as_deref().unwrap_or(""), 64)));
     }
     page
