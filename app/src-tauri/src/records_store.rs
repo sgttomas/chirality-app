@@ -636,10 +636,13 @@ fn imports(dir: &Path) -> Result<Imports, String> {
 /// Whether the store holds the project's records, so they are read from the
 /// store: an import has completed, or (with no import ever started) the App
 /// has written records there. Folders an interrupted import created do not
-/// count: until its "completed" line, the history is read in place.
+/// count: until its "completed" line, the history is read in place — unless
+/// the store already held the project's records when that import started
+/// (a late import): then the store is read, as before it started.
 fn store_holds(dir: &Path) -> bool {
     match imports(dir) {
         Ok(i) if i.completed => true,
+        Ok(i) if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         Ok(i) if i.any => false,
         Ok(_) => ["runs", "acts", "captures", "workflow", "legacy"].iter().any(|n| dir.join(n).exists()),
         // An unreadable import record: the store's state is unknown, so
@@ -889,9 +892,12 @@ pub fn import(root: &Path) -> Result<Value, String> {
         return Ok(outcome(&attachment, None, census.len(), 0, read.len(), conflicts, census_changed));
     }
     let id = crate::util::opaque_id("import:")?;
+    // Whether the store already held the project's records: a late import,
+    // during which (and if it is interrupted) readers keep reading the store.
+    let store_held = store_holds(&dir);
     let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
-        "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,
+        "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
         "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
     let mut files = Vec::new();
     let (mut copied, mut present) = (0, 0);
@@ -917,7 +923,16 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("the store already holds a different file there (sha256 {}); not overwritten", sha256_hex(&existing))}));
                 continue;
             }
+            // A late log that would bring a record identity the store's set
+            // already holds is not copied: R-1 counts each identity once.
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound && store_held && file.copy.ends_with(".jsonl")
+                && held_identity(&attachment.root, bytes).is_some() => {
+                let held = held_identity(&attachment.root, bytes).unwrap_or_default();
+                conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("it holds record identity {held}, which the records store already holds; not copied, so each identity is counted once (R-1)")}));
+                continue;
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+
                 #[cfg(test)]
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
@@ -942,6 +957,13 @@ pub fn import(root: &Path) -> Result<Value, String> {
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"completed","importId":id,"at":now_rfc3339(),
         "files":files,"conflicts":conflicts,"censusChanged":census_changed}))?;
     Ok(outcome(&attachment, Some(id), census.len(), copied, present, conflicts, census_changed))
+}
+/// A record identity in a log's `bytes` that the project's record set (the
+/// store, read through the index) already holds.
+fn held_identity(root: &Path, bytes: &[u8]) -> Option<String> {
+    let ids: Vec<String> = bytes.split(|b| *b == b'\n').filter_map(|l| serde_json::from_slice::<Value>(l).ok())
+        .filter_map(|v| v["recordId"].as_str().map(str::to_owned)).collect();
+    crate::records_index::with_index(root, |ix| ids.into_iter().find(|id| ix.holds(id)))
 }
 /// What `import` reports, with the trust its copies carry.
 fn outcome(attachment: &Attachment, id: Option<String>, census: usize, copied: usize, present: usize, conflicts: Vec<Value>, census_changed: Vec<String>) -> Value {

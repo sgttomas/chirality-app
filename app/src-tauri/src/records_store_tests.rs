@@ -616,3 +616,63 @@ fn a_project_librarys_act_log_is_library_evidence_never_the_project_set() {
     assert!(!records::read_log(&library).1.is_empty(), "library standing reads the act log with its limit");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// ---- Re-review repair (N2): a late import in a project the store already holds ----
+
+/// A project recording in the store, with a §13.7 act log that appeared
+/// later; returns the store entry and the late entry.
+fn store_project_with_a_late_file() -> (PathBuf, Value, Value) {
+    let root = folder("late-import-");
+    let held = records::append_project(&root, Some("run:s"), "writer:s", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    let late = root.join(".chirality/records/acts/late-writer.jsonl");
+    let entry = records::append(&late, "evidence_limit", &APP_WRITER, body("late §13.7 entry")).unwrap();
+    assert!(notes(&root).iter().any(|n| n.contains("late-writer.jsonl") && n.contains("not imported")));
+    (root, held, entry)
+}
+
+#[test]
+fn probe_r17_interrupted_late_import_in_a_store_project() {
+    let (root, held, _) = store_project_with_a_late_file();
+    interrupt_import_for_test(Some(0), false);
+    let stopped = import(&root);
+    interrupt_import_for_test(None, false);
+    assert!(stopped.unwrap_err().contains("interrupted"));
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let started = read_lines(&dir.join("imports.jsonl")).unwrap();
+    assert_eq!((started.len(), started[0]["event"].as_str(), started[0]["storeHeld"].as_bool()), (1, Some("started"), Some(true)));
+    // Readers keep reading the store, as before the import; writes wait.
+    assert!(home(&root).unwrap().store_mode, "store_mode stays true");
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries, vec![held.clone()], "the store's own records, not the late file");
+    assert!(write_dir(&root).unwrap_err().starts_with("import incomplete"));
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    // Completed on a rerun: the late copy joins the store set.
+    let done = import(&root).unwrap();
+    assert_eq!((done["state"].as_str(), done["copied"].as_u64()), (Some("imported"), Some(1)), "{done}");
+    assert!(write_dir(&root).is_ok());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_completed_late_import_counts_each_identity_once() {
+    let (root, held, late) = store_project_with_a_late_file();
+    // An agent also copies a store log into a §13.7 path under another key.
+    let store_log = storage::project_log(&root, Some("run:s"), "writer:s").unwrap();
+    let copied_back = root.join(".chirality/records/acts/copy-of-store-log.jsonl");
+    std::fs::copy(&store_log, &copied_back).unwrap();
+    let done = import(&root).unwrap();
+    assert_eq!(done["state"], "imported with conflicts", "{done}");
+    assert!(done["conflicts"].as_array().unwrap().iter().any(|c| c["original"].as_str().unwrap().ends_with("copy-of-store-log.jsonl")
+        && c["reason"].as_str().unwrap().contains("already holds")), "{done}");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    assert!(!dir.join("acts/copy-of-store-log.jsonl").exists(), "not copied");
+    assert!(dir.join("acts/late-writer.jsonl").exists());
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "no duplicate identity: {limits:?}");
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries.iter().filter(|e| e["recordId"] == held["recordId"]).count(), 1);
+    assert_eq!(entries.iter().filter(|e| e["recordId"] == late["recordId"]).count(), 1);
+    assert!(records::append_project(&root, Some("run:s"), "writer:s", "evidence_limit", &APP_WRITER, body("after")).is_ok());
+    let _ = std::fs::remove_dir_all(&root);
+}

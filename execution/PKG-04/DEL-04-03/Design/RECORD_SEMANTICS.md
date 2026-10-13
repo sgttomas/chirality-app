@@ -1650,7 +1650,15 @@ joined the store.
   first record the App writes there) the project is read from the store
   only: an original whose bytes no longer match its import is a limit (the
   store copy governs), and a §13.7 file that appears later is a limit "not
-  imported (not read)"; neither refuses recording. An imported copy carries
+  imported (not read)"; neither refuses recording. Such a late file is
+  imported by the same explicit act. Its "started" line records that the
+  store already held the project's records, so while that import is
+  incomplete the project is still read from the store, as before it started,
+  and only writes wait for its completion. Once it completes, its copies
+  join the store set at their keys (a run or act log under `runs/` or
+  `acts/`, the registered log at `legacy/coordination.rs.jsonl`); a late log
+  that holds a record identity the store already holds is a conflict and is
+  not copied, so R-1 counts each identity once. An imported copy carries
   only the trust of the project folder it came from, which an agent could
   write: the import proves the copy equals the file, not who wrote it (the
   import result and the host view say so). A pending submission written
