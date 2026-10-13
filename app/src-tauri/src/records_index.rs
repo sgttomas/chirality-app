@@ -594,14 +594,24 @@ fn discover_tree(root: &Path, cached: &Dirs) -> (Vec<PathBuf>, Dirs, Option<Stri
 /// (the log only grew), or in full. Lines are read on their bytes, so a line
 /// torn inside a character is still a partial (or, named by W-0, kept unread).
 fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogState>, proof_at: Option<u64>, each: &mut dyn FnMut(Line)) -> LogState {
-    use std::io::{BufReader, Seek, SeekFrom};
+    use std::io::{BufReader, Read, Seek, SeekFrom};
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let mut state = from.unwrap_or(LogState { number, ..LogState::default() });
     state.number = number; state.stamp = stamp;
     state.tail_limits.clear(); state.tail_notes.clear(); state.partial = None;
     state.max_seq = state.prefix_max_seq; state.has_act = state.prefix_has_act; state.prefix_proof = None;
-    let failure = |e: String| LogState { number, stamp, tail_limits: vec![format!("incomplete record: {}: {e}", path.display())], ..LogState::default() };
+    // A refused source is not a successfully observed stamp. Retrying it on
+    // refresh is essential when the same owning file becomes readable again.
+    let failure = |e: String| LogState { number, stamp: None, tail_limits: vec![format!("incomplete record: {}: {e}", path.display())], ..LogState::default() };
+    let expected = match stamp {
+        Some(stamp) => stamp,
+        None => return failure("the owning log stamp could not be read".into()),
+    };
     let mut file = match open_log(path) { Ok(f) => f, Err(e) => return failure(e.to_string()) };
+    let opened = match file.metadata() { Ok(m) => Stamp::of(&m), Err(e) => return failure(e.to_string()) };
+    if opened != expected {
+        return failure("the owning log changed before it was opened".into());
+    }
     if let Err(e) = file.seek(SeekFrom::Start(state.prefix_end)) { return failure(e.to_string()); }
     let mut held: Option<crate::record_lines::ParsedLine> = None;
     let mut count = 0usize;
@@ -620,7 +630,7 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
             state.prefix_limits.extend(line.limits); state.prefix_notes.extend(line.notes);
         } else { state.tail_limits.extend(line.limits); state.tail_notes.extend(line.notes); }
     };
-    let parsed = crate::record_lines::parse_reader(BufReader::new(file), &name, state.prefix_lines, state.prefix_end, state.prefix_seq.max(1), state.prefix_chain.clone(), &mut |line| {
+    let parsed = crate::record_lines::parse_reader(BufReader::new(&mut file), &name, state.prefix_lines, state.prefix_end, state.prefix_seq.max(1), state.prefix_chain.clone(), &mut |line| {
         count += 1;
         if let Some(before) = held.replace(line) { take(&mut state, before, true); }
     });
@@ -635,16 +645,88 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
     state.chain = parsed.chain; state.partial = parsed.partial_tail;
     state.tail_limits.extend(crate::record_lines::links_removed(path, &name, &state.chain));
     let guard_from = state.prefix_end.saturating_sub(GUARD);
-    state.guard = read_at(path, guard_from, (state.prefix_end - guard_from) as usize).unwrap_or_default();
+    let mut guard = vec![0; (state.prefix_end - guard_from) as usize];
+    state.guard = file.seek(SeekFrom::Start(guard_from)).and_then(|_| file.read_exact(&mut guard)).map(|_| guard).unwrap_or_default();
+    let after = match file.metadata() { Ok(m) => Stamp::of(&m), Err(e) => return failure(e.to_string()) };
+    if after != expected || stamp_of(path) != Some(expected) {
+        return failure("the owning log changed while it was read".into());
+    }
     state
 }
-/// Opened regular-log check shared by the index and capability source.
+/// Open every component relative to a held directory without following links.
+/// The final nonblocking descriptor must be a regular log, for both readers.
 pub(crate) fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::OsStrExt;
     use std::os::unix::fs::OpenOptionsExt;
     crate::storage::check_path(path).map_err(std::io::Error::other)?;
-    let f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(path)?;
+    #[cfg(test)]
+    log_open_hook(path, None);
+
+    let mut components = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::RootDir => {},
+            std::path::Component::Prefix(_) => return Err(std::io::Error::other("unsupported record path prefix")),
+            other => components.push(other.as_os_str()),
+        }
+    }
+    let leaf = components.pop().ok_or_else(|| std::io::Error::other("record log has no leaf"))?;
+    let base = if path.is_absolute() { Path::new("/") } else { Path::new(".") };
+    let mut parent = std::fs::OpenOptions::new().read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(base)?;
+    let open_at = |parent: &std::fs::File, name: &std::ffi::OsStr, directory: bool| {
+        let name = std::ffi::CString::new(name.as_bytes()).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+        let flags = libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC
+            | if directory { libc::O_DIRECTORY } else { 0 };
+        let descriptor = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
+        if descriptor < 0 { Err(std::io::Error::last_os_error()) }
+        else { Ok(unsafe { std::fs::File::from_raw_fd(descriptor) }) }
+    };
+    #[cfg(test)]
+    let mut opened_path = base.to_owned();
+    for component in components {
+        parent = open_at(&parent, component, true)?;
+        #[cfg(test)]
+        {
+            opened_path.push(component);
+            log_open_hook(path, Some(&opened_path));
+        }
+    }
+    let f = open_at(&parent, leaf, false)?;
     if !f.metadata()?.is_file() { return Err(std::io::Error::other("record log is not a regular file")); }
     Ok(f)
+}
+#[cfg(test)]
+type LogOpenHook = (PathBuf, Option<PathBuf>, usize, Box<dyn FnOnce()>);
+#[cfg(test)]
+thread_local! {
+    static LOG_OPEN_HOOK: std::cell::RefCell<Option<LogOpenHook>> = const { std::cell::RefCell::new(None) };
+}
+#[cfg(test)]
+pub(crate) struct LogOpenHookGuard;
+#[cfg(test)]
+impl Drop for LogOpenHookGuard {
+    fn drop(&mut self) { LOG_OPEN_HOOK.with(|h| { h.borrow_mut().take(); }); }
+}
+#[cfg(test)]
+pub(crate) fn log_open_hook_for_test(path: &Path, after_directory: Option<&Path>, skip_matching_opens: usize, hook: impl FnOnce() + 'static) -> LogOpenHookGuard {
+    LOG_OPEN_HOOK.with(|h| *h.borrow_mut() = Some((path.to_owned(), after_directory.map(Path::to_owned), skip_matching_opens, Box::new(hook))));
+    LogOpenHookGuard
+}
+#[cfg(test)]
+fn log_open_hook(path: &Path, after_directory: Option<&Path>) {
+    let hook = LOG_OPEN_HOOK.with(|h| {
+        let mut held = h.borrow_mut();
+        if let Some((p, dir, skip, _)) = held.as_mut() {
+            if p == path && dir.as_deref() == after_directory {
+                if *skip > 0 { *skip -= 1; } else { return held.take().map(|h| h.3); }
+            }
+        }
+        None
+    });
+    if let Some(hook) = hook { hook(); }
 }
 /// The owning log as the index reads it.
 pub(crate) struct OwnLog {
