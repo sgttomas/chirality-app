@@ -331,6 +331,14 @@ export function RegisteredRevisions({ library, rows, busy, act }:{ library: stri
     {" "}<button disabled={busy} onClick={()=>act("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button></li>)}</ul>;
 }
 
+export function RecordsCapabilityBindings({ host }:{ host: Json }) {
+  const rows=(host?.threads??[]).filter((row:Json)=>JSON.stringify(row.generation)===JSON.stringify(host?.generation)&&row.recordsCapabilityBinding);
+  if (!rows.length) return null;
+  return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
+    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
+  </section>;
+}
+
 /** Stored claims remain quoted evidence even when their name/content matches
  * a revision held locally. This view exposes no selection or registration act. */
 export function RegistrationEvidence({ evidence }:{ evidence: Json }) {
@@ -865,6 +873,7 @@ export function App() {
         </p>
         <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }} />
         <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
+        <RecordsCapabilityBindings host={host} />
 
         <h3>Expected network contacts</h3>
         <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>

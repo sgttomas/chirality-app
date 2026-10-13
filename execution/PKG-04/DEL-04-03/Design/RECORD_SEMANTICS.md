@@ -2053,14 +2053,47 @@ It realizes §13.8's agent access and does not change what a record is.
   operationally admitted fork within the same generation. The maintained
   `records_access_fork` fake-peer journey exercises the actual Host handler,
   its prior-to-reply read log and project-cwd refusal; it grants nothing to
-  a fork whose source was not offered the tool. Cold resume/fork has no
-  App-held offer binding in the new generation, so an inherited supplier
-  declaration alone still gets an unsupported reply. No native walkthrough
-  has witnessed these handler joins. The tool is the
+  a fork whose source was not offered the tool. Cold continuity uses the
+  DEL-04-03 REC receiver receipt described below; a retained supplier
+  declaration alone grants no App handler. No native walkthrough has
+  witnessed these handler joins. The tool is the
   App's own capability, not a tool a
   workflow can supply: it does not make WD's `dynamic-tool-call` present
   (EXEC compatibility row), and no act or act control is reachable through
   it (AAC NA-1).
+- **Cold offering continuity (current implementation).** The existing REC
+  `conversation_index` receiver tags (§4.1 of REC) hold the opaque owner
+  `DEL-04-03` value: compact UTF-8 JSON, format
+  `chirality.records-capability.receipt`, version `0.1`. It names the native
+  home/thread, actual REC home class, explicit Root App-project reference,
+  lossless canonical capability directory and its device/inode, the exact
+  supported definition's SHA-256, and original offering/admission full
+  generation, App request reference, RPC ID, method and thread. A fork also
+  names its source thread and preserves the original offered-start pointer.
+  The Host freezes the project with the offered parameters, and makes a
+  receipt only after an actually written, correlated, schema-valid and
+  operationally admitted App start carrying exactly this definition. No raw
+  supplier frame, guidance, settings or records are copied into it.
+  A genuine fork can retain a receipt only from known original offering and
+  project provenance; its CURRENT index uses that explicit project, never
+  native cwd. After a genuine current explicit resume admission, one matching,
+  nonconflicting durable receipt installs only the current-generation records
+  handler. Missing, malformed, conflicting, unsupported-definition or changed
+  home/Root-reference/physical-directory readings leave the capability visibly
+  unknown/unsupported; older offerings are never backfilled. REC source and
+  generation changes during lookup refuse binding. Every call still checks
+  native cwd and physical directory, rechecks after its source read, and logs
+  before replying. No resume/fork resends instructions, settings or dynamic
+  tools, or restores role, act or run authority.
+  A failed receipt append retains safe hot use with a cold-publication limit.
+  As REC's existing store contract allows, COMMIT can land before an error:
+  the current held observation does not claim that append durable. A fresh
+  healthy REC initialization which commits and folder-flushes its new session
+  marker can read that landed receipt, and a later genuine resume may use it.
+  Failed/incomplete fresh initialization refuses cold binding. The receipt
+  records the actual original start, not success of its original append
+  callback; it is unverified App operational metadata, never authenticated
+  supplier provenance or human-act authority.
 - **When it is used (direction).** The tool's description says to use it
   only when the person or the workflow directs the agent to rebuild context
   from the records; a person's message or a workflow's text gives that

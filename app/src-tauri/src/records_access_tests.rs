@@ -633,3 +633,19 @@ fn without_a_records_store_reads_are_refused() {
     assert!(returned(&answer)["refused"].as_str().unwrap().contains("records store unavailable"));
     assert!(!f.read_log().exists());
 }
+
+#[test]
+fn records_continuity_physical_project_changed_during_source_read_is_a_logged_refusal() {
+    struct ReplacingSource { project: PathBuf, old: PathBuf }
+    impl RecordsSource for ReplacingSource {
+        fn read(&self) -> Corpus {
+            std::fs::rename(&self.project,&self.old).unwrap();std::fs::create_dir(&self.project).unwrap();
+            let record=crate::records::envelope("evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference","subjectRef":"NEW-PROJECT-SECRET","detail":"invented foreign records"}),"rec:foreign-project".into(),1,Some("run:foreign"),None);
+            Corpus { entries:vec![SourcedEntry {entry:record,log:"invented foreign source".into(),line:1}],limits:vec![] }
+        }
+    }
+    let f=Scratch::new();let project=f.project("project");let cap=RecordsCapability::with_source(&project,Box::new(ReplacingSource{project:project.clone(),old:f.0.join("original-project")}),f.read_log()).unwrap();
+    let response=cap.answer(&call(1,json!({"operation":"list_runs"})),project.to_str());
+    assert_eq!(response["success"],false);assert!(!response.to_string().contains("NEW-PROJECT-SECRET"));assert!(!response.to_string().contains("run:foreign"));
+    let log=f.logged();assert_eq!(log.len(),1);assert_eq!(log[0]["outcome"],"refused");assert!(log[0]["refusal"].as_str().unwrap().contains("physical project changed"));
+}

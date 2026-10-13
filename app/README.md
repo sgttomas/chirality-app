@@ -597,9 +597,16 @@ implemented behavior and qualification limits.
     prediction or App handler, and observes only `namespaceTools: true`
     routes (RS §13.9). A fork admitted from a known offered source in the
     same Codex generation inherits the App's handler binding; a fake-peer
-    Host journey verifies its read-log and project-scope behavior. Cold
-    continuation has no such binding, so its retained declaration still
-    receives an unsupported reply. Its operations are `list_runs`, `read_run` and
+    Host journey verifies its read-log and project-scope behavior. An actual
+    offered/admitted start keeps a compact unverified receipt in REC's existing
+    conversation-index tags. A fresh explicit native resume joins one matching
+    receipt to the same home, explicit App project and physical directory;
+    only then is the current-generation handler installed. A genuine fork can
+    inherit that provenance. Missing, conflicting, unsupported or changed
+    receipts remain visibly unknown/unsupported, even at the same native cwd.
+    Receipt-publication failure leaves hot use available with a cold limit;
+    a landed COMMIT may be read after healthy fresh REC initialization (RS
+    §13.9). No instructions, settings or tools are re-sent on resume/fork. Its operations are `list_runs`, `read_run` and
     `read_acts`. Pages hold at most 50 items and the final text stays within
     32 KiB (fewer items, or a refusal, when it would not); larger entries and
     summaries come back as stubs, and a cursor continues the next page. The
@@ -639,7 +646,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
 | `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
-| `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
+| `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |

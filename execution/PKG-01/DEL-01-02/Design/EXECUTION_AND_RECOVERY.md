@@ -818,6 +818,17 @@ or separately explicit CURRENT App indexing observation may name its actual
 known project; it never backfills earlier native history. Absence/incomplete
 index is a source limit, not proof that no earlier App association existed.
 
+**Records capability receiver (current implementation of §4.1 tag).**
+DEL-04-03 uses owner `DEL-04-03` for its compact unverified operational receipt
+(RS §13.9 *Cold offering continuity*). REC stores/returns it unchanged in the
+existing ordered tags and interprets nothing in it. The receiver, after genuine
+native admission, checks original offering, explicit Root project and physical
+capability-directory equality before a current-generation read handler is
+installed. Index membership, native cwd and readable summaries alone prove no
+original tool offering; no historical App project is backfilled or transferred.
+The existing App-ledger error/reopen behavior applies: a commit may land before
+an error, and only a healthy fresh initialized observation can use those rows.
+
 **NIR context receiver (added to §4.1 tag caller contract).** Exact owner is
 `DEL-01-04`. Its value is compact UTF-8 JSON `[submissionRef, projectRef|null]`:
 fixed two-element array, no whitespace, JSON string escaping, no normalization;
