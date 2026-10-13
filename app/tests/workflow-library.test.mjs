@@ -119,3 +119,15 @@ test('a review button takes its sequence from the library holding its tuple',()=
   // Not listed in its own library (only elsewhere): the 12-character fallback, never another library's sequence.
   assert.deepEqual(buttons(ReviewSelectButtons({review,libraries:[user],busy:false,act:()=>{}})).map(text),['Select revision aaaaaaaaaaaa']);
 });
+
+test('quoted moved/foreign registration history exposes no action even with forged selectable data',()=>{
+  const {RegistrationEvidence}=loadSrc('App');
+  const old={identity:{origin:'project',source_root:'/old-library',name:'sample',revision:'same-content'},ledgerSequence:1,outcome:'registered',act:{record_id:'rec:old'},quoted:true,selectable:true,
+    claims:[{boundSubject:["workflow revision original-source-tuple"],evidenceLimits:["full tuple relationship mismatched"],decisionActor:{osAccount:'recorded-person',identityVerified:false},installation:{reference:'chirality-installation:quoted',verification:'verified'}}]};
+  const tree=RegistrationEvidence({evidence:{rows:[old],limits:[]}});
+  assert.deepEqual(buttons(tree),[],'history cannot invoke Select, Refine or an act');
+  const rendered=h(RegistrationEvidence,{evidence:{rows:[old],limits:[]}});
+  assert.match(rendered,/Quoted registration history/);assert.match(rendered,/\/old-library/);assert.match(rendered,/unverified attribution/);
+  assert.match(rendered,/original-source-tuple/);assert.match(rendered,/full tuple relationship mismatched/);
+  assert.match(h(RegistrationEvidence,{evidence:{rows:[{...old,claims:[{decisionActor:{},installation:{reference:null}}]}],limits:[]}}),/Capturing installation unknown/);
+});

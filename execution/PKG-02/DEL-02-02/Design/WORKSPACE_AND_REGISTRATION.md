@@ -129,7 +129,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | Run texts and supply checks (v0.2, R19-7) | `run_text` and `supply_check` records handed to DEL-02-03 and DEL-04-03 (RS R3); the composed text itself is not stored twice: it is recomputable from the record's lines and the revision's bytes in the store, and Codex keeps it in its history (read back with `thread/items/list`, R21-4) | The App | App records (R17-4); the text in Codex's history is Codex's |
 | Host workflows held in the App | An import holding library (CA's LIB-A2 ⟨fx-app-import⟩), `<project>/.chirality/workflow-imports/<host source root>/<name>/` | The person's relay (DEP-001) | Origin *host*; listing and relay deferred (DECISION-3) |
 
-A15 library records stay with their library (RS §13.8, *Workflow libraries*) until the owner decides library standing across installations. App run records go to the App's records store (RS OF-9, §13.8). The App cannot stop an agent writing into these folders (D3). It therefore never treats the presence of files as registration, and it computes standing from the ledger, the act record and the bytes together (§4.6).
+A15 library records stay with their library under the owner's U-STORE-2 decision ("Evidence; re-register"), recorded in RS §13.8, *Workflow libraries*. App run records go to the App's records store (RS OF-9, §13.8). The App cannot stop an agent writing into these folders (D3). It therefore never treats the presence of files as registration, and it computes standing from the ledger, the act record and the bytes together (§4.6).
 
 **Open draft-base location and trust conditions.** The App-kept base is
 implemented at `<App user-data>/runtime/wr/draft-bases/<sha256 of draft key JSON>.json`,
@@ -268,6 +268,25 @@ LS-2's "not runnable" follows K-7's "only registered revisions run". **Settled b
 route and a same-byte draft's DS-4 restore route do not correspond. The WR owner
 has not settled that wording. Re-confirmation directly from the listing without
 a draft remains deferred (U-WR-21).
+
+**Library history across installations (RS §13.8 U-STORE-2).** The owner
+chose "Evidence; re-register" (2026-10-12). The current App presents every
+schema-readable ledger tuple/source root and its readable A15 claims in a
+separate quoted history, including a different recorded source root after a
+library moves. The local selectable listing retains its source-context filter;
+quoted history exposes no Select or Refine action and never consults RC-2's
+held set. It quotes each A15 bound subject; duplicate record IDs and an
+unknown or mismatching complete source-qualified tuple remain visible
+relationship limits. New A15 records carry their opaque local installation-reference
+claim, explicitly unverified; legacy claims show installation unknown. A
+path change is not installation evidence. A fresh native A15 through DS-8
+re-confirms matching local content; a published copy under a new source
+context follows the existing DS-7 route. The current AAC format permits
+in-place registration of two or more entries; its known single `entry:`
+descriptor refusal remains open (AAC current implementation conditions).
+These retain original history and do not reinterpret its tuples. Signing/provenance verification
+remains outside this implementation; the new reference never authenticates
+an earlier act and changes none of LS-4's restoration or RC-1's prerequisites.
 
 ### 4.7 Registering several library entries in one act (v0.2; L-4 A; PROPOSED)
 

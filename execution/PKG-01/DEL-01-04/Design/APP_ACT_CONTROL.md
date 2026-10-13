@@ -456,8 +456,13 @@ act records are written in the project's subtree of the App's records store
 (`<store>/projects/<safe-project-key>/`, below). The §13.7 project rows they
 replace are legacy sources: read in place until the person imports them,
 with new recording (capture included) refused until then, and not read after
-it (RS §13.8 "Existing records"). A15 library rows stay with the library
-until the owner decides library standing across installations. The capture
+it (RS §13.8 "Existing records"). A15 library rows stay with the library,
+as the owner's U-STORE-2 decision (2026-10-12: "Evidence; re-register") now
+states in RS §13.8. New A15 capture/record attribution carries an optional
+unverified `installation` reference from the App data identity; older captures
+or identity persistence failures remain installation unknown. This is quoted
+attribution only: no native-origin authentication, signing or cold selection
+is established (RS §13.8; WR §4.8 RC-2). The capture
 lock is per capture folder: a project's in its store subtree, a library's in
 the library; recovery takes both, the library's first.
 

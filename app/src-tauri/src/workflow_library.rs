@@ -233,6 +233,67 @@ impl LibraryOwner {
             })
             .collect::<Vec<_>>())
     }
+    /// U-STORE-2: source-qualified quoted history, separate from selectable
+    /// local revisions. A moved path is a different recorded source context,
+    /// never evidence that an installation changed. Attribution is unverified.
+    pub(crate) fn registration_evidence(&self) -> Value {
+        let rows = match read_ledger(&self.root) {
+            Ok(rows) => rows,
+            Err(error) => return json!({"quoted":true,"rows":[],"limits":[error]}),
+        };
+        let (records, limits) = crate::records::library_record_set(&self.root);
+        // Index all readable identities once, including other record kinds:
+        // a referenced ID shared with a non-A15 is still an ambiguous join.
+        let mut by_id: HashMap<&str, Vec<&Value>> = HashMap::new();
+        for record in &records {
+            if let Some(id) = record["recordId"].as_str() {
+                by_id.entry(id).or_default().push(record);
+            }
+        }
+        let rows = rows.into_iter().map(|row| {
+            let referenced = row["act"]["record_id"].as_str().and_then(|id| by_id.get(id));
+            let identity = serde_json::from_value::<WorkflowIdentity>(row["identity"].clone());
+            let claims: Vec<Value> = referenced.into_iter().flatten()
+                .filter(|act| act["kind"] == "human_act" && act["body"]["actKind"] == "A15")
+                .map(|act| {
+                    let mut evidence_limits = act["body"]["evidenceLimits"].as_array().cloned().unwrap_or_default();
+                    let installation = act["body"].get("installation").cloned().unwrap_or_else(|| {
+                        evidence_limits.push(json!("capturing installation not recorded; attribution unknown"));
+                        json!({"reference":null,"verification":"unverified"})
+                    });
+                    if act["body"].get("installation").is_some() && installation["reference"].is_null() {
+                        evidence_limits.push(json!("capturing installation reference unavailable; attribution unknown"));
+                    }
+                    // Quoting an act by ID alone does not establish that it
+                    // names this ledger's complete source-qualified tuple.
+                    let subjects = act["body"]["boundSubject"].as_array().map(|subjects| subjects.iter().map(|subject| {
+                        let encoded = subject.as_str().and_then(|s| s.strip_prefix("workflow revision "))
+                            .ok_or("A15 workflow subject tuple not readable")?;
+                        let tuple = serde_json::from_str::<Value>(encoded).map_err(|_| "A15 workflow subject tuple not readable")?;
+                        rs_identity(&tuple).map_err(|_| "A15 workflow subject tuple not readable")
+                    }).collect::<Result<Vec<_>, _>>());
+                    match (identity.as_ref(), subjects) {
+                        (Ok(identity), Some(Ok(subjects))) if subjects.iter().any(|subject| subject == identity) => (),
+                        (Ok(_), Some(Ok(_))) => evidence_limits.push(json!("A15 bound subject does not name this complete ledger identity; relationship mismatched")),
+                        _ => evidence_limits.push(json!("A15 bound subject tuple not readable; relationship to this ledger identity unknown")),
+                    }
+                    json!({"quoted":true,"recordId":act["recordId"],"decisionActor":act["body"]["decisionActor"],"writtenAt":act["writtenAt"],
+                        "boundSubject":act["body"]["boundSubject"],"boundContent":act["body"]["boundContent"],"captureEvidence":act["body"]["captureEvidence"],
+                        "installation":installation,"evidenceLimits":evidence_limits})
+                }).collect();
+            let mut join_limits = Vec::new();
+            if claims.is_empty() {
+                join_limits.push("no readable A15 claim for this ledger reference; installation attribution unknown");
+            }
+            if referenced.is_some_and(|records| records.len() > 1) {
+                join_limits.push("multiple readable records share this ledger reference; attribution ambiguous");
+            }
+            json!({"quoted":true,"selectable":false,"identity":row["identity"],"sequence":row["sequence"],"ledgerSequence":row["ledger_seq"],
+                "outcome":row["outcome"],"recordedAt":row["written_at"],"act":row["act"],"claims":claims,"evidenceLimits":join_limits,
+                "sameRecordedLibrary":row["identity"]["origin"] == self.origin && row["identity"]["source_root"] == self.source_root})
+        }).collect::<Vec<_>>();
+        json!({"quoted":true,"rows":rows,"limits":limits,"standing":"quoted registration history; installation attribution unverified; no selection authority"})
+    }
     /// WR §4.6 RF-1: Refine an LS-1 revision from the revision store, with no
     /// selection. The store bytes are recomputed; the App records the revision,
     /// read from the ledger now, as the new draft's base (shown and frozen at
