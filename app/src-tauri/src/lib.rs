@@ -53,6 +53,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+pub mod records_retention;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
@@ -141,6 +142,7 @@ pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, S
     })?;
     let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe_home()?, cwd);
+    cfg.records_project=workspace.is_some();
     cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
     cfg.allow_unverified_dev = std::env::var("CHIRALITY_ALLOW_UNVERIFIED")
         .map(|v| v == "1")
@@ -285,6 +287,37 @@ fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Re
 fn records_store_verify_export(app: tauri::AppHandle) -> Result<Value, String> {
     let Some(folder) = workflow_native_folder(&app, "Choose a records export to verify")? else { return Ok(json!({"state":"verification cancelled"})); };
     records_export::verify(&folder)
+}
+/// RS §13.8: administrative retention acts are captured only by this native
+/// question. The renderer supplies an offered action, never actor or evidence.
+#[tauri::command(async)]
+fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:String)->Result<Value,String>{
+    let project=state.workspace.as_deref().ok_or("no project is open")?;
+    let home=state.homes.lock().unwrap().active();
+    let observe=||->Result<(Value,Value),String>{
+        let active=state.homes.lock().unwrap().active();if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
+        let (_,observed)=current_actor_context_for(&state,&home);
+        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
+        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
+        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
+    };
+    if action=="close" {
+        let workflows=state.workflows.try_lock().map_err(|_|"A workflow operation is pending")?;workflows.retention_ready()?;
+        let acts=state.act.try_lock().map_err(|_|"An act operation is pending")?;
+        if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("A native act still has pending records; retry its recording before closing the project".into());}
+    }
+    let bag=if action=="dispose" {match workflow_native_folder(&app,"Choose the verified export of this closed project's current records")? {Some(path)=>Some(path),None=>return Ok(json!({"state":"disposal cancelled"}))}}else{None};
+    let (actor,observed)=observe()?;
+    let plan=records_retention::prepare(project,&action,bag.as_deref(),&actor,&observed)?;
+    let (dont,perform)=match action.as_str(){"close"=>("Keep project open","Close project"),"reopen"=>("Keep project closed","Reopen project"),"set-hold"=>("Keep current hold state","Set legal hold"),"release-hold"=>("Keep legal hold","Release legal hold"),"dispose"=>("Keep records","Dispose of records"),"resume-disposal"=>("Leave incomplete","Finish disposal"),_=>return Err("unknown records retention action".into())};
+    let mut refused=None;
+    if !confirm_choice(&app,"Project records retention",records_retention::statement(&plan),dont,perform,&mut refused){return refused.map_or_else(||Ok(json!({"state":"cancelled; no retention act"})),Err);}
+    let (actor,current)=observe()?;
+    // Keep local record owners fixed during host revalidation/application.
+    let workflows=state.workflows.try_lock().map_err(|_|"Workflow context busy; review again")?;
+    let acts=state.act.try_lock().map_err(|_|"Act context busy; review again")?;
+    if action=="close" {workflows.retention_ready()?;if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("Native act records became pending; review again".into());}}
+    records_retention::apply(plan,&actor,&current)
 }
 /// RS §13.8 "Project identity": the person resolves a project identity limit.
 #[tauri::command(async)]
@@ -1887,7 +1920,7 @@ pub fn run() {
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
-            records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export,
+            records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export, records_store_retention,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,

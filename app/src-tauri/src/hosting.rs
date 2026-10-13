@@ -113,6 +113,8 @@ pub struct HostConfig {
     pub probe_home: PathBuf,
     /// Working directory of the child.
     pub cwd: PathBuf,
+    /// App startup has an explicit project; a no-project supplier owns no records lease.
+    pub(crate) records_project: bool,
     /// Optional main-binary development assertion. A match cannot qualify the
     /// full executed distribution; a mismatch always refuses the start.
     pub expected_sha256: Option<String>,
@@ -133,6 +135,7 @@ impl HostConfig {
             codex_home,
             probe_home,
             cwd,
+            records_project: true,
             expected_sha256: None,
             allow_unverified_dev: false,
             // ACCESS §9 K-12: analytics off in the session flags. Plugins follow the
@@ -572,6 +575,7 @@ pub struct Host {
     inner: Arc<(Mutex<Inner>, Condvar)>,
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Child>>,
+    records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
     #[cfg(test)]
@@ -649,6 +653,7 @@ impl Host {
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
             child: Mutex::new(None),
+            records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
             #[cfg(test)]
@@ -1134,6 +1139,7 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
@@ -1356,6 +1362,7 @@ impl Host {
         }
         // Capture while custody is still protected, never borrow a later start.
         let generation = self.inner.0.lock().unwrap().generation.clone();
+        if let Some(activity)=records_activity {*self.records_activity.lock().unwrap()=Some((generation.clone(),activity));}
         drop(source_gate);drop(app_spawn_guard);
         self.spawn_reader(stdout, generation.clone());
         self.spawn_stderr(stderr, generation.clone());
@@ -3255,7 +3262,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // LT-23 is written by stop(), which owns the descendant check.
             let gen = i.generation.clone();
             i.journal.push(json!({"generation": gen, "class": "exit", "exitFacts": exit}));
-            self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();
+            self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();self.release_records_activity(generation);
             return;
         }
         let terminal=if i.state == "ready" {
@@ -3267,7 +3274,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         drop(i);drop(_source_gate);
         if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
         self.flush_recovery_observations();
+        self.release_records_activity(generation);
     }
+    fn release_records_activity(&self,generation:&Value){let mut held=self.records_activity.lock().unwrap();if held.as_ref().is_some_and(|(g,_)|g==generation){*held=None;}}
 
     fn kill_group(&self) {
         if let Some(pid) = self.inner.0.lock().unwrap().child_pid {
