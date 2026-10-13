@@ -569,3 +569,339 @@ fn child_stream_failure_is_not_erased_by_goal_and_its_own_success_clears_only_cu
     assert_eq!(snapshot["selected"]["appRole"]["standing"], "unknown");
     assert_eq!(v.resumed_thread(), None);
 }
+
+#[test]
+fn current_started_activity_can_request_only_native_child_metadata() {
+    let mut v = selected();
+    let q = v.turns_page(None, Direction::Desc).unwrap();
+    accept(
+        &mut v,
+        &q,
+        json!({"data":[turn("turn","completed","summary")]}),
+    );
+    let q = v.items_page("turn", None, Direction::Asc).unwrap();
+    let item = json!({"id":"current-start","type":"subAgentActivity","kind":"started","agentPath":"/root/task","agentThreadId":"current-child"});
+    accept(
+        &mut v,
+        &q,
+        json!({"data":[{"turnId":"turn","item":item,"completedAtMs":1}]}),
+    );
+    let discovered = v.snapshot()["selected"]["knownChildren"][0].clone();
+    assert!(discovered.get("parentThreadId").is_none());
+    assert_eq!(discovered["sourceQuery"], serde_json::to_value(&q).unwrap());
+    assert_eq!(discovered["sourceThreadId"], "thread");
+    assert_eq!(discovered["sourceTurnId"], "turn");
+    assert_eq!(discovered["sourceItemId"], "current-start");
+    let child = v
+        .read_child("current-child")
+        .expect("current native started reference must reach its metadata read");
+    assert_eq!(child.method(), "thread/read");
+    assert_eq!(
+        child.params(),
+        &json!({"threadId":"current-child","includeTurns":false})
+    );
+    let mut native = thread("current-child", "active");
+    native["status"] = json!({"type":"active","activeFlags":[]});
+    native["parentThreadId"] = json!("thread");
+    accept(&mut v, &child, json!({"thread":native.clone()}));
+    let snapshot = v.snapshot();
+    assert_eq!(
+        snapshot["selected"]["childReads"]["current-child"]["native"]["thread"],
+        native
+    );
+    assert_eq!(
+        snapshot["selected"]["childReads"]["current-child"]["appRole"]["standing"],
+        "unknown"
+    );
+    assert_eq!(
+        snapshot["selected"]["childReads"]["current-child"]["parentRelationship"]["standing"],
+        "native-parent-confirmed"
+    );
+    assert_eq!(
+        snapshot["selected"]["knownChildren"][0]["parentThreadId"],
+        "thread"
+    );
+    assert_eq!(v.resumed_thread(), None);
+    assert_eq!(snapshot["activeBindingPerformed"], false);
+}
+
+fn current_history() -> NativeHistory {
+    let mut v = selected();
+    let q = v.turns_page(None, Direction::Desc).unwrap();
+    accept(
+        &mut v,
+        &q,
+        json!({"data":[turn("turn","completed","summary")]}),
+    );
+    v
+}
+fn activity(v: &mut NativeHistory, id: &str, kind: &str, child: &str, path: &str) -> HistoryQuery {
+    let q = v.items_page("turn", None, Direction::Asc).unwrap();
+    accept(
+        v,
+        &q,
+        json!({"data":[{"turnId":"turn","item":{"id":id,"type":"subAgentActivity","kind":kind,"agentPath":path,"agentThreadId":child},"completedAtMs":1}]}),
+    );
+    q
+}
+#[test]
+fn current_non_started_root_self_and_empty_references_do_not_enable_child_reads() {
+    let mut v = current_history();
+    for (item, kind, child, path) in [
+        ("interacted", "interacted", "receiver", "/root/receiver"),
+        (
+            "interrupted",
+            "interrupted",
+            "interrupted",
+            "/root/interrupted",
+        ),
+        ("completed", "completed", "completed", "/root/completed"),
+        ("root", "started", "root", "/root"),
+        ("self", "started", "thread", "/root/self"),
+        ("empty", "started", "", "/root/empty"),
+        ("", "started", "empty-item", "/root/empty-item"),
+    ] {
+        activity(&mut v, item, kind, child, path);
+        assert!(v.read_child(child).is_err(), "{item}");
+    }
+    assert_eq!(v.snapshot()["selected"]["knownChildren"], json!([]));
+    activity(&mut v, "without-path", "started", "without-path", "");
+    assert!(
+        v.read_child("without-path").is_ok(),
+        "an opaque path does not replace the reported thread identity"
+    );
+}
+#[test]
+fn current_parent_metadata_missing_wrong_or_conflicting_keeps_edge_unknown() {
+    let mut v = current_history();
+    activity(&mut v, "start", "started", "child", "/root/task");
+    for parent in [None, Some("wrong-parent"), Some("thread")] {
+        let q = v.read_child("child").unwrap();
+        let mut native = thread("child", "idle");
+        if let Some(parent) = parent {
+            native["parentThreadId"] = json!(parent);
+        }
+        if parent == Some("thread") {
+            native["source"] = json!({"subAgent":{"thread_spawn":{"depth":1,"parent_thread_id":"conflicting-parent"}}});
+        }
+        accept(&mut v, &q, json!({"thread":native.clone()}));
+        let snapshot = v.snapshot();
+        let row = &snapshot["selected"]["knownChildren"][0];
+        assert!(row.get("parentThreadId").is_none());
+        assert!(row["parentLimit"].is_string());
+        assert_eq!(
+            snapshot["selected"]["childReads"]["child"]["native"]["thread"],
+            native
+        );
+        assert_eq!(
+            snapshot["selected"]["childReads"]["child"]["parentRelationship"]["standing"],
+            "unknown"
+        );
+        assert_eq!(
+            snapshot["selected"]["childReads"]["child"]["appRole"]["standing"],
+            "unknown"
+        );
+    }
+}
+#[test]
+fn current_source_survives_later_activity_and_conflicting_started_paths_stay_unknown() {
+    let mut v = current_history();
+    let original_query = activity(&mut v, "start", "started", "child", "/root/task");
+    let original = v.snapshot()["selected"]["knownChildren"][0].clone();
+    let pending = v.read_child("child").unwrap();
+    activity(&mut v, "interaction", "interacted", "child", "/root/task");
+    let mut native = thread("child", "idle");
+    native["parentThreadId"] = json!("thread");
+    accept(&mut v, &pending, json!({"thread":native.clone()}));
+    assert_eq!(
+        v.snapshot()["selected"]["childReads"]["child"]["parentRelationship"]["standing"],
+        "native-parent-confirmed"
+    );
+    activity(&mut v, "same-path", "started", "child", "/root/task");
+    let pending = v.read_child("child").unwrap();
+    activity(
+        &mut v,
+        "different-path",
+        "started",
+        "child",
+        "/root/different",
+    );
+    accept(&mut v, &pending, json!({"thread":native}));
+    let snapshot = v.snapshot();
+    let row = &snapshot["selected"]["knownChildren"][0];
+    for field in [
+        "sourceThreadId",
+        "sourceTurnId",
+        "sourceItemId",
+        "sourceQuery",
+        "sourceRevision",
+        "agentPath",
+    ] {
+        assert_eq!(row[field], original[field]);
+    }
+    assert_eq!(
+        row["sourceQuery"],
+        serde_json::to_value(original_query).unwrap()
+    );
+    assert_eq!(
+        row["lastObservedReference"]["sourceItemId"],
+        "different-path"
+    );
+    assert!(row.get("parentThreadId").is_none());
+    assert_eq!(
+        snapshot["selected"]["childReads"]["child"]["parentRelationship"]["standing"],
+        "unknown"
+    );
+    assert!(v.read_child("child").is_err());
+}
+
+#[test]
+fn current_copied_ancestor_rows_and_new_parent_evidence_never_confirm_child_edges() {
+    let mut v = current_history();
+    activity(
+        &mut v,
+        "before-metadata",
+        "started",
+        "parent",
+        "/root/parent",
+    );
+    let pending = v.read_child("parent").unwrap();
+    let q = v.read_metadata().unwrap();
+    let mut own = thread("thread", "idle");
+    own["parentThreadId"] = json!("parent");
+    own["source"] = json!({"subAgent":{"thread_spawn":{"depth":2,"parent_thread_id":"parent","agent_path":"/root/parent/selected"}}});
+    accept(&mut v, &q, json!({"thread":own}));
+    let mut parent = thread("parent", "idle");
+    parent["parentThreadId"] = json!("thread");
+    accept(&mut v, &pending, json!({"thread":parent}));
+    assert_eq!(
+        v.snapshot()["selected"]["childReads"]["parent"]["parentRelationship"]["standing"],
+        "unknown"
+    );
+    assert!(v.read_child("parent").is_err());
+    // An omitted later parent is a limit, not erasure of the observed ancestor.
+    let q = v.read_metadata().unwrap();
+    accept(&mut v, &q, json!({"thread":thread("thread", "idle")}));
+    assert!(v.read_child("parent").is_err());
+    activity(
+        &mut v,
+        "copied-parent",
+        "started",
+        "parent",
+        "/root/some-path",
+    );
+    assert!(v.read_child("parent").is_err());
+    let q = v.read_metadata().unwrap();
+    let mut own = thread("thread", "idle");
+    own["source"] = json!({"subAgent":{"thread_spawn":{"depth":3,"parent_thread_id":"parent","agent_path":"/root/ancestor/parent/selected"}}});
+    accept(&mut v, &q, json!({"thread":own}));
+    activity(
+        &mut v,
+        "copied-ancestor",
+        "started",
+        "ancestor",
+        "/root/ancestor",
+    );
+    assert!(v.read_child("ancestor").is_err());
+}
+
+#[test]
+fn current_child_metadata_errors_and_scope_changes_preserve_source_and_unknown_role() {
+    let mut v = current_history();
+    activity(&mut v, "start", "started", "child", "/root/task");
+    let q = v.read_child("child").unwrap();
+    let error = json!({"code":-32000,"message":"child metadata unavailable"});
+    v.receive_error(&q, "history-home", &g(), &error).unwrap();
+    let unrelated = v.read_goal().unwrap();
+    accept(&mut v, &unrelated, json!({"goal":null}));
+    assert_eq!(
+        v.snapshot()["selected"]["errorsByStream"]["child:child"]["error"],
+        error
+    );
+    let q = v.read_child("child").unwrap();
+    let mut native = thread("child", "idle");
+    native["parentThreadId"] = json!("thread");
+    let reply = json!({"thread":native});
+    assert!(v.receive(&q, "other-home", &g(), &reply).is_err());
+    let mut stale = g();
+    stale["spawnCounter"] = json!(2);
+    assert!(v.receive(&q, "history-home", &stale, &reply).is_err());
+    let superseding = v.read_child("child").unwrap();
+    assert!(v.receive(&q, "history-home", &g(), &reply).is_err());
+    let before = v.snapshot();
+    let mut wrong = reply.clone();
+    wrong["thread"]["id"] = json!("different-native-child");
+    assert!(v
+        .receive(&superseding, "history-home", &g(), &wrong)
+        .is_err());
+    assert_eq!(v.snapshot(), before);
+    accept(&mut v, &superseding, reply.clone());
+    assert_eq!(v.snapshot()["selected"]["errorsByStream"], json!({}));
+    assert_eq!(
+        v.snapshot()["selected"]["childReads"]["child"]["appRole"]["standing"],
+        "unknown"
+    );
+    let q = v.read_child("child").unwrap();
+    v.select("second").unwrap();
+    assert!(v.receive(&q, "history-home", &g(), &reply).is_err());
+    v.select("thread").unwrap();
+    assert!(v.read_child("child").is_err());
+}
+
+#[test]
+fn path_ancestor_exclusion_survives_optional_path_omission_before_any_candidate() {
+    let mut v = current_history();
+    let q = v.read_metadata().unwrap();
+    let mut own = thread("thread", "idle");
+    own["parentThreadId"] = json!("parent");
+    own["source"] = json!({"subAgent":{"thread_spawn":{"depth":3,"parent_thread_id":"parent","agent_path":"/root/ancestor/parent/selected"}}});
+    accept(&mut v, &q, json!({"thread":own}));
+    activity(
+        &mut v,
+        "ancestor-first",
+        "started",
+        "ancestor",
+        "/root/ancestor",
+    );
+    assert!(v.read_child("ancestor").is_err());
+    assert_eq!(v.snapshot()["selected"]["knownChildren"], json!([]));
+    let q = v.read_metadata().unwrap();
+    let mut own = thread("thread", "idle");
+    own["parentThreadId"] = json!("parent");
+    own["source"] = json!({"subAgent":{"thread_spawn":{"depth":3,"parent_thread_id":"parent"}}});
+    accept(&mut v, &q, json!({"thread":own}));
+    activity(
+        &mut v,
+        "ancestor-again",
+        "started",
+        "ancestor",
+        "/root/ancestor",
+    );
+    assert!(v.read_child("ancestor").is_err());
+    assert_eq!(v.snapshot()["selected"]["knownChildren"], json!([]));
+}
+
+#[test]
+fn initially_empty_started_path_does_not_hide_later_conflicting_known_paths() {
+    let mut v = current_history();
+    activity(&mut v, "original-empty", "started", "child", "");
+    let original = v.snapshot()["selected"]["knownChildren"][0].clone();
+    let pending = v.read_child("child").unwrap();
+    activity(&mut v, "first-known", "started", "child", "/root/first");
+    activity(&mut v, "second-known", "started", "child", "/root/second");
+    let mut native = thread("child", "idle");
+    native["parentThreadId"] = json!("thread");
+    accept(&mut v, &pending, json!({"thread":native}));
+    let snapshot = v.snapshot();
+    let child = &snapshot["selected"]["knownChildren"][0];
+    assert_eq!(child["sourceQuery"], original["sourceQuery"]);
+    assert_eq!(child["sourceItemId"], "original-empty");
+    assert_eq!(child["agentPath"], "");
+    assert!(child.get("parentThreadId").is_none());
+    assert!(child["discoveryLimit"].is_string());
+    assert_eq!(
+        snapshot["selected"]["childReads"]["child"]["parentRelationship"]["standing"],
+        "unknown"
+    );
+    assert!(v.read_child("child").is_err());
+}

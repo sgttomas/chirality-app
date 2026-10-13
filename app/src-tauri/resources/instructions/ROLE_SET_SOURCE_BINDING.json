@@ -1,7 +1,7 @@
 {
   "format": "chirality.app.roles.source-binding/2",
-  "basisCommit": "6dfa1ea1e4f4d97f710a4385943cd681d7c4a5de",
-  "standing": "Production candidate; independent review pending; no release, supplier adoption or shared allocation claim",
+  "basisCommit": "89acac6a3983c605820496d0d121c73bb2297706",
+  "standing": "Production candidate; exact instruction bytes and source binding independently reviewed; no release, supplier adoption or shared allocation claim",
   "roleSet": {
     "path": "roles.json",
     "sha256": "15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4"
@@ -9,9 +9,9 @@
   "sources": [
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/ROLE_SUPPLY.md",
-      "sha256": "7c4aeb996dd632f5789a81bc9b1ba89c7104ca2b11dc9519fce73c8cc009d36f",
-      "readExtent": "4.1; GS-1 through GS-7; 6.1; U-R6/U-R11",
-      "basisFileSha256": "7e37f028887f668e9e87adcaff89760591c423f0a6e9453d73b0ce384a6bd291",
+      "sha256": "a1e57886c379c3cdf6ec2a1263ee7d30c49ddc6104a6dab2bad7d649f738d468",
+      "readExtent": "4.1; 4.2 current records guidance and GS-1 through GS-7; 6.1; U-R6/U-R11",
+      "basisFileSha256": "422e6f2dabf46928aed249c10385c4b00f50990cfdba0b525d7a4c6a876b71ac",
       "selectors": [
         {
           "heading": "### 4.1 The role set (bundled, read-only)"
@@ -89,6 +89,56 @@
       ]
     },
     {
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "readExtent": "13.8 Agent access: owner decision, scope, direction and quoted standing; 13.9 When it is used (direction)",
+      "selectors": [
+        {
+          "linePrefix": "- **Agent access** (owner, 2026-10-12:"
+        },
+        {
+          "linePrefix": "  outside the agent's writable workspace. The App gives agents a read-only"
+        },
+        {
+          "linePrefix": "  records capability scoped to the current project, which they use when the"
+        },
+        {
+          "linePrefix": "  person or the workflow directs them to rebuild context. The App decides what"
+        },
+        {
+          "linePrefix": "  it returns: never keys and never another project's records. It marks what"
+        },
+        {
+          "linePrefix": "  it returns as quoted evidence, not authority (OF-2), and records each read"
+        },
+        {
+          "linePrefix": "  (§13.9)."
+        },
+        {
+          "linePrefix": "- **When it is used (direction).**"
+        },
+        {
+          "linePrefix": "  product guidance say to use it"
+        },
+        {
+          "linePrefix": "  only when the person or the workflow directs the agent to rebuild context"
+        },
+        {
+          "linePrefix": "  from the records; a person's message or a workflow's text gives that"
+        },
+        {
+          "linePrefix": "  direction in the conversation. The App cannot tell a directed call from an"
+        },
+        {
+          "linePrefix": "  undirected one, so it does not try: every call is recorded and shown, and"
+        },
+        {
+          "linePrefix": "  what it returns is bounded and marked."
+        }
+      ],
+      "basisFileSha256": "ca59558bb70c8893d9682218afb6fbe6475ef0ea5d1beb40309a943a40dcc5ef",
+      "sha256": "4c59e15ad6773be1b375813b24cd863b0798d44d369bec0d5abe14c89d0ac1a5"
+    },
+    {
       "repositoryPath": "projects/chirality-app-v4/app/src-tauri/resources/instructions/SOURCE_MAP.json",
       "sha256": "138aba1849de0fd39a4bcf75a69ffb82b8d59a2a0b02ff0790da9a44bfd66be6",
       "readExtent": "Historical source/output binding, unchanged"
@@ -97,8 +147,8 @@
   "guidance": [
     {
       "path": "AGENTS.md",
-      "sha256": "c64305fb6cec44c448116315e8f547ab133fe4b750dc356191af893f94c19290",
-      "byteLength": 4101
+      "sha256": "cb8d720640f9dfda1b61abb3c7983dbcfd0b9cb9f4e43f90da99e8f27d7d8db7",
+      "byteLength": 4337
     },
     {
       "path": "agents/AGENT_HELPS_HUMANS.md",

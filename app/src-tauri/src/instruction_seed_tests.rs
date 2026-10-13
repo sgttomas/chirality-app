@@ -215,6 +215,39 @@ fn initial_record_names_only_defaults_this_call_created_and_is_never_rewritten()
 }
 
 #[test]
+fn prior_common_default_and_declared_seed_history_are_not_migrated() {
+    let f = Fixture::new();
+    let root = f.0.join("instructions");
+    seed_instructions(&root).unwrap();
+    let prior = b"Prior product guidance\n";
+    fs::write(root.join("AGENTS.md"), prior).unwrap();
+    let mut record = seed_record(&root);
+    record["release"] = serde_json::json!("prior-default-release");
+    let entry = record["created"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|entry| entry["path"] == "AGENTS.md")
+        .unwrap();
+    entry["defaultContent"] = crate::role_supply::content(prior);
+    let history = serde_json::to_vec(&record).unwrap();
+    fs::write(root.join(".seed-record.json"), &history).unwrap();
+
+    seed_instructions(&root).unwrap();
+    assert_eq!(fs::read(root.join("AGENTS.md")).unwrap(), prior);
+    assert_eq!(fs::read(root.join(".seed-record.json")).unwrap(), history);
+    let composition = super::compose_role(&root, None).unwrap();
+    assert_eq!(composition.text.as_bytes(), prior);
+    let source = &composition.carried["developerInstructions"]["parts"][0]["source"];
+    assert_eq!(source["state"], "modified");
+    assert_eq!(
+        source["reviewedDefault"]["content"],
+        crate::role_supply::content(COMMON_DEFAULT)
+    );
+    assert_eq!(source["seedHistory"]["release"], "prior-default-release");
+}
+
+#[test]
 fn even_byte_equal_racing_copies_have_unknown_seed_origin() {
     let f = Fixture::new();
     let root = f.0.join("instructions");

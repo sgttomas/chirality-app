@@ -82,6 +82,7 @@ struct Pending {
     stream: String,
     revision: u64,
     waiting_ended: bool,
+    child_origin: Option<Value>,
 }
 // Correlation metadata only. The raw page remains in Selection.items_page.
 struct AcceptedItems {
@@ -131,6 +132,8 @@ struct Selection {
     known_children: BTreeMap<String, Value>,
     receiver_references: BTreeMap<String, Value>,
     child_reads: BTreeMap<String, Value>,
+    known_ancestors: HashSet<String>,
+    started_paths: HashMap<String, String>,
     resume: Option<Value>,
     resume_revision: Option<u64>,
     errors: BTreeMap<String, Value>,
@@ -152,6 +155,8 @@ impl Selection {
             known_children: BTreeMap::new(),
             receiver_references: BTreeMap::new(),
             child_reads: BTreeMap::new(),
+            known_ancestors: HashSet::new(),
+            started_paths: HashMap::new(),
             resume: None,
             resume_revision: None,
             errors: BTreeMap::new(),
@@ -159,6 +164,118 @@ impl Selection {
             resolutions: BTreeMap::new(),
         }
     }
+}
+
+fn parent_ids(native: &Value) -> Vec<&str> {
+    [
+        native["parentThreadId"].as_str(),
+        native["source"]["subAgent"]["thread_spawn"]["parent_thread_id"].as_str(),
+    ]
+    .into_iter()
+    .flatten()
+    .filter(|id| !id.is_empty())
+    .collect()
+}
+fn observed_threads<'a>(
+    s: &'a Selection,
+    threads: &'a BTreeMap<String, Value>,
+    id: &str,
+) -> Vec<&'a Value> {
+    let mut observations = Vec::new();
+    if id == s.thread {
+        if let Some(metadata) = &s.metadata {
+            observations.push(&metadata["thread"]);
+        }
+    }
+    if let Some(read) = s.child_reads.get(id) {
+        observations.push(&read["native"]["thread"]);
+    }
+    if let Some(native) = threads.get(id) {
+        observations.push(native);
+    }
+    observations
+}
+// As in native_items: root/self and known ancestor references can be copied
+// into a child's forked history. They never establish a new child edge.
+fn started_reference_limit(
+    s: &Selection,
+    threads: &BTreeMap<String, Value>,
+    id: &str,
+    path: &str,
+) -> Option<&'static str> {
+    if id.is_empty() || id == s.thread || path == "/root" {
+        return Some("root, self or empty native reference");
+    }
+    if s.known_ancestors.contains(id) {
+        return Some("native reference names a previously observed ancestor");
+    }
+    for own in observed_threads(s, threads, &s.thread) {
+        if let Some(own_path) = own["source"]["subAgent"]["thread_spawn"]["agent_path"].as_str() {
+            if !path.is_empty() && (own_path == path || own_path.starts_with(&format!("{path}/"))) {
+                return Some("native path names the selected agent or an ancestor");
+            }
+        }
+    }
+    if ancestor_ids(s, threads).contains(id) {
+        return Some("native reference names a known ancestor");
+    }
+    None
+}
+fn ancestor_ids(s: &Selection, threads: &BTreeMap<String, Value>) -> HashSet<String> {
+    let mut ancestors = s.known_ancestors.clone();
+    let mut next = vec![s.thread.clone()];
+    let mut seen = HashSet::new();
+    while let Some(at) = next.pop() {
+        if !seen.insert(at.clone()) {
+            continue;
+        }
+        for native in observed_threads(s, threads, &at) {
+            for parent in parent_ids(native) {
+                ancestors.insert(parent.to_owned());
+                if !seen.contains(parent) {
+                    next.push(parent.to_owned());
+                }
+            }
+        }
+    }
+    ancestors
+}
+fn refresh_ancestor_limits(s: &mut Selection, threads: &BTreeMap<String, Value>) {
+    s.known_ancestors = ancestor_ids(s, threads);
+    let limits: Vec<_> = s
+        .known_children
+        .iter()
+        .filter(|(_, child)| child["discoveryKind"] == "subAgentActivity")
+        .filter_map(|(id, child)| {
+            started_reference_limit(
+                s,
+                threads,
+                id,
+                s.started_paths
+                    .get(id)
+                    .map(String::as_str)
+                    .unwrap_or_else(|| child["agentPath"].as_str().unwrap_or("")),
+            )
+            .map(|reason| (id.clone(), reason))
+        })
+        .collect();
+    for (id, reason) in limits {
+        let child = s.known_children.get_mut(&id).unwrap();
+        child["discoveryLimit"] = json!(reason);
+        unconfirm_started(child, reason);
+        if let Some(read) = s.child_reads.get_mut(&id) {
+            read["parentRelationship"] = json!({"standing":"unknown","reason":reason});
+        }
+    }
+}
+fn child_origin(child: &Value) -> Value {
+    json!({"sourceThreadId":child["sourceThreadId"],"sourceTurnId":child["sourceTurnId"],"sourceItemId":child["sourceItemId"],"sourceQuery":child["sourceQuery"],"sourceRevision":child["sourceRevision"],"agentPath":child["agentPath"],"discoveryKind":child["discoveryKind"]})
+}
+fn unconfirm_started(child: &mut Value, reason: &str) {
+    child.as_object_mut().unwrap().remove("parentThreadId");
+    child["parentSource"] = json!("not-confirmed");
+    child["edgeEvidence"] = json!("native started reference; parent relationship unknown");
+    child["parentLimit"] = json!(reason);
 }
 fn generation_valid(g: &Value) -> bool {
     g.as_object().map(|o| o.len() == 3).unwrap_or(false)
@@ -386,6 +503,14 @@ impl NativeHistory {
                 json!({"query":query,"revision":revision,"outcome":"pending"}),
             );
         }
+        let child_origin = match &kind {
+            Kind::Child(id) => self
+                .selection
+                .as_ref()
+                .and_then(|s| s.known_children.get(id))
+                .map(child_origin),
+            _ => None,
+        };
         self.pending.insert(
             query.id(),
             Pending {
@@ -395,6 +520,7 @@ impl NativeHistory {
                 stream,
                 revision,
                 waiting_ended: false,
+                child_origin,
             },
         );
         Ok(query)
@@ -542,8 +668,27 @@ impl NativeHistory {
         )
     }
     pub fn read_child(&mut self, child: &str) -> Result<HistoryQuery, String> {
-        if !self.selected()?.known_children.contains_key(child) {
-            return Err("child not identified by received native items".into());
+        let selected = self.selected()?;
+        let found = selected
+            .known_children
+            .get(child)
+            .ok_or("child not identified by received native items")?;
+        if found["discoveryKind"] == "subAgentActivity" {
+            if let Some(reason) = found["discoveryLimit"].as_str() {
+                return Err(format!("child reference unavailable: {reason}"));
+            }
+            if let Some(reason) = started_reference_limit(
+                selected,
+                &self.threads,
+                child,
+                selected
+                    .started_paths
+                    .get(child)
+                    .map(String::as_str)
+                    .unwrap_or_else(|| found["agentPath"].as_str().unwrap_or("")),
+            ) {
+                return Err(format!("child reference unavailable: {reason}"));
+            }
         }
         self.issue(
             "thread/read",
@@ -636,6 +781,9 @@ impl NativeHistory {
         let kind = pending.kind.clone();
         let stream = pending.stream.clone();
         let revision = pending.revision;
+        let pinned_child_origin = pending.child_origin.clone();
+        let refresh_ancestors =
+            matches!(&kind, Kind::List(_) | Kind::Metadata(_) | Kind::Resume(_));
         validate(kind.response_schema(), result)?;
         // Check relational identities before any view mutation.
         if matches!(kind, Kind::List(_))
@@ -741,8 +889,55 @@ impl NativeHistory {
                     } else if item["type"] == "subAgentActivity" {
                         if let Some(id) = item["agentThreadId"].as_str().filter(|id| !id.is_empty())
                         {
-                            let reference = json!({"threadId":id,"sourceThreadId":thread,"sourceTurnId":turn,"sourceItemId":item["id"],"standing":"native activity reference; no completed-spawn parent edge established"});
+                            let reference = json!({"threadId":id,"sourceThreadId":thread,"sourceTurnId":turn,"sourceItemId":item["id"],"kind":item["kind"],"agentPath":item["agentPath"],"sourceQuery":query,"sourceRevision":revision,"standing":"native activity reference; not by itself a parent-child edge or App role"});
                             s.receiver_references.insert(id.into(), reference.clone());
+                            let path = item["agentPath"].as_str().unwrap_or("");
+                            if item["kind"] == "started" {
+                                if let Some(reason) =
+                                    started_reference_limit(s, &self.threads, id, path)
+                                {
+                                    // Preserve positive exclusions even when this
+                                    // reference was never admitted as a candidate.
+                                    s.known_ancestors.insert(id.to_owned());
+                                    if let Some(child) =
+                                        s.known_children.get_mut(id).filter(|child| {
+                                            child["discoveryKind"] == "subAgentActivity"
+                                        })
+                                    {
+                                        child["discoveryLimit"] = json!(reason);
+                                        unconfirm_started(child, reason);
+                                        if let Some(read) = s.child_reads.get_mut(id) {
+                                            read["parentRelationship"] =
+                                                json!({"standing":"unknown","reason":reason});
+                                        }
+                                    }
+                                }
+                            }
+                            if item["kind"] == "started"
+                                && item["id"].as_str().is_some_and(|id| !id.is_empty())
+                                && started_reference_limit(s, &self.threads, id, path).is_none()
+                            {
+                                // Keep the original source fixed; learn the first
+                                // nonempty started path as a separate guard basis.
+                                let path_conflict = !path.is_empty()
+                                    && s.started_paths.get(id).is_some_and(|known| known != path);
+                                if !path.is_empty() {
+                                    s.started_paths
+                                        .entry(id.to_owned())
+                                        .or_insert_with(|| path.to_owned());
+                                }
+                                let child = s.known_children.entry(id.into()).or_insert_with(||json!({"threadId":id,"sourceThreadId":thread,"sourceTurnId":turn,"sourceItemId":item["id"],"sourceQuery":query,"sourceRevision":revision,"discoveryKind":"subAgentActivity","agentPath":path,"parentSource":"not-confirmed","edgeEvidence":"native started reference; parent metadata not read"}));
+                                if child["discoveryKind"] == "subAgentActivity" && path_conflict {
+                                    let reason =
+                                        "conflicting native started paths for the same thread";
+                                    child["discoveryLimit"] = json!(reason);
+                                    unconfirm_started(child, reason);
+                                    if let Some(read) = s.child_reads.get_mut(id) {
+                                        read["parentRelationship"] =
+                                            json!({"standing":"unknown","reason":reason});
+                                    }
+                                }
+                            }
                             if let Some(child) = s.known_children.get_mut(id) {
                                 child["lastObservedReference"] = reference;
                             }
@@ -761,17 +956,71 @@ impl NativeHistory {
                 self.selection.as_mut().unwrap().goal = Some(result.clone());
             }
             Kind::Child(id) => {
-                self.selection
-                    .as_mut()
-                    .unwrap()
-                    .child_reads
-                    .insert(id, json!({"native":result,"appRole":role_unknown(),"standing":"child metadata read; no return/review/integration inferred"}));
+                let s = self.selection.as_mut().unwrap();
+                let child = s.known_children.get(&id).unwrap();
+                let started = child["discoveryKind"] == "subAgentActivity";
+                let expected = if started {
+                    child["sourceThreadId"].as_str()
+                } else {
+                    child["parentThreadId"].as_str()
+                };
+                let parents = parent_ids(&result["thread"]);
+                let limit = if pinned_child_origin.as_ref() != Some(&child_origin(child)) {
+                    Some("native child discovery changed while metadata was pending")
+                } else if let Some(reason) = child["discoveryLimit"].as_str() {
+                    Some(reason)
+                } else if started
+                    && started_reference_limit(
+                        s,
+                        &self.threads,
+                        &id,
+                        s.started_paths
+                            .get(&id)
+                            .map(String::as_str)
+                            .unwrap_or_else(|| child["agentPath"].as_str().unwrap_or("")),
+                    )
+                    .is_some()
+                {
+                    Some("native child discovery now names root, self or an ancestor")
+                } else if parents.is_empty() {
+                    Some("native child parent was not reported")
+                } else if expected.is_none()
+                    || parents.iter().any(|parent| Some(*parent) != expected)
+                {
+                    Some("native child parent differs from the owning discovery thread or is ambiguous")
+                } else {
+                    None
+                };
+                let relationship = match limit {
+                    Some(reason) => json!({"standing":"unknown","reason":reason}),
+                    None => json!({"standing":"native-parent-confirmed","parentThreadId":expected}),
+                };
+                let limit = limit.map(str::to_owned);
+                let expected = expected.map(str::to_owned);
+                if started {
+                    let child = s.known_children.get_mut(&id).unwrap();
+                    if let Some(reason) = limit.as_ref() {
+                        unconfirm_started(child, reason);
+                    } else {
+                        child["parentThreadId"] = json!(expected);
+                        child["parentSource"] = json!("thread/read parent metadata");
+                        child["edgeEvidence"] =
+                            json!("native started reference and matching native parent metadata");
+                        child.as_object_mut().unwrap().remove("parentLimit");
+                    }
+                }
+                s.child_reads.insert(id, json!({"native":result,"parentRelationship":relationship,"appRole":role_unknown(),"standing":"child metadata read; no App guidance supply, return/review/integration inferred"}));
             }
             Kind::Resume(_) => {
                 let s = self.selection.as_mut().unwrap();
                 s.resume = Some(result.clone());
                 s.resume_revision = Some(revision);
                 s.metadata = Some(json!({"thread":result["thread"]}));
+            }
+        }
+        if refresh_ancestors {
+            if let Some(selected) = self.selection.as_mut() {
+                refresh_ancestor_limits(selected, &self.threads);
             }
         }
         if !matches!(self.pending.get(&query.id()).unwrap().kind, Kind::List(_)) {

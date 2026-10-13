@@ -141,10 +141,14 @@ needs:
   evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/native_items.rs
+- app/src-tauri/src/native_history.rs
 - app/src/NativeActivity.tsx
 - app/src/PlanMode.tsx
 - app/src-tauri/src/delegation_availability.rs
 checks:
+- app/src-tauri/tests/native_history.rs
+- app/src-tauri/tests/history_integration.rs
+- app/src-tauri/src/hosting.rs
 - app/tests/native-activity.test.mjs
 - app/tests/plan-mode.test.mjs
 - app/tests/request-cards.test.mjs
