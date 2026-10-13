@@ -434,6 +434,8 @@ code_paths:
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/recorder.rs
 - app/src-tauri/src/record_lines.rs
+- app/src-tauri/src/records_index.rs
+- app/src-tauri/src/records_query.rs
 - app/src-tauri/src/records.rs
 - app/src-tauri/src/records_access.rs
 - app/src-tauri/src/records_store.rs
@@ -444,7 +446,10 @@ code_paths:
 - app/tools/verify_records_bag.py
 - app/src-tauri/src/storage.rs
 checks:
+- app/supplier_checks/records_delivery.py
+- app/supplier_checks/test_records_delivery.py
 - app/src-tauri/src/record_lines_tests.rs
+- app/src-tauri/src/records_index_tests.rs
 - app/src-tauri/src/records_access_tests.rs
 - app/src-tauri/src/records_store_tests.rs
 - app/src-tauri/src/records_retention_tests.rs

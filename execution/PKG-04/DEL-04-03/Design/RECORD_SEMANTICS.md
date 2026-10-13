@@ -1716,10 +1716,36 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   the owner accepted SEAL-C's residual "until signing" on 2026-10-11, and the
   key moves to the OS keychain at signing (AAC §6.3; OI-011). Whether
   checkpoints share SEAL-C's key, and SEAL-2/U-32, are decided there.
-- **Derived index** (proposed). A SQLite database in the store, built only from the
-  logs, answers cross-run queries. It is deletable and rebuildable and is
-  never the authority for a record (REQ-001; V4-REC-06). Where it disagrees
-  with the logs, the logs govern and the index is rebuilt.
+- **Derived index** (implemented; `records_index.rs`, `records_query.rs`).
+  A disposable SQLite database under the store's `indexes/` directory answers
+  record-identity, correction, act-claim and late-write queries across runs.
+  Record bodies stay in the logs; the database holds identities, membership
+  counts, positions, group-member ordinals and line hashes. Each process owns
+  a uniquely named cache and rebuilds it from the logs on first use, rather
+  than trusting an existing mutable database for absence or completeness.
+  At most four project indexes are held. SQLite positions and membership sets
+  are disk-backed; metadata for ordinary valid entries grows with logs and
+  directories, not entries. Diagnostics still grow with the limits they report. Rebuilds stream lines instead of holding each whole log.
+
+  The cache is deletable and rebuildable and is never record authority
+  (REQ-001; V4-REC-06). An unexpected cache change, deletion, replacement or
+  query failure invalidates it. Queries fall back to validated source scans
+  while a cache cannot be used; if the store cannot host derived metadata,
+  a private temporary SQLite cache may serve the process. This copies no
+  record body and provides no alternative home for records. Every returned
+  record is reread from its owning log and checked against its schema,
+  complete group, identity, sequence and exact indexed line hash. A mismatch
+  reports an incomplete read and forces source rebuilding. Cold startup
+  still validates all logs, and a full act projection still grows with its
+  result; this index alone does not bound that projection's memory.
+  Normal App exit releases active owned caches after final record writing;
+  eviction does so too. Shutdown cleanup is best effort, and a crash can leave
+  disposable cache files in `indexes/`. These may be deleted without deleting
+  records; no stale file is adopted as record authority.
+  The records capability constructs quoted entries lazily for the requested
+  page, avoiding a second complete set of copied record bodies. Its source
+  corpus and run-summary derivation still scan the complete set; they are
+  separate from this disk-backed index's memory bound.
 - **Retention and disposition** (owner U-STORE-1, 2026-10-12: "Keep;
   recorded disposal"). Records are kept with no expiry; nothing is disposed
   of automatically. The person may dispose of a closed project's records only
@@ -1992,9 +2018,19 @@ It realizes §13.8's agent access and does not change what a record is.
   was returned is accounted for by the read log, joined by generation and
   request identity. `dynamicTools` is experimental-only at Codex
   0.160.0, which the App already declares (`experimentalApi`). The pinned
-  `thread/resume` and `thread/fork` carry no `dynamicTools`, so a conversation
-  continued or copied is not offered the tool unless Codex keeps it with the
-  thread (not observed). The tool is the App's own capability, not a tool a
+  `thread/resume` and `thread/fork` carry no `dynamicTools`. The maintained
+  opt-in `app/supplier_checks/records_delivery.py` check observes stock
+  0.160.0 retaining the supplied capability through resume and fork, both
+  within its process and after a restart into the same scratch Codex home.
+  It uses the actual App definition and invented HTTP400 capture-only
+  providers, with no model prediction or App handler; threads started
+  without the capability remain without it. Both the custom provider and
+  built-in `lmstudio` route redirected to that fixture reported
+  `namespaceTools: true` and carried the declaration in the Code Mode
+  `functions.exec` description for the selected `gpt-6.1-sol` model. Delivery
+  when a provider reports `namespaceTools: false`, actual provider behavior,
+  and the resumed/forked App handler join remain unobserved. The tool is the
+  App's own capability, not a tool a
   workflow can supply: it does not make WD's `dynamic-tool-call` present
   (EXEC compatibility row), and no act or act control is reachable through
   it (AAC NA-1).
@@ -2345,12 +2381,11 @@ machine; `records::durability_tests`, and the ignored
   since the last read).
 - *Bounded reads (current implementation; `records_index.rs`).* The
   writer's guards (W-0/W-1, CC-ID, the open-run complete-set guard, the
-  W-2 reconciliations) and the act read now use an in-process index of
-  the project's logs. It is rebuilt from them, never a store, and keeps
-  at most four projects. Per log it keeps the record identities with
-  their byte positions and `seq`, the limits and any torn tail. Its
-  memory grows linearly with the total number of entries: one small
-  record per entry.
+  W-2 reconciliations) and the act read use the derived SQLite index described
+  in §13.8. Identities, positions and membership counts live in its disposable
+  database; in-process state keeps per-log limits, chain and growth metadata.
+  Reads and rebuilds stream the shared R-2 parser's lines. Earlier in-process
+  index measurements below remain observations of the versions named there.
 
   How it stays current:
   - Each refresh re-walks the tree and takes every log's and directory's
@@ -2370,7 +2405,7 @@ machine; `records::durability_tests`, and the ignored
     during the read is left to the next refresh.
   - A line read again from its stored position (entries by identity,
     the act read's claims) is parsed and validated again (R-4), and must
-    still hold its indexed identity and `seq`. Otherwise the read fails
+    still hold its indexed identity, `seq` and exact line hash. Otherwise the read fails
     as incomplete and the log is read in full at the next refresh.
 
   The guarantees are those of the full read. An identity held by a
@@ -2436,6 +2471,29 @@ machine; `records::durability_tests`, and the ignored
   unchanged within the noise. The first act read's peak varied between 5.7
   and 7.1 GB at 100,000 acts across runs (5.5 GB for the earlier code in the
   same session).
+
+  **Derived SQLite index measurement (2026-10-13, debug build).** The maintained
+  ignored `records_index_disk_scale_report` uses one chained log and a fresh
+  child process per tier, without captures, a ledger or a full act projection.
+  Baseline is the `f79493a721` index, built in the same debug profile; it reads
+  the same fixture after the ten probe appends. These are observations, not
+  release-build latency estimates or a cold-start speed improvement.
+
+  | Valid entries | Database | RSS after index build / peak after verifier | Warm append | Cold build | Verifier pass | Baseline peak RSS / cold build |
+  |---|---|---|---|---|---|---|
+  | 30,000 | 8.3 MB | 47.5 / 51.1 MB | 5.4 ms | 1.66 s | 1.48 s | 73.4 MB / 1.33 s |
+  | 300,000 | 86.9 MB | 47.4 / 51.0 MB | 4.9 ms | 16.26 s | 15.08 s | 342.5 MB / 11.82 s |
+
+  Ordinary valid-entry index memory stays flat in this single-log scenario;
+  database size and cold source validation still grow with entries. Verifier
+  source parsing and staging run outside the index mutex. Installation copies
+  only positions under that mutex, and a hash-proved unchanged prefix means
+  ordinary append catch-up copies only the changed tail. A new or fully changed
+  log still requires transferring all its positions. Generation, per-log and
+  discovery revisions prevent an older pass from replacing newer reader state;
+  cache and source changes refuse a staged transfer. New and removed logs are
+  included even when no reader or writer refreshes the index. Earlier full act
+  projection and diagnostic memory limits remain separate.
 
 ## 15. Local prototype (R12-3)
 

@@ -167,6 +167,8 @@ pub(crate) struct ParsedLine {
     pub no: usize,
     pub offset: u64,
     pub len: usize,
+    /// Identity of the exact complete line bytes.
+    pub digest: String,
     /// The line's entries (none when it is not read).
     pub entries: Vec<Value>,
     /// Limits that make the log incomplete.
@@ -196,65 +198,71 @@ pub(crate) fn parse(bytes: &[u8], name: &str, first: usize, base: u64, expected:
 }
 /// As [`parse`], handing each line to `each` as it is read (its entries are
 /// not kept): a large log is never held as values at once. `lines` is empty.
-pub(crate) fn parse_with(bytes: &[u8], name: &str, first: usize, base: u64, mut expected: u64, mut chain: Chain, each: &mut dyn FnMut(ParsedLine)) -> Parsed {
-    let validator = crate::schema_validation::bundled();
-    let mut segments: Vec<(u64, &[u8])> = Vec::new();
-    let mut at = 0usize;
-    for part in bytes.split(|b| *b == b'\n') {
-        segments.push((base + at as u64, part));
-        at += part.len() + 1;
+pub(crate) fn parse_with(bytes: &[u8], name: &str, first: usize, base: u64, expected: u64, chain: Chain, each: &mut dyn FnMut(ParsedLine)) -> Parsed {
+    // A slice cannot fail while reading. The same bounded parser is used by
+    // the disk index, so W-0 lookahead and grouped-line semantics stay shared.
+    parse_reader(std::io::Cursor::new(bytes), name, first, base, expected, chain, each).expect("slice read")
+}
+/// Stream R-2 with one complete line of lookahead (W-0 can name the line
+/// immediately before it). Memory is bounded by two lines, including a group.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first: usize, base: u64, mut expected: u64, mut chain: Chain, each: &mut dyn FnMut(ParsedLine)) -> std::io::Result<Parsed> {
+    fn read(reader: &mut impl std::io::BufRead) -> std::io::Result<Vec<u8>> {
+        let mut raw = Vec::new();
+        reader.read_until(b'\n', &mut raw)?;
+        Ok(raw)
     }
-    let tail = segments.pop().unwrap_or((base, b""));
-    let complete = &bytes[..bytes.len() - tail.1.len()];
-    let (hidden, mismatched) = crate::records::recovered_partial_lines(complete, first);
-    for (i, (offset, raw)) in segments.iter().enumerate() {
-        let no = first + i + 1;
-        let mut line = ParsedLine { no, offset: *offset, len: raw.len(), entries: vec![], limits: vec![], notes: vec![], expected_before: expected, chain_before: chain.clone() };
-        for (_, m) in mismatched.iter().filter(|(k, _)| *k == i) {
-            line.limits.push(format!("{name}: {m}"));
-        }
-        if hidden.contains(&i) {
-            line.notes.push(format!("{name}: line {no} is a torn line W-0 terminated; it is not a chain link, and the next line links to the line before it"));
-            each(line);
-            continue;
-        }
-        if raw.strip_suffix(b"\r").unwrap_or(raw).iter().all(u8::is_ascii_whitespace) {
-            each(line);
-            continue;
-        }
-        let decoded = match &validator {
-            Ok(v) => decode_line(raw, v),
-            Err(e) => Err(NotRead::Invalid(e.clone())),
-        };
-        match decoded {
-            Ok((entries, link)) => {
-                if let Err(broken) = chain.step(no, raw, link.as_ref()) {
-                    line.limits.push(format!("{name}: {broken}"));
+    let validator = crate::schema_validation::bundled();
+    let mut raw = read(&mut reader)?;
+    let mut offset = base;
+    let mut no = first;
+    while raw.ends_with(b"\n") {
+        raw.pop();
+        let next = read(&mut reader)?;
+        no += 1;
+        let mut line = ParsedLine { no, offset, len: raw.len(), digest: line_identity(&raw), entries: vec![], limits: vec![], notes: vec![], expected_before: expected, chain_before: chain.clone() };
+        // Only a complete following line can name a recovered partial. A
+        // still-torn W-0 observation is not evidence that recovery happened.
+        let mut recovered = false;
+        if next.ends_with(b"\n") {
+            if let Ok(v) = serde_json::from_slice::<Value>(&next[..next.len() - 1]) {
+                let named = v["body"]["subjectRef"].as_str().unwrap_or_default();
+                if v["kind"] == "evidence_limit" && v["body"]["label"] == crate::records::PARTIAL_NOT_RECOVERED && named.starts_with(&format!("line {no};")) {
+                    let mismatch = if named != crate::records::torn_line_ref(no, &raw) {
+                        Some(format!("line {no}: the \"partial entry not recovered\" limit after it names other bytes; read as written"))
+                    } else if is_valid_line(&raw) {
+                        Some(format!("line {no}: a complete entry, although the limit after it names it as torn; read as written"))
+                    } else { recovered = true; None };
+                    line.limits.extend(mismatch.map(|m| format!("{name}: {m}")));
                 }
-                for entry in &entries {
-                    let seq = entry["seq"].as_u64().unwrap_or(0);
-                    if seq != expected {
-                        line.limits.push(format!("{name}: sequence incomplete/disagrees: expected {expected}, found {seq} at line {no}"));
-                    }
-                    expected = seq.checked_add(1).unwrap_or(seq);
-                }
-                line.entries = entries;
             }
-            Err(not_read) => {
-                // Already a limit; still the line the next one links to (its
-                // bytes are complete), neither a link check nor unchained.
-                chain.last = Some(line_identity(raw));
-                chain.lines += 1;
-                line.limits.push(match not_read {
-                    NotRead::Unreadable => format!("{name}: unreadable line {no}"),
-                    NotRead::Invalid(e) => format!("{name}: invalid line {no}: {e}"),
-                });
+        }
+        if recovered {
+            line.notes.push(format!("{name}: line {no} is a torn line W-0 terminated; it is not a chain link, and the next line links to the line before it"));
+        } else if !raw.strip_suffix(b"\r").unwrap_or(&raw).iter().all(u8::is_ascii_whitespace) {
+            let decoded = match &validator { Ok(v) => decode_line(&raw, v), Err(e) => Err(NotRead::Invalid(e.clone())) };
+            match decoded {
+                Ok((entries, link)) => {
+                    if let Err(broken) = chain.step(no, &raw, link.as_ref()) { line.limits.push(format!("{name}: {broken}")); }
+                    for entry in &entries {
+                        let seq = entry["seq"].as_u64().unwrap_or(0);
+                        if seq != expected { line.limits.push(format!("{name}: sequence incomplete/disagrees: expected {expected}, found {seq} at line {no}")); }
+                        expected = seq.checked_add(1).unwrap_or(seq);
+                    }
+                    line.entries = entries;
+                }
+                Err(not_read) => {
+                    chain.last = Some(line_identity(&raw)); chain.lines += 1;
+                    line.limits.push(match not_read { NotRead::Unreadable => format!("{name}: unreadable line {no}"), NotRead::Invalid(e) => format!("{name}: invalid line {no}: {e}") });
+                }
             }
         }
         each(line);
+        offset += raw.len() as u64 + 1;
+        raw = next;
     }
-    let partial_tail = (!tail.1.is_empty() && !tail.1.iter().all(u8::is_ascii_whitespace)).then(|| format!("{name}: partial entry at end (not read)"));
-    Parsed { lines: Vec::new(), partial_tail, tail_offset: tail.0, chain }
+    let partial_tail = (!raw.is_empty() && !raw.iter().all(u8::is_ascii_whitespace)).then(|| format!("{name}: partial entry at end (not read)"));
+    Ok(Parsed { lines: Vec::new(), partial_tail, tail_offset: offset, chain })
 }
 
 /// A log's chain head: the identity of its last link line and its line count
