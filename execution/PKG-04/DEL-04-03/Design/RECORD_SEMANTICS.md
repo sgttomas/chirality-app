@@ -1397,10 +1397,13 @@ project paths in the table. Those paths are now legacy sources: until the
 person imports them they are read in place and new recording is refused
 ("import needed"); after an import the store copies govern and the originals
 are not read (§13.8 "Existing records"). They are never rewritten or deleted.
-The A15 library rows and the registered legacy log are unchanged: they stay
-where the table puts them and are read in place. Where this section, or R-1
-(§14.2), says discovery follows §13.7, it now discovers the store subtree
-(§13.8) with those two in-place sources.
+The registered legacy log is §13.7 history like the rest: read in place
+before an import, imported with it, and not read after. The A15 library rows
+are unchanged: they stay where the table puts them, and the library's act log
+is read on its own as library evidence, never as part of the project's set
+(§13.8). Where this section, or R-1 (§14.2), says discovery follows §13.7, it
+now discovers the project's store subtree (§13.8), or before an import the
+§13.7 paths in place.
 
 The owner separately answered “Approve App-local storage (recommended)” and
 “Approve native-confirmation implementation (recommended)” in this run's
@@ -1501,20 +1504,27 @@ joined the store.
   moves or copies nothing, so a store is moved by moving its folder. A chosen
   location inside the project, a Codex home or a temporary folder is refused.
   Tests and development name the store explicitly
-  (`CHIRALITY_RECORDS_STORE`); a development build without it has no store
-  and records nothing, and a test build without it uses its own temporary
-  store, never the App data folder. The host status (`recordsStore`) reports
-  the store it writes, how it was placed and the project's standing in it.
-  There is no fallback to another store, a project path or memory.
+  (`CHIRALITY_RECORDS_STORE`); only a development or test build reads that
+  override (a release build ignores it, saying so), a development build
+  without it has no store and records nothing, and a test build without it
+  uses its own temporary store, never the App data folder. The placement
+  rules refuse in every build, the override included: a store inside the
+  project, the App-owned or configured Codex homes (account, key, probe) or
+  `~/.codex` is refused, and only the development or test override may name
+  a temporary folder, shown as a limit. A chosen location is checked against
+  the same homes when it is chosen. The host status (`recordsStore`)
+  reports the store it writes, how it was placed and the project's standing
+  in it. There is no fallback to another store, a project path or memory.
   *Agent's writable roots, as the App configures Codex:* the App sets no
-  sandbox policy and no writable roots on `thread/start`; Codex applies the
-  person's own sandbox setting (D3). Under `workspace-write`, the writable
-  roots are the conversation's working directory (the project), `/tmp`,
-  `$TMPDIR` and any `writable_roots` the person configures, so the default
-  store (macOS: `~/Library/Application Support/<App identifier>/records/`)
-  is outside all of them unless the person adds it, or runs with
-  `danger-full-access`. A store named by the override in a temporary folder
-  (tests) is inside them; the host status shows that as a placement limit.
+  sandbox policy and no writable roots on `thread/start`; Codex runs with the
+  App-owned `CODEX_HOME`, so that home's configuration sets the sandbox (D3).
+  Under `workspace-write`, the writable roots are the conversation's working
+  directory (the project), `/tmp`, `$TMPDIR` and any `writable_roots` that
+  home's configuration names, so the default store (macOS:
+  `~/Library/Application Support/<App identifier>/records/`) is outside all
+  of them unless that configuration adds it, or runs with
+  `danger-full-access`. A test or development store in a temporary folder is
+  inside them; the host status shows that as a placement limit.
 - **Project identity** (implemented). The App mints a stable opaque project
   identity (`chirality-project:<UUID>`) once, when it opens the project or
   first records for it, and writes it in the project at
@@ -1525,9 +1535,18 @@ joined the store.
   file is a link, not an authority: a missing, changed or duplicated identity
   is shown as a limit and never silently attaches records to another project.
   The store's own identity record governs; an agent-edited or missing project
-  file can only produce a limit. Precisely: a folder the store records as
-  project ‹P› is attached to ‹P› even when its link is missing, names
-  another identity or is unreadable, with that limit shown; a link whose
+  file can only produce a limit. Precisely: a folder is never attached on
+  its path alone. A folder the store records as project ‹P› whose link is
+  missing or unreadable is not attached: nothing is read or written for it
+  ("link missing; not attached", naming ‹P›) until the person restores the
+  link (one action) or gives the folder a new identity, since a new folder
+  can stand where a moved project was. A folder whose link names another
+  identity than the one the store records for it is attached to the store's
+  identity, which governs, with that limit shown (the link is there, but an
+  agent can edit it). Adopting a moved project releases every earlier root
+  of its identity, by append-only release lines in `roots.jsonl`, so a new
+  folder later made at an old path is minted its own identity. A link whose
+
   identity the store records at another folder attaches nothing — if that
   folder still holds the identity it is a duplicate, otherwise a moved
   project — until the person confirms it is that project (adopt) or gives
@@ -1605,30 +1624,51 @@ joined the store.
   *Implemented as follows.* The §13.7 project records are the run logs under
   `.chirality/records/runs/`, the outside-run act logs under
   `.chirality/records/acts/`, the WR records under
-  `.chirality/records/workflow/`, and the capture evidence and pending
-  submissions under `.chirality/captures/` other than A15 captures; the
-  library's own act log and A15 captures stay with the library, and the
-  registered legacy log stays in place, read as before. While the store holds
-  nothing for the project and such records exist, they are read in place and
-  every new recording is refused with "import needed" (the act control's
-  recovery included), so no history is split across two homes. The import is
-  the person's explicit act (host command `records_store_import`, offered in
-  the host view): under the store and writer locks each file is copied to the
+  `.chirality/records/workflow/`, the capture evidence and pending
+  submissions under `.chirality/captures/` other than A15 captures, and the
+  explicitly registered legacy log `records/coordination.rs.jsonl` (copied
+  to `legacy/coordination.rs.jsonl`); the library's own act log and A15
+  captures stay with the library. While the store holds nothing for the
+  project and such records exist, they are read in place and every new
+  recording is refused with "import needed" (the act control's recovery
+  included), so no history is split across two homes. The import is the
+  person's explicit act (host command `records_store_import`, offered in the
+  host view), and its record in `imports.jsonl` is the commit point: under
+  the store and writer locks, a "started" line first names the whole census
+  (each file's path, copy, size and SHA-256); each file is then copied to the
   same key in the store subtree, created once, synced, read back and verified
-  by its SHA-256, and the import is recorded in `imports.jsonl` with each
-  file's path, SHA-256, size and file stamp. A copy already present with the
-  same bytes is kept, so an import can be repeated; a different file already
-  at the copy's place is a conflict, never overwritten; an original already
-  imported is not imported again. From the first import (or the first record
-  the store holds) the project is read from the store only: an original
-  whose bytes no longer match its import is a limit (the store copy governs),
-  and a §13.7 file that appears later is a limit "not imported (not read)";
-  neither refuses recording. A pending submission written before the store
-  names its log by the §13.7 spelling (`.chirality/records/acts/…`); it names
-  the same home-relative file, and its capture's backlink is added to the store copy.
-  A file placed in `.chirality/captures/` before the first import (by an
-  agent, say) is imported like any other and recovery reports it as an
-  unverified file.
+  by its SHA-256; a "completed" line, last, lists each file with its SHA-256,
+  size and file stamp. Until a started import has its completed line —
+  interrupted, a full device, a copy that does not verify — folders it
+  created do not count, the history is still read in place and recording is
+  refused ("import incomplete"). Running the import again resumes it: a copy
+  already present with the same bytes is kept, never duplicated; a different
+  file already at the copy's place is a conflict, never overwritten; a file
+  that changed, appeared or went since the interrupted import named its
+  census is reported; an original already imported is not imported again.
+  From the first completed import (or, with no import ever started, the
+  first record the App writes there) the project is read from the store
+  only: an original whose bytes no longer match its import is a limit (the
+  store copy governs), and a §13.7 file that appears later is a limit "not
+  imported (not read)"; neither refuses recording. An imported copy carries
+  only the trust of the project folder it came from, which an agent could
+  write: the import proves the copy equals the file, not who wrote it (the
+  import result and the host view say so). A pending submission written
+  before the store names its log by the §13.7 spelling
+  (`.chirality/records/acts/…`); it names the same home-relative file, and
+  its capture's backlink is added to the store copy. A file placed in
+  `.chirality/captures/` before the first import (by an agent, say) is
+  imported like any other and recovery reports it as an unverified file.
+  *Library act log.* The act log of a workflow library that is also the
+  project, `.chirality/records/acts.jsonl`, stays with the library
+  (U-STORE-2), so it is in the project tree and an agent can write it. It is
+  therefore library evidence only, read as its own record set and never
+  part of the project's run/act set: its unreadable, duplicate or
+  conflicting lines are limits on library standing and on A15 readings (A15
+  recovery included), never a reason the project's set is incomplete or its
+  run and act recording is refused, and its entries never join R-1 for the
+  project. No reader of the project's set cross-checks it.
+
 - **Agent access** (owner, 2026-10-12: "I choose option B"). The store sits
   outside the agent's writable workspace. The App gives agents a read-only
   records capability scoped to the current project, which they use when the
@@ -1711,9 +1751,11 @@ It realizes §13.8's agent access and does not change what a record is.
   records is added.
 - **Excluded.** The capability reads only this project's records through a
   storage-independent source: the logs R-1 discovers (§13.8: the project's
-  records store subtree, or before an import the §13.7 project logs under
-  `.chirality/records/`, with the registered legacy log), read by the R-2
-  reader; the move to the store changed the source, not the tool. It never reads or returns keys (the capture-seal folder
+  records store subtree with the registered legacy log's imported copy, or
+  before an import the §13.7 project logs under `.chirality/records/` and the
+  registered legacy log in place), read by the R-2 reader; the move to the
+  store changed the source, not the tool. It never reads or returns keys (the capture-seal folder
+
   in App data), capture evidence files (act records cite them by reference),
   another project's records, workflow library acts (§13.8 keeps them with
   the library, U-STORE-2; the library's own acts log is left out even when

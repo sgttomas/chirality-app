@@ -91,7 +91,7 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
     // Reobserve its own exact-byte designation for discovery idempotence; never translate history
     // into the selected method or claim comparable human-act standing.
     let (legacy_entries, legacy_limits) =
-        records::read_log(&workspace.join(crate::storage::LEGACY_LOG));
+        records::read_log(&crate::storage::registered_legacy_log(workspace));
     if !legacy_limits.is_empty() {
         return Err(format!(
             "incomplete registered legacy record: {legacy_limits:?}"

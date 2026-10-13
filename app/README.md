@@ -784,12 +784,21 @@ project has one subtree, `projects/<safe-project-key>/`, holding
 `runs/<safe-run-key>/<safe-writer-key>.jsonl`, `acts/<safe-writer-key>.jsonl`,
 `captures/` and `workflow/` (WR WP-1 records). The project is linked to it by
 `.chirality/project.json`, an identity the App mints once; the store's own
-record of the project's roots governs, and a missing, changed or duplicated
-link is shown as a limit. Records an earlier App wrote at the §13.7 paths
-(`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`)
-are read in place, and recording is refused ("import needed") until the
-person imports them: byte-identical copies verified by SHA-256, with the
-originals left unchanged and no longer read. The host status (`recordsStore`)
+record of the project's roots governs. A changed link is a limit; a missing
+or unreadable one, a duplicate, or a moved project attaches nothing until the
+person restores the link, adopts the project or gives the folder a new
+identity. Records an earlier App wrote at the §13.7 paths
+(`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,
+and the registered `records/coordination.rs.jsonl`) are read in place, and
+recording is refused ("import needed") until the person imports them:
+byte-identical copies verified by SHA-256, committed by the import's
+"completed" line (an interrupted import is resumed by running it again), with
+the originals left unchanged and no longer read. A copy carries only the
+trust of the folder it came from. A library's own act log in the project is
+library evidence, never part of the project's record set. The override
+`CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
+store inside the project or a Codex home is refused. The host status (`recordsStore`)
+
 shows the store, the project's identity and any import or identity limit.
 The agents' records read log stays in `runtime/records-reads.jsonl`.
 Library A15 allocation uses the library's
@@ -805,7 +814,7 @@ separate owners in one process; release at process death is `flock`'s, not
 tested). A
 `.chirality/.workflow-staging/attempts/` folder left by an earlier build is
 no longer read. Storage keys are separate from governed identities.
-Explicitly discovered legacy `records/coordination.rs.jsonl` stays intact.
+Explicitly registered legacy `records/coordination.rs.jsonl` stays intact (imported, not rewritten).
 Unwritable or incomplete targets report limits without silent relocation.
 
 Attachment metadata arrays and pointer-only client request records live under

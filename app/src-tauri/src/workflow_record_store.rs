@@ -154,6 +154,9 @@ pub struct ProjectRecords {
     root: PathBuf,
     directory: File,
     identity: (u64, u64),
+    /// The project's records store folder once this handle has resolved it:
+    /// later reads and writes keep to it even if the path is replaced.
+    store: std::sync::Mutex<Option<PathBuf>>,
 }
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
@@ -180,6 +183,7 @@ impl ProjectRecords {
             root: explicit_root.to_owned(),
             directory,
             identity: (m.dev(), m.ino()),
+            store: std::sync::Mutex::new(None),
         })
     }
     /// The explicit opened-project path this handle was opened from.
@@ -217,15 +221,32 @@ impl ProjectRecords {
     /// place. A write is refused visibly (store unavailable, no identity,
     /// import needed), never redirected. `None` when the folder is absent.
     fn workflow_dir(&self, create: bool) -> Result<Option<File>, String> {
-        let store = if create {
-            Some(crate::records_store::write_dir(&self.root)?)
-        } else {
-            let home = crate::records_store::home(&self.root)?;
-            match (home.store_mode, home.attachment.dir) {
-                (true, Some(dir)) => Some(dir),
-                _ => None,
+        let cached = self.store.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        let store = match cached {
+            Some(dir) if !create => Some(dir),
+            _ => {
+                // Resolved from the path: only while the path still names the
+                // pinned project folder, so no other folder's records are used.
+                let now = std::fs::metadata(&self.root).map_err(|e| e.to_string())?;
+                if (now.dev(), now.ino()) != self.identity {
+                    return Err("the opened project folder was replaced since it was opened; open it again (nothing read or written)".into());
+                }
+                let resolved = if create {
+                    Some(crate::records_store::write_dir(&self.root)?)
+                } else {
+                    let home = crate::records_store::home(&self.root)?;
+                    match (home.store_mode, home.attachment.dir) {
+                        (true, Some(dir)) => Some(dir),
+                        _ => None,
+                    }
+                };
+                if let Some(dir) = &resolved {
+                    *self.store.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.clone());
+                }
+                resolved
             }
         };
+
         let Some(store) = store else {
             let Some(a) = plain_dir_at(&self.directory, ".chirality")? else { return Ok(None) };
             let Some(b) = plain_dir_at(&a, "records")? else { return Ok(None) };

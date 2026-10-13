@@ -134,7 +134,8 @@ pub(crate) fn use_store_for_test(store: Option<Result<Store, String>>) {
 }
 
 fn from_environment() -> Result<Store, String> {
-    if let Some(path) = std::env::var_os(OVERRIDE_ENV).filter(|p| !p.is_empty()) {
+    // The override is for tests and development: a release build never reads it.
+    if let Some(path) = std::env::var_os(OVERRIDE_ENV).filter(|p| (cfg!(debug_assertions) || cfg!(test)) && !p.is_empty()) {
         let root = PathBuf::from(path);
         if !root.is_absolute() {
             return Err(format!("{OVERRIDE_ENV} must name an absolute folder; no records store"));
@@ -156,10 +157,18 @@ fn from_environment() -> Result<Store, String> {
 /// the real App data folder. `project` and `codex_homes` are the folders the
 /// store must stay out of.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    // The override is honoured only in a development (or debug) build.
+    let mut limits = Vec::new();
+    let override_root = match override_root {
+        Some(_) if !(development || cfg!(debug_assertions)) => {
+            limits.push(format!("{OVERRIDE_ENV} is set but ignored: a release build keeps its records only in the App data folder or the location the person chose"));
+            None
+        }
+        other => other,
+    };
     let (root, placement) = if let Some(path) = override_root {
         (path, Placement::Override)
     } else if development {
-
         return Err(format!("development build: set {OVERRIDE_ENV} to a records store folder outside the project; the App data folder is not used in development, and nothing is recorded without a store"));
     } else {
         let data = app_data.map_err(|e| format!("App data folder unavailable, so no records store: {e}"))?;
@@ -171,11 +180,16 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     if !root.is_absolute() {
         return Err("the records store must be an absolute folder; no records store".into());
     }
-    let problems = placement_problems(&root, project, codex_homes);
-    if !problems.is_empty() && placement != Placement::Override {
+    // Refused in every build; only the development override may name a
+    // temporary folder (a test store).
+    let problems = placement_problems(&root, project, codex_homes, placement == Placement::Override);
+    if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
-    Ok(Store { root, placement, limits: problems })
+    if placement == Placement::Override && is_temporary(&root) {
+        limits.push(format!("{} is a temporary folder, which an agent under Codex's workspace-write sandbox can write (development override only)", root.display()));
+    }
+    Ok(Store { root, placement, limits })
 }
 
 /// The person's chosen store location, if one is recorded.
@@ -198,7 +212,7 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems(location, project, codex_homes);
+    let problems = placement_problems(location, project, codex_homes, false);
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -212,7 +226,7 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
 /// Why `root` is not a fit place for the store: inside the project, a Codex
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
-pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf]) -> Vec<String> {
+pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
@@ -230,13 +244,14 @@ pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[Pa
     if let Some(home) = std::env::var_os("HOME") {
         inside(&PathBuf::from(home).join(".codex"), "the Codex home");
     }
-    for temp in [std::env::temp_dir(), PathBuf::from("/tmp")] {
-        let temp = resolve_lexically(&temp);
-        if resolved.starts_with(&temp) {
-            problems.push(format!("{} is in the temporary folder {} (an agent under Codex's workspace-write sandbox can write there)", root.display(), temp.display()));
-        }
+    if !allow_temporary && is_temporary(root) {
+        problems.push(format!("{} is in a temporary folder (an agent under Codex's workspace-write sandbox can write there)", root.display()));
     }
     problems
+}
+fn is_temporary(root: &Path) -> bool {
+    let resolved = resolve_lexically(root);
+    [std::env::temp_dir(), PathBuf::from("/tmp")].iter().any(|t| resolved.starts_with(resolve_lexically(t)))
 }
 /// The canonical form of the longest existing ancestor, with the rest appended.
 fn resolve_lexically(path: &Path) -> PathBuf {
@@ -273,8 +288,11 @@ fn opened() -> Result<(PathBuf, String), String> {
         }
     }
     if !store.root.exists() {
-        std::fs::create_dir_all(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
+        // Each created folder and its link in the existing parent are synced
+        // (ensure_directory), on the folder's physical path.
+        crate::storage::ensure_directory(&resolve_lexically(&store.root)).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
     }
+
     let root = std::fs::canonicalize(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
     if !root.is_dir() {
         return Err(format!("records store unavailable: {} is not a folder", root.display()));
@@ -462,12 +480,16 @@ pub struct Attachment {
     pub limits: Vec<String>,
     /// Why nothing is attached (recording into the store is refused).
     pub refusal: Option<String>,
-    /// "attached", "minted", "registered", or "none" (no identity yet).
+    /// "attached", "minted", "registered", "unattached", or "none" (no
+    /// identity yet).
     pub how: &'static str,
+    /// The identity the store recorded at this folder, when the folder is not
+    /// attached to it (its link is missing or unreadable).
+    pub recorded: Option<String>,
 }
 impl Attachment {
     pub fn view(&self) -> Value {
-        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal})
+        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded})
     }
 }
 
@@ -489,7 +511,7 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
     let link = read_link(&canonical);
-    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached" };
+    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None };
     let attach_to = |out: &mut Attachment, project: &str| {
         let dir = project_dir(&store, project);
         remember(&dir, root);
@@ -507,13 +529,18 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             out.limits.push(format!("project file {PROJECT_LINK} names {project}, but the records store records this folder as {y}, which governs"));
             attach_to(&mut out, y);
         }
+        // No usable link: never attached on its path alone (a new folder can
+        // stand where a moved project was). The person restores the link or
+        // gives the folder a new identity.
         (Link::Absent, Some(y)) => {
-            out.limits.push(format!("project file {PROJECT_LINK} is missing; the records store records this folder as {y}, which governs"));
-            attach_to(&mut out, y);
+            out.refusal = Some(format!("link missing; not attached: project file {PROJECT_LINK} is missing, and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
+            out.recorded = Some(y.clone());
+            out.how = "unattached";
         }
         (Link::Unreadable(e), Some(y)) => {
-            out.limits.push(format!("project file {PROJECT_LINK} is unreadable ({e}); the records store records this folder as {y}, which governs"));
-            attach_to(&mut out, y);
+            out.refusal = Some(format!("link unreadable; not attached: project file {PROJECT_LINK} is unreadable ({e}), and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
+            out.recorded = Some(y.clone());
+            out.how = "unattached";
         }
         (Link::Unreadable(e), None) => {
             out.refusal = Some(format!("project file {PROJECT_LINK} is unreadable ({e}) and the records store does not know this folder; nothing minted or attached"));
@@ -569,9 +596,56 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
 }
 
-/// Whether the store holds anything for the project folder `dir`.
+/// The project's imports as recorded: each import writes a "started" line
+/// with its whole census before it copies anything, and a "completed" line
+/// last. Only a completed import's files count as imported.
+#[derive(Default)]
+struct Imports {
+    /// Lines in the file at all.
+    any: bool,
+    /// At least one import completed.
+    completed: bool,
+    /// The latest started import with no completion line.
+    incomplete: Option<Value>,
+    /// Imported originals (completed imports only): relative path ->
+    /// (copy, sha256, stamp at import).
+    covered: HashMap<String, (String, String, Value)>,
+}
+fn imports(dir: &Path) -> Result<Imports, String> {
+    let lines = read_lines(&dir.join("imports.jsonl"))?;
+    let mut out = Imports { any: !lines.is_empty(), ..Imports::default() };
+    let done: std::collections::HashSet<&str> = lines.iter().filter(|l| l["event"] == "completed").filter_map(|l| l["importId"].as_str()).collect();
+    for line in &lines {
+        match line["event"].as_str() {
+            Some("started") if !done.contains(line["importId"].as_str().unwrap_or_default()) => out.incomplete = Some(line.clone()),
+            Some("completed") => {
+                out.completed = true;
+                out.incomplete = None;
+                for file in line["files"].as_array().into_iter().flatten() {
+                    if let (Some(original), Some(copy), Some(sha)) = (file["original"].as_str(), file["copy"].as_str(), file["sha256"].as_str()) {
+                        out.covered.insert(original.to_owned(), (copy.to_owned(), sha.to_owned(), file["stamp"].clone()));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(out)
+}
+
+/// Whether the store holds the project's records, so they are read from the
+/// store: an import has completed, or (with no import ever started) the App
+/// has written records there. Folders an interrupted import created do not
+/// count: until its "completed" line, the history is read in place.
 fn store_holds(dir: &Path) -> bool {
-    ["imports.jsonl", "runs", "acts", "captures", "workflow"].iter().any(|n| dir.join(n).exists())
+    match imports(dir) {
+        Ok(i) if i.completed => true,
+        Ok(i) if i.any => false,
+        Ok(_) => ["runs", "acts", "captures", "workflow", "legacy"].iter().any(|n| dir.join(n).exists()),
+        // An unreadable import record: the store's state is unknown, so
+        // writes are refused (`write_dir`) and the history is read in place.
+        Err(_) => false,
+    }
 }
 
 /// Where a project's records are read and written now.
@@ -592,7 +666,7 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
             Ok(Home { attachment, store_mode })
         }
         Err(e) if read_link(root) == Link::Absent && root.is_dir() => Ok(Home {
-            attachment: Attachment { root: root.to_path_buf(), project: None, dir: None, limits: vec![e], refusal: None, how: "none" },
+            attachment: Attachment { root: root.to_path_buf(), project: None, dir: None, limits: vec![e], refusal: None, how: "none", recorded: None },
             store_mode: false,
         }),
         Err(e) => Err(e),
@@ -604,6 +678,10 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, true).map_err(|e| format!("nothing written: {e}"))?;
     let dir = attachment.dir.clone().ok_or_else(|| format!("no project identity in the records store; nothing written: {}", attachment.refusal.clone().unwrap_or_default()))?;
+    let state = imports(&dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
+    if let Some(started) = state.incomplete {
+        return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
+    }
     if !store_holds(&dir) {
         let legacy = legacy_census(&attachment.root)?;
         if !legacy.is_empty() {
@@ -686,8 +764,16 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
             }
         }
     }
+    // The explicitly registered legacy log (§13.7) is project history too.
+    let registered = root.join(crate::storage::LEGACY_LOG);
+    crate::storage::check_path(&registered)?;
+    if registered.is_file() {
+        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered });
+    }
     Ok(out)
 }
+/// Where the registered legacy log's imported copy is kept.
+pub(crate) const REGISTERED_COPY: &str = "legacy/coordination.rs.jsonl";
 
 /// Whether a capture file (or pending submission) in a §13.7 capture folder is
 /// an A15 capture, which stays with its library. Read again only when the
@@ -712,17 +798,22 @@ fn is_a15(path: &Path, pending: bool) -> bool {
     a15
 }
 
-/// Imported originals: relative path -> (copy, sha256, stamp at import).
+/// Imported originals (completed imports only): relative path -> (copy,
+/// sha256, stamp at import).
 fn coverage(dir: &Path) -> Result<HashMap<String, (String, String, Value)>, String> {
-    let mut out = HashMap::new();
-    for line in read_lines(&dir.join("imports.jsonl"))? {
-        for file in line["files"].as_array().into_iter().flatten() {
-            if let (Some(original), Some(copy), Some(sha)) = (file["original"].as_str(), file["copy"].as_str(), file["sha256"].as_str()) {
-                out.insert(original.to_owned(), (copy.to_owned(), sha.to_owned(), file["stamp"].clone()));
-            }
-        }
-    }
-    Ok(out)
+    Ok(imports(dir)?.covered)
+}
+#[cfg(test)]
+thread_local! {
+    /// Stops an import after this many copies (an interruption).
+    static IMPORT_STOP_AFTER: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    /// Makes an import's read-back of its next copy disagree.
+    static IMPORT_BAD_READBACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+pub(crate) fn interrupt_import_for_test(after: Option<usize>, bad_readback: bool) {
+    IMPORT_STOP_AFTER.with(|c| c.set(after));
+    IMPORT_BAD_READBACK.with(|c| c.set(bad_readback));
 }
 fn stamp_value(m: &std::fs::Metadata) -> Value {
     use std::os::unix::fs::MetadataExt;
@@ -742,11 +833,16 @@ fn read_stable(path: &Path) -> Result<(Vec<u8>, std::fs::Metadata), String> {
 }
 
 /// RS §13.8 "Existing records": the person's explicit import of this
-/// project's §13.7 records into the store. Each file is copied byte for byte
-/// (created once, synced, then read back and verified by SHA-256); a copy
-/// already present with the same bytes is kept (the import is idempotent); a
-/// copy present with other bytes is a conflict, never overwritten. The import
-/// is recorded in `imports.jsonl`. Originals are not changed.
+/// project's §13.7 records into the store. The import record is the commit
+/// point: a "started" line names the whole census (each file's path, size and
+/// SHA-256) before anything is copied, and a "completed" line is written last;
+/// until it is, recording stays refused and the history is read in place.
+/// Each file is copied byte for byte (created once, synced, then read back and
+/// verified by SHA-256); a copy already present with the same bytes is kept,
+/// so an interrupted import is resumed by running it again, never duplicated;
+/// a copy present with other bytes is a conflict, never overwritten. A census
+/// that changed since an interrupted import started is reported. Originals
+/// are not changed.
 pub fn import(root: &Path) -> Result<Value, String> {
     let (store, _) = opened()?;
     let attachment = attach(root, true)?;
@@ -755,34 +851,65 @@ pub fn import(root: &Path) -> Result<Value, String> {
     // Writers wait while the copies are made (the logs' writer lock).
     let _writers = crate::storage::lock(&dir.join(".writer.lock"))?;
     let census = legacy_census(&attachment.root)?;
-    let covered = coverage(&dir)?;
-    let mut files = Vec::new();
+    let state = imports(&dir)?;
+    // Read every original once, stably, before the started line names it.
+    let mut read = Vec::new();
     let mut conflicts = Vec::new();
-    let (mut copied, mut present) = (0, 0);
     for file in &census {
-        let (bytes, meta) = match read_stable(&file.original) {
-            Ok(r) => r,
-            Err(e) => {
-                conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":e}));
-                continue;
+        match read_stable(&file.original) {
+            Ok((bytes, meta)) => read.push((file, sha256_hex(&bytes), bytes, meta)),
+            Err(e) => conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":e})),
+        }
+    }
+    // What changed since an interrupted import named its census.
+    let mut census_changed = Vec::new();
+    if let Some(started) = &state.incomplete {
+        let before: HashMap<&str, &str> = started["census"].as_array().into_iter().flatten()
+            .filter_map(|f| Some((f["original"].as_str()?, f["sha256"].as_str()?))).collect();
+        for (file, sha, _, _) in &read {
+            match before.get(file.rel.as_str()) {
+                Some(old) if *old == sha => {}
+                Some(_) => census_changed.push(format!("{} changed since the interrupted import started", file.rel)),
+                None => census_changed.push(format!("{} appeared since the interrupted import started", file.rel)),
             }
-        };
-        let sha = sha256_hex(&bytes);
+        }
+        for rel in before.keys().filter(|r| !read.iter().any(|(f, ..)| f.rel == **r)) {
+            census_changed.push(format!("{rel} is no longer there since the interrupted import started"));
+        }
+    }
+    let pending: Vec<_> = read.iter().filter(|(file, sha, ..)| state.covered.get(&file.rel).is_none_or(|(_, s, _)| s != sha)).collect();
+    let fresh_conflict = conflicts.iter().any(|c| !state.covered.contains_key(c["original"].as_str().unwrap_or_default()));
+    if pending.is_empty() && !fresh_conflict && state.incomplete.is_none() {
+        // Nothing new: an import repeated after it completed records nothing.
+        let drifted: Vec<Value> = read.iter().filter_map(|(file, sha, ..)| {
+            let (copy, imported, _) = state.covered.get(&file.rel)?;
+            (imported != sha).then(|| json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}))
+        }).collect();
+        conflicts.extend(drifted);
+        return Ok(outcome(&attachment, None, census.len(), 0, read.len(), conflicts, census_changed));
+    }
+    let id = crate::util::opaque_id("import:")?;
+    let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
+        "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,
+        "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
+    let mut files = Vec::new();
+    let (mut copied, mut present) = (0, 0);
+    for (file, sha, bytes, meta) in &read {
         // Imported before: the store copy governs (it may have grown since);
         // an original that no longer matches is reported, never imported again.
-        if let Some((copy, imported_sha, _)) = covered.get(&file.rel) {
-            if *imported_sha == sha {
+        if let Some((copy, imported, _)) = state.covered.get(&file.rel) {
+            if imported == sha {
                 present += 1;
             } else {
-                conflicts.push(json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported_sha} at import); the records store copy governs and is not replaced")}));
+                conflicts.push(json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}));
             }
             continue;
         }
         let target = dir.join(&file.copy);
         crate::storage::check_path(&target)?;
         let outcome = match std::fs::read(&target) {
-
-            Ok(existing) if existing == bytes => {
+            Ok(existing) if existing == *bytes => {
                 present += 1;
                 "present"
             }
@@ -791,33 +918,39 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 continue;
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                crate::storage::create_bytes(&target, &bytes)?;
-                let back = std::fs::read(&target).map_err(|e| format!("imported copy unreadable: {e}"))?;
-                if sha256_hex(&back) != sha {
-                    return Err(format!("imported copy of {} does not verify; import stopped", file.rel));
+                #[cfg(test)]
+                if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
+                    return Err("import interrupted (injected); it did not complete".into());
+                }
+                crate::storage::create_bytes(&target, bytes)?;
+                #[allow(unused_mut)]
+                let mut back = std::fs::read(&target).map_err(|e| format!("imported copy unreadable: {e}; the import did not complete"))?;
+                #[cfg(test)]
+                if IMPORT_BAD_READBACK.with(|c| c.get()) {
+                    back.push(b'!');
+                }
+                if sha256_hex(&back) != *sha {
+                    return Err(format!("imported copy of {} does not verify; the import stopped and did not complete", file.rel));
                 }
                 copied += 1;
                 "copied"
             }
-            Err(e) => return Err(format!("records store unreadable: {}: {e}", target.display())),
+            Err(e) => return Err(format!("records store unreadable: {}: {e}; the import did not complete", target.display())),
         };
-        files.push(json!({"original":file.rel,"copy":file.copy,"outcome":outcome,"sha256":sha,"bytes":bytes.len(),"stamp":stamp_value(&meta)}));
+        files.push(json!({"original":file.rel,"copy":file.copy,"outcome":outcome,"sha256":sha,"bytes":bytes.len(),"stamp":stamp_value(meta)}));
     }
-    let new = files.iter().any(|f| covered.get(f["original"].as_str().unwrap_or_default()).is_none_or(|(_, sha, _)| f["sha256"] != *sha));
-    let fresh_conflict = conflicts.iter().any(|c| !covered.contains_key(c["original"].as_str().unwrap_or_default()));
-    let import_id = if new || fresh_conflict {
-
-        let id = crate::util::opaque_id("import:")?;
-        append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"importId":id,"at":now_rfc3339(),
-            "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","files":files,"conflicts":conflicts}))?;
-        Some(id)
-    } else {
-        None
-    };
-    Ok(json!({"state":if conflicts.is_empty(){"imported"}else{"imported with conflicts"},"importId":import_id,"projectId":attachment.project,
-        "files":census.len(),"copied":copied,"alreadyPresent":present,"conflicts":conflicts,
-        "standing":"byte-identical copies verified by SHA-256; the store copies now govern; the originals are kept unchanged and are no longer read"}))
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"completed","importId":id,"at":now_rfc3339(),
+        "files":files,"conflicts":conflicts,"censusChanged":census_changed}))?;
+    Ok(outcome(&attachment, Some(id), census.len(), copied, present, conflicts, census_changed))
 }
+/// What `import` reports, with the trust its copies carry.
+fn outcome(attachment: &Attachment, id: Option<String>, census: usize, copied: usize, present: usize, conflicts: Vec<Value>, census_changed: Vec<String>) -> Value {
+    json!({"state":if conflicts.is_empty(){"imported"}else{"imported with conflicts"},"importId":id,"projectId":attachment.project,
+        "files":census,"copied":copied,"alreadyPresent":present,"conflicts":conflicts,"censusChanged":census_changed,
+        "standing":IMPORT_STANDING})
+}
+/// The standing of imported copies (shown with every import, and in the host view).
+pub const IMPORT_STANDING: &str = "Byte-identical copies verified by SHA-256; the store copies now govern, and the originals are kept unchanged and no longer read. An imported copy carries only the trust of the project folder it came from, which an agent could write: the import proves the copy equals the file, not who wrote it.";
 
 /// The person confirms this folder is the project its link names (moved, or
 /// kept in another store): the store records this folder as one of its roots.
@@ -836,8 +969,14 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     if roots_of(&lines, &project).iter().any(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
         return Err("another folder holds this project identity; give this folder a new identity instead; nothing adopted".into());
     }
+    // Every earlier root of this identity is released (append-only lines), so
+    // a new folder later made at an old path is not taken for this project.
+    for earlier in roots_of(&lines, &project) {
+        append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":earlier,"at":now_rfc3339(),"how":"released","by":"adopt"}))?;
+    }
     register(&store, &project, &at, "adopted")?;
     if linked != store_id {
+
         crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(&project, &store_id))?;
     }
     Ok(json!({"state":"adopted","projectId":project,"root":at}))
@@ -957,7 +1096,7 @@ pub fn status(project: Option<&Path>) -> Value {
                 json!({"attachment":home.attachment.view(),
                     "reading":if home.store_mode {"records store"} else if !census.is_empty() {"§13.7 records in place (import needed)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
-                    "legacyFiles":census.len(),"notImported":to_import,"imports":imports,"notes":notes(root)})
+                    "legacyFiles":census.len(),"notImported":to_import,"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
             }
             Err(e) => json!({"state":"unavailable","error":e}),
         };

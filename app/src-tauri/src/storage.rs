@@ -380,6 +380,7 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
         walk(dir, &mut paths)?;
     }
     paths.extend(found.files);
+    paths.retain(|p| !found.exclude.contains(p));
     paths.sort();
     paths.dedup();
     Ok(paths)
@@ -389,33 +390,46 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
 pub(crate) struct Sources {
     pub walk: Vec<PathBuf>,
     pub files: Vec<PathBuf>,
+    /// Logs found by the walk that are not part of this set.
+    pub exclude: Vec<PathBuf>,
 }
-/// R-1 for `root`. Once the records store holds the project's records: its
-/// store `runs/` and `acts/`, the library's own act log in place when the
-/// project is also a workflow library (U-STORE-2), and the registered legacy
-/// log. Before that (nothing imported or written yet, or a folder that is only
-/// a library): the §13.7 folder in place and the registered legacy log. §13.7
-/// files left in place after an import are not read (`records_store::notes`).
+/// R-1 for `root`: the project's run/act record set. Once the records store
+/// holds the project's records: its store `runs/` and `acts/`, and the
+/// imported copy of the registered legacy log. Before that (nothing imported
+/// or written yet, or a folder that is only a library): the §13.7 folder and
+/// the registered legacy log in place. §13.7 files left in place after an
+/// import are not read (`records_store::notes`). The act log of a workflow
+/// library that is also the project is never part of a project's set: it is
+/// library evidence, in the agent-writable tree, read on its own
+/// (`records::library_record_set`) so its lines never make the project's
+/// set incomplete (U-STORE-2).
 pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
     let home = records_store::home(root)?;
-    let mut files = Vec::new();
-    let legacy = root.join(LEGACY_LOG);
-    check_path(&legacy)?;
-    if legacy.exists() {
-        files.push(legacy);
-    }
+    let library = library_log(root);
+    check_path(&library)?;
     match (home.store_mode, home.attachment.dir) {
         (true, Some(dir)) => {
-            let library = library_log(root);
-            check_path(&library)?;
-            if library.exists() {
-                files.push(library);
-            }
-            Ok(Sources { walk: vec![dir.join("runs"), dir.join("acts")], files })
+            let registered = dir.join(records_store::REGISTERED_COPY);
+            let files = if registered.exists() { vec![registered] } else { vec![] };
+            Ok(Sources { walk: vec![dir.join("runs"), dir.join("acts")], files, exclude: vec![] })
         }
-        _ => Ok(Sources { walk: vec![root.join(LEGACY_RECORDS)], files }),
+        _ => {
+            let legacy = root.join(LEGACY_LOG);
+            check_path(&legacy)?;
+            let files = if legacy.exists() { vec![legacy] } else { vec![] };
+            Ok(Sources { walk: vec![root.join(LEGACY_RECORDS)], files, exclude: vec![library] })
+        }
     }
 }
+/// The registered legacy log as it is read now: the imported copy in the
+/// project's store subtree, or before an import the file in place.
+pub fn registered_legacy_log(root: &Path) -> PathBuf {
+    match records_store::home(root) {
+        Ok(home) if home.store_mode => home.attachment.dir.map(|d| d.join(records_store::REGISTERED_COPY)).unwrap_or_else(|| root.join(LEGACY_LOG)),
+        _ => root.join(LEGACY_LOG),
+    }
+}
+
 pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {
     let (entries, mut limits, partial) = read_all_parts(root);
     limits.extend(partial);
@@ -466,6 +480,11 @@ pub fn records_root(log: &Path) -> Option<PathBuf> {
 /// process (`Err` if none was); for a §13.7 or library log, the folder above
 /// `.chirality`; `Ok(None)` outside any records tree.
 pub(crate) fn project_of_log(log: &Path) -> Result<Option<PathBuf>, String> {
+    // A workflow library's act log is its own record set (U-STORE-2).
+    if log.file_name().is_some_and(|n| n == "acts.jsonl") && log.parent().is_some_and(|p| p.ends_with(LEGACY_RECORDS)) {
+        return Ok(None);
+    }
+
     if let Some(dir) = records_store::project_dir_of(log) {
         return records_store::root_for_dir(&dir).map(Some).ok_or_else(|| format!("records store log {} belongs to no project opened in this process; nothing written", log.display()));
     }

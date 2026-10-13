@@ -211,6 +211,8 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../tests/fixtures/FX-DP1/records/coordination.rs.jsonl");
     std::fs::copy(fixture, &old).unwrap();
+    // The registered legacy log is §13.7 history: imported first (RS §13.8).
+    chirality_app_v4_lib::records_store::import(&ws).unwrap();
     // Only PKG-1 exists in this scratch project; history itself is not recopied to new logs.
     let bytes = std::fs::read(&old).unwrap();
     assert!(identify_packages(&ws).unwrap().is_empty());
@@ -271,7 +273,8 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
         json!({"label":"unresolvable reference"}),
     )
     .unwrap();
-    assert_eq!(storage::read_all(&library).0[0], rec);
+    assert_eq!(records::read_log(&log).0[0], rec, "a library's act log is its own record set");
+    assert!(storage::read_all(&library).0.is_empty(), "never part of a project's set");
     assert!(storage::library_capture_path(&library, "cap:fixture").starts_with(&*library));
     assert!(chirality_app_v4_lib::records_store::attach(&library, false).unwrap().project.is_none(), "a library gets no project identity");
 }
@@ -961,6 +964,7 @@ fn legacy_request_discovery_never_coerces_unknown_methods_or_malformed_legacy_va
             .collect::<String>()
             .into_bytes();
         std::fs::write(&old, &original).unwrap();
+        chirality_app_v4_lib::records_store::import(&ws).unwrap();
         let observed = identify_packages(&ws).unwrap();
         assert_eq!(observed.len(),1,"unknown designation or invalid historical representation is never coerced into equality");
         assert_eq!(
@@ -995,6 +999,9 @@ fn historical_request_observer_requires_registered_origin_and_exact_file_referen
             .collect::<String>()
             .into_bytes();
         std::fs::write(&old, &bytes).unwrap();
+        if !wrong_origin {
+            chirality_app_v4_lib::records_store::import(&ws).unwrap();
+        }
         let current = identify_packages(&ws).unwrap();
         assert_eq!(current.len(),1,"legacy-method tokens from another origin or file do not suppress a current observation");
         assert_eq!(
@@ -1024,5 +1031,10 @@ fn incomplete_registered_legacy_history_refuses_discovery_without_rewriting_or_r
         .contains("incomplete record set"));
     assert_eq!(std::fs::read(&old).unwrap(), bytes);
     assert_eq!(std::fs::read(package).unwrap(), original);
-    assert!(!chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap().exists());
+    assert!(chirality_app_v4_lib::records_store::attach(&ws, false).unwrap().dir.is_none_or(|d| !d.join(LOG).exists()));
+    // Imported as it is (byte for byte), its torn tail still refuses discovery.
+    chirality_app_v4_lib::records_store::import(&ws).unwrap();
+    assert!(identify_packages(&ws).unwrap_err().contains("incomplete record set"));
+    assert_eq!(std::fs::read(&old).unwrap(), bytes);
 }
+

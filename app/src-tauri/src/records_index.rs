@@ -413,6 +413,7 @@ fn discover_tree(root: &Path, cached: &Dirs) -> (Vec<PathBuf>, Dirs, Option<Stri
         }
     }
     out.extend(sources.files);
+    out.retain(|p| !sources.exclude.contains(p));
     out.sort();
     out.dedup();
     (out, dirs, None)

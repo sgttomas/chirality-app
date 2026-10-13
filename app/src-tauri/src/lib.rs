@@ -279,7 +279,20 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
 #[tauri::command(async)]
 fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
     let data = state.app_user_data_root.lock().unwrap().clone()?;
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &[])
+    let homes = state.homes.lock().unwrap();
+    let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey].into_iter()
+        .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
+    drop(homes);
+    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
+}
+/// The App-owned and configured Codex homes (account, key and probe homes,
+/// and the explicit home variables) the records store must stay out of.
+fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
+    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
+    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+    homes.sort();
+    homes.dedup();
+    homes
 }
 
 #[tauri::command(async)]
@@ -1701,7 +1714,8 @@ pub fn run() {
             // recording visibly, with no fallback. Opening the project gives it
             // its identity once (`.chirality/project.json`).
             {
-                let codex_homes: Vec<PathBuf> = home.host_config.as_ref().ok().map(|cfg| vec![cfg.codex_home.clone()]).unwrap_or_default();
+                let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+
                 records_store::configure(records_store::for_app(std::env::var_os(records_store::OVERRIDE_ENV).filter(|p| !p.is_empty()).map(PathBuf::from), data.as_deref().map_err(Clone::clone), tauri::is_dev(), workspace.as_deref(), &codex_homes));
                 if let Some(ws) = workspace.as_ref() {
                     let _ = records_store::attach(ws, true);

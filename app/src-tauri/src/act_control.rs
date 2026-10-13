@@ -1608,7 +1608,9 @@ fn recover_capture(
         }
         return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
     }
-    let (entries, limits) = records::writer_record_set(root);
+    // An A15 capture's record set is its library's act log (U-STORE-2).
+    let a15 = original["actKind"] == "A15";
+    let (entries, limits) = if a15 { records::library_record_set(root) } else { records::writer_record_set(root) };
     if !limits.is_empty() {
         let e = format!("incomplete/ambiguous record set: {limits:?}; no replay");
         if let Some(h) = hot.as_deref_mut() {
@@ -1648,7 +1650,8 @@ fn recover_capture(
         }
     }
     let record = if let Some(record) = existing {
-        for path in storage::discover(root)? {
+        let owning_set = if a15 { vec![storage::library_log(root)] } else { storage::discover(root)? };
+        for path in owning_set {
             if let Err(e) = storage::sync_publication(&path) {
                 return Ok(
                     json!({"state":"AC-8 record pending","capture":durable,"writeFailure":format!("record durability uncertain: {e}; no replay")}),

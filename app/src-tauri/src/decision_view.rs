@@ -201,14 +201,15 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             }
         }
     } else {
-        // A named log in place, or else in the project's records store subtree.
-        record_paths.iter().map(|rp| {
-            let in_place = root.join(rp);
-            if in_place.exists() {
-                return in_place;
-            }
-            crate::records_store::home(root).ok().and_then(|h| h.attachment.dir).map(|d| d.join(crate::storage::home_rel(rp))).unwrap_or(in_place)
+        // A named log where it is read now: in the project's records store
+        // subtree once it holds the project's records, otherwise in place.
+        let home = crate::records_store::home(root).ok().filter(|h| h.store_mode).and_then(|h| h.attachment.dir);
+        record_paths.iter().map(|rp| match &home {
+            Some(_) if *rp == crate::storage::LEGACY_LOG => crate::storage::registered_legacy_log(root),
+            Some(dir) => dir.join(crate::storage::home_rel(rp)),
+            None => root.join(rp),
         }).collect()
+
     };
     let mut sources: HashMap<String, Vec<Value>> = HashMap::new();
     let mut source_claims = Vec::new();

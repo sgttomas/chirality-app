@@ -376,7 +376,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
       {project.notImported > 0 && <p>
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} §13.7 record file(s)</button>{" "}
-        <small>Byte-identical copies, verified by SHA-256. The originals stay in the project unchanged.</small>
+        <small>{String(project.importStanding ?? "")}</small>
       </p>}
       {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && <p>
         <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}

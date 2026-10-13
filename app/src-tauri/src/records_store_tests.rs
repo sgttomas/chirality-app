@@ -70,11 +70,17 @@ fn placement_uses_the_override_or_app_data_and_never_falls_back() {
     assert_eq!((release.root.clone(), release.placement), (data.join("records"), Placement::AppData));
     // The App data folder unavailable: no store, no other location.
     assert!(for_app(None, Err("no data".into()), false, None, &[]).unwrap_err().contains("App data folder unavailable"));
-    // The override wins in either build; a placement problem is shown, not hidden.
+    // The development override is placed by the same rules: inside the
+    // project or a Codex home it is refused, in every build.
     let inside = project.join("records");
-    let overridden = for_app(Some(inside.clone()), Ok(&data), true, Some(&project), &[]).unwrap();
-    assert_eq!((overridden.root.clone(), overridden.placement), (inside, Placement::Override));
-    assert!(overridden.limits.iter().any(|l| l.contains("project working tree")), "{:?}", overridden.limits);
+    assert!(for_app(Some(inside), Ok(&data), true, Some(&project), &[]).unwrap_err().contains("project working tree"));
+    let codex = PathBuf::from("/nonexistent-codex-home-for-test");
+    assert!(for_app(Some(codex.join("records")), Ok(&data), true, None, &[codex.clone()]).unwrap_err().contains("Codex home"));
+    // Only the override may name a temporary folder (a test store), shown as a limit.
+    let temporary = std::env::temp_dir().join(crate::util::opaque_id("override-store-").unwrap());
+    let overridden = for_app(Some(temporary.clone()), Ok(&data), true, Some(&project), &[]).unwrap();
+    assert_eq!((overridden.root.clone(), overridden.placement), (temporary.clone(), Placement::Override));
+    assert!(overridden.limits.iter().any(|l| l.contains("temporary folder")), "{:?}", overridden.limits);
     // A test build's own store is never the App data folder.
     let test_store = current().unwrap();
     assert!(matches!(test_store.placement, Placement::Test | Placement::Override));
@@ -172,27 +178,37 @@ fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
     let root = folder("link-project-");
     records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("before")).unwrap();
     let governing = attach(&root, false).unwrap().project.unwrap();
-    // Missing: the store's identity for this folder governs, with a limit.
+    // Missing: never attached on the folder's path alone. Nothing is read or
+    // written for it, and nothing is minted, until the person acts.
     std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
     let missing = attach(&root, true).unwrap();
-    assert_eq!(missing.project.as_deref(), Some(governing.as_str()));
-    assert!(missing.limits[0].contains("missing") && missing.limits[0].contains("governs"), "{:?}", missing.limits);
+    assert!(missing.dir.is_none() && missing.project.is_none(), "{missing:?}");
+    assert_eq!(missing.recorded.as_deref(), Some(governing.as_str()));
+    assert!(missing.refusal.as_deref().unwrap().starts_with("link missing; not attached"), "{missing:?}");
     assert!(!root.join(PROJECT_LINK).exists(), "nothing minted over the gap");
-    records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while missing")).unwrap();
-    assert!(notes(&root).iter().any(|n| n.contains("missing")));
+    let refused = records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while missing")).unwrap_err();
+    assert!(refused.contains("link missing; not attached"), "{refused}");
+    assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder with no link");
+    assert!(notes(&root).iter().any(|n| n.contains("link missing")));
+    assert_eq!(status(Some(&root))["project"]["attachment"]["recordedHere"], governing.as_str());
+    // The one-click restore attaches it again, with its history.
+    assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("restored")).unwrap();
     // Changed (an agent edits it): a limit; records never attach elsewhere.
     std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:forged", "records-store:other")).unwrap()).unwrap();
     let changed = attach(&root, true).unwrap();
     assert_eq!(changed.project.as_deref(), Some(governing.as_str()));
     assert!(changed.limits[0].contains("chirality-project:forged") && changed.limits[0].contains("governs"));
-    // Unreadable: the same.
-    std::fs::write(root.join(PROJECT_LINK), b"{").unwrap();
-    let unreadable = attach(&root, true).unwrap();
-    assert_eq!(unreadable.project.as_deref(), Some(governing.as_str()));
-    assert!(unreadable.limits[0].contains("unreadable"));
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "{limits:?}");
     assert_eq!(entries.len(), 2, "both entries, in the governing project");
+    // Unreadable: like missing, not attached.
+    std::fs::write(root.join(PROJECT_LINK), b"{").unwrap();
+    let unreadable = attach(&root, true).unwrap();
+    assert!(unreadable.dir.is_none() && unreadable.refusal.as_deref().unwrap().starts_with("link unreadable; not attached"), "{unreadable:?}");
+    assert!(records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("x")).is_err());
+
     // The person restores the link.
     assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
     let restored = attach(&root, false).unwrap();
@@ -271,7 +287,7 @@ fn records_in_the_project_are_read_in_place_and_recording_waits_for_import() {
     let root = legacy_project();
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "{limits:?}");
-    assert_eq!(entries.len(), 4, "the §13.7 logs and the library's act log, read in place");
+    assert_eq!(entries.len(), 3, "the §13.7 logs, read in place; the library's act log is not the project's set");
     let refused = records::append_project(&root, Some("run:new"), "writer:new", "evidence_limit", &APP_WRITER, body("new")).unwrap_err();
     assert!(refused.starts_with("import needed: 5 §13.7 record file(s)"), "{refused}");
     assert!(storage::write_capture_dir(&root).unwrap_err().contains("import needed"));
@@ -280,7 +296,7 @@ fn records_in_the_project_are_read_in_place_and_recording_waits_for_import() {
     assert_eq!(status["project"]["legacyFiles"], 5, "the A15 capture and the library log stay with the library");
     assert_eq!(status["project"]["notImported"], 5);
     // Nothing in the store yet: still read in place.
-    assert_eq!(storage::read_all(&root).0.len(), 4);
+    assert_eq!(storage::read_all(&root).0.len(), 3);
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -294,14 +310,22 @@ fn import_copies_byte_for_byte_verifies_counts_once_and_leaves_originals_alone()
     assert_eq!((imported["state"].as_str(), imported["copied"].as_u64(), imported["alreadyPresent"].as_u64()), (Some("imported"), Some(5), Some(0)), "{imported}");
     let dir = attach(&root, false).unwrap().dir.unwrap();
     // Byte-identical copies, recorded with their SHA-256.
+    // The started line names the whole census before any copy; the completed
+    // line, last, is the commit point.
     let manifest = read_lines(&dir.join("imports.jsonl")).unwrap();
-    assert_eq!(manifest.len(), 1);
+    assert_eq!((manifest.len(), manifest[0]["event"].as_str(), manifest[1]["event"].as_str()), (2, Some("started"), Some("completed")));
+    assert_eq!(manifest[0]["importId"], manifest[1]["importId"]);
+    assert_eq!(manifest[0]["census"].as_array().unwrap().len(), census.len());
     for file in &census {
         let copy = std::fs::read(dir.join(&file.copy)).unwrap();
         assert_eq!(copy, std::fs::read(&file.original).unwrap(), "{} copied byte for byte", file.rel);
-        let recorded = manifest[0]["files"].as_array().unwrap().iter().find(|f| f["original"] == file.rel.as_str()).unwrap();
-        assert_eq!(recorded["sha256"], sha256_hex(&copy));
+        for line in &manifest {
+            let list = if line["event"] == "started" { &line["census"] } else { &line["files"] };
+            let recorded = list.as_array().unwrap().iter().find(|f| f["original"] == file.rel.as_str()).unwrap();
+            assert_eq!(recorded["sha256"], sha256_hex(&copy));
+        }
     }
+    assert!(imported["standing"].as_str().unwrap().contains("only the trust of the project folder it came from"));
     // The originals are unchanged (bytes and file stamps), A15 evidence included.
     for (path, before) in &originals {
         assert_eq!(&bytes_and_stamp(path), before, "{}", path.display());
@@ -311,8 +335,8 @@ fn import_copies_byte_for_byte_verifies_counts_once_and_leaves_originals_alone()
     // Read from the store: each identity once, no duplicate, nothing pending.
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "{limits:?}");
-    assert_eq!(entries.len(), 4);
-    assert!(storage::discover(&root).unwrap().iter().all(|p| p.starts_with(&dir) || *p == storage::library_log(&root)));
+    assert_eq!(entries.len(), 3);
+    assert!(storage::discover(&root).unwrap().iter().all(|p| p.starts_with(&dir)), "only the store: the library's act log is not the project's set");
     assert!(notes(&root).is_empty(), "{:?}", notes(&root));
     let shown = status(Some(&root));
     assert_eq!((shown["project"]["reading"].as_str(), shown["project"]["importNeeded"].as_bool(), shown["project"]["notImported"].as_u64()), (Some("records store"), Some(false), Some(0)), "{shown}");
@@ -325,7 +349,8 @@ fn import_copies_byte_for_byte_verifies_counts_once_and_leaves_originals_alone()
     let again = import(&root).unwrap();
     assert_eq!((again["copied"].as_u64(), again["alreadyPresent"].as_u64(), again["importId"].is_null()), (Some(0), Some(5), true), "{again}");
     assert_eq!(again["conflicts"], json!([]));
-    assert_eq!(read_lines(&dir.join("imports.jsonl")).unwrap().len(), 1);
+    assert_eq!(read_lines(&dir.join("imports.jsonl")).unwrap().len(), 2);
+
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -431,5 +456,163 @@ fn the_index_the_reader_and_the_records_capability_read_the_store() {
     assert_eq!(corpus.entries[0].log, format!("records-store:{}", storage::log_rel(Some("run:r"), "writer:r")));
     assert_eq!(corpus.entries[0].entry["recordId"], id);
     assert_eq!(crate::decision_view::derive(&root, &[])["limits"], json!([]));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// ---- Review repairs (#1319): import commit point, attachment by link, library and legacy logs ----
+
+#[test]
+fn probe_r16_interrupted_import() {
+    // The first of a five-file census is copied, then the import stops.
+    let root = legacy_project();
+    interrupt_import_for_test(Some(1), false);
+    let stopped = import(&root);
+    interrupt_import_for_test(None, false);
+    assert!(stopped.unwrap_err().contains("interrupted"));
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    assert!(["runs", "acts", "captures", "workflow"].iter().any(|n| dir.join(n).exists()), "a copy was made");
+    // No completion line: still read in place, and recording is refused.
+    assert!(!home(&root).unwrap().store_mode);
+    assert_eq!(storage::read_all(&root).0.len(), 3, "the whole history, read in place");
+    let refused = write_dir(&root).unwrap_err();
+    assert!(refused.starts_with("import incomplete"), "{refused}");
+    assert!(records::append_project(&root, None, "writer:x", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("import incomplete"));
+    assert_eq!(status(Some(&root))["project"]["reading"], "§13.7 records in place (import needed)");
+    // The census changes before the rerun: reported, and the rerun resumes.
+    let acts = root.join(".chirality/records").join(crate::recorder::LOG);
+    records::append(&acts, "evidence_limit", &APP_WRITER, body("written before the rerun")).unwrap();
+    let resumed = import(&root).unwrap();
+    assert_eq!(resumed["state"], "imported", "{resumed}");
+    assert!(resumed["censusChanged"].as_array().unwrap().iter().any(|c| c.as_str().unwrap().contains("changed since the interrupted import started")), "{resumed}");
+    assert_eq!((resumed["copied"].as_u64(), resumed["alreadyPresent"].as_u64()), (Some(4), Some(1)), "the earlier copy is kept, not duplicated: {resumed}");
+    let lines = read_lines(&dir.join("imports.jsonl")).unwrap();
+    assert_eq!(lines.iter().map(|l| l["event"].as_str().unwrap()).collect::<Vec<_>>(), ["started", "started", "completed"]);
+    assert_eq!(lines[1]["resumes"], lines[0]["importId"]);
+    assert!(home(&root).unwrap().store_mode);
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.len(), 4, "each identity once");
+    assert!(write_dir(&root).is_ok());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn an_import_whose_copy_does_not_verify_does_not_complete() {
+    let root = legacy_project();
+    interrupt_import_for_test(None, true);
+    let failed = import(&root);
+    interrupt_import_for_test(None, false);
+    assert!(failed.unwrap_err().contains("does not verify"));
+    assert!(!home(&root).unwrap().store_mode);
+    assert!(write_dir(&root).unwrap_err().starts_with("import incomplete"));
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    assert!(!read_lines(&dir.join("imports.jsonl")).unwrap().iter().any(|l| l["event"] == "completed"));
+    // Run again: the copy is checked against the original, then completed.
+    let again = import(&root).unwrap();
+    assert_eq!((again["state"].as_str(), again["alreadyPresent"].as_u64()), (Some("imported"), Some(1)), "{again}");
+    assert!(write_dir(&root).is_ok());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn probe_r16_new_project_at_a_moved_projects_path() {
+    let old = folder("moved-from-");
+    records::append_project(&old, None, "writer:m", "evidence_limit", &APP_WRITER, body("P's history")).unwrap();
+    let p = attach(&old, false).unwrap().project.unwrap();
+    let new_place = old.with_file_name(format!("{}-new-place", old.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&old, &new_place).unwrap();
+    adopt(&new_place).unwrap();
+    // A new, unrelated folder made at the old path.
+    std::fs::create_dir(&old).unwrap();
+    let unrelated = attach(&old, true).unwrap();
+    assert_eq!(unrelated.how, "minted", "{unrelated:?}");
+    assert_ne!(unrelated.project.as_deref(), Some(p.as_str()), "never P's identity");
+    assert_eq!(storage::read_all(&old).0.len(), 0, "none of P's history");
+    assert_eq!(storage::read_all(&new_place).0.len(), 1);
+    let _ = (std::fs::remove_dir_all(&old), std::fs::remove_dir_all(&new_place));
+}
+
+#[test]
+fn probe_r16_adopt_keeps_the_old_root() {
+    let old = folder("adopt-from-");
+    records::append_project(&old, None, "writer:a", "evidence_limit", &APP_WRITER, body("x")).unwrap();
+    let p = attach(&old, false).unwrap().project.unwrap();
+    let new_place = old.with_file_name(format!("{}-adopted", old.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&old, &new_place).unwrap();
+    adopt(&new_place).unwrap();
+    let (store, _) = opened().unwrap();
+    let lines = roots(&store).unwrap();
+    assert_eq!(roots_of(&lines, &p), vec![new_place.display().to_string()], "adopt releases every earlier root");
+    assert!(lines.iter().any(|l| l["projectId"] == p.as_str() && l["root"] == old.display().to_string() && l["how"] == "released"), "an append-only release line");
+    assert!(listed(&lines, old.to_str().unwrap()).is_empty());
+    let _ = std::fs::remove_dir_all(&new_place);
+}
+
+#[test]
+fn probe_r16_legacy_log_in_store_mode() {
+    // A project recording in the store; a registered legacy log appears in
+    // the agent-writable tree with a duplicated line.
+    let root = folder("legacy-log-store-");
+    records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    let registered = root.join(storage::LEGACY_LOG);
+    records::append(&registered, "evidence_limit", &APP_WRITER, body("legacy")).unwrap();
+    let line = std::fs::read(&registered).unwrap();
+    let mut doubled = line.clone();
+    doubled.extend(&line);
+    std::fs::write(&registered, &doubled).unwrap();
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "the project's set is not made incomplete: {limits:?}");
+    assert_eq!(entries.len(), 1);
+    assert!(records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("still recorded")).is_ok());
+    assert!(notes(&root).iter().any(|n| n.contains(storage::LEGACY_LOG) && n.contains("not imported")));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn the_registered_legacy_log_is_imported_and_its_original_never_read_again() {
+    let root = folder("registered-import-");
+    let registered = root.join(storage::LEGACY_LOG);
+    let entry = records::append(&registered, "evidence_limit", &APP_WRITER, body("legacy history")).unwrap();
+    assert!(write_dir(&root).unwrap_err().starts_with("import needed: 1"));
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    assert_eq!(std::fs::read(dir.join(REGISTERED_COPY)).unwrap(), std::fs::read(&registered).unwrap());
+    assert_eq!(storage::registered_legacy_log(&root), dir.join(REGISTERED_COPY));
+    assert_eq!(storage::read_all(&root).0, vec![entry.clone()], "read from the imported copy");
+    // A forged line added to the original afterwards: not read, a note.
+    let copy = std::fs::read(dir.join(REGISTERED_COPY)).unwrap();
+    let mut f = std::fs::OpenOptions::new().append(true).open(&registered).unwrap();
+    std::io::Write::write_all(&mut f, &copy).unwrap();
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries, vec![entry]);
+    assert!(notes(&root).iter().any(|n| n.contains(storage::LEGACY_LOG) && n.contains("differs from its imported copy")));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_project_librarys_act_log_is_library_evidence_never_the_project_set() {
+    // A project that is also a workflow library, recording in the store.
+    let root = folder("project-library-");
+    records::append_project(&root, None, "writer:p", "evidence_limit", &APP_WRITER, body("project")).unwrap();
+    let library = storage::library_log(&root);
+    let act = records::append(&library, "evidence_limit", &APP_WRITER, body("library act")).unwrap();
+    // A forged, valid-looking entry and a duplicated line, written by an agent.
+    let forged = records::append(&library, "evidence_limit", &APP_WRITER, body("forged")).unwrap();
+    let first = std::fs::read(&library).unwrap();
+    let one = first.split(|b| *b == b'\n').next().unwrap().to_vec();
+    let mut f = std::fs::OpenOptions::new().append(true).open(&library).unwrap();
+    std::io::Write::write_all(&mut f, &[one.as_slice(), b"\n"].concat()).unwrap();
+    // The project's set: unaffected, and recording is not refused.
+    let (entries, limits) = storage::read_all(&root);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert!(entries.iter().all(|e| e["recordId"] != act["recordId"] && e["recordId"] != forged["recordId"]), "library entries never join the project's set");
+    assert!(records::append_project(&root, Some("run:p"), "writer:p", "evidence_limit", &APP_WRITER, body("still recorded")).is_ok());
+    assert!(crate::records_index::with_index(&root, |ix| ix.limits()).is_empty());
+    // Library standing: the duplicate is a limit there.
+    let (library_entries, library_limits) = records::library_record_set(&root);
+    assert!(library_limits.iter().any(|l| l.contains("duplicate record identity") || l.contains("sequence")), "{library_limits:?}");
+    assert!(library_entries.iter().any(|e| e["recordId"] == forged["recordId"]), "read as library evidence only");
+    assert!(!records::read_log(&library).1.is_empty(), "library standing reads the act log with its limit");
     let _ = std::fs::remove_dir_all(&root);
 }

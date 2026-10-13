@@ -623,6 +623,31 @@ pub(crate) fn recovered_lines_hold(log: &Path, text: &str) -> bool {
 /// partial, not one of them; RS §14.2 R-2). A full read: its cost grows with
 /// the project's history; the act control makes it once per capture, recovery
 /// or offer, never on the record tick.
+/// A workflow library's own record set: its act log alone (U-STORE-2). Its
+/// unreadable, duplicate or conflicting lines are limits on library standing
+/// and on A15 readings; they are never part of a project's set. The log is in
+/// the project tree when the library is the project, so an agent can write it:
+/// what it holds is library evidence only.
+pub(crate) fn library_record_set(library: &Path) -> (Vec<Value>, Vec<String>) {
+    let log = crate::storage::library_log(library);
+    if let Err(e) = crate::storage::check_path(&log) {
+        return (vec![], vec![e]);
+    }
+    if !log.exists() {
+        return (vec![], vec![]);
+    }
+    let read = read_log_parts(&log);
+    let mut limits = read.limits;
+    let mut ids = std::collections::HashSet::new();
+    for entry in &read.entries {
+        if let Some(id) = entry["recordId"].as_str() {
+            if !ids.insert(id) {
+                limits.push(format!("duplicate record identity: {id}"));
+            }
+        }
+    }
+    (read.entries, limits)
+}
 pub(crate) fn writer_record_set(root: &Path) -> (Vec<Value>, Vec<String>) {
     let (entries, limits, _partials) = crate::storage::read_all_parts(root);
     (entries, limits)
