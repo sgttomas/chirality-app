@@ -1,6 +1,7 @@
 """Bounded byte-verifier races; invented local packages, no native acts."""
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -34,6 +35,22 @@ class VerifyBagTest(unittest.TestCase):
 
     def test_valid_package_and_legacy_history_limit(self):
         self.assertEqual(verifier.verify(self.root), (1, False))
+
+    def test_both_head_profiles_keep_full_byte_verification_without_chain_semantics(self):
+        role = self.root / "data/role-supply/observations.jsonl"
+        role.parent.mkdir()
+        role.write_bytes(b"retained source bytes; schema deliberately unexamined\n")
+        for version in ("0.1", "0.2"):
+            with self.subTest(profile=version):
+                # This portable tool checks all package bytes, including this
+                # tag. App Rust verification separately interprets its profile
+                # and schema/chain semantics; no adoption/authority follows.
+                heads = {"format": "chirality.records-export-chain-heads",
+                         "formatVersion": version, "logs": []}
+                (self.root / "records-chain-heads.json").write_text(json.dumps(heads), encoding="utf-8")
+                self.write_manifest("manifest-sha256.txt", {"data/evidence.bin", "data/role-supply/observations.jsonl"})
+                self.write_manifest("tagmanifest-sha256.txt", verifier.TAGS)
+                self.assertEqual(verifier.verify(self.root), (2, False))
 
     def test_leaf_replacement_between_metadata_and_open_refuses_symlink_or_fifo(self):
         for relative in ("data/evidence.bin", "bagit.txt", "manifest-sha256.txt", "tagmanifest-sha256.txt"):

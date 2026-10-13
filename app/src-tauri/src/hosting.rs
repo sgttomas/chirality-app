@@ -3739,6 +3739,7 @@ mod additive_guidance_transport_tests {
 
 #[cfg(test)]
 mod conversation_transport_tests {
+    mod role_observations_host_tests { include!("role_observations_host_tests.rs"); }
     mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}

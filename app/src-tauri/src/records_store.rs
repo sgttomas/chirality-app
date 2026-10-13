@@ -714,7 +714,7 @@ fn captures_hold_records(dir: &Path) -> bool {
     }
 }
 /// Whole retained payload export is distinct from ordinary RS source routing.
-/// A fleet-only store can be exported without importing nonexistent RS history;
+/// A fleet-only or role-observation-only store can be exported without importing nonexistent RS history;
 /// it never hides real in-place history or bypasses an unfinished/unknown import.
 pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     // The legacy import reader skips a torn last line for replay/recovery. An
@@ -735,7 +735,7 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
     if store_holds(dir) { return Ok(()); }
-    if !state.any && std::fs::symlink_metadata(dir.join("fleet")).is_ok() && legacy_census(root)?.is_empty() {
+    if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
     Err("project records need import before export".into())

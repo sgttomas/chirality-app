@@ -78,11 +78,12 @@ fn manifest(folder: &Path, paths: impl Iterator<Item = String>) -> Result<Vec<u8
     for path in paths { out.push_str(&format!("{}  {}\n", digest(&folder.join(&path))?, encode(&path))); }
     Ok(out.into_bytes())
 }
-fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value {
-    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY))
-        .map(|path| json!({"log":path,"chain":crate::record_lines::chain_head(&folder.join(&path))})).collect();
-    json!({"format":"chirality.records-export-chain-heads","formatVersion":"0.1","method":crate::record_lines::LINE_METHOD,"logs":logs})
+fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, roles: bool) -> Value {
+    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY || (roles && p == crate::role_observations::RELATIVE_LOG)))
+        .map(|path| {let chain=if path==crate::role_observations::RELATIVE_LOG{crate::role_observations::copied_chain_head(&folder.join(&path))}else{crate::record_lines::chain_head(&folder.join(&path))};json!({"log":path,"chain":chain})}).collect();
+    json!({"format":"chirality.records-export-chain-heads","formatVersion":if roles{"0.2"}else{"0.1"},"method":crate::record_lines::LINE_METHOD,"logs":logs})
 }
+fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,true) }
 fn publish(from: &Path, to: &Path) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
@@ -197,9 +198,10 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     inventory.insert("tagmanifest-sha256.txt".into());
     if file_inventory.into_keys().collect::<BTreeSet<_>>() != inventory { return Err("package inventory differs from manifests".into()); }
     let expected: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
-    let observed = heads(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()));
+    let role_heads=match expected["formatVersion"].as_str(){Some("0.1")=>false,Some("0.2")=>true,_=>return Err("unsupported chain-head tag profile".into())};
+    let observed = heads_profile(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()),role_heads);
     if observed != expected { return Err("copied log chain heads differ from export manifest".into()); }
-    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"administration":administration,"signing":"unsigned; no origin or human act authenticated"}))
+    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"administration":administration,"chainHeadProfile":if role_heads{"0.2: RS and role supply log heads"}else{"0.1: legacy RS-only heads; role supply log heads unestablished"},"signing":"unsigned; no origin or human act authenticated"}))
 }
 
 /// A verified bag must match every current retained payload byte, not just RS
@@ -209,7 +211,7 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     let folder=std::fs::canonicalize(folder).map_err(io)?;
     let store=source.parent().and_then(Path::parent).ok_or("project source has no store")?;
     if folder.starts_with(store) {return Err("the export must survive outside the records store".into());}
-    verify(&folder)?;
+    let verified=verify(&folder)?;
     let admin:Value=serde_json::from_slice(&read_tag(&folder.join(ADMIN)).map_err(|_|"legacy export has unknown administrative history; create a current export before disposal".to_owned())?).map_err(|e|e.to_string())?;
     let project_id=admin["projectId"].as_str().ok_or("export project identity missing")?;
     let prior=if remaining {crate::records_retention::view(source)["disposal"]["sequence"].as_u64().and_then(|seq|seq.checked_sub(1))}else{None};
@@ -232,7 +234,7 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     verify(&folder)?;
     if identity!=digest(&folder.join("tagmanifest-sha256.txt"))? {return Err("export changed during verification".into());}
     let bytes=serde_json::to_vec(&payload).map_err(|e|e.to_string())?;
-    Ok(json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"verification":"complete package bytes, prior administration and copied chain heads verified; matches current store payload"}))
+    Ok(json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"}))
 }
 
 #[cfg(test)]

@@ -1,0 +1,529 @@
+use super::*;
+use crate::records_store::{Placement, Store};
+struct Fixture {
+    root: PathBuf,
+    project: PathBuf,
+    store: PathBuf,
+}
+impl Fixture {
+    fn new() -> Self {
+        let root = PathBuf::from("/private/tmp")
+            .join(crate::util::opaque_id("role-observation-test-").unwrap());
+        let project = root.join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        let store = root.join("store");
+        records_store::use_store_for_test(Some(Ok(Store {
+            root: store.clone(),
+            placement: Placement::Test,
+            limits: vec![],
+        })));
+        Self {
+            root,
+            project,
+            store,
+        }
+    }
+    fn log(&self) -> RoleLog {
+        RoleLog::open(&self.project).unwrap()
+    }
+    fn directory(&self) -> PathBuf {
+        records_store::attach(&self.project, false)
+            .unwrap()
+            .dir
+            .unwrap()
+            .join(FOLDER)
+    }
+    fn append(&self, log: &RoleLog, supply: &str, outcome: &str) -> Value {
+        let c = composition();
+        log.append(observation(supply, outcome), Some(&c)).unwrap()
+    }
+}
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        records_store::use_store_for_test(None);
+        let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+fn composition() -> role_supply::Composition {
+    let common = role_supply::Guidance::seeded(
+        "AGENTS.md",
+        "fixture-release",
+        b"Common \xc3\xa9\r\n".to_vec(),
+        b"default",
+    )
+    .unwrap();
+    let role = role_supply::Guidance::seeded(
+        "agents/AGENT_HELP_HUMAN.md",
+        "fixture-release",
+        b"Role exact\r\n".to_vec(),
+        b"default",
+    )
+    .unwrap();
+    role_supply::Composition::new(&common, Some((role_supply::Role::HELP_HUMAN, &role)), false)
+        .unwrap()
+}
+fn observation(supply: &str, outcome: &str) -> Value {
+    let c = composition();
+    row(supply,"thread-start",Some("thread"),json!({"home":"home","generation":{"appSession":"fixture","home":"home","spawnCounter":1},"requestIdentity":1,"requestRef":"private-fixture-receipt","method":"thread/start","writeResult":"written","outcome":if outcome=="supplied"{"response-observed-result"}else{"pending"},"sourceCurrent":true}),json!({"role":"HELP_HUMAN","preselected":null,"roleSet":c.role_set_identity()}),outcome,Some(c.carried),json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({}),None).unwrap()
+}
+#[test]
+fn schema_bytes_match_and_fresh_reader_keeps_exact_app_sources_without_role_authority() {
+    assert_eq!(
+        SCHEMA.as_bytes(),
+        include_bytes!(
+            "../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation.schema.json"
+        )
+    );
+    let f = Fixture::new();
+    let log = f.log();
+    let p = f.append(&log, "sup:one", "supplied");
+    assert_eq!(p["state"], "written");
+    std::fs::write(f.project.join("AGENTS.md"), b"future edited copy").unwrap();
+    let cold = f.log().read("home", Some("thread"));
+    assert_eq!(cold["observations"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        cold["observations"][0]["sourceBytes"]["composed"],
+        composition().text
+    );
+    assert_eq!(
+        cold["observations"][0]["sourceBytes"]["parts"][0]["text"],
+        "Common é\r\n"
+    );
+    assert_eq!(cold["currentRoleAuthorityRestored"], false);
+    assert_eq!(
+        crate::role_lifecycle::RoleBindings::default().selected_role("home", "thread"),
+        crate::role_lifecycle::RoleInForce::Unknown {
+            reason: "original App supply binding not established".into()
+        }
+    );
+    assert!(cold.to_string().contains("unverified"));
+    assert!(f.log().read("other-home", Some("thread"))["observations"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+#[test]
+fn unknown_and_late_observations_append_without_rewriting_original() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:one", "unknown");
+    let path = f.directory().join(LOG);
+    let before = std::fs::read(&path).unwrap();
+    f.append(&log, "sup:one", "supplied");
+    assert!(std::fs::read(path).unwrap().starts_with(&before));
+    let view = log.read("home", None);
+    let rows = view["observations"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["record"]["outcome"], "unknown");
+    assert_eq!(rows[1]["record"]["outcome"], "supplied");
+    assert_ne!(
+        rows[0]["record"]["observationId"],
+        rows[1]["record"]["observationId"]
+    );
+    assert_eq!(
+        std::fs::read_dir(f.directory().join("content"))
+            .unwrap()
+            .count(),
+        3
+    );
+}
+#[test]
+fn corruption_missing_payload_and_duplicate_identity_are_visible_not_promoted() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:one", "supplied");
+    let view = log.read("home", None);
+    let row = &view["observations"][0]["record"];
+    let id = row["appBytes"]["composed"]["content"]["value"]
+        .as_str()
+        .unwrap();
+    let path = f.directory().join("content").join(format!("{id}.utf8"));
+    std::fs::write(&path, b"changed").unwrap();
+    let view = log.read("home", None);
+    assert!(view["observations"][0]["sourceBytes"].is_null());
+    assert!(!view["observations"][0]["limits"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert!(log
+        .append(observation("sup:two", "supplied"), Some(&composition()))
+        .is_err());
+    std::fs::remove_file(&path).unwrap();
+    let view = log.read("home", None);
+    assert!(view["observations"][0]["sourceBytes"].is_null());
+    assert_eq!(view["currentRoleAuthorityRestored"], false);
+    let file = f.directory().join(LOG);
+    let mut bytes = std::fs::read(&file).unwrap();
+    bytes.extend_from_slice(b"torn");
+    std::fs::write(file, bytes).unwrap();
+    assert_eq!(log.read("home", None)["complete"], false);
+    assert!(log
+        .append(observation("sup:two", "unknown"), Some(&composition()))
+        .unwrap_err()
+        .contains("torn"));
+}
+#[test]
+fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:one", "supplied");
+    assert!(!records_store::home(&f.project).unwrap().store_mode);
+    let bag = f.root.join("bag");
+    crate::records_export::export(&f.project, &bag).unwrap();
+    assert!(crate::records_export::verify(&bag).is_ok());
+    let standalone = std::process::Command::new("python3")
+        .arg(bag.join("verify.py"))
+        .arg(&bag)
+        .output()
+        .unwrap();
+    assert!(
+        standalone.status.success(),
+        "{}",
+        String::from_utf8_lossy(&standalone.stderr)
+    );
+    assert!(String::from_utf8_lossy(&standalone.stdout)
+        .contains("not origin, chain semantics or human acts"));
+    assert!(bag.join("data/role-supply/observations.jsonl").exists());
+    let heads: Value =
+        serde_json::from_slice(&std::fs::read(bag.join("records-chain-heads.json")).unwrap())
+            .unwrap();
+    let role = heads["logs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|head| head["log"] == RELATIVE_LOG)
+        .unwrap();
+    assert_eq!(role["chain"]["lines"], 1);
+    assert_eq!(role["chain"]["linked"], true);
+    assert_eq!(
+        role["chain"]["head"],
+        record_lines::line_identity(
+            std::fs::read(f.directory().join(LOG))
+                .unwrap()
+                .strip_suffix(b"\n")
+                .unwrap()
+        )
+    );
+    let current = crate::records_index::chain_heads(&f.project);
+    assert!(current["logs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|head| head["log"]
+            .as_str()
+            .is_some_and(|path| path.ends_with(RELATIVE_LOG))
+            && head["head"] == role["chain"]["head"]));
+    assert_eq!(heads["formatVersion"], "0.2");
+    // A valid checksummed tag still must cover this format's actual head.
+    let mut omitted = heads.clone();
+    omitted["logs"] = json!([]);
+    let bytes = serde_json::to_vec(&omitted).unwrap();
+    std::fs::write(bag.join("records-chain-heads.json"), &bytes).unwrap();
+    let tags = std::fs::read_to_string(bag.join("tagmanifest-sha256.txt")).unwrap();
+    let tags = tags
+        .lines()
+        .map(|line| {
+            if line.ends_with("  records-chain-heads.json") {
+                format!(
+                    "{}  records-chain-heads.json",
+                    crate::util::sha256_hex(&bytes)
+                )
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    std::fs::write(bag.join("tagmanifest-sha256.txt"), tags).unwrap();
+    assert!(crate::records_export::verify(&bag)
+        .unwrap_err()
+        .contains("chain heads differ"));
+    // The original0.1 profile permitted arbitrary payload names but promised
+    // only RS heads. Preserve its byte/admin verification with that limit.
+    omitted["formatVersion"] = json!("0.1");
+    let bytes = serde_json::to_vec(&omitted).unwrap();
+    std::fs::write(bag.join("records-chain-heads.json"), &bytes).unwrap();
+    let tags = std::fs::read_to_string(bag.join("tagmanifest-sha256.txt")).unwrap();
+    let tags = tags
+        .lines()
+        .map(|line| {
+            if line.ends_with("  records-chain-heads.json") {
+                format!(
+                    "{}  records-chain-heads.json",
+                    crate::util::sha256_hex(&bytes)
+                )
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    std::fs::write(bag.join("tagmanifest-sha256.txt"), tags).unwrap();
+    let verified = crate::records_export::verify(&bag).unwrap();
+    assert!(verified["chainHeadProfile"]
+        .as_str()
+        .unwrap()
+        .contains("role supply log heads unestablished"));
+    let standalone = std::process::Command::new("python3")
+        .arg(bag.join("verify.py"))
+        .arg(&bag)
+        .output()
+        .unwrap();
+    assert!(
+        standalone.status.success(),
+        "{}",
+        String::from_utf8_lossy(&standalone.stderr)
+    );
+    assert!(String::from_utf8_lossy(&standalone.stdout)
+        .contains("not origin, chain semantics or human acts"));
+    let current =
+        crate::records_export::matches_current(&f.directory().parent().unwrap(), &bag, false)
+            .unwrap();
+    assert_eq!(current["chainHeadProfile"], verified["chainHeadProfile"]);
+    let legacy = f.project.join("records/coordination.rs.jsonl");
+    std::fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+    std::fs::write(&legacy, b"in-place original\n").unwrap();
+    assert!(!records_store::home(&f.project).unwrap().store_mode);
+    assert!(storage::discover(&f.project).unwrap().contains(&legacy));
+    assert!(log
+        .append(observation("sup:two", "unknown"), Some(&composition()))
+        .unwrap_err()
+        .contains("import"));
+    assert_eq!(log.read("home", None)["complete"], false);
+    assert!(crate::records_export::export(&f.project, &f.root.join("blocked-bag")).is_err());
+}
+#[test]
+fn substituted_content_directory_and_payload_do_not_confirm_publication() {
+    for payload in [false, true] {
+        let f = Fixture::new();
+        let log = f.log();
+        let c = composition();
+        // First publish a valid source so the second append reuses retained bytes.
+        f.append(&log, "sup:before", "supplied");
+        let content = f.directory().join("content");
+        BEFORE_APPEND.with(|slot| {
+            *slot.borrow_mut() = Some(Box::new(move || {
+                if payload {
+                    let leaf = format!(
+                        "{}.utf8",
+                        role_supply::content(c.text.as_bytes())["value"]
+                            .as_str()
+                            .unwrap()
+                    );
+                    std::fs::rename(content.join(&leaf), content.join("detached")).unwrap();
+                    std::fs::write(content.join(leaf), c.text.as_bytes()).unwrap();
+                } else {
+                    std::fs::rename(&content, content.with_file_name("detached-content")).unwrap();
+                    std::fs::create_dir(&content).unwrap();
+                }
+            }))
+        });
+        assert!(log
+            .append(observation("sup:after", "supplied"), Some(&composition()))
+            .unwrap_err()
+            .contains("replaced"));
+        assert_eq!(
+            std::fs::read_to_string(f.directory().join(LOG))
+                .unwrap()
+                .lines()
+                .count(),
+            1
+        );
+    }
+}
+#[test]
+fn unavailable_store_and_project_or_leaf_substitution_never_redirect() {
+    let f = Fixture::new();
+    let log = f.log();
+    records_store::use_store_for_test(Some(Err("invented store refusal".into())));
+    assert!(log
+        .append(observation("sup:one", "unknown"), Some(&composition()))
+        .unwrap_err()
+        .contains("invented store refusal"));
+    assert_eq!(log.read("home", None)["complete"], false);
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: f.store.clone(),
+        placement: Placement::Test,
+        limits: vec![],
+    })));
+    f.append(&log, "sup:one", "supplied");
+    let source = f.directory().join(LOG);
+    let other = f.root.join("outside");
+    std::fs::write(&other, b"sentinel").unwrap();
+    std::fs::remove_file(&source).unwrap();
+    std::os::unix::fs::symlink(&other, &source).unwrap();
+    assert!(log
+        .append(observation("sup:two", "unknown"), Some(&composition()))
+        .is_err());
+    assert_eq!(std::fs::read(&other).unwrap(), b"sentinel");
+    assert_eq!(log.read("home", None)["complete"], false);
+    std::fs::rename(&f.project, f.root.join("former-project")).unwrap();
+    std::fs::create_dir(&f.project).unwrap();
+    assert!(log
+        .append(observation("sup:three", "unknown"), Some(&composition()))
+        .unwrap_err()
+        .contains("replaced"));
+    assert_eq!(log.read("home", None)["complete"], false);
+}
+#[test]
+fn close_hold_dispose_and_old_openers_preserve_existing_retention_boundary() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:one", "supplied");
+    let actor = crate::act_control::person(Some("Invented fixture"), Some("fixture-os"));
+    let observed = json!({"fixture":"test seam only; no live human act"});
+    let apply = |action, bag: Option<&Path>| {
+        let plan = crate::records_retention::prepare(&f.project, action, bag, &actor, &observed)?;
+        crate::records_retention::apply(plan, &actor, &observed)
+    };
+    apply("set-hold", None).unwrap();
+    apply("close", None).unwrap();
+    assert!(log
+        .append(observation("sup:two", "unknown"), Some(&composition()))
+        .is_err());
+    assert_eq!(
+        log.read("home", None)["observations"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let bag = f.root.join("closed-bag");
+    crate::records_export::export(&f.project, &bag).unwrap();
+    assert!(apply("dispose", Some(&bag))
+        .unwrap_err()
+        .contains("legal hold"));
+    apply("release-hold", None).unwrap();
+    let bag = f.root.join("disposal-bag");
+    crate::records_export::export(&f.project, &bag).unwrap();
+    apply("dispose", Some(&bag)).unwrap();
+    assert_eq!(log.read("home", None)["complete"], false);
+    assert!(log
+        .append(observation("sup:three", "unknown"), Some(&composition()))
+        .is_err());
+    assert!(crate::records_export::verify(&bag).is_ok());
+}
+#[test]
+fn legacy_02_keeps_its_exact_evidence_and_unknown_home() {
+    let f = Fixture::new();
+    let log = f.log();
+    let dir = records_store::write_dir(&f.project).unwrap().join(FOLDER);
+    std::fs::create_dir(&dir).unwrap();
+    let old = composition()
+        .start_record("sup:old", "thread", "old-request", 1, None)
+        .unwrap();
+    let mut bytes = serde_json::to_vec(&old).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(dir.join(LOG), &bytes).unwrap();
+    let view = log.read("home", None);
+    assert_eq!(view["observations"][0]["record"], old);
+    assert_eq!(view["observations"][0]["legacy"], true);
+    assert!(!view["observations"][0]["limits"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert!(log.read("home", Some("thread"))["observations"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    f.append(&log, "sup:new", "supplied");
+    assert!(std::fs::read(dir.join(LOG)).unwrap().starts_with(&bytes));
+}
+#[test]
+fn concurrent_writers_keep_one_complete_chained_log() {
+    let f = Fixture::new();
+    let log = std::sync::Arc::new(f.log());
+    let mut workers = vec![];
+    for worker in 0..2 {
+        let log = log.clone();
+        let store = f.store.clone();
+        workers.push(std::thread::spawn(move || {
+            records_store::use_store_for_test(Some(Ok(Store {
+                root: store,
+                placement: Placement::Test,
+                limits: vec![],
+            })));
+            for n in 0..5 {
+                log.append(
+                    observation(&format!("sup:{worker}-{n}"), "supplied"),
+                    Some(&composition()),
+                )
+                .unwrap();
+            }
+            records_store::use_store_for_test(None);
+        }));
+    }
+    for worker in workers {
+        worker.join().unwrap();
+    }
+    let view = log.read("home", None);
+    assert!(view["limits"].as_array().unwrap().is_empty());
+    assert_eq!(view["observations"].as_array().unwrap().len(), 10);
+}
+
+#[test]
+fn replacement_between_read_and_append_and_unconfirmed_flush_keep_source_truth() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:first", "supplied");
+    let path = f.directory().join(LOG);
+    let displaced = f.root.join("original-log");
+    let at = path.clone();
+    let saved = displaced.clone();
+    BEFORE_APPEND.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(move || {
+            std::fs::rename(&at, &saved).unwrap();
+            std::fs::write(&at, b"sentinel").unwrap();
+        }))
+    });
+    assert!(log
+        .append(observation("sup:second", "unknown"), Some(&composition()))
+        .unwrap_err()
+        .contains("replaced"));
+    assert_eq!(std::fs::read(&path).unwrap(), b"sentinel");
+    std::fs::remove_file(&path).unwrap();
+    std::fs::rename(&displaced, &path).unwrap();
+    FAIL_AFTER_FILE_SYNC.with(|fail| fail.set(true));
+    assert!(log
+        .append(observation("sup:third", "supplied"), Some(&composition()))
+        .unwrap_err()
+        .contains("unconfirmed"));
+    let fresh = f.log().read("home", None);
+    assert_eq!(fresh["observations"].as_array().unwrap().len(), 2);
+    assert_eq!(fresh["observations"][1]["record"]["supplyId"], "sup:third");
+    assert_eq!(fresh["currentRoleAuthorityRestored"], false);
+    assert!(fresh["standing"].as_str().unwrap().contains("unverified"));
+}
+#[test]
+fn contradictory_h5_and_carrier_and_duplicate_observation_ids_are_refused() {
+    let f = Fixture::new();
+    let log = f.log();
+    let mut wrong = observation("sup:bad", "supplied");
+    wrong["carried"]["developerInstructions"]["byteLength"] = json!(123);
+    assert!(log
+        .append(wrong, Some(&composition()))
+        .unwrap_err()
+        .contains("carrier"));
+    f.append(&log, "sup:first", "supplied");
+    let path = f.directory().join(LOG);
+    let mut original: Value =
+        serde_json::from_slice(std::fs::read(&path).unwrap().strip_suffix(b"\n").unwrap()).unwrap();
+    original["request"]["generation"]["home"] = json!("another-home");
+    let mut bytes = serde_json::to_vec(&original).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(&path, &bytes).unwrap();
+    assert_eq!(log.read("home", None)["complete"], false);
+    original["request"]["generation"]["home"] = json!("home");
+    let mut second = original.clone();
+    let raw = serde_json::to_vec(&original).unwrap();
+    second["seq"] = json!(2);
+    second["prevLine"] = record_lines::link(Some(&record_lines::line_identity(&raw)));
+    let mut bytes = raw;
+    bytes.push(b'\n');
+    bytes.extend_from_slice(&serde_json::to_vec(&second).unwrap());
+    bytes.push(b'\n');
+    std::fs::write(path, bytes).unwrap();
+    assert_eq!(log.read("home", None)["complete"], false);
+}

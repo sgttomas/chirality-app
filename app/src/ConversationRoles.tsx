@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -73,7 +73,8 @@ export function SupplyStatus({ supply }: { supply: Json }) {
   return <div>
     <p>Last start: {text(supply.state)} · role {supply.selection ? text(supply.selection) : "none"}{supply.continuedFrom ? ` · continues conversation ${text(supply.continuedFrom.sourceThread)}` : ""}.
       {supply.reason ? ` Refused before sending: ${text(supply.reason)}.` : ""}</p>
-    {parts.length > 0 && <p><small>Supplied at start: {parts.map((p: Json) => `${text(p.source?.path)} (${text(p.source?.state)}, ${text(p.length)} bytes)`).join(" + ")}; base instructions not set. Whether the model takes it up is unknown.</small></p>}
+    {parts.length > 0 && <p><small>{supply.state === "response-observed" ? "Supplied at start" : "Prepared App guidance; native supply not established"}: {parts.map((p: Json) => `${text(p.source?.path)} (${text(p.source?.state)}, ${text(p.length)} bytes)`).join(" + ")}; App base instructions not set. Whether the model takes it up is unknown.</small></p>}
+    {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
     <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
   </div>;
 }
@@ -92,7 +93,41 @@ export function TrialHeader({ trialConversation, trialsStartedHere }: { trialCon
   </div>;
 }
 
-export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, trialConversation, trialsStartedHere }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void; trialConversation?: Json; trialsStartedHere?: Json }) {
+export function RoleSupplyHistory({ view }: { view: Json }) {
+  if (!view) return null;
+  return <section aria-label="Quoted role supply history">
+    <p><b>Quoted App role-supply history</b>. {text(view.standing)}</p>
+    {list(view.limits).map((limit, i) => <p role="alert" key={i}>{text(limit)}</p>)}
+    {list(view.observations).map((observation, i) => <details key={i}>
+      <summary>{text(observation.record?.trigger)} · {text(observation.record?.outcome)} · {text(observation.record?.supplyId)}</summary>
+      <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(observation.record, null, 2)}</pre>
+      {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
+      {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
+        <pre style={{whiteSpace:"pre-wrap"}}>{text(observation.sourceBytes.composed)}</pre>
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
+      </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}
+    </details>)}
+    {list(view.observations).length === 0 && <p>No role-supply observations were returned. The limits above apply.</p>}
+    <p><small>This history does not set the conversation's role or restore CCE authority. Supplier adoption remains unknown.</small></p>
+  </section>;
+}
+
+export function RoleHistoryReader({ read, scope, ready }: { read?: () => Promise<Json>; scope: string; ready: boolean }) {
+  const [view, setView] = useState<Json>(null);
+  const [reading, setReading] = useState(false);
+  const serial = useRef(0);
+  useEffect(() => { serial.current++; setView(null); setReading(false); return () => { serial.current++; }; }, [scope]);
+  const inspect = async () => {
+    if (!read) return;
+    const current = ++serial.current; setReading(true);
+    try { const next = await read(); if (serial.current === current) setView(next); }
+    catch (error) { if (serial.current === current) setView({ limits: [String(error)], observations: [], standing: "Role history unavailable; no current role or authority restored" }); }
+    finally { if (serial.current === current) setReading(false); }
+  };
+  return <div><button disabled={!ready || !read || reading} onClick={() => { void inspect(); }}>{reading ? "Reading role-supply history…" : "Read quoted role-supply history"}</button><RoleSupplyHistory view={view} /></div>;
+}
+
+export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, trialConversation, trialsStartedHere, readSupplyHistory }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void; trialConversation?: Json; trialsStartedHere?: Json; readSupplyHistory?: () => Promise<Json> }) {
   const appRole = thread?.appRole;
   const own: string | null | undefined = appRole?.standing === "app-observed" ? (appRole.role ?? null) : undefined;
   // The choice starts at this conversation's own role (Continue as the same role takes up new guidance).
@@ -101,6 +136,7 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, tria
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
+    <RoleHistoryReader read={readSupplyHistory} scope={JSON.stringify([thread?.generation, thread?.threadId])} ready={ready} />
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the fork was sent no instructions, so it keeps the source's guidance.</small></p>}

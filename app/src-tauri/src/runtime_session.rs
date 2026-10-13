@@ -940,7 +940,7 @@ pub fn steer_conversation_turn(
     // This acknowledgment never changes turn/item state or implies replacement/end.
     Ok(response)
 }
-/// Memory-only selected native history and original App role evidence. A history
+/// Memory-only native history and live role bindings; quoted supply records are separate. A history
 /// view is never an operational thread register or a trusted cold-replay source.
 #[derive(Default)]
 pub struct HistorySession {
@@ -950,6 +950,8 @@ pub struct HistorySession {
     limits: Vec<String>,
     dispatches: Vec<HistoryPending>,
     starts: Vec<StartPending>,
+    forks: Vec<ForkPending>,
+    role_log: Option<Result<std::sync::Arc<crate::role_observations::RoleLog>, String>>,
     closed_history_generations: Vec<Value>,
     list_direction: Option<String>,
     turn_direction: Option<String>,
@@ -961,13 +963,65 @@ struct HistoryPending {
     finished: bool,
     evidence: Value,
 }
+struct ForkPending {
+    receipt: crate::hosting::SourceRequest,
+    source_thread: String,
+    supply_ref: String,
+    finished: bool,
+    result: Option<Result<Value,String>>,
+    done: bool,
+    recorded: std::collections::BTreeSet<String>,
+}
+struct StartObservation {
+    composition: crate::role_supply::Composition,
+    supply_ref: String,
+    preselected: Option<bool>,
+    continued_from: Option<Value>,
+    recorded: std::collections::BTreeSet<String>,
+    done: bool,
+}
 struct StartPending {
+    observation: StartObservation,
     receipt: crate::hosting::SourceRequest,
     prepared: Option<crate::role_lifecycle::PreparedStart>,
     finished: bool,
     evidence: Value,
 }
 impl HistorySession {
+    pub fn configure_role_log_source(&mut self, source:Result<std::sync::Arc<crate::role_observations::RoleLog>,String>) {if self.role_log.is_none(){self.role_log=Some(source);}}
+    pub fn configure_role_log(&mut self, project: &std::path::Path) {
+        if self.role_log.is_none() { self.role_log=Some(crate::role_observations::RoleLog::open(project).map(std::sync::Arc::new)); }
+    }
+    pub fn read_role_supply(&self, home: &str, thread: Option<&str>) -> Value {
+        match self.role_log.as_ref() {
+            Some(Ok(log)) => log.read(home,thread),
+            _ => json!({"observations":[],"limits":[self.role_log.as_ref().and_then(|r|r.as_ref().err()).cloned().unwrap_or("explicit App project role log unavailable".into())],"complete":false,"currentRoleAuthorityRestored":false,"standing":"Quoted App observations only; no current role or CCE authority restored"}),
+        }
+    }
+    pub fn role_refused(&self, supply_ref:&str, generation:&Value, role:Option<crate::role_supply::Role>, preselected:Option<bool>, reason:&str, before_dispatch:bool) -> Value {
+        self.role_refused_continuing(supply_ref,generation,role,preselected,reason,before_dispatch,None)
+    }
+    pub fn role_refused_continuing(&self, supply_ref:&str, generation:&Value, role:Option<crate::role_supply::Role>, preselected:Option<bool>, reason:&str, before_dispatch:bool, continued_from:Option<Value>) -> Value {
+        let request=json!({"home":generation["home"],"generation":if generation.is_object(){generation.clone()}else{Value::Null},"requestIdentity":null,"requestRef":null,"method":"thread/start","writeResult":if before_dispatch{"not-attempted"}else{"not-established"},"outcome":if before_dispatch{"refused-before-send"}else{"unknown"},"sourceCurrent":null});
+        let row=crate::role_observations::row(supply_ref,"thread-start",None,request,json!({"role":role.map(|r|r.name()).unwrap_or("none"),"preselected":preselected,"roleSet":crate::role_supply::content(crate::role_supply::BUNDLED_ROLE_SET)}),if before_dispatch{"refused-before-send"}else{"unknown"},None,json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({"continuedFrom":continued_from}),Some(reason));
+        self.publish_role(row,None)
+    }
+    pub fn fork_refused(&self, supply_ref:&str, generation:&Value, source_thread:&str, reason:&str, before_send:bool) -> Value {
+        let known = crate::recovery::generation_ref(generation).is_ok();
+        let home = if known {generation["home"].clone()} else {Value::Null};
+        let source = home.as_str().and_then(|home|self.roles.get(home,source_thread));
+        let selection = match source.map(|b|b.role_in_force(home.as_str().unwrap_or(""),source_thread)) {
+            Some(crate::role_lifecycle::RoleInForce::AppObserved{role,..}) => json!({"role":role.map(|r|r.name()).unwrap_or("none"),"preselected":null,"roleSet":null}),
+            _ => json!({"role":"unknown","preselected":null,"roleSet":null}),
+        };
+        let request=json!({"home":home,"generation":if known{generation.clone()}else{Value::Null},"requestIdentity":null,"requestRef":null,"method":"thread/fork","writeResult":if before_send{"not-attempted"}else{"not-established"},"outcome":if before_send{"refused-before-send"}else{"unknown"},"sourceCurrent":null});
+        let row=crate::role_observations::row(supply_ref,"fork",None,request,selection,if before_send{"refused-before-send"}else{"unknown"},None,json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({"sourceThread":source_thread,"inheritedFrom":source.map(|b|b.supply_ref())}),Some(reason));
+        self.publish_role(row,None)
+    }
+    fn publish_role(&self,row:Result<Value,String>,composition:Option<&crate::role_supply::Composition>)->Value {
+        let result=row.and_then(|row| match self.role_log.as_ref(){Some(Ok(log))=>log.append(row,composition),Some(Err(error))=>Err(error.clone()),None=>Err("explicit App project role log unavailable".into())});
+        result.unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"Native effects remain as actually observed; no confirmed role history, automatic resend or record fallback"}))
+    }
     pub fn synchronize(&mut self, host: &Value) {
         let generation = &host["generation"];
         if self
@@ -983,7 +1037,7 @@ impl HistorySession {
                     self.closed_history_generations.push(old_generation);
                 }
             }
-            self.limits.push("History receiving generation ended; pages discarded. Original role evidence is memory-only; cold replay is unknown.".into());
+            self.limits.push("History receiving generation ended; pages discarded. Original live role binding remains memory-only; cold role authority is unknown. Quoted supply history is separate.".into());
         }
         if host["state"] == "ready"
             && self.history.is_none()
@@ -1082,7 +1136,11 @@ impl HistorySession {
         supply_ref: &str,
         continued_from: Option<Value>,
     ) -> Result<(), String> {
+        self.start_dispatched_selected(receipt,composition,supply_ref,continued_from,None)
+    }
+    pub fn start_dispatched_selected(&mut self, receipt: crate::hosting::SourceRequest, composition:&crate::role_supply::Composition, supply_ref:&str, continued_from:Option<Value>, preselected:Option<bool>)->Result<(),String> {
         let e = receipt.evidence();
+        let original_relation=continued_from.clone();
         let prepared = (|| {
             let prepared = crate::role_lifecycle::PreparedStart::new(
                 e["home"].as_str().ok_or("start home absent")?,
@@ -1108,6 +1166,7 @@ impl HistorySession {
         // Registration already happened at Host. Keep its actual receipt even
         // when role preparation fails; neither no-send nor automatic retry follows.
         self.starts.push(StartPending {
+            observation: StartObservation {composition:composition.clone(),supply_ref:supply_ref.into(),preselected,continued_from:original_relation,recorded:Default::default(),done:false},
             receipt,
             prepared: prepared.ok(),
             finished: false,
@@ -1134,10 +1193,12 @@ impl HistorySession {
                     continue;
                 }
             };
+            let record_status=pending.evidence.get("roleSupplyRecord").cloned();
             let preparation_error = pending.evidence.get("rolePreparationError").cloned();
             let role_set = pending.evidence["roleSet"].clone();
             pending.evidence = receipt_summary(&status);
             pending.evidence["roleSet"] = role_set;
+            if let Some(record_status)=record_status{pending.evidence["roleSupplyRecord"]=record_status;}
             if let Some(error) = preparation_error {
                 pending.evidence["rolePreparationError"] = error;
             }
@@ -1279,7 +1340,30 @@ impl HistorySession {
                 }
             }
         }
+        self.record_start_observations(host);
+        self.reconcile_forks(host);
     }
+    /// Immutable source observations: waiting may end before a genuinely late
+    /// response. Each state is attempted once; a record error never retries native work.
+    fn record_start_observations(&mut self,host:&crate::hosting::Host) {
+        for pending in &mut self.starts {
+            if pending.observation.done {continue;}
+            let Ok(status)=host.source_request_status(&pending.receipt) else{continue};
+            if status["response"].is_null() && status["waitingEnded"]!=true && status["sourceCurrent"]==true && status["writeResult"]=="written" {continue;}
+            let key=serde_json::to_string(&json!([status["writeResult"],status["outcome"],status["response"].is_null()])).unwrap();
+            if !pending.observation.recorded.insert(key){continue;}
+            pending.observation.done=!status["response"].is_null()||status["sourceCurrent"]!=true;
+            let observation=&pending.observation;let thread=status["response"]["result"]["thread"]["id"].as_str().filter(|v|!v.is_empty());
+            let supplied=thread.and_then(|thread|self.roles.get(status["home"].as_str().unwrap_or(""),thread)).is_some_and(|b|b.supply_ref()==observation.supply_ref) && pending.evidence["activeAdmission"]==true;
+            let outcome=if supplied{"supplied"}else if status["outcome"]=="response-observed-error"{"request-failed"}else{"unknown"};
+            let carried=(status["writeResult"]=="written" && status["sentFrame"]["params"]["developerInstructions"]==observation.composition.text).then(||observation.composition.carried.clone());
+            let mut request=crate::role_observations::request(&status);request["method"]=json!("thread/start");
+            let row=crate::role_observations::row(&observation.supply_ref,"thread-start",thread,request,json!({"role":observation.composition.role.map(|r|r.name()).unwrap_or("none"),"preselected":observation.preselected,"roleSet":observation.composition.role_set_identity()}),outcome,carried.clone(),crate::role_observations::reported(&status),json!({"continuedFrom":observation.continued_from}),(!supplied).then_some("No source-bound admitted role supply established by this observation; native request state is retained separately"));
+            let result=row.and_then(|row|match self.role_log.as_ref(){Some(Ok(log))=>log.append(row,carried.as_ref().map(|_|&observation.composition)),Some(Err(error))=>Err(error.clone()),None=>Err("explicit App project role log unavailable".into())});
+            pending.evidence["roleSupplyRecord"]=result.unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"Native effects retained; no successful durable role history or automatic retry"}));
+        }
+    }
+    pub fn role_record_status(&self,supply_ref:&str)->Value{self.starts.iter().find(|p|p.observation.supply_ref==supply_ref).map(|p|p.evidence["roleSupplyRecord"].clone()).unwrap_or(Value::Null)}
     pub fn start_admitted(&self, receipt: &crate::hosting::SourceRequest) -> bool {
         self.starts.iter().any(|p| {
             p.receipt.request_ref() == receipt.request_ref()
@@ -1335,19 +1419,44 @@ impl HistorySession {
     /// request and its correlated response. The fork inherits the source's
     /// original guidance; the source binding is left exactly as it was. With
     /// no source binding the fork's role stays unknown (nothing is bound).
-    pub fn fork_observed(&mut self, host: &crate::hosting::Host, receipt: &crate::hosting::SourceRequest, source_thread: &str) -> Result<Value, String> {
-        let status = host.source_request_status(receipt)?;
-        let home = status["home"].as_str().ok_or("fork home absent")?.to_owned();
-        let Some(source) = self.roles.get(&home, source_thread).cloned() else {
-            return Ok(json!({"kind":"inherited-fork","sourceThread":source_thread,"role":{"standing":"unknown","reason":"source conversation's original App role not established in this App process; the fork keeps the source's guidance, whatever it is"}}));
-        };
-        let request = source.fork(&home, status["generation"].clone(), status["requestIdentity"].clone(),
-            status["requestRef"].as_str().ok_or("fork request reference absent")?, &crate::util::opaque_id("sup:")?)?;
-        let binding = request.observe(&status["generation"], &status["sentFrame"], &status["response"])?;
-        let relation = binding.relation();
-        let thread = binding.thread().to_owned();
-        self.roles.insert(binding)?;
-        Ok(json!({"kind":"inherited-fork","thread":thread,"relation":relation,"role":self.role(&home,&thread)}))
+    pub fn fork_dispatched(&mut self,receipt:crate::hosting::SourceRequest,source_thread:&str)->Result<(),String>{
+        self.fork_dispatched_with_supply(receipt,source_thread,&crate::util::opaque_id("sup:")?)
+    }
+    pub fn fork_dispatched_with_supply(&mut self,receipt:crate::hosting::SourceRequest,source_thread:&str,supply_ref:&str)->Result<(),String>{
+        if self.forks.iter().any(|p|p.receipt.request_ref()==receipt.request_ref()){return Err("fork receipt already retained".into());}
+        self.forks.push(ForkPending{receipt,source_thread:source_thread.into(),supply_ref:supply_ref.into(),finished:false,result:None,done:false,recorded:Default::default()});Ok(())
+    }
+    pub fn fork_result(&self,receipt:&crate::hosting::SourceRequest)->Option<Result<Value,String>>{self.forks.iter().find(|p|p.receipt.request_ref()==receipt.request_ref()).and_then(|p|p.result.clone())}
+    fn reconcile_forks(&mut self,host:&crate::hosting::Host){
+        for index in 0..self.forks.len(){
+            if self.forks[index].done {continue;}
+            let(receipt,source_thread,supply_ref,finished)={let p=&self.forks[index];(p.receipt.clone(),p.source_thread.clone(),p.supply_ref.clone(),p.finished)};
+            let Ok(status)=host.source_request_status(&receipt)else{continue};
+            if !finished && status["sourceCurrent"]==true && status["writeResult"]=="written" && !status["response"].is_null(){
+                let result=host.thread_fork_finish(&receipt).map(|thread|{let role=self.bind_fork(host,&receipt,&source_thread,&supply_ref).unwrap_or_else(|error|json!({"standing":"unknown","reason":format!("fork role binding refused: {error}; native fork remains admitted")}));json!({"thread":thread,"role":role,"standing":"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."})});
+                self.forks[index].result=Some(result);self.forks[index].finished=true;
+            }else if !finished && status["sourceCurrent"]!=true{self.forks[index].finished=true;self.forks[index].result=Some(Err("fork source generation ended; native effects remain as observed".into()));}
+            if status["response"].is_null() && status["waitingEnded"]!=true && status["sourceCurrent"]==true && status["writeResult"]=="written"{continue;}
+            let key=serde_json::to_string(&json!([status["writeResult"],status["outcome"],status["response"].is_null()])).unwrap();if !self.forks[index].recorded.insert(key){continue;}
+            self.forks[index].done=!status["response"].is_null()||status["sourceCurrent"]!=true;
+            let home=status["home"].as_str().unwrap_or("");let thread=status["response"]["result"]["thread"]["id"].as_str().filter(|s|!s.is_empty());
+            let inherited=thread.and_then(|thread|self.roles.get(home,thread)).is_some_and(|b|b.supply_ref()==supply_ref);
+            let source=self.roles.get(home,&source_thread);let source_role=source.map(|b|b.role_in_force(home,&source_thread));
+            let selection=match source_role{Some(crate::role_lifecycle::RoleInForce::AppObserved{role,..})=>json!({"role":role.map(|r|r.name()).unwrap_or("none"),"preselected":null,"roleSet":null}),_=>json!({"role":"unknown","preselected":null,"roleSet":null})};
+            let mut request=crate::role_observations::request(&status);request["method"]=json!("thread/fork");
+            let row=crate::role_observations::row(&supply_ref,"fork",thread,request,selection,if inherited{"inherited"}else if status["outcome"]=="response-observed-error"{"request-failed"}else{"unknown"},None,crate::role_observations::reported(&status),json!({"sourceThread":source_thread,"inheritedFrom":source.map(|b|b.supply_ref())}),(!inherited).then_some("Original App role/source supply not established for this fork; native outcome remains separately observed"));
+            let publication=self.publish_role(row,None);match &mut self.forks[index].result{Some(Ok(result))=>result["roleSupplyRecord"]=publication,Some(Err(error))=>*error=format!("{error}; role supply observation: {publication}"),None=>{}}
+        }
+    }
+    fn bind_fork(&mut self,host:&crate::hosting::Host,receipt:&crate::hosting::SourceRequest,source_thread:&str,supply_ref:&str)->Result<Value,String>{
+        let status=host.source_request_status(receipt)?;let home=status["home"].as_str().ok_or("fork home absent")?.to_owned();
+        let Some(source)=self.roles.get(&home,source_thread).cloned()else{return Ok(json!({"kind":"inherited-fork","sourceThread":source_thread,"role":{"standing":"unknown","reason":"source conversation's original App role not established in this App process; supplier guidance remains unverified"}}));};
+        let request=source.fork(&home,status["generation"].clone(),status["requestIdentity"].clone(),status["requestRef"].as_str().ok_or("fork request reference absent")?,supply_ref)?;
+        let binding=request.observe(&status["generation"],&status["sentFrame"],&status["response"])?;let relation=binding.relation();let thread=binding.thread().to_owned();self.roles.insert(binding)?;Ok(json!({"kind":"inherited-fork","thread":thread,"relation":relation,"role":self.role(&home,&thread)}))
+    }
+    /// Legacy internal caller: native admission already performed by its owner.
+    pub fn fork_observed(&mut self,host:&crate::hosting::Host,receipt:&crate::hosting::SourceRequest,source_thread:&str)->Result<Value,String>{
+        self.bind_fork(host,receipt,source_thread,&crate::util::opaque_id("sup:")?)
     }
     pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
         let Some(history) = self.history.as_ref() else {

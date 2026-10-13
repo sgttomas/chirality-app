@@ -564,6 +564,79 @@ Valid: `role-supply-record.valid.example.json` (a WORKING_ITEMS start that
 supplies TASK as a child role). Invalid: `role-supply-record.invalid.examples.json`
 IS-1…IS-9 (IS-8: a workflow part; IS-9: role guidance on `thread/resume`).
 
+### 6.1a Current App supply observation log
+
+Implemented in the Rust host (`role_observations.rs`, `HistorySession`, the
+start and fork entry points). It uses the selected RS §13.8 records store,
+not the pointer-only REC database: in the explicit App project's protected
+store subtree, `role-supply/observations.jsonl` and
+`role-supply/content/<exact-bytes-sha256>.utf8`. The Root pins that project's
+physical directory; native cwd never chooses a record project. Existing
+identity, import, writer ownership, export and retention admission apply.
+This auxiliary subtree does not establish an ordinary RS home or hide
+in-place records awaiting import. A role-only retained payload can be
+exported, subject to the same legacy/import and retention checks.
+The on-demand chain-head view and BagIt tag include this log through its own
+schema/chain reader; its rows are never read as RS R1 entries.
+New exports use chain-head tag profile 0.2. The previous 0.1 RS-only profile
+remains byte/admin verifiable, including arbitrary retained payload names;
+its role-log head coverage is explicitly unestablished.
+
+The current format is **`chirality.role.supply.observation/0.1`**, with
+`role-supply-observation.schema.json`. It is distinct from the preserved
+`chirality.role.supply/0.2` proposal above; old schema and witness bytes are
+unchanged. A stable `supplyId` names each attempted start or fork. Each
+immutable observation has its own identity and chain-linked source order.
+An unknown observation at the end of a wait and a genuinely later correlated
+reply are separate rows of that same account; no earlier row is rewritten.
+The record preserves the full H5 generation, private Host request reference
+and RPC identity, actual write/result reading, the selected role or none,
+actual entry preselection (or null when unestablished), role-set and carried
+part identities, allowed supplier reporting, and the inherited/Continue-as
+relation. A refused start records the App attempt with no invented native
+request, thread, delivery or source bytes; it retains a resolved Continue-as
+relation and the known bundled role-set identity. A refused fork likewise
+records the App attempt without inventing a native receipt. An unestablished
+source stays unknown. A fork carries no new instructions.
+
+Only an actual written private receipt with its schema-valid correlated
+result and operational admission establishes a `supplied`/`inherited`
+observation. Failed, incomplete, malformed or superseded source outcomes
+retain their native reading and an explicit limit. The start/fork observer
+attempts each new observation once; record failure does not resend the native
+operation, change a known native effect, fall back to another store, or claim
+successful history publication. A write whose flush is unconfirmed may have
+landed; later file reading establishes only the quoted row that exists,
+never success of its original publication callback.
+
+For a carried start, the writer retains the exact App-owned common, role
+and composed UTF-8 bytes as immutable content-identified payloads. The reader
+checks lengths, identities and part ranges against those payloads; editing
+the live instruction copy changes none of them. Native base instructions,
+configuration, transcript and credentials are not copied. Source-byte failure,
+unavailable storage, non-plain or substituted paths, torn/corrupt logs and
+unresolved lineage remain visible limits. The chain is unsigned; file
+provenance is unverified and signing is not supplied by this log.
+Publication checks the retained content-directory and payload identities and
+bound bytes again before confirmation. Subsequent mutable-file substitution
+can still make cold source inspection unavailable; no lifetime atomicity is
+claimed.
+
+The existing role panel offers an explicit **Read quoted role-supply history**
+operation (`role_supply_history`), including the current home's attempted
+starts and the selected conversation's observations and source bytes. This
+reader writes nothing and performs no native request. It neither inserts a
+`RoleBinding` nor recreates a CCE owner: a fresh App's role remains unknown
+even when the file claims prior supply. Legacy0.2 rows keep their exact file
+evidence and unknown H5/home attribution; they are shown only in the full
+project role-history inspection. Provider adoption remains unknown.
+
+The RS R3 role-guidance reference/resolver receiving path remains separate
+and unbuilt; this log does not claim it. Maintained store, source, actual
+Host/private-receipt and role-panel fixtures exercise this App path with
+invented peers and material. They establish no native GUI walkthrough,
+provider adoption, human act, release or shared consumer adoption.
+
 ### 6.2 The limit account (`role-limit-account.schema.json` 0.2; PROPOSED)
 
 | Limit | Role | Standing (default guidance) | Shown as | Not reported as enforcement |

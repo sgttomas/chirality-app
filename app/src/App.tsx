@@ -7,7 +7,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
-import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
+import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { RunPanel, SelectedWorkflow, runBringBackDefault } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
@@ -128,14 +128,15 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
       <option value="">Select a conversation</option>
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
-    {selected && <RoleHeader key={`role-header:${selected.threadId}`} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
+    {selected && <RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
+      readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
       fork={() => { void roleAct("forking", "conversation_fork", { generation: selected.generation, threadId: selected.threadId }, result => {
         if (result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
       }); }} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
-      start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, continueAs: handoff.id }); }}
+      start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id }); }}
       send={async draft => { const started = handoff.started; if (!started) return false; return (await roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null })) !== undefined; }}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
@@ -874,13 +875,14 @@ export function App() {
           setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }} />
         <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p>
         <SupplyStatus supply={host?.roleSupply} />
+        <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })} />
         {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
         <RecordsStorePanel store={host?.recordsStore} act={act} />
         <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }} />
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>
-          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>
+          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null, preselected: !roleTouched && !!role && role === host?.roleSet?.defaultRole })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>
         </p>
         <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }} />
         <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
