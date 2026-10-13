@@ -633,3 +633,153 @@ fn without_a_records_store_reads_are_refused() {
     assert!(returned(&answer)["refused"].as_str().unwrap().contains("records store unavailable"));
     assert!(!f.read_log().exists());
 }
+
+#[test]
+fn records_access_source_refuses_named_pipe_without_waiting_for_its_writer() {
+    use crate::records_store::{self, Placement, Store};
+    use std::os::unix::{ffi::OsStrExt, fs::OpenOptionsExt};
+    struct StoreOverride;
+    impl Drop for StoreOverride {
+        fn drop(&mut self) {
+            records_store::use_store_for_test(None);
+        }
+    }
+    for store_owned in [true, false] {
+        let f = Scratch::new();
+        let project = f.project(if store_owned {
+            "store-project"
+        } else {
+            "legacy-project"
+        });
+        let store = f.project("records-store");
+        let configured = Store {
+            root: store,
+            placement: Placement::Test,
+            limits: vec![],
+        };
+        records_store::use_store_for_test(Some(Ok(configured.clone())));
+        let _override = StoreOverride;
+        let regular_id = if store_owned {
+            crate::records::append_project(&project, Some("run:pipe-fixture"), "app-writer:fixture", "evidence_limit", &crate::records::APP_WRITER,
+                json!({"label":"unresolvable reference","subjectRef":"invented regular record beside a pipe"})).unwrap()["recordId"].as_str().unwrap().to_owned()
+        } else {
+            let entry = crate::records::envelope(
+                "evidence_limit",
+                &crate::records::APP_WRITER,
+                json!({"label":"unresolvable reference","subjectRef":"invented regular legacy record beside a pipe"}),
+                "rec:app:regular-pipe-fixture".into(),
+                1,
+                Some("run:pipe-fixture"),
+                None,
+            );
+            let path = project.join(".chirality/records/runs/fixture/regular.jsonl");
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, format!("{entry}\n")).unwrap();
+            records_store::attach(&project, true).unwrap();
+            assert!(!records_store::home(&project).unwrap().store_mode);
+            entry["recordId"].as_str().unwrap().to_owned()
+        };
+        let group_entries = if store_owned {
+            let log = crate::storage::project_log(
+                &project,
+                Some("run:pipe-fixture"),
+                "app-writer:fixture",
+            )
+            .unwrap();
+            let specs = (0..2).map(|n| crate::records::Spec {
+                kind: "evidence_limit", recorder: &crate::records::APP_WRITER,
+                body: json!({"label":"unresolvable reference","subjectRef":format!("invented regular group member {n}")}),
+                id: format!("rec:app:pipe-group-{n}"), observed_at: None,
+            }).collect();
+            crate::records::append_group(
+                &log,
+                specs,
+                Some("run:pipe-fixture"),
+                crate::records::RecordSet::Complete,
+            )
+            .unwrap()
+        } else {
+            vec![]
+        };
+        let pipe = if store_owned {
+            records_store::attach(&project, false)
+                .unwrap()
+                .dir
+                .unwrap()
+                .join("acts/000-pipe-fixture.jsonl")
+        } else {
+            project.join(".chirality/records/runs/fixture/000-pipe-fixture.jsonl")
+        };
+        std::fs::create_dir_all(pipe.parent().unwrap()).unwrap();
+        let name = std::ffi::CString::new(pipe.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        assert!(
+            crate::storage::discover(&project).unwrap().contains(&pipe),
+            "discovery semantics remain unchanged"
+        );
+        let expected_limit = format!(
+            "{}: not readable (no entry of it is returned)",
+            crate::storage::log_label(&project, &pipe)
+        );
+        // The only writer stays open until the completion check. Closing it
+        // releases an old blocking reader before any assertion can fail.
+        let mut writer = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open(&pipe)
+            .unwrap();
+        let entry = crate::records::envelope(
+            "evidence_limit",
+            &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented pipe bytes must not be read"}),
+            "rec:app:pipe-fixture".into(),
+            1,
+            Some("run:pipe-fixture"),
+            None,
+        );
+        writer.write_all(format!("{entry}\n").as_bytes()).unwrap();
+        let (done, completion) = std::sync::mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            records_store::use_store_for_test(Some(Ok(configured)));
+            let corpus = ProjectPaths::new(&project).read();
+            records_store::use_store_for_test(None);
+            done.send(corpus).unwrap();
+        });
+        let early = completion.recv_timeout(Duration::from_secs(2));
+        let completed_before_writer_closed = early.is_ok();
+        drop(writer);
+        let corpus = early.unwrap_or_else(|_| {
+            completion
+                .recv_timeout(Duration::from_secs(2))
+                .expect("closed controlled writer releases owned reader")
+        });
+        reader.join().unwrap();
+        assert!(
+            completed_before_writer_closed,
+            "reader waited for a named pipe's writer"
+        );
+        assert!(
+            corpus.limits.contains(&expected_limit),
+            "{:?}",
+            corpus.limits
+        );
+        assert!(corpus
+            .entries
+            .iter()
+            .all(|e| e.entry["recordId"] != "rec:app:pipe-fixture"));
+        for entry in group_entries {
+            assert!(
+                corpus.entries.iter().any(|e| e.entry == entry),
+                "regular group members retain their exact parsed entries beside the pipe"
+            );
+        }
+        assert!(
+            corpus
+                .entries
+                .iter()
+                .any(|e| e.entry["recordId"] == regular_id),
+            "regular records remain readable beside the refused pipe"
+        );
+    }
+}

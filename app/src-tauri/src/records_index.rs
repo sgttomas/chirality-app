@@ -638,7 +638,8 @@ fn read_state(path: &Path, stamp: Option<Stamp>, number: u32, from: Option<LogSt
     state.guard = read_at(path, guard_from, (state.prefix_end - guard_from) as usize).unwrap_or_default();
     state
 }
-fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
+/// Opened regular-log check shared by the index and capability source.
+pub(crate) fn open_log(path: &Path) -> std::io::Result<std::fs::File> {
     use std::os::unix::fs::OpenOptionsExt;
     crate::storage::check_path(path).map_err(std::io::Error::other)?;
     let f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(path)?;
