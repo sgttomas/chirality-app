@@ -386,25 +386,36 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   if (!store) return null;
   const project = store.project;
   const attachment = project?.attachment;
+  const retention = project?.retention;
+  const kept = retention?.disposition === "kept";
+  const identityRepair = retention == null || kept;
+  const holdable = kept || retention?.disposition === "disposal incomplete";
   return <section aria-label="Records store">
     <h3>Records store</h3>
     {store.state === "available"
-      ? <p>Writing to {String(store.root)} ({String(store.placement)}).</p>
+      ? <p>Store: {String(store.root)} ({String(store.placement)}).</p>
       : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
     {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
     {project && <>
       <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
-      {attachment?.projectId && !attachment?.refusal && project.reading === "records store" && <p>
+      {attachment?.projectId && !attachment?.refusal && kept && project.reading === "records store" && <p>
         <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
         <small>Creates a verified package in a folder you choose.</small>
       </p>}
-      {project.notImported > 0 && <p>
+      {retention && <p role="note">{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}. {retention.limit && String(retention.limit)}</p>}
+      {attachment?.projectId && !attachment?.refusal && holdable && <p>
+        {kept && <><button onClick={()=>act("records_store_retention",{action:retention.closed ? "reopen" : "close"})}>{retention.closed ? "Reopen project" : "Close project"}</button>{" "}</>}
+        <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
+        {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
+      </p>}
+      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
+      {project.notImported > 0 && kept && !retention.closed && <p>
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}
-      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && <p>
+      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && identityRepair && <p>
         <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}
         <button onClick={() => act("records_store_identity", { action: "new-identity" })}>Give this folder a new identity</button>{" "}
         <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>

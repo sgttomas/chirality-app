@@ -5,12 +5,13 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Component, Path, PathBuf};
 
 const DECLARATION: &[u8] = b"BagIt-Version: 1.0\nTag-File-Character-Encoding: UTF-8\n";
 const HEADS: &str = "records-chain-heads.json";
-const TAGS: &[&str] = &["bagit.txt", "bag-info.txt", "manifest-sha256.txt", HEADS, "verify.py"];
+const ADMIN: &str = "records-administration.json";
+const TAGS: &[&str] = &["bagit.txt", "bag-info.txt", "manifest-sha256.txt", HEADS, "verify.py", ADMIN];
 const VERIFIER: &[u8] = include_bytes!("../../tools/verify_records_bag.py");
 
 fn io(e: std::io::Error) -> String { e.to_string() }
@@ -68,7 +69,7 @@ fn files(root: &Path, omit_controls: bool) -> Result<BTreeMap<String, crate::rec
     Ok(out)
 }
 fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    let mut f = OpenOptions::new().write(true).create_new(true).open(path).map_err(io)?;
+    let mut f = OpenOptions::new().write(true).create_new(true).mode(0o600).open(path).map_err(io)?;
     f.write_all(bytes).map_err(io)?;
     f.sync_all().map_err(io)
 }
@@ -112,21 +113,22 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
     if std::fs::symlink_metadata(&destination).is_ok() { return Err("export destination already exists; nothing overwritten".into()); }
     // Capture writers acquire capture ownership before record ownership; keep
     // that same order here. Other changes are caught by the final census.
-    let _captures = crate::storage::lock(&source.join("captures/.capture.lock"))?;
-    let _writers = crate::records_store::writer_lock(&source, false)?;
+    let _captures = crate::storage::read_lock(&source.join("captures/.capture.lock"))?;
+    let _writers = crate::storage::read_lock(&source.join(".writer.lock"))?;
     let before = files(&source, true)?;
+    let administration=crate::records_retention::export_snapshot(&source,&project_id,None)?;
     let stage = parent.join(crate::util::opaque_id(".records-export-")?);
-    std::fs::create_dir(&stage).map_err(io)?;
+    std::fs::DirBuilder::new().mode(0o700).create(&stage).map_err(io)?;
     let result = (|| {
-        std::fs::create_dir(stage.join("data")).map_err(io)?;
+        std::fs::DirBuilder::new().mode(0o700).create(stage.join("data")).map_err(io)?;
         for (rel, stamp) in &before {
             let input = source.join(rel);
             crate::storage::check_path(&input)?;
             let mut f = OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&input).map_err(io)?;
             if crate::records_index::Stamp::of(&f.metadata().map_err(io)?) != *stamp { return Err("records changed while preparing export; try again".into()); }
             let output = stage.join("data").join(rel);
-            std::fs::create_dir_all(output.parent().ok_or("export member has no parent")?).map_err(io)?;
-            let mut copy = OpenOptions::new().write(true).create_new(true).open(&output).map_err(io)?;
+            std::fs::DirBuilder::new().recursive(true).mode(0o700).create(output.parent().ok_or("export member has no parent")?).map_err(io)?;
+            let mut copy = OpenOptions::new().write(true).create_new(true).mode(0o600).open(&output).map_err(io)?;
             std::io::copy(&mut f, &mut copy).map_err(io)?;
             copy.sync_all().map_err(io)?;
             if crate::records_index::Stamp::of(&f.metadata().map_err(io)?) != *stamp || digest(&input)? != digest(&output)? { return Err("records changed during export; try again".into()); }
@@ -136,6 +138,8 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
         write(&stage.join("bag-info.txt"), format!("External-Identifier: {project_id}\nChirality-Signing: unsigned; waits for App signing (OI-011)\n").as_bytes())?;
         write(&stage.join("manifest-sha256.txt"), &manifest(&stage, before.keys().map(|p| format!("data/{p}")))?)?;
         write(&stage.join(HEADS), &serde_json::to_vec_pretty(&heads(&stage.join("data"), before.keys().cloned())).map_err(|e| e.to_string())?)?;
+        if administration!=crate::records_retention::export_snapshot(&source,&project_id,None)? {return Err("administration changed during export; try again".into());}
+        write(&stage.join(ADMIN),&serde_json::to_vec_pretty(&administration).map_err(|e|e.to_string())?)?;
         write(&stage.join("verify.py"), VERIFIER)?;
         write(&stage.join("tagmanifest-sha256.txt"), &manifest(&stage, TAGS.iter().map(|s| s.to_string()))?)?;
         let verified = verify(&stage)?;
@@ -176,7 +180,15 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     let actual: BTreeSet<String> = files(&folder.join("data"), false)?.keys().map(|p| format!("data/{p}")).collect();
     if actual != payload { return Err("payload inventory differs from manifest".into()); }
     let tags = check_manifest(folder, "tagmanifest-sha256.txt", false)?;
-    if tags != TAGS.iter().map(|p| p.to_string()).collect() { return Err("tag inventory differs from export profile".into()); }
+    let current_profile: BTreeSet<String>=TAGS.iter().map(|p|p.to_string()).collect();
+    let legacy_profile: BTreeSet<String>=TAGS.iter().filter(|p|**p!=ADMIN).map(|p|p.to_string()).collect();
+    if tags!=current_profile && tags!=legacy_profile {return Err("tag inventory differs from export profile".into());}
+    let administration=if tags.contains(ADMIN){
+        let v:Value=serde_json::from_slice(&read_tag(&folder.join(ADMIN))?).map_err(|e|e.to_string())?;
+        let project:Value=serde_json::from_slice(&read_tag(&folder.join("data/project.json"))?).map_err(|e|e.to_string())?;
+        if v["format"]!="chirality.records-administration-snapshot" || v["formatVersion"]!="0.1" || v["projectId"]!=project["projectId"] || v["projectKey"]!=crate::storage::key(project["projectId"].as_str().ok_or("payload project identity absent")?) || !v["events"].is_object() || v["sequence"].as_u64().is_none(){return Err("administration snapshot identity/profile invalid".into());}
+        "protected prior administrative bytes; unsigned"
+    }else{"unknown: legacy package has no administrative history snapshot"};
     let mut inventory = payload.clone();
     inventory.extend(tags);
     inventory.insert("tagmanifest-sha256.txt".into());
@@ -184,9 +196,245 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     let expected: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
     let observed = heads(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()));
     if observed != expected { return Err("copied log chain heads differ from export manifest".into()); }
-    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"signing":"unsigned; no origin or human act authenticated"}))
+    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"administration":administration,"signing":"unsigned; no origin or human act authenticated"}))
 }
+
+/// A verified bag must match every current retained payload byte, not just RS
+/// heads. Recovery accepts only an unchanged subset of the original complete bag.
+pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<Value,String>{
+    crate::storage::check_path(folder)?;
+    let folder=std::fs::canonicalize(folder).map_err(io)?;
+    let store=source.parent().and_then(Path::parent).ok_or("project source has no store")?;
+    if folder.starts_with(store) {return Err("the export must survive outside the records store".into());}
+    verify(&folder)?;
+    let admin:Value=serde_json::from_slice(&read_tag(&folder.join(ADMIN)).map_err(|_|"legacy export has unknown administrative history; create a current export before disposal".to_owned())?).map_err(|e|e.to_string())?;
+    let project_id=admin["projectId"].as_str().ok_or("export project identity missing")?;
+    let prior=if remaining {crate::records_retention::view(source)["disposal"]["sequence"].as_u64().and_then(|seq|seq.checked_sub(1))}else{None};
+    if remaining && prior.is_none(){return Err("original disposal context absent".into());}
+    if admin!=crate::records_retention::export_snapshot(source,project_id,prior)? {return Err("export administrative history is stale or unrelated; create a current export".into());}
+    let exported=files(&folder.join("data"),false)?;
+    let before=if source.exists(){files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
+    if (!remaining && before.keys().collect::<Vec<_>>()!=exported.keys().collect::<Vec<_>>()) || before.keys().any(|k|!exported.contains_key(k)) {return Err("verified export does not cover the current complete project payload".into());}
+    let mut payload=BTreeMap::new();
+    for (rel,stamp) in &before {
+        let input=source.join(rel);
+        let hash=digest(&input)?;
+        if hash!=digest(&folder.join("data").join(rel))? {return Err(format!("verified export is stale or unrelated: {rel}"));}
+        if crate::records_index::Stamp::of(&std::fs::metadata(&input).map_err(io)?)!=*stamp {return Err("payload changed during verification".into());}
+        payload.insert(rel.clone(),json!({"sha256":hash,"bytes":std::fs::metadata(input).map_err(io)?.len()}));
+    }
+    if source.exists() && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
+    // tagmanifest hashes the payload manifest, chain-head tag and other tags.
+    let identity=digest(&folder.join("tagmanifest-sha256.txt"))?;
+    verify(&folder)?;
+    if identity!=digest(&folder.join("tagmanifest-sha256.txt"))? {return Err("export changed during verification".into());}
+    let bytes=serde_json::to_vec(&payload).map_err(|e|e.to_string())?;
+    Ok(json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"verification":"complete package bytes, prior administration and copied chain heads verified; matches current store payload"}))
+}
+
+#[cfg(test)]
+pub(crate) fn payload_paths_for_test(dir:&Path)->Vec<PathBuf>{files(dir,true).unwrap().into_keys().map(|p|dir.join(p)).collect()}
+#[cfg(test)]
+pub(crate) fn legacy_for_test(dir:&Path){std::fs::remove_file(dir.join(ADMIN)).unwrap();std::fs::write(dir.join("tagmanifest-sha256.txt"),manifest(dir,TAGS.iter().filter(|p|**p!=ADMIN).map(|p|p.to_string())).unwrap()).unwrap();}
 
 #[cfg(test)]
 #[path = "records_export_tests.rs"]
 mod tests;
+
+/// Recovery's private staging folder contains exact original member names.
+/// A raced pathname is first moved exclusively, then checked in its private
+/// location. Unverified bytes survive there rather than being unlinked.
+pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String> {
+    let exported = files(&bag.join("data"), false)?;
+    let inventory = if folder.exists() {
+        files(folder, false)?
+    } else {
+        BTreeMap::new()
+    };
+    let mut payload = BTreeMap::new();
+    for rel in inventory.keys() {
+        let member = folder.join(rel);
+        if excluded(Path::new(rel)) {
+            let meta = std::fs::symlink_metadata(&member).map_err(io)?;
+            if !meta.is_file() || meta.len() != 0 {
+                return Err(format!(
+                    "unexpected owning control bytes preserved: {}",
+                    member.display()
+                ));
+            }
+        } else if !exported.contains_key(rel)
+            || digest(&member)? != digest(&bag.join("data").join(rel))?
+        {
+            return Err(format!(
+                "unverified staged member preserved: {}",
+                member.display()
+            ));
+        }
+        payload.insert(rel,json!({"bytes":std::fs::metadata(&member).map_err(io)?.len(),"sha256":digest(&member)?}));
+    }
+    if folder.exists() && files(folder, false)? != inventory {
+        return Err("staged payload changed during verification".into());
+    }
+    Ok(
+        json!({"files":payload.len(),"identity":crate::util::sha256_hex(&serde_json::to_vec(&payload).map_err(|e|e.to_string())?)}),
+    )
+}
+fn remove_empty_tree(folder: &Path) -> Result<(), String> {
+    if !folder.exists() {
+        return Ok(());
+    }
+    crate::storage::check_path(folder)?;
+    for entry in std::fs::read_dir(folder).map_err(io)? {
+        let path = entry.map_err(io)?.path();
+        let meta = std::fs::symlink_metadata(&path).map_err(io)?;
+        if !meta.is_dir() {
+            return Err(format!(
+                "unexpected remaining member preserved: {}",
+                path.display()
+            ));
+        }
+        remove_empty_tree(&path)?;
+    }
+    // remove_dir, rather than remove_dir_all: a new entry prevents completion.
+    std::fs::remove_dir(folder).map_err(|e| {
+        format!(
+            "nonempty/changed folder retained: {}: {e}",
+            folder.display()
+        )
+    })
+}
+#[cfg(test)]
+thread_local! {pub(crate) static AFTER_MEMBER_STAGE:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)};}
+
+fn manifest_hashes(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
+    let mut out = BTreeMap::new();
+    for line in std::str::from_utf8(bytes)
+        .map_err(|e| e.to_string())?
+        .lines()
+    {
+        let (hash, path) = line.split_once("  ").ok_or("invalid frozen manifest")?;
+        if hash.len() != 64 || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err("invalid frozen checksum".into());
+        }
+        if out
+            .insert(decode(path)?, hash.to_ascii_lowercase())
+            .is_some()
+        {
+            return Err("duplicate frozen member".into());
+        }
+    }
+    Ok(out)
+}
+pub(crate) fn dispose_members(
+    source: &Path,
+    bag: &Path,
+    stage: &Path,
+    identity: &str,
+) -> Result<(), String> {
+    let tags = read_tag(&bag.join("tagmanifest-sha256.txt"))?;
+    if crate::util::sha256_hex(&tags) != identity {
+        return Err("original export changed; nothing more disposed".into());
+    }
+    let tag_hashes = manifest_hashes(&tags)?;
+    let payload_bytes = read_tag(&bag.join("manifest-sha256.txt"))?;
+    if tag_hashes.get("manifest-sha256.txt") != Some(&crate::util::sha256_hex(&payload_bytes)) {
+        return Err("original payload manifest changed; nothing more disposed".into());
+    }
+    let frozen = manifest_hashes(&payload_bytes)?;
+    let exported: BTreeMap<String, String> = frozen
+        .into_iter()
+        .map(|(name, hash)| {
+            Ok((
+                name.strip_prefix("data/")
+                    .ok_or("unexpected frozen payload member")?
+                    .to_string(),
+                hash,
+            ))
+        })
+        .collect::<Result<_, String>>()?;
+    staged_payload(stage, bag)?;
+    crate::storage::ensure_directory(stage)?;
+    let mut expected: Vec<String> = exported.keys().cloned().collect();
+    expected.extend([".writer.lock".into(), "captures/.capture.lock".into()]);
+    for rel in expected {
+        let input = source.join(&rel);
+        let staged = stage.join(&rel);
+        if !staged.exists() && input.exists() {
+            crate::storage::check_path(&input)?;
+            let meta = std::fs::symlink_metadata(&input).map_err(io)?;
+            if !meta.is_file() {
+                return Err(format!("unexpected member retained: {}", input.display()));
+            }
+            crate::storage::ensure_directory(
+                staged.parent().ok_or("staged member has no parent")?,
+            )?;
+            publish(&input, &staged).map_err(|e| format!("disposal member staging: {e}"))?;
+            crate::storage::sync_dir(input.parent().unwrap())?;
+            crate::storage::sync_dir(staged.parent().unwrap())?;
+            #[cfg(test)]
+            if let Some(hook) = AFTER_MEMBER_STAGE.with(|h| h.borrow_mut().take()) {
+                hook();
+            }
+        }
+        if staged.exists() {
+            crate::storage::check_path(&staged)?;
+            let before = std::fs::symlink_metadata(&staged).map_err(io)?;
+            if !before.is_file() {
+                return Err(format!(
+                    "nonregular staged bytes preserved: {}",
+                    staged.display()
+                ));
+            }
+            let stamp = crate::records_index::Stamp::of(&before);
+            let expected = if excluded(Path::new(&rel)) {
+                if before.len() != 0 {
+                    return Err(format!(
+                        "unexpected owning control bytes preserved: {}",
+                        staged.display()
+                    ));
+                }
+                digest(&staged)?
+            } else {
+                let hash = exported.get(&rel).ok_or("frozen member absent")?.clone();
+                if digest(&bag.join("tagmanifest-sha256.txt"))? != identity
+                    || digest(&bag.join("data").join(&rel))? != hash
+                {
+                    return Err(format!(
+                        "original export member changed; staged bytes retained: {}",
+                        staged.display()
+                    ));
+                }
+                hash
+            };
+            if digest(&staged)? != expected
+                || crate::records_index::Stamp::of(&std::fs::symlink_metadata(&staged).map_err(io)?)
+                    != stamp
+            {
+                return Err(format!(
+                    "changed/unverified staged bytes preserved: {}",
+                    staged.display()
+                ));
+            }
+            std::fs::remove_file(&staged).map_err(io)?;
+            crate::storage::sync_dir(staged.parent().unwrap())?;
+        }
+        if input.exists() {
+            return Err(format!(
+                "member reappeared after staging; bytes retained: {}",
+                input.display()
+            ));
+        }
+    }
+    // Unknown files are never swept, in the original tree or private staging.
+    remove_empty_tree(source)?;
+    remove_empty_tree(stage)?;
+    crate::storage::sync_dir(source.parent().ok_or("project source has no parent")?)?;
+    crate::storage::sync_dir(stage.parent().ok_or("staging has no parent")?)
+}
+#[cfg(test)]
+pub(crate) fn reprofile_for_test(folder:&Path){
+    let paths=files(&folder.join("data"),false).unwrap().into_keys().collect::<Vec<_>>();
+    std::fs::write(folder.join("manifest-sha256.txt"),manifest(folder,paths.iter().map(|p|format!("data/{p}"))).unwrap()).unwrap();
+    std::fs::write(folder.join(HEADS),serde_json::to_vec_pretty(&heads(&folder.join("data"),paths.into_iter())).unwrap()).unwrap();
+    std::fs::write(folder.join("tagmanifest-sha256.txt"),manifest(folder,TAGS.iter().map(|p|p.to_string())).unwrap()).unwrap();
+}

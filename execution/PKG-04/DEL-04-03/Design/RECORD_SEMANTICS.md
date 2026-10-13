@@ -1508,8 +1508,8 @@ logs, outside-run act logs, captures and WR WP-1 records, and (U-STORE-6,
 `connector_route_store.rs`) and the agents' records read log (§13.9); Units
 written together and the chain of Tamper-evidence (App `record_lines.rs`,
 `records.rs`, `records_index.rs`) for every RS log the App writes. The
-other mechanisms are not built yet (proposed, or owner decisions awaiting
-their slice); the store's copy of the App's fleet coordination observations
+derived SQLite index, BagIt export and recorded retention controls below
+are also implemented; the other mechanisms await their slices; the store's copy of the App's fleet coordination observations
 has its place below, but DEL-06-01 has no App writer or reader yet.
 
 - **Placement** (implemented). The App keeps its records in its own records
@@ -1776,8 +1776,96 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   of automatically. The person may dispose of a closed project's records only
   as a recorded act, and only after a verified export package of them
   exists. A legal hold set on a project blocks its disposal until the hold is
-  released, and setting and releasing a hold are recorded acts. Until export
-  and that act are built, no deletion is offered.
+  released, and setting and releasing a hold are recorded acts, including a
+  hold on bytes retained by an incomplete disposal.
+
+  *Implemented* (`records_retention.rs`, native `records_store_retention`).
+  **Close project** records explicit closure and prevents new App recording
+  and Codex starts for that identity. Closure requires supplier activity in
+  this or another App process to have ended, hot workflow runs to have ended
+  and their pending publications to have settled, and native captures to have
+  settled; it ends no run or supplier itself. **Reopen project** reverses
+  closure before disposal. **Set legal hold** and **Release legal hold** are
+  native person choices; a hold blocks disposal while permitting recording.
+  Every choice records the observed App name, OS account and Codex account
+  when reported, marked identity not verified, separately from the App
+  interface recorder, with its project scope, purpose and frozen context.
+  These are records-administration acts, following the store's identity/import
+  administration, not additions to the shared human-act kind/class list.
+  `resources/runtime_core/records-administration.entry.schema.json` defines
+  their App-local format.
+
+  The store keeps a project's append-only administrative history at
+  `administration/<safe-project-key>/events/<sequence>.json`, outside the
+  subtree to be disposed. Each complete create-once file carries the previous
+  file's exact-byte SHA-256; unknown members, malformed files, missing order,
+  conflicting transitions or a broken link make retention state unavailable
+  and refuse further acts. Readers open regular single-link files without
+  following links or blocking on special files, and compare their opened
+  metadata before/after reading. Administrative publication and reconciliation
+  flush every event and every link through the store root, including visible
+  directories left by a failed earlier attempt. The App remembers accepted
+  sequence/head prefixes through later read errors; removing or replacing
+  already observed links refuses further recording or acts. A durable
+  `history-started.json` marker beside `events/` pins the first event and detects
+  a cold missing/empty event history while it survives. It is control evidence,
+  not another native act; the protected export snapshot retains the exact events.
+  Recovery requires restoring the original missing history from verified evidence;
+  nothing infers no hold from unreadable evidence.
+  Stable admission and activity locks live beside these events. Every owning
+  store write takes shared admission and rechecks retention after waiting;
+  the actual read-log append and WR descriptor publication do so too. Supplier,
+  hot run and pending native-capture activity leases keep closure from burying
+  pending work. Closed payloads remain readable/exportable. Ordinary project and WR readers refuse disposed or incomplete-disposal identities even if payload files are recreated; administration and verified-bag recovery use separate guarded readers. Disposed identities
+  retain their roots and administrative evidence; new recording, import,
+  replacement identity and reassociation are refused, and retained §13.7
+  originals never become the record source again.
+
+  **Dispose of records after verified export** chooses an existing bag natively.
+  It requires the project to be closed, no hold, and the bag's complete payload
+  inventory, each exact file hash/length and its prior administration snapshot
+  to equal the current store. The native question freezes the actual project,
+  physical folder/store/link identities, closure, hold, full observed actor
+  context and verified export identity; the host observes and verifies them
+  again after the choice under exclusive admission. A changed source, export,
+  actor or state refuses the application. The durable original disposal act,
+  naming the verified bag and complete payload identity, precedes removal.
+  The host rechecks that original bag identity, current remaining bytes and
+  original physical source folder after this publication. Each original member
+  is moved exclusively to `administration/<key>/removal/<original-relative-path>`
+  before its exact original-manifest hash is checked and it is unlinked; a
+  changed member survives there. Only empty directories are removed, so a new
+  file introduced during deletion stays and leaves disposal incomplete. No
+  recursive sweep removes unverified members. Completion is a separate App
+  observation after removal and folder sync.
+  Only `projects/<safe-project-key>/` is removed. Library A15 evidence,
+  retained project originals, co-written fleet files, the verified bag and
+  surviving administrative history remain.
+
+  A failed or uncertain removal/completion leaves **disposal incomplete**,
+  recording blocked, with the original native act intact. **Finish disposal**
+  rechecks that same original bag and pre-disposal history; every remaining
+  source or staged file must be an unchanged member of its original complete
+  payload. Extra/changed members, a replaced physical source folder or
+  changed/missing exports refuse recovery. A hold can be set or released on
+  an incomplete disposal; while held, Finish disposal is blocked. These later
+  acts keep the original disposal's actor, bag and pre-disposal history cutoff. An already
+  absent subtree can be synced and its completion recorded without another
+  invented disposal act. If a complete completion event is visible but its
+  publication sync failed, this process shows **completion durability
+  uncertain** and retains Finish disposal: it syncs the existing event and
+  administrative ancestors without another disposal or completion entry.
+  After relaunch, the completion either survived or the original disposal
+  remains incomplete. Unavailable store/identity errors never restore legacy
+  originals as a project record source, including the named-log readers;
+  explicit library evidence readers retain their separate paths. There is no
+  automatic deletion, retry or expiry.
+  These unsigned administrative bytes, like current unsigned exports, prove
+  neither a verified actor nor outside time against control of this machine.
+  After a cold restart, removal of a valid nonempty tail cannot be recognized
+  without an external checkpoint; neither can removal of the entire
+  administration control including its history marker. These are evidence
+  limits, not an inferred hold release or permission to reconstruct history.
 - **Export and import** (owner U-STORE-5, 2026-10-12: "BagIt + signed
   manifest"). A project's records move or are handed over as a verified
   BagIt package (RFC 8493): the store's files byte for byte, with a SHA-256
@@ -1785,7 +1873,9 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   signed. The package is readable and checkable without the App.
   Import verifies the package, never overwrites, keeps every record identity,
   and reports duplicates under R-5…R-8.
-  *Export implemented.* The records-store panel offers **Export project
+  *Export implemented.* Created package and staging folders use 0700 and files
+  use 0600 from creation, including intermediate payload folders. Verification
+  never changes the permissions of an existing package. The records-store panel offers **Export project
   records** for an attached project whose records are in the store. A native
   folder selector chooses the parent; the App publishes a new BagIt 1.0 folder
   without replacing an existing one. The payload contains the project store's
@@ -1796,10 +1886,15 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   `.tmp` files and unusual `.lock` names. The package has `bagit.txt`, a
   `manifest-sha256.txt` covering every payload file exactly once, a protected
   `records-chain-heads.json` tag computed from the copied RS logs, and a
-  `tagmanifest-sha256.txt` covering the export tags. This follows
+  `records-administration.json` tag containing the project's identity and the
+  prior administrative events' exact UTF-8 bytes as reversible JSON strings
+  (whitespace and line endings preserved), and a `tagmanifest-sha256.txt`
+  covering all export tags. The new disposal act remains in the surviving
+  ledger after that prior-history package is verified. This follows
   [RFC 8493](https://www.rfc-editor.org/rfc/rfc8493.html).
 
-  Export holds capture ownership before exclusive record ownership, checks
+  Export holds shared stable admission, then capture ownership before exclusive
+  record ownership (read ownership also permits closed retained projects), checks
   the source file inventory and stamps before and after copying, checks each
   copy's hash against its source, verifies the package, and flushes files and
   folders before publishing. A changed or unreadable source refuses the
@@ -1811,7 +1906,10 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   and the copied RS chain heads. The included standard-library `verify.py`
   checks inventories and hashes without the App (`python3 verify.py <bag>`),
   including the chain-head tag's checksum; it does not interpret RS semantics.
-  Both say the package is unsigned. Package import remains unbuilt.
+  Both say the package is unsigned. Older exports without an administration
+  snapshot remain byte-checkable, with retention history explicitly unknown;
+  they never satisfy disposal's current-package prerequisite. Package import
+  remains unbuilt.
 - **Existing records** (implemented). The App discovers the §13.7 project logs and reads
   them in place. It then imports them explicitly (§13.7 discovery makes no
   implicit copy) into the store as byte-identical copies verified against

@@ -91,6 +91,7 @@ pub struct OfferSlot {
 }
 
 struct NativeCapture {
+    retention_activity: Option<storage::Ownership>,
     ordinal: usize,
     target_log: String,
     a15: Option<a15::A15Custody>,
@@ -1263,9 +1264,11 @@ impl ActControl {
         crate::schema_validation::validate_capture(&capture)?;
         // The project's records store subtree (RS §13.8); a refusal (store
         // unavailable, import needed) captures nothing.
+        let retention_activity=crate::records_retention::activity(&ws)?;
         let cap_file = storage::capture_file_for(&ws, &capture)?;
         let _ownership = storage::lock(&storage::capture_lock_for(&ws, &capture)?)?;
         let mut native = NativeCapture {
+            retention_activity,
             ordinal: self.native_captures.len(),
             target_log: LOG.into(),
             a15: None,
@@ -1310,6 +1313,7 @@ impl ActControl {
             native.written = result["state"] == "AC-7 recorded";
             native.delay_pending = result["delayEvidencePending"] == true;
         }
+        if native.written && !native.delay_pending{native.retention_activity=None;}
         self.native_captures.insert(capture_id, native);
         self.offers.get_mut(offer_id).unwrap().state =
             if out.as_ref().is_ok_and(|v| v["state"] == "AC-7 recorded") {
@@ -1320,10 +1324,10 @@ impl ActControl {
         out
     }
 
-    fn writer_ready(&self) -> bool {
+    pub(crate) fn writer_ready(&self) -> bool {
         self.native_captures
             .values()
-            .all(|n| n.written && !n.delay_pending)
+            .all(|n| n.written && !n.delay_pending) && self.file_offers.values().all(|slot|!slot.pending_native())
     }
 
     /// Explicit App startup/command writer continuation uses this boundary; reader calls do not.
@@ -1415,6 +1419,7 @@ impl ActControl {
                 }
             }
         }
+        for native in self.native_captures.values_mut(){if native.written && !native.delay_pending{native.retention_activity=None;}}
         results
     }
 

@@ -647,7 +647,8 @@ implemented behavior and qualification limits.
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
-| `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
+| `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
+| `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `act_control_a15.rs`, `act_control_file.rs`, `file_act_native.rs`, `canonical.rs` | A16, hot A15 and App-file offer/native custody; capture versus publication uncertainty, ordered retry and original content binding |
@@ -850,8 +851,48 @@ imported connector publication evidence is preserved.
 **Verify an exported package** checks inventories, hashes and RS heads again.
 The included `verify.py` checks bytes and inventories with standard Python 3,
 without the App. Exports are unsigned until App signing; byte verification
-confers no source authenticity. Package import and recorded disposal remain
-unbuilt (RS §13.8).
+confers no source authenticity. New packages include a protected
+`records-administration.json` tag, reversibly retaining each prior administrative
+event's exact UTF-8 bytes and its project identity. Legacy packages without it
+have unknown retention history and cannot satisfy disposal prerequisites.
+New export folders and files are owner-only from creation (0700/0600),
+including staging and intermediate payload folders. Verification changes no
+existing package permissions. Package import remains unbuilt (RS §13.8).
+
+Records have no expiry. The records panel offers native **Close project** /
+**Reopen project** and **Set legal hold** / **Release legal hold** controls.
+Close only after supplier activity, hot workflow runs and pending native record
+publications have settled; the App never ends them implicitly. Closure prevents
+new App recording and Codex starts for that identity. A hold prevents disposal, including finishing an incomplete disposal. A closed
+retained project can still be explicitly adopted after a folder move without
+reopening its records.
+**Dispose of records after verified export** requires closure, no hold and an
+existing verified bag matching every current payload byte and the prior
+administrative history. Its native question freezes project, actor, closure,
+hold and export/payload identity; the host rechecks them after the choice.
+Only that project's `projects/<key>/` subtree is removed. The verified export,
+project/library files and `administration/<key>/events/<sequence>.json` history
+survive. Each create-once administrative event has the previous file's exact
+SHA-256 and records the unverified observed person separately from the App
+recorder. Disposal's original native act is durable before removal; completion
+is an App observation. An incomplete disposal blocks recording and offers
+**Finish disposal**, verifying the original export and every remaining source
+or staged file as an unchanged member of it. Members move exclusively to
+`administration/<key>/removal/<original-relative-path>` before checking against
+the original manifest and unlinking; unknown bytes are retained, and empty-only
+directory cleanup never sweeps late files. The original bag/source context is
+rechecked after the durable act publication. A visible but unsynced completion
+is shown as completion durability uncertain, with Finish disposal syncing the
+existing evidence instead of recording another act. No automatic deletion or retry is performed;
+malformed administrative history, extra/changed remaining files and changed
+exports refuse the operation. Disposed identities cannot be re-imported,
+replaced or silently reassociated. Ordinary project/WR reads reject disposed or
+incomplete identities even if source files reappear; retained legacy originals
+never become the record source again. The App remembers observed administrative
+heads; a durable history-started marker detects cold missing/empty event history.
+Missing history must be restored from verified evidence. Unsigned evidence cannot
+detect cold removal of a valid nonempty tail or the whole administrative control
+including its marker, and cannot verify actor identity or outside time.
 
 The fleet coordination log has no App writer yet (DEL-06-01). When it is
 built, the log stays one co-written file in the project,

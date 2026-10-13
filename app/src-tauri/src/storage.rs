@@ -127,7 +127,7 @@ pub fn check_path(path: &Path) -> Result<(), String> {
     }
     Ok(())
 }
-pub struct Ownership(File);
+pub struct Ownership(File, #[allow(dead_code)] Option<Box<Ownership>>);
 impl Drop for Ownership {
     fn drop(&mut self) {
         unsafe {
@@ -136,21 +136,25 @@ impl Drop for Ownership {
     }
 }
 pub fn lock(path: &Path) -> Result<Ownership, String> {
-    flock(path, libc::LOCK_EX).map(|o| o.expect("a blocking lock is always taken"))
+    flock(path, libc::LOCK_EX, false).map(|o| o.expect("a blocking lock is always taken"))
 }
 /// A shared lock, held by each holder for as long as it lives; the OS releases
 /// it when the holding process ends.
 pub fn lock_shared(path: &Path) -> Result<Ownership, String> {
-    flock(path, libc::LOCK_SH).map(|o| o.expect("a blocking lock is always taken"))
+    flock(path, libc::LOCK_SH, false).map(|o| o.expect("a blocking lock is always taken"))
 }
 /// An exclusive lock taken only if no other holder (shared or exclusive, in this
 /// or another process) has the file locked now; `None` otherwise. Never waits.
 pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
-    flock(path, libc::LOCK_EX | libc::LOCK_NB)
+    flock(path, libc::LOCK_EX | libc::LOCK_NB, false)
 }
-fn flock(path: &Path, operation: libc::c_int) -> Result<Option<Ownership>, String> {
+/// Read ownership allows a closed retained payload (for export), while the
+/// stable admission lease still prevents removal during the read.
+pub(crate) fn read_lock(path:&Path)->Result<Ownership,String>{flock(path,libc::LOCK_EX,true).map(|o|o.unwrap())}
+fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Ownership>, String> {
+    let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
-    ensure_directory(path.parent().ok_or("lock has no parent")?)?;
+    ensure_directory_impl(path.parent().ok_or("lock has no parent")?)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -165,7 +169,7 @@ fn flock(path: &Path, operation: libc::c_int) -> Result<Option<Ownership>, Strin
         }
         return Err(format!("owning lock: {error}"));
     }
-    Ok(Some(Ownership(file)))
+    Ok(Some(Ownership(file,admission.map(Box::new))))
 }
 #[cfg(test)]
 thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }
@@ -184,6 +188,10 @@ pub fn sync_dir(path: &Path) -> Result<(), String> {
 }
 /// Persist each newly created directory and its link in the pre-existing ancestor.
 pub fn ensure_directory(path: &Path) -> Result<(), String> {
+    let _admission=crate::records_retention::write_path(path)?;
+    ensure_directory_impl(path)
+}
+fn ensure_directory_impl(path:&Path)->Result<(),String>{
     check_path(path)?;
     let mut missing = vec![];
     let mut ancestor = path;
@@ -237,6 +245,7 @@ fn publish_json_observed(
     attempted_publication: &mut bool,
     write: impl FnOnce(&mut File, &[u8]) -> Result<(), String>,
 ) -> Result<(), String> {
+    let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("evidence has no parent")?;
     ensure_directory(parent)?;
@@ -303,6 +312,7 @@ pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), Capt
 /// Publishes exact `bytes` once (an import's byte-identical copy): temporary
 /// file in the same folder, written and synced, linked without replacing.
 pub(crate) fn create_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("copy has no parent")?;
     ensure_directory(parent)?;
@@ -335,6 +345,7 @@ pub(crate) fn replace_json(path: &Path, value: &Value) -> Result<(), String> {
 }
 /// Add the sole mutable backlink by atomic replacement; all original act facts stay byte-value equivalent.
 pub fn backlink(path: &Path, record_id: &str) -> Result<Value, String> {
+    let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let mut capture: Value =
         serde_json::from_slice(&std::fs::read(path).map_err(|e| e.to_string())?)
@@ -423,11 +434,10 @@ pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
 }
 /// The registered legacy log as it is read now: the imported copy in the
 /// project's store subtree, or before an import the file in place.
-pub fn registered_legacy_log(root: &Path) -> PathBuf {
-    match records_store::home(root) {
-        Ok(home) if home.store_mode => home.attachment.dir.map(|d| d.join(records_store::REGISTERED_COPY)).unwrap_or_else(|| root.join(LEGACY_LOG)),
-        _ => root.join(LEGACY_LOG),
-    }
+pub fn registered_legacy_log(root: &Path) -> Result<PathBuf,String> {
+    let home=records_store::home(root)?;
+    if home.store_mode {Ok(home.attachment.dir.ok_or("records store source identity unavailable")?.join(records_store::REGISTERED_COPY))}
+    else{Ok(root.join(LEGACY_LOG))}
 }
 
 pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {
