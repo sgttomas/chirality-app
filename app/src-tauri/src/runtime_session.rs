@@ -313,7 +313,8 @@ pub fn reviewed_ledger_path(app_user_data: &std::path::Path) -> std::path::PathB
 }
 
 pub const INSTRUCTION_RELEASE: &str = "chirality-app-v4-unqualified-group-a-entry";
-// Exact v4-owned defaults independently READY in V0-INSTRUCTION-TRANCHE.
+// Exact current defaults are identified by ROLE_SET_SOURCE_BINDING.json.
+// Historical V0 review does not cover later default-guidance edits.
 pub const COMMON_DEFAULT: &[u8] = include_bytes!("../resources/instructions/AGENTS.md");
 pub fn role_default(role: crate::role_supply::Role) -> &'static [u8] {
     use crate::role_supply::Role::*;

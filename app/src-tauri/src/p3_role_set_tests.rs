@@ -152,6 +152,29 @@ fn p3_actual_seeded_start_preserves_identity_and_modified_guidance() {
     ] {
         let composition = compose_role(&root, role).unwrap();
         assert_eq!(composition.role_set_identity(), &content(BUNDLED_ROLE_SET));
+        let common = &composition.carried["developerInstructions"]["parts"][0];
+        assert_eq!(common["content"], content(COMMON_DEFAULT));
+        assert_eq!(common["offset"], 0);
+        assert_eq!(common["length"], COMMON_DEFAULT.len());
+        assert_eq!(
+            common["source"]["reviewedDefault"]["content"],
+            content(COMMON_DEFAULT)
+        );
+        assert_eq!(common["source"]["state"], "default");
+        assert_eq!(
+            &composition.text.as_bytes()[..COMMON_DEFAULT.len()],
+            COMMON_DEFAULT
+        );
+        match role {
+            None => assert_eq!(composition.text.as_bytes(), COMMON_DEFAULT),
+            Some(role) => {
+                let part = &composition.carried["developerInstructions"]["parts"][1];
+                let offset = part["offset"].as_u64().unwrap() as usize;
+                assert_eq!(&composition.text.as_bytes()[offset..], role_default(role));
+                assert_eq!(part["content"], content(role_default(role)));
+                assert_eq!(part["length"], role_default(role).len());
+            }
+        }
         let params = composition.start_params().unwrap();
         assert_eq!(params["developerInstructions"], composition.text);
         assert!(params.get("baseInstructions").is_none());
@@ -199,6 +222,14 @@ fn p3_identity_hashes_exact_role_set_bytes_and_task_stays_stated() {
     spaced.push(b'\n');
     let composition =
         Composition::with_role_set(&common, Some((Role::TASK, &task)), true, &spaced).unwrap();
+    assert_eq!(
+        &composition.text.as_bytes()[..COMMON_DEFAULT.len()],
+        COMMON_DEFAULT
+    );
+    assert_eq!(
+        composition.carried["developerInstructions"]["parts"][0]["content"],
+        content(COMMON_DEFAULT)
+    );
     assert_ne!(composition.role_set_identity(), &content(BUNDLED_ROLE_SET));
     assert_eq!(composition.role_set_identity(), &content(&spaced));
     assert_eq!(limit(Role::TASK, &task)["standing"], "stated-not-enforced");

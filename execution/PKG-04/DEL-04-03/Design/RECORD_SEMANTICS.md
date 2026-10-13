@@ -2099,12 +2099,16 @@ It realizes §13.8's agent access and does not change what a record is.
   records the actual original start, not success of its original append
   callback; it is unverified App operational metadata, never authenticated
   supplier provenance or human-act authority.
-- **When it is used (direction).** The tool's description says to use it
+- **When it is used (direction).** The tool's description and bundled common
+  product guidance say to use it
   only when the person or the workflow directs the agent to rebuild context
   from the records; a person's message or a workflow's text gives that
   direction in the conversation. The App cannot tell a directed call from an
   undirected one, so it does not try: every call is recorded and shown, and
   what it returns is bounded and marked.
+  The new default reaches freshly seeded instruction stores; existing editable
+  copies are preserved. Guidance is read at a new conversation's start, never
+  resupplied on resume or fork (ROLE §4.2, §5.5).
 - **Operations** (arguments validated against the tool's input schema;
   unknown keys refused):
 
