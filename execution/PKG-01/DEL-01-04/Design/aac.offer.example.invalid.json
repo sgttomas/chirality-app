@@ -428,7 +428,7 @@
   },
   {
     "case": "INV-OF-11",
-    "reason": "An a15_descriptor offer with two entries: one reviewed draft per a15_descriptor (WR RB-4); several entries come only from one a15_multi_descriptor (R21-3).",
+    "reason": "An a15_descriptor offer with two entries: one reviewed draft or one existing in-place entry per a15_descriptor (WR RB-4); several entries come only from one a15_multi_descriptor (R21-3).",
     "instance": {
       "format": "chirality.aac.offer",
       "formatVersion": "0.3",

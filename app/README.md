@@ -138,6 +138,12 @@ implemented behavior and qualification limits.
     registration are connected to prepared input and source-owned native page
     comparison. Code and synthetic checks do not establish a native person's
     registration, provider uptake or completed workflow execution.
+
+    One existing unregistered library entry can be reviewed in place through
+    **Review this unregistered in-place library entry**, followed by native
+    **Register** confirmation. Its single A15 uses the reviewed `entry:` reference
+    and no prior revision; no draft is created. Only the newly captured hot
+    registration makes it selectable here; quoted earlier history remains separate.
     **Reuse (WR §4.4, §4.6).** The active library's list of registered revisions
     offers **Select revision ‹n›** on a revision whose registration or
     re-confirmation result this App process holds (RC-2) and whose revision

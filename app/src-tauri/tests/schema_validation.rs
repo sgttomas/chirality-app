@@ -172,3 +172,74 @@ fn u_store_2_installation_claim_remains_optional_unverified_a15_metadata() {
         assert!(validator.validate(&other_entry).is_err());
     }
 }
+
+#[test]
+fn a15_single_entry_schema_accepts_only_singular_prior_free_registration() {
+    let mut offer = offer_fixtures()["instances"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|o| o["descriptorKind"] == "a15_descriptor")
+        .unwrap()
+        .clone();
+    let mut capture = capture_fixtures()["instances"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["descriptorKind"] == "a15_descriptor")
+        .unwrap()
+        .clone();
+    for value in [&mut offer, &mut capture] {
+        let old = value["entries"][0]["reviewedDraft"]["draft"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        value["entries"][0]["reviewedDraft"]["draft"] = json!(old.replacen("draft:", "entry:", 1));
+        value["entries"][0]["priorRevision"] = Value::Null;
+    }
+    schema_validation::validate_offer(&offer).unwrap();
+    schema_validation::validate_capture(&capture).unwrap();
+    for mode in [
+        "single-two",
+        "multi-one",
+        "wrong-reference",
+        "prior",
+        "re-confirm",
+    ] {
+        let mut o = offer.clone();
+        let mut c = capture.clone();
+        for value in [&mut o, &mut c] {
+            match mode {
+                "single-two" => {
+                    let entry = value["entries"][0].clone();
+                    value["entries"].as_array_mut().unwrap().push(entry);
+                }
+                "multi-one" => value["descriptorKind"] = json!("a15_multi_descriptor"),
+                "wrong-reference" => {
+                    value["entries"][0]["reviewedDraft"]["draft"] =
+                        json!("folder:project:sample@bytes")
+                }
+                "prior" => {
+                    value["entries"][0]["priorRevision"] =
+                        capture_fixtures()["instances"][0]["entries"][0]["priorRevision"].clone()
+                }
+                "re-confirm" => {
+                    value["purpose"] = json!(
+                        "make it available again in this App session from the project library"
+                    )
+                }
+                _ => unreachable!(),
+            }
+        }
+        if mode == "multi-one" {
+            o["wording"] = json!("register workflow revisions");
+            o["purpose"] = json!("make them available in the project library");
+            c["purpose"] = o["purpose"].clone();
+        }
+        if mode == "re-confirm" {
+            o["wording"] = json!("re-confirm workflow revision for use");
+        }
+        assert!(schema_validation::validate_offer(&o).is_err(), "{mode}");
+        assert!(schema_validation::validate_capture(&c).is_err(), "{mode}");
+    }
+}
