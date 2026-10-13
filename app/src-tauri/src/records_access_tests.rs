@@ -507,6 +507,13 @@ fn reads_are_recorded_in_the_projects_store_folder_before_and_after_import() {
     std::fs::write(f.read_log(), "{\"earlier\":\"App-wide read\"}\n").unwrap();
     let app_wide = std::fs::read(f.read_log()).unwrap();
     let cap = RecordsCapability::new(&p).unwrap().with_legacy_read_log(&f.read_log());
+    // An agent's read never mints the project's identity: refused visibly.
+    let unminted = cap.answer(&call(9, json!({"operation":"list_runs"})), Some(p.to_str().unwrap()));
+    assert_eq!(unminted["success"], false);
+    assert!(returned(&unminted)["refused"].as_str().unwrap().contains("no records store identity yet"), "{unminted}");
+    assert!(!p.join(crate::records_store::PROJECT_LINK).exists(), "nothing minted");
+    // The App mints it when it opens the project.
+    crate::records_store::attach(&p, true).unwrap();
     let before = cap.answer(&call(1, json!({"operation":"read_run","run":"run:old"})), Some(p.to_str().unwrap()));
     assert_eq!(before["success"], true, "{before}");
     assert!(before["contentItems"][0]["text"].as_str().unwrap().contains("MARK-LEGACY"), "the legacy records are read in place");

@@ -1304,16 +1304,59 @@ fn unsafe_account_entries_are_never_imported_as_clean_copies() {
     assert!(crate::records_store::notes(&p).iter().filter(|n| n.contains("not read")).count() >= 2);
 }
 #[test]
-fn an_unavailable_records_store_refuses_visibly_and_relocates_nothing() {
+fn an_unavailable_records_store_reads_in_place_refuses_writes_and_relocates_nothing() {
     let scratch = Scratch::new();
     let p = scratch.project();
+    legacy_account(&p, &format!("{KEY}.json"), &account("ra:legacy"));
+    let before = snapshot(&p.join(LEGACY_DIRECTORY));
     crate::records_store::use_store_for_test(Some(Err("no records store configured".into())));
-    let opened = ProjectRouteStore::open(&p).unwrap_err();
+    // As the §13.7 records: a folder with no link is read in place.
+    let reader = ProjectRouteStore::open(&p).unwrap();
+    let discovery = reader.discover();
+    let write = reader.write(&account("ra:new")).unwrap_err();
     let for_write = ProjectRouteStore::open_for_write(&p).unwrap_err();
     crate::records_store::use_store_for_test(None);
-    for e in [opened, for_write] {
+    assert_eq!(discovery.accounts.len(), 1);
+    assert!(discovery.location.contains("records store unavailable"), "{}", discovery.location);
+    for e in [write, for_write] {
         assert_eq!(e.kind, ErrorKind::RecordingRefused);
         assert!(e.detail.contains("records store unavailable"), "{e}");
     }
-    assert!(!p.join(".chirality").exists(), "nothing written in the project");
+    assert_eq!(snapshot(&p.join(LEGACY_DIRECTORY)), before, "nothing written in the project");
+    assert!(!p.join(crate::records_store::PROJECT_LINK).exists());
+    // A linked project with the store unavailable is an error, not read in place.
+    let linked = scratch.0.join("linked");
+    fs::create_dir(&linked).unwrap();
+    crate::records_store::attach(&linked, true).unwrap();
+    crate::records_store::use_store_for_test(Some(Err("no records store configured".into())));
+    let refused = ProjectRouteStore::open(&linked).unwrap_err();
+    crate::records_store::use_store_for_test(None);
+    assert_eq!(refused.kind, ErrorKind::RecordingRefused);
+}
+/// A writer that passed the permission check and then waited behind an
+/// import that stopped after its "started" line writes nothing: the
+/// permission is checked again once the writer lock is held.
+#[test]
+fn a_writer_waiting_behind_an_import_that_did_not_complete_writes_nothing() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    store.write(&account("ra:first")).unwrap();
+    let dir = store.accounts_directory().parent().unwrap().parent().unwrap().to_path_buf();
+    // Held as an import holds it, exclusively.
+    let import_lock = crate::storage::lock(&dir.join(".writer.lock")).unwrap();
+    let writer = std::thread::spawn(move || store.write(&account("ra:waiting")));
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    // The import stops after its "started" line (a late import: the store held the records).
+    let line = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"started","importId":"import:interrupted","at":"2026-10-12T00:00:00.000Z","root":p.display().to_string(),"method":"sha-256 of the exact bytes","census":[],"storeHeld":true,"resumes":null});
+    let mut text = serde_json::to_vec(&line).unwrap();
+    text.push(b'\n');
+    use std::io::Write as _;
+    fs::OpenOptions::new().create(true).append(true).open(dir.join("imports.jsonl")).unwrap().write_all(&text).unwrap();
+    drop(import_lock);
+    let refused = writer.join().unwrap().unwrap_err();
+    assert_eq!(refused.kind, ErrorKind::RecordingRefused, "{refused}");
+    assert!(refused.detail.contains("import incomplete"), "{refused}");
+    let reader = ProjectRouteStore::open(&p).unwrap();
+    assert_eq!(reader.discover().accounts.len(), 1, "only the first account");
 }

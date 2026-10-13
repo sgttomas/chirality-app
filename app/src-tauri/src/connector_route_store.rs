@@ -666,16 +666,18 @@ mod platform {
         /// accept any of the project's records (RS §13.8 Failures).
         fn writable(&self) -> Result<crate::storage::Ownership> {
             let refused = |e: String| StoreError::new(ErrorKind::RecordingRefused, format!("connector account not written: {e}"));
-            let current = crate::records_store::write_dir(&self.root).map_err(refused)?;
+            // A place read in place is never written, and checking it mints nothing.
             let Some(dir) = &self.store_dir else {
-                return Err(refused(format!("the accounts are read in place from the project ({}); reopen the project's accounts to write in the records store", self.location)));
+                return Err(refused(format!("the accounts are read in place from the project ({}); nothing is written there", self.location)));
             };
+            let current = crate::records_store::write_dir(&self.root).map_err(refused)?;
             if &current != dir {
                 return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's records store folder changed since its accounts were opened; reopen"));
             }
             // Shared: account writers do not wait on each other (distinct
-            // storage keys), only on an import, which holds the lock exclusively.
-            crate::storage::lock_shared(&dir.join(".writer.lock")).map_err(refused)
+            // storage keys), only on an import, which holds the lock
+            // exclusively; the permission is checked again once it is held.
+            crate::records_store::writer_lock(dir, true).map_err(refused)
         }
         pub fn resolved_project(&self) -> &Path {
             &self.root

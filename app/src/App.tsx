@@ -375,7 +375,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
       {project.notImported > 0 && <p>
-        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} §13.7 record file(s)</button>{" "}
+        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}
       {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && <p>

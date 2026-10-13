@@ -26,7 +26,9 @@ Project identity). Writes go only to the store: reading opens the accounts
 without minting a project identity, a writer opens them attaching the
 project, and a store that would refuse the project's records (unavailable,
 no attachable identity, records waiting for import) refuses the account
-visibly. Accounts an earlier build wrote in the project at
+visibly; a writer that waited for the project's writer lock checks this
+again once it holds it. With no store, the accounts of a project with no
+link are read in place, as its other records are, and nothing is written. Accounts an earlier build wrote in the project at
 `.chirality/records/connectors/route-accounts/<storage-key>.json` are read in
 place, and no account is written, until the person imports them with the
 project's other records (RS §13.8 Existing records): every entry is copied
@@ -40,6 +42,12 @@ different file. A format 0.5 answer names its base by the account's
 canonical name in the earlier layout, which its schema fixes; in the store
 that name is read at the same file name in the project's store subtree, and
 the base is still checked by its hash and length.
+The accounts now sit outside the agent's workspace (DEL-07-02 REQ-004,
+AC-004): the file-native recovery route still runs from the project's
+ordinary source files, which stay in the project, and does not need these
+accounts; an agent reconstructing without the App does not read them, since
+nothing points it to the store (the path is readable, Codex's sandbox does
+not exclude reads, but it is not part of the route).
 This selects connector account location only, resolving the CFB §9 placement
 question when concurrence and review are complete. It does not select fleet
 paths, act logs, captures, provider storage, a common service or host allocation.

@@ -686,17 +686,50 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, true).map_err(|e| format!("nothing written: {e}"))?;
     let dir = attachment.dir.clone().ok_or_else(|| format!("no project identity in the records store; nothing written: {}", attachment.refusal.clone().unwrap_or_default()))?;
-    let state = imports(&dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
+    write_permitted(&dir, &attachment.root)?;
+    Ok(dir)
+}
+/// Whether the project's store folder may be written now: no import is
+/// incomplete, and no project records wait for one.
+fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
+    let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
     if let Some(started) = state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
     }
-    if !store_holds(&dir) {
-        let legacy = legacy_census(&attachment.root)?;
+    if !store_holds(dir) {
+        let legacy = legacy_census(root)?;
         if !legacy.is_empty() {
-            return Err(format!("import needed: {} §13.7 record file(s) in this project are not in the records store; import them before recording (nothing written; no history is split across two homes)", legacy.len()));
+            return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
         }
     }
-    Ok(dir)
+    Ok(())
+}
+/// The project's writer lock (shared for writers that do not wait on each
+/// other), with the write permission checked again once it is held: an
+/// import may have started, or stopped after only its "started" line, while
+/// the writer waited. `dir` is a store project folder attached in this process.
+pub(crate) fn writer_lock(dir: &Path, shared: bool) -> Result<crate::storage::Ownership, String> {
+    let path = dir.join(".writer.lock");
+    let lock = if shared { crate::storage::lock_shared(&path)? } else { crate::storage::lock(&path)? };
+    let root = root_for_dir(dir).ok_or_else(|| format!("records store folder {} belongs to no project opened in this process; nothing written", dir.display()))?;
+    write_permitted(dir, &root).map_err(|e| format!("nothing written: {e}"))?;
+    Ok(lock)
+}
+/// The files waiting for import, by kind, for a person to read.
+fn describe(files: &[LegacyFile]) -> String {
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for f in files {
+        let kind = match f.copy.split('/').next().unwrap_or_default() {
+            "runs" | "acts" => "run/act log(s)",
+            "workflow" => "WR workflow record(s)",
+            "captures" => "capture file(s)",
+            "legacy" => "registered legacy log",
+            "connectors" => "connector route account file(s)",
+            _ => "other record file(s)",
+        };
+        *counts.entry(kind).or_default() += 1;
+    }
+    counts.iter().map(|(k, n)| format!("{n} {k}")).collect::<Vec<_>>().join(", ")
 }
 
 /// A §13.7 project record file in place, and where its copy goes.
@@ -711,6 +744,10 @@ pub(crate) struct LegacyFile {
     /// symbolic link, hard-linked or not a regular file): it is reported as
     /// a conflict and is not read from the store.
     pub refusal: Option<String>,
+    /// The entry's stamp (device, inode, size, times) at the census, not
+    /// following links; the import copies it only if the file it opens is
+    /// still this one.
+    pub stamp: Value,
 }
 /// The §13.7 project records in the project: run and act logs, WR WP-1
 /// records, and capture evidence (with pending submissions) other than A15
@@ -752,18 +789,18 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
                 todo.push(path);
             } else if path.extension().is_some_and(|e| e == "jsonl") {
                 let inner = path.strip_prefix(&records).unwrap().to_string_lossy().into_owned();
-                out.push(LegacyFile { rel: rel(&path), copy: inner, original: path, refusal: None });
+                out.push(LegacyFile { rel: rel(&path), copy: inner, original: path, refusal: None, stamp: Value::Null });
             }
         }
     }
     for (path, is_dir) in list(&records.join("acts"))? {
         if !is_dir && path.extension().is_some_and(|e| e == "jsonl") {
-            out.push(LegacyFile { rel: rel(&path), copy: format!("acts/{}", name(&path)), original: path, refusal: None });
+            out.push(LegacyFile { rel: rel(&path), copy: format!("acts/{}", name(&path)), original: path, refusal: None, stamp: Value::Null });
         }
     }
     for (path, is_dir) in list(&records.join("workflow"))? {
         if !is_dir && path.extension().is_some_and(|e| e == "json") {
-            out.push(LegacyFile { rel: rel(&path), copy: format!("workflow/{}", name(&path)), original: path, refusal: None });
+            out.push(LegacyFile { rel: rel(&path), copy: format!("workflow/{}", name(&path)), original: path, refusal: None, stamp: Value::Null });
         }
     }
     for (dir, prefix, pending) in [(captures.clone(), "captures", false), (captures.join("pending"), "captures/pending", true)] {
@@ -772,7 +809,7 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
                 continue;
             }
             if !is_a15(&path, pending) {
-                out.push(LegacyFile { rel: rel(&path), copy: format!("{prefix}/{}", name(&path)), original: path, refusal: None });
+                out.push(LegacyFile { rel: rel(&path), copy: format!("{prefix}/{}", name(&path)), original: path, refusal: None, stamp: Value::Null });
             }
         }
     }
@@ -780,9 +817,19 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let registered = root.join(crate::storage::LEGACY_LOG);
     crate::storage::check_path(&registered)?;
     if registered.is_file() {
-        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None });
+        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None, stamp: Value::Null });
     }
     out.extend(connector_census(root)?);
+    for file in &mut out {
+        // A name that is not UTF-8 would be copied under a lossy name that
+        // could collide with another: it is not copied.
+        if file.refusal.is_none() && file.original.strip_prefix(root).map_or(true, |r| r.to_str().is_none()) {
+            file.refusal = Some("its name is not UTF-8, so its copy could not keep it exactly; not copied".into());
+        }
+        if let Ok(meta) = std::fs::symlink_metadata(&file.original) {
+            file.stamp = stamp_value(&meta);
+        }
+    }
     Ok(out)
 }
 /// The DEL-07-02 connector route accounts in the project (§13.8 "Split by who
@@ -815,7 +862,7 @@ fn connector_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
         } else {
             None
         };
-        out.push(LegacyFile { rel: format!("{}/{name}", crate::connector_route_store::LEGACY_DIRECTORY), copy: format!("{CONNECTOR_COPY}/{name}"), original: path, refusal });
+        out.push(LegacyFile { rel: format!("{}/{name}", crate::connector_route_store::LEGACY_DIRECTORY), copy: format!("{CONNECTOR_COPY}/{name}"), original: path, refusal, stamp: Value::Null });
     }
     out.sort_by(|a, b| a.rel.cmp(&b.rel));
     Ok(out)
@@ -826,13 +873,18 @@ pub(crate) const CONNECTOR_COPY: &str = "connectors/route-accounts";
 /// The project's records read log (§13.9) in its store folder.
 pub(crate) const READ_LOG: &str = "reads/records-reads.jsonl";
 
-/// §13.9: the project's records read log, in its store folder. The project is
-/// attached (an identity minted if it has none). The read log is the App's
-/// own log, not §13.7 history, so it is written before an import too; a
-/// project that cannot be attached refuses, and nothing is written elsewhere.
+/// §13.9: the project's records read log, in its store folder. The read log
+/// is the App's own log, not §13.7 history, so it is written before an import
+/// too. An agent's call never mints the project's identity (the App mints it
+/// when it opens the project) and takes no store-wide lock: a project with no
+/// identity yet, or one that cannot be attached, refuses, and nothing is
+/// written elsewhere.
 pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
-    let attachment = attach(root, true).map_err(|e| format!("records store unavailable: {e}"))?;
-    let dir = attachment.dir.ok_or_else(|| format!("no project identity in the records store: {}", attachment.refusal.unwrap_or_default()))?;
+    let attachment = attach(root, false).map_err(|e| format!("records store unavailable: {e}"))?;
+    let dir = attachment.dir.ok_or_else(|| match attachment.refusal {
+        Some(refusal) => format!("no project identity in the records store: {refusal}"),
+        None => "the project has no records store identity yet (the App mints it when it opens the project; an agent's read does not); nothing recorded".into(),
+    })?;
     Ok(dir.join(READ_LOG))
 }
 
@@ -857,7 +909,20 @@ pub(crate) struct AccountsPlace {
 /// cannot attach, or one with no identity yet, is read in place and written
 /// nowhere.
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
-    let (store, _) = opened()?;
+    // As `home`: with no store, a folder with no link is read in place and
+    // written nowhere; a linked project with the store unavailable is an error.
+    let store = match opened() {
+        Ok((store, _)) => store,
+        Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
+            return Ok(AccountsPlace {
+                anchor: root.to_path_buf(),
+                parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
+                store_dir: None,
+                location: format!("the project, read in place; nothing written: records store unavailable: {e}"),
+            });
+        }
+        Err(e) => return Err(e),
+    };
     let attachment = attach(root, mint)?;
     let in_place = || AccountsPlace {
         anchor: attachment.root.clone(),
@@ -925,6 +990,11 @@ thread_local! {
     static IMPORT_BAD_READBACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 #[cfg(test)]
+thread_local! {
+    /// Runs once between the import's census and its first read (a swap).
+    pub(crate) static AFTER_CENSUS: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = std::cell::RefCell::new(None);
+}
+#[cfg(test)]
 pub(crate) fn interrupt_import_for_test(after: Option<usize>, bad_readback: bool) {
     IMPORT_STOP_AFTER.with(|c| c.set(after));
     IMPORT_BAD_READBACK.with(|c| c.set(bad_readback));
@@ -933,17 +1003,35 @@ fn stamp_value(m: &std::fs::Metadata) -> Value {
     use std::os::unix::fs::MetadataExt;
     json!({"dev":m.dev(),"ino":m.ino(),"size":m.len(),"mtime":m.mtime(),"mtimeNs":m.mtime_nsec(),"ctime":m.ctime(),"ctimeNs":m.ctime_nsec()})
 }
-/// Reads a file whose stamp did not change while it was read.
-fn read_stable(path: &Path) -> Result<(Vec<u8>, std::fs::Metadata), String> {
-    for _ in 0..3 {
-        let before = std::fs::metadata(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let after = std::fs::metadata(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        if stamp_value(&before) == stamp_value(&after) && after.len() == bytes.len() as u64 {
-            return Ok((bytes, after));
-        }
+/// Reads an import original through one descriptor opened without following
+/// links: it must be a regular, single-link file with the stamp the census
+/// recorded, unchanged while it is read. Anything else is refused, never
+/// copied: an entry swapped for a link, a hard link or other bytes after the
+/// census would otherwise be copied as a clean file.
+fn read_stable(path: &Path, census: &Value) -> Result<(Vec<u8>, std::fs::Metadata), String> {
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+        .open(path)
+        .map_err(|e| format!("{} could not be opened without following links ({e}); not copied", path.display()))?;
+    let before = file.metadata().map_err(|e| format!("{}: {e}", path.display()))?;
+    if !before.is_file() {
+        return Err(format!("{} is not a regular file; not copied", path.display()));
     }
-    Err(format!("{} changed while it was read", path.display()))
+    if before.nlink() != 1 {
+        return Err(format!("{} is a hard-linked file; not copied (a copy would be a clean file)", path.display()));
+    }
+    if stamp_value(&before) != *census {
+        return Err(format!("{} changed since the import's census (another file or other bytes); not copied", path.display()));
+    }
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).map_err(|e| format!("{}: {e}", path.display()))?;
+    let after = file.metadata().map_err(|e| format!("{}: {e}", path.display()))?;
+    if stamp_value(&before) != stamp_value(&after) || after.len() != bytes.len() as u64 {
+        return Err(format!("{} changed while it was read; not copied", path.display()));
+    }
+    Ok((bytes, after))
 }
 
 /// RS §13.8 "Existing records": the person's explicit import of this
@@ -974,7 +1062,11 @@ pub fn import(root: &Path) -> Result<Value, String> {
             conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":reason}));
             continue;
         }
-        match read_stable(&file.original) {
+        #[cfg(test)]
+        if let Some(hook) = AFTER_CENSUS.with(|h| h.borrow_mut().take()) {
+            hook();
+        }
+        match read_stable(&file.original, &file.stamp) {
             Ok((bytes, meta)) => read.push((file, sha256_hex(&bytes), bytes, meta)),
             Err(e) => conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":e})),
         }
@@ -1188,7 +1280,7 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
     };
     if !home.store_mode {
         if !census.is_empty() {
-            notes.push(format!("import needed: {} §13.7 record file(s) are read in place; new recording is refused until they are imported into the records store", census.len()));
+            notes.push(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(&census)));
         }
         return notes;
     }
@@ -1252,7 +1344,8 @@ pub fn status(project: Option<&Path>) -> Value {
                 json!({"attachment":home.attachment.view(),
                     "reading":if home.store_mode {"records store"} else if !census.is_empty() {"§13.7 records in place (import needed)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
-                    "legacyFiles":census.len(),"notImported":to_import,"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
+                    "legacyFiles":census.len(),"notImported":to_import,
+                    "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
             }
             Err(e) => json!({"state":"unavailable","error":e}),
         };

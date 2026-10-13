@@ -607,7 +607,8 @@ implemented behavior and qualification limits.
     agent gets an answer, the call (returned or refused) is written to the
     read log in the project's records store subtree
     (`reads/records-reads.jsonl`) and synced, so a read that cannot be
-    recorded (no store, or a project the store cannot attach) returns
+    recorded (no store, a project with no identity yet, which an agent's
+    read never mints, or a project the store cannot attach) returns
     nothing. Reads are recorded there before the project's records are
     imported too. The App-wide `runtime/records-reads.jsonl` of earlier
     builds holds reads of several projects, so it is not imported or split:
@@ -809,11 +810,13 @@ library evidence, never part of the project's record set. The override
 store inside the project or a Codex home is refused. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
-The fleet coordination log has no App writer yet (DEL-06-01): when it is
-built, its App-written entries go in the store (`fleet/coordination.fleet.jsonl`)
-and the entries agents and the person write stay in the project's
-`.chirality/fleet/coordination.fleet.jsonl` (FLEET_RECORDS FR-D1); that file is
-not the registered legacy log `records/coordination.rs.jsonl`.
+The fleet coordination log has no App writer yet (DEL-06-01). When it is
+built, the log stays one co-written file in the project,
+`.chirality/fleet/coordination.fleet.jsonl`, with every entry, and the App
+also records its own observations in the store (`fleet/coordination.fleet.jsonl`),
+whose copy governs inside the App (owner: "Write to both (Recommended)";
+FLEET_RECORDS FR-D1). File-native readers read the project file as it is. That
+file is not the registered legacy log `records/coordination.rs.jsonl`.
 Library A15 allocation uses the library's
 `.chirality/records/acts.jsonl` and `.chirality/captures/`; its native registration
 witness remains unfinished. There is no registration attempt journal (owner
