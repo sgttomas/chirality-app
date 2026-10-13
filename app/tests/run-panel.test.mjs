@@ -367,3 +367,42 @@ test('tool-permission settlements and model turns feed no facet; a lost acknowle
   const html=h(StandingFacets,{facets:after});
   assert.ok(!/\bchecked\b|verified|approved|accepted|relied|passed|permitted/i.test(html),html);
 });
+
+test('post-end A4/A6/A7 observations stay against the ended arrival and never alter its disposition or output facets',()=>{
+  const a=arrival('CP-rely',1,'item:end/turn/file','output summary: file out/summary.md');
+  const final=entry('disposition_change',{arrival:{checkpoint:'CP-rely',arrivalOrdinal:1},disposition:'waiting',performanceOrdinal:0});
+  const observations=['A4','A6','A7'].map((actKind,i)=>entry('act_after_run_end',{arrival:{checkpoint:'CP-rely',arrivalOrdinal:1},act:{recordId:`later-${i}`,actKind,capturedAt:'2026-10-13T14:00:00Z',capturingSurface:'app_act_control'}}));
+  const records=[a,final,entry('run_ended',{cause:'ended by the person',waitingArrivals:[{checkpoint:'CP-rely',arrivalOrdinal:1}]}),...observations];
+  const html=h(ArrivalRecord,{arrival:a,all:records});
+  assert.ok(html.includes('reached; act not yet recorded'));for(const kind of ['A4','A6','A7'])assert.ok(html.includes(`After run end: ${kind}`));
+  assert.ok(html.includes('The ended arrival disposition is unchanged.'));
+  const out={name:'summary',form:'file',gating_checkpoint:'CP-rely',promised_standing:['relied on by the person']};
+  const before=outputStanding(out,run({lifecycle:{records:records.slice(0,3)}}));
+  assert.deepEqual(outputStanding(out,run({lifecycle:{records}})),before);
+  const pending={...observations[0],written:false,limit:'source unavailable; original observation held'};
+  assert.ok(h(ArrivalRecord,{arrival:a,all:[a,final,pending]}).includes('Not yet written to the run record'));
+  const other={...observations[0],body:{...observations[0].body,arrival:{checkpoint:'CP-rely',arrivalOrdinal:2}}};
+  assert.ok(!h(ArrivalRecord,{arrival:a,all:[a,final,other]}).includes('After run end:'));
+});
+
+test('actual host tick DTO presents a post-end observation against its final waiting arrival',()=>{
+  const {spawnSync}=createRequire(import.meta.url)('node:child_process');
+  const {fileURLToPath}=createRequire(import.meta.url)('node:url');
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','runtime_session::workflow_root_tests::after_run_end_actual_tick_reopen_and_new_run_keep_finality','--','--exact','--nocapture','--test-threads=1'],{cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'}});
+  assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const line=proc.stdout.split('\n').find(line=>line.includes('AFTER_END_DTO:'));assert.ok(line);
+  const dto=JSON.parse(line.slice(line.indexOf('AFTER_END_DTO:')+'AFTER_END_DTO:'.length));
+  const records=dto.afterRunEnd.runs[0].records;const a=records.find(r=>r.kind==='checkpoint_arrival');
+  const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/After run end: A7/);assert.match(html,/reached; act not yet recorded/);assert.match(html,/ended arrival disposition is unchanged/);
+  assert.equal(records.filter(r=>r.kind==='act_after_run_end').length,1);assert.equal(records.filter(r=>r.kind==='act_counted').length,0);
+});
+
+test('actual reopened corrected-arrival DTO preserves CE16 history without assigning it to the corrected subject',()=>{
+  const {spawnSync}=createRequire(import.meta.url)('node:child_process');const {fileURLToPath}=createRequire(import.meta.url)('node:url');
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','runtime_session::workflow_root_tests::after_run_end_persisted_observation_is_not_rebound_to_corrected_subject','--','--exact','--nocapture','--test-threads=1'],{cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'}});assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const line=proc.stdout.split('\n').find(line=>line.includes('AFTER_END_CORRECTED_DTO:'));assert.ok(line);const dto=JSON.parse(line.slice(line.indexOf('AFTER_END_CORRECTED_DTO:')+'AFTER_END_CORRECTED_DTO:'.length));
+  const records=dto.afterRunEnd.runs[0].records;const corrected=records.find(r=>r.kind==='checkpoint_arrival'&&r.corrects);
+  const html=h(ArrivalRecord,{arrival:corrected,all:records});assert.match(html,/out\/new.md/);assert.doesNotMatch(html,/After run end: A7/);assert.match(html,/Post-end subject association not established/);
+  const {WorkflowRootPanel}=load('App.tsx');const full=h(WorkflowRootPanel,{data:dto,host:{state:'ready',generation:{},threads:[]},act:async()=>{}});
+  assert.doesNotMatch(full,/After run end: A7/);assert.match(full,/Recorded post-end source history/);assert.ok(full.includes('act_after_run_end'),'raw CE16 remains inspectable');assert.match(full,/Post-end subject association not established/);
+});

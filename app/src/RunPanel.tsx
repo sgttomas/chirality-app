@@ -107,6 +107,11 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
   const b = arrival?.body ?? {};
   const name = text(b.checkpoint);
   const related = (kind: string) => all.filter((e: Json) => e?.kind === kind && sameArrival(e?.body?.arrival, name, b.arrivalOrdinal));
+  const postEnd = related("act_after_run_end");
+  // CE-16 persists only a coordinate. A corrected/nonunique arrival does not
+  // prove that coordinate still denotes this subject; raw history stays visible.
+  const coordinateArrivals = all.filter((e: Json) => e?.kind === "checkpoint_arrival" && text(e?.body?.checkpoint) === name && e?.body?.arrivalOrdinal === b.arrivalOrdinal);
+  const postEndBound = coordinateArrivals.length === 1 && !arrival?.corrects && !arrival?.afterRunEndRelationLimit;
   const changes = related("disposition_change");
   const requests = related("act_request");
   const latest = changes.length ? changes[changes.length - 1].body?.disposition : undefined;
@@ -119,6 +124,8 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
       ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
       : line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
     {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
+    {!postEndBound && postEnd.length>0 && line("end-limit", `Post-end subject association not established for this arrival: ${text(arrival?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.`)}
+    {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, `After run end: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control. The ended arrival disposition is unchanged. ${writtenNote(c, all)}`))}
     {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, `Act not counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)}: ${text(c.body?.reason)}${c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.`))}
     {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Declined by the person (${text(c.body?.declinedEventRef)}).`))}
     {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
@@ -179,6 +186,8 @@ const readCheckpointEntry = (r: Json): boolean => {
     case "checkpoint_arrival": return typeof b?.checkpoint === "string" && b?.event?.source === "native_item";
     case "disposition_change": return b?.disposition === "waiting" || readActEntry(r);
     case "continued_past": return typeof b?.arrival?.checkpoint === "string";
+    // RE-2: this is a later act observation, with no ended-run facet change.
+    case "act_after_run_end": return str(b?.arrival?.checkpoint) && Number.isInteger(b?.arrival?.arrivalOrdinal) && b.arrival.arrivalOrdinal >= 1 && ["A4", "A6", "A7"].includes(b?.act?.actKind) && str(b?.act?.recordId) && str(b?.act?.capturedAt) && b?.act?.capturingSurface === "app_act_control";
     default: return readActEntry(r);
   }
 };

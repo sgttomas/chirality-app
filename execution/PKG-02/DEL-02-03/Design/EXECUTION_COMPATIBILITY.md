@@ -603,9 +603,9 @@ While the run is live, CE-10 is recorded for the App-file acts that answer an
 arrival's latest performance, with the before- and after-resume labels of
 §2.4.3, and an act on the current content of a referent lapsed after the resume
 point performs the arrival again (RC-8, JA-1). Other later acts on decided
-arrivals (§4.6), and lapses and acts after run end (CE-10 *after
-run end*, CE-16) are not yet recorded: the App does not observe a run after its
-end. While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
+arrivals (§4.6) and lapses after run end (CE-10 *after run end*) are not yet
+recorded. A distinct ended-run observer now records later verified App-file acts
+as CE-16, without changing ended dispositions (RE-2; current conditions below). While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
 name its conversation and CE-14 for a later readable recovery read; a deciding
 loss names no arrival and writes no *unknown* label, because which arrival a lost
 production would have been is not established. A loss or recovery of an App
@@ -2390,6 +2390,48 @@ only. It would establish no host implementation, round-trip execution,
 provider adoption or human act (SoW VER-007; AX-002).
 
 ## Current implementation conditions
+
+**After-run-end act observations (RE-2 / CE-16).** The Rust project record tick
+reads recorded App ended-run sources independently of the live recorder's Open
+guard, including after reopening and without a running supplier. It uses the
+shared current verified App-file A4/A6/A7 act read; capture seals and record
+relations have their existing limits and do not verify personal identity or
+performance. The act's capture time must be strictly after the recorded run-end
+observation, with comparable RFC3339 instants; equal or unorderable times are
+named limits. Discovery time remains the new entry's `observedAt`. The association
+uses the ended arrival's historical project-relative file subject, without
+following a current alias or requiring today's file to exist. Corrected,
+unresolved or conflicting opened/ended/arrival sources and nonunique arrival
+coordinates cannot supply a new derived relation; readable originals remain
+historical display evidence.
+
+One exact-subject candidate index references the shared immutable act observation.
+Owning run projections are retained by indexed source revision; unchanged ticks
+still check record/capture/name/key freshness, but do not decode run bodies or
+rebuild candidate/arrival relations. Only checkpoint presentation/binding entries
+are retained from an eligible owning run log. A source-scoped owning control
+serializes post-end publication; source and current evidence are rechecked before
+writing. Exact persisted arrival/act relations deduplicate after relaunch. A
+failed or uncertain write retains its original reserved record identity and first
+observation time in this process; retry uses existing W-2 recovery and late-write
+limits, and project closure refuses while those outputs remain pending. Process
+loss can lose an unpublished observation; reopening rediscovers eligible acts
+with a new observation time, without reconstructing the lost first observation.
+The unsigned log/chain and source readers retain their stated limits.
+
+`ArrivalRecord` labels CE-16 **After run end** for hot and reopened source views,
+including pending/late-write limits. A coordinate-only persisted CE-16 is not
+attributed to a corrected or nonunique arrival subject, or one whose source
+relation is unresolved. The presentation names that association limit and keeps
+the raw post-end source history inspectable; no chronology or new subject binding
+is inferred from a later correction. No act is counted, disposition or lapse is
+changed, native item/custody event is processed, or arrival is created by this
+observer. A new or continued run receives no old arrival/act observations; its
+own arrival can count an earlier still-current act under the existing SP-6 rule.
+The maintained synthetic supplier/Host/tick/reopen fixtures exercise A4/A6/A7,
+capture-time and historical-subject boundaries, warm cross-log corrections,
+prewrite evidence change and durable write recovery; they are not a person-act
+or live-provider witness.
 
 **Checkpoint capture observations.** The checkpoint reader receives the source
 actually attempted by the shared file-act capture reader, rather than resolving

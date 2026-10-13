@@ -432,10 +432,17 @@ code_paths:
 - app/src-tauri/src/role_supply.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/checkpoint_recorder.rs
+- app/src-tauri/src/after_run_end.rs
+- app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/records_index.rs
+- app/src/RunPanel.tsx
+- app/src/App.tsx
 - app/src-tauri/src/file_act_view.rs
 checks:
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs
+- app/src-tauri/src/after_run_end_tests.rs
+- app/tests/run-panel.test.mjs
 - app/tests/validate-records.test.mjs
 - execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json
 - execution/PKG-02/DEL-02-03/Design/prototype/checkpoint_recorder.py
