@@ -26,6 +26,15 @@ Shared meanings and host-specific operations offer a route into domain
 applications. Their value depends on useful participation and the effort
 required to achieve it.
 
+This essay develops the operative view of the work introduced in the
+[shared introduction][S1]. Root asks what responsible participation should
+preserve; the App asks how those commitments become usable activity; SWBPIPE
+examines the resulting means in a particular engineering practice. The emphases
+do not divide philosophy into three separate territories. Each view asks what
+the work concerns, what supports its claims, how it proceeds and what matters.
+The [support-arrangement example][S2] follows these questions through one
+illustrative revision, rather than reporting a completed integration witness.
+
 ## 1. The problem behind the application
 
 An agent working beside an application can give advice about what a person
@@ -72,8 +81,18 @@ committed engagement with what the work means, what matters and what they will
 stand behind. It shapes the question before any final acceptance occurs.[R2]
 
 Continuing authority gives an agent room to investigate and repair while
-keeping consequential choices attributable. The appropriate boundary depends
-on the activity.
+keeping consequential choices attributable. An assignment or adopted policy
+supplies authorization; a host's available tools and permissions supply means
+and limits for acting. Capability alone authorizes nothing. The appropriate
+boundary depends on the activity.
+
+The relation among the views is iterative. A trial can reveal that a workflow
+represents the wrong subject, that its evidence is insufficient, or that its
+original purpose would impose more burden than benefit. That finding returns
+to the representation, the method or the purpose it challenges. The person
+and agent can revise authorized means directly; changes to adopted commitments
+belong to the authority that holds them. Feedback is thus part of purposeful
+work, rather than a final evaluation attached to a fixed design.
 
 ## 3. Why making methods is the first exemplar
 
@@ -126,7 +145,9 @@ draft changed during reading, and refuses to silently try another version.[I1]
 
 Trial fidelity answers whether the intended method was supplied in the relevant
 form. Method quality and the model's use of that material require further
-examination.
+examination. A faithful trial can expose a poor framing as clearly as it can
+support reuse. Its findings can require different inputs, a new comparison or
+a changed objective, rather than merely another execution of the same steps.
 
 Two trial situations retain different value. A delegated trial can remain in
 the context of authoring and return findings to that conversation. A clean
@@ -151,6 +172,12 @@ and examples. Declarations can identify expected inputs, tools, human acts and
 outputs that the product can expose. Neither makes the workflow a complete
 description of the undertaking. The product observes selected features of the
 method while the person and agent continue to interpret the work.[A1]
+
+A reusable method carries recorded guidance and evidence, not its author's
+whole understanding. The later participant must recognize which conditions
+apply, what an example leaves out and where the method needs correction.
+Making a resource easy to retrieve assists that interpretation; it does not
+transfer a knower's situated understanding into the next conversation.
 
 Role guidance has a similar purpose. Conception, integration and bounded
 execution describe contributions that can otherwise become unowned. They need
@@ -194,6 +221,17 @@ change the subject. A basis identity and a stale refusal make the relationship
 inspectable. Similarly, a retry after an uncertain response must not simply
 create a second effect. These concerns arise from the meaning of the operation,
 not from a need to give every agent action a ceremonial approval.
+
+The [support-arrangement example][S2] makes the distinction practical. Inquiry
+begins with an access concern in the current arrangement. Operation validation
+examines the declared preconditions of a proposed support edit; application,
+when authorized, changes the identified model state. Human acceptance is a
+separate act concerning its particular subject. None of these establishes that
+the arrangement is adequate for the physical undertaking. A stale refusal can
+preserve the subject of inquiry, while a subsequent comparison can expose an
+additional construction or maintenance condition omitted from the initial
+framing. The App's contribution is to help those meanings and returns stay
+connected.
 
 Perception and action constrain one another. The agent needs a view adequate to
 the action it proposes. The result of the action must provide enough evidence
@@ -242,11 +280,20 @@ Workflow checkpoints currently guide the person and agents; software holding
 at checkpoints is deferred.[A1][A3]
 
 The values involved include user control, useful production, privacy and the
-cost of attention. These can conflict. A stricter control can prevent one
-failure and create delay or workarounds elsewhere. A design earns its place
-through the consequences it improves, including whether the person can
-understand and use it. This is why the App cannot be justified by counting its
-controls.
+cost of attention. Applicable obligations and safety constraints condition the
+work; negotiable preferences concern choices within those conditions. A faster
+interaction cannot justify recording an act the person did not perform. Within
+the authorized space, however, a stricter control can prevent one failure while
+creating delay or workarounds elsewhere. The relevant conditions and unknowns
+must remain visible so the person can judge the consequences.
+
+A design earns its place through the consequences it improves, including whether
+the person can understand and use it. A workflow that creates more alternatives
+than anyone can examine may diminish useful attention. A record that exposes
+a consequential unknown can repay its cost. These are situated assessments,
+not one universal optimization of speed, control or record volume. Findings
+may warrant removing a mechanism, refining a method or reconsidering a prior
+purpose under its holder's authority.
 
 ## 7. Continuity is a relation to outcomes
 
@@ -282,7 +329,11 @@ The App's display retained the live observation and later history separately.
 Its label did not claim that the command had been prevented from completing.
 The observation also showed a usability limit: nothing had told the person
 that the command continued. Correctly bounded data can still leave the person
-without the practical understanding they need.
+without the practical understanding they need. This result challenges both the
+representation of interruption and the recovery method built around it. The
+next inquiry concerns the actual process outcome and what the person needs to
+see before retrying; a label that accurately records the turn alone is
+insufficient for that purpose.
 
 ## 8. Native capability and the application's contribution
 
@@ -382,8 +433,13 @@ of exposed tools or shared schemas.
 ## 11. Discussion: what the case supports
 
 The [examination account][A6] distinguishes verification of a candidate from
-validation through realistic use. Source inspection and constructed tests leave
-several native-use questions open.
+validation through realistic use. Host operation validation has a narrower
+meaning: it examines whether a proposed operation meets its defined conditions.
+Implementation verification examines whether software performs its specified
+behaviour. Neither establishes that the method fits an undertaking, that an
+engineering idealization applies, or that a person has accepted reliance. Those
+questions need their own subjects and grounds. Source inspection and constructed
+tests leave several native-use questions open.
 
 The principal practitioner and architectural author remain the owner. That
 provides sustained purpose and unusually direct correction, but limits claims
@@ -422,7 +478,10 @@ without determining it in advance.
 The approach can proliferate where it serves a host's own objects and practices.
 SWBPIPE tests it against engineering meaning and numerical consequences.
 Success depends on how well people can use and revise those means, including
-what they cost in attention, effort and control.
+what they cost in attention, effort and control. The evaluative findings must
+return to operative design and, where warranted, to the normative purposes it
+serves. The [shared conclusion][S3] develops that continuing relation across the
+three views.
 
 ## Source basis and reading
 
@@ -479,3 +538,7 @@ their authority. App v4's frozen foundation is unchanged.
 [I5]: ../../app/src/exactText.ts
 [I5B]: ../../app/src/App.tsx
 [O1]: ../../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md
+
+[S1]: ../../../../docs/thesis/INTRODUCTION.md
+[S2]: ../../../../docs/thesis/WORKED_EXAMPLE.md
+[S3]: ../../../../docs/thesis/CONCLUSION.md
