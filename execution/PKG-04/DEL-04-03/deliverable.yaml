@@ -441,6 +441,7 @@ code_paths:
 - app/src-tauri/src/records_access.rs
 - app/src-tauri/src/records_store.rs
 - app/src-tauri/src/decision_view.rs
+- app/src-tauri/src/record_relations.rs
 - app/src-tauri/src/records_retention.rs
 - app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
 - app/src-tauri/src/records_export.rs
@@ -459,6 +460,8 @@ checks:
 - app/tests/verify-records-bag.test.mjs
 - app/src-tauri/src/records_export_tests.rs
 - app/src-tauri/tests/record_semantics.rs
+- app/src-tauri/tests/record_relations.rs
+- app/src-tauri/src/record_relation_analysis_tests.rs
 - app/tests/validate-records.test.mjs
 - execution/PKG-04/DEL-04-03/Design/prototype/check_cc_r.py
 - execution/PKG-04/DEL-04-03/Design/prototype/run_prototype.py

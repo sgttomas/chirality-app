@@ -2498,6 +2498,12 @@ machine; `records::durability_tests`, and the ignored
   record or capture bodies. A reader's earlier observation remains unchanged
   after the cache is replaced. A new read still checks the same completeness,
   act epoch, capture stamps and seal-key basis before using a kept snapshot.
+  Checkpoint eligibility uses the public correction reader's shared analysis
+  over borrowed source claims, then moves the original records and verified
+  captures into that snapshot. Public views materialize their correction
+  groups, A15 assessment snapshots and quoted record/source objects; the
+  checkpoint read consumes compact eligibility facts without materializing
+  correction groups or a second quoted record/source tree.
 
   Remaining blind spot: an in-place edit of a log's earlier bytes made
   together with an append, outside the kept 4 KiB, is not seen at once.
@@ -2591,10 +2597,32 @@ machine; `records::durability_tests`, and the ignored
   | 100 / 3,000 | 2.39 / 2.47 s | 28.5 / 12.6 ms | 201.7 / 155.8 MB |
 
   These are bounded debug observations, not release latency estimates or a
-  claim that the first read became faster. A kept read still checks every
-  capture's stamp, and first-use source validation, full correction projection
-  and capture verification remain. No 100,000-act measurement was repeated;
+  claim that the first read became faster. At that snapshot-sharing step,
+  first-use source validation, full correction projection and capture
+  verification remained. A kept read still checks every capture's stamp.
+  No 100,000-act measurement was repeated;
   the earlier large full-projection memory limit is not claimed resolved.
+
+  **Borrowed checkpoint relation analysis (2026-10-13, debug build).** The
+  same bounded report and tiers ran again before and after the shared-analysis
+  change. Baseline `45fd443f09` includes both snapshot sharing and recorded
+  disposal; it has the same source tree as the candidate's joined base
+  `78728d84c3`. Fresh child processes read the same synthetic scenarios on the
+  same macOS machine; machine load varied between measurements.
+
+  | Runs / acts | First act read, before / borrowed | Kept read after a run entry, before / borrowed | Peak act-child RSS, before / borrowed |
+  |---|---|---|---|
+  | 10 / 300 | 690 / 682 ms | 2.5 / 2.6 ms | 58.3 / 55.2 MB |
+  | 100 / 3,000 | 3.51 / 2.84 s | 14.1 / 13.1 ms | 156.2 / 96.8 MB |
+
+  This avoids a second full quoted record/source projection in the checkpoint
+  reader and moves the original record and verified capture values into its
+  result. It still validates source records and captures, keeps graph,
+  semantic and diagnostic state, and checks capture stamps on a kept read.
+  The correction graph algorithm and public view materialization are unchanged.
+  These observations establish neither release latency nor a 100,000-act
+  memory bound; no large-tier measurement was repeated, and retained records
+  and captures still grow with the project's act history.
 
 ## 15. Local prototype (R12-3)
 
