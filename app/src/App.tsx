@@ -374,6 +374,10 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
+      {attachment?.projectId && !attachment?.refusal && project.reading === "records store" && <p>
+        <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
+        <small>Creates a verified package in a folder you choose.</small>
+      </p>}
       {project.notImported > 0 && <p>
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
@@ -384,6 +388,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
         <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>
       </p>}
     </>}
+    <p><button onClick={() => act("records_store_verify_export")}>Verify an exported package</button></p>
   </section>;
 }
 

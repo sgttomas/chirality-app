@@ -52,6 +52,7 @@ pub mod records_access;
 mod records_index;
 pub mod record_lines;
 pub mod records_store;
+pub mod records_export;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
@@ -271,6 +272,19 @@ fn records_store_import(state: State<'_, AppState>) -> Result<Value, String> {
 fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open")?;
     Ok(records_index::chain_heads(project))
+}
+/// The person picks the parent of a new, verified records export package.
+#[tauri::command(async)]
+fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
+    let project = state.workspace.as_ref().ok_or("no project is open; nothing exported")?;
+    let Some(parent) = workflow_native_folder(&app, "Choose a folder for the records export")? else { return Ok(json!({"state":"export cancelled"})); };
+    let destination = parent.join(util::opaque_id("records-export-")?);
+    records_export::export(project, &destination)
+}
+#[tauri::command(async)]
+fn records_store_verify_export(app: tauri::AppHandle) -> Result<Value, String> {
+    let Some(folder) = workflow_native_folder(&app, "Choose a records export to verify")? else { return Ok(json!({"state":"verification cancelled"})); };
+    records_export::verify(&folder)
 }
 /// RS §13.8 "Project identity": the person resolves a project identity limit.
 #[tauri::command(async)]
@@ -1873,7 +1887,7 @@ pub fn run() {
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
-            records_store_import, records_store_identity, records_store_choose, records_chain_heads,
+            records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,

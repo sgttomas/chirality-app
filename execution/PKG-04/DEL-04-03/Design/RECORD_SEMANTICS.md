@@ -1760,6 +1760,33 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   signed. The package is readable and checkable without the App.
   Import verifies the package, never overwrites, keeps every record identity,
   and reports duplicates under R-5…R-8.
+  *Export implemented.* The records-store panel offers **Export project
+  records** for an attached project whose records are in the store. A native
+  folder selector chooses the parent; the App publishes a new BagIt 1.0 folder
+  without replacing an existing one. The payload contains the project store's
+  files byte for byte, including captures, workflow records, connector accounts,
+  import evidence and the read log. Store-wide rebuildable `indexes/` is outside the project payload; only
+  the known `.writer.lock` and `captures/.capture.lock` controls are omitted.
+  Imported connector files keep every byte, including interrupted-publication
+  `.tmp` files and unusual `.lock` names. The package has `bagit.txt`, a
+  `manifest-sha256.txt` covering every payload file exactly once, a protected
+  `records-chain-heads.json` tag computed from the copied RS logs, and a
+  `tagmanifest-sha256.txt` covering the export tags. This follows
+  [RFC 8493](https://www.rfc-editor.org/rfc/rfc8493.html).
+
+  Export holds capture ownership before exclusive record ownership, checks
+  the source file inventory and stamps before and after copying, checks each
+  copy's hash against its source, verifies the package, and flushes files and
+  folders before publishing. A changed or unreadable source refuses the
+  export. These checks do not certify a coherent revision against a writer
+  that evades filesystem change observations. Broken chains, legacy lines and
+  evidence gaps remain in the copied records and the chain-head tag; a verified
+  package certifies its bytes, not complete history or human-act authenticity.
+  **Verify an exported package** rechecks the full inventory, both manifests
+  and the copied RS chain heads. The included standard-library `verify.py`
+  checks inventories and hashes without the App (`python3 verify.py <bag>`),
+  including the chain-head tag's checksum; it does not interpret RS semantics.
+  Both say the package is unsigned. Package import remains unbuilt.
 - **Existing records** (implemented). The App discovers the §13.7 project logs and reads
   them in place. It then imports them explicitly (§13.7 discovery makes no
   implicit copy) into the store as byte-identical copies verified against
