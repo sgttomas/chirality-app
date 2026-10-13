@@ -1488,14 +1488,33 @@ pub(crate) fn waiting_arrivals(entries: &[Value]) -> Vec<Value> {
 /// The last act read, kept while no act-relevant record (the index's act
 /// epoch), no capture file it read (stamp) and not the seal key basis
 /// (`capture_seal::verification_basis`) has changed.
-struct ActCache { root: std::path::PathBuf, epoch: u64, keys: String, captures: Vec<(std::path::PathBuf, Option<crate::records_index::Stamp>)>, read: ActRead }
+struct ActCache { root: std::path::PathBuf, epoch: u64, keys: String, captures: Vec<crate::file_act_view::CaptureWatch>, read: ActRead }
 static ACT_CACHE: std::sync::Mutex<Option<ActCache>> = std::sync::Mutex::new(None);
 #[cfg(test)]
 pub(crate) fn forget_act_read_for_test() {
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = None;
 }
-fn capture_stamp(path: &Path) -> Option<crate::records_index::Stamp> {
-    std::fs::symlink_metadata(path).ok().map(|m| crate::records_index::Stamp::of(&m))
+fn capture_stamp(path: &Path) -> Result<Option<crate::records_index::Stamp>, std::io::Error> {
+    match std::fs::symlink_metadata(path) {
+        Ok(m) => Ok(Some(crate::records_index::Stamp::of(&m))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+fn captures_unchanged(captures: &[crate::file_act_view::CaptureWatch]) -> bool {
+    // A child inode alone cannot detect an owning folder replaced by an alias.
+    // Check each existing physical owning folder again on this attempt, once
+    // per distinct folder; every named file is checked against its read stamp.
+    let mut folders = std::collections::BTreeMap::new();
+    captures.iter().all(|watch| {
+        let Some(folder) = watch.path.parent() else { return false };
+        let current = *folders.entry(folder).or_insert_with(|| {
+            crate::storage::check_path(folder).ok()?;
+            std::fs::symlink_metadata(folder).ok().filter(|m| m.is_dir()).map(|m| crate::records_index::Stamp::of(&m))
+        });
+        current.is_some() && watch.absent_folder_stamp.is_none_or(|stamp| current == Some(stamp))
+            && capture_stamp(&watch.path).is_ok_and(|stamp| stamp == watch.stamp)
+    })
 }
 pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
@@ -1515,7 +1534,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         let epoch = ix.act_epoch();
         if let Some(cache) = ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
             if cache.root == root && cache.epoch == epoch && cache.keys == keys
-                && cache.captures.iter().all(|(p, s)| capture_stamp(p) == *s) {
+                && captures_unchanged(&cache.captures) {
                 return Ok(Look::Kept(cache.read.clone()));
             }
         }
@@ -1531,6 +1550,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         claims.iter().map(|claim| analysis.claim_state(claim["record"]["recordId"].as_str().unwrap_or(""))).collect()
     }; // Drop the analysis's borrows before moving the original record bodies.
     let mut captures = Vec::new();
+    let mut reusable = true;
     let mut read = ActReadData::default();
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut by_capture: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
@@ -1556,12 +1576,10 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
             Err("not written by the App's capturing surface (PH-4)".into())
         } else {
-            if let Some(capture_id) = b["captureEvidence"][0]["ref"].as_str() {
-                if let Ok(path) = crate::storage::capture_path(&root, capture_id) {
-                    captures.push((path.clone(), capture_stamp(&path)));
-                }
-            }
-            match crate::file_act_view::capture(&root, b) {
+            let observed = crate::file_act_view::observe_capture(&root, b);
+            reusable &= observed.reusable;
+            if let Some(watch) = observed.watch { captures.push(watch); }
+            match observed.result {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
                 Ok(capture) if !crate::file_act_view::corresponds(&capture, &record) => Err("the record differs from the capture it cites".into()),
                 Ok(capture) => Ok(capture),
@@ -1586,7 +1604,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         ]))));
     }
     let read = ActRead::new(read);
-    *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = Some(ActCache { root, epoch, keys, captures, read: read.clone() });
+    *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = reusable.then(|| ActCache { root, epoch, keys, captures, read: read.clone() });
     Ok(read)
 }
 /// The limit written before `run_ended` when the person ends a run while an

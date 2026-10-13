@@ -2391,6 +2391,27 @@ provider adoption or human act (SoW VER-007; AX-002).
 
 ## Current implementation conditions
 
+**Checkpoint capture observations.** The checkpoint reader receives the source
+actually attempted by the shared file-act capture reader, rather than resolving
+that source separately before reading it. A successful byte observation supplies
+the opened file's stamp after the unchanged-file and final named-file checks;
+that stamp also watches a subsequent JSON, schema, identity or seal refusal.
+An unresolved source or ambiguous failed byte observation is retried on the next
+read. A specifically proved absent capture can be kept: the reader observes
+absence relative to an opened physical owning folder and verifies that folder's
+unchanged stamp against its name. The absence watch invalidates when the file
+appears, the physical owning folder changes or becomes unavailable, or the owning
+path becomes an alias. Kept observations recheck the existing physical owning
+folders and each named capture's stamp,
+so a parent replaced by an alias cannot preserve a current act merely by keeping
+the child inode unchanged. Per-record home, identity, import, terminal and key
+checks, and per-file containment, alias, regular-file and coherent-read guards,
+remain on the shared read path. The ordinary file-act view's JSON and the
+checkpoint counting/lapse rules are unchanged. Maintained checkpoint regressions
+cover kept absence and restoration after missing/invalid evidence and key refusal, replacement
+before and after the final named-file check, leaf and parent aliases, changed
+capture ownership on import and a warm act observation after verified disposal.
+
 **Open implementation conditions — run identity and continuation.** The App
 mints `run:workflow:<uuid>` until EXEC supplies or adopts the run identity WR
 §16.1–16.2 requires. Observed start writes `run_opened`, and the person's

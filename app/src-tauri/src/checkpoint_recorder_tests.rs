@@ -1645,3 +1645,366 @@ fn a_held_act_observation_survives_cache_replacement_unchanged() {
     assert_eq!(serde_json::to_vec(&held.acts).unwrap(), original_acts, "dropping the cached observation leaves a reader's snapshot intact");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+// A failed evidence read cannot permanently settle an otherwise unchanged act
+// record. Restoring the exact capture must count it without another record write.
+#[test]
+fn capture_failures_are_retried_when_their_original_evidence_is_restored() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let id = act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let capture = &held.acts[0]["capture"];
+    let path = crate::storage::capture_path(&root, capture["captureId"].as_str().unwrap()).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    let mut schema = capture.clone();
+    schema["formatVersion"] = json!("not a capture version");
+    let mut identity = capture.clone();
+    identity["captureId"] = json!("cap:another-identity");
+    let mut seal = capture.clone();
+    seal["purpose"] = json!("A changed purpose without a new seal.");
+    let failures = [None, Some(b"not JSON".to_vec()), Some(serde_json::to_vec(&schema).unwrap()),
+        Some(serde_json::to_vec(&identity).unwrap()), Some(serde_json::to_vec(&seal).unwrap())];
+    for damaged in failures {
+        if let Some(bytes) = damaged { std::fs::write(&path, bytes).unwrap(); }
+        else { std::fs::remove_file(&path).unwrap(); }
+        let (_, outputs, failed) = observe_with(&root);
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+        assert!(!kinds(&outputs).contains(&"act_counted"), "{outputs:?}");
+        let row = crate::file_act_view::read(&root)["rows"][0].clone();
+        assert_eq!(row["captureCorrespondence"], false, "{row}");
+        std::fs::write(&path, &original).unwrap();
+        let (_, outputs, restored) = observe_with(&root);
+        assert_eq!((restored.acts.len(), restored.unresolved.len()), (1, 0));
+        assert!(outputs.iter().any(|(kind, b)| *kind == "act_counted" && b["act"]["recordId"] == id));
+        assert_eq!(restored.acts, held.acts);
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1), "held refusals stay immutable");
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_replaced_before_its_named_file_check_is_refused_and_then_retried() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let next = path.with_extension("replacement");
+    std::fs::write(&next, std::fs::read(&path).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::BeforeNamedCheck, move || std::fs::rename(&next, &named).unwrap());
+    let (_, outputs, raced) = observe_with(&root);
+    assert_eq!((raced.acts.len(), raced.unresolved.len()), (0, 1));
+    assert!(raced.unresolved[0]["reason"].as_str().unwrap().contains("File changed during observation"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    let (_, outputs, restored) = observe_with(&root);
+    assert_eq!(restored.acts, held.acts);
+    assert!(restored.unresolved.is_empty());
+    assert!(kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Replacing a capture after its coherent read must not associate the decoded
+// old act with the replacement's later stamp and keep that act on another read.
+#[test]
+fn capture_replaced_after_its_read_invalidates_the_kept_observation() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let mut invalid = held.acts[0]["capture"].clone();
+    invalid["purpose"] = json!("Replacement bytes do not have the original seal.");
+    let next = path.with_extension("replacement");
+    std::fs::write(&next, serde_json::to_vec(&invalid).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let observed = project_act_records(&root).unwrap();
+    assert_eq!(observed.acts, held.acts, "the observation contains the bytes actually read");
+    let (_, outputs, current) = observe_with(&root);
+    assert_eq!((current.acts.len(), current.unresolved.len()), (0, 1));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    assert_eq!(observed.acts, held.acts, "rechecking does not mutate an earlier observation");
+    forget_act_read_for_test();
+    assert_eq!(project_act_records(&root).unwrap().unresolved, current.unresolved);
+    // The same opened-byte binding applies to a refusal: a valid replacement
+    // must not be stamped onto the old invalid JSON and pin that refusal.
+    std::fs::write(&path, b"invalid capture JSON").unwrap();
+    let next = path.with_extension("restored");
+    std::fs::write(&next, serde_json::to_vec(&held.acts[0]["capture"]).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let refused = project_act_records(&root).unwrap();
+    assert_eq!((refused.acts.len(), refused.unresolved.len()), (0, 1));
+    let restored = project_act_records(&root).unwrap();
+    assert_eq!(restored.acts, held.acts);
+    assert!(restored.unresolved.is_empty());
+    assert_eq!(refused.unresolved.len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_aliases_refuse_a_warm_act_and_restoring_the_physical_source_retries_it() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    for target in [&path, path.parent().unwrap()] {
+        let moved = target.with_extension("original");
+        std::fs::rename(target, &moved).unwrap();
+        std::os::unix::fs::symlink(&moved, target).unwrap();
+        let (_, outputs, aliased) = observe_with(&root);
+        assert_eq!((aliased.acts.len(), aliased.unresolved.len()), (0, 1));
+        assert!(aliased.unresolved[0]["reason"].as_str().unwrap().contains("symlink"));
+        assert!(!kinds(&outputs).contains(&"act_counted"));
+        assert_eq!(crate::file_act_view::read(&root)["rows"][0]["captureCorrespondence"], false);
+        std::fs::remove_file(target).unwrap();
+        std::fs::rename(&moved, target).unwrap();
+        assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_capture_source_resolution_failure_does_not_pin_an_unwatched_refusal() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    struct Reset;
+    impl Drop for Reset { fn drop(&mut self) { crate::records_store::use_store_for_test(None); } }
+    let _reset = Reset;
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, || {
+        crate::records_store::use_store_for_test(Some(Err("invented temporary store refusal after the records read".into())));
+    });
+    let failed = project_act_records(&root).unwrap();
+    assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+    assert!(failed.unresolved[0]["reason"].as_str().unwrap().contains("invented temporary store refusal"));
+    crate::records_store::use_store_for_test(None);
+    let (_, outputs, restored) = observe_with(&root);
+    assert_eq!((restored.acts.len(), restored.unresolved.len()), (1, 0));
+    assert!(kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_kept_capture_is_refused_after_key_loss_or_permissions_change_and_recovers() {
+    use std::os::unix::fs::PermissionsExt;
+    struct Reset;
+    impl Drop for Reset { fn drop(&mut self) { crate::capture_seal::set_folder_for_test(None); } }
+    let _reset = Reset;
+    let root = project("v1");
+    let keys = root.with_extension("keys");
+    crate::capture_seal::set_folder_for_test(Some(Some(keys.clone())));
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let key = keys.join("keys.json");
+    let moved = key.with_extension("removed");
+    std::fs::rename(&key, &moved).unwrap();
+    let (_, outputs, lost) = observe_with(&root);
+    assert_eq!((lost.acts.len(), lost.unresolved.len()), (0, 1));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::rename(&moved, &key).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o644)).unwrap();
+    let (_, outputs, exposed) = observe_with(&root);
+    assert_eq!((exposed.acts.len(), exposed.unresolved.len()), (0, 1));
+    assert!(exposed.unresolved[0]["reason"].as_str().unwrap().contains("open to other users"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(keys).unwrap();
+}
+
+// Import changes the owning source without changing the historical capture's
+// content. Retained originals must not answer the store's capture observation.
+#[test]
+fn importing_an_act_moves_its_capture_watch_and_disposal_refuses_the_warm_read() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let mut capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    crate::capture_seal::seal(&root, &mut capture).unwrap();
+    let original_capture = crate::storage::library_capture_path(&root, capture["captureId"].as_str().unwrap());
+    std::fs::create_dir_all(original_capture.parent().unwrap()).unwrap();
+    std::fs::write(&original_capture, serde_json::to_vec(&capture).unwrap()).unwrap();
+    let log = root.join(crate::storage::LEGACY_RECORDS).join(crate::storage::log_rel(None, "app-writer:fixture"));
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let record = crate::records::envelope("human_act", &crate::records::APP_INTERFACE,
+        crate::act_control::act_body(&capture), "rec:app:imported-capture".into(), 1, None, None);
+    std::fs::write(&log, format!("{record}\n")).unwrap();
+    let held = project_act_records(&root).unwrap();
+    assert_eq!((held.acts.len(), held.unresolved.len()), (1, 0));
+    crate::records_store::import(&root).unwrap();
+    let imported_capture = crate::storage::capture_path(&root, capture["captureId"].as_str().unwrap()).unwrap();
+    assert_ne!(imported_capture, original_capture);
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::write(&original_capture, b"retained original cannot answer the imported capture").unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    let valid = std::fs::read(&imported_capture).unwrap();
+    std::fs::remove_file(&imported_capture).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().unresolved.len(), 1);
+    std::fs::write(&imported_capture, valid).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+
+    let actor = crate::act_control::person(Some("Invented capture fixture"), Some("invented-fixture-os"));
+    let observed = json!({"fixture":"native callback test seam; no live person's act"});
+    let close = crate::records_retention::prepare(&root, "close", None, &actor, &observed).unwrap();
+    crate::records_retention::apply(close, &actor, &observed).unwrap();
+    // A closed project's kept evidence can still be read before its disposal.
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    let output = root.with_extension("export");
+    std::fs::create_dir(&output).unwrap();
+    let bag = output.join("bag");
+    crate::records_export::export(&root, &bag).unwrap();
+    let dispose = crate::records_retention::prepare(&root, "dispose", Some(&bag), &actor, &observed).unwrap();
+    crate::records_retention::apply(dispose, &actor, &observed).unwrap();
+    assert!(project_act_records(&root).is_err(), "a warm capture cannot resurrect disposed evidence");
+    assert_eq!(held.acts[0]["record"], record, "an earlier observation remains immutable");
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(output).unwrap();
+}
+
+// Unchanged proved absence preserves the fast repeat path. This checks actual
+// capture-source read attempts, not an Arc or cache representation detail.
+#[test]
+fn a_proved_missing_capture_is_kept_until_its_file_or_owning_folder_changes() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    let missing = project_act_records(&root).unwrap();
+    assert_eq!((missing.acts.len(), missing.unresolved.len()), (0, 1));
+    let attempts = std::rc::Rc::new(std::cell::Cell::new(0));
+    let count = attempts.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+    let repeated = project_act_records(&root).unwrap();
+    assert_eq!(repeated.unresolved, missing.unresolved);
+    assert_eq!(attempts.get(), 0, "an unchanged proved missing file is not reread");
+    std::fs::write(&path, &original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    assert_eq!(attempts.get(), 1, "creating the absent file retries its source");
+    drop(hook);
+
+    std::fs::remove_file(&path).unwrap();
+    project_act_records(&root).unwrap(); // New proved absence in this folder.
+    let folder = path.parent().unwrap();
+    let moved = folder.with_extension("before-replacement");
+    std::fs::rename(folder, &moved).unwrap();
+    std::fs::create_dir(folder).unwrap(); // Different physical owner, still absent.
+    let count = attempts.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+    let replacement = project_act_records(&root).unwrap();
+    assert_eq!((replacement.acts.len(), replacement.unresolved.len()), (0, 1));
+    assert_eq!(attempts.get(), 2, "a new physical folder re-proves absence");
+    drop(hook);
+    std::fs::remove_dir(folder).unwrap();
+    std::os::unix::fs::symlink(&moved, folder).unwrap();
+    let aliased = project_act_records(&root).unwrap();
+    assert!(aliased.unresolved[0]["reason"].as_str().unwrap().contains("symlink"));
+    std::fs::remove_file(folder).unwrap();
+    // An unavailable owning folder supplies no stable absence, even on repeat.
+    for expected in [3, 4] {
+        let count = attempts.clone();
+        let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+        assert_eq!(project_act_records(&root).unwrap().unresolved.len(), 1);
+        assert_eq!(attempts.get(), expected, "an unavailable folder is tried again");
+    }
+    std::fs::rename(&moved, folder).unwrap();
+    std::fs::write(&path, original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_nonregular_capture_appearing_at_a_proved_absent_path_is_not_kept_as_absent() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    use std::os::unix::ffi::OsStrExt;
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    for kind in ["directory", "fifo", "symlink"] {
+        let missing = project_act_records(&root).unwrap(); // A specifically proved absence.
+        match kind {
+            "directory" => std::fs::create_dir(&path).unwrap(),
+            "fifo" => {
+                let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            }
+            _ => std::os::unix::fs::symlink(&file, &path).unwrap(),
+        }
+        let failed = project_act_records(&root).unwrap();
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+        assert_ne!(failed.unresolved[0]["reason"], missing.unresolved[0]["reason"], "{kind}: refusal must describe the appeared nonregular member");
+        let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+        let observed = attempted.clone();
+        let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+        project_act_records(&root).unwrap();
+        assert!(attempted.get(), "{kind}: an ambiguous/nonregular failure is tried again");
+        if kind == "directory" { std::fs::remove_dir(&path).unwrap(); }
+        else { std::fs::remove_file(&path).unwrap(); }
+    }
+    std::fs::write(path, original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn restoring_a_capture_after_the_proved_absence_invalidates_that_observation() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    let restored = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterAbsenceRead, move || std::fs::write(restored, original).unwrap());
+    let missing = project_act_records(&root).unwrap();
+    assert_eq!((missing.acts.len(), missing.unresolved.len()), (0, 1));
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    assert_eq!(missing.unresolved.len(), 1, "the prior observation remains immutable");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_permission_failures_are_not_reused_as_proved_absence() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    use std::os::unix::fs::PermissionsExt;
+    // Root bypasses this discretionary-read refusal; ordinary App users do not.
+    if unsafe { libc::geteuid() } == 0 { return; }
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, held.acts[0]["capture"]["captureId"].as_str().unwrap()).unwrap();
+    let permissions = std::fs::metadata(&path).unwrap().permissions();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = project_act_records(&root).unwrap();
+    assert_eq!((denied.acts.len(), denied.unresolved.len()), (0, 1));
+    let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+    let observed = attempted.clone();
+    let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+    assert_eq!(project_act_records(&root).unwrap().unresolved, denied.unresolved);
+    assert!(attempted.get(), "permission failures retry the actual source");
+    std::fs::set_permissions(&path, permissions).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}

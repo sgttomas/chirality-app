@@ -10,10 +10,24 @@ use serde_json::{json, Value};
 use std::{collections::HashSet, path::Path};
 
 fn bytes(root: &Path, path: &Path) -> Result<Vec<u8>, String> {
-    use std::{
-        io::Read,
-        os::unix::fs::{MetadataExt, OpenOptionsExt},
-    };
+    observed_bytes(root, path).map(|(bytes, _)| bytes).map_err(|e| e.message)
+}
+struct ByteReadError { message: String, may_be_absent: bool }
+impl From<String> for ByteReadError {
+    fn from(message: String) -> Self { Self { message, may_be_absent: false } }
+}
+impl From<&str> for ByteReadError {
+    fn from(message: &str) -> Self { message.to_owned().into() }
+}
+impl ByteReadError {
+    fn named_file(e: std::io::Error) -> Self {
+        Self { may_be_absent: e.kind() == std::io::ErrorKind::NotFound, message: e.to_string() }
+    }
+}
+/// The stamp belongs to the opened bytes, after the same-file and final
+/// named-file checks. A later re-stat could name a replacement's bytes.
+fn observed_bytes(root: &Path, path: &Path) -> Result<(Vec<u8>, crate::records_index::Stamp), ByteReadError> {
+    use std::{io::Read, os::unix::fs::OpenOptionsExt};
     if !path.is_absolute()
         || !path.starts_with(root)
         || path == root
@@ -28,40 +42,33 @@ fn bytes(root: &Path, path: &Path) -> Result<Vec<u8>, String> {
     }
     crate::storage::check_path(root)?;
     crate::storage::check_path(path)?;
-    if std::fs::canonicalize(root).map_err(|e| e.to_string())? != root
-        || std::fs::canonicalize(path).map_err(|e| e.to_string())? != path
-    {
+    if std::fs::canonicalize(root).map_err(|e| e.to_string())? != root {
+        return Err("Alias refused".into());
+    }
+    if std::fs::canonicalize(path).map_err(ByteReadError::named_file)? != path {
         return Err("Alias refused".into());
     }
     let mut file = std::fs::OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(path)
-        .map_err(|e| e.to_string())?;
+        .map_err(ByteReadError::named_file)?;
     let before = file.metadata().map_err(|e| e.to_string())?;
     if !before.is_file() {
         return Err("Not a regular file".into());
     }
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
-    let stamp = |m: &std::fs::Metadata| {
-        (
-            m.dev(),
-            m.ino(),
-            m.len(),
-            m.mtime(),
-            m.mtime_nsec(),
-            m.ctime(),
-            m.ctime_nsec(),
-        )
-    };
     let after = file.metadata().map_err(|e| e.to_string())?;
+    #[cfg(test)]
+    capture_test_hook(path, CaptureReadStage::BeforeNamedCheck);
     crate::storage::check_path(path)?;
     let named = std::fs::metadata(path).map_err(|e| e.to_string())?;
-    if stamp(&before) != stamp(&after) || stamp(&after) != stamp(&named) {
+    let stamp = crate::records_index::Stamp::of(&after);
+    if crate::records_index::Stamp::of(&before) != stamp || stamp != crate::records_index::Stamp::of(&named) {
         return Err("File changed during observation".into());
     }
-    Ok(bytes)
+    Ok((bytes, stamp))
 }
 fn subject_absent(root: &Path, path: &Path) -> bool {
     path.is_absolute()
@@ -83,29 +90,122 @@ fn identity(v: &Value) -> ContentIdentity {
         value: v["value"].as_str().unwrap_or("").into(),
     }
 }
+/// A missing capture is cacheable only when absence was observed relative to
+/// an opened physical owning folder whose identity/stamp still matched its name.
+/// Byte errors of any other kind do not acquire this absence proof.
+fn stable_capture_absence(path: &Path) -> Option<crate::records_index::Stamp> {
+    use std::{os::{fd::AsRawFd, unix::{ffi::OsStrExt, fs::OpenOptionsExt}}, ffi::CString};
+    let folder = path.parent()?;
+    crate::storage::check_path(folder).ok()?;
+    if std::fs::canonicalize(folder).ok()? != folder { return None; }
+    let directory = std::fs::OpenOptions::new().read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_DIRECTORY).open(folder).ok()?;
+    let before = directory.metadata().ok()?;
+    if !before.is_dir() { return None; }
+    let name = CString::new(path.file_name()?.as_bytes()).ok()?;
+    let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+    let result = unsafe { libc::fstatat(directory.as_raw_fd(), name.as_ptr(), metadata.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) };
+    if result != -1 || std::io::Error::last_os_error().kind() != std::io::ErrorKind::NotFound { return None; }
+    let after = directory.metadata().ok()?;
+    crate::storage::check_path(folder).ok()?;
+    let named = std::fs::symlink_metadata(folder).ok()?;
+    let stamp = crate::records_index::Stamp::of(&after);
+    if !named.is_dir() || crate::records_index::Stamp::of(&before) != stamp || stamp != crate::records_index::Stamp::of(&named) {
+        return None;
+    }
+    Some(stamp)
+}
+pub(crate) struct CaptureWatch {
+    pub path: std::path::PathBuf,
+    pub stamp: Option<crate::records_index::Stamp>,
+    /// Only a proved absence depends on its owning folder's unchanged stamp.
+    pub absent_folder_stamp: Option<crate::records_index::Stamp>,
+}
+/// A capture read and the source actually attempted. Stable opened bytes can
+/// be watched even when decoding or verification refuses them. A failed source
+/// resolution or ambiguous byte observation must be retried; a specifically
+/// proved absence can be watched in its checked physical owning folder.
+pub(crate) struct CaptureRead {
+    pub result: Result<Value, String>,
+    pub watch: Option<CaptureWatch>,
+    pub reusable: bool,
+}
 /// The one capture object a file act or decline record cites, read from the
 /// capture store and schema-checked (SP-3, RS R-8). Shared with the checkpoint recorder.
 pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
-    let refs = body["captureEvidence"]
-        .as_array()
-        .ok_or("Capture reference missing")?;
-    if refs.len() != 1 {
-        return Err("One original capture reference required".into());
-    }
-    let id = refs[0]["ref"].as_str().ok_or("Capture identity missing")?;
-    let path = crate::storage::capture_path(root, id)?;
-    let capture: Value =
-        serde_json::from_slice(&bytes(path.parent().ok_or("capture has no folder")?, &path)?)
-
-            .map_err(|e| e.to_string())?;
-    crate::schema_validation::validate_capture(&capture)?;
-    if capture["captureId"] != id {
-        return Err("Capture identity mismatch".into());
-    }
-    // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
-    // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
-    crate::capture_seal::verify(root, &capture)?;
-    Ok(capture)
+    observe_capture(root, body).result
+}
+pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
+    let mut watch = None;
+    let mut reusable = false;
+    let result = (|| {
+        let refs = body["captureEvidence"]
+            .as_array()
+            .ok_or("Capture reference missing")?;
+        if refs.len() != 1 {
+            return Err("One original capture reference required".into());
+        }
+        let id = refs[0]["ref"].as_str().ok_or("Capture identity missing")?;
+        #[cfg(test)]
+        capture_test_hook(root, CaptureReadStage::BeforeResolve);
+        let path = crate::storage::capture_path(root, id)?;
+        let bytes = match observed_bytes(path.parent().ok_or("capture has no folder")?, &path) {
+            Ok((bytes, stamp)) => {
+                watch = Some(CaptureWatch { path: path.clone(), stamp: Some(stamp), absent_folder_stamp: None });
+                reusable = true;
+                bytes
+            }
+            Err(e) => {
+                let absent_folder_stamp = e.may_be_absent.then(|| stable_capture_absence(&path)).flatten();
+                reusable = absent_folder_stamp.is_some();
+                // An ambiguous failure's stamp is descriptive only. A proved
+                // absence keeps None, never a later replacement's metadata.
+                let stamp = if reusable { None } else { std::fs::symlink_metadata(&path).ok().map(|m| crate::records_index::Stamp::of(&m)) };
+                watch = Some(CaptureWatch { path: path.clone(), stamp, absent_folder_stamp });
+                #[cfg(test)]
+                if reusable { capture_test_hook(&path, CaptureReadStage::AfterAbsenceRead); }
+                return Err(e.message);
+            }
+        };
+        #[cfg(test)]
+        capture_test_hook(&path, CaptureReadStage::AfterFileRead);
+        let capture: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        crate::schema_validation::validate_capture(&capture)?;
+        if capture["captureId"] != id {
+            return Err("Capture identity mismatch".into());
+        }
+        // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
+        // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
+        crate::capture_seal::verify(root, &capture)?;
+        Ok(capture)
+    })();
+    CaptureRead { result, watch, reusable }
+}
+#[cfg(test)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CaptureReadStage { BeforeResolve, BeforeNamedCheck, AfterFileRead, AfterAbsenceRead }
+#[cfg(test)]
+thread_local! {
+    static CAPTURE_READ_HOOK: std::cell::RefCell<Option<(std::path::PathBuf, CaptureReadStage, Box<dyn FnOnce()>)>> = const { std::cell::RefCell::new(None) };
+}
+#[cfg(test)]
+pub(crate) struct CaptureReadHookGuard;
+#[cfg(test)]
+impl Drop for CaptureReadHookGuard {
+    fn drop(&mut self) { CAPTURE_READ_HOOK.with(|h| *h.borrow_mut() = None); }
+}
+#[cfg(test)]
+pub(crate) fn capture_read_hook_for_test(path: &Path, stage: CaptureReadStage, hook: impl FnOnce() + 'static) -> CaptureReadHookGuard {
+    CAPTURE_READ_HOOK.with(|h| *h.borrow_mut() = Some((path.to_path_buf(), stage, Box::new(hook))));
+    CaptureReadHookGuard
+}
+#[cfg(test)]
+fn capture_test_hook(path: &Path, stage: CaptureReadStage) {
+    let hook = CAPTURE_READ_HOOK.with(|h| {
+        let matches = h.borrow().as_ref().is_some_and(|(p, s, _)| p == path && *s == stage);
+        matches.then(|| h.borrow_mut().take().unwrap().2)
+    });
+    if let Some(hook) = hook { hook(); }
 }
 /// Whether a file act or decline record says what its capture says: kind,
 /// choice, actor, subject, time and, for an act, content, scope, purpose and

@@ -432,6 +432,7 @@ code_paths:
 - app/src-tauri/src/role_supply.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/checkpoint_recorder.rs
+- app/src-tauri/src/file_act_view.rs
 checks:
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs
