@@ -214,9 +214,26 @@ pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 /// cannot be so verified; they never become acts (RS §13.7) and are shown as
 /// an "unresolvable reference" limit on an arrival whose file they name.
 #[derive(Clone, Debug, Default)]
-pub(crate) struct ActRead {
+pub(crate) struct ActRead(std::sync::Arc<ActReadData>);
+
+/// A completed observation is immutable. The cache and its readers share
+/// these same records and captures until the existing read basis changes;
+/// an earlier reader may keep its observation after a new one is built.
+#[derive(Debug, Default)]
+pub(crate) struct ActReadData {
     pub acts: Vec<Value>,
     pub unresolved: Vec<Value>,
+}
+impl ActRead {
+    fn new(data: ActReadData) -> Self {
+        Self(std::sync::Arc::new(data))
+    }
+}
+impl std::ops::Deref for ActRead {
+    type Target = ActReadData;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 /// Where the run is, as the recorder needs it.
@@ -1513,7 +1530,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let mut captures = Vec::new();
     let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()
         .filter(|d| d["state"] == "nonconformant").filter_map(|d| d["recordId"].as_str()).collect();
-    let mut read = ActRead::default();
+    let mut read = ActReadData::default();
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut by_capture: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
     for claim in projected["claims"].as_array().into_iter().flatten() {
@@ -1564,6 +1581,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         read.acts = kept;
         read.unresolved.extend(refused.into_iter().map(|a| json!({"record":a["record"],"reason":"several records cite one capture (RS R-8)"})));
     }
+    let read = ActRead::new(read);
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = Some(ActCache { root, epoch, keys, captures, read: read.clone() });
     Ok(read)
 }
