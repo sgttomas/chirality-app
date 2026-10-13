@@ -4204,6 +4204,11 @@ impl Default for WorkflowRootSession {
     }
 }
 impl WorkflowRootSession {
+    pub(crate) fn retention_ready(&self)->Result<(),String>{
+        for run in self.runs.values(){let run=run.try_lock().map_err(|_|"A workflow operation is pending; settle it before closing project records")?;
+            if run.retention_activity.is_some() || run.has_pending_records(){return Err("A workflow run or its record publication is still open/pending; explicitly end or settle it before closing project records".into());}}
+        Ok(())
+    }
     pub fn snapshot(&self) -> Value {
         // Inventory describes verified build inputs, never release registration.
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
@@ -4790,7 +4795,9 @@ impl WorkflowRootSession {
             &crate::util::now_rfc3339(),
         )?;
         let client_id = crate::util::opaque_id("workflow-message:")?;
+        let retention_activity=crate::records_retention::activity(&project_root)?;
         let mut workflow_run = WorkflowRun {
+            retention_activity,
             home,
             project: records,
             project_root,
@@ -6190,6 +6197,7 @@ impl WorkflowCheckSlot {
     }
 }
 pub(crate) struct WorkflowRun {
+    retention_activity: Option<crate::storage::Ownership>,
     pub home: std::sync::Arc<HomeSession>,
     project: crate::workflow_workspace::publication::ProjectRecords,
     project_root: std::path::PathBuf,
@@ -6500,6 +6508,7 @@ impl WorkflowRun {
                 }
             }
         }
+        if self.lifecycle!=RunLifecycle::Open && !self.has_pending_records(){self.retention_activity=None;}
     }
     /// EXEC §3.1 CK-1/CK-2 through J2's seam, from this run's own selection,
     /// holding library, home, generation and conversation. Advisory only: the

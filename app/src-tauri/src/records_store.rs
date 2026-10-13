@@ -282,7 +282,11 @@ fn opened() -> Result<(PathBuf, String), String> {
     {
         let cached = OPENED.lock().unwrap_or_else(|p| p.into_inner());
         if let Some((configured, root, id)) = cached.as_ref() {
-            if *configured == store.root && root.is_dir() {
+            if *configured == store.root {
+                if !root.is_dir(){return Err("the opened records store folder disappeared; no replacement store or project identity minted".into());}
+                let bytes=crate::records_retention::read_plain(&root.join("store.json")).map_err(|e|format!("opened store identity unavailable; no replacement identity minted: {e}"))?;
+                let identity:Value=serde_json::from_slice(&bytes).map_err(|e|format!("opened store identity unreadable: {e}"))?;
+                if identity["format"]!=STORE_FORMAT || identity["storeId"]!=*id{return Err("opened records store identity changed; no silent reassociation".into());}
                 return Ok((root.clone(), id.clone()));
             }
         }
@@ -299,8 +303,9 @@ fn opened() -> Result<(PathBuf, String), String> {
     }
     let identity = root.join("store.json");
     let read = |path: &Path| -> Result<Option<String>, String> {
-        match std::fs::read(path) {
-            Ok(bytes) => {
+        match std::fs::symlink_metadata(path) {
+            Ok(_) => {
+                let bytes=crate::records_retention::read_plain(path)?;
                 let v: Value = serde_json::from_slice(&bytes).map_err(|e| format!("records store unreadable: store.json: {e}"))?;
                 if v["format"] != STORE_FORMAT {
                     return Err("records store unreadable: store.json is not a records store identity".into());
@@ -331,6 +336,22 @@ pub(crate) fn store_root() -> Option<PathBuf> {
     opened().ok().map(|(root, _)| root)
 }
 
+/// Identify an owning subtree without opening/creating store identity. Used by
+/// low-level write admission; calling opened() here would recurse at bootstrap.
+pub(crate) fn configured_project_dir(path: &Path) -> Option<PathBuf> {
+    // A queued writer may already hold a source path when store configuration
+    // becomes unavailable. Its known admission boundary must not disappear.
+    if let Some(dir)=DIRS.lock().unwrap_or_else(|p|p.into_inner()).iter().rev().find(|(d,_)|path.starts_with(d)).map(|(d,_)|d.clone()){return Some(dir);}
+    let configured = current().ok()?.root;
+    let store = std::fs::canonicalize(&configured).unwrap_or(configured);
+    let projects = store.join("projects");
+    let rest = path.strip_prefix(&projects).ok()?;
+    let key = rest.components().next()?;
+    let key_text = key.as_os_str().to_str()?;
+    if key_text.len()!=64 || !key_text.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
+    Some(projects.join(key))
+}
+
 /// The store project folder holding `path` (`<store>/projects/<key>`), if any.
 pub(crate) fn project_dir_of(path: &Path) -> Option<PathBuf> {
     let root = store_root()?;
@@ -343,6 +364,7 @@ pub(crate) fn project_dir_of(path: &Path) -> Option<PathBuf> {
 pub(crate) fn root_for_dir(dir: &Path) -> Option<PathBuf> {
     DIRS.lock().unwrap_or_else(|p| p.into_inner()).iter().rev().find(|(d, _)| d == dir).map(|(_, r)| r.clone())
 }
+pub(crate) fn known_project_root(root:&Path)->bool{DIRS.lock().unwrap_or_else(|p|p.into_inner()).iter().any(|(_,r)|r==root)}
 fn remember(dir: &Path, root: &Path) {
     let mut dirs = DIRS.lock().unwrap_or_else(|p| p.into_inner());
     if !dirs.iter().any(|(d, r)| d == dir && r == root) {
@@ -444,7 +466,8 @@ fn read_link(root: &Path) -> Link {
     if let Err(e) = crate::storage::check_path(&path) {
         return Link::Unreadable(e);
     }
-    match std::fs::read(&path) {
+    if let Err(e)=std::fs::symlink_metadata(&path){return if e.kind()==std::io::ErrorKind::NotFound{Link::Absent}else{Link::Unreadable(e.to_string())};}
+    match crate::records_retention::read_plain(&path) {
         Ok(bytes) => match serde_json::from_slice::<Value>(&bytes) {
             Ok(v) if v["format"] == LINK_FORMAT => match (v["projectId"].as_str(), v["storeId"].as_str()) {
                 (Some(p), Some(s)) if !p.is_empty() => Link::Present { project: p.to_owned(), store: s.to_owned() },
@@ -453,8 +476,7 @@ fn read_link(root: &Path) -> Link {
             Ok(_) => Link::Unreadable("the project file is not a Chirality project link".into()),
             Err(e) => Link::Unreadable(format!("the project file is not JSON: {e}")),
         },
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Link::Absent,
-        Err(e) => Link::Unreadable(e.to_string()),
+        Err(e) => Link::Unreadable(e),
     }
 }
 fn link_value(project: &str, store: &str) -> Value {
@@ -583,6 +605,14 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             }
         }
     }
+    if let Some(dir) = out.dir.as_deref() {
+        let retention = crate::records_retention::view(dir);
+        match retention["disposition"].as_str() {
+            Some("disposed" | "disposal incomplete") => {},
+            Some("unavailable") => out.refusal=Some(format!("retention state unavailable: {}",retention["limit"])),
+            _ => {},
+        }
+    }
     Ok(out)
 }
 
@@ -591,6 +621,7 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
     let dir = project_dir(store, project);
     let record = dir.join("project.json");
     if !record.exists() {
+        crate::records_retention::check_write(&dir)?;
         crate::storage::create_json(&record, &json!({"format":PROJECT_FORMAT,"formatVersion":VERSION,"projectId":project,"createdAt":now_rfc3339(),"how":how}))?;
     }
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
@@ -664,19 +695,24 @@ pub(crate) struct Home {
     /// Otherwise the project's §13.7 records (if any) are read in place.
     pub store_mode: bool,
 }
-/// The project's home for reading. With no link and no store, a folder (a
-/// workflow library, say) is read in place; a linked project with the store
-/// unavailable is an error.
+/// The project's home for reading. An unavailable configured store never
+/// falls back to retained originals, even with a missing project link. Explicit
+/// library readers use their library's own log/capture paths independently.
 pub(crate) fn home(root: &Path) -> Result<Home, String> {
     match attach(root, false) {
         Ok(attachment) => {
+            if attachment.dir.is_none() {
+                let identity=attachment.recorded.clone().or_else(||match read_link(root){Link::Present{project,..}=>Some(project),_=>None});
+                if let Some(identity)=identity {
+                    let store=opened()?.0;
+                    if crate::records_retention::terminal(&project_dir(&store,&identity))? {return Err("project records disposed or disposal incomplete; its identity/link is unresolved, and retained project originals are not read".into());}
+                }
+            }
+            if let Some(dir)=attachment.dir.as_deref(){if crate::records_retention::terminal(dir)?{return Err("project records disposed or disposal incomplete; ordinary project record reads are unavailable; administrative recovery and export verification remain separate".into());}}
             let store_mode = attachment.dir.as_deref().is_some_and(store_holds);
             Ok(Home { attachment, store_mode })
         }
-        Err(e) if read_link(root) == Link::Absent && root.is_dir() => Ok(Home {
-            attachment: Attachment { root: root.to_path_buf(), project: None, dir: None, limits: vec![e], refusal: None, how: "none", recorded: None },
-            store_mode: false,
-        }),
+
         Err(e) => Err(e),
     }
 }
@@ -692,6 +728,7 @@ pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
 /// Whether the project's store folder may be written now: no import is
 /// incomplete, and no project records wait for one.
 fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
+    crate::records_retention::check_write(dir)?;
     let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
     if let Some(started) = state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
@@ -1050,6 +1087,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
     let attachment = attach(root, true)?;
     let dir = attachment.dir.clone().ok_or_else(|| format!("nothing imported: {}", attachment.refusal.clone().unwrap_or_default()))?;
     let _store = store_lock(&store)?;
+    let _admission=crate::records_retention::write_path(&dir)?;
     // Writers wait while the copies are made (the logs' writer lock).
     let _writers = crate::storage::lock(&dir.join(".writer.lock"))?;
     let census = legacy_census(&attachment.root)?;
@@ -1209,6 +1247,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     let Link::Present { project, store: linked } = read_link(&canonical) else {
         return Err("the project file names no identity to adopt; nothing adopted".into());
     };
+    let _admission=crate::records_retention::read_path(&project_dir(&store,&project))?;
     if roots_of(&lines, &project).iter().any(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
         return Err("another folder holds this project identity; give this folder a new identity instead; nothing adopted".into());
     }
@@ -1233,7 +1272,11 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
-    for project in listed(&roots(&store)?, &at) {
+    let prior = listed(&roots(&store)?, &at);
+    let mut _admissions=Vec::new();
+    for project in &prior {_admissions.push(crate::records_retention::read_path(&project_dir(&store,project))?);}
+    if let Link::Present{project,..}=read_link(&canonical) {_admissions.push(crate::records_retention::read_path(&project_dir(&store,&project))?);}
+    for project in prior {
         append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":at,"at":now_rfc3339(),"how":"released"}))?;
     }
     let project = crate::util::opaque_id("chirality-project:")?;
@@ -1254,6 +1297,7 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
     let [project] = listed.as_slice() else {
         return Err("the records store records no single identity for this folder; nothing restored".into());
     };
+    let _admission=crate::records_retention::read_path(&project_dir(&store,project))?;
     crate::storage::ensure_directory(&canonical.join(".chirality"))?;
     crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(project, &store_id))?;
     Ok(json!({"state":"link restored","projectId":project,"root":at}))
@@ -1268,6 +1312,7 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
         Err(e) => return vec![e],
     };
     let mut notes = home.attachment.limits.clone();
+    if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
     if let Some(refusal) = &home.attachment.refusal {
         notes.push(refusal.clone());
     }
@@ -1342,12 +1387,24 @@ pub fn status(project: Option<&Path>) -> Value {
                 // §13.7 files no import has copied (all of them before the first).
                 let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
                 json!({"attachment":home.attachment.view(),
+                    "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
                     "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
                     "legacyFiles":census.len(),"notImported":to_import,
                     "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
             }
-            Err(e) => json!({"state":"unavailable","error":e}),
+            Err(e) => {
+                // Ordinary source refusal must not hide the surviving native
+                // hold/recovery controls. Unattached terminal identities are
+                // explicit too; absent retention never means disposed.
+                match attach(root,false){
+                    Ok(attachment)=>{
+                        let dir=attachment.dir.clone().or_else(||attachment.recorded.as_ref().and_then(|id|opened().ok().map(|(store,_)|project_dir(&store,id))));
+                        json!({"state":"unavailable","error":e,"reading":"ordinary project records unavailable","attachment":attachment.view(),"retention":dir.as_deref().map(crate::records_retention::view),"notes":[e]})
+                    },
+                    Err(_)=>json!({"state":"unavailable","error":e}),
+                }
+            },
         };
     }
     out

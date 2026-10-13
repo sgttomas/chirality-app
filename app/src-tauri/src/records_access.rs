@@ -474,6 +474,7 @@ impl ReadLog {
         }
     }
     fn write(path: &Path, entry: &Value) -> Result<(), String> {
+        let _admission=crate::records_retention::write_path(path)?;
         static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
         let validator = VALIDATOR
             .get_or_init(|| serde_json::from_str::<Value>(LOG_SCHEMA).map_err(|e| e.to_string()).and_then(|s| jsonschema::options().offline().build(&s).map_err(|e| e.to_string())))

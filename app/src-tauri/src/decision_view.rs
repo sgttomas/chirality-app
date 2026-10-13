@@ -203,12 +203,14 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
     } else {
         // A named log where it is read now: in the project's records store
         // subtree once it holds the project's records, otherwise in place.
-        let home = crate::records_store::home(root).ok().filter(|h| h.store_mode).and_then(|h| h.attachment.dir);
-        record_paths.iter().map(|rp| match &home {
-            Some(_) if *rp == crate::storage::LEGACY_LOG => crate::storage::registered_legacy_log(root),
-            Some(dir) => dir.join(crate::storage::home_rel(rp)),
-            None => root.join(rp),
-        }).collect()
+        match crate::records_store::home(root){
+            Ok(home)=>record_paths.iter().filter_map(|rp|{
+                if home.store_mode && *rp==crate::storage::LEGACY_LOG {match crate::storage::registered_legacy_log(root){Ok(path)=>Some(path),Err(e)=>{limits.push(e);None}}}
+                else if home.store_mode{home.attachment.dir.as_ref().map(|dir|dir.join(crate::storage::home_rel(rp)))}
+                else{Some(root.join(rp))}
+            }).collect(),
+            Err(e)=>{limits.push(e);Vec::new()}
+        }
 
     };
     let mut sources: HashMap<String, Vec<Value>> = HashMap::new();
