@@ -71,6 +71,13 @@ pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSess
     }
 }
 
+/// The App's actual record tick also observes ended project arrivals without
+/// requiring a running supplier or a web-view read.
+pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) {
+    tick(homes,workflows);
+    if let Some(project)=project {if let Ok(mut root)=workflows.try_lock(){root.observe_ended_runs(project);}}
+}
+
 /// The trial tick for one home: the TT-9 reads due in the view as last
 /// received (it consumes no frames), performed with no App lock held, then
 /// recorded.

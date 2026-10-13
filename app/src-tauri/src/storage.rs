@@ -151,6 +151,8 @@ pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
 /// Read ownership allows a closed retained payload (for export), while the
 /// stable admission lease still prevents removal during the read.
 pub(crate) fn read_lock(path:&Path)->Result<Ownership,String>{flock(path,libc::LOCK_EX,true).map(|o|o.unwrap())}
+/// Nonblocking read ownership, including closed retained payloads.
+pub(crate) fn try_read_lock(path:&Path)->Result<Option<Ownership>,String>{flock(path,libc::LOCK_EX|libc::LOCK_NB,true)}
 fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Ownership>, String> {
     let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
