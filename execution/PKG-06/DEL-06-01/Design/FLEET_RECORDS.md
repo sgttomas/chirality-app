@@ -5,8 +5,9 @@
   association behaviour: §4–§7, designed; the prototype is not product code),
   OUT-003 (fixtures: §9, `prototype/fixtures/FX-FL1/`) and OUT-004
   (compatibility account: §8).
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
-  accepted. No App candidate exists; no case below passes a VER criterion.
+- Current App contribution: the manual read-only source slice in §6.1.
+  The native fleet writer and association remain unbuilt. Historical
+  prototype results below establish no App candidate VER result or acceptance.
 - Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-A (Type 2 TASK,
   Claude Opus 5.5, high effort), unit E-2; written 2026-10-03.
 - Basis (sha256): this deliverable's `ScopeOfWork.md`
@@ -99,8 +100,8 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   than the App, so an entry an agent writes there naming the App as its
   recorder passes it; file-native readers cannot tell it from a real one. The project log's shape
   and format are unchanged, so REQ-005's consumers need no new account. This
-  is Design only: it is built with DEL-06-01's App reader and writer, and no
-  App code writes either copy today.
+  is read by the current App source slice (§6.1). No App fleet producer
+  writes either copy today; the native writer and association remain Design.
 - **FR-D2 Format (PROPOSED).** Its own versioned JSON records,
   `chirality.fleet.record` 0.1 (`fleet.record.schema.json`): one file per
   brief and per graph revision, and one append-only JSON Lines log. Reason:
@@ -300,6 +301,68 @@ DEL-06-02 derives queues and waiting causes from these facts. This file
 derives the facts only.
 
 ## 6. Writer and reader (OUT-002; PROPOSED; `prototype/fleet_store.py`)
+
+### 6.1 Current manual App source reader
+
+`fleet_records.rs` reads the fixed `.chirality/fleet/` packet in the Root's
+selected project workspace. The path-free `read_fleet_records` native command
+is called only by the panel's explicit Refresh. It returns all readable
+schema-valid 0.1 brief files, graph revision files and coordination rows with
+their complete record, source path/line, claimed recorder and source limits.
+Unknown formats/kinds, malformed files, unreadable members and an unclosed
+final log line remain explicit limits. References are quoted without following
+their target paths. The panel presents the complete result and selects no graph
+or work state; the RF-derived views below remain the prototype's design.
+
+FR-D1's protected copy governs App observations in its own written order.
+Matching compares exact line bytes, including whitespace, key order and line
+ending. Replaying a matching old project row cannot move that observation in
+the protected order. Project duplicates/conflicts and missing/mismatching copies
+are limits and keep their claimed recorder. A healthy protected-only observation
+remains readable with its missing project counterpart named. Any unread or
+duplicate/conflicting protected row withholds the entire App observation
+projection; its readable rows remain explicitly incomplete store claims.
+The existing placement check also qualifies provenance: an agent-writable
+development override retains its matching store bytes and governing order as
+quoted evidence, with the placement limit, but supplies no protected App
+observation. Development recording remains permitted under the existing rule.
+
+After a complete stable read, the App retains a length/SHA-256 proof of the
+accepted protected log byte prefix in this process, bound to the lossless
+project/store source paths and store/project identities. A shortened, rewritten or missing accepted prefix
+withholds the governing projection and App provenance with a history-change
+limit; a refusal does not reset the proof. Restoring the original prefix, with
+an exact append if needed, permits another read. This unsigned proof is only in
+memory: a cold restart cannot detect a previously valid tail removed or both
+copies rewritten before the first read. It authenticates no recorder and adds
+no durable continuity or signing claim.
+
+The identity lookup inspects existing store identity, root registry, project
+link, project identity and administrative state. It calls no mint/import path.
+It shares only an already-existing regular admission file nonblockingly;
+missing/busy controls remain unavailable and are never created or repaired.
+Closed retained payloads are readable; disposed/incomplete-disposal payloads
+are unavailable even if recreated. Every data file uses the component-bound,
+nonblocking regular-file opener; identity and data stamps plus directory
+inventories are rechecked across the whole read. A changed protected snapshot
+withholds protected row contents and authority. Configured project/store aliases
+are resolved to their physical sources, and a changed physical project refuses
+the whole result.
+
+The source-schema copy is embedded and checked by `schemas/sync.py`.
+Protected fleet bytes are export payload, while both fleet logs remain outside
+the RS corpus, chain-head list, ordinary RS-home decision and legacy import
+census. A fleet-only payload can be exported when no ordinary history waits for
+import; adding fleet never bypasses a required or unfinished import. An empty
+capture folder or its exact ownership-control file establishes no ordinary RS
+home, including when export created the control. No producer or native
+association is added: the completed spawn prompt and undertaking binding are
+not available from the current native snapshot (§4). The prototype's graph
+content-identity method remains a TEST VALUE (§11); selectors are quoted with an
+unsupported-method limit, and no current graph is chosen.
+
+The following writer/derived-reader rules continue to describe the Design and
+prototype beyond this source slice.
 
 - **W-1** Every record is validated before it is written; an invalid one is
   refused and nothing is written.

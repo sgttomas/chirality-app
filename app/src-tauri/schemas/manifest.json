@@ -35,6 +35,12 @@
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/aac.capture-evidence.schema.json",
       "sha256": "9d768aa098036203c6d2d3fbcf11b6adb0d5ed1aa3ea16adbcc2da886c19da12",
       "id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3"
+    },
+    {
+      "file": "fleet.record.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-06/DEL-06-01/Design/fleet.record.schema.json",
+      "sha256": "191ca7b16912a095ee2650d975d60b1ab65d0e3f585d2391d6b8e6db288b0918",
+      "id": "urn:chirality:app-v4:del-06-01:fleet-record:0.1"
     }
   ],
   "fixture": {

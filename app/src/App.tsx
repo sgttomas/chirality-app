@@ -1,4 +1,5 @@
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
+import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
@@ -700,6 +701,15 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
 }
 
 export function App() {
+  const [fleet, setFleet] = useState<FleetPacket | null>(null);
+  const [fleetError, setFleetError] = useState("");
+  const [fleetBusy, setFleetBusy] = useState(false);
+  const refreshFleet = async () => {
+    setFleetBusy(true); setFleetError("");
+    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
+    catch (error) { setFleet(null); setFleetError(String(error)); }
+    finally { setFleetBusy(false); }
+  };
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -866,6 +876,7 @@ export function App() {
         <SupplyStatus supply={host?.roleSupply} />
         {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
         <RecordsStorePanel store={host?.recordsStore} act={act} />
+        <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }} />
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>
