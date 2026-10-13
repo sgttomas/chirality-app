@@ -632,6 +632,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs` | The App's records store (RS §13.8): placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `act_control_a15.rs`, `act_control_file.rs`, `file_act_native.rs`, `canonical.rs` | A16, hot A15 and App-file offer/native custody; capture versus publication uncertainty, ordered retry and original content binding |
@@ -811,6 +812,17 @@ library evidence, never part of the project's record set. The override
 store inside the project or a Codex home is refused. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
+The records-store panel offers **Export project records**, choosing a parent
+folder natively and creating a new verified BagIt package. Its payload preserves
+project store files byte for byte, with SHA-256 manifests and each copied RS
+log's chain head. Store-wide query caches and the two known owning lock controls are omitted;
+imported connector publication evidence is preserved.
+**Verify an exported package** checks inventories, hashes and RS heads again.
+The included `verify.py` checks bytes and inventories with standard Python 3,
+without the App. Exports are unsigned until App signing; byte verification
+confers no source authenticity. Package import and recorded disposal remain
+unbuilt (RS §13.8).
+
 The fleet coordination log has no App writer yet (DEL-06-01). When it is
 built, the log stays one co-written file in the project,
 `.chirality/fleet/coordination.fleet.jsonl`, with every entry, and the App
