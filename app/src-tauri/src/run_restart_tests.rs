@@ -628,3 +628,38 @@ fn unrecordable_skip_is_refused_and_the_notice_stays_pending(){
     assert!(end.lock().unwrap().skip_end_notice().is_ok(),"the refused choice left the notice pending, so it can be made once recordable");
     std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
 }
+
+// RS §13.8 with §14.1 Permanent refusals, through the run's flush: a unit only
+// partly in its log is settled. Its entry already in the log is shown as
+// written (its receipt), the other is never written and named by its "record
+// write failed" limit, and the run's later entries proceed.
+#[test]
+fn a_unit_only_partly_in_its_log_is_settled_and_the_flush_continues(){
+    let peer=Peer::new();let mut root=peer.fixture.registered();
+    let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+    let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
+    let run_id=run.prepared().scope().run.clone();
+    let at=crate::util::now_rfc3339();
+    let mut first=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"unit 1"}),at.clone()).unwrap();
+    let mut second=crate::records::supply::PendingRunEntry::new("evidence_limit",json!({"label":"unresolvable reference","subjectRef":"unit 2"}),at.clone()).unwrap();
+    first.group=Some(first.record_id.clone());second.group=first.group.clone();
+    let (first_id,second_id)=(first.record_id.clone(),second.record_id.clone());
+    // An earlier write left the first entry alone in the log.
+    crate::records::append_project_reserved_in(&peer.fixture.root,&run_id,crate::records::supply::LIVE_WRITER,first.kind,&crate::records::APP_WRITER,first.body.clone(),&first.record_id,&first.observed_at,crate::records::RecordSet::Complete).unwrap();
+    run.entries.push(first);run.entries.push(second);
+    run.retry_records().unwrap();
+    run.end_run(None,None).unwrap();
+    assert!(run.entry_written("run_ended"),"the flush continued past the unit");
+    let one=run.entries.iter().find(|e|e.record_id==first_id).unwrap();
+    assert!(one.written.is_some()&&one.refused.is_none()&&one.failure.is_none(),"in the record: its receipt");
+    let two=run.entries.iter().find(|e|e.record_id==second_id).unwrap();
+    assert!(two.written.is_none()&&two.refused.as_deref().is_some_and(|r|r.contains("only partly in its log")));
+    let records=run.lifecycle_view()["records"].clone();
+    let shown=|id:&str|records.as_array().unwrap().iter().find(|r|r["recordId"]==id).cloned().unwrap();
+    assert_eq!((shown(&first_id)["written"].as_bool(),shown(&first_id)["neverWritten"].is_null()),(Some(true),true));
+    assert_eq!((shown(&second_id)["written"].as_bool(),shown(&second_id)["neverWritten"].is_string()),(Some(false),true));
+    let limits=limits_named(&peer,&a,"record write failed");
+    assert!(limits.iter().any(|l|l["body"]["subjectRef"]==second_id.as_str()));
+    assert!(!limits.iter().any(|l|l["body"]["subjectRef"]==first_id.as_str()),"no limit says the entry in the record was never written");
+    assert_eq!(rs_for(&peer,&a).iter().filter(|e|e["recordId"]==first_id.as_str()).count(),1,"not written twice");
+}

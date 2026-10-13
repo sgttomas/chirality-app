@@ -1684,7 +1684,9 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
     line count, read from the log itself (`record_lines::chain_head`). Export
     (U-STORE-5) records it in its manifest. The host status `recordChain`
     carries only bounded counts (logs, chained, legacy, broken) and at most
-    five names of broken and of legacy logs, from the index as last read; the
+    five names of broken and of legacy logs, from the index as last read, with
+    when it was last refreshed (`readAt`) and last verified (`verifiedAt`).
+    While nothing records, a verifier pass brings the counts up to date. The
     heads come on demand (host command `records_chain_heads`).
   - *Links removed in this process's sight.* A log that this process read
     with a chain and that later reads with no link at all is a broken chain,
@@ -2236,7 +2238,11 @@ machine; `records::durability_tests`, and the ignored
     in full.
   - A background verifier re-lists every directory and re-reads every
     log in full, outside the index lock and off the record tick. A pass
-    starts every 60 s (`CHIRALITY_RECORDS_VERIFY_SECS`).
+    starts every 60 s (`CHIRALITY_RECORDS_VERIFY_SECS`). A log whose stamp
+    did not change while the pass read it replaces the index's state when
+    they differ, or when the log changed since the index last read it, so
+    the index catches up without a reader or writer. A log that changed
+    during the read is left to the next refresh.
   - A line read again from its stored position (entries by identity,
     the act read's claims) is parsed and validated again (R-4), and must
     still hold its indexed identity and `seq`. Otherwise the read fails

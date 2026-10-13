@@ -417,6 +417,33 @@ fn recorder_units_pair_an_event_with_the_disposition_change_it_makes() {
     assert!(units(&[]).is_empty());
 }
 
+// The host status reads only the cached index, so it says when that was
+// read; a chain broken while nothing refreshes shows after one verifier pass,
+// which reads a log changed since the index read it and installs it.
+#[test]
+fn a_verifier_pass_brings_the_chain_status_up_to_date_without_a_refresh() {
+    let root = folder("chain-verify-");
+    let log = log_in(&root);
+    for n in 0..3 {
+        records::append(&log, "evidence_limit", &APP_WRITER, body(&format!("entry {n}"))).unwrap();
+    }
+    crate::records_index::with_index(&root, |_| ());
+    let mut lines = raw_lines(&log);
+    let mut edited = value(&lines[0]);
+    edited["body"]["detail"] = json!("rewritten after the last refresh");
+    lines[0] = serde_json::to_vec(&edited).unwrap();
+    write_lines(&log, &lines);
+    let replaced = crate::records_index::verify(&root);
+    let status = crate::records_index::chain_status(Some(&root));
+    // The cache of indexed projects is shared with tests running beside this one.
+    if status["logs"].is_u64() {
+        assert!(replaced >= 1, "the changed log is read and installed by the pass");
+        assert_eq!(status["broken"], 1, "{status}");
+        assert!(status["readAt"].is_string() && status["verifiedAt"].is_string() && status["verifierEverySeconds"].is_u64(), "{status}");
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // ---- The writer lock (RS §13.8 Existing records) ----
 
 // An RS writer that waited behind an import holding the project's writer

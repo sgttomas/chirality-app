@@ -113,6 +113,12 @@ pub(crate) struct ProjectIndex {
     suspect: RefCell<BTreeSet<PathBuf>>,
     /// Owning logs a writer has used in this process (each read in full first).
     writer_opened: BTreeSet<PathBuf>,
+    /// When a refresh, and a verifier pass, last ended (milliseconds since the epoch).
+    refreshed_ms: Option<i64>,
+    verified_ms: Option<i64>,
+}
+fn now_ms() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 static INDEXES: Mutex<Vec<(PathBuf, ProjectIndex)>> = Mutex::new(Vec::new());
 static VERIFIER: std::sync::Once = std::sync::Once::new();
@@ -137,6 +143,7 @@ fn with_index_for<R>(root: &Path, log: Option<&Path>, f: impl FnOnce(&ProjectInd
         }
     }
     index.refresh(root);
+    index.refreshed_ms = Some(now_ms());
     let result = f(&index);
     all.insert(0, (key, index));
     all.truncate(INDEXED_PROJECTS);
@@ -172,7 +179,9 @@ pub(crate) fn chain_status(root: Option<&Path>) -> Value {
         }
         if log.chain.linked { chained += 1; }
     }
-    serde_json::json!({"state":"as the records index last read it","method":crate::record_lines::LINE_METHOD,"logs":ix.logs.len(),
+    let at = |ms: Option<i64>| ms.map(crate::util::rfc3339_from_ms);
+    serde_json::json!({"state":"as the records index last read it","readAt":at(ix.refreshed_ms),"verifiedAt":at(ix.verified_ms),
+        "verifierEverySeconds":verify_interval(),"method":crate::record_lines::LINE_METHOD,"logs":ix.logs.len(),
         "chained":chained,"legacy":legacy,"broken":broken,"brokenLogs":broken_logs,"legacyLogs":legacy_logs,
         "heads":"on demand (host command records_chain_heads)","signedCheckpoints":signed})
 }
@@ -183,9 +192,13 @@ pub(crate) fn chain_heads(root: &Path) -> Value {
         "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),
         "signedCheckpoints":"not written: signed checkpoints wait for App signing (OI-011)"}))
 }
+/// Seconds between verifier passes (`CHIRALITY_RECORDS_VERIFY_SECS`).
+fn verify_interval() -> u64 {
+    std::env::var("CHIRALITY_RECORDS_VERIFY_SECS").ok().and_then(|s| s.parse().ok()).unwrap_or(VERIFY_INTERVAL).max(1)
+}
 fn start_verifier() {
     VERIFIER.call_once(|| {
-        let every = std::env::var("CHIRALITY_RECORDS_VERIFY_SECS").ok().and_then(|s| s.parse().ok()).unwrap_or(VERIFY_INTERVAL).max(1);
+        let every = verify_interval();
         let _ = std::thread::Builder::new().name("records-index-verifier".into()).spawn(move || loop {
             std::thread::sleep(std::time::Duration::from_secs(every));
             let roots: Vec<PathBuf> = INDEXES.lock().unwrap_or_else(|p| p.into_inner()).iter().map(|(r, _)| r.clone()).collect();
@@ -218,11 +231,18 @@ pub(crate) fn verify(root: &Path) -> usize {
         let mut all = INDEXES.lock().unwrap_or_else(|p| p.into_inner());
         let Some((_, index)) = all.iter_mut().find(|(r, _)| r == root) else { return replaced };
         let Some(current) = index.logs.get(&path).cloned() else { continue };
-        if current.stamp != stamp || stamp_of(&path) != stamp || current.reading() == fresh.reading() {
+        // Installed only if the log did not change while it was read. A log
+        // that changed since the index last read it is installed from this
+        // full read too, so the pass catches up off the record tick (RS §13.8:
+        // a chain broken while nothing refreshes shows within one pass).
+        if stamp_of(&path) != stamp || (current.stamp == stamp && current.reading() == fresh.reading()) {
             continue;
         }
         index.install(&path, Some(current), fresh, false);
         replaced += 1;
+    }
+    if let Some((_, index)) = INDEXES.lock().unwrap_or_else(|p| p.into_inner()).iter_mut().find(|(r, _)| r == root) {
+        index.verified_ms = Some(now_ms());
     }
     replaced
 }

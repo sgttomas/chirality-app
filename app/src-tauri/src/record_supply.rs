@@ -259,20 +259,20 @@ fn unit_refusal(
     run: &str,
     group: &[PendingRunEntry],
     set: crate::records::RecordSet,
-) -> Option<(String, Vec<bool>)> {
+) -> Option<(String, Vec<Option<Value>>)> {
     let refused = group.iter().find_map(|e| permanent_refusal_in(root, run, e.kind, &e.record_id, &e.body, &e.observed_at, set)
         .map(|reason| if group.len() > 1 { format!("{reason} (its unit of {} entries stands whole: RS §13.8)", group.len()) } else { reason }));
     if let Some(reason) = refused {
-        return Some((reason, vec![false; group.len()]));
+        return Some((reason, vec![None; group.len()]));
     }
     if group.len() < 2 {
         return None;
     }
     let ids: Vec<&str> = group.iter().map(|e| e.record_id.as_str()).collect();
     let (_, own) = crate::records::append_record_set_ids(root, &run_log(root, run).ok()?, set, &ids).ok()?;
-    let present: Vec<bool> = group.iter().map(|p| own.iter().any(|e| e["recordId"] == p.record_id.as_str() && e["kind"] == p.kind
-        && e["body"] == p.body && e["runId"] == run && e["observedAt"] == p.observed_at.as_str())).collect();
-    let alone: Vec<&str> = group.iter().zip(&present).filter(|(_, p)| **p).map(|(e, _)| e.record_id.as_str()).collect();
+    let present: Vec<Option<Value>> = group.iter().map(|p| own.iter().find(|e| e["recordId"] == p.record_id.as_str() && e["kind"] == p.kind
+        && e["body"] == p.body && e["runId"] == run && e["observedAt"] == p.observed_at.as_str()).cloned()).collect();
+    let alone: Vec<&str> = group.iter().zip(&present).filter(|(_, p)| p.is_some()).map(|(e, _)| e.record_id.as_str()).collect();
     (!alone.is_empty() && alone.len() < group.len()).then(|| (format!("its unit is only partly in its log ({} there alone); a unit is written whole (RS §13.8), so the rest of it can never be written", alone.join(", ")), present))
 }
 /// The "record write failed" limits for a unit the writer refuses
@@ -286,9 +286,34 @@ pub(crate) fn unit_refusal_limits(
     set: crate::records::RecordSet,
 ) -> Option<(String, Vec<PendingRunEntry>)> {
     let (reason, present) = unit_refusal(root, run, group, set)?;
-    let limits = group.iter().zip(present).filter(|(_, p)| !p)
+    let limits = group.iter().zip(present).filter(|(_, p)| p.is_none())
         .map(|(e, _)| never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok()).collect::<Option<Vec<_>>>()?;
     Some((reason, limits))
+}
+/// Settles a unit the writer refuses permanently: an entry already in the
+/// log is its own receipt (written, as it reads), every other entry is
+/// refused with the reason. Returns the "record write failed" limits for the
+/// refused entries, in order, for the flush to write where the unit stood.
+pub(crate) fn settle_refused_unit(
+    root: &std::path::Path,
+    run: &str,
+    group: &mut [PendingRunEntry],
+    set: crate::records::RecordSet,
+) -> Option<Vec<PendingRunEntry>> {
+    let (reason, present) = unit_refusal(root, run, group, set)?;
+    let limits = group.iter().zip(&present).filter(|(_, p)| p.is_none())
+        .map(|(e, _)| never_written_limit(e.kind, &e.record_id, &reason, &e.observed_at).ok()).collect::<Option<Vec<_>>>()?;
+    for (e, p) in group.iter_mut().zip(present) {
+        match p {
+            Some(written) => {
+                // In the record (alone): not a late write with its own limit.
+                e.failure = None;
+                e.written = Some(written);
+            }
+            None => e.refused = Some(reason.clone()),
+        }
+    }
+    Some(limits)
 }
 /// The "record write failed" limit for an entry the writer refuses permanently:
 /// it names the entry's reserved identity and says it can never be written, why,

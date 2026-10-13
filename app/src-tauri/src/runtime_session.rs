@@ -6448,15 +6448,12 @@ impl WorkflowRun {
                     match crate::records::supply::append_run_group_in(&self.project_root, &run, &mut self.entries[index..end], set) {
                         Ok(_) => true,
                         Err(_) => {
-                            let unit = &self.entries[index..end];
                             // A refused unit, or one only partly in its log, is settled
-                            // with its limits and the flush continues past it.
-                            let refusal = crate::records::supply::unit_refusal_limits(&self.project_root, &run, unit, set);
+                            // (entries in the log as their receipts, the others refused)
+                            // with its limits, and the flush continues past it.
+                            let refusal = crate::records::supply::settle_refused_unit(&self.project_root, &run, &mut self.entries[index..end], set);
                             match refusal {
-                                Some((reason, limits)) => {
-                                    for e in &mut self.entries[index..end] {
-                                        e.refused = Some(reason.clone());
-                                    }
+                                Some(limits) => {
                                     // In the unit's order, where its next pending entry stands.
                                     let at = self.entries.iter().position(|e| e.pending()).unwrap_or(self.entries.len());
                                     self.entries.splice(at..at, limits);
