@@ -1526,15 +1526,16 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         Look::Kept(read) => return Ok(read),
         Look::Fresh(claims, complete, epoch) => (claims, complete, epoch),
     };
-    let projected = crate::decision_view::record_relations::project_from_read_claims(&claims, &complete);
+    let states: Vec<_> = {
+        let analysis = crate::decision_view::record_relations::analyze(&claims, &complete);
+        claims.iter().map(|claim| analysis.claim_state(claim["record"]["recordId"].as_str().unwrap_or(""))).collect()
+    }; // Drop the analysis's borrows before moving the original record bodies.
     let mut captures = Vec::new();
-    let nonconformant: BTreeSet<&str> = projected["diagnostics"].as_array().into_iter().flatten()
-        .filter(|d| d["state"] == "nonconformant").filter_map(|d| d["recordId"].as_str()).collect();
     let mut read = ActReadData::default();
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut by_capture: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
-    for claim in projected["claims"].as_array().into_iter().flatten() {
-        let record = &claim["record"];
+    for (mut claim, state) in claims.into_iter().zip(states) {
+        let record = claim.as_object_mut().and_then(|claim| claim.remove("record")).unwrap_or(Value::Null);
         let decline = record["kind"] == "act_declined";
         let b = &record["body"];
         let kind = if decline { &b["declinedKind"] } else { &b["actKind"] };
@@ -1542,15 +1543,15 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             continue;
         }
         let Some(id) = record["recordId"].as_str() else { continue };
-        if nonconformant.contains(id) || !seen.insert(id.to_owned()) {
+        if state.nonconformant || !seen.insert(id.to_owned()) {
             continue;
         }
-        if claim["correctedBy"].as_array().is_some_and(|c| !c.is_empty()) {
+        if state.corrected {
             continue; // a corrected record is not current (RS R-6)
         }
-        let verified: Result<Value, String> = if let Some(limit) = claim["relationLimit"].as_str() {
+        let verified: Result<Value, String> = if let Some(limit) = state.relation_limit {
             Err(format!("record relation not resolved: {limit}"))
-        } else if claim["identityResolution"] == "conflicting identity" {
+        } else if state.identity_resolution == "conflicting identity" {
             Err("conflicting record identity".into())
         } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
             Err("not written by the App's capturing surface (PH-4)".into())
@@ -1562,16 +1563,16 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             }
             match crate::file_act_view::capture(&root, b) {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
-                Ok(capture) if !crate::file_act_view::corresponds(&capture, record) => Err("the record differs from the capture it cites".into()),
+                Ok(capture) if !crate::file_act_view::corresponds(&capture, &record) => Err("the record differs from the capture it cites".into()),
                 Ok(capture) => Ok(capture),
             }
         };
         match verified {
             Ok(capture) => {
                 by_capture.entry(capture["captureId"].as_str().unwrap_or_default().to_owned()).or_default().push(id.to_owned());
-                read.acts.push(json!({"record":record,"capture":capture}));
+                read.acts.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("capture".into(), capture)])));
             }
-            Err(reason) => read.unresolved.push(json!({"record":record,"reason":reason})),
+            Err(reason) => read.unresolved.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]))),
         }
     }
     // RS R-8: one capture is one act; records sharing a capture are none of them acts.
@@ -1579,7 +1580,10 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     if !shared.is_empty() {
         let (kept, refused): (Vec<Value>, Vec<Value>) = read.acts.into_iter().partition(|a| a["record"]["recordId"].as_str().is_none_or(|id| !shared.contains(&id.to_owned())));
         read.acts = kept;
-        read.unresolved.extend(refused.into_iter().map(|a| json!({"record":a["record"],"reason":"several records cite one capture (RS R-8)"})));
+        read.unresolved.extend(refused.into_iter().map(|mut a| Value::Object(serde_json::Map::from_iter([
+            ("record".into(), a.as_object_mut().and_then(|a| a.remove("record")).unwrap_or(Value::Null)),
+            ("reason".into(), Value::String("several records cite one capture (RS R-8)".into())),
+        ]))));
     }
     let read = ActRead::new(read);
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = Some(ActCache { root, epoch, keys, captures, read: read.clone() });

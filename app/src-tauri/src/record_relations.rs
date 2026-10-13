@@ -41,9 +41,94 @@ fn reaches(edges: &BTreeMap<String, BTreeSet<String>>, from: &str, to: &str) -> 
     }
     false
 }
-/// Display-source strings identify the supplied owning logs; no sorting supplies
-/// precedence. Sorting output IDs only makes an inspectable deterministic list.
-pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String>) -> Value {
+/// Per-claim facts used by the checkpoint reader, without materializing a
+/// second record tree or the public view's correction groups.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ClaimState {
+    pub nonconformant: bool,
+    pub corrected: bool,
+    pub relation_limit: Option<&'static str>,
+    pub identity_resolution: &'static str,
+}
+
+/// One relation analysis borrows the original once-read claims. Both the
+/// public JSON view and checkpoint eligibility use these same decisions.
+pub(crate) struct Analysis<'a> {
+    grouped: BTreeMap<String, Vec<&'a Value>>,
+    semantic: BTreeMap<String, record_semantics::Assessment>,
+    conflicts: BTreeSet<String>,
+    links: BTreeMap<String, String>,
+    refused: BTreeMap<String, &'static str>,
+    edges: BTreeMap<String, BTreeSet<String>>,
+    corrected: BTreeMap<String, BTreeSet<String>>,
+    diagnostics: Vec<Value>,
+    nonconformant: BTreeSet<String>,
+}
+impl Analysis<'_> {
+    pub(crate) fn claim_state(&self, id: &str) -> ClaimState {
+        ClaimState {
+            nonconformant: self.nonconformant.contains(id),
+            corrected: self.corrected.get(id).is_some_and(|ids| !ids.is_empty()),
+            relation_limit: self.refused.get(id).copied(),
+            identity_resolution: if self.conflicts.contains(id) {
+                "conflicting identity"
+            } else if self.grouped.get(id).is_some_and(|v| v.len() > 1) {
+                "one unchanged claim; identical sources retained"
+            } else {
+                "unique readable identity"
+            },
+        }
+    }
+
+    fn correction_groups(&self, complete_logs: &HashSet<String>) -> Vec<Value> {
+        let Self { grouped, semantic, links, refused, edges, .. } = self;
+        // Weak correction components retain original plus every readable correction.
+        let mut visited = BTreeSet::new();
+        let mut groups = Vec::new();
+        for id in grouped.keys() {
+            if visited.contains(id) {
+                continue;
+            }
+            let mut todo = vec![id.clone()];
+            let mut members = BTreeSet::new();
+            while let Some(at) = todo.pop() {
+                if !members.insert(at.clone()) {
+                    continue;
+                }
+                for (correction, target) in links {
+                    if correction == &at {
+                        todo.push(target.clone());
+                    }
+                    if target == &at {
+                        todo.push(correction.clone());
+                    }
+                }
+            }
+            visited.extend(members.clone());
+            let mut current: Vec<_> = members
+                .iter()
+                .filter(|a| {
+                    !refused.contains_key(*a)
+                        && semantic.get(*a).is_none_or(|s| s.eligible_for_derived_claim())
+                        && !members.iter().any(|b| a != &b && reaches(edges, a, b))
+                })
+                .cloned()
+                .collect();
+            if members.iter().any(|id| refused.contains_key(id)) {
+                current.clear();
+            }
+            let incomplete = members.iter().any(|id| {
+                grouped[id]
+                    .iter()
+                    .any(|c| !complete_logs.contains(c["source"]["log"].as_str().unwrap_or("")))
+            });
+            groups.push(json!({"recordIds":members,"currentCandidates":current,"resolution":if current.len()==1{"unique recorded correction/claim"}else if current.len()>1{"ambiguous/unresolved correction branches"}else{"unresolvable correction relation"},"sourceIncomplete":incomplete,"provenance":"recorded claims; no native origin or human chronology verified"}));
+        }
+        groups
+    }
+}
+
+pub(crate) fn analyze<'a>(claims: &'a [Value], complete_logs: &HashSet<String>) -> Analysis<'a> {
     let mut grouped: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     let mut diagnostics = Vec::new();
     let mut semantic = BTreeMap::new();
@@ -162,54 +247,28 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
             }
         }
     }
-    // Weak correction components retain original plus every readable correction.
-    let mut visited = BTreeSet::new();
-    let mut groups = Vec::new();
-    for id in grouped.keys() {
-        if visited.contains(id) {
-            continue;
-        }
-        let mut todo = vec![id.clone()];
-        let mut members = BTreeSet::new();
-        while let Some(at) = todo.pop() {
-            if !members.insert(at.clone()) {
-                continue;
-            }
-            for (correction, target) in &links {
-                if correction == &at {
-                    todo.push(target.clone());
-                }
-                if target == &at {
-                    todo.push(correction.clone());
-                }
-            }
-        }
-        visited.extend(members.clone());
-        let mut current: Vec<_> = members
-            .iter()
-            .filter(|a| {
-                !refused.contains_key(*a)
-                    && semantic.get(*a).is_none_or(|s| s.eligible_for_derived_claim())
-                    && !members.iter().any(|b| a != &b && reaches(&edges, a, b))
-            })
-            .cloned()
-            .collect();
-        if members.iter().any(|id| refused.contains_key(id)) {
-            current.clear();
-        }
-        let incomplete = members.iter().any(|id| {
-            grouped[id]
-                .iter()
-                .any(|c| !complete_logs.contains(c["source"]["log"].as_str().unwrap_or("")))
-        });
-        groups.push(json!({"recordIds":members,"currentCandidates":current,"resolution":if current.len()==1{"unique recorded correction/claim"}else if current.len()>1{"ambiguous/unresolved correction branches"}else{"unresolvable correction relation"},"sourceIncomplete":incomplete,"provenance":"recorded claims; no native origin or human chronology verified"}));
-    }
     for (id, reason) in &refused {
         diagnostics.push(json!({"recordId":id,"state":if reason.starts_with("nonconformant"){"nonconformant"}else{"unresolved relation"},"reason":reason}));
     }
+    let nonconformant = diagnostics.iter().filter(|d| d["state"] == "nonconformant")
+        .filter_map(|d| d["recordId"].as_str()).map(str::to_owned).collect();
+    Analysis { grouped, semantic, conflicts, links, refused, edges, corrected, diagnostics, nonconformant }
+}
+
+/// Display-source strings identify the supplied owning logs; no sorting supplies
+/// precedence. Sorting output IDs only makes an inspectable deterministic list.
+pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String>) -> Value {
+    let analysis = analyze(claims, complete_logs);
+    let groups = analysis.correction_groups(complete_logs);
+    let Analysis { corrected, diagnostics, .. } = &analysis;
     let projections:Vec<_>=claims.iter().map(|claim| {
         let id=claim["record"]["recordId"].as_str().unwrap_or("");
-        json!({"record":claim["record"],"source":claim["source"],"correctedBy":corrected.get(id).cloned().unwrap_or_default(),"relationLimit":refused.get(id),"a15Semantics":record_semantics::check_a15_correspondence(&claim["record"]).snapshot(),"identityResolution":if conflicts.contains(id){"conflicting identity"}else if grouped.get(id).is_some_and(|v|v.len()>1){"one unchanged claim; identical sources retained"}else{"unique readable identity"},"provenance":"recorded claim; not verified native evidence"})
+        let state = analysis.claim_state(id);
+        json!({"record":claim["record"],"source":claim["source"],"correctedBy":corrected.get(id).cloned().unwrap_or_default(),"relationLimit":state.relation_limit,"a15Semantics":record_semantics::check_a15_correspondence(&claim["record"]).snapshot(),"identityResolution":state.identity_resolution,"provenance":"recorded claim; not verified native evidence"})
     }).collect();
     json!({"view":"RS W-3/R-6 correction relations; derived, not authority","claims":projections,"correctionGroups":groups,"diagnostics":diagnostics,"scope":"same-kind correction relations plus A15 HA-10/R-7 intrinsic correspondence subset; full registration/capture/native admission remain with owning consumers"})
 }
+
+#[cfg(test)]
+#[path = "record_relation_analysis_tests.rs"]
+mod tests;
