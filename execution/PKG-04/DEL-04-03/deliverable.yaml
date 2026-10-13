@@ -443,6 +443,8 @@ code_paths:
 - app/tools/verify_records_bag.py
 - app/src-tauri/src/storage.rs
 checks:
+- app/supplier_checks/records_delivery.py
+- app/supplier_checks/test_records_delivery.py
 - app/src-tauri/src/record_lines_tests.rs
 - app/src-tauri/src/records_index_tests.rs
 - app/src-tauri/src/records_access_tests.rs
