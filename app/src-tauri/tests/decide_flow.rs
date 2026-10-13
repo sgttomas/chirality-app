@@ -26,7 +26,10 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../tests/fixtures/FX-DP1")
+        .canonicalize()
+        .expect("the fixture's physical path is available")
 }
 
 fn scratch_workspace() -> ScratchDirectory {
@@ -103,12 +106,13 @@ fn hashes(root: &Path) -> Vec<(String, String)> {
 
 #[test]
 fn view_model_reads_the_pass4_fixture() {
+    common::records_store();
     // Preserve Pass 4 recorded claims; selected current methods do not relabel old identities.
     let before = hashes(&fixture());
     let v = derive(&fixture(), &["records/coordination.rs.jsonl"]);
     assert_eq!(hashes(&fixture()), before, "DV-9: deriving writes nothing");
     let rows = v["rows"].as_array().unwrap();
-    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.len(), 2, "fixture read limits: {}", v["limits"]);
     assert_eq!(rows[0]["state"], "decided");
     assert_eq!(rows[0]["decision"]["alternativeChosen"], "ALT-2");
     assert_eq!(rows[0]["decision"]["lapse"], "unknown (incomparable)");

@@ -998,6 +998,24 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Reply outcome on close.** The owner chose:
+
+> Close as “Reply outcome unknown” (Recommended)
+
+A queued reply whose write never began closes as ended unanswered with the
+source context. An admitted write still unobserved at close becomes a closed
+**Reply outcome unknown** card; it no longer says Sending or permits another
+answer. The prepared answer remains visible, with secret values removed as
+before. A completed local result, observed before or after closure, stays on
+the original request even if another source uses the same request ID. The
+source stays closed. The card reports local written/failed evidence separately
+from whether Codex received or acted on the reply; neither is established by
+completion alone. A post-close supplier frame cannot provide acknowledgment.
+REC preserves the initial unknown and any later actual result across restart.
+Live-home confirmations include eligible queued/in-progress work and exclude
+closed or superseded sources. Owned-stdio and presentation checks establish
+these local paths; they are not a native walkthrough.
+
 **Open positive-acceptance condition — user verification (FO-6).** The stock
 0.160.0 source assessment has not supplied a documented receiving route for
 Chirality's truthful `chirality-app-v4` client identity, exact enrollment and

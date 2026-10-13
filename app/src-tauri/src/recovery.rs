@@ -541,6 +541,12 @@ impl RecoveryLedger {
                 if let Some(context) = request["endContext"].as_str() {
                     entry["context"] = json!(context);
                 }
+            } else if state == "reply-outcome-unknown" {
+                if request["closedGeneration"] != true || request["replyWriteResult"] != "unknown" || request["acknowledgment"].is_object() {
+                    return Err("recovery unknown-reply mapping refused: original closed source lacks an unobserved result".into());
+                }
+                entry["transition"] = json!("RQ-10");
+                if let Some(context) = request["endContext"].as_str() { entry["context"] = json!(context); }
             }
         }
         let later_error = request["classification"] == "known-answerable"
@@ -605,9 +611,10 @@ impl RecoveryLedger {
                         .into(),
                 );
             }
-            let durable_closed = previous
-                .map(|e| matches!(e["transition"].as_str(), Some("RQ-04" | "RQ-05" | "RQ-06")))
-                .unwrap_or(false);
+            let durable_closed = prior_entries.iter().any(|e|
+                e["kind"] == "register_entry_summary" && e["generation"] == entry["generation"]
+                && e["requestIdentity"] == entry["requestIdentity"]
+                && matches!(e["transition"].as_str(), Some("RQ-04" | "RQ-05" | "RQ-06" | "RQ-10")));
             if (request["closedGeneration"] == true || durable_closed)
                 && previous
                     .map(|e| e["acknowledgment"] != "observed")

@@ -763,7 +763,7 @@ impl Host {
         }
     }
     pub fn snapshot(&self) -> Value {
-        let (mut snapshot,capability)={let i=self.inner.0.lock().unwrap();(Self::snapshot_inner(&i),i.records_capability.clone())};
+        let (mut snapshot,capability)={let mut i=self.inner.0.lock().unwrap();(Self::snapshot_inner(&mut i),i.records_capability.clone())};
         Self::with_records_capability(&mut snapshot,capability);snapshot
     }
     /// RS §13.9: the capability's account, read with no Host lock held (it
@@ -805,10 +805,12 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
     }
-    fn snapshot_inner(i: &Inner) -> Value {
+    fn snapshot_inner(i: &mut Inner) -> Value {
+        Self::observe_reply_writes(i);
         json!({
             "state": i.state,
             "generation": i.generation,
+            "generationClosed": i.server_requests.is_closed(&i.generation),
             "supplierStanding": i.supplier_standing,
             "networkDisclosure": network_disclosure(),
             "verification": i.verification,
@@ -881,8 +883,8 @@ impl Host {
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
     /// calls; it never touches the pipe. A foreign/closed cursor gets a gap marker.
     pub fn observe(&self, generation: &Value, after: u64) -> Value {
-        let i = self.inner.0.lock().unwrap();
-        let snapshot = Self::snapshot_inner(&i);
+        let mut i = self.inner.0.lock().unwrap();
+        let snapshot = Self::snapshot_inner(&mut i);
         let capability = i.records_capability.clone();
         let gap = *generation != i.generation || after > i.receipt_position || !matches!(i.state.as_str(), "ready" | "handshaking");
         let frames: Vec<_> = i.journal.iter().filter(|e| {
@@ -927,12 +929,16 @@ impl Host {
         }
     }
     fn persist_requests(i:&mut Inner){
+        let requests = i.server_requests.entries();
+        Self::persist_request_observations(i, &requests);
+    }
+    fn persist_request_observations(i: &mut Inner, requests: &[Value]) {
         if i.recovery.is_none(){return;}
         // Each request's summary is compared with the held entries, the queued
         // facts and the summaries queued before it here, searched in place.
         let held=i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)).unwrap_or_default();
         let queue=Arc::clone(&i.pending_recovery);let mut facts=queue.facts.lock().unwrap();
-        for request in i.server_requests.entries(){match RecoveryLedger::request_summary_entry_in(&request,crate::recovery::History::new(&held,facts.make_contiguous())){Ok(Some(entry))=>facts.push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
+        for request in requests {match RecoveryLedger::request_summary_entry_in(request,crate::recovery::History::new(&held,facts.make_contiguous())){Ok(Some(entry))=>facts.push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
     }
     /// Nonblocking writer admission: captured facts stay queued when another
     /// actual writer owns IO. No service/store or silent drop is introduced.
@@ -1509,12 +1515,14 @@ impl Host {
         }
         let generation = i.generation.clone();
         let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="system termination") {"system-termination"} else {"supplier-stop"}} else {"supplier-exit"};
+        Self::observe_reply_writes(i);
+        let (ended, settlements) = i.server_requests.close_for_observed(&generation, cause);
+        Self::persist_request_observations(i, &settlements);
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
         Self::persist_recovery(i);
         Self::stop_requests_generation_closed(i,&generation);
         Self::oauth_lost(i,&generation);
-        let ended = i.server_requests.close_for(&generation, cause);
         Self::persist_requests(i);
         for turn in &mut i.conversation_turns {
             if turn["generation"] == generation { turn["observationEnded"] = json!(true); }
@@ -1527,13 +1535,11 @@ impl Host {
     pub fn answer_server_request(&self, generation:&Value,id:&Value,answer:&Value,origin:&str,actor:Option<&str>)->Result<Value,String>{
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
-        if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
         self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare_error(generation,id,error,origin)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
-        if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
         self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     fn capture_pipe(&self,i:&Inner)->Result<BoundPipe,String>{
@@ -1560,11 +1566,27 @@ impl Host {
         // cannot be overwritten by a late locally prepared reply.
         !i.journal.iter().chain(i.held.iter()).any(|e|e["generation"]==*generation&&e["frame"]["method"]=="serverRequest/resolved"&&e["frame"]["params"]["requestId"]==frame["id"]&&e["frame"]["params"]["threadId"]==entry["nativeParameters"]["threadId"])
     }
+    fn observe_reply_writes(i: &mut Inner) {
+        let settlements = i.server_requests.observe_completed_reply_writes();
+        if !settlements.is_empty() {
+            Self::persist_request_observations(i, &settlements);
+            Self::persist_requests(i);
+            let requests = i.server_requests.entries();
+            for settlement in &settlements {
+                let generation = &settlement["generation"];
+                if i.server_requests.is_closed(generation) {
+                    let context = settlement["endContext"].as_str().unwrap_or("supplier-exit");
+                    i.execution_custody.closed_request_outcomes(generation,context,&requests,&now_rfc3339());
+                }
+            }
+            Self::persist_recovery(i);
+        }
+    }
     fn write_reply(&self,mut bound:BoundPipe,frame:&Value)->Result<(),String>{
         let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
-        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}}
-        let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);
-        let mut i=self.inner.0.lock().unwrap();if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){return Err("reply write finished for closed/superseded source; no successor settlement inferred".into());}
+        let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}i.server_requests.begin_reply_write(&bound.generation,&frame["id"])?};
+        let result=Self::write_complete(&mut bound.file,&bytes);observation.complete(result.is_ok());drop(serial);
+        let mut i=self.inner.0.lock().unwrap();Self::observe_reply_writes(&mut i);if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){drop(i);self.flush_recovery_observations();return Err("reply write finished for closed/superseded source; original result retained, no successor settlement inferred".into());}
         i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();result
     }
 
@@ -2139,20 +2161,26 @@ impl Host {
             let bytes=Self::frame_bytes(&frame)?;if bytes.len()>2048{return Err("offered response frame limit".into())}
             let serial=self.frame_write.lock().unwrap();
             #[cfg(test)] {let hook=self.cce_before_cut.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}
-            {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;Self::cce_check_call(&i,call)?;
+            let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;Self::cce_check_call(&i,call)?;
                 let e=i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).ok_or("original offered entry absent")?;
                 if e["state"]!="settling"||e["replyWriteResult"]!="not-attempted"||f.resolution.load(Ordering::SeqCst)!=0{return Err("original offered reply no longer eligible".into())}
-                f.cut.store(i.receipt_position,Ordering::SeqCst);f.state.compare_exchange(1,2,Ordering::SeqCst,Ordering::SeqCst).map_err(|_|"offered attempt no longer preparable")?;}
+                f.cut.store(i.receipt_position,Ordering::SeqCst);f.state.compare_exchange(1,2,Ordering::SeqCst,Ordering::SeqCst).map_err(|_|"offered attempt no longer preparable")?;
+                let generation=i.generation.clone();i.server_requests.begin_reply_write(&generation,&f.rpc.view())?};
             #[cfg(test)] {let hook=self.cce_after_cut.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}
             #[cfg(test)] let write=match self.cce_simulated_write.lock().unwrap().take(){Some(reason)=>Err(format!("simulated offered write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(not(test))] let write=Self::write_complete(&mut bound.file,&bytes);
+            observation.complete(write.is_ok());
             f.state.store(if write.is_ok(){3}else{4},Ordering::SeqCst);
             #[cfg(test)] {let hook=self.cce_after_write.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}
             drop(serial);
             let mut i=self.inner.0.lock().unwrap();
-            if !f.generation.matches(&i.generation)||i.server_requests.is_closed(&i.generation){return Err("offered local IO completed after closure; private original outcome retained, canonical settlement unavailable".into())}
-            if i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).is_none_or(|e|e["state"]!="settling"){return Err("offered local IO observed; original canonical settlement unavailable".into())}
-            let generation=i.generation.clone();i.server_requests.written(&generation,&f.rpc.view(),write.is_ok());f.canonical.store(true,Ordering::SeqCst);Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();write
+            Self::observe_reply_writes(&mut i);
+            if !f.generation.matches(&i.generation)||i.server_requests.is_closed(&i.generation){return Err("offered local IO completed for closed/replaced source; original result retained, no delivery or successor settlement inferred".into())}
+            if i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).is_none_or(|e|!matches!(e["state"].as_str(),Some("settling"|"answered"|"settle-write-failed"))){return Err("offered local IO observed; original canonical settlement unavailable".into())}
+            let generation=i.generation.clone();i.server_requests.written(&generation,&f.rpc.view(),write.is_ok());
+            // This private flag records this caller's guarded bookkeeping;
+            // an observer/closer can independently retain completed source IO.
+            f.canonical.store(true,Ordering::SeqCst);Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();write
         })();
         if result.is_err()&&owns_preparation{let _=f.state.compare_exchange(1,5,Ordering::SeqCst,Ordering::SeqCst);}
         result
@@ -3176,13 +3204,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if accepted {if let Some(Ok(a))=offered {if let Some(index)=i.server_requests.original_offered_index(&gen,&frame["id"],pos){if let Some(offer)=i.cce_offer.as_mut(){offer.received(&gen,pos,index,&frame,a);cce_call=offer.take();}}}}
             match received {
                 Ok(Some(reply)) => {
-                    match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(_)=>i.server_requests.written(&gen,&frame["id"],false)}
+                    match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(reason)=>i.journal.push(json!({"generation":gen,"class":"request-reply-not-attempted","reason":reason,"requestIdentity":frame["id"]}))}
                 }
                 Ok(None) => {
                     if frame["method"] == "currentTime/read" && capabilities["experimentalApi"] == true {
                         let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
                         if let Ok(reply) = i.server_requests.prepare(&gen, &frame["id"], &json!({"currentTimeAt":seconds}), "app-rule:current-time", None) {
-                            match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(_)=>i.server_requests.written(&gen,&frame["id"],false)}
+                            match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(reason)=>i.journal.push(json!({"generation":gen,"class":"request-reply-not-attempted","reason":reason,"requestIdentity":frame["id"]}))}
                         }
                     }
                 }
@@ -3192,7 +3220,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 }
             }
         } else if class == "notification" && frame["method"] == "serverRequest/resolved" {
-            i.server_requests.resolved(&gen, &frame["params"]);
+            if i.server_requests.offered_resolution_before_settlement(&gen, &frame["params"]["requestId"]) {
+                i.server_requests.resolved(&gen, &frame["params"]);
+                Self::observe_reply_writes(&mut i);
+            } else {
+                Self::observe_reply_writes(&mut i);
+                i.server_requests.resolved(&gen, &frame["params"]);
+            }
             if let Some(offer)=i.cce_offer.as_ref(){offer.resolution(&gen,pos,&frame["params"]);}
         }
         if (class == "server-request"&&private_auth_reply.is_none()) || (class == "notification" && frame["method"] == "serverRequest/resolved") {
@@ -3283,7 +3317,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(json!({"generation":gen,"position":pos,"class":"private-auth-request-reply","requestIdentity":"redacted/unavailable; no public replay authority","replyWriteResult":if result.is_ok(){"written"}else{"unknown/write-failed"},"acknowledgment":"not-observed","standing":"original private framing ID used only for immediate unsupported-method reply; not sign-in completion"}));
         }
         self.flush_recovery_observations();
-        if let Some((bound,reply))=automatic_reply{let generation=bound.generation.clone();let id=reply["id"].clone();if self.write_reply(bound,&reply).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&id,false);Self::persist_requests(&mut i);}}}
+        if let Some((bound,reply))=automatic_reply { let _ = self.write_reply(bound,&reply); }
     }
 
     /// The facts of an offered records call, read under Inner (RS §13.9).
@@ -3306,10 +3340,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let reference=json!({"readId":read_id,"bytes":text.len(),"content":{"method":"chirality.app.exact-bytes.sha256/v1","value":sha256_hex(text.as_bytes())},"success":answer["success"]});
         let prepared={let mut i=self.inner.0.lock().unwrap();
             match i.server_requests.prepare_named_tool(&generation,&call.request,&answer,"app-rule:records-read",reference){
-                Ok(frame)=>match self.capture_pipe(&i){Ok(bound)=>Some((bound,frame)),Err(_)=>{i.server_requests.written(&generation,&call.request,false);Self::persist_requests(&mut i);None}},
+                Ok(frame)=>match self.capture_pipe(&i){Ok(bound)=>Some((bound,frame)),Err(reason)=>{i.journal.push(json!({"generation":generation,"class":"records-call-reply-not-attempted","reason":reason,"requestIdentity":call.request}));None}},
                 Err(reason)=>{i.journal.push(json!({"generation":generation,"class":"records-call-not-answered","reason":reason,"requestIdentity":call.request}));None}
             }};
-        if let Some((bound,frame))=prepared{if self.write_reply(bound,&frame).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&call.request,false);Self::persist_requests(&mut i);}}}
+        if let Some((bound,frame))=prepared { let _ = self.write_reply(bound,&frame); }
         self.flush_recovery_observations();
     }
     /// One immediate unsupported-auth-request duty, captured under the original source.
@@ -3757,6 +3791,140 @@ mod conversation_transport_tests {
         });
         let result=operation();let outbound=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
     }
+    #[test]
+    fn reply_close_retains_late_actual_result_and_cold_unknown() {
+        use std::os::fd::AsRawFd;
+        for fails in [false,true] {
+            let root=std::env::temp_dir().canonicalize().unwrap().join(opaque_id("reply-close-late-").unwrap());std::fs::create_dir(&root).unwrap();let path=root.join("ledger.jsonl");
+            let host=host();{let mut i=host.inner.0.lock().unwrap();i.state="absent".into();i.app_session="conversation-session".into();i.home="conversation-home".into();i.spawn_counter=1;}
+            host.configure_recovery(path.clone()).unwrap();host.inner.0.lock().unwrap().state="ready".into();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
+            let request=json!({"id":"reply","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}});
+            host.on_line(&serde_json::to_vec(&request).unwrap(),&g());
+            let caller=Arc::clone(&host);let worker=std::thread::spawn(move||caller.error_server_request(&g(),&json!("reply"),&json!({"code":-32000,"message":"x".repeat(8*1024*1024)}),"app-rule:synthetic-error"));
+            let(first_tx,first_rx)=channel();let(go_tx,go_rx)=channel();let(done_tx,done_rx)=channel();
+            let reader=std::thread::spawn(move||{let mut input=BufReader::new(stdout);let mut bytes=vec![0;512];let _=first_tx.send(input.read_exact(&mut bytes).is_ok());let _=go_rx.recv_timeout(Duration::from_secs(8));let read=input.read_until(b'\n',&mut bytes);let frame=serde_json::from_slice::<Value>(&bytes).ok();let _=done_tx.send((bytes.len(),read.is_ok(),frame));});
+            let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account,Arc::clone(&host),Err("owned reply-close source".into())).unwrap();
+            let begun=first_rx.recv_timeout(Duration::from_secs(3));assert_eq!(crate::runtime_session::assess_native_home_work(&home,&g()).unwrap().snapshot()["observedOutstandingRequests"].as_array().unwrap().len(),1);let mut i=host.inner.0.lock().unwrap();let blocked=host.frame_write.try_lock().is_err();let count=Host::close_generation(&mut i);let at_close=i.server_requests.entries()[0].clone();drop(i);
+            assert!(crate::runtime_session::assess_native_home_work(&home,&g()).is_err(),"closed generation is not a live home");
+            host.flush_recovery_observations();
+            std::fs::copy(path.with_extension("sqlite"),root.join("unknown.sqlite")).unwrap();
+            let mut cold=RecoveryLedger::open(root.join("unknown.jsonl")).unwrap();cold.append(RecoveryLedger::session_end_entry("conversation-session","system-terminated",&[]).unwrap()).unwrap();cold.start_session("cold-control-session","invented-reopen").unwrap();let cold_unknown=cold.recorded_entries();drop(cold);
+            let mut successor=g();successor["home"]=json!("next-home");successor["spawnCounter"]=json!(2);{let mut i=host.inner.0.lock().unwrap();i.generation=successor.clone();i.state="ready".into();}
+            let mut next_child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=next_child.stdin.take();let next_stdout=next_child.stdout.take().unwrap();
+            let mut next_request=request.clone();next_request["params"]["threadId"]=json!("successor-thread");host.on_line(&serde_json::to_vec(&next_request).unwrap(),&successor);let successor_before=host.inner.0.lock().unwrap().server_requests.entries()[1].clone();
+            let mut postclose_native=json!({"method":"serverRequest/resolved","params":{"threadId":"thread","requestId":"reply"}});host.on_line(&serde_json::to_vec(&postclose_native).unwrap(),&g());
+            if fails {child.kill().unwrap();}
+            go_tx.send(()).unwrap();let complete=done_rx.recv_timeout(Duration::from_secs(4));if complete.is_err(){let _=child.kill();let _=next_child.kill();}
+            let caller_result=worker.join().unwrap();reader.join().unwrap();let _=child.wait();
+            postclose_native["params"]["threadId"]=json!("thread");host.on_line(&serde_json::to_vec(&postclose_native).unwrap(),&g());
+            let after=host.inner.0.lock().unwrap().server_requests.entries();let public=host.snapshot()["serverRequests"][0].clone();
+            let mut poll=libc::pollfd{fd:next_stdout.as_raw_fd(),events:libc::POLLIN,revents:0};let successor_bytes_ready=unsafe{libc::poll(&mut poll,1,0)};*host.stdin.lock().unwrap()=None;let _=next_child.wait();let mut next_bytes=Vec::new();BufReader::new(next_stdout).read_to_end(&mut next_bytes).unwrap();
+            host.flush_recovery_observations();let ledger=host.inner.0.lock().unwrap().recovery.take().unwrap();let hot=ledger.lock().unwrap().recorded_entries();drop(ledger);
+            let mut reopened=RecoveryLedger::open(path.clone()).unwrap();reopened.append(RecoveryLedger::session_end_entry("conversation-session","system-terminated",&[]).unwrap()).unwrap();reopened.start_session("after-late-control-session","invented-reopen").unwrap();let cold_result=reopened.recorded_entries();drop(reopened);
+            let source_rows=|history:&Value|history.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary"&&crate::recovery::generation_from_ref(e["generation"].as_str().unwrap()).unwrap()==g()).cloned().collect::<Vec<_>>();
+            assert_eq!(begun.unwrap(),true);assert!(blocked);assert_eq!(count["endedUnanswered"],0);assert_eq!(at_close["state"],"reply-outcome-unknown");assert_eq!(at_close["replyWriteResult"],"unknown");assert_eq!(at_close["closedGeneration"],true);assert_eq!(at_close["endContext"],"supplier-exit");assert_eq!(at_close["settlement"]["origin"],"app-rule:synthetic-error");
+            let unknown=source_rows(&cold_unknown);assert_eq!(unknown.last().unwrap()["transition"],"RQ-10");assert_eq!(unknown.last().unwrap()["state"],"closed");assert_eq!(unknown.last().unwrap()["endedAs"],"reply-outcome-unknown");assert_eq!(unknown.last().unwrap()["replyWrite"],"unknown");assert!(!unknown.iter().any(|e|e["transition"]=="RQ-06"));
+            let(size,read_ok,frame)=complete.unwrap();assert!(read_ok);if fails {assert!(frame.is_none());assert!(size<8*1024*1024);}else{let frame=frame.unwrap();assert_eq!(frame["id"],"reply");assert_eq!(frame["error"]["message"].as_str().unwrap().len(),8*1024*1024);assert!(size>8*1024*1024);}
+            if fails {assert!(caller_result.is_err());} else if let Ok(response)=&caller_result {assert_eq!(response["replyWriteResult"],"written");assert_eq!(response["acknowledgment"],"not-observed");}assert_eq!(after[0]["state"],if fails{"settle-write-failed"}else{"errored"});assert_eq!(after[0]["replyWriteResult"],if fails{"write-failed"}else{"written"});assert_eq!(after[0]["generation"],g());assert_eq!(after[0]["closedGeneration"],true);assert_eq!(after[0]["acknowledgment"],"not-observed");assert_eq!(after[1],successor_before);assert_eq!(successor_bytes_ready,0);assert!(next_bytes.is_empty());assert_eq!(public["acknowledgmentObservation"]["status"],"not-observed");
+            for history in [&hot,&cold_result] {let rows=source_rows(history);assert!(rows.iter().any(|e|e["transition"]=="RQ-10"));assert!(!rows.iter().any(|e|e["transition"]=="RQ-04"||e["transition"]=="RQ-06"||e["transition"]=="RQ-09"));assert_eq!(rows.last().unwrap()["replyWrite"],if fails{"write-failed"}else{"written"});assert_eq!(rows.last().unwrap()["endedAs"],if fails{"settle-write-failed"}else{"errored"});}
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn reply_close_capture_refusals_and_receipt_errors_keep_actual_io_meaning() {
+        for written in [false,true] {
+            for method in ["currentTime/read","future/request","item/tool/call"] {
+                let root=std::env::temp_dir().canonicalize().unwrap().join(opaque_id("reply-close-capture-").unwrap());std::fs::create_dir(&root).unwrap();
+                let host=host();{let mut i=host.inner.0.lock().unwrap();i.state="absent".into();i.app_session="conversation-session".into();i.declared_capabilities=Some(json!({"experimentalApi":true}));}
+                host.configure_recovery(root.join("ledger.jsonl")).unwrap();host.inner.0.lock().unwrap().state="ready".into();
+                let frame=json!({"id":"reply","method":method,"params":{"threadId":"thread"}});
+                if written {
+                    let (result,captured)=exchange(&host,None,vec![],||{host.on_line(&serde_json::to_vec(&frame).unwrap(),&g());Ok(Value::Null)});
+                    assert!(result.is_ok());assert_eq!(captured["id"],"reply");
+                    assert_eq!(captured.get("error").is_some(),method!="currentTime/read");
+                } else {assert!(host.stdin.lock().unwrap().is_none());host.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
+                let mut i=host.inner.0.lock().unwrap();let before=i.server_requests.entries()[0].clone();
+                assert_ne!(before["laterProtocolError"],true,"receipt-time errors do not become later R9 errors");
+                assert_eq!(before["replyWriteResult"],if written {"written"} else {"not-attempted"});
+                assert_eq!(before["state"],if written {if method=="currentTime/read" {"answered"} else {"errored"}} else {"settling"});
+                let counts=Host::close_generation(&mut i);let source=i.server_requests.entries()[0].clone();drop(i);host.flush_recovery_observations();
+                assert_eq!(counts["endedUnanswered"],if written {0} else {1});assert_eq!(source["generation"],g());assert_eq!(source["requestId"],"reply");
+                assert_eq!(source["classification"],before["classification"]);assert_eq!(source["settlement"],before["settlement"]);assert_eq!(source["acknowledgment"],"not-observed");
+                if !written {assert_eq!(source["state"],"ended-unanswered");assert_eq!(source["endContext"],"supplier-exit");}
+                let recorded=host.recorded_recovery_entries();let transitions=recorded.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").map(|e|e["transition"].as_str().unwrap()).collect::<Vec<_>>();
+                assert_eq!(transitions,if !written {vec!["RQ-01","RQ-04"]} else if method=="currentTime/read" {vec!["RQ-01","RQ-03","RQ-05"]} else {vec!["RQ-01","RQ-08"]},"actual captured source: {method} written={written}");
+                std::fs::remove_dir_all(root).unwrap();
+            }
+        }
+    }
+    #[test]
+    fn reply_close_preserves_queued_and_completed_io_with_recorded_recovery() {
+        fn small(entry:&Value)->Value {json!({"state":entry["state"],"replyWriteResult":entry["replyWriteResult"],"closedGeneration":entry["closedGeneration"],"endContext":entry["endContext"],"origin":entry["settlement"]["origin"],"acknowledgment":entry["acknowledgment"]})}
+        fn last_request(ledger:&RecoveryLedger)->Value {ledger.recorded_entries().as_array().unwrap().iter().rev().find(|e|e["kind"]=="register_entry_summary").expect("actual recorded request pointer exists").clone()}
+        for mode in ["queued-answer","queued-error","written-before-close-error","observed-before-close-error","normal-error-control"] {
+            let root=std::env::temp_dir().canonicalize().unwrap().join(opaque_id("reply-close-diag-").unwrap());std::fs::create_dir(&root).unwrap();let path=root.join("ledger.jsonl");
+            let host=host();{let mut i=host.inner.0.lock().unwrap();i.state="absent".into();i.app_session="conversation-session".into();i.home="conversation-home".into();i.spawn_counter=1;}
+            host.configure_recovery(path.clone()).unwrap();host.inner.0.lock().unwrap().state="ready".into();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
+            host.on_line(&serde_json::to_vec(&json!({"id":"reply","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g());
+            let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account,Arc::clone(&host),Err("owned reply-close test source".into())).unwrap();
+            let pending=||crate::runtime_session::assess_native_home_work(&home,&g()).unwrap().snapshot()["observedOutstandingRequests"].as_array().unwrap().len();
+            let received={let i=host.inner.0.lock().unwrap();small(&i.server_requests.entries()[0])};assert_eq!(received["state"],"outstanding");
+            let before;let counts;let captured;let result;let mut write_serial_released=false;
+            if mode.starts_with("queued") {
+                let serial=host.frame_write.lock().unwrap();let caller=Arc::clone(&host);let answer=mode=="queued-answer";
+                let worker=std::thread::spawn(move||if answer{caller.answer_server_request(&g(),&json!("reply"),&json!({"answers":{}}),"app-rule:synthetic-negative",None)}else{caller.error_server_request(&g(),&json!("reply"),&json!({"code":-32000,"message":"invented queued error"}),"app-rule:synthetic-error")});
+                let deadline=std::time::Instant::now()+Duration::from_secs(2);while host.inner.0.lock().unwrap().server_requests.entries()[0]["state"]!="settling"&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(2));}
+                assert_eq!(pending(),1,"queued prepared reply remains pending in the actual live-home assessment");
+                {let mut i=host.inner.0.lock().unwrap();before=small(&i.server_requests.entries()[0]);counts=Host::close_generation(&mut i);}
+                drop(serial);result=worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());let mut bytes=Vec::new();BufReader::new(stdout).read_to_end(&mut bytes).unwrap();captured=bytes.len();assert_eq!(captured,0);assert!(result.is_err());
+            } else {
+                let bytes=if mode.ends_with("before-close-error"){8*1024*1024}else{1024};let caller=Arc::clone(&host);
+                let worker=std::thread::spawn(move||caller.error_server_request(&g(),&json!("reply"),&json!({"code":-32000,"message":"x".repeat(bytes)}),"app-rule:synthetic-error"));
+                if mode.ends_with("before-close-error") {
+                    let(first_tx,first_rx)=channel();let(go_tx,go_rx)=channel();let(done_tx,done_rx)=channel();
+                    let reader=std::thread::spawn(move||{let mut input=BufReader::new(stdout);let mut first=vec![0;512];let first_ok=input.read_exact(&mut first).is_ok();let _=first_tx.send(first_ok);let _=go_rx.recv_timeout(Duration::from_secs(5));let read=input.read_until(b'\n',&mut first);let valid=serde_json::from_slice::<Value>(&first).ok().is_some_and(|v|v["id"]=="reply"&&v["error"]["message"].as_str().is_some_and(|s|s.len()==8*1024*1024));let _=done_tx.send((first.len(),valid,read.is_ok()));});
+                    let begun=first_rx.recv_timeout(Duration::from_secs(3));assert_eq!(pending(),1,"actual in-progress source reply remains pending");let mut i=host.inner.0.lock().unwrap();before=small(&i.server_requests.entries()[0]);assert!(host.frame_write.try_lock().is_err(),"owned large reply is actually writing before receiver drains it");go_tx.send(()).unwrap();let complete=done_rx.recv_timeout(Duration::from_secs(3));
+                    let deadline=std::time::Instant::now()+Duration::from_secs(2);while std::time::Instant::now()<deadline{if host.frame_write.try_lock().is_ok(){write_serial_released=true;break;}std::thread::sleep(Duration::from_millis(2));}
+                    if mode=="observed-before-close-error" {let reading=Host::snapshot_inner(&mut i);assert_eq!(reading["serverRequests"][0]["state"],"errored");assert_eq!(reading["serverRequests"][0]["replyWriteResult"],"written");}
+                    counts=Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.spawn_counter=2;i.state="ready".into();drop(i);
+                    if begun.as_ref()!=Ok(&true)||!matches!(complete,Ok((_,true,true)))||!write_serial_released{let _=child.kill();}
+                    *host.stdin.lock().unwrap()=None;result=worker.join().unwrap();reader.join().unwrap();let status=child.wait().unwrap();assert!(begun.unwrap());let(size,valid,read_ok)=complete.unwrap();assert!(valid&&read_ok&&write_serial_released&&status.success());captured=size;assert!(result.is_err());
+                } else {
+                    let reader=std::thread::spawn(move||{let mut input=BufReader::new(stdout);let mut line=Vec::new();input.read_until(b'\n',&mut line).unwrap();line.len()});result=worker.join().unwrap();captured=reader.join().unwrap();assert!(result.is_ok());assert_eq!(pending(),0,"known completed live reply is not pending");{let mut i=host.inner.0.lock().unwrap();before=small(&i.server_requests.entries()[0]);counts=Host::close_generation(&mut i);}*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+                }
+            }
+            assert!(crate::runtime_session::assess_native_home_work(&home,&g()).is_err(),"closed or superseded source cannot become new live work");
+            let after={let i=host.inner.0.lock().unwrap();small(&i.server_requests.entries()[0])};host.flush_recovery_observations();let ledger=host.inner.0.lock().unwrap().recovery.take().unwrap();let (hot,transitions)={let ledger=ledger.lock().unwrap();let transitions=ledger.recorded_entries().as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").map(|e|e["transition"].as_str().unwrap().to_owned()).collect::<Vec<_>>();(last_request(&ledger),transitions)};drop(ledger);
+            std::fs::copy(path.with_extension("sqlite"),root.join("without-record.sqlite")).unwrap();let mut no_end=RecoveryLedger::open(root.join("without-record.jsonl")).unwrap();no_end.start_session("new-session-without-record","invented-reopen").unwrap();let cold_no_end=last_request(&no_end);drop(no_end);
+            let mut known=RecoveryLedger::open(path.clone()).unwrap();known.append(RecoveryLedger::session_end_entry("conversation-session","system-terminated",&[]).unwrap()).unwrap();drop(known);let mut known=RecoveryLedger::open(path).unwrap();known.start_session("new-session-with-known-end","invented-reopen").unwrap();let cold_known_end=last_request(&known);drop(known);
+            let expected=if mode.starts_with("queued") {"RQ-04"} else {"RQ-05"};
+            assert_eq!(before["state"],if mode=="normal-error-control" {"errored"} else {"settling"});
+            assert_eq!(transitions,if mode.starts_with("queued") {vec!["RQ-01","RQ-04"]} else {vec!["RQ-01","RQ-03","RQ-05"]},"observed write must precede closure: {mode}");
+            assert_eq!(after["closedGeneration"],true,"{mode}");
+            assert_eq!(after["acknowledgment"],"not-observed","{mode}");
+            assert_eq!(hot["transition"],expected,"actual hot source pointer: {mode}");
+            assert_eq!(cold_no_end["transition"],expected,"cold pointer without a session end: {mode}");
+            assert_eq!(cold_known_end["transition"],expected,"cold pointer with a recorded session end: {mode}");
+            assert_eq!(after["state"],if mode.starts_with("queued") {"ended-unanswered"} else {"errored"},"{mode}");
+            assert_eq!(after["replyWriteResult"],if mode.starts_with("queued") {"not-attempted"} else {"written"},"{mode}");
+            assert_eq!(counts["endedUnanswered"],if mode.starts_with("queued") {1} else {0},"{mode}");
+            if mode.starts_with("queued") {assert_eq!(after["endContext"],"supplier-exit","{mode}");assert_eq!(captured,0);} else {assert!(captured>0);}
+            let inner=host.inner.0.lock().unwrap();
+            let source=inner.server_requests.entries()[0].clone();
+            assert_eq!(source["generation"],g(),"original full H5 remains: {mode}");
+            assert_eq!(source["requestId"],"reply");
+            assert_eq!(inner.server_requests.entries().len(),1,"no successor request created");
+            let events=inner.execution_custody.events();
+            assert_eq!(events.iter().filter(|e|e["kind"]=="request_ended_unanswered").count(),if mode.starts_with("queued") {1} else {0},"custody must follow actual source outcome: {mode}");
+            assert_eq!(events.iter().filter(|e|e["kind"]=="acknowledgment_not_observed").count(),if mode.starts_with("queued") {0} else {1},"a completed write has lost acknowledgment, not unanswered intent: {mode}");
+            drop(inner);
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+
     #[test]
     fn required_native_text_and_interrupt_params_match_generated_schema_without_overrides() {
         let text="Exact\n\né / 家\n{\"approvalPolicy\":\"never\"}";let params=Host::text_turn_params("thread",text).unwrap();assert_eq!(params,json!({"threadId":"thread","input":[{"type":"text","text":text,"text_elements":[]}]}));
