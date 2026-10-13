@@ -1588,6 +1588,26 @@ has its place below, but DEL-06-01 has no App writer or reader yet.
   or unverified once the App is signed. They never count as this person's
   registration: a workflow from such a library is selectable here only after
   the person registers it with their own A15.
+  **Current implementation.** The library view shows registration history
+  separately as quoted claims, retaining each original tuple, source root and
+  act reference, including rows from a library opened at another path. Each
+  act retains its quoted bound subjects; duplicate record identities and
+  unknown or mismatching complete ledger tuples are visible relationship
+  limits. A changed path does not establish another installation. New A15 captures and
+  their RS bodies carry optional `installation` {`reference`, `verification`:
+  `unverified`}: a secure opaque UUID reference kept once in the App data
+  folder's `installation.json`, independent of the chosen records store. It
+  is attribution metadata only; copying/editing that file can repeat/change
+  the claim. Legacy records, or a local identity that cannot be read or made
+  durable, show installation unknown; a capture with that failure retains its
+  actual native act and an explicit attribution limit. No cold file is
+  retroactively attributed or sealed. Verification waits for App signing;
+  the current reference authenticates neither the installation nor the act.
+  Selection still requires a registration/re-confirmation result held from
+  this process's own native A15; quoted history never enters that route. The
+  existing two-or-more-entry in-place route is supported after a move; AAC
+  still refuses a single `entry:` descriptor (its current implementation
+  conditions), so this slice does not establish that route.
 - **Split by who writes** (owner, 2026-10-12: "Split by who writes (Recommended)"). Records the App writes join the
   store: connector route accounts (DEL-07-02) and the App's own fleet
   coordination observations. Working files that the person and agents edit

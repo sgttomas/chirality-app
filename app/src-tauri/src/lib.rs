@@ -11,6 +11,7 @@ pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
+mod installation;
 pub mod catalog;
 mod checkpoint_recorder;
 mod model_turn_recorder;
@@ -1779,7 +1780,7 @@ pub fn run() {
             }
             // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
             // App data folder, outside every project.
-            if let Ok(data) = data.as_ref() { capture_seal::install(data); }
+            if let Ok(data) = data.as_ref() { capture_seal::install(data); installation::install(data); }
             let state = app.state::<AppState>();
             *state.home_bootstrap.lock().unwrap() = (|| {
                 let data=data.as_ref().map_err(Clone::clone)?;

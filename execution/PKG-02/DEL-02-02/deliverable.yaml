@@ -245,6 +245,7 @@ code_paths:
 - app/src-tauri/src/workflow_workspace.rs
 - app/src/TrialComposer.tsx
 - app/src/WorkflowDrafts.tsx
+- app/src/App.tsx
 checks:
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/workflow_drafts_tests.rs
@@ -253,3 +254,5 @@ checks:
 - app/src-tauri/src/workflow_trials_tests.rs
 - app/tests/trials.test.mjs
 - app/tests/workflow-drafts.test.mjs
+- app/src-tauri/src/workflow_library_tests.rs
+- app/tests/workflow-library.test.mjs

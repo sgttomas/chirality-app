@@ -396,6 +396,27 @@
       "description": "A16 (R23-8): the identity of the alternative the person chose.",
       "type": "string",
       "minLength": 1
+    },
+    "installation": {
+      "description": "RS §13.8 U-STORE-2: a recorded, opaque App-data installation-reference claim. It is unverified attribution only; no identity, native-origin or selection authority follows. Missing on legacy records; null when the local reference cannot be persisted/read.",
+      "type": "object",
+      "required": [
+        "reference",
+        "verification"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^chirality-installation:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "verification": {
+          "const": "unverified"
+        }
+      }
     }
   },
   "allOf": [
@@ -597,6 +618,20 @@
           ]
         }
       ]
+    },
+    {
+      "if": {
+        "required": [
+          "installation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actKind": {
+            "const": "A15"
+          }
+        }
+      }
     }
   ]
 }

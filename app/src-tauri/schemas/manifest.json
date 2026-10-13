@@ -3,7 +3,7 @@
     {
       "file": "RS_RECORD.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RS_RECORD.schema.json",
-      "sha256": "066798995dbce9d6c8fcfaffcb6c8983c55f9d5ca4e8c6c00fa2b670d18a76ee",
+      "sha256": "05060e9708c84cae6b1d2545801b901e1d1cab1c3db4f0efbcf817fbdc5997d2",
       "id": "urn:chirality:app-v4:del-04-03:rs-record:0.1"
     },
     {
@@ -33,7 +33,7 @@
     {
       "file": "aac.capture-evidence.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/aac.capture-evidence.schema.json",
-      "sha256": "1786998b1dd53ccf184d280ce5a571c9f385dcfd41beac8e20a6d279d1a25439",
+      "sha256": "279c0499dc31c25cdcc1a7a26852bef99a3e36988a21c820544673f1e83c7506",
       "id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3"
     }
   ],
