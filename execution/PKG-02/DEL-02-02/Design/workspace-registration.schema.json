@@ -161,7 +161,8 @@
         "content": {
           "$ref": "#/$defs/content_identity"
         }
-      }
+      },
+      "description": "Reviewed content locator and identity. In a single in-place A15 descriptor, compatibility field draft points to the existing library entry home/name; no draft exists. AAC/RS render the corresponding ID-3 entry: reference."
     },
     "finding": {
       "type": "object",
@@ -742,7 +743,7 @@
       ]
     },
     "a15_descriptor": {
-      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation. CC-WR-RECONFIRM (WR section 4.8 RC-4): for DS-8 the descriptor re-confirms a registered revision: disposition 're-confirmation', its own wording and purpose, subject equal to reconfirms.identity (reader check), prior_revision and derived_from as that revision's registered line records them; no new revision is registered.",
+      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation. CC-WR-RECONFIRM (WR section 4.8 RC-4): for DS-8 the descriptor re-confirms a registered revision: disposition 're-confirmation', its own wording and purpose, subject equal to reconfirms.identity (reader check), prior_revision and derived_from as that revision's registered line records them; no new revision is registered. Owner: 'Allow direct single-entry registration (Recommended)'. A single existing entry reviewed in place uses this same descriptor with disposition in place, singular wording and null prior_revision; the compatibility reviewed_draft.draft locator identifies its actual workflows home, not a created draft.",
       "type": "object",
       "required": [
         "record_kind",
@@ -827,7 +828,7 @@
           "$ref": "#/$defs/text"
         },
         "freshness": {
-          "description": "RB-3: the descriptor is current only while the live draft still has this content and the slot's latest revision is still prior_revision (or the slot is still empty). CC-WR-RECONFIRM (WR section 4.8 RC-5): for a re-confirmation descriptor (disposition 're-confirmation') the slot's latest revision is compared with slot_latest, the slot's latest at review, because relations.prior_revision is then the re-confirmed revision's own prior.",
+          "description": "RB-3: the descriptor is current only while the live reviewed draft or entry still has this content and the slot's latest revision is still prior_revision (or the slot is still empty). CC-WR-RECONFIRM (WR section 4.8 RC-5): for a re-confirmation descriptor (disposition 're-confirmation') the slot's latest revision is compared with slot_latest, the slot's latest at review, because relations.prior_revision is then the re-confirmed revision's own prior.",
           "type": "object",
           "required": [
             "draft_content",

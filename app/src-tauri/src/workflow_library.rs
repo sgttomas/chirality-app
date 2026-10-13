@@ -574,6 +574,8 @@ impl LibraryOwner {
                 name,
                 snapshot.revision()
             );
+            // The compatibility locator may identify a draft or an existing entry.
+            review.draft_key = reference.clone();
             entries.push(ReviewedEntry {
                 review,
                 live,

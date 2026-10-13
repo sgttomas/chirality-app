@@ -1578,8 +1578,8 @@ fn wr_vc_20_ledger_series_with_reconfirmation_lines() {
 #[test]
 fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
     let s = Scratch::new();
-    // Two entries: a single in-place a15_descriptor is refused by the adopted
-    // AAC offer schema (pre-existing; WR §4.8 / SQ-X (e)).
+    // Two entries exercise grouped registration; exactly one uses its own
+    // singular descriptor through the same native writer (covered below).
     let entry = s.put("sample", true, "In place");
     s.put("other", true, "Other in place");
     let session = s
@@ -2429,7 +2429,7 @@ fn u_store_2_a_physically_moved_library_registers_its_local_copy_with_a_new_hot_
     // A real move changes the source-qualified tuples. The adopted multiple-
     // entry DS-7 route records this library's unchanged bytes with a fresh
     // synthetic native confirmation, reusing the immutable stores only.
-    // The single entry: descriptor condition remains open in AAC.
+    // Direct single-entry registration is separately covered below.
     let session = owner.review_in_place(&names).unwrap();
     assert_eq!(session.current().unwrap().descriptor_kind(), "a15_multi_descriptor");
     let r = receipt(&session);
@@ -2498,4 +2498,157 @@ fn u_store_2_history_discloses_cross_kind_duplicates_and_full_tuple_mismatch() {
     let evidence = owner.registration_evidence();
     assert_eq!(evidence["rows"][0]["claims"][0]["boundSubject"][0], "workflow revision legacy:sample");
     assert!(evidence["rows"][0]["claims"][0]["evidenceLimits"].as_array().unwrap().iter().any(|limit| limit.as_str().unwrap().contains("relationship to this ledger identity unknown")));
+}
+
+/// Real portable files and old history, with explicit synthetic native events;
+/// this is source-path coverage, not evidence that a person acted in a native GUI.
+#[test]
+fn a15_single_entry_portable_move_or_copy_keeps_history_and_needs_new_hot_confirmation() {
+    fn copy_tree(from: &Path, to: &Path) {
+        fs::create_dir(to).unwrap();
+        for entry in fs::read_dir(from).unwrap() {
+            let path = entry.unwrap().path();
+            let target = to.join(path.file_name().unwrap());
+            if path.is_dir() {
+                copy_tree(&path, &target)
+            } else {
+                fs::copy(path, target).unwrap();
+            }
+        }
+    }
+    for copied in [false, true] {
+        let s = Scratch::new();
+        let snap = s.put("sample", true, "Portable single-entry bytes");
+        let foreign_data = s.0.with_extension("single-foreign-installation");
+        let local_data = s.0.with_extension("single-local-installation");
+        let local_root =
+            s.0.with_extension(if copied { "single-copy" } else { "single-move" });
+        crate::installation::folder_for_test(Some(Some(foreign_data.clone())));
+        let original_owner =
+            LibraryOwner::open(s.0.clone(), "project", s.0.to_str().unwrap()).unwrap();
+        let session = original_owner.review_in_place(&["sample".into()]).unwrap();
+        let r = receipt(&session);
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        let original = registered(&attempt.advance()[0]).clone();
+        drop(attempt);
+        let old_ledger = fs::read(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+        let old_acts = fs::read(storage::library_log(&s.0)).unwrap();
+        if copied {
+            copy_tree(&s.0, &local_root)
+        } else {
+            fs::rename(&s.0, &local_root).unwrap();
+        }
+        crate::installation::folder_for_test(Some(Some(local_data.clone())));
+        let owner = LibraryOwner::open(local_root.clone(), "project", local_root.to_str().unwrap())
+            .unwrap();
+        assert!(owner.registered_listing().as_array().unwrap().is_empty());
+        assert_eq!(
+            owner.registration_evidence()["rows"][0]["identity"],
+            json!(original.identity())
+        );
+        let session = owner.review_in_place(&["sample".into()]).unwrap();
+        {
+            let view = session.current().unwrap();
+            let d = view.descriptor();
+            assert_eq!(view.descriptor_kind(), "a15_descriptor");
+            assert_eq!(d["wording"], "register workflow revision");
+            assert_eq!(d["disposition"], "in place");
+            assert_eq!(d["relations"]["prior_revision"], Value::Null);
+            assert_eq!(
+                d["relations"]["reviewed_draft"]["draft"]["draft_root"],
+                local_root.join(".chirality/workflows").to_str().unwrap()
+            );
+            assert!(view
+                .ordered_bindings()
+                .next()
+                .unwrap()
+                .reviewed_id3()
+                .starts_with("entry:project:sample@"));
+        }
+        let r = receipt(&session);
+        let act = r.record_id().to_owned();
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        let local = registered(&attempt.advance()[0]).clone();
+        drop(attempt);
+        assert_eq!(local.identity().revision, snap.revision());
+        assert_ne!(local.identity(), original.identity());
+        assert_eq!(local.identity().source_root, local_root.to_str().unwrap());
+        assert_eq!(local.select().identity(), local.identity());
+        assert!(owner.is_held(local.identity()));
+        assert_eq!(owner.registered_listing()[0]["selectable"], true);
+        assert!(
+            !local_root.join(".chirality/workflow-drafts").exists(),
+            "direct registration creates no draft"
+        );
+        assert_eq!(
+            Snapshot::capture(&local_root.join(".chirality/workflows/sample"))
+                .unwrap()
+                .files(),
+            snap.files()
+        );
+        assert_eq!(
+            Snapshot::capture(&store_path(&local_root, original.identity()))
+                .unwrap()
+                .files(),
+            snap.files()
+        );
+        assert!(
+            fs::read(local_root.join(".chirality/workflow-registry.jsonl"))
+                .unwrap()
+                .starts_with(&old_ledger)
+        );
+        assert!(fs::read(storage::library_log(&local_root))
+            .unwrap()
+            .starts_with(&old_acts));
+        let records = crate::records::read_log(&storage::library_log(&local_root)).0;
+        let record = records.iter().find(|e| e["recordId"] == act).unwrap();
+        assert!(record["body"]["relations"]["reviewedDraft"]["draft"]
+            .as_str()
+            .unwrap()
+            .starts_with("entry:"));
+        assert_eq!(record["body"]["relations"]["priorRevision"], Value::Null);
+        assert!(record["body"]["relations"]
+            .get("registeredEntries")
+            .is_none());
+        assert_eq!(record["body"]["installation"]["verification"], "unverified");
+        assert_ne!(
+            record["body"]["installation"]["reference"],
+            records[0]["body"]["installation"]["reference"]
+        );
+        assert!(owner.registration_evidence()["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["selectable"] == false));
+        let restarted =
+            LibraryOwner::open(local_root.clone(), "project", local_root.to_str().unwrap())
+                .unwrap();
+        assert!(!restarted.is_held(local.identity()));
+        assert_eq!(restarted.registered_listing()[0]["selectable"], false);
+        assert!(
+            restarted.review_in_place(&["sample".into()]).is_err(),
+            "registered local slot uses the existing re-confirmation route"
+        );
+        restarted
+            .refine_from_store("sample", &local.identity().revision)
+            .unwrap();
+        let session = restarted
+            .review_draft("sample", &local.identity().revision)
+            .unwrap();
+        assert_eq!(
+            session.current().unwrap().descriptor()["disposition"],
+            "re-confirmation"
+        );
+        let r = receipt(&session);
+        assert_ne!(r.record_id(), act);
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        let again = reconfirmed(&attempt.advance()[0]);
+        assert_eq!(again.identity(), local.identity());
+        assert!(restarted.is_held(again.identity()));
+        drop(attempt);
+        crate::installation::folder_for_test(None);
+        fs::remove_dir_all(local_root).unwrap();
+        fs::remove_dir_all(foreign_data).unwrap();
+        fs::remove_dir_all(local_data).unwrap();
+    }
 }
