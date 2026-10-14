@@ -35,7 +35,7 @@ fn stop_admission_check_through_spawn_blocks_stop_until_custody_published(){
         assert!(tx.1.recv_timeout(Duration::from_millis(100)).is_err());go.send(()).unwrap();
         published.recv_timeout(Duration::from_secs(5)).unwrap();
         tx.1.recv_timeout(Duration::from_secs(6)).unwrap().unwrap();resume.send(()).unwrap();
-        let _=start.join().unwrap();stop.join().unwrap();assert_eq!(h.state(),"stopped");assert!(h.child.lock().unwrap().as_mut().unwrap().try_wait().unwrap().is_some());
+        let _=start.join().unwrap();stop.join().unwrap();assert_eq!(h.state(),"stopped");assert!(h.child.lock().unwrap().as_mut().unwrap().observe_exit().unwrap().is_some());
     }
 }
 #[test]

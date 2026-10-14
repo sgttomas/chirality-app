@@ -190,7 +190,7 @@ impl Store {
         }
         let mut files = prior.files.clone();
         files.remove(TRANSPORT);
-        let envelope = json!({"format":"lifecycle-event.s1","legacy_event":event,"verification_artifact":prior.observed,"verification_generation":g});
+        let envelope = json!({"format":"lifecycle-event.s1.v0.10","legacy_event":event,"verification_artifact":prior.observed,"verification_generation":g});
         distribution_s1::lifecycle(&envelope, &files, self.selected.as_ref())?;
         files.insert(
             LIFECYCLE.into(),

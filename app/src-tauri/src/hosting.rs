@@ -35,6 +35,8 @@ mod request_event_join;
 pub(crate) mod call_custody;
 #[path = "hosting_successor.rs"]
 pub(crate) mod successor;
+#[path = "process_group_custody.rs"]
+pub(crate) mod process_group_custody;
 #[path = "attachment_custody.rs"]
 pub mod attachment_custody;
 use attachment_custody::AttachmentCustody;
@@ -580,7 +582,8 @@ pub struct Host {
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
     inner: Arc<(Mutex<Inner>, Condvar)>,
     stdin: Mutex<Option<ChildStdin>>,
-    child: Mutex<Option<Child>>,
+    child: Mutex<Option<Arc<process_group_custody::OwnedProcess>>>,
+    retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
@@ -616,6 +619,8 @@ pub struct Host {
     before_delegation_wait: Mutex<Option<Box<dyn Fn(&SourceRequest) + Send>>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    after_eof_work: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_startup_eof_signal: Mutex<Option<Box<dyn FnOnce(i32) + Send>>>,
     #[cfg(test)]
@@ -663,6 +668,7 @@ impl Host {
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
             child: Mutex::new(None),
+            retired_processes: Mutex::new(Vec::new()),
             records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
@@ -690,6 +696,8 @@ impl Host {
             before_delegation_wait: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
+            #[cfg(test)]
+            after_eof_work: Mutex::new(None),
             #[cfg(test)]
             before_startup_eof_signal: Mutex::new(None),
             #[cfg(test)]
@@ -1317,15 +1325,14 @@ impl Host {
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .process_group(0); // H11: the supplier and its descendants are one unit.
+            .stderr(Stdio::piped()); // owning spawn applies process_group(0)
         for v in CREDENTIAL_VARS {
             cmd.env_remove(v);
         }
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
-        let mut child = match cmd.spawn() {
+        let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
             Ok(c) => c,
             Err(e) => {
                 let mut i = self.inner.0.lock().unwrap();
@@ -1335,37 +1342,41 @@ impl Host {
                 return Err(format!("spawn failed: {e}"));
             }
         };
-        if prospective.is_some() {
+        {
             // Retain local child ownership until exact prospective allocation.
             let allocation = {
                 let mut i = self.inner.0.lock().unwrap();
                 self.allocate_home_spawn(&mut i, home_identity.clone()).and_then(|_| {
                     let allocated = json!({"appSession":i.app_session,"home":i.home,"spawnCounter":i.spawn_counter});
-                    if prospective.as_ref() != Some(&allocated) { Err("allocated generation contradicted prospective tuple".into()) } else { Ok(()) }
+                    if prospective.is_some() && prospective.as_ref() != Some(&allocated) { Err("allocated generation contradicted prospective tuple".into()) } else { Ok(()) }
                 })
             };
             if let Err(e) = allocation {
-                successor::terminate(&mut child);
+                let cleanup=child.abort_spawn();
+                if !child.released(){self.retired_processes.lock().unwrap().push(Arc::clone(&child));}
                 let mut i = self.inner.0.lock().unwrap();
-                self.lt(&mut i,"LT-08","spawn-failed","halted-after-repeated-failure",json!({"failure":format!("{e}; child reaped"),"failureCount":1}));
+                self.lt(&mut i,"LT-08","spawn-failed","halted-after-repeated-failure",json!({"failure":format!("{e}; actual spawn cleanup: {}",cleanup.report()),"failureCount":1}));
                 return Err(e);
             }
         }
-        let stdout = child.stdout.take().unwrap();
-        let stderr = child.stderr.take().unwrap();
+        let stdout = child.take_stdout().unwrap();
+        let stderr = child.take_stderr().unwrap();
         let source_gate = match successor_gate { Some(guard) => guard, None => self.attachment_gate.lock().unwrap() };
-        *self.stdin.lock().unwrap() = child.stdin.take();
+        *self.stdin.lock().unwrap() = child.take_stdin();
         let pid = child.id() as i32;
-        *self.child.lock().unwrap() = Some(child);
+        let old=self.child.lock().unwrap().replace(Arc::clone(&child));
+        if let Some(old)=old {if !old.released(){old.maintain();self.retired_processes.lock().unwrap().push(old);}}
+        self.retired_processes.lock().unwrap().retain(|p|!p.released());
         {
             let mut i = self.inner.0.lock().unwrap();
             // Allocate only after actual spawn, preserving home counter across
             // recreated Hosts within this same genuine App custody.
-            if prospective.is_none() { self.allocate_home_spawn(&mut i,home_identity)?; }
             i.attachment_pipe_epoch += 1;
             i.aa_capture=None;
             i.cce_offer=None;
             i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
+            child.bind(&i.generation)?;
+            if let Some(limit)=child.observation_limit(){let g=i.generation.clone();i.journal.push(json!({"generation":g,"class":"process-exit-observation-unavailable","reason":limit,"standing":"actual spawned custody retained; no observed exit inferred"}));}
             i.start_admission=Some(StartAdmission::Installed{attempt,generation:i.generation.clone()});
             i.receipt_position = 0;
             i.held.clear();
@@ -1429,13 +1440,13 @@ impl Host {
         let _gate = self.attachment_gate.lock().unwrap();
         let mut i = self.inner.0.lock().unwrap();
         Self::check_successor_handshake(&i, generation, attempt)?;
-        if let Some(pid) = i.child_pid {
-            // The checked current source remains under the same gate as Stop/EOF.
-            unsafe { libc::killpg(pid, libc::SIGKILL); }
-        }
+        let process=self.child.lock().unwrap().as_ref().filter(|p|p.belongs_to(generation)).cloned();
+        let cleanup=process.as_ref().map(|p|p.signal(libc::SIGKILL));
         Self::deliver_never_ready(&mut i);
         let counts = Self::close_generation(&mut i);
         self.lt(&mut i,"LT-11","handshake-failed","halted-after-repeated-failure",json!({"failure":failure,"failureCount":1,"closedGeneration":counts}));
+        if let Some(Err(e))=cleanup{i.journal.push(json!({"generation":generation,"class":"process-cleanup-unavailable","reason":e}));}
+        if let Some(process)=process{process.maintain();}
         Err(failure)
     }
     fn finish_successor_handshake(&self, generation: &Value, attempt: u64, caps: Value, response: Result<Value,String>) -> Result<Value,String> {
@@ -3122,6 +3133,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     fn spawn_reader(self: &Arc<Self>, stdout: std::process::ChildStdout, generation: Value) {
         let me = Arc::clone(self);
+        let process=self.child.lock().unwrap().as_ref().filter(|p|p.belongs_to(&generation)).cloned();
         std::thread::spawn(move || {
             let mut rd = BufReader::new(stdout);
             let mut line = Vec::new();
@@ -3132,7 +3144,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     Ok(_) => me.on_line(&line, &generation),
                 }
             }
-            me.on_eof(&generation);
+            me.on_eof_process(&generation,process);
+            #[cfg(test)]
+            if let Some(hook)=me.after_eof_work.lock().unwrap().take(){hook();}
         });
     }
 
@@ -3361,91 +3375,67 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
 
     fn on_eof(&self, generation: &Value) {
-        let source_pid={let mut i=self.inner.0.lock().unwrap();i.account_channels.retain(|g|g!=generation);if i.generation!=*generation{return;}i.child_pid};
+        let process=self.child.lock().unwrap().as_ref().filter(|p|p.belongs_to(generation)).cloned();
+        self.on_eof_process(generation,process);
+    }
+    fn on_eof_process(&self,generation:&Value,process:Option<Arc<process_group_custody::OwnedProcess>>) {
         let startup_closure = {
             let _gate = self.attachment_gate.lock().unwrap();
             let mut i = self.inner.0.lock().unwrap();
-            if i.generation == *generation && i.child_pid == source_pid && i.state == "handshaking" && !i.server_requests.is_closed(generation)
-                && i.start_admission == Some(StartAdmission::Installed { attempt: i.start_attempt, generation: generation.clone() }) {
-                // Reserve the actual unreaped Child while signalling its group.
-                // A cached numeric PID cannot establish this ownership after wait.
-                // Never wait for another EOF reaper while holding the source gate.
-                match self.child.try_lock() {
-                    Ok(child) if child.as_ref().is_some_and(|c| Some(c.id() as i32) == source_pid) => {
-                        let pid = child.as_ref().unwrap().id() as i32;
-                        #[cfg(test)]
-                        if let Some(hook) = self.before_startup_eof_signal.lock().unwrap().take() { hook(pid); }
-                        unsafe { libc::killpg(pid, libc::SIGKILL); }
-                        let attempt = i.start_attempt;
-                        // Fence repeated EOF and the initialize waiter before reaping;
-                        // retain the first closure's counts for the eventual LT-11.
-                        Self::deliver_never_ready(&mut i);
-                        Some((attempt, Self::close_generation(&mut i)))
-                    }
-                    _ => None,
-                }
-            } else { None }
+            i.account_channels.retain(|g|g!=generation);
+            if i.generation == *generation && i.state == "handshaking" && !i.server_requests.is_closed(generation)
+                && i.start_admission == Some(StartAdmission::Installed { attempt: i.start_attempt, generation: generation.clone() })
+                && process.as_ref().is_some_and(|p|p.belongs_to(generation)&&Some(p.id() as i32)==i.child_pid) {
+                let process=process.as_ref().unwrap();
+                #[cfg(test)]
+                if let Some(hook)=self.before_startup_eof_signal.lock().unwrap().take(){hook(process.id() as i32);}
+                if let Err(e)=process.signal(libc::SIGKILL){i.journal.push(json!({"generation":generation,"class":"process-cleanup-unavailable","reason":e}));}
+                let attempt=i.start_attempt;
+                Self::deliver_never_ready(&mut i);
+                Some((attempt,Self::close_generation(&mut i)))
+            } else {None}
         };
-        // Reap only the captured owning child, never a successor installed
-        // between the first scope check and the final source gate.
-        let status=self.child.lock().unwrap().as_mut().filter(|c|Some(c.id() as i32)==source_pid).and_then(|c|c.wait().ok());
+        // This is the captured original custody, not a later Host child slot.
+        // WNOWAIT polling holds neither the source gate nor custody mutex asleep.
+        let mut last_limit=None;
+        let status=if let Some(process)=&process {
+            match process.wait_exit_observed(|reason|{
+                if last_limit.as_deref()!=Some(reason){self.inner.0.lock().unwrap().journal.push(json!({"generation":generation,"class":"process-exit-observation-unavailable","reason":reason,"standing":"original custody retained while available; no exit or closure inferred"}));last_limit=Some(reason.to_owned());}
+            }) {
+                Ok(status)=>Some(status),
+                Err(_)=>{process.maintain();return;}, // no observed exit, no LT12/closure
+            }
+        }else{None};
         #[cfg(test)]
-        if let Some(hook) = self.before_eof_gate.lock().unwrap().take() { hook(); }
-        let _source_gate = self.attachment_gate.lock().unwrap();
-        let mut i = self.inner.0.lock().unwrap();
+        if let Some(hook)=self.before_eof_gate.lock().unwrap().take(){hook();}
+        let descendants=process.as_ref().map(|p|p.release_if_empty()).unwrap_or_else(||process_group_custody::Census::Unknown("actual process custody absent".into()));
+        if let Some(process)=&process{process.maintain();}
+        let _source_gate=self.attachment_gate.lock().unwrap();
+        let mut i=self.inner.0.lock().unwrap();
         if i.generation != *generation {
             i.journal.push(json!({"generation":generation,"class":"superseded-generation-eof","standing":"EOF observer belongs to a superseded source; no successor closure inferred"}));
             return;
         }
-        let exit = json!({
-            "exitCode": status.and_then(|s| s.code()),
-            "signal": status.and_then(|s| std::os::unix::process::ExitStatusExt::signal(&s)).map(|s| s.to_string()),
-            "lastReceiptPosition": i.receipt_position,
-            "malformedFrameCount": i.malformed,
-            "diagnosticOutputBytes": i.stderr_bytes,
-        });
-        let handshake_ended = startup_closure.as_ref().is_some_and(|(attempt, _)|
-            i.state == "handshaking" && i.start_attempt == *attempt
-            && i.start_admission == Some(StartAdmission::Installed { attempt: *attempt, generation: generation.clone() }));
-        let counts = match startup_closure { Some((_, counts)) => counts, None => Self::close_generation(&mut i) };
-        if i.state == "stopping" {
-            // LT-23 is written by stop(), which owns the descendant check.
-            let gen = i.generation.clone();
-            i.journal.push(json!({"generation": gen, "class": "exit", "exitFacts": exit}));
-            self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();self.release_records_activity(generation);
-            return;
+        let exit=json!({"exitCode":status.and_then(|s|s.code()),"signal":status.and_then(|s|std::os::unix::process::ExitStatusExt::signal(&s)).map(|s|s.to_string()),
+            "lastReceiptPosition":i.receipt_position,"malformedFrameCount":i.malformed,"diagnosticOutputBytes":i.stderr_bytes});
+        let handshake_ended=startup_closure.as_ref().is_some_and(|(attempt,_)|i.state=="handshaking"&&i.start_attempt==*attempt
+            &&i.start_admission==Some(StartAdmission::Installed{attempt:*attempt,generation:generation.clone()}));
+        let counts=match startup_closure{Some((_,counts))=>counts,None=>Self::close_generation(&mut i)};
+        if i.state=="stopping" {
+            i.journal.push(json!({"generation":generation,"class":"exit","exitFacts":exit}));
+            self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();self.release_records_activity(generation);return;
         }
-        let terminal=if i.state == "ready" {
-            // LT-12: ended with no App stop record, whatever the exit status (S-F-07).
-            self.lt(&mut i, "LT-12", "child-ended-without-stop-record", "exited-unexpectedly",
-                    json!({"exitFacts": exit, "closedGeneration": counts}));
+        let terminal=if i.state=="ready" {
+            self.lt(&mut i,"LT-12","child-ended-without-stop-record","exited-unexpectedly",json!({"exitFacts":exit,"closedGeneration":counts,"descendants":descendants.report()}));
             Self::capture_terminal(&mut i,TerminalKind::UnexpectedExit)
-        } else if handshake_ended {
-            self.lt(&mut i, "LT-11", "handshake-failed", "halted-after-repeated-failure",
-                    json!({"failure":"supplier ended before initialize handshake completed", "failureCount":1,
-                           "exitFacts":exit, "closedGeneration":counts}));
-            None
-        } else { None };
+        }else if handshake_ended{
+            self.lt(&mut i,"LT-11","handshake-failed","halted-after-repeated-failure",json!({"failure":"supplier ended before initialize handshake completed","failureCount":1,"exitFacts":exit,"closedGeneration":counts}));None
+        }else{None};
         drop(i);drop(_source_gate);
-        if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
-        self.flush_recovery_observations();
-        self.release_records_activity(generation);
+        if let Some((token,event,prior))=terminal{self.schedule_terminal_publication(token,event,prior);}
+        self.flush_recovery_observations();self.release_records_activity(generation);
     }
     fn release_records_activity(&self,generation:&Value){let mut held=self.records_activity.lock().unwrap();if held.as_ref().is_some_and(|(g,_)|g==generation){*held=None;}}
-
-    fn kill_group(&self) {
-        if let Some(pid) = self.inner.0.lock().unwrap().child_pid {
-            // SAFETY: plain signal to the process group created at spawn (H11).
-            unsafe {
-                libc::killpg(pid, libc::SIGKILL);
-            }
-        }
-    }
-
-    fn group_alive(pid: i32) -> bool {
-        // SAFETY: signal 0 only checks for existence of the group.
-        unsafe { libc::killpg(pid, 0) == 0 }
-    }
 
     /// HOSTING §4.5 deliberate stop (DEF-5a): stop record first, then close input,
     /// then end the whole process group after a grace period (H11).
@@ -3502,7 +3492,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
     fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str) -> Result<Value, String> {
         let source_gate = self.attachment_gate.lock().unwrap();
-        let pid;let target_generation;
+        let process;let target_generation;
         {
             let mut i = self.inner.0.lock().unwrap();
             if expected_generation.is_some_and(|g|g!=&i.generation){return Err("Stop target full generation changed; no successor stop or fallback".into());}
@@ -3540,7 +3530,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 i.successor_terminal_pending=false;
                 i.successor_artifact_error=Some("LT-12 evidence unavailable: later Stop transition in progress".into());
             }
-            pid = i.child_pid;
+            process = self.child.lock().unwrap().as_ref().filter(|p|p.belongs_to(&target_generation)).cloned();
             i.attachment_pipe_epoch += 1;
         }
         #[cfg(test)]
@@ -3548,18 +3538,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         *self.stdin.lock().unwrap() = None; // close input: polite end
         drop(source_gate);
         let mut forced = false;
-        if let Some(pid) = pid {
+        let mut cleanup_limit=None;
+        let descendants = if let Some(process) = &process {
             let deadline = std::time::Instant::now() + Duration::from_secs(3);
-            while Self::group_alive(pid) && std::time::Instant::now() < deadline {
+            while !process.census().empty() && std::time::Instant::now() < deadline {
                 std::thread::sleep(Duration::from_millis(50));
             }
-            if Self::group_alive(pid) {
-                forced = true;
-                unsafe {libc::killpg(pid,libc::SIGKILL);}
-                std::thread::sleep(Duration::from_millis(200));
+            if !process.census().empty() {
+                (forced,cleanup_limit)=process.force_if_needed();
+                if forced {std::thread::sleep(Duration::from_millis(200));}
             }
-        }
-        let surviving = pid.map(|p| if Self::group_alive(p) { 1 } else { 0 }).unwrap_or(0);
+            let result=process.release_if_empty();process.maintain();result
+        }else{process_group_custody::Census::Unknown("actual process custody absent; no numeric action".into())};
         // Wait for the reader to observe EOF.
         let (lock, cv) = &*self.inner;
         let mut i = lock.lock().unwrap();
@@ -3574,13 +3564,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             .unwrap_or(json!({"exitCode": null, "signal": null}));
         exit["forcedAfterGrace"] = json!(forced);
         if i.generation!=target_generation {
-            i.journal.push(json!({"generation":target_generation,"class":"superseded-generation-stop","capturedProcessGroup":pid,"forced":forced,"survivingDescendantCount":surviving,"standing":"captured old target handled; successor is not stopped or closed"}));
+            i.journal.push(json!({"generation":target_generation,"class":"superseded-generation-stop","capturedProcessGroup":process.as_ref().map(|p|p.id()),"forced":forced,"descendants":descendants.report(),"standing":"captured old target handled; successor is not stopped or closed"}));
             return Err("Stop target generation was replaced while waiting; no successor closure inferred".into());
         }
+        if exit["exitCode"].is_null()&&exit["signal"].is_null(){if let Some(status)=process.as_ref().and_then(|p|p.observe_exit().ok().flatten()){
+            exit["exitCode"]=json!(status.code());exit["signal"]=json!(std::os::unix::process::ExitStatusExt::signal(&status).map(|s|s.to_string()));
+        }}
+        if let Some(error)=cleanup_limit {i.journal.push(json!({"generation":target_generation,"class":"process-cleanup-unavailable","reason":error}));}
         let counts = Self::close_generation(&mut i);
         self.lt(&mut i, "LT-23", "tree-ended", "stopped", json!({
             "exitFacts": exit,
-            "descendants": {"checked": true, "surviving": surviving, "handling": if surviving > 0 { "recorded; not ended" } else { "none surviving" }},
+            "descendants": descendants.report(),
             "closedGeneration": counts}));
         let terminal=Self::capture_terminal(&mut i,TerminalKind::Stopped);
         let response=json!({"state":i.state});drop(i);
@@ -3691,6 +3685,11 @@ mod request_transport_tests {
     #[test]
     fn unknown_transport_write_failure_is_visible_and_generation_close_never_grants() {
         let host = host(); let generation = host.snapshot()["generation"].clone();
+        // Supply an actual closed transport writer: an absent pipe is a
+        // preparation refusal, not evidence that a write was attempted/failed.
+        // This raw peer is transport-only; it conveys no hosted group authority.
+        let mut peer=Command::new("/usr/bin/true").stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap()=peer.stdin.take();peer.wait().unwrap();
         host.on_line(br#"{"id":1,"method":"future/request","params":{"threadId":"t"}}"#,&generation);
         assert_eq!(host.snapshot()["serverRequests"][0]["state"],"errored");
         assert_eq!(host.snapshot()["serverRequests"][0]["replyWriteResult"],"write-failed");
@@ -4254,7 +4253,9 @@ mod conversation_transport_tests {
     #[test]
     fn attachment_host_queued_old_eof_never_closes_actual_successor_request_or_turn() {
         for field in ["appSession","home","spawnCounter"] {
-            let host=host();let gate=host.attachment_gate.lock().unwrap();let(tx,rx)=channel();let(proceed,continue_eof)=channel();*host.before_eof_gate.lock().unwrap()=Some(Box::new(move||{tx.send(()).unwrap();continue_eof.recv_timeout(Duration::from_secs(2)).unwrap();}));let observer=Arc::clone(&host);let worker=std::thread::spawn(move||observer.on_eof(&g()));rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            // Let initial EOF scope inspection pass before pausing the final
+            // settlement gate; holding that gate before this hook cannot reach it.
+            let host=host();let(tx,rx)=channel();let(proceed,continue_eof)=channel();*host.before_eof_gate.lock().unwrap()=Some(Box::new(move||{tx.send(()).unwrap();continue_eof.recv_timeout(Duration::from_secs(2)).unwrap();}));let observer=Arc::clone(&host);let worker=std::thread::spawn(move||observer.on_eof(&g()));rx.recv_timeout(Duration::from_secs(1)).unwrap();let gate=host.attachment_gate.lock().unwrap();
             let mut successor=g();successor[field]=if field=="spawnCounter"{json!(2)}else{json!("successor")};{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation=successor.clone();i.state="ready".into();i.threads.push(json!({"generation":successor,"threadId":"successor-thread"}));}
             let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();drop(gate);let source=host.thread_start_with_guidance_dispatch(&successor,"/invented","selected","configured","exact successor").unwrap();host.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"successor-thread","turn":complete_turn()}})).unwrap(),&successor);let before=host.snapshot();proceed.send(()).unwrap();worker.join().unwrap();let after=host.snapshot();assert_eq!(after["generation"],successor);assert_eq!(after["state"],"ready");assert_eq!(after["clientRequests"],before["clientRequests"]);assert_eq!(source.evidence()["outcome"],"pending");assert_eq!(after["conversationTurns"],before["conversationTurns"]);assert!(!host.inner.0.lock().unwrap().server_requests.is_closed(&successor));assert_eq!(after["journal"].as_array().unwrap().last().unwrap()["generation"],g());assert_eq!(after["journal"].as_array().unwrap().last().unwrap()["class"],"superseded-generation-eof");*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
         }
@@ -4263,7 +4264,7 @@ mod conversation_transport_tests {
     #[test]
     #[ignore = "owned subprocess probe; parent watchdog invokes exact case"]
     fn attachment_host_nonreader_probe() {
-        let log=std::path::PathBuf::from(std::env::var_os("CHIRALITY_NONREADER_LOG").unwrap());let host=host();let(root,owner,selections)=attachment_fixture();let mut child=Command::new("/bin/sleep").arg("60").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();let pid=child.id() as i32;std::fs::write(log.join("owned-pid"),pid.to_string()).unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g());
+        let log=std::path::PathBuf::from(std::env::var_os("CHIRALITY_NONREADER_LOG").unwrap());let host=host();let(root,owner,selections)=attachment_fixture();let child=process_group_custody::OwnedProcess::spawn(Command::new("/bin/sleep").arg("60").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0)).unwrap();let pid=child.id() as i32;std::fs::write(log.join("owned-pid"),pid.to_string()).unwrap();*host.stdin.lock().unwrap()=child.take_stdin();let stdout=child.take_stdout().unwrap();child.bind(&g()).unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g());
         let packet=Arc::new(host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,&"x".repeat(4*1024*1024),&selections).unwrap());let sender=Arc::clone(&host);let prepared=Arc::clone(&packet);let(tx,rx)=channel();let writer=std::thread::spawn(move||assert!(tx.send(sender.dispatch_attachment_turn(&prepared)).is_ok()));
         let deadline=std::time::Instant::now()+Duration::from_secs(2);while host.inner.0.lock().unwrap().send_position==0&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert_eq!(host.inner.0.lock().unwrap().send_position,1);assert!(matches!(rx.recv_timeout(Duration::from_millis(200)),Err(std::sync::mpsc::RecvTimeoutError::Timeout)));
         let reply_mode=std::env::var("CHIRALITY_NONREADER_MODE").is_ok_and(|m|m=="reply");let known_reply=json!({"id":packet.source().request_id(),"result":{"turn":complete_turn()}});if reply_mode{host.on_line(&serde_json::to_vec(&known_reply).unwrap(),&g());}
@@ -4340,7 +4341,7 @@ mod conversation_transport_tests {
     #[test]
     fn explicit_context_paused_ledger_preserves_summary_order_and_allows_actual_stop(){
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let packet=Arc::new(context_packet(&host,&owner,&g,&selections));let ledger=host.inner.0.lock().unwrap().recovery.clone().unwrap();let paused=ledger.lock().unwrap();let caller=Arc::clone(&host);let prepared=Arc::clone(&packet);let writer=std::thread::spawn(move||caller.bind_attachment_context(&prepared,&Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap(),Some("H-acct")));let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.recovery_writer.try_lock().is_ok()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert!(host.recovery_writer.try_lock().is_err());
-        host.on_line(&serde_json::to_vec(&json!({"id":"request","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g);assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let pid=child.id() as i32;*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g.clone());let started=std::time::Instant::now();assert_eq!(host.stop("person:fixture","codex-stop").unwrap()["state"],"stopped");assert!(started.elapsed()<Duration::from_secs(2));assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());drop(paused);assert!(writer.join().unwrap().is_err());host.flush_recovery_observations();let view=host.snapshot();assert!(view["recoveryPendingObservations"].as_array().unwrap().is_empty());let recorded=host.recorded_recovery_entries();let summaries:Vec<_>=recorded.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").collect();assert_eq!(summaries[0]["state"],"listed");assert_eq!(summaries.last().unwrap()["state"],"closed");assert!(host.recorded_recovery_entries().as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));std::fs::remove_dir_all(root).unwrap();
+        host.on_line(&serde_json::to_vec(&json!({"id":"request","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g);assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let child=process_group_custody::OwnedProcess::spawn(Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0)).unwrap();*host.stdin.lock().unwrap()=child.take_stdin();let stdout=child.take_stdout().unwrap();let pid=child.id() as i32;child.bind(&g).unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g.clone());let started=std::time::Instant::now();assert_eq!(host.stop("person:fixture","codex-stop").unwrap()["state"],"stopped");assert!(started.elapsed()<Duration::from_secs(2));assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());drop(paused);assert!(writer.join().unwrap().is_err());host.flush_recovery_observations();let view=host.snapshot();assert!(view["recoveryPendingObservations"].as_array().unwrap().is_empty());let recorded=host.recorded_recovery_entries();let summaries:Vec<_>=recorded.as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").collect();assert_eq!(summaries[0]["state"],"listed");assert_eq!(summaries.last().unwrap()["state"],"closed");assert!(host.recorded_recovery_entries().as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));std::fs::remove_dir_all(root).unwrap();
     }
 
     // Shared consumer join uses actual private selection/Prepared/SourceRequest
@@ -4404,9 +4405,9 @@ mod conversation_transport_tests {
     // Owned pipe fixture: actual App custody and actual after-spawn counter
     // allocator; ready/native thread setup is synthetic, not supplier proof.
     fn app_custody_mock_home(host:&Arc<Host>,home:&std::path::Path)->Value {
-        let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();let pid=child.id() as i32;
-        *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();*host.child.lock().unwrap()=Some(child);
-        let g={let mut i=host.inner.0.lock().unwrap();host.allocate_home_spawn(&mut i,format!("app-home:{}",sha256_hex(home.as_os_str().as_encoded_bytes()))).unwrap();i.attachment_pipe_epoch+=1;i.child_pid=Some(pid);i.generation=json!({"appSession":i.app_session,"home":i.home,"spawnCounter":i.spawn_counter});i.state="ready".into();i.declared_capabilities=Some(json!({"experimentalApi":false}));let g=i.generation.clone();i.threads.push(json!({"generation":g,"threadId":"thread","cwd":"/synthetic/native"}));g};host.spawn_reader(stdout,g.clone());g
+        let child=process_group_custody::OwnedProcess::spawn(Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null())).unwrap();let pid=child.id() as i32;
+        *host.stdin.lock().unwrap()=child.take_stdin();let stdout=child.take_stdout().unwrap();*host.child.lock().unwrap()=Some(Arc::clone(&child));
+        let g={let mut i=host.inner.0.lock().unwrap();host.allocate_home_spawn(&mut i,format!("app-home:{}",sha256_hex(home.as_os_str().as_encoded_bytes()))).unwrap();i.attachment_pipe_epoch+=1;i.child_pid=Some(pid);i.generation=json!({"appSession":i.app_session,"home":i.home,"spawnCounter":i.spawn_counter});i.state="ready".into();i.declared_capabilities=Some(json!({"experimentalApi":false}));let g=i.generation.clone();i.threads.push(json!({"generation":g,"threadId":"thread","cwd":"/synthetic/native"}));g};child.bind(&g).unwrap();host.spawn_reader(stdout,g.clone());g
     }
     fn app_custody_root()->(std::path::PathBuf,Arc<Host>){let root=std::env::temp_dir().join(opaque_id("app-custody-").unwrap());std::fs::create_dir(&root).unwrap();let root=root.canonicalize().unwrap();let host=Arc::new(Host::new());host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();(root,host)}
     fn namespace_guard_fixture()->(PathBuf,Arc<Host>,Arc<attachment_custody::NativeNamespaceBindings>,crate::home_resources::OwnedHomePlan){
@@ -4478,14 +4479,22 @@ mod conversation_transport_tests {
     fn app_custody_context_refresh_preserves_both_home_indexes_and_shared_hot_claims(){
         use crate::recovery::ExplicitAppProjectContext as Context;let(root,owner,selections)=attachment_fixture();let account=Arc::new(Host::new());account.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();let ga=app_custody_mock_home(&account,&root.join("codex"));let cap=account.app_runtime_custody().unwrap();let key=Arc::new(Host::new_with_app_custody(Arc::clone(&cap)).unwrap());let gb=app_custody_mock_home(&key,&root.join("key"));let p=Context::known("project:P",crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap();let q=Context::known("project:Q",crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap();account.observe_conversation_project(&ga,"thread",Some("H-acct"),&p).unwrap();key.observe_conversation_project(&gb,"thread",Some("H-key"),&q).unwrap();assert_eq!(account.observe_conversation_project(&ga,"thread",Some("H-acct"),&q).unwrap()["indexSnapshot"]["project"],"project:P");assert_eq!(key.observe_conversation_project(&gb,"thread",Some("H-key"),&p).unwrap()["indexSnapshot"]["project"],"project:Q");
         // Exact real prepared capability; no key-home custody guard relaxation.
-        let packet=account.prepare_attachment_turn(Arc::clone(&owner),&ga,"thread",None,"synthetic person text",&selections).unwrap();let binding=account.bind_attachment_context(&packet,&q,None).unwrap();assert_eq!(binding["persistence"],"memory-only");assert!(Arc::ptr_eq(&account.submission_contexts,&key.submission_contexts));let hot=key.submission_contexts.lock().unwrap().clone();assert!(crate::recovery::submission_context_plan(None,&[],&hot.iter().map(|h|h["tag"].clone()).collect::<Vec<_>>(),packet.submission_ref(),Some("project:R")).is_err());assert!(packet.cancel());account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();key.stop_scoped(&gb,"person:synthetic","codex-stop").unwrap();std::fs::remove_dir_all(root).unwrap();
+        let packet=account.prepare_attachment_turn(Arc::clone(&owner),&ga,"thread",None,"synthetic person text",&selections).unwrap();let binding=account.bind_attachment_context(&packet,&q,None).unwrap();assert_eq!(binding["persistence"],"memory-only");assert!(Arc::ptr_eq(&account.submission_contexts,&key.submission_contexts));let hot=key.submission_contexts.lock().unwrap().clone();assert!(crate::recovery::submission_context_plan(None,&[],&hot.iter().map(|h|h["tag"].clone()).collect::<Vec<_>>(),packet.submission_ref(),Some("project:R")).is_err());assert!(packet.cancel());
+        // Stop's terminal state precedes the reader's out-of-lock REC flush.
+        // Await completion of these two exact owned EOF tasks before deleting
+        // their scratch source, rather than retrying/remasking a late write.
+        let (a_done,a_finished)=channel();let (b_done,b_finished)=channel();
+        *account.after_eof_work.lock().unwrap()=Some(Box::new(move||a_done.send(()).unwrap()));
+        *key.after_eof_work.lock().unwrap()=Some(Box::new(move||b_done.send(()).unwrap()));
+        account.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap();key.stop_scoped(&gb,"person:synthetic","codex-stop").unwrap();
+        a_finished.recv_timeout(Duration::from_secs(5)).unwrap();b_finished.recv_timeout(Duration::from_secs(5)).unwrap();std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn scoped_stop_full_tuple_guard_has_zero_effect_then_valid_pipe_and_late_source_control(){
         let host=host();let before=host.snapshot();let epoch=host.inner.0.lock().unwrap().attachment_pipe_epoch;
         for (field,value) in [("appSession",json!("other-session")),("home",json!("other-home")),("spawnCounter",json!(2))]{let mut foreign=g();foreign[field]=value;assert!(host.stop_scoped(&foreign,"person:test","codex-stop").unwrap_err().contains("no successor stop"));assert_eq!(host.snapshot(),before);assert_eq!(host.inner.0.lock().unwrap().attachment_pipe_epoch,epoch);}
         let gate=host.attachment_gate.lock().unwrap();let caller=Arc::clone(&host);let(tx,rx)=channel();let worker=std::thread::spawn(move||tx.send(caller.stop_scoped(&g(),"person:test","codex-stop")).unwrap());{let mut i=host.inner.0.lock().unwrap();i.generation["home"]=json!("same-counter-successor-home");i.attachment_pipe_epoch+=1;}drop(gate);assert!(rx.recv_timeout(Duration::from_secs(1)).unwrap().unwrap_err().contains("no successor stop"));worker.join().unwrap();assert_eq!(host.state(),"ready");assert!(host.inner.0.lock().unwrap().stop_record.is_none());
-        let host=super::conversation_transport_tests::host();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();let pid=child.id() as i32;*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g());
+        let host=super::conversation_transport_tests::host();let child=process_group_custody::OwnedProcess::spawn(Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0)).unwrap();let pid=child.id() as i32;*host.stdin.lock().unwrap()=child.take_stdin();let stdout=child.take_stdout().unwrap();child.bind(&g()).unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g());
         assert_eq!(host.stop_scoped(&g(),"person:test","codex-stop").unwrap()["state"],"stopped");let ended=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-23").unwrap();assert!(ended.to_string().contains("exitFacts"));
         {let mut i=host.inner.0.lock().unwrap();i.generation["spawnCounter"]=json!(2);i.state="ready".into();}host.on_eof(&g());assert_eq!(host.state(),"ready");assert_eq!(host.snapshot()["generation"]["spawnCounter"],2);assert!(host.stop_scoped(&g(),"person:test","codex-stop").unwrap_err().contains("no successor stop"));
     }

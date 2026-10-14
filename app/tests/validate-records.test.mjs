@@ -43,7 +43,8 @@ function validators() {
   const rs = readJson(join(D0403, "RS_RECORD.schema.json"));
   const offer = readJson(join(D0104, "aac.offer.schema.json"));
   const capture = readJson(join(D0104, "aac.capture-evidence.schema.json"));
-  const lifecycle = readJson(join(D0101, "hosting.lifecycle-event.schema.json"));
+  const lifecycle = readJson(join(D0101, "hosting.lifecycle-event.v0.10.schema.json"));
+  ajv.addSchema(readJson(join(D0101, "hosting.lifecycle-event.schema.json")));
   const clientRequest = readJson(join(D0101, "hosting.client-request-record.schema.json"));
   ajv.addSchema(checkpoint);
   ajv.addSchema(settingsIn);

@@ -8,10 +8,11 @@ const OBS: &str =
     include_str!("../resources/distribution-successor/observed-verification.s1.schema.json");
 const LIFE: &str =
     include_str!("../resources/distribution-successor/lifecycle-event.s1.schema.json");
+const LIFE_CURRENT: &str = include_str!("../resources/distribution-successor/lifecycle-event.s1.v0.10.schema.json");
 const TRANSITIONS: &str =
     include_str!("../resources/distribution-successor/lifecycle-transitions.s1.json");
 pub(crate) fn identity() -> Value {
-    json!({"semanticRevision":"observed-lifecycle-reader.s3","stringIdentity":crate::distribution_preflight::selection::string_identity_basis(),"readerSourceSha256":digest(include_bytes!("distribution_s1.rs")),"closureReaderSha256":digest(include_bytes!("distribution_selection.rs")),"storeReaderSha256":digest(include_bytes!("distribution_store_s1.rs")),"storeGuardsSha256":digest(include_bytes!("distribution_store.rs")),"namespaceAuthoritySourceSha256":digest(include_bytes!("attachment_custody.rs")),"preflightReaderSha256":digest(include_bytes!("distribution_preflight.rs")),"factsSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-preflight-facts.s3.schema.json")),"transportSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-closure-transport.s3.schema.json")),"labelJoin":crate::distribution_semantics::label_join_identity(),"schemas":{"expected-reference.s1":digest(include_bytes!("../resources/distribution-successor/expected-reference.s1.schema.json")),"adoption-attestation.s1":digest(include_bytes!("../resources/distribution-successor/adoption-attestation.s1.schema.json")),"observed-verification.s1":digest(OBS.as_bytes()),"lifecycle-event.s1":digest(LIFE.as_bytes())},"transitionsSha256":digest(TRANSITIONS.as_bytes()),"transitionProvenance":serde_json::from_str::<Value>(include_str!("../resources/distribution-successor/lifecycle-transitions.s1.provenance.json")).expect("compiled transition provenance"),"limit":"installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only"})
+    json!({"semanticRevision":"observed-lifecycle-reader.s3.v0.10","stringIdentity":crate::distribution_preflight::selection::string_identity_basis(),"readerSourceSha256":digest(include_bytes!("distribution_s1.rs")),"closureReaderSha256":digest(include_bytes!("distribution_selection.rs")),"storeReaderSha256":digest(include_bytes!("distribution_store_s1.rs")),"storeGuardsSha256":digest(include_bytes!("distribution_store.rs")),"namespaceAuthoritySourceSha256":digest(include_bytes!("attachment_custody.rs")),"preflightReaderSha256":digest(include_bytes!("distribution_preflight.rs")),"factsSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-preflight-facts.s3.schema.json")),"transportSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-closure-transport.s3.schema.json")),"labelJoin":crate::distribution_semantics::label_join_identity(),"schemas":{"expected-reference.s1":digest(include_bytes!("../resources/distribution-successor/expected-reference.s1.schema.json")),"adoption-attestation.s1":digest(include_bytes!("../resources/distribution-successor/adoption-attestation.s1.schema.json")),"observed-verification.s1":digest(OBS.as_bytes()),"lifecycle-event.s1":digest(LIFE.as_bytes()),"lifecycle-event.s1.v0.10":digest(LIFE_CURRENT.as_bytes())},"transitionsSha256":digest(TRANSITIONS.as_bytes()),"transitionProvenance":serde_json::from_str::<Value>(include_str!("../resources/distribution-successor/lifecycle-transitions.s1.provenance.json")).expect("compiled transition provenance"),"limit":"installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only"})
 }
 pub(crate) fn shape(value: &Value, schema: &str) -> Result<(), String> {
     let schema: Value = serde_json::from_str(schema).map_err(|e| e.to_string())?;
@@ -246,7 +247,12 @@ pub(crate) fn lifecycle(
     files: &Files,
     selected: Option<&Selected>,
 ) -> Result<String, String> {
-    shape(l, LIFE)?;
+    let schema=match l["format"].as_str() {
+        Some("lifecycle-event.s1")=>LIFE,
+        Some("lifecycle-event.s1.v0.10")=>LIFE_CURRENT,
+        _=>return Err("unsupported lifecycle envelope format".into()),
+    };
+    shape(l, schema)?;
     let e = &l["legacy_event"];
     let transitions: Value = serde_json::from_str(TRANSITIONS).map_err(|e| e.to_string())?;
     if transitions[e["transitionId"].as_str().unwrap()]
@@ -298,4 +304,19 @@ pub(crate) fn lifecycle(
         crate::distribution_semantics::validate_label_join(e, &o)?;
     }
     Ok(outcome)
+}
+
+#[cfg(test)]
+mod lifecycle_profile_tests {
+    use super::*;
+    #[test]
+    fn process_group_custody_current_profile_and_legacy_dispatch_keep_unknown_distinct(){
+        let event=json!({"recordKind":"lifecycle-event","sequence":1,"transitionId":"LT-01","generation":null,"fromState":"absent","event":"start-requested","toState":"verifying","at":"synthetic","descendants":{"checked":false,"surviving":0}});
+        let mut old=json!({"format":"lifecycle-event.s1","legacy_event":event,"verification_artifact":null,"verification_generation":null});
+        let files=Files::new();assert!(lifecycle(&old,&files,None).is_ok(),"legacy checked:false/0 remains readable");
+        old["format"]=json!("lifecycle-event.s1.v0.10");assert!(lifecycle(&old,&files,None).is_err(),"current unknown cannot be zero");
+        old["legacy_event"]["descendants"]=json!({"checked":false,"surviving":null,"handling":"unavailable: synthetic partial census"});assert!(lifecycle(&old,&files,None).is_ok());
+        for bad in [json!({"checked":true,"surviving":null}),json!({"checked":true,"surviving":-1}),json!({"checked":false,"surviving":null}),json!({"checked":false,"surviving":null,"handling":"none surviving"})]{old["legacy_event"]["descendants"]=bad;assert!(lifecycle(&old,&files,None).is_err());}
+        old["legacy_event"]["descendants"]=json!({"checked":true,"surviving":0,"handling":"none surviving"});assert!(lifecycle(&old,&files,None).is_ok());old["format"]=json!("lifecycle-event.future");assert!(lifecycle(&old,&files,None).is_err());
+    }
 }

@@ -51,7 +51,14 @@ implemented behavior and qualification limits.
    native frames with full `{appSession, home, spawnCounter}` generation identity.
    Startup EOF reports a handshake failure with observed exit facts if that
    attempt is still handshaking at settlement. Stop or replacement can win
-   settlement; held startup frames keep the never-ready marker.
+   settlement; held startup frames keep the never-ready marker. The host keeps
+   the actual leader reservation through every process-group census/signal.
+   Unexpected EOF leaves surviving descendants running; natural empty-group
+   cleanup reaps only the original leader. Later Stop retains its actual exit
+   facts. Counts describe live members of the original reserved process group;
+   detached or escaped descendants are unobserved. Current lifecycle JSON gives
+   an unavailable count as
+   `checked:false`, `surviving:null` with a reason; legacy records stay readable.
 2. The person chooses a primary role (or none) and explicitly enters a model
    and a configured Codex provider for a new thread. Codex retains its own configuration and permissions. The view
    discloses expected model contact at thread start, before a turn; it does not
@@ -696,7 +703,7 @@ implemented behavior and qualification limits.
 
 | Module | Contribution |
 |---|---|
-| `src-tauri/src/hosting.rs` | HOSTING/ACCESS lifecycle, generation, request correlation, ordered native journal, development verification and network disclosure; reviewed 0.160.0 protocol resources in `resources/supplier/` |
+| `src-tauri/src/hosting.rs`, `process_group_custody.rs` | Source-owned process groups, exact/unavailable original-group census; HOSTING/ACCESS lifecycle, generation, request correlation, ordered native journal, development verification and network disclosure; reviewed 0.160.0 protocol resources in `resources/supplier/` |
 | `src-tauri/src/hosting_startup_refusal_tests.rs` | Actual Host startup EOF settlement, never-ready frames, first/restarted source and Stop/replacement races; opt-in cached stock startup control/refusal without login or model calls |
 | `native_requests.rs`, `recovery.rs`, `native_items.rs`, `access.rs` | Typed native request custody, pointer ledger, scoped live/ended activity and reported account/destination observations |
 | `src-tauri/src/recovery_store.rs`, `recovery_store_tests.rs` | The pointer ledger's SQLite store (DEL-01-02 §7): append-only triggers, one transaction per batch, synced commits, the held current entries' indexed query, the once-only JSON Lines import; tests include the flat cost from 1,000 to 100,000 rows |

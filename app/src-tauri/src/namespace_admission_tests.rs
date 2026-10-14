@@ -349,20 +349,18 @@ fn namespace_admission_preparation_overlap_refuses_before_key_materialization() 
 fn namespace_admission_blocked_write_worker() {
     let log = PathBuf::from(std::env::var_os("CHIRALITY_NS_WATCHDOG").unwrap());
     let f = Fixture::new();
-    let mut child = Command::new("/bin/sleep")
+    let child = crate::hosting::process_group_custody::OwnedProcess::spawn(Command::new("/bin/sleep")
         .arg("60")
         .env_clear()
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
-        .process_group(0)
-        .spawn()
-        .unwrap();
+        .process_group(0)).unwrap();
     let pid = child.id() as i32;
     std::fs::write(log.join("pid"), pid.to_string()).unwrap();
-    *f.host.stdin.lock().unwrap() = child.stdin.take();
-    let stdout = child.stdout.take().unwrap();
-    *f.host.child.lock().unwrap() = Some(child);
+    *f.host.stdin.lock().unwrap() = child.take_stdin();
+    let stdout = child.take_stdout().unwrap();
+    *f.host.child.lock().unwrap() = Some(Arc::clone(&child));
     let generation = {
         let mut i = f.host.inner.0.lock().unwrap();
         f.host
@@ -384,6 +382,7 @@ fn namespace_admission_blocked_write_worker() {
             .push(json!({"generation":g,"threadId":"thread","cwd":"/synthetic"}));
         g
     };
+    child.bind(&generation).unwrap();
     f.host.spawn_reader(stdout, generation.clone());
     let packet = Arc::new(
         f.host

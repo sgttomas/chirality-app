@@ -387,6 +387,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 mod tests {
     mod build_selection { include!("hosting_build_selection_tests.rs"); }
     mod stop_admission { include!("hosting_stop_admission_tests.rs"); }
+    mod process_group_custody { include!("hosting_process_group_custody_tests.rs"); }
     mod startup_refusal { include!("hosting_startup_refusal_tests.rs"); }
     mod terminal_export { include!("hosting_terminal_export.rs"); }
     mod lt12 { include!("hosting_lt12_tests.rs"); }
@@ -912,7 +913,7 @@ for line in sys.stdin:
             .unwrap()
             .as_mut()
             .unwrap()
-            .try_wait()
+            .observe_exit()
             .unwrap()
             .is_some());
         assert_eq!(
@@ -996,6 +997,6 @@ for line in sys.stdin:
             .lifecycle_events()
             .iter()
             .any(|e| e["transitionId"] == "LT-09"));
-        assert!(host.child.lock().unwrap().as_mut().unwrap().wait().is_ok());
+        assert!(host.child.lock().unwrap().as_mut().unwrap().wait_exit().is_ok());
     }
 }

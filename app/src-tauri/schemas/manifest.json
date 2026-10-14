@@ -47,6 +47,18 @@
       "source": "projects/chirality-app-v4/execution/PKG-06/DEL-06-01/Design/fleet.native-links.schema.json",
       "id": "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2",
       "sha256": "00d32cca6f9a5068b6a3ecd0a2557fcdaad261259622b8707ba2da2146c14fd1"
+    },
+    {
+      "file": "hosting.lifecycle-event.v0.10.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.lifecycle-event.v0.10.schema.json",
+      "sha256": "5e0dfcbdc7d8f42e214a0e839d4e580e6a8151df154e59c8cc36ff5a3a014c13",
+      "id": "urn:chirality:del-01-01:hosting-boundary:v0.10:lifecycle-event"
+    },
+    {
+      "file": "../resources/distribution-successor/lifecycle-event.s1.v0.10.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/lifecycle-event.s1.v0.10.schema.json",
+      "sha256": "1f6d41636f9f0b4b2c79b5aca413b3028a4730a110dbe3ca99b024c6223bad35",
+      "id": "urn:chirality:distribution-successor:lifecycle-event.s1.v0.10"
     }
   ],
   "fixture": {

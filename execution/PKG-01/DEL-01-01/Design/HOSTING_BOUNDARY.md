@@ -2431,7 +2431,7 @@ rules run as written, not a VER pass.
 ## Current implementation conditions
 
 **Supplier EOF during startup (Rust host).** EOF from the current installed
-`handshaking` source first signals only its captured process group before
+`handshaking` source first attempts cleanup only of its captured process group before
 reaping the matching Child, closes that exact generation and delivers its held
 frames marked `generationNeverReady`. If the same installed start attempt is
 still `handshaking` at final settlement, it emits one LT-11 with the observed
@@ -2453,6 +2453,47 @@ unsupported `approval_policy = "untrusted"` exits before initialize and is
 reported as LT-11. It sends no login, thread or model call and changes no
 person's configuration. These checks establish controller behavior and this
 bounded supplier refusal, not a native App walkthrough or qualification.
+
+**Process-group custody (Rust host).** Each hosted process group is created
+through the owning spawn module, which retains the actual unreaped Child.
+Nonblocking `WNOWAIT` observations retain its exit status without releasing the
+PID reservation. A bounded immediate retry handles an interrupted observation;
+other nonterminal errors retain the actual spawned custody and an explicit
+limit. EOF polling waits outside custody/source locks until an exit is
+observed; unavailable observation does not produce LT-12 or inferred closure.
+Every group-only Darwin census and signal runs under that
+same custody; after retirement no operation addresses the old numeric group.
+A census examines live members of the original reserved group, including its
+leader while alive, with a 64 KiB member budget. Detached or escaped
+descendants are unobserved; this account establishes no complete tree absence. Partial,
+unreadable, changed or over-budget inventories remain unavailable. Only the
+exact leader with an observed exit, and members observed as zombies, are
+excluded from the live count; a reserved zombie alone is not a survivor.
+
+Unexpected ready EOF retains live descendants without ending them. Read-only
+natural cleanup retires authority and reaps the original leader only after a
+complete empty census. Deliberate Stop keeps the existing 3 s grace, 50 ms
+polling and 200 ms post-force wait; its final census and optional signal share
+custody. `forcedAfterGrace` records an actual force syscall attempt, including
+an attempted failure, rather than a no-op on a now-empty retired group. Old
+custody retained during slot replacement is never rebound to the successor;
+its maintenance has no lifecycle or request authority. Waiting for a live
+leader that closed stdout sleeps outside source and custody locks, so Stop
+can still act. The original observed exit facts remain available to a later
+Stop even when LT-12 already recorded them.
+
+Current producers use `hosting.lifecycle-event.v0.10.schema.json` and the
+`lifecycle-event.s1.v0.10` envelope. A complete census has `checked:true` and
+an exact nonnegative `surviving` count of observed live members in that group.
+Its handling text retains the detached/escaped-descendant limitation. An unavailable census has
+`checked:false`, `surviving:null` and `handling:"unavailable: …"`; raw App JSON
+retains that distinction. The exact v0.9 and `lifecycle-event.s1` schemas and
+legacy reads remain unchanged. This is a current representation/ownership
+repair, with no new restart or descendant policy. The owned synthetic peers
+in `hosting_process_group_custody_tests.rs` exercise EOF, Stop, natural
+cleanup, replacement and current publication/readback; they are controller
+fixtures, not supplier qualification or a native walkthrough. Error controls
+model scoped SDK returns; they are not native signal-interruption witnesses.
 
 **Reply outcome at generation close (Rust host).** The owner chose:
 

@@ -33,7 +33,7 @@ fn lt12_actual_selected_eof_retains_whole_event_and_original_lt09() {
         let got=wait_closed(&h,&cap,&g);assert_eq!(got["state"],"read","{got}");
         let event=h.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-12").unwrap();
         assert_eq!(got["evidence"]["lifecycle"]["legacy_event"],event);
-        assert_eq!(event["exitFacts"]["exitCode"],code);assert!(event.get("descendants").is_none());
+        assert_eq!(event["exitFacts"]["exitCode"],code);assert_eq!(event["descendants"]["checked"],true);assert_eq!(event["descendants"]["surviving"],0);
         assert_eq!(got["evidence"]["artifact"],old["artifact"]);
         assert_eq!(store.read_s1(&g,&prior).unwrap(),old);
         assert_eq!(receiver.receive(&h.observe(&Value::Null,0))["nativeView"]["distributionEvidence"],got);
@@ -50,14 +50,14 @@ fn ready()->(Fixture,Arc<Host>,Arc<AppRuntimeCustody>,Value) {
 fn exit(h:&Host,g:&Value){h.write_frame_scoped(&json!({"jsonrpc":"2.0","method":"fixture/exit","params":{"code":0}}),Some(g)).unwrap();}
 fn idle(cap:&AppRuntimeCustody){let end=std::time::Instant::now()+Duration::from_secs(15);while cap.terminal_publication.lock_state().active {assert!(std::time::Instant::now()<end);std::thread::sleep(Duration::from_millis(5));}}
 #[test]
-fn lt12_then_lt23_uses_original_predecessor_without_repairing_legacy_gap(){
+fn lt12_then_lt23_uses_original_predecessor_and_retained_exit_fact(){
     let (_f,h,cap,g)=ready();let prior=h.inner.0.lock().unwrap().successor_lt09_reference.clone().unwrap();
     exit(&h,&g);assert_eq!(wait_closed(&h,&cap,&g)["state"],"read");
     h.stop("synthetic","after EOF").unwrap();idle(&cap);
     let got=h.distribution_evidence(&g);assert_eq!(got["state"],"read","{got}");
     let events=h.lifecycle_events();let terminal=events.iter().find(|e|e["transitionId"]=="LT-23").unwrap();
     assert_eq!(got["evidence"]["lifecycle"]["legacy_event"],*terminal);
-    assert!(terminal["exitFacts"]["exitCode"].is_null(),"existing missing journal fact must not be synthesized");
+    assert_eq!(terminal["exitFacts"]["exitCode"],0,"retained original Child exit observation supplies the same source fact");
     assert!(events.iter().any(|e|e["transitionId"]=="LT-19"&&e["fromState"]=="exited-unexpectedly"),"existing invalid intermediate row remains explicit");
     assert_eq!(serde_json::to_value(h.inner.0.lock().unwrap().successor_lt09_reference.clone().unwrap()).unwrap(),serde_json::to_value(prior).unwrap());
 }
