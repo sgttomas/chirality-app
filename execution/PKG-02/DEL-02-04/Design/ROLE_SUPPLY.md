@@ -462,7 +462,16 @@ there is no need to choose session flags for the observed per-thread route.
   known-case policy, not an implemented App discovery guard. The controlled
   native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md` supplies bounded
   collision/carrier evidence, not complete configuration-layer discovery or
-  actual App child supply. Complete discovery/exclusion, additive
+  actual App child supply. Its maintained origin controls also distinguish a
+  config-table `ALIAS` from file-declared native `TASK`, nearest trusted project
+  precedence from excluded untrusted project layers, and a changed standalone
+  role from an unchanged complete `config/read` response. The currency control
+  observes actual native catalogs before and after its explicit fixture edit
+  in one supplier process/home and selected cwd; both starts send no App child
+  keys. Complete parsed response content and canonical JSON agree, without a
+  raw wire-byte identity claim. The separately pinned official source model
+  described in that witness is not evidence that this binary was built from
+  that source or that all origins were observed. Complete discovery/exclusion, additive
   child content and base preservation, App publication and actual association
   remain open; no process-wide fallback or user configuration edit is selected.
 

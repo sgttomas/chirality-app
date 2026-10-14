@@ -103,6 +103,32 @@ class ChildCarrierCollision(unittest.TestCase):
         self.assertEqual(self.module.fixture_role_overrides(
             "standalone-collision", None, Path("unused-app-task.toml")), {})
 
+    def test_known_origin_controls_withhold_all_app_keys_even_when_table_key_is_only_alias(self):
+        alias = {"ALIAS": {"description": "Person fixture", "config_file": "person-role.toml"}}
+        for case in self.module.ORIGIN_CASES:
+            for effective in (None, alias):
+                self.assertEqual(self.module.fixture_role_overrides(case, effective, Path("app-task.toml")), {})
+
+    def test_complete_config_currency_oracle_ignores_only_object_key_order(self):
+        before = {"origins": {"first": 1, "second": 2}, "config": {"agents": None}}
+        reordered = {"config": {"agents": None}, "origins": {"second": 2, "first": 1}}
+        self.assertEqual(self.module.unchanged_config_reading(before, reordered),
+                         self.module.unchanged_config_reading(before, before))
+        for changed in ({"origins": {"first": 1, "second": 3}, "config": {"agents": None}},
+                        {"origins": {"first": 1.0, "second": 2}, "config": {"agents": None}},
+                        {"origins": {"first": 1, "second": 2}, "config": {"agents": {}}}):
+            with self.assertRaisesRegex(AssertionError, "reports standalone-file currency"):
+                self.module.unchanged_config_reading(before, changed)
+
+    def test_origin_catalog_requires_actual_role_name_not_only_same_description(self):
+        description = "CONTROLLED_DESCRIPTION"
+        self.module.assert_origin_catalog("Available roles:\nTASK: {\nCONTROLLED_DESCRIPTION\n}",
+                                          [("TASK", description)], [])
+        for wrong_name in ("ALIAS", "NOTTASK"):
+            with self.assertRaisesRegex(AssertionError, "name/description association missing"):
+                self.module.assert_origin_catalog(f"Available roles:\n{wrong_name}: {{\n{description}\n}}",
+                                                  [("TASK", description)], [])
+
     def test_table_collision_and_unknown_native_shape_never_override(self):
         roles = {"TASK": {"description": "Person's definition", "config_file": "person.toml"}}
         self.assertEqual(self.module.fixture_role_overrides("collision", roles, Path("app.toml")), {})
