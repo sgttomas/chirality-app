@@ -232,6 +232,11 @@ implemented behavior and qualification limits.
     edited published copy is not used, and a store that does not recompute
     refuses with nothing selected or started. Unresolved proposals show their notice. The activity view marks run
     starts and ends from the App's run records and folds the supplied run text.
+    Run-start checks distinguish native homes when the App retains the original
+    run source and its exact recorded opening. An open run in another home
+    with the same bare native thread ID then leaves this chat available. Busy,
+    missing or conflicting source proof, and cold history without that proof,
+    retain the existing conservative refusal.
 21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling
     (first given for the draft workspace as "A, proceed with the Rust host."), the Rust host observes
     the open library's `.chirality/workflow-drafts/` folders. **Open this App
@@ -672,6 +677,17 @@ implemented behavior and qualification limits.
     companion. This restores no role authority and does not check WR
     correspondence. The existing tool definition and read accounting remain
     unchanged.
+
+26. The Rust host records actual **Fork** and **Continue as** relationships
+    between native conversations in the selected project's records store,
+    then copies each exact line to `.chirality/fleet/coordination.fleet.jsonl`.
+    Session IDs are qualified by their actual native home/source. Recording
+    requires no objective label or grouping choice. Unknown native outcomes
+    and failed or uncertain recording remain visible limits; host ticks retry
+    the original recording without sending another native command. The Fleet
+    reader retains both format versions as quoted evidence. These logs are
+    currently unsigned and unchained; cold reads restore no conversation or
+    role authority.
 
 ## Modules
 

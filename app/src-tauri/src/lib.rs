@@ -52,6 +52,7 @@ pub mod recorder;
 pub mod records;
 pub mod records_access;
 mod fleet_records;
+mod native_conversation_links;
 mod after_run_end;
 mod records_index;
 pub mod record_lines;
@@ -104,6 +105,7 @@ pub struct AppState {
     trace_selection: Mutex<runtime_session::TraceSelectionSession>,
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
     role_log: Result<Arc<role_observations::RoleLog>, String>,
+    native_links: Mutex<native_conversation_links::Session>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
@@ -260,6 +262,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
 
@@ -320,6 +323,8 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
         Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
     };
     if action=="close" {
+        let links=state.native_links.try_lock().map_err(|_|"Native relationship recording is pending")?;
+        if links.has_pending(){return Err("Native relationship records are still pending; wait for their recording before closing the project".into());}
         let workflows=state.workflows.try_lock().map_err(|_|"A workflow operation is pending")?;workflows.retention_ready()?;
         let acts=state.act.try_lock().map_err(|_|"An act operation is pending")?;
         if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("A native act still has pending records; retry its recording before closing the project".into());}
@@ -332,6 +337,8 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
     if !confirm_choice(&app,"Project records retention",records_retention::statement(&plan),dont,perform,&mut refused){return refused.map_or_else(||Ok(json!({"state":"cancelled; no retention act"})),Err);}
     let (actor,current)=observe()?;
     // Keep local record owners fixed during host revalidation/application.
+    let links=state.native_links.try_lock().map_err(|_|"Native relationship recording busy; review again")?;
+    if action=="close" && links.has_pending(){return Err("Native relationship records became pending; review again".into());}
     let workflows=state.workflows.try_lock().map_err(|_|"Workflow context busy; review again")?;
     let acts=state.act.try_lock().map_err(|_|"Act context busy; review again")?;
     if action=="close" {workflows.retention_ready()?;if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("Native act records became pending; review again".into());}}
@@ -805,7 +812,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
-    let continued_from = conversation_roles::continuation_for_start(&state.continue_as, &home, continue_as.as_deref(), role)?;
+    let (continued_from, continued_source) = conversation_roles::continuation_for_start_observed(&state.continue_as, &home, continue_as.as_deref(), role)?;
     *resolved_continued_from=continued_from.clone();
     let cwd = home.host_config
         .as_ref()
@@ -831,6 +838,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     };
     composition.verify()?;
     let generation = home.host.snapshot()["generation"].clone();
+    let mut native_relationship = continued_source.map(|origin| (native_conversation_links::freeze_source(state.workspace.as_deref(), &home), origin));
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
@@ -852,6 +860,13 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
+            if let Some((context, origin)) = native_relationship.take() {
+                // Retain the genuine receipt before any wait or role callback.
+                // Recording limits never replace the native operation result.
+                if let Ok(mut links) = state.native_links.lock() {
+                    let _ = links.track_continued(context, Arc::clone(&home.host), receipt.clone(), origin);
+                }
+            }
             home.history.lock().unwrap().start_dispatched_selected(receipt.clone(), &composition, &supply_ref, continued_from.clone(), preselected)
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
             let waited = home.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
@@ -1039,7 +1054,12 @@ fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: S
         let publication=history.fork_refused(&util::opaque_id("sup:")?,&Value::Null,&thread_id,&reason,true);
         return Err(format!("{reason}; role supply observation: {publication}"));
     }};
-    let forked = conversation_roles::fork_conversation(&home, &generation, &thread_id, std::time::Duration::from_secs(20))?;
+    let context = native_conversation_links::freeze_source(state.workspace.as_deref(), &home);
+    let forked = conversation_roles::fork_conversation_tracked(&home, &generation, &thread_id, std::time::Duration::from_secs(20), |receipt| {
+        if let Ok(mut links) = state.native_links.lock() {
+            let _ = links.track_fork(context, Arc::clone(&home.host), receipt.clone());
+        }
+    })?;
     // WR TT-3b: a fork of a trial conversation is labelled and offers no run.
     if let Some(fork) = forked["thread"]["threadId"].as_str() {
         state.workflows.lock().unwrap().mark_fork(&thread_id, fork);
@@ -1827,6 +1847,7 @@ pub fn run() {
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
         role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
+        native_links: Mutex::new(native_conversation_links::Session::default()),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
@@ -1941,6 +1962,8 @@ pub fn run() {
                     std::thread::sleep(host_tick::INTERVAL);
                     let state = handle.state::<AppState>();
                     host_tick::guarded("record", || host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
+                    // Native relationship publication runs independently of web reads.
+                    host_tick::guarded("native-links", || {state.native_links.lock().unwrap().retry(state.workspace.as_deref());});
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
                 // TT-9 reads wait on Codex; their own thread never delays the record tick.
                 let handle = app.handle().clone();
@@ -2077,7 +2100,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

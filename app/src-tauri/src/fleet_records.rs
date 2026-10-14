@@ -1,4 +1,4 @@
-//! DEL-06-01 / FR 0.1: an observational file reader, never a fleet producer.
+//! DEL-06-01: observational file reader of quoted 0.1 and native-links 0.2.
 //! Project claims and the App's protected observation order stay distinct.
 use crate::{records_index::Stamp, records_store, storage};
 use serde_json::{json, Value};
@@ -14,7 +14,7 @@ use std::sync::OnceLock;
 const FOLDER: &str = ".chirality/fleet";
 const LOG: &str = "coordination.fleet.jsonl";
 const SCHEMA_ID: &str = "urn:chirality:app-v4:del-06-01:fleet-record:0.1";
-const OBSERVED: &[&str] = &["dispatch_observed", "child_observed", "observation_ended", "related_conversation"];
+const OBSERVED: &[&str] = &["dispatch_observed", "child_observed", "observation_ended", "related_conversation", "recording_limit", "recording_recovered"];
 const STANDING: &str = "Read-only file observations. Records say what was recorded, not that it happened. Records retain their claimed recorder; references are quoted, not followed. Prepared work, supplier observations, returns, review, integration and human acts remain separate. No work state or current graph is derived.";
 
 fn validator() -> Result<&'static jsonschema::Validator, String> {
@@ -135,7 +135,7 @@ struct Row {
     source: Value,
 }
 impl Row {
-    fn id(&self) -> &str { self.record["recordId"].as_str().unwrap() }
+    fn id(&self) -> &str { self.record["observationId"].as_str().or_else(||self.record["recordId"].as_str()).unwrap() }
     fn kind(&self) -> &str { self.record["kind"].as_str().unwrap() }
     fn view(&self, standing: &str) -> Value {
         json!({"record":self.record,"source":self.source,"standing":standing})
@@ -149,12 +149,18 @@ fn source(path: &Path, root: &Path, protected: bool, line: Option<usize>) -> Val
 fn issue(source: &Value, reason: &str) -> Value { json!({"source":source,"reason":reason}) }
 fn valid(bytes: &[u8], validation: &jsonschema::Validator) -> Result<Value, &'static str> {
     let record: Value = serde_json::from_slice(bytes).map_err(|_| "not JSON (not read)")?;
-    if record["format"] != "chirality.fleet.record" || record["formatVersion"] != "0.1" {
+    if record["format"] != "chirality.fleet.record" {
         return Err("unknown fleet format/version (not read)");
     }
-    validation.validate(&record).map_err(|_| "fleet schema invalid or unknown kind (not read)")?;
+    match record["formatVersion"].as_str(){
+        Some("0.1")=>validation.validate(&record).map_err(|_| "fleet schema invalid or unknown kind (not read)")?,
+        Some("0.2")=>crate::native_conversation_links::validate_record(&record).map_err(|_| "native-links schema/association invalid (not read)")?,
+        _=>return Err("unknown fleet format/version (not read)"),
+    }
     Ok(record)
 }
+/// Mixed-version validation for the App writer; references remain quoted.
+pub(crate) fn validate_line(bytes:&[u8])->Result<Value,String>{valid(bytes,validator()?).map_err(str::to_owned)}
 
 struct LogRead { rows: Vec<Row>, bytes: Option<Vec<u8>>, complete: bool, view: Value }
 /// A pathname replacement cannot reset proof for this source. Paths retain
@@ -188,6 +194,9 @@ fn observe_prefix(source: &HistorySource, bytes: Option<&[u8]>, accept: bool) ->
         }
     }
     Ok(())
+}
+pub(crate) fn writer_prefix(root:&Path,store:&Path,store_id:&str,project_id:&str,dir:&Path,bytes:&[u8])->Result<(),String>{
+    observe_prefix(&HistorySource {selected_project:root.to_owned(),store:store.to_owned(),store_id:store_id.to_owned(),project_id:project_id.to_owned(),log:dir.join("fleet").join(LOG)},Some(bytes),true)
 }
 fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> LogRead {
     let origin = source(path, root, protected, None);
@@ -358,6 +367,14 @@ fn duplicates(rows: &[Row], limits: &mut Vec<Value>, where_: &str) -> BTreeSet<S
     for row in rows {
         if duplicate.contains(row.id()) { limits.push(issue(&row.source,&format!("duplicate/conflicting recordId in {where_}; no copy chosen"))); }
     }
+    let mut native_receipts:BTreeMap<String,Vec<&Row>>=BTreeMap::new();
+    for row in rows.iter().filter(|r|r.record["formatVersion"]=="0.2"&&r.kind()=="related_conversation") {
+        if let Ok(key)=crate::native_conversation_links::receipt_key(&row.record){native_receipts.entry(key).or_default().push(row);}
+    }
+    for copies in native_receipts.values().filter(|rows|rows.len()>1){for row in copies{
+        duplicate.insert(row.id().to_owned());
+        limits.push(issue(&row.source,&format!("duplicate/conflicting original native request identity in {where_}; no relationship chosen")));
+    }}
     duplicate
 }
 
@@ -434,7 +451,7 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         for (order,row) in log.rows.iter().enumerate() {
             let matches: Vec<_> = project_log.rows.iter().filter(|p|p.bytes == row.bytes).map(|p|p.source.clone()).collect();
             if matches.is_empty() { limits.push(issue(&row.source,"store row has no exact project counterpart; store copy/order still governs")); }
-            let mut value = row.view(if trusted {"App observation from the attached protected copy; unsigned"} else {"configured store bytes/order as quoted evidence; placement does not establish App provenance"});
+            let mut value = row.view(if row.record["formatVersion"]=="0.1" {"quoted 0.1 compatibility record; undertaking/thread fields establish no native conversation relationship"} else if trusted {"App observation from the attached protected copy; unsigned"} else {"configured store bytes/order as quoted evidence; placement does not establish App provenance"});
             value["storeOrder"] = json!(order + 1);
             value["protectedOrder"] = json!(trusted.then_some(order + 1));
             value["projectCounterparts"] = json!(matches);
@@ -455,14 +472,16 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         value
     }).collect();
     let protected_rows: Vec<_> = protected_log.as_ref().map(|log|log.rows.iter().map(|row|row.view(if trusted {"protected copy; see governing order"} else if complete_copy {"configured store quoted evidence; placement does not establish App provenance"} else {"configured-store claim; source incomplete/unavailable"})).collect()).unwrap_or_default();
-    Ok(json!({"format":"chirality.fleet.read","formatVersion":"0.1","standing":STANDING,
+    let native_relationships:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]=="related_conversation").cloned().collect();
+    let recording_events:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]!="related_conversation").cloned().collect();
+    Ok(json!({"format":"chirality.fleet.read","formatVersion":"0.2","standing":STANDING,
         "project":{"configuredRoot":configured.to_string_lossy(),"canonicalRoot":root.to_string_lossy(),"nativeRoot":crate::attachments::native_path_identity(&root),"physical":{"device":before.dev(),"inode":before.ino()}},
-        "schema":{"format":"chirality.fleet.record","formatVersion":"0.1"},
+        "schema":{"format":"chirality.fleet.record","versions":["0.1 quoted compatibility","0.2 native-links"]},
         "briefs":briefs.iter().map(|r|r.view("prepared brief; quoted file, no dispatch inferred")).collect::<Vec<_>>(),
         "graphs":graphs.iter().map(|r|r.view("graph revision; quoted file, no current graph or work state derived")).collect::<Vec<_>>(),
         "coordination":{"project":project_log.view,"projectRecords":project_rows,"protected":protected_view,
-            "protectedLog":protected_log.as_ref().map(|log|&log.view),"protectedRecords":protected_rows,"governingStoreRecords":governing_store,"appObservations":observations},
-        "limits":limits,"nativeRecording":"unavailable: completed spawn prompt and undertaking binding are not observed; this reader creates no producer or native association"}))
+            "protectedLog":protected_log.as_ref().map(|log|&log.view),"protectedRecords":protected_rows,"governingStoreRecords":governing_store,"appObservations":observations,"nativeRelationships":native_relationships,"recordingEvents":recording_events},
+        "limits":limits,"nativeRecording":"Only actual App Fork/Continue-as source-issued request/result observations produce 0.2 relationships. Source files are quoted on read, never native authority; 0.1 undertaking fields establish no native join. Completed spawn prompt remains unavailable; no dispatch/child/work state is derived."}))
 }
 
 #[cfg(test)]

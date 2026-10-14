@@ -1513,7 +1513,8 @@ written together and the chain of Tamper-evidence (App `record_lines.rs`,
 derived SQLite index, BagIt export and recorded retention controls below
 are also implemented; the other mechanisms await their slices. DEL-06-01's
 manual source reader compares the co-written fleet log with the store's copy
-as described below; its App observation writer remains unbuilt.
+as described below. Its App writer records source-qualified Fork/Continue-as
+relationships and recording outcomes; other Fleet producers remain unbuilt.
 
 - **Placement** (implemented). The App keeps its records in its own records
   store at `<App-own-user-data>/records/` (the Tauri App data folder),
@@ -1527,8 +1528,7 @@ as described below; its App observation writer remains unbuilt.
   `role-supply/observations.jsonl` and `role-supply/content/<sha256>.utf8`
   (ROLE §6.1a's App observations, exact App-owned guidance, historical limits
   and run-start context),
-  and, when DEL-06-01
-  is built, `fleet/coordination.fleet.jsonl` (the App's own coordination
+  and `fleet/coordination.fleet.jsonl` (the App's own coordination
   observations, also written to the project's log, below), beside the
   store's own records: `store.json` (the store's identity,
   written once), `roots.jsonl` (every project root the store has seen) and,
@@ -1641,8 +1641,8 @@ as described below; its App observation writer remains unbuilt.
   project (`.chirality/records/connectors/route-accounts/`) are existing
   records (below).
   *Fleet coordination log* (owner, 2026-10-12: "Write to both
-  (Recommended)"; the manual reader is implemented in DEL-06-01 FR §6.1;
-  the App observation writer remains Design). The log is co-written (FR-D1): the App writes only
+  (Recommended)"; the manual reader is implemented in DEL-06-01 FR §6.1,
+  and the native-link writer in §6.2). The log is co-written (FR-D1): the App writes only
   its observations (`dispatch_observed`, `child_observed`,
   `observation_ended`, `related_conversation`), and agents and the person
   write the entries they are the actors or recorders of with ordinary file
@@ -1658,10 +1658,11 @@ as described below; its App observation writer remains unbuilt.
   protection: they read the project file as it is, and an agent can write
   into it an entry that names the App as its recorder; INV-FL-2 refuses
   App-observation kinds only from other recorders, so it does not catch
-  that. This adds no
-  file and changes no entry in the project log, so the log's shape and
-  format are unchanged and REQ-005's consumers need no new account. Until
-  DEL-06-01's writer is built no App code writes either copy. The manual
+  that. Existing 0.1 entries remain unchanged. The separate native-links 0.2
+  profile records source-qualified conversation relationships and mechanical
+  recording outcomes under FR §4's quoted owner direction. The actual observer
+  writes the store first and copies the same exact line into the project;
+  other dispatch/child/observation-ended producers remain unbuilt. The manual
   reader preserves exact store line bytes and their written order as the
   governing copy; project replays cannot move an observation in that order.
   A missing, incomplete or conflicting protected source supplies no App
