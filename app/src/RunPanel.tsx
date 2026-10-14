@@ -94,9 +94,9 @@ const LAPSE_STATE: Record<string, string> = {
   "unknown (incomparable)": "lapse unknown: the content identities are not comparable",
   "unknown (unavailable)": "lapse unknown: the file could not be read",
 };
-const lapseLine = (b: Json): string => {
+const lapseLine = (b: Json, pending = false): string => {
   const lapsed = b?.state === "lapsed" || b?.state === "lapsed (subject absent)";
-  const label = !lapsed ? "" : b?.when === "after resume" ? ` Act lapsed at ${text(b?.time)}; the arrival stays performed.` : ` Lapsed at ${text(b?.time)}; the arrival is recorded as waiting again.`;
+  const label = !lapsed ? "" : b?.when === "after run end" ? ` Act lapsed at ${text(b?.time)} after run end; ${pending ? "the arrival’s pending label is lapsed" : "the arrival is recorded as lapsed"}.` : b?.when === "after resume" ? ` Act lapsed at ${text(b?.time)}; the arrival stays performed.` : ` Lapsed at ${text(b?.time)}; the arrival is recorded as waiting again.`;
   return `Lapse observed for ${text(b?.act?.actKind)} ${text(b?.act?.recordId)} at ${text(b?.time)} (${text(b?.when)}): ${LAPSE_STATE[text(b?.state)] ?? text(b?.state)}.${label} Nothing is asked or stopped because of it.`;
 };
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
@@ -112,7 +112,9 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
   // prove that coordinate still denotes this subject; raw history stays visible.
   const coordinateArrivals = all.filter((e: Json) => e?.kind === "checkpoint_arrival" && text(e?.body?.checkpoint) === name && e?.body?.arrivalOrdinal === b.arrivalOrdinal);
   const postEndBound = coordinateArrivals.length === 1 && !arrival?.corrects && !arrival?.afterRunEndRelationLimit;
-  const changes = related("disposition_change");
+  const endAt = all.findIndex((e: Json) => e?.kind === "run_ended");
+  const afterEnd = (e: Json) => endAt >= 0 && all.indexOf(e) > endAt;
+  const changes = related("disposition_change").filter((e: Json) => postEndBound || !afterEnd(e));
   const requests = related("act_request");
   const latest = changes.length ? changes[changes.length - 1].body?.disposition : undefined;
   const time = b.event?.evidencedTime;
@@ -124,13 +126,13 @@ export function ArrivalRecord({ arrival, all }: { arrival: Json; all: Json[] }) 
       ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
       : line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
     {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
-    {!postEndBound && postEnd.length>0 && line("end-limit", `Post-end subject association not established for this arrival: ${text(arrival?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.`)}
+    {!postEndBound && (postEnd.length>0 || related("act_lapsed").some((e: Json) => e.body?.when === "after run end")) && line("end-limit", `Post-end subject association not established for this arrival: ${text(arrival?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.`)}
     {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, `After run end: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control. The ended arrival disposition is unchanged. ${writtenNote(c, all)}`))}
     {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, `Act not counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)}: ${text(c.body?.reason)}${c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.`))}
     {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Declined by the person (${text(c.body?.declinedEventRef)}).`))}
     {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
     {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the act the run went on with ${text(c.body?.firstActionRef)}.`))}
-    {related("act_lapsed").map((c: Json, i: number) => line(`x${i}`, lapseLine(c.body)))}
+    {related("act_lapsed").filter((c: Json) => postEndBound || c.body?.when !== "after run end").map((c: Json, i: number) => line(`x${i}`, `${lapseLine(c.body, c.written === false)} ${writtenNote(c, all)}`))}
     {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
     {note && line("w", note)}
   </li>;
@@ -247,6 +249,11 @@ function gatedHumanActs(gate: string, all: Json[]): string {
   const ordinal = Math.max(...arrivals.map((r: Json) => Number(r?.body?.arrivalOrdinal) || 0));
   const at = (r: Json) => text(r?.body?.arrival?.checkpoint) === gate && r?.body?.arrival?.arrivalOrdinal === ordinal;
   const of = (kind: string) => all.filter((r: Json) => r?.kind === kind && at(r));
+  const coordinate = arrivals.filter((r: Json) => r?.body?.arrivalOrdinal === ordinal);
+  if ((coordinate.length !== 1 || coordinate[0]?.corrects || coordinate[0]?.afterRunEndRelationLimit)
+      && of("act_lapsed").some((r: Json) => r.body?.when === "after run end")) {
+    return `unknown: checkpoint ${gate}, arrival ${ordinal} has no established post-end subject association (${text(coordinate[0]?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}); the original lapse remains in recorded history`;
+  }
   const labels = of("disposition_change");
   const latest = labels.length ? labels[labels.length - 1].body : undefined;
   const where = `checkpoint ${gate}, arrival ${ordinal}`;
