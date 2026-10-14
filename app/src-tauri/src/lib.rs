@@ -838,6 +838,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     };
     composition.verify()?;
     let generation = home.host.snapshot()["generation"].clone();
+    let provider_admission=home.host.provider_admission_read(&generation,&cwd,&entry_id,&model_provider,&model)?;
     let mut native_relationship = continued_source.map(|origin| (native_conversation_links::freeze_source(state.workspace.as_deref(), &home), origin));
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
@@ -856,7 +857,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     // Freeze the verified original composition before native dispatch. Actual
     // Host receipt IDs, exact sent bytes and correlated results bind its role.
     *dispatch_invoked=true;
-    let dispatch = home.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
+    let dispatch = home.host.thread_start_with_access_dispatch(&provider_admission, &composition.text);
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {

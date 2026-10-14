@@ -60,7 +60,13 @@ implemented behavior and qualification limits.
    an unavailable count as
    `checked:false`, `surviving:null` with a reason; legacy records stay readable.
 2. The person chooses a primary role (or none) and explicitly enters a model
-   and a configured Codex provider for a new thread. Codex retains its own configuration and permissions. The view
+   and a configured Codex provider for a new thread. The actual native
+   configuration must establish that this provider matches the chosen access
+   entry before Start, Continue as or a clean trial dispatches. Private config
+   replies/errors are projected to safe outcomes; unavailable definitions refuse
+   without a fallback. This is a source/folder observation, not a lock on later
+   configuration or a credential-validity check (ACCESS §5.4). Codex retains its
+   own configuration and permissions. The view
    discloses expected model contact at thread start, before a turn; it does not
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations

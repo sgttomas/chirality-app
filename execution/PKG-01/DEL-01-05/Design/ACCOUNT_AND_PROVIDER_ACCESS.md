@@ -424,6 +424,59 @@ because the App always sends both explicitly on `thread/start` (CS-8), the
 configured default never selects a conversation's model. `Model.isDefault`
 from `model/list` may be shown as Codex's own label, never preselected.
 
+#### Current native provider admission
+
+Ordinary Start, Continue as and a clean trial share the current Rust start
+receiver. Before it dispatches `thread/start`, it reads `config/read` from
+that actual Host, full H5 generation and working folder. A private, non-Serde
+receipt binds the chosen provider/model/folder to that reading. The original
+source and exact destination are checked again after the frame-writer queue;
+any newer `config/read` for that same known source/folder, including the
+delegation reader, invalidates an older receipt even if it is unavailable.
+A read with no reported request cwd establishes no folder. A reading of another folder
+or Host supplies no replacement authority.
+
+This implements §2 and LP-1's existing classification: cloud entries require
+built-in OpenAI; local entries require a configured Responses provider without
+a credential element. At stock 0.160.0, a fresh credential-free default home
+reports an explicit empty `model_providers` map, and a custom `openai`
+definition is refused by `config/read` as a reserved built-in ID. A custom
+anonymous definition reports its nullable credential channels explicitly and
+`requires_openai_auth:false`. The receiver requires that reported coverage;
+missing maps/channels, malformed known-field shapes, untyped new fields and
+uncertain header/query roles are
+unavailable, never inferred anonymous. Explicit authentication fields,
+Authorization/API-key headers and identified query/user-info credentials are
+not offered. Fixed non-auth HTTP header roles remain supported. A Responses
+model-server URL must be a parseable HTTP(S) URL for this receiving path;
+unsupported transports are unavailable. Nonloopback HTTP(S) addresses remain
+eligible. Neither address nor the configured default chooses the entry.
+
+The assurance is classification at the native observation cut, not a
+configuration/destination lock: Codex supplies no version-conditioned
+`thread/start` in this path. A later external edit without another observation
+is unobserved. `openai_base_url` does not itself redefine the built-in entry;
+this receiver claims no destination guarantee, credential presence/validity,
+account sign-in completion or provider/model availability. It neither rewrites
+configuration nor silently tries another provider.
+
+Whole configurations and native error messages can contain credentials. This
+private read projects an outcome immediately for public request evidence,
+capture/journals and canonical client errors; only its private waiter consumes
+the original reply to classify. Every wait ends and drains its own receiver,
+including malformed/error/timeout/stale reads; later replies stay reduced.
+Refusals contain no configuration values and flow through the existing visible
+message and role-refusal publisher. An unassociated response/malformed diagnostic from this known
+private configuration source is withheld with an unattributed diagnostic limit.
+A valid native server request sharing a client numeric ID retains its separate
+method/params consumer and mandatory reply; its ID does not make it a config
+response.
+This is not a new human act or an authentication gate. Synthetic Host/source,
+queued-currentness and actual refusal-publication/display regressions are in
+`app/src-tauri/src/access_provider_tests.rs` and
+`app/tests/access-provider.test.mjs`; the stock metadata controls read only
+fresh file-auth scratch configurations and make no model/authentication calls.
+
 ### 5.4.1 Explicit project context and unknown view (CC-ACCESS-EXPLICIT-PROJECT-CONTEXT)
 
 Root/shared supplies an actual configured/opened App project reference or

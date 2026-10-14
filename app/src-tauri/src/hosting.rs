@@ -192,6 +192,8 @@ struct Inner {
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
+    provider_read_revisions: HashMap<String,(Value,String)>,
+    private_config_channels: Vec<Value>,
     server_requests: RequestRegister,
     recovery: Option<Arc<Mutex<RecoveryLedger>>>,
     /// The ledger's bounded snapshot and its held entries (DEL-01-02 §7):
@@ -238,6 +240,10 @@ struct Inner {
     child_pid: Option<i32>,
 }
 
+#[path = "access_provider.rs"]
+mod access_provider;
+pub(crate) use access_provider::ProviderAdmission;
+
 // Non-deserializable capabilities issued only by the actual Host sender.
 #[derive(Clone)]
 pub struct SourceRequest {
@@ -265,6 +271,7 @@ struct SourceEvidence {
     auth_response_shape: Option<bool>,
     source_pipe:Option<(u64,(u64,u64))>,
     records_project: Option<records_continuity::Project>,
+    private_config: bool,
 }
 impl SourceRequest {
     pub fn generation(&self) -> &Value { &self.generation }
@@ -285,7 +292,7 @@ impl SourceRequest {
         let Some(e) = i.source_requests.get(&self.frame["id"].to_string()) else { return json!({"outcome":"source-record-unavailable"}); };
         let record = &i.client_requests[e.index];
         json!({"generation":self.generation,"home":self.generation["home"],"requestIdentity":self.frame["id"],"requestRef":self.request_ref,
-            "frameEvidence":if e.auth_projection{"explicit redacted account projection; not original wire bytes"}else if e.response.as_ref().is_some_and(is_delegation_withheld){"original source frame; its reply is kept reduced to its outcome (delegation-availability read, NPTD §7.1), not as received"}else{"original source frame"},"responseReduced":e.response.as_ref().is_some_and(is_delegation_withheld),"sensitiveFieldsRedacted":e.auth_projection,"authPolicyStanding":e.auth_policy_standing,"authResponseShapeValid":e.auth_response_shape,"attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeAttemptInProgress":e.write_attempt_in_progress,"effectiveWriteOutcome":if e.write_attempt_in_progress {"unknown while actual write is in progress"}else if e.written{"complete source write observed"}else{"no complete source write observed"},"lastClientObservation":record,"writeResult":if e.write_attempt_in_progress {"write-in-progress"}else if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else if record["writeResult"]=="not-attempted"{"last-prewrite-observation"}else{"reserved/no complete write observation"},"actualWriteAttemptObserved":e.attempt_position.is_some(),"noAttemptCause":if e.attempt_position.is_none(){e.source_limit.as_ref()}else{None},"canonicalProjectionAvailable":record.is_object()&&e.source_limit.is_none()&&!(e.write_error.is_some()&&e.response.is_some()),"sourceLimit":e.source_limit,
+            "frameEvidence":if e.private_config{"private provider configuration outcome projection; not original wire bytes"}else if e.auth_projection{"explicit redacted account projection; not original wire bytes"}else if e.response.as_ref().is_some_and(is_delegation_withheld){"original source frame; its reply is kept reduced to its outcome (delegation-availability read, NPTD §7.1), not as received"}else{"original source frame"},"responseReduced":e.private_config||e.response.as_ref().is_some_and(is_delegation_withheld),"sensitiveFieldsRedacted":e.auth_projection||e.private_config,"authPolicyStanding":e.auth_policy_standing,"authResponseShapeValid":e.auth_response_shape,"attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeAttemptInProgress":e.write_attempt_in_progress,"effectiveWriteOutcome":if e.write_attempt_in_progress {"unknown while actual write is in progress"}else if e.written{"complete source write observed"}else{"no complete source write observed"},"lastClientObservation":record,"writeResult":if e.write_attempt_in_progress {"write-in-progress"}else if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else if record["writeResult"]=="not-attempted"{"last-prewrite-observation"}else{"reserved/no complete write observation"},"actualWriteAttemptObserved":e.attempt_position.is_some(),"noAttemptCause":if e.attempt_position.is_none(){e.source_limit.as_ref()}else{None},"canonicalProjectionAvailable":record.is_object()&&e.source_limit.is_none()&&!(e.write_error.is_some()&&e.response.is_some()),"sourceLimit":e.source_limit,
             "outcome":if e.write_attempt_in_progress{json!("unknown/in-progress")}else if e.write_error.is_some()&&e.response.is_some(){json!("native response and failed write both observed; canonical projection unavailable")}else if e.written&&e.response.is_some()&&e.source_limit.is_some(){json!(observed_response_outcome(e.response.as_ref().unwrap()))}else if record.is_object(){record["outcome"].clone()}else if e.written&&e.response.is_some(){json!(observed_response_outcome(e.response.as_ref().unwrap()))}else{json!("reserved/canonical projection unavailable; outcome unknown")},
             "waitingEnded":record.get("waitingEnded").and_then(Value::as_bool).or_else(||e.observation_base.get("waitingEnded").and_then(Value::as_bool)).unwrap_or(false),"response":e.response,"writeError":e.write_error,
             "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
@@ -618,6 +625,8 @@ pub struct Host {
     #[cfg(test)]
     before_delegation_wait: Mutex<Option<Box<dyn Fn(&SourceRequest) + Send>>>,
     #[cfg(test)]
+    before_provider_wait: Mutex<Option<Box<dyn Fn(&Host,&SourceRequest) + Send>>>,
+    #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     after_eof_work: Mutex<Option<Box<dyn FnOnce() + Send>>>,
@@ -694,6 +703,8 @@ impl Host {
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
             before_delegation_wait: Mutex::new(None),
+            #[cfg(test)]
+            before_provider_wait: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -1631,6 +1642,9 @@ impl Host {
         self.request_begin_with_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,None,None)
     }
     fn request_begin_with_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>)->Result<SourceRequest,String>{
+        self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
+    }
+    fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
@@ -1642,6 +1656,7 @@ impl Host {
         }
         if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         Self::check_send_admitted(&i,method)?;
+        if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&params)?;}
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
         let oauth_mode=if method=="account/login/start" {match params["type"].as_str(){Some("chatgpt")=>Some(oauth_control::OAuthMode::Chatgpt),Some("chatgptDeviceCode")=>Some(oauth_control::OAuthMode::DeviceCode),_=>None}}else{None};
         if oauth_mode.is_some(){
@@ -1658,12 +1673,16 @@ impl Host {
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
+        if method=="config/read" {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
+            i.provider_read_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
+        }}
+        if private_config&&!i.private_config_channels.contains(&request.generation){i.private_config_channels.push(request.generation.clone());}
         let cce_bound=cce_intent.map(|intent|call_custody::Offer::bind(intent,&self.inner,&request)).transpose().map_err(|e|e.message())?;
         // This private receipt account is separate from the published client
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,records_project});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,records_project,private_config});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -1690,6 +1709,7 @@ impl Host {
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
+                if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&frame["params"])?;}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -2235,7 +2255,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -3188,15 +3208,27 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let next_receipt=i.receipt_position+1;
         if let Some(raw)=parsed.as_ref(){Self::oauth_admit(&mut i,generation,next_receipt,raw,auth_shape);}
         let known_account_channel=i.account_channels.contains(generation);
-        let (frame,projected)=match parsed{Some(frame)if frame.is_object()&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
+        let known_private_config_channel=i.private_config_channels.contains(generation);
+        // Client and server ID spaces are independent. A valid server request
+        // sharing a client ID retains its actual method/params and reply duty.
+        let private_config=correlated_method.as_deref()==Some("config/read")&&parsed.as_ref().is_some_and(|f|
+            (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
+            &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
+        let unattributed_private_config=known_private_config_channel&&parsed.as_ref().is_some_and(|f|{
+            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read"))
+        });
+        let (frame,projected)=match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
             auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
-        },_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)};
+        },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)};
+        let private_config_frame=private_config.then(||frame.clone());
+        let frame=if private_config{access_provider::withheld(&frame)}else{frame};
+        let projection_label=if private_config{Some("private provider configuration outcome projection; not original bytes")}else if known_private_config_channel&&projected{Some("private source diagnostic projection; not original bytes")}else if projected{Some("sensitive account projection; not original bytes")}else{None};
         // NPTD §7.1 delegation reads: their result bodies (whole model
         // catalogues, whole configurations) are never journalled.
         let delegation_reply = correlated_method.as_deref().is_some_and(|m| DELEGATION_READ_METHODS.contains(&m)) && frame.get("method").is_none();
         if &i.generation != generation || i.server_requests.is_closed(generation) {
-            let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame };
-            i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}}));return;
+            let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame };
+            i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":projection_label}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
@@ -3286,13 +3318,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // until the reading takes its fields (`delegation_signals_read`).
                 let waiting_ended = i.client_requests[idx]["waitingEnded"] == true || i.source_requests.get(&key).is_some_and(|e| e.observation_base["waitingEnded"] == true);
                 // Nobody waits on the channel then either: it holds the reduced form too.
-                let kept = if delegation_reply && waiting_ended { delegation_withheld(&frame) } else { frame.clone() };
+                let kept = if private_config {frame.clone()} else if delegation_reply && waiting_ended { delegation_withheld(&frame) } else { frame.clone() };
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; }
                 Self::stop_request_response(&mut i, &gen, &frame);
-                let _ = tx.send(kept);
+                let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
-                let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame.clone() };
-                let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
+                let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame.clone() };
+                let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":projection_label});
                 if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
                 drop(i);
@@ -3303,12 +3335,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // Uncorrelated response: surfaced, never dropped (§5). A reply to a
             // delegation read no longer pending (its write failed) is surfaced
             // as its outcome only.
-            let journalled = if delegation_reply { delegation_withheld(&frame) } else { frame };
-            let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": journalled,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
+            let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame };
+            let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": journalled,"sourceProjection":projection_label});
             if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
             return;
         }
-        let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}});
+        let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame,"sourceProjection":projection_label});
         if i.state == "handshaking" {
             i.held.push(entry); // H4
         } else {

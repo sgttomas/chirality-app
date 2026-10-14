@@ -99,5 +99,12 @@ needs:
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/act_control.rs
+- app/src-tauri/src/access_provider.rs
+- app/src-tauri/src/access_provider_tests.rs
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/lib.rs
+- app/src/ConversationRoles.tsx
 checks:
+- app/tests/access-provider.test.mjs
+- app/src-tauri/src/access_provider_tests.rs
 - execution/PKG-01/DEL-01-05/Design/prototype/check_explicit_project_context.py

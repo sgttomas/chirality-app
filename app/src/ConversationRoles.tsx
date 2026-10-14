@@ -173,6 +173,7 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
   return <>
     <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>{" "}
     <label>Configured Codex provider <input {...EXACT_TEXT} value={modelProvider} onChange={e => setModelProvider(e.target.value)} /></label>
+    <small> The chosen access entry must match this provider: cloud entries use built-in OpenAI; local entries use a configured Responses provider without credentials. An unavailable definition prevents Start.</small>
   </>;
 }
 
