@@ -306,7 +306,7 @@ test('the review shows the last clean trial as information only; Register is ena
   find(LastCleanTrialLine({line:lines.differs,busy:false,act:s.act}),n=>n.type==='button')[0].props.onClick();
   assert.deepEqual(s.calls,[['workflow_trial_prepare',{name:'load-check',kind:'clean',generation:null,threadId:null}]]);
   const register=(line,active)=>{
-    const review={reference:'review-1',status:{presentation:null,entries:[]},lastCleanTrial:line};
+    const review={reference:'review-1',status:{state:'reviewed; native A15 not captured',presentation:{entries:[{disposition:'new workflow'}]}},lastCleanTrial:line};
     const html=h(WorkflowRootPanel,{data:{reviews:[review],activeReview:active?'review-1':null},host:{state:'ready',generation:g,threads:[]},act:async()=>{}});
     const m=html.match(/<button[^>]*>Register this review through native A15 confirmation…<\/button>/);
     assert.ok(m,'Register is offered');return m[0];

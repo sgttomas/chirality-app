@@ -11,7 +11,7 @@ const document=installMiniDom();
 const React = (await import('react')).default;
 const {renderToStaticMarkup} = await import('react-dom/server');
 const {createRoot} = await import('react-dom/client');
-const {RegisteredRevisions,NewerRevisionNotice,ReviewSelectButtons,WorkflowRootPanel}=loadSrc('App');
+const {RegisteredRevisions,NewerRevisionNotice,ReviewSelectButtons,WorkflowRootPanel,App}=loadSrc('App');
 
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const find=(node,match,found=[])=>{
@@ -156,11 +156,90 @@ test('one existing library entry goes from in-place review to an explicit native
   assert.ok(review);assert.equal(props(review).disabled,false);
   await React.act(async()=>{props(review).onClick();await new Promise(r=>setTimeout(r,0));});
   assert.deepEqual(calls,[['workflow_review',{names:['sample'],inPlace:true}]],'review requests no draft creation or act');
-  data={...data,activeReview:'review-one',reviews:[{reference:'review-one',status:{entries:[]}}]};
+  data={...data,activeReview:'review-one',reviews:[{reference:'review-one',status:{state:'reviewed; native A15 not captured',presentation:{entries:[{disposition:'in place',message:'Synthetic in-place review'}]}}}]};
   await React.act(render);
   const [register]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Register this review through native A15 confirmation…');
   assert.ok(register);assert.equal(props(register).disabled,false);
   await React.act(async()=>{props(register).onClick();await new Promise(r=>setTimeout(r,0));});
   assert.deepEqual(calls[1],['workflow_register_native',{reviewRef:'review-one'}],'the press only opens host-owned native confirmation');
   await React.act(()=>root.unmount());
+});
+
+// Host shapes from WorkflowReviewContext::accept_result/advance and Root::snapshot.
+// Exercise App's real handlers and refresh with an invented native invoke boundary.
+test('native review actions end with the host presentation while original continuation and Select remain',async()=>{
+  const {reviewDigest,readablePaths}=loadSrc('presentation');
+  const generation={appSession:'session-review',home:'home-review',spawnCounter:1};
+  const identity={name:'load-check',origin:'project',source_root:'/synthetic',revision:'a'.repeat(64)};
+  const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
+  const controls=article=>article.querySelectorAll(e=>e.localName==='button');
+  const native=article=>controls(article).find(e=>/^(Register this review|Re-confirm this revision)/.test(e.textContent));
+  for(const disposition of ['new workflow','re-confirmation']){
+    const outcomes=[
+      ['completed',{status:{state:'original registration attempt advanced',entries:[{state:disposition==='re-confirmation'?'re-confirmed':'registered',identity,actRef:'synthetic-act'}]}}],
+      ['dismissed',{status:{state:'native confirmation dismissed; no capture/registration'}}],
+      ['capture unavailable',{status:{state:'native review/capture unavailable; original owner state retained',limit:'synthetic refusal',registration:'not completed; no fabricated receipt or retry'}}],
+      ['capture pending',{status:{state:'actual captured A15 record pending',captureId:'synthetic-capture',reason:'record write pending',registration:'not authorized until actual hot receipt'}}],
+      ['transaction pending',{status:{state:'original registration attempt advanced',entries:[{state:'pending; not registered',identity,reason:'synthetic publication pending'}]}}],
+      ['review lock pending',{state:'original native review interaction pending'}],
+    ];
+    for(const [outcome,resultRow] of outcomes){
+      const presentation={entries:[{disposition,message:'Complete synthetic review',content:'workflow content',...(disposition==='re-confirmation'?{reconfirmation:{statement:'Synthetic re-confirmation statement'}}:{})}]};
+      const fresh={reference:'review-native',status:{state:'reviewed; native A15 not captured',presentation}};
+      const data={context:{sourceRef:'home:synthetic',generation,historyEpoch:0},activeLibrary:'lib-native',activeReview:fresh.reference,
+        libraries:[{reference:'lib-native',origin:'project',sourceRoot:'/synthetic',registered:[held]}],reviews:[fresh]};
+      let snapshot={state:'ready',generation,threads:[{generation,threadId:'chat-native'}],workflowRoot:data};
+      const calls=[],previous=window.__TAURI_INTERNALS__;
+      window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+        calls.push([command,args]);
+        if(command==='host_status')return snapshot;
+        if(command==='decision_view')return {rows:[]};
+        if(command==='native_confirmation_content')return [];
+        if(command==='workflow_review_digest')return {digest:await reviewDigest(presentation)};
+        if(command==='workflow_register_native'){
+          snapshot={...snapshot,workflowRoot:{...data,reviews:[{reference:fresh.reference,...resultRow}]}};
+          return resultRow.status??resultRow;
+        }
+        if(command==='workflow_continue_registration'||command==='workflow_select_registered')return {state:'synthetic original operation returned'};
+        throw Error(`Unexpected native command: ${command}`);
+      }};
+      const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+      const article=()=>container.querySelectorAll(e=>e.localName==='article'&&e.querySelectorAll(n=>n.localName==='h3'&&n.textContent==='Current review · review-native').length)[0];
+      const body=()=>article().querySelectorAll(e=>e.localName==='pre')[0];
+      try{
+        await React.act(()=>root.render(React.createElement(App)));
+        await React.act(async()=>{await new Promise(r=>setTimeout(r,0));});
+        assert.equal(body().textContent,JSON.stringify(readablePaths(fresh.status),null,2),'complete current review stays visible');
+        const digest=await reviewDigest(presentation);assert.ok(article().textContent.includes(digest));
+        assert.ok(article().textContent.includes(`Read the complete review below before choosing ${disposition==='re-confirmation'?'Re-confirm':'Register'}`),'fresh presentation retains the read-first action cue');
+        const button=native(article());assert.ok(button);assert.equal(props(button).disabled,false);
+        assert.ok(button.textContent.startsWith(disposition==='re-confirmation'?'Re-confirm':'Register'));
+        assert.ok(!calls.some(([c])=>c==='workflow_register_native'),'rendering never opens confirmation');
+        await React.act(async()=>{props(button).onClick();await new Promise(r=>setTimeout(r,0));});
+        assert.deepEqual(calls.filter(([c])=>c==='workflow_register_native'),[['workflow_register_native',{reviewRef:fresh.reference}]],'one exact original command, no retry');
+        assert.ok(!native(article()),`${disposition}: ${outcome} no longer supplies a native review action`);
+        assert.equal(snapshot.workflowRoot.activeReview,fresh.reference,'original review stays active');
+        assert.equal(body().textContent,JSON.stringify(readablePaths(resultRow.status??{reference:fresh.reference,...resultRow}),null,2),'complete reported result or pending row stays visible');
+        assert.ok(article().textContent.includes(digest),'last shown digest evidence stays visible');
+        assert.ok(article().textContent.includes('as last shown with the review'));
+        assert.ok(!article().textContent.includes('Read the complete review below before choosing'),'result/pending status gets no forward registration cue');
+        const continuation=controls(article()).find(e=>e.textContent==='Continue original captured registration');
+        assert.ok(continuation);assert.equal(props(continuation).disabled,false);
+        await React.act(async()=>{props(continuation).onClick();await new Promise(r=>setTimeout(r,0));});
+        assert.deepEqual(calls.filter(([c])=>c==='workflow_continue_registration'),[['workflow_continue_registration',{reviewRef:fresh.reference}]],'Continue keeps original owner reference');
+        const select=controls(article()).find(e=>e.textContent==='Select revision 1');
+        if(outcome==='completed'){
+          assert.ok(select);assert.equal(props(select).disabled,true,'selection still requires a workflow chat');
+          const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat — inspect library content'));
+          await React.act(()=>props(chat).onChange({target:{value:'chat-native'}}));
+          const selectable=controls(article()).find(e=>e.textContent==='Select revision 1');assert.equal(props(selectable).disabled,false);
+          await React.act(async()=>{props(selectable).onClick();await new Promise(r=>setTimeout(r,0));});
+          assert.deepEqual(calls.filter(([c])=>c==='workflow_select_registered'),[['workflow_select_registered',{reviewRef:fresh.reference,revision:identity.revision,context:{sourceRef:'home:synthetic',generation,historyEpoch:0,threadId:'chat-native',selectionRef:null,inspectionRef:null,libraryRef:'lib-native'}}]]);
+        }else assert.ok(!select,'incomplete attempts supply no Select result');
+        assert.equal(calls.filter(([c])=>c==='workflow_register_native').length,1,'continuation/selection never reopens native capture');
+      }finally{
+        await React.act(()=>root.unmount());container.parentNode.removeChild(container);window.__TAURI_INTERNALS__=previous;
+      }
+    }
+  }
 });
