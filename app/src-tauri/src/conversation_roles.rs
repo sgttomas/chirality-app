@@ -250,6 +250,25 @@ pub fn handoff_draft(snapshot: &Value, generation: &Value, thread: &str, turn: &
     }
 }
 
+fn limit_entries(role: Role, modified: bool) -> Vec<Value> {
+    let all = json!({"limitId":"L-ALL-1","statement":"Work within the brief's write targets","basis":"A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement","notEnforcement":["brief-text","worktree","sandbox","approval-policy"]});
+    let task = json!({"limitId":"L-TASK-1","statement":"A task agent does not delegate","basis":"DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control is named at the pin","notEnforcement":["approval-policy","sandbox","user-configuration","depth-limit"]});
+        let mut limits = vec![];
+        for limit in if role == Role::TASK { vec![&task, &all] } else { vec![&all] } {
+            let mut limit = limit.clone();
+            if modified {
+                limit["standing"] = json!("unknown");
+                limit["presentedAs"] = json!("Not known whether the supplied guidance states this");
+                limit["basis"] = json!(format!("the role's guidance copy is modified (LA-2); {}", limit["basis"].as_str().unwrap_or("")));
+            } else {
+                limit["standing"] = json!("stated-not-enforced");
+                limit["presentedAs"] = json!("Stated, not enforced");
+            }
+            limits.push(limit);
+        }
+    limits
+}
+
 /// ROLE §6.2: each role's stated limits with their standing, as handed by the
 /// role-limit account (format `chirality.role.limits` 0.2). A modified role
 /// copy makes its limits unknown (LA-2); a file not read is reported, never
@@ -259,8 +278,6 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
         Ok(set) => set,
         Err(reason) => return json!({"available":false,"reason":reason}),
     };
-    let all = json!({"limitId":"L-ALL-1","statement":"Work within the brief's write targets","basis":"A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement","notEnforcement":["brief-text","worktree","sandbox","approval-policy"]});
-    let task = json!({"limitId":"L-TASK-1","statement":"A task agent does not delegate","basis":"DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control is named at the pin","notEnforcement":["approval-policy","sandbox","user-configuration","depth-limit"]});
     let mut roles = vec![];
     let mut not_read = vec![];
     for definition in &set.roles {
@@ -277,19 +294,7 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
             }
         };
         let modified = guidance.modified();
-        let mut limits = vec![];
-        for limit in if definition.name == Role::TASK { vec![&task, &all] } else { vec![&all] } {
-            let mut limit = limit.clone();
-            if modified {
-                limit["standing"] = json!("unknown");
-                limit["presentedAs"] = json!("Not known whether the supplied guidance states this");
-                limit["basis"] = json!(format!("the role's guidance copy is modified (LA-2); {}", limit["basis"].as_str().unwrap_or("")));
-            } else {
-                limit["standing"] = json!("stated-not-enforced");
-                limit["presentedAs"] = json!("Stated, not enforced");
-            }
-            limits.push(limit);
-        }
+        let limits = limit_entries(definition.name, modified);
         roles.push(json!({"role":definition.name,"meaning":definition.meaning,"delegation":definition.delegation,
             "guidanceState":if modified {"modified"} else {"default"},"guidanceContent":crate::role_supply::content(guidance.bytes()),"limits":limits}));
     }
@@ -298,6 +303,31 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
         "appRelease":crate::runtime_session::INSTRUCTION_RELEASE,"supplierPin":"0.160.0","roles":roles});
     json!({"available":true,"account":account,"notRead":not_read,
         "standing":"Stated in the role's guidance; Codex does not enforce it. Approval policy, sandbox, your configuration and the depth limit are not this limit's enforcement."})
+}
+
+/// Current immutable per-supply limit evidence. The preserved 0.2 per-release
+/// proposal and today's editable-copy display are different accounts. This
+/// assessment uses only the composition's original selected part and comparison.
+pub(crate) fn frozen_limit_account(composition: &crate::role_supply::Composition) -> Result<Value, String> {
+    composition.verify()?;
+    let parts=composition.carried["developerInstructions"]["parts"].as_array().ok_or("original source parts absent")?;
+    let (guidance, limits)=match composition.role {
+        None => (Value::Null,Vec::new()),
+        Some(role) => {
+            let part=parts.iter().find(|p|p["kind"]=="role-guidance" && p["role"]==role.name()).ok_or("original selected role part absent")?;
+            let modified=match part["source"]["state"].as_str(){Some("modified")=>true,Some("default")=>false,_=>return Err("original role comparison unestablished".into())};
+            let source=&part["source"];
+            let (release,default)=match source["store"].as_str(){Some("seeded-copy")=>(&source["release"],&source["defaultContent"]),Some("editable-copy")=>(&source["reviewedDefault"]["release"],&source["reviewedDefault"]["content"]),_=>return Err("original default comparison source absent".into())};
+            let known=release==crate::runtime_session::INSTRUCTION_RELEASE && *default==crate::role_supply::content(crate::runtime_session::role_default(role));
+            let mut limits=limit_entries(role,modified || !known);
+            if !known {for limit in &mut limits {limit["basis"]=json!("The original comparison is not this App's named shipped role default; whether that original guidance states this limit is unknown");}}
+            (json!({"content":part["content"],"source":part["source"]}),limits)
+        }
+    };
+    Ok(json!({"format":"chirality.role.limits.observation","formatVersion":"0.1",
+        "role":composition.role.map(|r|r.name()).unwrap_or("none"),"roleSet":composition.role_set_identity(),
+        "composedContent":composition.carried["developerInstructions"]["content"],"roleGuidance":guidance,"limits":limits,
+        "basis":"original App composition; role instructions do not establish supplier enforcement"}))
 }
 
 /// NIR CA-4 / ROLE F-1 through the real Host: `thread/fork` with the thread

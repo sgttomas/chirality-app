@@ -952,6 +952,7 @@ pub struct HistorySession {
     starts: Vec<StartPending>,
     forks: Vec<ForkPending>,
     role_log: Option<Result<std::sync::Arc<crate::role_observations::RoleLog>, String>>,
+    role_publications: std::collections::BTreeMap<String,std::sync::Arc<crate::role_observations::PublishedRoleSupply>>,
     closed_history_generations: Vec<Value>,
     list_direction: Option<String>,
     turn_direction: Option<String>,
@@ -1365,9 +1366,22 @@ impl HistorySession {
             let carried=(status["writeResult"]=="written" && status["sentFrame"]["params"]["developerInstructions"]==observation.composition.text).then(||observation.composition.carried.clone());
             let mut request=crate::role_observations::request(&status);request["method"]=json!("thread/start");
             let row=crate::role_observations::row(&observation.supply_ref,"thread-start",thread,request,json!({"role":observation.composition.role.map(|r|r.name()).unwrap_or("none"),"preselected":observation.preselected,"roleSet":observation.composition.role_set_identity()}),outcome,carried.clone(),crate::role_observations::reported(&status),json!({"continuedFrom":observation.continued_from}),(!supplied).then_some("No source-bound admitted role supply established by this observation; native request state is retained separately"));
-            let result=row.and_then(|row|match self.role_log.as_ref(){Some(Ok(log))=>log.append(row,carried.as_ref().map(|_|&observation.composition)),Some(Err(error))=>Err(error.clone()),None=>Err("explicit App project role log unavailable".into())});
+            let result=row.and_then(|row|match self.role_log.as_ref(){Some(Ok(log))=>{
+                if supplied {
+                    let binding=self.roles.get(status["home"].as_str().unwrap_or(""),thread.unwrap()).ok_or("original role binding absent")?;
+                    let (status,receipt)=log.publish_bound(row,Some(&observation.composition),binding,None)?;
+                    if let Some(receipt)=receipt{self.role_publications.insert(observation.supply_ref.clone(),receipt);}
+                    Ok(status)
+                } else {log.append(row,carried.as_ref().map(|_|&observation.composition))}
+            },Some(Err(error))=>Err(error.clone()),None=>Err("explicit App project role log unavailable".into())});
             pending.evidence["roleSupplyRecord"]=result.unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"Native effects retained; no successful durable role history or automatic retry"}));
         }
+    }
+    pub(crate) fn role_publication(&self,home:&str,thread:&str)->Result<Option<std::sync::Arc<crate::role_observations::PublishedRoleSupply>>,String>{
+        let Some(binding)=self.roles.get(home,thread)else{return Ok(None);};
+        let receipt=self.role_publications.get(binding.supply_ref()).filter(|p|p.home()==home && p.thread()==thread)
+            .ok_or("original role supply publication not confirmed; no R3 grant from quoted files")?;
+        Ok(Some(receipt.clone()))
     }
     pub fn role_record_status(&self,supply_ref:&str)->Value{self.starts.iter().find(|p|p.observation.supply_ref==supply_ref).map(|p|p.evidence["roleSupplyRecord"].clone()).unwrap_or(Value::Null)}
     pub fn start_admitted(&self, receipt: &crate::hosting::SourceRequest) -> bool {
@@ -1451,7 +1465,17 @@ impl HistorySession {
             let selection=match source_role{Some(crate::role_lifecycle::RoleInForce::AppObserved{role,..})=>json!({"role":role.map(|r|r.name()).unwrap_or("none"),"preselected":null,"roleSet":null}),_=>json!({"role":"unknown","preselected":null,"roleSet":null})};
             let mut request=crate::role_observations::request(&status);request["method"]=json!("thread/fork");
             let row=crate::role_observations::row(&supply_ref,"fork",thread,request,selection,if inherited{"inherited"}else if status["outcome"]=="response-observed-error"{"request-failed"}else{"unknown"},None,crate::role_observations::reported(&status),json!({"sourceThread":source_thread,"inheritedFrom":source.map(|b|b.supply_ref())}),(!inherited).then_some("Original App role/source supply not established for this fork; native outcome remains separately observed"));
-            let publication=self.publish_role(row,None);match &mut self.forks[index].result{Some(Ok(result))=>result["roleSupplyRecord"]=publication,Some(Err(error))=>*error=format!("{error}; role supply observation: {publication}"),None=>{}}
+            let publication=if inherited {
+                row.and_then(|row|match self.role_log.as_ref(){Some(Ok(log))=>{
+                    let binding=self.roles.get(home,thread.unwrap()).ok_or("original fork binding absent")?;
+                    let parent=source.and_then(|b|self.role_publications.get(b.supply_ref())).cloned();
+                    let(status,receipt)=log.publish_bound(row,None,binding,parent.as_ref())?;
+                    if let Some(receipt)=receipt{self.role_publications.insert(supply_ref.clone(),receipt);}
+                    Ok(status)
+                },Some(Err(error))=>Err(error.clone()),None=>Err("explicit App project role log unavailable".into())})
+                    .unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"Native fork effect retained; no R3 grant from quoted files"}))
+            } else {self.publish_role(row,None)};
+            match &mut self.forks[index].result{Some(Ok(result))=>result["roleSupplyRecord"]=publication,Some(Err(error))=>*error=format!("{error}; role supply observation: {publication}"),None=>{}}
         }
     }
     fn bind_fork(&mut self,host:&crate::hosting::Host,receipt:&crate::hosting::SourceRequest,source_thread:&str,supply_ref:&str)->Result<Value,String>{
@@ -4966,6 +4990,7 @@ impl WorkflowRootSession {
             follows: prior.map(|(run, _)| run),
             lifecycle: RunLifecycle::Prepared,
             entries: Vec::new(),
+            role_source: None,
             end: None,
             notice: NoticeState::None,
             notice_checks: Vec::new(),
@@ -6370,6 +6395,7 @@ pub(crate) struct WorkflowRun {
     pub(crate) lifecycle: RunLifecycle,
     /// Ordered RS lifecycle entries for this run's log (W-2 order kept).
     entries: Vec<crate::records::supply::PendingRunEntry>,
+    role_source: Option<crate::role_observations::PreparedRoleRunSupply>,
     end: Option<crate::workflow_workspace::OwnerRunEnd>,
     notice: NoticeState,
     notice_checks: Vec<WorkflowCheckSlot>,
@@ -6605,7 +6631,12 @@ impl WorkflowRun {
                     // entries of the same group), written whole or not at all.
                     let group = self.entries[index].group.clone();
                     let end = index + 1 + self.entries[index + 1..].iter().take_while(|e| group.is_some() && e.group == group && e.pending()).count();
-                    match crate::records::supply::append_run_group_in(&self.project_root, &run, &mut self.entries[index..end], set) {
+                    let role_check=if self.entries[index..end].iter().any(|e|e.kind=="supplied_guidance" && e.body["supplyForm"].as_str().is_some_and(|f|f.starts_with("role guidance"))) {
+                        self.role_source.as_ref().ok_or("original role publication receipt unavailable".to_owned()).and_then(|source|source.publish_or_verify(&self.project_root))
+                    } else {Ok(())};
+                    let append=role_check.and_then(|_|crate::records::supply::append_run_group_in(&self.project_root,&run,&mut self.entries[index..end],set));
+                    if let Err(error)=&append {if self.entries[index].kind=="supplied_guidance" {self.entries[index].failure.get_or_insert(error.clone());}}
+                    match append {
                         Ok(_) => true,
                         Err(_) => {
                             // A refused unit, or one only partly in its log, is settled
@@ -6891,8 +6922,13 @@ impl WorkflowRun {
         if let Some(prior) = &self.follows {
             body["follows"] = json!(prior);
         }
-        // R5a: the role in force from this conversation's own App supply binding.
+        // R5a and R3 use this conversation's original private binding/receipt.
+        let mut role_source=None;
         if let Ok(history) = self.home.history.try_lock() {
+            match history.role_publication(&scope.home,&scope.conversation) {
+                Ok(source)=>role_source=source,
+                Err(error)=>self.status["roleGuidanceRecord"]=json!({"state":"unavailable","limit":error,"adoption":"unknown"}),
+            }
             if let Some(crate::role_lifecycle::RoleInForce::AppObserved { role, .. }) = history
                 .binding(&scope.home, &scope.conversation)
                 .map(|b| b.role_in_force(&scope.home, &scope.conversation))
@@ -6905,6 +6941,19 @@ impl WorkflowRun {
         match crate::records::supply::PendingRunEntry::new("run_opened", body, opened_at.clone()) {
             Ok(entry) => self.entries.push(entry),
             Err(e) => self.status["recordLimit"] = json!(format!("run_opened identity unavailable: {e}")),
+        }
+        // R3 observes this run's use of original guidance, never a new native
+        // supply. The original occasion stays in its referenced observation.
+        if let Some(source)=role_source {
+            let prepared=self.published.as_ref().ok_or_else(||"original WR run publication absent".to_owned()).and_then(|published|{
+                let native=self.source.as_ref().ok_or_else(||"original native run-start receipt absent".to_owned())?;
+                let opened=self.entries.iter().find(|e|e.kind=="run_opened").ok_or_else(||"original run-opened identity absent".to_owned())?;
+                source.prepare_run(&self.project,published,&self.home.host,native,opened,&self.person_text,&self.client_id,self.turn_id.as_deref().unwrap_or(""))
+            });
+            match prepared {
+                Ok((entry,pending))=>{self.entries.push(entry);self.role_source=Some(pending);},
+                Err(error)=>self.status["roleGuidanceRecord"]=json!({"state":"unavailable","limit":error,"adoption":"unknown"}),
+            }
         }
         // EXEC A-2, §2.7: the run starter tags the conversation with the run
         // reference through REC (RECOVERY §4.1). A tag that cannot be stored lives
@@ -7590,6 +7639,10 @@ for line in sys.stdin:
  elif method=='thread/start':
   starts[0]+=1
   result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':f['params'].get('model') or 'fixture-model','modelProvider':f['params'].get('modelProvider') or 'fixture-provider','cwd':f['params'].get('cwd') or os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ elif method=='thread/fork':
+  starts[0]+=1
+  copied=thread('thread-%d'%starts[0]);copied['forkedFromId']=f['params']['threadId']
+  result={'thread':copied,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'}}
  elif method=='turn/start':
   # Publish-before-send witness: the WR records the peer can see when the turn arrives.
   with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
@@ -12014,6 +12067,7 @@ for line in sys.stdin:
         assert_eq!(outcome.ok(),Some(true),"busy original review must return pending, not block workflow root");assert!(observer_root_available);
     }
     // WR TX-5 / SQ-END, (d), (j): restart residuals.
+    include!("role_r3_run_tests.rs");
     include!("run_restart_tests.rs");
     include!("workflow_chat_selection_tests.rs");
     // RS §14 / DEL-01-02 §7: multi-year scale measurement (ignored; run on request).

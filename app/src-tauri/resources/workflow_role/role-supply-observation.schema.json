@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-02-04:role-supply-observation:0.1",
+  "$id": "urn:chirality:app-v4:del-02-04:role-supply-observation:0.2",
   "title": "App role supply observation log",
-  "description": "Immutable observations grouped by stable supplyId, from actual App native request custody or an App pre-send refusal. A later correlated observation appends another row; prior rows remain exact. Quoted cold evidence never restores current role/CCE authority. Historical chirality.role.supply/0.2 remains a different format.",
+  "description": "Immutable observations grouped by stable supplyId, from actual App native request custody or an App pre-send refusal. A later correlated observation appends another row; prior rows remain exact. Quoted cold evidence never restores current role/CCE authority. Historical chirality.role.supply/0.2 remains a different format. Current observation 0.2 adds immutable limit evidence bound to the original App composition. Prior observation 0.1 is read through its exact preserved schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -29,7 +29,7 @@
       "const": "chirality.role.supply.observation"
     },
     "formatVersion": {
-      "const": "0.1"
+      "const": "0.2"
     },
     "observationId": {
       "type": "string",
@@ -342,11 +342,29 @@
               "byteLength"
             ]
           }
+        },
+        "limitAccount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "content",
+            "byteLength"
+          ],
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "byteLength": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         }
       },
       "required": [
         "composed",
-        "parts"
+        "parts",
+        "limitAccount"
       ]
     },
     "evidenceLimit": {
