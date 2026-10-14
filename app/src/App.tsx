@@ -488,6 +488,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
   }catch(e){setMessage(String(e));return undefined;}finally{setBusy(false);}};
   const conversations:Json[]=(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation));
   const entries:Json[]=data?.reviews??[];
+  const orderedReviews=entries.filter(review=>review.reference===data?.activeReview).concat(entries.filter(review=>review.reference!==data?.activeReview));
   // J6 D-1 / V14 F2, F8: the digest of each complete review as the host
   // reports it (the native A15 statement names the same value), and this
   // view's own recomputation as a check. Kept per review so it stays readable
@@ -538,13 +539,13 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
     <button disabled={busy||!data?.activeLibrary||!name||!revision} onClick={()=>action("workflow_refine_registered",{name,revision})}>Refine registered revision from the revision store (no selection)</button>
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>
     <small> Drafts are reviewed from the draft list above.</small>
-    {entries.map(review=><article key={review.reference}>
-      <h3>{review.reference}</h3>
+    {orderedReviews.map(review=><article key={review.reference}>
+      <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {review.reference}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?"":" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}. Read the complete review below before choosing {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</p>}
       {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"&&<p role="note">{review.status.presentation.entries[0].message}. {review.status.presentation.entries[0].reconfirmation?.statement}</p>}
+      <p><button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>{review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm this revision for use in this App session through native A15 confirmation…":"Register this review through native A15 confirmation…"}</button></p>
       <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre>
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
-      <button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>{review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm this revision for use in this App session through native A15 confirmation…":"Register this review through native A15 confirmation…"}</button>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
       <ReviewSelectButtons review={review} libraries={data?.libraries??[]} busy={busy} chatAvailable={chatAvailable} act={action}/>
     </article>)}
