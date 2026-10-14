@@ -26,6 +26,7 @@ BASE_SHA = "e1bdd4f8f0df4b20f4a0ffc8a861ce819df45325d8cecdfb92e80379cf8d142e"
 RESOURCES = Path(__file__).resolve().parents[1] / "src-tauri/resources/instructions"
 DESCRIPTION = "Bounded TASK child with complete App guidance"
 USER_DESCRIPTION = "Synthetic person-defined TASK; preserve this definition"
+STANDALONE_DESCRIPTION = "Synthetic standalone person-defined TASK; preserve this definition"
 
 
 def sha(data):
@@ -53,19 +54,49 @@ def role_description(body):
     return tool["parameters"]["properties"].get("agent_type", {}).get("description", "") if tool else ""
 
 
+def fixture_role_overrides(case, roles, role_file):
+    """Fixture policy, not the App's still-unbuilt effective-name discovery.
+
+    The standalone collision is known from this case's synthetic construction;
+    config/read's null agents value does not establish that TASK is free.
+    Other fresh cases retain the original controlled carrier setup.
+    """
+    if roles is not None and not isinstance(roles, dict):
+        raise RuntimeError("native effective role configuration is unknown; no role override sent")
+    if case in ("baseline", "standalone-collision") or (isinstance(roles, dict) and "TASK" in roles):
+        return {}
+    return {"agents.TASK.description": DESCRIPTION, "agents.TASK.config_file": str(role_file)}
+
+
+def fixture_sandbox(binary):
+    # main resolves and identifies this acquired executable before any case.
+    # Permit only its exact path, including when acquired under /Users; this
+    # does not admit sibling files or the supplier tree as a trusted input.
+    return ('(version 1)\n(allow default)\n(deny network*)\n'
+            '(allow network-outbound (remote ip "localhost:*"))\n'
+            '(allow network-inbound (local ip "localhost:*"))\n'
+            '(deny file-read* (subpath "/Users"))\n'
+            f'(allow file-read* (literal {json.dumps(str(binary), ensure_ascii=False)}))\n')
+
+
 class Native:
     def __init__(self, binary, root, local_oss_port=None):
         self.frames, self.incoming, self.counter = [], queue.Queue(), 0
         env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR", "USER", "LOGNAME")
                if key in os.environ}
         env["CODEX_HOME"] = str(root / "home")
+        # Local child environment only; cold records-delivery reopen retains
+        # its Codex home while using the same separate synthetic OS home.
+        (root / "os-home").mkdir(exist_ok=True)
+        env["HOME"] = str(root / "os-home")
         if local_oss_port is not None:
             if not isinstance(local_oss_port, int) or not 1 <= local_oss_port <= 65535:
                 raise ValueError("local OSS port must be an integer in 1..65535")
             env["CODEX_OSS_BASE_URL"] = f"http://127.0.0.1:{local_oss_port}/v1"
         self.stderr = (root / "stderr.log").open("w")
         self.process = subprocess.Popen(
-            ["/usr/bin/sandbox-exec", "-f", str(root / "network.sb"), str(binary), "app-server"],
+            ["/usr/bin/sandbox-exec", "-f", str(root / "network.sb"), str(binary),
+             "-c", 'cli_auth_credentials_store="file"', "app-server"],
             cwd=root / "work", env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, text=True, start_new_session=True)
 
@@ -136,11 +167,9 @@ class Native:
 def run_case(binary, root, case, parent, task):
     root.mkdir()
     (root / "home").mkdir()
+    (root / "os-home").mkdir()
     (root / "work").mkdir()
-    (root / "network.sb").write_text(
-        '(version 1)\n(allow default)\n(deny network*)\n'
-        '(allow network-outbound (remote ip "localhost:*"))\n'
-        '(allow network-inbound (local ip "localhost:*"))\n')
+    (root / "network.sb").write_text(fixture_sandbox(binary))
     captures, lock = [], threading.Lock()
     spawning = case in ("none", "all")
 
@@ -196,6 +225,14 @@ def run_case(binary, root, case, parent, task):
         (root / "user-task.toml").write_text('developer_instructions = "PERSON_DEFINED_TASK_MARKER"\n')
         config += (f'[agents.TASK]\ndescription = {json.dumps(USER_DESCRIPTION)}\n'
                    f'config_file = {json.dumps(str(root / "user-task.toml"))}\n')
+    standalone = None
+    if case == "standalone-collision":
+        (root / "home/agents").mkdir()
+        standalone = root / "home/agents/task.toml"
+        standalone.write_text('name = "TASK"\ndescription = ' + json.dumps(STANDALONE_DESCRIPTION) +
+                              '\ndeveloper_instructions = "STANDALONE_PERSON_DEFINED_TASK_MARKER"\n')
+    original_config = config.encode()
+    original_standalone = standalone.read_bytes() if standalone is not None else None
     (root / "home/config.toml").write_text(config)
     native = None
     try:
@@ -206,13 +243,13 @@ def run_case(binary, root, case, parent, task):
         effective = native.send("config/read", {"includeLayers": True, "cwd": str(root / "work")})
         save(root / "effective-config.json", effective)
         roles = effective["config"]["agents"]
-        if roles is not None and not isinstance(roles, dict):
-            raise RuntimeError("native effective role configuration is unknown; no role override sent")
-        overrides = {} if case == "baseline" or (isinstance(roles, dict) and "TASK" in roles) else {
-            "agents.TASK.description": DESCRIPTION, "agents.TASK.config_file": str(role_file)}
+        overrides = fixture_role_overrides(case, roles, role_file)
         if case == "collision":
             assert isinstance(roles, dict) and "TASK" in roles, "native config did not expose person-defined TASK"
             assert not overrides, "fixture must withhold the colliding App name"
+        if case == "standalone-collision":
+            assert roles is None, "counterexample requires agents:null, not an exposed config table"
+            assert not overrides, "known standalone fixture collision must withhold every App child key"
         started = native.send("thread/start", {"model": "gpt-6.1-sol", "modelProvider": "fixture",
             "cwd": str(root / "work"), "developerInstructions": parent, "config": overrides})
         thread = started["thread"]["id"]
@@ -242,10 +279,20 @@ def run_case(binary, root, case, parent, task):
             assert DESCRIPTION not in offered, "unavailable fixture role was advertised"
         elif case == "collision":
             assert USER_DESCRIPTION in offered and DESCRIPTION not in offered, "person-defined role was replaced"
+        elif case == "standalone-collision":
+            assert STANDALONE_DESCRIPTION in offered and DESCRIPTION not in offered, "standalone person-defined role was replaced or lost"
+            assert (root / "home/config.toml").read_bytes() == original_config, "person configuration bytes changed"
+            assert standalone.read_bytes() == original_standalone, "standalone person definition bytes changed"
+            start_frames = [row["frame"] for row in native.frames if row["direction"] == "sent" and row["frame"].get("method") == "thread/start"]
+            assert len(start_frames) == 1 and start_frames[0]["params"]["config"] == {}, "standalone negative sent App child keys"
         else:
             assert DESCRIPTION in offered, "per-thread custom role was not advertised"
         findings = {"case": case, "requests": len(captures), "nativeTemplate": BASE_SHA,
-                    "customRoleOffered": DESCRIPTION in offered, "personRolePreserved": True if case == "collision" else None}
+                    "customRoleOffered": DESCRIPTION in offered, "personRolePreserved": True if case in ("collision", "standalone-collision") else None}
+        if case == "standalone-collision":
+            findings.update({"effectiveAgentsNull": True, "standaloneDescriptionRetained": True,
+                             "appChildKeysWithheldByFixture": True, "originalDefinitionBytesRetained": True,
+                             "discoveryStanding": "known synthetic standalone collision; not generic App discovery"})
         if spawning:
             child = next(iter(children))
             received = native.send("thread/read", {"threadId": child, "includeTurns": True})
@@ -303,7 +350,7 @@ def main():
               "standing": "scripted stock-supplier carriage; not App integration, adoption, enforcement or qualification"}
     print(f"Private evidence: {root}", flush=True)
     report["cases"] = [run_case(binary, root / case, case, parent, task)
-                       for case in ("baseline", "missing", "invalid", "collision", "none", "all")]
+                       for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all")]
     report["evidenceFiles"] = {str(path.relative_to(root)): sha(path.read_bytes())
                              for path in sorted(root.rglob("*.json"))}
     save(root / "report.json", report)

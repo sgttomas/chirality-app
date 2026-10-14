@@ -88,3 +88,64 @@ class ChildCarrierCleanup(unittest.TestCase):
                 native.close()
         self.assertEqual(events, [signal.SIGTERM, signal.SIGKILL, "reaped"])
         native.process.stdout.close.assert_not_called()  # Closing a locked buffer could block.
+
+
+class ChildCarrierCollision(unittest.TestCase):
+    def setUp(self):
+        path = Path(__file__).resolve().parents[1] / "supplier_checks/child_roles.py"
+        spec = importlib.util.spec_from_file_location("child_roles_collision", path)
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+
+    def test_known_standalone_fixture_collision_with_null_agents_withholds_all_app_keys(self):
+        # Known synthetic case construction is the reason for withholding.
+        # A null agents value by itself proves no generic name availability.
+        self.assertEqual(self.module.fixture_role_overrides(
+            "standalone-collision", None, Path("unused-app-task.toml")), {})
+
+    def test_table_collision_and_unknown_native_shape_never_override(self):
+        roles = {"TASK": {"description": "Person's definition", "config_file": "person.toml"}}
+        self.assertEqual(self.module.fixture_role_overrides("collision", roles, Path("app.toml")), {})
+        self.assertEqual(roles["TASK"]["config_file"], "person.toml")
+        for unknown in ([], "not a role map", 0):
+            with self.assertRaisesRegex(RuntimeError, "unknown; no role override"):
+                self.module.fixture_role_overrides("none", unknown, Path("app.toml"))
+        supplied = self.module.fixture_role_overrides("none", None, Path("app.toml"))
+        self.assertEqual(set(supplied), {"agents.TASK.description", "agents.TASK.config_file"})
+        self.assertEqual(supplied["agents.TASK.config_file"], "app.toml")
+
+    def test_selected_executable_allowance_is_exact_and_escaped_without_tree_access(self):
+        binary = Path('/Users/synthetic/acquired "café"/codex')
+        profile = self.module.fixture_sandbox(binary)
+        self.assertIn('(deny file-read* (subpath "/Users"))\n', profile)
+        self.assertIn('(allow file-read* (literal "/Users/synthetic/acquired \\"café\\"/codex"))\n', profile)
+        self.assertEqual(profile.count('(allow file-read*'), 1)
+        self.assertNotIn('(allow file-read* (subpath', profile)
+        self.assertIn('(deny network*)', profile)
+
+    def test_native_fixture_home_auth_and_local_oss_survive_cold_reopen_without_parent_env_change(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            (root / "home").mkdir()
+            (root / "work").mkdir()
+            parent_home = "/synthetic/person/home"
+            with patch.dict(self.module.os.environ, {"HOME": parent_home,
+                    "CODEX_HOME": "/synthetic/person/codex", "PATH": "/synthetic/path",
+                    "OPENAI_API_KEY": "CREDENTIAL-ENV-CANARY",
+                    "CODEX_OSS_BASE_URL": "http://nonloopback.invalid"}, clear=True):
+                for _ in range(2):  # records_delivery reopens this same home.
+                    process = SimpleNamespace(stdout=iter(()))
+                    with patch.object(self.module.subprocess, "Popen", return_value=process) as opened:
+                        native = self.module.Native(Path("/never-executed/codex"), root, local_oss_port=4321)
+                    native.reader.join(timeout=1)
+                    native.stderr.close()
+                    self.assertFalse(native.reader.is_alive())
+                    argv = opened.call_args.args[0]
+                    env = opened.call_args.kwargs["env"]
+                    self.assertEqual(env["HOME"], str(root / "os-home"))
+                    self.assertTrue((root / "os-home").is_dir())
+                    self.assertEqual(env["CODEX_HOME"], str(root / "home"))
+                    self.assertEqual(env["CODEX_OSS_BASE_URL"], "http://127.0.0.1:4321/v1")
+                    self.assertNotIn("OPENAI_API_KEY", env)
+                    self.assertEqual(argv[-3:], ["-c", 'cli_auth_credentials_store="file"', "app-server"])
+                    self.assertEqual(self.module.os.environ["HOME"], parent_home)

@@ -1084,9 +1084,14 @@ known only for the conversation the home last started (otherwise *unknown*).
 The re-route's reason and the native turn identity have no place in the entry
 body. Nothing is recorded after the run's end.
 
-Conversation roles (item 24)
-keep handoffs in process memory and write no persistent role-supply log;
-delete or archive beside Fork waits on U-R13.
+Conversation roles (item 24) keep handoffs in process memory. Confirmed App
+role-supply observations and content-addressed App instruction bytes are kept
+in the current project's records store under `role-supply/observations.jsonl`
+and `role-supply/content/`. An actual workflow run records role-guidance R3 by
+reference to the original supply, limit account and run context. Pending or
+unavailable publication stays qualified; cold source reading quotes historical
+file evidence and restores no current role or CCE authority. Native child-role
+supply is still unimplemented. Delete or archive beside Fork waits on U-R13.
 
 The ask-first App quit (item 22a) and the startup SR-08 write are
 implemented but not witnessed natively, as are the startup RQ-06 endings. The Restart Codex question

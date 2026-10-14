@@ -455,9 +455,14 @@ there is no need to choose session flags for the observed per-thread route.
   per-thread definitions can shadow a person's standalone `agents/` definition
   without those origins appearing in that response. ACCESS/HOST M-A shares
   `config.toml`, `AGENTS.md` and `skills`; native `agents/` is outside that set.
-  The controlled native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md`
-  supplies bounded collision/carrier evidence, not complete configuration-layer
-  discovery or actual App child supply. Complete discovery/exclusion, additive
+  The maintained standalone collision fixture writes a known synthetic TASK
+  definition in its Codex home's `agents/task.toml`. It observes `agents:null`,
+  sends no App child keys, retains the original definition bytes and sees the
+  person's description in the native catalog. That withholding is the fixture's
+  known-case policy, not an implemented App discovery guard. The controlled
+  native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md` supplies bounded
+  collision/carrier evidence, not complete configuration-layer discovery or
+  actual App child supply. Complete discovery/exclusion, additive
   child content and base preservation, App publication and actual association
   remain open; no process-wide fallback or user configuration edit is selected.
 
