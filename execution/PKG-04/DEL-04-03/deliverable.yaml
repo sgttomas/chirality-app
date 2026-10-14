@@ -454,6 +454,7 @@ checks:
 - app/supplier_checks/records_delivery.py
 - app/supplier_checks/test_records_delivery.py
 - app/src-tauri/src/record_lines_tests.rs
+- app/src-tauri/src/record_lines_regression_tests.rs
 - app/src-tauri/src/records_index_tests.rs
 - app/src-tauri/src/records_access_tests.rs
 - app/src-tauri/src/records_access_role_tests.rs
