@@ -1643,9 +1643,19 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             }
         };
         match verified {
-            Ok(capture) => {
+            Ok(mut capture) => {
                 by_capture.entry(capture["captureId"].as_str().unwrap_or_default().to_owned()).or_default().push(id.to_owned());
-                read.acts.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("capture".into(), capture)])));
+                // These remain private candidates until the complete R-8 pass.
+                // Full schema/seal/backlink/correspondence checks have finished;
+                // R-8 needs the verified identity above, not the full capture.
+                // Keep every original record and move the exact decline array,
+                // releasing all other capture fields before reading the next one.
+                let mut fields = serde_json::Map::from_iter([("record".into(), record)]);
+                if decline {
+                    let content = capture.as_object_mut().and_then(|c| c.remove("boundContent")).unwrap_or(Value::Null);
+                    fields.insert("declineBoundContent".into(), content);
+                }
+                read.acts.push(Value::Object(fields));
             }
             Err(reason) => read.unresolved.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]))),
         }
@@ -1660,19 +1670,9 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             ("reason".into(), Value::String("several records cite one capture (RS R-8)".into())),
         ]))));
     }
-    // Full capture values must survive all schema/seal/correspondence and R-8
-    // decisions above. The private checkpoint consumers need the exact records
-    // and only a decline's content array; public capture readers resolve their
-    // own full sources. Move that array, without normalization or a substitute
-    // identity, and release every other capture field from the kept snapshot.
-    for act in &mut read.acts {
-        let fields = act.as_object_mut().expect("verified act row constructed above");
-        let mut capture = fields.remove("capture").unwrap_or(Value::Null);
-        if fields["record"]["kind"] == "act_declined" {
-            let content = capture.as_object_mut().and_then(|c| c.remove("boundContent")).unwrap_or(Value::Null);
-            fields.insert("declineBoundContent".into(), content);
-        }
-    }
+    // Publish/cache only this complete observation, after every eligible claim
+    // and the global duplicate-capture decision. Public readers resolve their
+    // own full captures; these rows are private verified checkpoint facts.
     let read = ActRead(std::sync::Arc::new(read), std::sync::Arc::new(relation_limits));
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = reusable.then(|| ActCache { root, epoch, keys, captures, read: read.clone() });
     Ok(read)

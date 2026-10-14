@@ -2120,3 +2120,126 @@ fn compact_snapshot_still_verifies_unused_full_capture_fields_and_retries_restor
     assert_eq!(failed.unresolved.len(), 1, "an earlier refusal stays immutable");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn verified_candidates_keep_late_duplicate_and_interleaved_failure_order() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let shared = capture_of("decline", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &shared);
+    let first = record_for(&root, &shared, &crate::records::APP_INTERFACE);
+    let schema = act(&root, "A7", &file, "v1", AFTER);
+    let kept = act(&root, "A4", &file, "v1", AFTER);
+    let seal = act(&root, "A7", &file, "v1", AFTER);
+    let last = record_for(&root, &shared, &crate::records::APP_INTERFACE);
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    let original = |id: &str| source.iter().find(|r| r["recordId"] == id).unwrap().clone();
+    for (id, field, value) in [(&schema, "surface", "invented invalid surface"), (&seal, "offerId", "offer:tampered-after-sealing")] {
+        let record = original(id);
+        let mut capture = crate::file_act_view::capture(&root, &record["body"]).unwrap();
+        capture[field] = json!(value);
+        store_as_is(&root, &capture);
+    }
+    let failure = |id: &str| format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &original(id)["body"]).unwrap_err());
+    let (_, outputs, read) = observe_with(&root);
+    assert_eq!(read.acts, vec![json!({"record":original(&kept)})]);
+    assert_eq!(read.unresolved, vec![
+        json!({"record":original(&schema),"reason":failure(&schema)}),
+        json!({"record":original(&seal),"reason":failure(&seal)}),
+        json!({"record":original(&first),"reason":"several records cite one capture (RS R-8)"}),
+        json!({"record":original(&last),"reason":"several records cite one capture (RS R-8)"}),
+    ], "ordinary failures precede R-8 refusals; each retains the complete original record");
+    assert!(!kinds(&outputs).contains(&"arrival_declined"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verified_candidates_refuse_coherent_same_id_replacements_and_recheck_both_watches() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let first_capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &first_capture);
+    let first = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+    let mut replacement = first_capture.clone();
+    replacement["choice"] = json!("decline");
+    replacement["boundSubject"] = json!([root.join("out/other.md").to_str().unwrap(), file.to_str().unwrap()]);
+    replacement["boundContent"] = json!([{"method":"invented:first-method/0.1","value":"first identity"},digest("v1")]);
+    replacement["scope"] = json!("Both files, in original order.");
+    replacement["purpose"] = json!("A distinct coherent decline at the same capture identity.");
+    crate::capture_seal::seal(&root, &mut replacement).unwrap();
+    let second = record_for(&root, &replacement, &crate::records::APP_INTERFACE);
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    let path = crate::storage::capture_path(&root, first_capture["captureId"].as_str().unwrap()).unwrap();
+    let next = root.join("replacement.json");
+    std::fs::write(&next, serde_json::to_vec(&replacement).unwrap()).unwrap();
+    let named = path.clone();
+    let hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let raced = project_act_records(&root).unwrap();
+    drop(hook);
+    assert!(raced.acts.is_empty(), "different fully verified capture bodies with one ID are still both R-8 refusals");
+    assert_eq!(raced.unresolved, source.iter().map(|r| json!({"record":r,"reason":"several records cite one capture (RS R-8)"})).collect::<Vec<_>>());
+    let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+    let observed = attempted.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+    let (_, outputs, current) = observe_with(&root);
+    drop(hook);
+    assert!(attempted.get(), "each observed stamp is kept; the first source replacement invalidates the kept snapshot");
+    assert!(!current.same_observation(&raced));
+    assert_eq!(current.acts, vec![json!({"record":source[1],"declineBoundContent":replacement["boundContent"]})]);
+    assert_eq!(current.unresolved, vec![json!({"record":source[0],"reason":"the record differs from the capture it cites"})]);
+    assert!(outputs.iter().any(|(k,b)| *k == "arrival_declined" && b["declinedEventRef"] == second.as_str()), "the exact second content fact reaches the consumer");
+    assert_eq!(raced.unresolved[0]["record"]["recordId"], first.as_str(), "the earlier refused snapshot stays immutable");
+    assert_eq!(raced.unresolved.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verified_candidates_do_not_add_failed_later_reads_to_duplicate_membership() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    for failure in ["seal", "backlink"] {
+        let root = project("v1");
+        let file = root.join("out/summary.md");
+        let first_capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+        store(&root, &first_capture);
+        let first = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+        let second = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+        let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+        let mut replacement = first_capture.clone();
+        crate::capture_seal::seal(&root, &mut replacement).unwrap();
+        if failure == "seal" { replacement["offerId"] = json!("offer:unused-field-tamper"); }
+        else { replacement["recordId"] = json!(first); }
+        crate::schema_validation::validate_capture(&replacement).unwrap();
+        let path = crate::storage::capture_path(&root, first_capture["captureId"].as_str().unwrap()).unwrap();
+        let next = root.join("replacement.json");
+        std::fs::write(&next, serde_json::to_vec(&replacement).unwrap()).unwrap();
+        let named = path.clone();
+        let hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+        let (_, outputs, raced) = observe_with(&root);
+        drop(hook);
+        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "the later {failure} refusal is not successful duplicate membership");
+        let reason = if failure == "seal" {
+            format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &source[1]["body"]).unwrap_err())
+        } else { "the record differs from the capture it cites".into() };
+        assert_eq!(raced.unresolved, vec![json!({"record":source[1],"reason":reason})]);
+        assert!(outputs.iter().any(|(k,b)| *k == "act_counted" && b["act"]["recordId"] == first.as_str()));
+        let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+        let observed = attempted.clone();
+        let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+        let changed = project_act_records(&root).unwrap();
+        drop(hook);
+        assert!(attempted.get(), "the changed first watch invalidates the cache even though the last watch matches");
+        assert!(!changed.same_observation(&raced));
+        assert_eq!(changed.unresolved.last().unwrap()["record"]["recordId"], second.as_str());
+        if failure == "seal" { assert!(changed.acts.is_empty()); }
+        else { assert_eq!(changed.acts, raced.acts); }
+        store(&root, &first_capture);
+        let restored = project_act_records(&root).unwrap();
+        assert!(restored.acts.is_empty(), "restoration verifies both claims and restores their R-8 refusal");
+        assert_eq!(restored.unresolved.len(), 2);
+        assert!(restored.unresolved.iter().all(|r| r["reason"] == "several records cite one capture (RS R-8)"));
+        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "held original records do not change after source replacement or restoration");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
