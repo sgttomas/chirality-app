@@ -209,9 +209,13 @@ pub(crate) fn units(outputs: &[Output]) -> Vec<std::ops::Range<usize>> {
 pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 
 /// The project's App-file acts and declines as the recorder may count them.
-/// `acts` are `{record, capture}`: current (uncorrected) records written by
+/// `acts` are private `{record, declineBoundContent?}` facts: current
+/// (uncorrected) records written by
 /// the App's capturing surface whose one cited capture object resolves,
-/// validates and says what the record says (SP-3, RS R-8, HA-1).
+/// validates and says what the record says (SP-3, RS R-8, HA-1). Each full
+/// original record is retained. After verification and duplicate-capture
+/// resolution, full captures are released; only declines retain their exact
+/// `boundContent` array under `declineBoundContent`, never a slim capture DTO.
 /// `unresolved` are `{record, reason}`: records that claim a file act but
 /// cannot be so verified; they never become acts (RS §13.7) and are shown as
 /// an "unresolvable reference" limit on an arrival whose file they name.
@@ -219,7 +223,7 @@ pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 pub(crate) struct ActRead(std::sync::Arc<ActReadData>, std::sync::Arc<BTreeMap<String, String>>);
 
 /// A completed observation is immutable. The cache and its readers share
-/// these same records and captures until the existing read basis changes;
+/// these same full records and decline-content facts until the read basis changes;
 /// an earlier reader may keep its observation after a new one is built.
 #[derive(Debug, Default)]
 pub(crate) struct ActReadData {
@@ -959,7 +963,7 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             let id = record["recordId"].as_str()?;
             let index = on_subject(&named(record))?;
             if record["kind"] == "act_declined" {
-                Some((b["time"].as_str().filter(|t| comparable(t))?, id, record, b["declinedKind"].as_str()?, &a["capture"]["boundContent"][index]))
+                Some((b["time"].as_str().filter(|t| comparable(t))?, id, record, b["declinedKind"].as_str()?, &a["declineBoundContent"][index]))
             } else {
                 Some((b["captureTime"].as_str().filter(|t| comparable(t))?, id, record, b["actKind"].as_str()?, &b["boundContent"][index]))
             }
@@ -1655,6 +1659,19 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             ("record".into(), a.as_object_mut().and_then(|a| a.remove("record")).unwrap_or(Value::Null)),
             ("reason".into(), Value::String("several records cite one capture (RS R-8)".into())),
         ]))));
+    }
+    // Full capture values must survive all schema/seal/correspondence and R-8
+    // decisions above. The private checkpoint consumers need the exact records
+    // and only a decline's content array; public capture readers resolve their
+    // own full sources. Move that array, without normalization or a substitute
+    // identity, and release every other capture field from the kept snapshot.
+    for act in &mut read.acts {
+        let fields = act.as_object_mut().expect("verified act row constructed above");
+        let mut capture = fields.remove("capture").unwrap_or(Value::Null);
+        if fields["record"]["kind"] == "act_declined" {
+            let content = capture.as_object_mut().and_then(|c| c.remove("boundContent")).unwrap_or(Value::Null);
+            fields.insert("declineBoundContent".into(), content);
+        }
     }
     let read = ActRead(std::sync::Arc::new(read), std::sync::Arc::new(relation_limits));
     *ACT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = reusable.then(|| ActCache { root, epoch, keys, captures, read: read.clone() });

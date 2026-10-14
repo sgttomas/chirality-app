@@ -456,6 +456,7 @@ checks:
 - app/src-tauri/src/record_lines_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
 - app/src-tauri/src/records_index_tests.rs
+- app/src-tauri/src/checkpoint_recorder_tests.rs
 - app/src-tauri/src/records_access_tests.rs
 - app/src-tauri/src/records_access_role_tests.rs
 - app/src-tauri/src/records_store_tests.rs
