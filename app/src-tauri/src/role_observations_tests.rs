@@ -124,9 +124,12 @@ fn unknown_and_late_observations_append_without_rewriting_original() {
         std::fs::read_dir(f.directory().join("content"))
             .unwrap()
             .count(),
-        3
+        4 // composition, two source parts, and original immutable limits
     );
 }
+// The fourth payload is bound to the same original composition; the unknown
+// wait row and late success retain distinct observations without new content.
+
 #[test]
 fn corruption_missing_payload_and_duplicate_identity_are_visible_not_promoted() {
     let f = Fixture::new();
@@ -526,4 +529,19 @@ fn contradictory_h5_and_carrier_and_duplicate_observation_ids_are_refused() {
     bytes.push(b'\n');
     std::fs::write(path, bytes).unwrap();
     assert_eq!(log.read("home", None)["complete"], false);
+}
+#[test]
+fn mixed_observation_01_02_log_heads_and_export_keep_declared_schemas(){
+    assert_eq!(OLD_SCHEMA.as_bytes(),include_bytes!("../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation-0.1.schema.json"));
+    assert_eq!(include_bytes!("../resources/workflow_role/role-limit-observation.schema.json"),include_bytes!("../../../execution/PKG-02/DEL-02-04/Design/role-limit-observation.schema.json"));
+    let f=Fixture::new();let log=f.log();let c=composition();let mut old=observation("sup:old","supplied");old["formatVersion"]=json!("0.1");log.append(old,Some(&c)).unwrap();
+    let prefix=std::fs::read(f.directory().join(LOG)).unwrap();f.append(&log,"sup:current","supplied");
+    assert!(std::fs::read(f.directory().join(LOG)).unwrap().starts_with(&prefix));
+    let read=log.read("home",Some("thread"));assert_eq!(read["observations"].as_array().unwrap().len(),2);
+    assert_eq!(read["observations"][0]["record"]["formatVersion"],"0.1");assert_eq!(read["observations"][1]["record"]["formatVersion"],"0.2");
+    assert!(read["observations"][0]["record"]["appBytes"].get("limitAccount").is_none());assert!(read["observations"][1]["record"]["appBytes"]["limitAccount"].is_object());
+    let before=project_chain_head(&f.project).unwrap().unwrap();let bag=f.root.join("mixed-bag");crate::records_export::export(&f.project,&bag).unwrap();crate::records_export::verify(&bag).unwrap();
+    let copied=copied_chain_head(&bag.join("data/role-supply/observations.jsonl"));
+    assert_eq!(before["lines"],2);assert!(before["head"].as_str().is_some());
+    for key in ["lines","linked","head"]{assert_eq!(before[key],copied[key],"{key}");}
 }

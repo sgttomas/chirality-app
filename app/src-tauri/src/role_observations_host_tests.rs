@@ -465,6 +465,7 @@ fn actual_unknown_late_error_malformed_and_refusal_keep_source_and_non_adoption(
         Value::Null
     );
     let original = first["observations"][0]["record"].clone();
+    assert!(f.history.role_publication("conversation-home","late-thread").unwrap().is_none());
     f.host.on_line(
         &serde_json::to_vec(
             &json!({"id":receipt.request_id(),"result":role_native("late-thread")}),
@@ -482,6 +483,10 @@ fn actual_unknown_late_error_malformed_and_refusal_keep_source_and_non_adoption(
     assert_eq!(late["observations"].as_array().unwrap().len(), 2);
     assert_eq!(late["observations"][0]["record"], original);
     assert_eq!(late["observations"][1]["record"]["outcome"], "supplied");
+    let publication=f.history.role_publication("conversation-home","late-thread").unwrap().unwrap();
+    assert!(publication.verify_target(&f.project,"conversation-home","late-thread").is_ok());
+    assert!(publication.reference().contains(late["observations"][1]["record"]["observationId"].as_str().unwrap()));
+    assert!(!publication.reference().contains(original["observationId"].as_str().unwrap()));
     f.start(
         "",
         "sup:error",

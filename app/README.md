@@ -606,6 +606,13 @@ implemented behavior and qualification limits.
     unverified file evidence; it leaves the current conversation's role
     unknown and restores no role binding or CCE owner.
 
+    A run opened with a confirmed original role supply records a role-guidance
+    reference after `run_opened`, with adoption unknown. Its immutable sources
+    retain the exact original guidance, historical limit assessment and
+    source-qualified run-start context. The explicit workflow-supply read
+    resolves these as quoted evidence and reports missing or substituted
+    sources; reading files creates no role binding or native request.
+
 25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
     "I choose option B"). Conversations the App starts in its current project
     (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
@@ -680,7 +687,7 @@ implemented behavior and qualification limits.
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings |
-| `role_observations.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations and exact retained App guidance bytes, with explicit quoted cold-history inspection; cold claims restore no role/CCE authority, and the R3 reference/resolver receiving path remains unbuilt |
+| `role_observations.rs`, `role_record_source.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `role_r3_run_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations, exact retained App guidance and historical limits; private confirmed receipts supply role R3 references at run opening, with immutable source-qualified run context and explicit quoted cold inspection; cold claims restore no role/CCE authority |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence (in the project's records store subtree; earlier in-project accounts read in place until imported) and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
