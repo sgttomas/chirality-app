@@ -2612,9 +2612,15 @@ machine; `records::durability_tests`, and the ignored
   no prior performance or lapse.
   Checkpoint eligibility uses the public correction reader's shared analysis
   over borrowed source claims. The private snapshot retains every full original
-  record. Only after schema, seal, correspondence and R-8 duplicate-capture
-  resolution does it release the full capture values; declines retain their
-  exact `boundContent` array as `declineBoundContent`, without normalization.
+  record. Each capture remains full through its schema, seal, backlink and
+  correspondence checks. A successful private candidate then releases its
+  unused capture fields; declines retain their exact `boundContent` array as
+  `declineBoundContent`, without normalization. Every eligible claim still
+  reads and verifies its own source, including repeated capture identities.
+  Global R-8 duplicate-capture resolution follows the complete scan, using
+  the same verified capture-to-record membership. Only then is the immutable
+  observation published or cached; ordinary failures and R-8 refusals keep
+  their original record values, reasons and order.
   These are private verified facts, not a capture DTO. Capture watches, key
   basis and failure retries are unchanged. Public file-act views resolve full
   captures independently, including their original scope, purpose and content.
@@ -2767,12 +2773,44 @@ machine; `records::durability_tests`, and the ignored
   bytes with constant output storage. Both use the same compact JSON encoding.
   Metric work follows the cold-time and RSS samples. Warm reads after the run
   entry share the same immutable observation in both versions (2.5 / 2.4 ms
-  and 13.0 / 13.1 ms). Full captures remain transient through duplicate-capture
-  resolution, and freeing values need not release allocator pages. These
+  and 13.0 / 13.1 ms). Full captures remained transient through duplicate-capture
+  resolution in that candidate, and freeing values need not release allocator pages. These
   observations show the smaller retained representation, no RSS or first-peak
   improvement and no cold-latency improvement; they establish no release or
   100,000-act bound. Source validation and full record retention still grow
   with the project history.
+
+  **Capture lifetime during the checkpoint read (2026-10-14, debug build).**
+  A focused act-only child used the maintained `scale_runs`/`scale_acts`
+  fixtures at 10 runs / 300 acts and 100 runs / 3,000 acts, with 30 entries
+  per run. Each paired report used a fresh scratch records store; each tier
+  had its own project and seal-key folders and a fresh child process.
+  Baseline `11ea55dec8` includes final snapshot compaction; the candidate's
+  base is `e808a095d8`, whose act-reader, capture, index and scale-fixture
+  bytes match that baseline. Temporary constant-size counters
+  tracked fully verified capture values held by the scan, and current/peak
+  RSS was sampled at source-analysis, R-8 and return boundaries. The counters
+  and samples were removed from maintained code after the comparison.
+
+  | Runs / acts | Verified full captures held before R-8, before / after | Maximum scan-owned verified full captures, before / after | RSS before R-8, before / after | Peak through kept read, before / after | First act read, before / after |
+  |---|---|---|---|---|---|
+  | 10 / 300 | 300 / 0 | 300 / 1 | 55.7 / 55.3 MB | 56.5 / 55.9 MB | 613 / 623 ms |
+  | 100 / 3,000 | 3,000 / 0 | 3,000 / 1 | 96.8 / 83.9 MB | 97.5 / 84.3 MB | 2.42 / 2.44 s |
+
+  At 3,000 acts, RSS after relation analysis was 74.7 / 74.9 MB; releasing
+  each verified capture removes its cumulative tree retention before R-8.
+  Both final snapshots encode to exactly 329,911 bytes at 300 acts and
+  3,308,612 bytes at 3,000 acts, with unchanged original-record encodings
+  of 326,611 and 3,275,612 bytes. Constant-storage encoding follows all time
+  and RSS samples. Both versions return the same held observation on the
+  later kept read (3.1 / 2.6 ms and 13.9 / 14.2 ms), with all acts and no
+  unresolved rows in these positive-only fixtures. Exact multi-subject
+  decline contents and consumers are covered by maintained regressions.
+  These paired observations show lower RSS/peak at the 3,000-act tier,
+  unchanged final representation and no cold-latency improvement. They are
+  not a release or 100,000-act bound. Full records, metadata, decline facts
+  and each individual capture's validation allocations remain; allocator
+  pages need not be returned merely because a value was released.
 
 ## 15. Local prototype (R12-3)
 
