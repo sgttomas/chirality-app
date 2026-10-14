@@ -512,11 +512,14 @@ implemented behavior and qualification limits.
     App writes no host-outcome, A5 item or A12 entries (AW-8…AW-10, CE-7,
     CE-9), no observation loss or recovery of an earlier App session (after a
     relaunch the custody events of the session that ended are gone, and the
-    run gets RS's "App-restart interruption" limit instead) and, since it observes
-    no run after its end, no after-end lapse or act (CE-10 *after run end*,
-    CE-16). A path is compared as text
-    (U-E26). Recording follows the active home's view while the App
-    refreshes, and when the person ends the run. Each declared output shows its
+    run gets RS's "App-restart interruption" limit instead). The independent
+    project record tick observes eligible later App-file acts (CE-16), and
+    changes to the bound file of an already performed single App-file A4/A6/A7
+    checkpoint (CE-10/CE-18), after its run ends. Hot and reopened views show
+    these observations with their source and publication limits; continuation
+    inherits no prior performance. A path is compared as text (U-E26).
+    Recording uses the Rust host's own ticks across its held homes and project
+    sources, independently of web-view refresh, and when the person ends the run. Each declared output shows its
     promise apart from its standing facets (AS §8), which come only from the
     run record: with nothing recorded they read none reported, not recorded or
     missing. An arrival bound to the output adds only where the agent put it.
@@ -1020,8 +1023,10 @@ CE-8, CE-10…CE-14, CE-17…CE-19). It does not yet record host-operation or
 host-outcome arrivals, A5 items or A12 relations (CE-7, CE-9), the *unknown*
 label of a deciding loss, losses or recoveries of an earlier App session,
 replaced arrivals (CE-15, which follows only from A5
-items), anything after the run's end (CE-10 *after run end*, CE-16), or output
-records. An output gated by a checkpoint shows that checkpoint's recorded act
+items), or output records. The independent ended-run observer records eligible
+later App-file acts (CE-16) and per-referent lapse of already performed single
+App-file A4/A6/A7 checkpoints (CE-10/CE-18), with current source checks and
+explicit pending/late-write limits. An output gated by a checkpoint shows that checkpoint's recorded act
 standing, *lapsed* included; an observation loss or recovery still makes an
 output's facets unknown.
 

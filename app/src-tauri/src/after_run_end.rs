@@ -1,6 +1,7 @@
-//! EXEC RE-2 / CE-16. Ended arrivals receive observations of later verified
-//! App-file acts. This never evaluates native items, counts an act, observes
-//! a lapse, resumes a run or changes an arrival's final disposition.
+//! EXEC RE-2 / CE-16 and RC-8 / CE-10. Ended arrivals receive later verified
+//! App-file act observations. A performed single-file A4/A6/A7 can lapse on
+//! current content. This never evaluates native items, counts a new act or
+//! resumes a run.
 use crate::{checkpoint_recorder::ActRead, records::supply::PendingRunEntry};
 use serde_json::{json, Value};
 use std::{
@@ -58,6 +59,9 @@ struct Cached {
     row: Option<Value>,
     limits: Vec<String>,
     dirty: bool,
+    lapse: Option<LapseState>,
+    end_binding_limit: Option<String>,
+    lapse_limit: Option<String>,
 }
 impl Cached {
     fn new(revision: u64, mut entries: Vec<Value>) -> Self {
@@ -79,6 +83,9 @@ impl Cached {
             row: None,
             limits: vec![],
             dirty: true,
+            lapse: None,
+            end_binding_limit: None,
+            lapse_limit: None,
         }
     }
 }
@@ -129,6 +136,24 @@ impl Candidates {
         }
     }
 }
+#[derive(Clone)]
+struct LapsePlan {
+    paths: Vec<PathBuf>,
+    arrivals: Vec<Value>,
+}
+struct LapseState {
+    revision: u64,
+    read: ActRead,
+    plan: LapsePlan,
+    files: Vec<(PathBuf, crate::checkpoint_recorder::Current)>,
+}
+struct LapsePending {
+    path: PathBuf,
+    run: String,
+    members: Vec<PendingRunEntry>,
+    binding: Vec<Value>,
+    acts: Vec<Value>,
+}
 #[derive(Default)]
 pub(crate) struct Observer {
     scope: Option<Scope>,
@@ -137,6 +162,10 @@ pub(crate) struct Observer {
     pending: BTreeMap<(String, String, String), PendingRunEntry>,
     rows: Vec<Value>,
     limits: Vec<String>,
+    recording_limit: Option<String>,
+    pending_activity: Option<crate::storage::Ownership>,
+    lapse_pending: Vec<LapsePending>,
+    files: BTreeMap<PathBuf, FileIdentity>,
     #[cfg(test)]
     pub(crate) work: Work,
 }
@@ -147,13 +176,27 @@ pub(crate) struct Work {
     pub candidate_builds: usize,
     pub projected_runs: usize,
     pub matched_acts: usize,
+    pub lapse_projections: usize,
+    pub lapse_row_materializations: usize,
 }
 impl Observer {
     pub(crate) fn has_pending(&self) -> bool {
         self.pending.values().any(PendingRunEntry::pending)
+            || self
+                .lapse_pending
+                .iter()
+                .any(|p| p.members.iter().any(PendingRunEntry::pending))
     }
     pub(crate) fn observe(&mut self, project: &Path) {
-        if let Err(reason) = self.attempt(project) {
+        if let Err(reason) = self.attempt(project).and_then(|_| {
+            #[cfg(test)]
+            BETWEEN_PHASES.with(|hook| {
+                if let Some(h) = hook.borrow_mut().take() {
+                    h()
+                }
+            });
+            self.observe_lapses(project)
+        }) {
             self.rows.clear();
             self.limits = vec![reason.clone()];
             for cached in self.cache.values_mut() {
@@ -162,6 +205,17 @@ impl Observer {
             for pending in self.pending.values_mut().filter(|p| p.pending()) {
                 pending.failure = Some(reason.clone());
             }
+            for pending in self
+                .lapse_pending
+                .iter_mut()
+                .flat_map(|p| p.members.iter_mut())
+                .filter(|p| p.pending())
+            {
+                pending.failure = Some(reason.clone());
+            }
+        }
+        if !self.has_pending() {
+            self.pending_activity = None;
         }
     }
     fn attempt(&mut self, project: &Path) -> Result<(), String> {
@@ -170,6 +224,19 @@ impl Observer {
             return Err("after-run-end project/store source identity changed; no reassociation or recording".into());
         }
         self.scope = Some(scope.clone());
+        // Closed payload remains readable history. Admission is held through
+        // this phase before any new identity/body is reserved or published.
+        let admission = crate::records_retention::write_path(&scope.dir);
+        let was_refused = self.recording_limit.is_some();
+        self.recording_limit = admission.as_ref().err().cloned();
+        if was_refused && admission.is_ok() {
+            // Reopen can admit observations already discoverable in retained
+            // history; no native/record revision need have changed meanwhile.
+            for cached in self.cache.values_mut() {
+                cached.dirty = true;
+                cached.lapse = None;
+            }
+        }
         // Resolve the current ordinary record home once, not once per run.
         let home = crate::records_store::home(&scope.root)?;
         let base = if home.store_mode {
@@ -340,12 +407,13 @@ impl Observer {
                 .as_ref()
                 .ok_or("verified act observation unavailable")?;
             let binding_limit = eligible(&cached.entries, &candidates.read).err();
+            cached.end_binding_limit = binding_limit.clone();
             if let Some(reason) = &binding_limit {
                 cached
                     .limits
                     .push(format!("run {run}: {reason}; no post-end relation"));
             }
-            let outputs = if cached.limits.is_empty() {
+            let outputs = if admission.is_ok() && cached.limits.is_empty() {
                 relations(&cached.entries, candidates, &scope.root, &mut cached.limits)
             } else {
                 vec![]
@@ -353,6 +421,9 @@ impl Observer {
             #[cfg(test)]
             {
                 self.work.matched_acts += outputs.len();
+            }
+            if !outputs.is_empty() {
+                retain_pending_activity(&mut self.pending_activity, &scope)?;
             }
             let now = crate::util::now_rfc3339();
             for (arrival_id, body) in outputs {
@@ -368,7 +439,16 @@ impl Observer {
                     );
                 }
             }
-            if self.pending.iter().any(|(k, p)| k.0 == run && p.pending()) {
+            if let Err(reason) = &admission {
+                for (_, p) in self
+                    .pending
+                    .iter_mut()
+                    .filter(|(k, p)| k.0 == run && p.pending())
+                {
+                    p.failure.get_or_insert(reason.clone());
+                }
+            }
+            if admission.is_ok() && self.pending.iter().any(|(k, p)| k.0 == run && p.pending()) {
                 #[cfg(test)]
                 BEFORE_WRITE.with(|h| {
                     if let Some(hook) = h.borrow_mut().take() {
@@ -499,9 +579,367 @@ impl Observer {
         self.limits.dedup();
         Ok(())
     }
+    fn observe_lapses(&mut self, project: &Path) -> Result<(), String> {
+        let Some(scope) = self.scope.clone() else {
+            return Ok(());
+        };
+        if !self.cache.values().any(|c| c.ended) {
+            return Ok(());
+        }
+        let _owner = crate::storage::try_read_lock(&scope.dir.join(".after-run-end.lock"))?
+            .ok_or("ended lapse observation busy; retried")?;
+        if Scope::read(project)? != scope {
+            return Err("ended lapse project/store source identity changed".into());
+        }
+        let admission = crate::records_retention::write_path(&scope.dir);
+        self.recording_limit = admission.as_ref().err().cloned();
+        let read = crate::checkpoint_recorder::project_act_records(&scope.root)?;
+        let mut changed_rows = std::collections::BTreeSet::new();
+        crate::records_index::with_index(&scope.root, |ix| -> Result<(), String> {
+            if !ix.limits().is_empty() {
+                return Err("ended lapse sources incomplete after ownership".into());
+            }
+            for (path, cached) in &mut self.cache {
+                let revision = ix
+                    .log_revision(path)
+                    .ok_or("ended source disappeared after ownership")?;
+                if revision != cached.revision {
+                    // Apply the same full-source validation and bounded entry
+                    // projection as discovery, including a concurrent append.
+                    let mut refreshed = Cached::new(revision, ix.entries_in_log(path)?);
+                    refreshed.row = cached.row.take();
+                    *cached = refreshed;
+                    changed_rows.insert(path.clone());
+                    #[cfg(test)]
+                    {
+                        self.work.decoded_logs += 1;
+                    }
+                }
+            }
+            Ok(())
+        })?;
+        let home = crate::records_store::home(&scope.root)?;
+        let base = if home.store_mode {
+            scope.dir.clone()
+        } else {
+            scope.root.join(".chirality/records")
+        };
+        let mut observations = BTreeMap::new();
+        for (path, cached) in &mut self.cache {
+            if !cached.ended || admission.is_err() {
+                continue;
+            }
+            let run = match owning_run(&base, path, &cached.entries) {
+                Ok(run) => run,
+                Err(reason) => {
+                    if cached.row.is_some() {
+                        changed_rows.insert(path.clone());
+                    }
+                    cached.row = None;
+                    cached.limits.push(reason);
+                    continue;
+                }
+            };
+            if self
+                .lapse_pending
+                .iter()
+                .any(|p| p.path == *path && p.members.iter().any(PendingRunEntry::pending))
+            {
+                continue;
+            }
+            let changed = cached.lapse.as_ref().is_none_or(|old| {
+                old.revision != cached.revision || !old.read.same_observation(&read)
+            });
+            let plan = if changed {
+                match lapse_paths(&cached.entries, &read, &scope.root) {
+                    Ok(paths) => {
+                        if cached.lapse_limit.take().is_some() {
+                            changed_rows.insert(path.clone());
+                        }
+                        paths
+                    }
+                    Err(reason) => {
+                        cached
+                            .limits
+                            .push(format!("run {run}: {reason}; no post-end lapse"));
+                        if cached.lapse_limit.as_deref() != Some(reason.as_str()) {
+                            changed_rows.insert(path.clone());
+                        }
+                        mark_lapse_limit(cached, &reason);
+                        continue;
+                    }
+                }
+            } else {
+                cached.lapse.as_ref().unwrap().plan.clone()
+            };
+            let current = plan
+                .paths
+                .iter()
+                .map(|path| {
+                    let value = observations.entry(path.clone()).or_insert_with(|| {
+                        current_file(
+                            &scope.root,
+                            (scope.device, scope.inode),
+                            path,
+                            &mut self.files,
+                        )
+                    });
+                    (path.clone(), value.clone())
+                })
+                .collect::<Vec<_>>();
+            if !changed
+                && cached
+                    .lapse
+                    .as_ref()
+                    .is_some_and(|old| old.files == current)
+            {
+                continue;
+            }
+            #[cfg(test)]
+            {
+                self.work.lapse_projections += 1;
+            }
+            let now = crate::util::now_rfc3339();
+            let outputs = crate::checkpoint_recorder::observe_ended_lapses(
+                &cached.entries,
+                &read,
+                &now,
+                &plan.arrivals,
+                &mut |subject| {
+                    current
+                        .iter()
+                        .find(|(path, _)| path == subject)
+                        .map(|(_, value)| value.clone())
+                        .unwrap_or_else(|| {
+                            crate::checkpoint_recorder::Current::Unavailable(
+                                "original counted file binding unavailable".into(),
+                            )
+                        })
+                },
+            );
+            let binding = lapse_binding(&cached.entries);
+            if !outputs.is_empty() {
+                retain_pending_activity(&mut self.pending_activity, &scope)?;
+                changed_rows.insert(path.clone());
+            }
+            for unit in crate::checkpoint_recorder::units(&outputs) {
+                let mut members = outputs[unit]
+                    .iter()
+                    .map(|(kind, body)| PendingRunEntry::new(kind, body.clone(), now.clone()))
+                    .collect::<Result<Vec<_>, _>>()?;
+                if members.len() > 1 {
+                    let group = members[0].record_id.clone();
+                    for member in &mut members {
+                        member.group = Some(group.clone());
+                    }
+                }
+                let mut ids = std::collections::BTreeSet::new();
+                for member in &members {
+                    if let Some(id) = member.body["act"]["recordId"].as_str() {
+                        ids.insert(id);
+                    }
+                    for annotation in member.body["annotations"].as_array().into_iter().flatten() {
+                        for id in annotation["actRefs"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(Value::as_str)
+                        {
+                            ids.insert(id);
+                        }
+                    }
+                }
+                let acts = ids
+                    .into_iter()
+                    .filter_map(|id| {
+                        read.acts
+                            .iter()
+                            .find(|a| a["record"]["recordId"] == id)
+                            .map(|a| a["record"].clone())
+                    })
+                    .collect();
+                self.lapse_pending.push(LapsePending {
+                    path: path.clone(),
+                    run: run.clone(),
+                    members,
+                    binding: binding.clone(),
+                    acts,
+                });
+            }
+            cached.lapse = Some(LapseState {
+                revision: cached.revision,
+                read: read.clone(),
+                plan,
+                files: current,
+            });
+        }
+        for pending in &mut self.lapse_pending {
+            if !pending.members.iter().any(PendingRunEntry::pending) {
+                continue;
+            }
+            #[cfg(test)]
+            BEFORE_WRITE.with(|hook| {
+                if let Some(h) = hook.borrow_mut().take() {
+                    h()
+                }
+            });
+            let result = (|| {
+                if let Err(reason) = &admission {
+                    return Err(reason.clone());
+                }
+                if Scope::read(project)? != scope {
+                    return Err("original ended lapse source identity changed".into());
+                }
+                let fresh = crate::checkpoint_recorder::project_act_records(&scope.root)?;
+                let current = crate::records_index::with_index(&scope.root, |ix| {
+                    if !ix.limits().is_empty() {
+                        return Err(
+                            "ended lapse record sources incomplete before publication".into()
+                        );
+                    }
+                    ix.entries_in_log(&pending.path)
+                })?;
+                if owning_run(&base, &pending.path, &current)? != pending.run {
+                    return Err("original owning run changed".into());
+                }
+                lapse_paths(&current, &fresh, &scope.root)?;
+                for original in &pending.binding {
+                    if current
+                        .iter()
+                        .find(|e| e["recordId"] == original["recordId"])
+                        != Some(original)
+                        || fresh
+                            .record_limit(original["recordId"].as_str().unwrap_or_default())
+                            .is_some()
+                    {
+                        return Err("original counted/arrival/lapse source changed or unresolved; no reassociation".into());
+                    }
+                }
+                for original in &pending.acts {
+                    if !fresh.acts.iter().any(|a| a["record"] == *original) {
+                        return Err(
+                            "original counted act unavailable or changed; lapse held".into()
+                        );
+                    }
+                }
+                // c1 was coherently observed before reservation. Later ordinary
+                // file edits do not rewrite or discard this historical interval.
+                crate::records::supply::append_run_group_in(
+                    &scope.root,
+                    &pending.run,
+                    &mut pending.members,
+                    crate::records::RecordSet::Complete,
+                )
+            })();
+            let Some(cached) = self.cache.get_mut(&pending.path) else {
+                continue;
+            };
+            changed_rows.insert(pending.path.clone());
+            match result {
+                Ok(records) => {
+                    for record in records {
+                        if !cached
+                            .entries
+                            .iter()
+                            .any(|e| e["recordId"] == record["recordId"])
+                        {
+                            cached.entries.push(record);
+                        }
+                    }
+                    #[cfg(test)]
+                    AFTER_WRITE.with(|hook| {
+                        if let Some(h) = hook.borrow_mut().take() {
+                            h()
+                        }
+                    });
+                    cached.lapse = None;
+                }
+                Err(reason) => {
+                    for member in &mut pending.members {
+                        member.failure.get_or_insert(reason.clone());
+                    }
+                    cached.limits.push(format!("ended lapse pending: {reason}"));
+                }
+            }
+        }
+        for (path, cached) in &mut self.cache {
+            if !changed_rows.contains(path) {
+                continue;
+            }
+            if let Some(row) = cached.row.as_mut() {
+                #[cfg(test)]
+                {
+                    self.work.lapse_row_materializations += 1;
+                }
+                let mut records = cached.entries.clone();
+                if let Some(reason) = cached
+                    .lapse_limit
+                    .as_ref()
+                    .or(cached.end_binding_limit.as_ref())
+                {
+                    for entry in records
+                        .iter_mut()
+                        .filter(|e| e["kind"] == "checkpoint_arrival")
+                    {
+                        entry["afterRunEndRelationLimit"] = json!(reason);
+                    }
+                }
+                for (_, member) in self.pending.iter().filter(|(key, member)| {
+                    key.0
+                        == cached
+                            .entries
+                            .first()
+                            .and_then(|e| e["runId"].as_str())
+                            .unwrap_or_default()
+                        && member.pending()
+                }) {
+                    if let Some(existing) = records
+                        .iter_mut()
+                        .find(|e| e["recordId"] == member.record_id)
+                    {
+                        existing["written"] = json!(false);
+                        existing["limit"] = json!(member.failure);
+                    } else {
+                        records.push(json!({"kind":member.kind,"body":member.body,"recordId":member.record_id,"observedAt":member.observed_at,"written":false,"limit":member.failure}));
+                    }
+                }
+                for p in self.lapse_pending.iter().filter(|p| p.path == *path) {
+                    for member in p.members.iter().filter(|m| m.pending()) {
+                        if let Some(existing) = records
+                            .iter_mut()
+                            .find(|e| e["recordId"] == member.record_id)
+                        {
+                            existing["written"] = json!(false);
+                            existing["limit"] = json!(member.failure);
+                        } else {
+                            records.push(json!({"kind":member.kind,"body":member.body,"recordId":member.record_id,"observedAt":member.observed_at,"written":false,"limit":member.failure,"runId":p.run}));
+                        }
+                    }
+                }
+                row["records"] = json!(records);
+            }
+        }
+        self.lapse_pending
+            .retain(|p| p.members.iter().any(PendingRunEntry::pending));
+        if !changed_rows.is_empty() {
+            self.rows = self.cache.values().filter_map(|c| c.row.clone()).collect();
+        }
+        self.limits
+            .extend(self.cache.values().flat_map(|c| c.limits.iter().cloned()));
+        self.limits.sort();
+        self.limits.dedup();
+        Ok(())
+    }
     pub(crate) fn view(&self) -> Value {
-        let held:Vec<_>=self.pending.iter().filter(|(_,p)|p.pending()).map(|((run,_,_),p)|json!({"run":run,"recordId":p.record_id,"observedAt":p.observed_at,"body":p.body,"limit":p.failure})).collect();
-        json!({"held":held,"runs":self.rows,"limits":self.limits,"pending":self.has_pending(),"standing":"After-run-end act observations from this project's recorded ended arrivals; no disposition, lapse or native activity is changed. Pending entries are held only in this App process."})
+        let mut held:Vec<_>=self.pending.iter().filter(|(_,p)|p.pending()).map(|((run,_,_),p)|json!({"run":run,"recordId":p.record_id,"observedAt":p.observed_at,"body":p.body,"limit":p.failure})).collect();
+        held.extend(self.lapse_pending.iter().flat_map(|unit|unit.members.iter().filter(|p|p.pending()).map(|p|json!({"run":unit.run,"recordId":p.record_id,"observedAt":p.observed_at,"kind":p.kind,"body":p.body,"limit":p.failure}))));
+        let mut limits = self.limits.clone();
+        if let Some(reason) = &self.recording_limit {
+            limits.push(format!("no new post-end observations: {reason}"));
+        }
+        limits.sort();
+        limits.dedup();
+        json!({"held":held,"runs":self.rows,"limits":limits,"pending":self.has_pending(),"standing":"After-run-end observations from this project's recorded ended arrivals. Later acts change no disposition; a counted file act can lapse on changed content. No native activity or new performance is inferred. Pending entries are held only in this App process."})
     }
     pub(crate) fn decorate(&self, run: &str, mut view: Value) -> Value {
         if let Some(row) = self.rows.iter().find(|r| r["run"] == run) {
@@ -524,12 +962,12 @@ impl Observer {
                             }
                         }
                     }
-                    for e in row["records"]
-                        .as_array()
-                        .into_iter()
-                        .flatten()
-                        .filter(|e| e["kind"] == "act_after_run_end")
-                    {
+                    for e in row["records"].as_array().into_iter().flatten().filter(|e| {
+                        matches!(
+                            e["kind"].as_str(),
+                            Some("act_after_run_end" | "act_lapsed" | "disposition_change")
+                        )
+                    }) {
                         if !records.iter().any(|old| old["recordId"] == e["recordId"]) {
                             records.push(e.clone());
                         }
@@ -539,6 +977,24 @@ impl Observer {
         }
         view
     }
+}
+/// Reservation and the lifetime lease are admitted under the same project
+/// fence. Another controller must not close/dispose while private W2 is owed.
+fn retain_pending_activity(
+    activity: &mut Option<crate::storage::Ownership>,
+    scope: &Scope,
+) -> Result<(), String> {
+    if activity.is_none() {
+        let held = crate::records_retention::activity(&scope.root)?;
+        if Scope::read(&scope.root)? != *scope {
+            return Err(
+                "pending observation activity source changed; no reservation or reassociation"
+                    .into(),
+            );
+        }
+        *activity = held;
+    }
+    Ok(())
 }
 fn presentation_entry(e: &Value) -> bool {
     matches!(
@@ -603,6 +1059,150 @@ fn eligible(entries: &[Value], read: &ActRead) -> Result<(), String> {
         }
     }
     Ok(())
+}
+fn owning_run(base: &Path, path: &Path, entries: &[Value]) -> Result<String, String> {
+    let run = entries
+        .first()
+        .and_then(|e| e["runId"].as_str())
+        .ok_or("owning run absent")?;
+    let expected = base
+        .join("runs")
+        .join(crate::storage::key(run))
+        .join(format!(
+            "{}.jsonl",
+            crate::storage::key(crate::records::supply::LIVE_WRITER)
+        ));
+    if path != expected
+        || entries.iter().any(|e| {
+            e["runId"] != run
+                || e["recorder"]["role"] != crate::records::APP_WRITER.role
+                || e["recorder"]["identity"] != crate::records::APP_WRITER.identity
+        })
+    {
+        return Err("entries outside the exact App owning run source; no post-end lapse".into());
+    }
+    Ok(run.to_owned())
+}
+fn lapse_binding(entries: &[Value]) -> Vec<Value> {
+    entries
+        .iter()
+        .filter(|e| {
+            matches!(
+                e["kind"].as_str(),
+                Some(
+                    "run_opened"
+                        | "run_ended"
+                        | "checkpoint_arrival"
+                        | "act_counted"
+                        | "disposition_change"
+                        | "act_lapsed"
+                )
+            )
+        })
+        .cloned()
+        .collect()
+}
+fn mark_lapse_limit(cached: &mut Cached, reason: &str) {
+    cached.lapse_limit = Some(reason.to_owned());
+    if let Some(records) = cached
+        .row
+        .as_mut()
+        .and_then(|r| r["records"].as_array_mut())
+    {
+        for entry in records
+            .iter_mut()
+            .filter(|e| e["kind"] == "checkpoint_arrival")
+        {
+            entry["afterRunEndRelationLimit"] = json!(reason);
+        }
+    }
+    cached.lapse = None;
+}
+fn lapse_paths(entries: &[Value], read: &ActRead, root: &Path) -> Result<LapsePlan, String> {
+    eligible(entries, read)?;
+    for entry in lapse_binding(entries) {
+        if let Some(reason) = read.record_limit(entry["recordId"].as_str().unwrap_or_default()) {
+            return Err(format!("{}: {reason}", entry["recordId"]));
+        }
+    }
+    let mut paths = std::collections::BTreeSet::new();
+    let mut arrivals = Vec::new();
+    for (arrival, performance, content) in crate::checkpoint_recorder::ended_lapse_basis(entries) {
+        if !matches!(arrival["requiredAct"].as_str(), Some("A4" | "A6" | "A7")) {
+            continue;
+        }
+        let files = subjects(root, &json!({"body":arrival}));
+        if files.len() != 1 || arrival["referents"].as_array().is_none_or(|r| r.len() != 1) {
+            continue;
+        }
+        let end = entries
+            .iter()
+            .position(|e| e["kind"] == "run_ended")
+            .ok_or("ended source absent")?;
+        let reference =
+            json!({"checkpoint":arrival["checkpoint"],"arrivalOrdinal":arrival["arrivalOrdinal"]});
+        if entries[end + 1..].iter().any(|e| {
+            e["body"]["arrival"] == reference
+                && (e["kind"] == "act_counted"
+                    || (e["kind"] == "disposition_change"
+                        && matches!(
+                            e["body"]["disposition"].as_str(),
+                            Some("performed" | "lapsed")
+                        )
+                        && (e["body"]["performanceOrdinal"] != performance["performanceOrdinal"]
+                            || e["body"]["answeredBy"] != performance["answeredBy"])))
+        }) {
+            return Err(
+                "new count or conflicting performance association after the recorded end; no post-end reassociation".into(),
+            );
+        }
+        let ids = performance["answeredBy"]
+            .as_array()
+            .ok_or("performed source has no counted act references")?;
+        if ids.is_empty() {
+            return Err("performed source names no counted act".into());
+        }
+        for id in ids {
+            let act = read
+                .acts
+                .iter()
+                .map(|a| &a["record"])
+                .find(|r| r["recordId"] == *id && r["kind"] == "human_act")
+                .ok_or("counted act reference unavailable/unresolved")?;
+            let body = &act["body"];
+            if body["actKind"] != arrival["requiredAct"]
+                || body["boundSubject"]
+                    != json!([files[0]
+                        .to_str()
+                        .ok_or("original subject path is not representable")?])
+                || body["boundContent"].as_array().is_none_or(|v| v.len() != 1)
+                || body["boundContent"][0]["method"] != content["method"]
+                || body["boundContent"][0]["value"] != content["value"]
+            {
+                return Err(
+                    "counted act does not bind the ended performance's exact file/content/kind"
+                        .into(),
+                );
+            }
+            let reference = json!({"checkpoint":arrival["checkpoint"],"arrivalOrdinal":arrival["arrivalOrdinal"]});
+            if !entries[..end].iter().any(|e| {
+                e["kind"] == "act_counted"
+                    && e["body"]["arrival"] == reference
+                    && e["body"]["act"]["recordId"] == *id
+                    && e["body"]["act"]["actKind"] == body["actKind"]
+                    && e["body"]["act"]["capturedAt"] == body["captureTime"]
+                    && e["body"]["act"]["capturingSurface"] == "app_act_control"
+            }) {
+                return Err("ended performance lacks its exact counted-act citation".into());
+            }
+            paths.insert(files[0].clone());
+        }
+        arrivals.push(reference);
+    }
+    Ok(LapsePlan {
+        paths: paths.into_iter().collect(),
+        arrivals,
+    })
 }
 /// Historical subject binding, without canonicalizing/following today's file.
 fn subjects(root: &Path, arrival: &Value) -> Vec<PathBuf> {
@@ -792,6 +1392,236 @@ fn instant(s: &str) -> Option<i128> {
     let days = era * 146097 + yy * 365 + yy / 4 - yy / 100 + (153 * mp + 2) / 5 + d - 1 - 719468;
     Some(i128::from(days * 86400 + h * 3600 + min * 60 + sec - offset) * 1_000_000_000 + fraction)
 }
+// Current bytes are mutable; project/store/run identities are not. Each read
+// walks opened physical folders without following a link, and checks every
+// owning name again. A missing component is absence only within that proved
+// physical chain. Leaf-only stamps never authorize a cache hit by themselves.
+type FileStamp = (u64, u64, u64, i64, i64, i64, i64);
+fn file_stamp(m: &std::fs::Metadata) -> FileStamp {
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
+struct FileIdentity {
+    stamp: FileStamp,
+    value: String,
+    read_at: i64,
+}
+fn current_file(
+    root: &Path,
+    owner: (u64, u64),
+    subject: &Path,
+    cache: &mut BTreeMap<PathBuf, FileIdentity>,
+) -> crate::checkpoint_recorder::Current {
+    use crate::checkpoint_recorder::Current;
+    match read_current_file(root, owner, subject, cache) {
+        Ok(value) => value,
+        Err(reason) => {
+            cache.remove(subject);
+            Current::Unavailable(reason)
+        }
+    }
+}
+fn read_current_file(
+    root: &Path,
+    owner: (u64, u64),
+    subject: &Path,
+    cache: &mut BTreeMap<PathBuf, FileIdentity>,
+) -> Result<crate::checkpoint_recorder::Current, String> {
+    use crate::checkpoint_recorder::Current;
+    use sha2::Digest;
+    use std::{
+        fs::File,
+        io::Read,
+        os::{
+            fd::{AsRawFd, FromRawFd},
+            unix::{ffi::OsStrExt, fs::OpenOptionsExt},
+        },
+    };
+    let rel = subject
+        .strip_prefix(root)
+        .map_err(|_| "bound file is outside its original project")?;
+    let parts = rel
+        .components()
+        .map(|part| match part {
+            std::path::Component::Normal(s) => Ok(s),
+            _ => Err("bound file is not a plain original project path"),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if parts.is_empty() {
+        return Err("bound file is the project folder".into());
+    }
+    if !root.is_absolute() {
+        return Err("owning project is not an absolute physical path".into());
+    }
+    let folder = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open("/")
+        .map_err(|e| e.to_string())?;
+    let mut owners = vec![(PathBuf::from("/"), folder)];
+    fn names(owners: &[(PathBuf, File)]) -> Result<(), String> {
+        for (path, file) in owners {
+            let opened = file.metadata().map_err(|e| e.to_string())?;
+            let named = std::fs::symlink_metadata(path).map_err(|e| e.to_string())?;
+            if !opened.is_dir()
+                || !named.is_dir()
+                || (opened.dev(), opened.ino()) != (named.dev(), named.ino())
+            {
+                return Err("original owning folder name changed or is aliased".into());
+            }
+        }
+        Ok(())
+    }
+    for component in root.components().skip(1) {
+        let std::path::Component::Normal(part) = component else {
+            return Err("owning project name is not plain".into());
+        };
+        let name = std::ffi::CString::new(part.as_bytes())
+            .map_err(|_| "owning folder name contains NUL")?;
+        let fd = unsafe {
+            libc::openat(
+                owners.last().unwrap().1.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY
+                    | libc::O_DIRECTORY
+                    | libc::O_NOFOLLOW
+                    | libc::O_CLOEXEC
+                    | libc::O_NONBLOCK,
+            )
+        };
+        if fd < 0 {
+            return Err(format!(
+                "physical owning project unavailable: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        let file = unsafe { File::from_raw_fd(fd) };
+        let path = owners.last().unwrap().0.join(part);
+        owners.push((path, file));
+    }
+    names(&owners)?;
+    let opened_root = owners
+        .last()
+        .unwrap()
+        .1
+        .metadata()
+        .map_err(|e| e.to_string())?;
+    if (opened_root.dev(), opened_root.ino()) != owner {
+        return Err("original physical project identity changed".into());
+    }
+    for (at, part) in parts.iter().enumerate() {
+        let parent = &owners.last().unwrap().1;
+        let before_parent = parent.metadata().map_err(|e| e.to_string())?;
+        let name =
+            std::ffi::CString::new(part.as_bytes()).map_err(|_| "bound file name contains NUL")?;
+        let last = at + 1 == parts.len();
+        let flags = libc::O_RDONLY
+            | libc::O_NOFOLLOW
+            | libc::O_CLOEXEC
+            | libc::O_NONBLOCK
+            | if last { 0 } else { libc::O_DIRECTORY };
+        let fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 {
+            let error = std::io::Error::last_os_error();
+            names(&owners)?;
+            let after_parent = owners
+                .last()
+                .unwrap()
+                .1
+                .metadata()
+                .map_err(|e| e.to_string())?;
+            if error.kind() == std::io::ErrorKind::NotFound
+                && file_stamp(&before_parent) == file_stamp(&after_parent)
+            {
+                names(&owners)?;
+                cache.remove(subject);
+                return Ok(Current::Absent);
+            }
+            return Err(format!("original bound file unavailable: {error}"));
+        }
+        let mut file = unsafe { File::from_raw_fd(fd) };
+        if !last {
+            let path = owners.last().unwrap().0.join(part);
+            owners.push((path, file));
+            names(&owners)?;
+            continue;
+        }
+        let before = file.metadata().map_err(|e| e.to_string())?;
+        if !before.is_file() {
+            return Err("bound subject is not a regular file".into());
+        }
+        const CAP: u64 = 256 * 1024 * 1024;
+        if before.len() > CAP {
+            return Err(format!("bound file is larger than {CAP} bytes; not read"));
+        }
+        let read_at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_secs() as i64;
+        let kept = cache
+            .get(subject)
+            .filter(|old| old.stamp == file_stamp(&before) && old.read_at > before.ctime() + 1)
+            .map(|old| old.value.clone());
+        let value = match kept {
+            Some(value) => value,
+            None => {
+                let mut hash = sha2::Sha256::new();
+                let mut buf = [0u8; 64 * 1024];
+                let mut total = 0u64;
+                loop {
+                    let n = file.read(&mut buf).map_err(|e| e.to_string())?;
+                    if n == 0 {
+                        break;
+                    }
+                    total += n as u64;
+                    if total > CAP {
+                        return Err("bound file grew beyond the read limit".into());
+                    }
+                    hash.update(&buf[..n]);
+                }
+                format!("{:x}", hash.finalize())
+            }
+        };
+        #[cfg(test)]
+        DURING_FILE_READ.with(|hook| {
+            if let Some(h) = hook.borrow_mut().take() {
+                h(subject)
+            }
+        });
+        let after = file.metadata().map_err(|e| e.to_string())?;
+        names(&owners)?;
+        let named = std::fs::symlink_metadata(subject).map_err(|e| e.to_string())?;
+        if !named.is_file()
+            || file_stamp(&before) != file_stamp(&after)
+            || file_stamp(&after) != file_stamp(&named)
+        {
+            return Err("bound file changed while observed".into());
+        }
+        names(&owners)?;
+        cache.insert(
+            subject.to_owned(),
+            FileIdentity {
+                stamp: file_stamp(&after),
+                value: value.clone(),
+                read_at,
+            },
+        );
+        return Ok(Current::Present(value));
+    }
+    Err("bound file source is absent".into())
+}
+#[cfg(test)]
+thread_local! {static DURING_FILE_READ:std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>>=const{std::cell::RefCell::new(None)};}
+
+#[cfg(test)]
+thread_local! {pub(crate) static BETWEEN_PHASES:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
 #[cfg(test)]
 thread_local! {pub(crate) static AFTER_WRITE:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
 #[cfg(test)]

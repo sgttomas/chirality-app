@@ -9571,6 +9571,1155 @@ for line in sys.stdin:
         let view=crate::host_tick::receive_view(&peer.home);root.lock().unwrap().end_plain(&a,&view).unwrap();
         std::thread::sleep(Duration::from_millis(2));(root,homes,a)
     }
+    fn performed_file_fixture(
+        peer: &Peer,
+        kind: &str,
+        end: bool,
+    ) -> (
+        Mutex<WorkflowRootSession>,
+        Mutex<HomeRouter>,
+        String,
+        String,
+    ) {
+        peer.set_mode("notify-mode", "checkpoint-file");
+        let file = peer.fixture.root.join("out/summary.md");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, b"v1").unwrap();
+        let mut state = peer.fixture.registered_with(|draft| {
+            let path = draft.join("WORKFLOW.md");
+            let mut text = std::fs::read_to_string(&path).unwrap();
+            let declaration = crate::checkpoint_recorder::tests::DECLARATION.replace(
+                "\"required_act\":\"A7\"",
+                &format!("\"required_act\":\"{kind}\""),
+            );
+            // This owner-flow fixture declares only valid checkpoints, with an
+            // explicit gate on the file output whose act standing is displayed.
+            let mut declaration: Value = serde_json::from_str(&declaration).unwrap();
+            declaration["checkpoints"]
+                .as_array_mut()
+                .unwrap()
+                .retain(|c| c["name"] != "CP-bad");
+            declaration["returned_outputs"][1]["gating_checkpoint"] = json!("CP-rely");
+            text.push_str(&format!("\n```workflow-declaration\n{declaration}\n```\n"));
+            std::fs::write(path, text).unwrap();
+        });
+        let a = open_run(peer, &mut state, "thread");
+        let root = Mutex::new(state);
+        let homes = Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let until = std::time::Instant::now() + Duration::from_secs(5);
+        while !rs_for(peer, &a)
+            .iter()
+            .any(|e| e["kind"] == "checkpoint_arrival")
+            && std::time::Instant::now() < until
+        {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let act = record_file_act(
+            peer,
+            "out/summary.md",
+            kind,
+            b"v1",
+            &crate::util::now_rfc3339(),
+        );
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert!(rs_for(peer, &a)
+            .iter()
+            .any(|e| e["kind"] == "act_counted" && e["body"]["act"]["recordId"] == act));
+        if end {
+            let view = crate::host_tick::receive_view(&peer.home);
+            root.lock().unwrap().end_plain(&a, &view).unwrap();
+        }
+        (root, homes, a, act)
+    }
+    fn after_end_performed_file_fixture(
+        peer: &Peer,
+        kind: &str,
+    ) -> (
+        Mutex<WorkflowRootSession>,
+        Mutex<HomeRouter>,
+        String,
+        String,
+    ) {
+        performed_file_fixture(peer, kind, true)
+    }
+    fn cross_log_source_correction(peer: &Peer, run: &str, original: &Value) {
+        let mut correction = original.clone();
+        correction["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+        correction["seq"] = json!(1);
+        correction["corrects"] = original["recordId"].clone();
+        correction["correctionReason"] =
+            json!("Synthetic correction makes this original source ineligible");
+        correction["prevLine"] = crate::record_lines::link(None);
+        crate::schema_validation::bundled()
+            .unwrap()
+            .validate(&correction)
+            .unwrap();
+        let path = crate::storage::project_log(
+            &peer.fixture.root,
+            Some(run),
+            "synthetic-lapse-correction",
+        )
+        .unwrap();
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, format!("{correction}\n")).unwrap();
+    }
+    #[test]
+    fn after_end_file_lapse_uses_the_latest_live_performance_content() {
+        let peer = Peer::new();
+        let (root, homes, a, old) = performed_file_fixture(&peer, "A7", false);
+        let file = peer.fixture.root.join("out/summary.md");
+        std::fs::write(&file, b"v2").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        assert_eq!(
+            rs_for(&peer, &a)
+                .iter()
+                .filter(|r| r["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "waiting"
+        );
+        let new = record_file_act(
+            &peer,
+            "out/summary.md",
+            "A7",
+            b"v2",
+            &crate::util::now_rfc3339(),
+        );
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert_eq!(
+            rs_for(&peer, &a)
+                .iter()
+                .filter(|r| r["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["answeredBy"],
+            json!([new])
+        );
+        let view = crate::host_tick::receive_view(&peer.home);
+        root.lock().unwrap().end_plain(&a, &view).unwrap();
+        std::fs::write(file, b"v3").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let records = rs_for(&peer, &a);
+        let latest = records
+            .iter()
+            .filter(|r| r["kind"] == "act_lapsed")
+            .last()
+            .unwrap();
+        assert_eq!(latest["body"]["when"], "after run end");
+        assert_eq!(latest["body"]["act"]["recordId"], new);
+        assert_ne!(latest["body"]["act"]["recordId"], old);
+        assert_eq!(
+            latest["body"]["c0"]["value"],
+            crate::util::sha256_hex(b"v2")
+        );
+        assert_eq!(
+            latest["body"]["c1"]["value"],
+            crate::util::sha256_hex(b"v3")
+        );
+        assert_eq!(
+            records
+                .iter()
+                .find(|r| r["kind"] == "checkpoint_arrival")
+                .unwrap()["body"]["referents"][0]["content"]["value"],
+            crate::util::sha256_hex(b"v1")
+        );
+    }
+    #[test]
+    fn after_end_file_lapse_warm_and_cold_corrections_refuse_the_counted_source() {
+        for kind in [
+            "checkpoint_arrival",
+            "disposition_change",
+            "act_counted",
+            "act_lapsed",
+        ] {
+            let peer = Peer::new();
+            let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+            if kind == "act_lapsed" {
+                std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+                crate::host_tick::tick_project(&homes, &root, peer.project());
+            }
+            let records = rs_for(&peer, &a);
+            let original = records
+                .iter()
+                .find(|r| {
+                    r["kind"] == kind
+                        && (kind != "disposition_change" || r["body"]["disposition"] == "performed")
+                })
+                .unwrap();
+            cross_log_source_correction(&peer, &a, original);
+            let before = rs_for(&peer, &a)
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count();
+            std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+            assert_eq!(
+                rs_for(&peer, &a)
+                    .iter()
+                    .filter(|r| r["kind"] == "act_lapsed")
+                    .count(),
+                before,
+                "{kind}"
+            );
+            let hot = root.lock().unwrap().snapshot();
+            assert!(
+                hot["afterRunEnd"]["limits"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|v| v.as_str().unwrap().contains("correction")),
+                "{kind}: {hot}"
+            );
+            assert!(hot["runs"][0]["lifecycle"]["records"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|r| r["kind"] == "checkpoint_arrival")
+                .all(|r| r["afterRunEndRelationLimit"].is_string()));
+            let mut fresh = WorkflowRootSession::default();
+            fresh.reopen(&peer.fixture.root, &[]).unwrap();
+            let fresh = Mutex::new(fresh);
+            crate::host_tick::tick_project(&homes, &fresh, peer.project());
+            assert_eq!(
+                rs_for(&peer, &a)
+                    .iter()
+                    .filter(|r| r["kind"] == "act_lapsed")
+                    .count(),
+                before
+            );
+        }
+    }
+    #[test]
+    fn after_end_file_lapse_persisted_history_is_not_rebound_to_a_corrected_subject() {
+        let peer = Peer::new();
+        let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let records = rs_for(&peer, &a);
+        let original = records
+            .iter()
+            .find(|r| r["kind"] == "checkpoint_arrival")
+            .unwrap();
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        let mut correction = original.clone();
+        correction["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+        correction["seq"] = json!(records.last().unwrap()["seq"].as_u64().unwrap() + 1);
+        correction["corrects"] = original["recordId"].clone();
+        correction["correctionReason"] = json!("Synthetic corrected arrival subject");
+        correction["body"]["referents"][0]["subject"] = json!("output summary: file out/new.md");
+        correction["prevLine"] = crate::record_lines::fixture::next_link(&log);
+        crate::schema_validation::bundled()
+            .unwrap()
+            .validate(&correction)
+            .unwrap();
+        let mut file = std::fs::OpenOptions::new().append(true).open(log).unwrap();
+        std::io::Write::write_all(&mut file, format!("{correction}\n").as_bytes()).unwrap();
+        drop(file);
+        let mut fresh = WorkflowRootSession::default();
+        fresh.reopen(&peer.fixture.root, &[]).unwrap();
+        let fresh = Mutex::new(fresh);
+        crate::host_tick::tick_project(&homes, &fresh, peer.project());
+        let dto = fresh.lock().unwrap().snapshot();
+        assert_eq!(
+            rs_for(&peer, &a)
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count(),
+            1
+        );
+        println!("AFTER_END_LAPSE_CORRECTED_DTO:{dto}");
+    }
+    #[test]
+    fn after_end_file_lapse_prewrite_capture_loss_holds_original_interval_and_warm_ticks_reuse_it()
+    {
+        let peer = Peer::new();
+        let (root, homes, a, act) = after_end_performed_file_fixture(&peer, "A7");
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let before = root.lock().unwrap().after_run_end.work.clone();
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert_eq!(root.lock().unwrap().after_run_end.work, before);
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        let cap = read
+            .acts
+            .iter()
+            .find(|r| r["record"]["recordId"] == act)
+            .unwrap()["capture"]["captureId"]
+            .as_str()
+            .unwrap();
+        let path = crate::storage::capture_path(&peer.fixture.root, cap).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let changed = path.clone();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        crate::after_run_end::BEFORE_WRITE.with(|h| {
+            *h.borrow_mut() = Some(Box::new(move || std::fs::remove_file(changed).unwrap()))
+        });
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        assert!(!rs_for(&peer, &a).iter().any(|r| r["kind"] == "act_lapsed"));
+        let dto = root.lock().unwrap().snapshot();
+        assert_eq!(dto["afterRunEnd"]["pending"], true);
+        let held = dto["afterRunEnd"]["held"].as_array().unwrap().clone();
+        assert_eq!(held.len(), 2);
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v1").unwrap();
+        std::fs::write(path, bytes).unwrap();
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        let records = rs_for(&peer, &a);
+        for original in held {
+            let written = records
+                .iter()
+                .find(|r| r["recordId"] == original["recordId"])
+                .unwrap();
+            assert_eq!(written["body"], original["body"]);
+            assert_eq!(written["observedAt"], original["observedAt"]);
+        }
+        assert_eq!(
+            records
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .last()
+                .unwrap()["body"]["state"],
+            "matches c0 again after observed lapse"
+        );
+        assert_eq!(
+            records
+                .iter()
+                .filter(|r| r["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "lapsed"
+        );
+    }
+    #[test]
+    fn after_end_file_lapse_refuses_wrong_kind_subject_caption_or_new_post_end_performance() {
+        for change in ["kind", "subject", "caption", "post-end"] {
+            let peer = Peer::new();
+            let (root, homes, a, old) = after_end_performed_file_fixture(&peer, "A7");
+            let mut records = rs_for(&peer, &a);
+            if change == "caption" {
+                records
+                    .iter_mut()
+                    .find(|r| r["kind"] == "act_counted")
+                    .unwrap()["body"]["act"]["capturedAt"] = json!("2026-01-01T00:00:00Z");
+            } else if change == "post-end" {
+                let mut label = records
+                    .iter()
+                    .find(|r| {
+                        r["kind"] == "disposition_change" && r["body"]["disposition"] == "performed"
+                    })
+                    .unwrap()
+                    .clone();
+                label["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+                label["seq"] = json!(records.last().unwrap()["seq"].as_u64().unwrap() + 1);
+                label["body"]["performanceOrdinal"] = json!(2);
+                records.push(label);
+            } else {
+                let (path, kind) = if change == "kind" {
+                    ("out/summary.md", "A4")
+                } else {
+                    std::fs::write(peer.fixture.root.join("other.md"), b"v1").unwrap();
+                    ("other.md", "A7")
+                };
+                let other = record_file_act(&peer, path, kind, b"v1", &crate::util::now_rfc3339());
+                let read =
+                    crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+                let body = &read
+                    .acts
+                    .iter()
+                    .find(|r| r["record"]["recordId"] == other)
+                    .unwrap()["record"]["body"];
+                for entry in &mut records {
+                    if entry["kind"] == "act_counted" && entry["body"]["act"]["recordId"] == old {
+                        entry["body"]["act"]["recordId"] = json!(other);
+                        entry["body"]["act"]["actKind"] = body["actKind"].clone();
+                        entry["body"]["act"]["capturedAt"] = body["captureTime"].clone();
+                    }
+                    if entry["kind"] == "disposition_change"
+                        && entry["body"]["disposition"] == "performed"
+                    {
+                        entry["body"]["answeredBy"] = json!([other]);
+                    }
+                }
+            }
+            for record in &records {
+                crate::schema_validation::bundled()
+                    .unwrap()
+                    .validate(record)
+                    .unwrap();
+            }
+            let bytes = records.iter().map(|r| format!("{r}\n")).collect::<String>();
+            let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+            std::fs::write(log, crate::record_lines::fixture::rechain(bytes.as_bytes())).unwrap();
+            std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+            assert!(
+                !rs_for(&peer, &a).iter().any(|r| r["kind"] == "act_lapsed"),
+                "{change}"
+            );
+            let dto = root.lock().unwrap().snapshot();
+            assert!(
+                !dto["afterRunEnd"]["limits"].as_array().unwrap().is_empty(),
+                "{change}: {dto}"
+            );
+        }
+    }
+    #[test]
+    fn after_end_file_lapse_later_publication_rechecks_evidence_and_incomplete_sources_are_limits()
+    {
+        let peer = Peer::new();
+        let (root, homes, a, act) = after_end_performed_file_fixture(&peer, "A7");
+        let second = "run:workflow:synthetic-performed-ended";
+        let log = crate::records::supply::run_log(&peer.fixture.root, second).unwrap();
+        let mut text = String::new();
+        for entry in rs_for(&peer, &a) {
+            let mut e = entry;
+            e["runId"] = json!(second);
+            if e["kind"] == "run_opened" {
+                e["body"]["runId"] = json!(second);
+            }
+            e["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+            text.push_str(&format!("{e}\n"));
+        }
+        std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+        std::fs::write(log, crate::record_lines::fixture::rechain(text.as_bytes())).unwrap();
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        let id = read
+            .acts
+            .iter()
+            .find(|c| c["record"]["recordId"] == act)
+            .unwrap()["capture"]["captureId"]
+            .as_str()
+            .unwrap();
+        let path = crate::storage::capture_path(&peer.fixture.root, id).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let changed = path.clone();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        crate::after_run_end::AFTER_WRITE.with(|h| {
+            *h.borrow_mut() = Some(Box::new(move || std::fs::remove_file(changed).unwrap()))
+        });
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        assert_eq!(
+            peer.fixture
+                .rs_entries()
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count(),
+            1
+        );
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
+            true
+        );
+        std::fs::write(path, bytes).unwrap();
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert_eq!(
+            peer.fixture
+                .rs_entries()
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count(),
+            2
+        );
+        let broken =
+            crate::storage::project_log(&peer.fixture.root, Some(&a), "synthetic-malformed")
+                .unwrap();
+        std::fs::write(&broken, b"not-json\n").unwrap();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let (readable, limits) = crate::storage::read_all(&peer.fixture.root);
+        assert!(!limits.is_empty());
+        assert_eq!(
+            readable
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count(),
+            2
+        );
+        let dto = root.lock().unwrap().snapshot();
+        assert!(!dto["afterRunEnd"]["limits"].as_array().unwrap().is_empty());
+        std::fs::remove_file(broken).unwrap();
+        for _ in 0..2 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert_eq!(
+            peer.fixture
+                .rs_entries()
+                .iter()
+                .filter(|r| r["kind"] == "act_lapsed")
+                .count(),
+            4
+        );
+    }
+    #[test]
+    fn after_end_file_lapse_does_not_project_an_unbound_arrival_from_a_shared_act_subject() {
+        let peer = Peer::new();
+        let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+        let mut records = rs_for(&peer, &a);
+        let end = records.pop().unwrap();
+        assert_eq!(end["kind"], "run_ended");
+        // A distinct historical message arrival cites the same actual sealed
+        // file act. Its coordinate is unique, but that subject is not a file.
+        for kind in ["checkpoint_arrival", "act_counted", "disposition_change"] {
+            let mut extra = records
+                .iter()
+                .find(|r| {
+                    r["kind"] == kind
+                        && (kind != "disposition_change" || r["body"]["disposition"] == "performed")
+                })
+                .unwrap()
+                .clone();
+            extra["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+            if kind == "checkpoint_arrival" {
+                extra["body"]["checkpoint"] = json!("CP-message");
+                extra["body"]["referents"][0]["subject"] =
+                    json!("output summary: message examination report");
+            } else {
+                extra["body"]["arrival"]["checkpoint"] = json!("CP-message");
+            }
+            records.push(extra);
+        }
+        records.push(end);
+        for (at, record) in records.iter_mut().enumerate() {
+            record["seq"] = json!(at + 1);
+            crate::schema_validation::bundled()
+                .unwrap()
+                .validate(record)
+                .unwrap();
+        }
+        let lines = records.iter().map(|r| format!("{r}\n")).collect::<String>();
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        std::fs::write(log, crate::record_lines::fixture::rechain(lines.as_bytes())).unwrap();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let records = rs_for(&peer, &a);
+        let lapses = records
+            .iter()
+            .filter(|r| r["kind"] == "act_lapsed")
+            .collect::<Vec<_>>();
+        assert_eq!(lapses.len(), 1);
+        assert_eq!(lapses[0]["body"]["arrival"]["checkpoint"], "CP-rely");
+        assert!(!records.iter().any(|r| r["kind"] == "disposition_change"
+            && r["body"]["arrival"]["checkpoint"] == "CP-message"
+            && r["body"]["disposition"] == "lapsed"));
+    }
+    #[test]
+    fn after_end_file_lapse_concurrent_source_refresh_keeps_only_bounded_rows_and_reuses_them() {
+        let peer = Peer::new();
+        let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let project = peer.fixture.root.clone();
+        let run = a.clone();
+        crate::after_run_end::BETWEEN_PHASES.with(|hook|*hook.borrow_mut()=Some(Box::new(move||{
+            let body=json!({"turn":99,"scope":"turn","requested":"synthetic-large-unrelated-model-name".repeat(1024),"effective":"unknown","reroute":false,"destinationClass":"unknown"});let mut pending=crate::records::supply::PendingRunEntry::new("model_turn",body,crate::util::now_rfc3339()).unwrap();crate::records::supply::append_run_entry(&project,&run,&mut pending).unwrap();
+        })));
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        assert!(own_log(&peer, &a)
+            .iter()
+            .any(|r| r["kind"] == "model_turn" && r["body"]["turn"] == 99));
+        let dto = root.lock().unwrap().snapshot();
+        assert!(dto["afterRunEnd"]["runs"][0]["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["kind"] != "model_turn"));
+        // Allow the changed indexed source to settle in both phases, then count
+        // actual row materializations as well as comparison/projection work.
+        for _ in 0..2 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        let before = root.lock().unwrap().after_run_end.work.clone();
+        let row = root.lock().unwrap().snapshot()["afterRunEnd"]["runs"].clone();
+        for _ in 0..4 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        assert_eq!(root.lock().unwrap().after_run_end.work, before);
+        assert_eq!(root.lock().unwrap().snapshot()["afterRunEnd"]["runs"], row);
+    }
+    #[test]
+    fn after_end_file_lapse_conflicting_lapsed_association_is_a_limit_not_a_repair() {
+        for mismatch in ["ordinal", "answeredBy"] {
+            let peer = Peer::new();
+            let (root, homes, a, act) = after_end_performed_file_fixture(&peer, "A7");
+            let records = own_log(&peer, &a);
+            let mut body = records
+                .iter()
+                .find(|r| {
+                    r["kind"] == "disposition_change" && r["body"]["disposition"] == "performed"
+                })
+                .unwrap()["body"]
+                .clone();
+            body["disposition"] = json!("lapsed");
+            if mismatch == "ordinal" {
+                body["performanceOrdinal"] = json!(2);
+            } else {
+                body["answeredBy"] = json!([format!("{act}:synthetic-different-association")]);
+            }
+            let mut pending = crate::records::supply::PendingRunEntry::new(
+                "disposition_change",
+                body,
+                crate::util::now_rfc3339(),
+            )
+            .unwrap();
+            crate::records::supply::append_run_entry(&peer.fixture.root, &a, &mut pending).unwrap();
+            let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+            let before = std::fs::read(&log).unwrap();
+            std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+            assert_eq!(
+                std::fs::read(&log).unwrap(),
+                before,
+                "a conflicting lapsed association cannot be silently normalized: {mismatch}"
+            );
+            let dto = root.lock().unwrap().snapshot();
+            assert!(
+                dto["afterRunEnd"]["limits"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|v| v.as_str().unwrap().contains("association")),
+                "{dto}"
+            );
+            assert!(dto["runs"][0]["lifecycle"]["records"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|r| r["kind"] == "checkpoint_arrival")
+                .all(|r| r["afterRunEndRelationLimit"].is_string()));
+            let mut cold = WorkflowRootSession::default();
+            cold.reopen(&peer.fixture.root, &[]).unwrap();
+            let cold = Mutex::new(cold);
+            crate::host_tick::tick_project(&homes, &cold, peer.project());
+            assert_eq!(
+                std::fs::read(log).unwrap(),
+                before,
+                "cold reads retain the contradiction as source evidence"
+            );
+        }
+    }
+    #[test]
+    fn after_end_file_lapse_closed_store_retains_history_without_new_pending_and_reopen_observes() {
+        let peer = Peer::new();
+        let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        assert!(root.lock().unwrap().retention_ready().is_ok());
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        peer.home
+            .host
+            .stop(
+                "owned closed-records fixture",
+                "owned mock supplier stops before synthetic administration",
+            )
+            .unwrap();
+        let actor = crate::act_control::person(Some("Invented test person"), Some("fixture-os"));
+        let observed =
+            json!({"fixture":"synthetic native administrative callback; no live person"});
+        let plan =
+            crate::records_retention::prepare(&peer.fixture.root, "close", None, &actor, &observed)
+                .unwrap();
+        crate::records_retention::apply(plan, &actor, &observed).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        for _ in 0..2 {
+            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        }
+        let dto = root.lock().unwrap().snapshot();
+        assert_eq!(std::fs::read(&log).unwrap(), before);
+        assert_eq!(dto["afterRunEnd"]["pending"], false);
+        assert!(root.lock().unwrap().retention_ready().is_ok());
+        assert!(dto["afterRunEnd"]["limits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v.as_str().unwrap().contains("closed")));
+        assert!(dto["afterRunEnd"]["runs"][0]["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["kind"] == "run_ended"));
+        let mut cold = WorkflowRootSession::default();
+        cold.reopen(&peer.fixture.root, &[]).unwrap();
+        cold.observe_ended_runs(&peer.fixture.root);
+        assert_eq!(cold.snapshot()["afterRunEnd"]["pending"], false);
+        assert!(cold.snapshot()["afterRunEnd"]["runs"][0]["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["kind"] == "run_ended"));
+        assert_eq!(std::fs::read(&log).unwrap(), before);
+        let plan = crate::records_retention::prepare(
+            &peer.fixture.root,
+            "reopen",
+            None,
+            &actor,
+            &observed,
+        )
+        .unwrap();
+        crate::records_retention::apply(plan, &actor, &observed).unwrap();
+        for _ in 0..3 {
+            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        }
+        let rows = own_log(&peer, &a);
+        assert_eq!(rows.iter().filter(|r| r["kind"] == "act_lapsed").count(), 1);
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "lapsed"
+        );
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
+            false
+        );
+    }
+    fn synthetic_ended_retention_action(peer: &Peer, action: &str) {
+        let actor = crate::act_control::person(Some("Invented test person"), Some("fixture-os"));
+        let observed =
+            json!({"fixture":"synthetic native administrative callback; no live person"});
+        let plan =
+            crate::records_retention::prepare(&peer.fixture.root, action, None, &actor, &observed)
+                .unwrap();
+        crate::records_retention::apply(plan, &actor, &observed).unwrap();
+    }
+    #[test]
+    fn after_end_file_lapse_closed_store_also_prevents_new_ce16_reservation() {
+        let peer = Peer::new();
+        let (root, _, a) = after_run_end_fixture(&peer, "A7");
+        let act = record_file_act(
+            &peer,
+            "out/summary.md",
+            "A7",
+            b"v1",
+            &crate::util::now_rfc3339(),
+        );
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        peer.home
+            .host
+            .stop(
+                "owned closed-records fixture",
+                "owned supplier stops before synthetic administration",
+            )
+            .unwrap();
+        synthetic_ended_retention_action(&peer, "close");
+        let before = std::fs::read(&log).unwrap();
+        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        assert_eq!(std::fs::read(&log).unwrap(), before);
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
+            false
+        );
+        assert!(root.lock().unwrap().retention_ready().is_ok());
+        synthetic_ended_retention_action(&peer, "reopen");
+        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        let rows = own_log(&peer, &a);
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r["kind"] == "act_after_run_end" && r["body"]["act"]["recordId"] == act)
+                .count(),
+            1
+        );
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "waiting"
+        );
+    }
+    #[test]
+    fn after_end_file_lapse_pending_activity_fences_other_root_close_and_export_never_settles_w2() {
+        let peer = Peer::new();
+        let (root, homes, a, act) = after_end_performed_file_fixture(&peer, "A7");
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        let id = read
+            .acts
+            .iter()
+            .find(|r| r["record"]["recordId"] == act)
+            .unwrap()["capture"]["captureId"]
+            .as_str()
+            .unwrap();
+        let path = crate::storage::capture_path(&peer.fixture.root, id).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let changed = path.clone();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+        crate::after_run_end::BEFORE_WRITE.with(|hook| {
+            *hook.borrow_mut() = Some(Box::new(move || std::fs::remove_file(changed).unwrap()))
+        });
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let pending = root.lock().unwrap().snapshot()["afterRunEnd"]["held"]
+            .as_array()
+            .unwrap()
+            .clone();
+        assert_eq!(pending.len(), 2);
+        std::fs::write(path, bytes).unwrap();
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        peer.home
+            .host
+            .stop(
+                "owned closed-records fixture",
+                "owned supplier stops before synthetic administration",
+            )
+            .unwrap();
+        // An independent Root cannot see process-only W2, so native retention
+        // must also consult the shared project activity lifetime.
+        let mut second = WorkflowRootSession::default();
+        second.reopen(&peer.fixture.root, &[]).unwrap();
+        assert!(second.retention_ready().is_ok());
+        let actor = crate::act_control::person(Some("Invented test person"), Some("fixture-os"));
+        let observed =
+            json!({"fixture":"synthetic native administrative callback; no live person"});
+        let denied =
+            crate::records_retention::prepare(&peer.fixture.root, "close", None, &actor, &observed)
+                .and_then(|plan| crate::records_retention::apply(plan, &actor, &observed));
+        assert!(
+            denied
+                .as_ref()
+                .is_err_and(|e| e.contains("Project activity")),
+            "another controller cannot close over original W2: {denied:?}"
+        );
+        assert_eq!(std::fs::read(&log).unwrap(), before);
+        let dir = crate::records_store::home(&peer.fixture.root)
+            .unwrap()
+            .attachment
+            .dir
+            .unwrap();
+        let activity = dir
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap()
+            .join("administration")
+            .join(dir.file_name().unwrap())
+            .join(".activity.lock");
+        let external = |path: &std::path::Path| {
+            std::process::Command::new("python3").arg("-c").arg("import fcntl,os,sys\nf=os.open(sys.argv[1],os.O_RDWR)\ntry: fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)\nexcept BlockingIOError: sys.exit(0)\nsys.exit(1)").arg(path).status().unwrap()
+        };
+        assert_eq!(
+            external(&activity).code(),
+            Some(0),
+            "a different process also sees original pending activity"
+        );
+        // The existing exporter can back up the persisted prefix. It cannot
+        // include or settle the original process's unpublished observation.
+        let export = std::fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(crate::util::opaque_id("ended-pending-export-").unwrap());
+        let bag = crate::records_export::export(&peer.fixture.root, &export).unwrap();
+        assert_eq!(bag["state"], "verified export created");
+        assert!(crate::records_export::verify(&export).is_ok());
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["held"],
+            json!(pending)
+        );
+        let disposed = crate::records_retention::prepare(
+            &peer.fixture.root,
+            "dispose",
+            Some(&export),
+            &actor,
+            &observed,
+        );
+        assert!(
+            disposed.is_err(),
+            "an export cannot grant disposal while Close is refused"
+        );
+        std::fs::remove_dir_all(export).unwrap();
+        std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
+        for _ in 0..3 {
+            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        }
+        assert_eq!(
+            external(&activity).code(),
+            Some(1),
+            "activity is released when all observer W2 has settled"
+        );
+        let rows = own_log(&peer, &a);
+        for original in pending {
+            let written = rows
+                .iter()
+                .find(|r| r["recordId"] == original["recordId"])
+                .unwrap();
+            assert_eq!(written["body"], original["body"]);
+            assert_eq!(written["observedAt"], original["observedAt"]);
+        }
+        assert_eq!(rows.iter().filter(|r| r["kind"] == "act_lapsed").count(), 2);
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
+            false
+        );
+        synthetic_ended_retention_action(&peer, "close");
+    }
+    #[test]
+    fn after_end_file_lapse_actual_owner_tick_and_cold_reopen_keep_the_closed_source() {
+        for kind in ["A4", "A6", "A7"] {
+            let peer = Peer::new();
+            let (root, homes, a, act) = after_end_performed_file_fixture(&peer, kind);
+            let file = peer.fixture.root.join("out/summary.md");
+            let ended = rs_for(&peer, &a);
+            assert_eq!(
+                ended
+                    .iter()
+                    .filter(|e| e["kind"] == "disposition_change")
+                    .last()
+                    .unwrap()["body"]["disposition"],
+                "performed"
+            );
+            let acts_before = std::fs::read(
+                crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap(),
+            )
+            .unwrap();
+            let (wire, requests) = (peer.wire().len(), peer.home.host.client_requests().len());
+            std::fs::write(&file, b"v2").unwrap();
+            for _ in 0..3 {
+                crate::host_tick::tick_project(&homes, &root, peer.project());
+            }
+            let records = rs_for(&peer, &a);
+            let late = records
+                .iter()
+                .filter(|e| e["kind"] == "act_lapsed")
+                .collect::<Vec<_>>();
+            assert_eq!(late.len(), 1, "{records:#?}");
+            assert_eq!(late[0]["body"]["act"]["recordId"], act);
+            assert_eq!(late[0]["body"]["when"], "after run end");
+            assert_eq!(late[0]["body"]["state"], "lapsed");
+            assert_eq!(
+                late[0]["body"]["c0"]["value"],
+                crate::util::sha256_hex(b"v1")
+            );
+            assert_eq!(
+                late[0]["body"]["c1"]["value"],
+                crate::util::sha256_hex(b"v2")
+            );
+            assert_eq!(
+                records
+                    .iter()
+                    .filter(|e| e["kind"] == "disposition_change")
+                    .last()
+                    .unwrap()["body"]["disposition"],
+                "lapsed"
+            );
+            assert_eq!(
+                records.iter().filter(|e| e["kind"] == "run_ended").count(),
+                1
+            );
+            assert_eq!(
+                records
+                    .iter()
+                    .filter(|e| e["kind"] == "act_counted")
+                    .count(),
+                ended.iter().filter(|e| e["kind"] == "act_counted").count()
+            );
+            assert_eq!(
+                records
+                    .iter()
+                    .filter(|e| e["kind"] == "run_resumed")
+                    .count(),
+                ended.iter().filter(|e| e["kind"] == "run_resumed").count()
+            );
+            assert_eq!(
+                (peer.wire().len(), peer.home.host.client_requests().len()),
+                (wire, requests)
+            );
+            assert_eq!(
+                std::fs::read(
+                    crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap()
+                )
+                .unwrap(),
+                acts_before
+            );
+            let hot = root.lock().unwrap().snapshot();
+            let shown = hot["runs"][0]["lifecycle"]["records"].as_array().unwrap();
+            assert!(shown
+                .iter()
+                .any(|e| e["kind"] == "act_lapsed" && e["body"]["when"] == "after run end"));
+            assert_eq!(
+                shown
+                    .iter()
+                    .filter(|e| e["kind"] == "disposition_change")
+                    .last()
+                    .unwrap()["body"]["disposition"],
+                "lapsed"
+            );
+            let mut fresh = WorkflowRootSession::default();
+            fresh.reopen(&peer.fixture.root, &[]).unwrap();
+            let fresh = Mutex::new(fresh);
+            crate::host_tick::tick_project(&homes, &fresh, peer.project());
+            assert_eq!(
+                rs_for(&peer, &a),
+                records,
+                "cold dedup retains all exact source records"
+            );
+            assert!(
+                fresh.lock().unwrap().snapshot()["afterRunEnd"]["runs"][0]["records"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|e| e["kind"] == "act_lapsed")
+            );
+            std::fs::write(&file, b"v1").unwrap();
+            for _ in 0..2 {
+                crate::host_tick::tick_project(&homes, &fresh, peer.project());
+            }
+            let back = rs_for(&peer, &a);
+            assert_eq!(
+                back.iter()
+                    .filter(|e| e["kind"] == "act_lapsed")
+                    .last()
+                    .unwrap()["body"]["state"],
+                "matches c0 again after observed lapse"
+            );
+            assert_eq!(
+                back.iter()
+                    .filter(|e| e["kind"] == "disposition_change")
+                    .last()
+                    .unwrap()["body"]["disposition"],
+                "lapsed",
+                "returning content cannot restore an ended performance"
+            );
+            assert!(crate::storage::read_all(&peer.fixture.root).1.is_empty());
+            if kind == "A7" {
+                println!(
+                    "AFTER_END_LAPSE_DTO:{}",
+                    serde_json::to_string(&hot).unwrap()
+                );
+            }
+        }
+    }
+    #[test]
+    fn after_end_file_lapse_pending_group_keeps_first_observation_through_later_edits() {
+        let peer = Peer::new();
+        let (root, homes, a, act) = after_end_performed_file_fixture(&peer, "A7");
+        let file = peer.fixture.root.join("out/summary.md");
+        std::fs::write(&file, b"v2").unwrap();
+        let log = crate::records::supply::run_log(&peer.fixture.root, &a).unwrap();
+        let folder = log.parent().unwrap().to_owned();
+        crate::after_run_end::BEFORE_WRITE.with(|hook| {
+            *hook.borrow_mut() = Some(Box::new(move || {
+                crate::storage::fail_directory_for_test(Some(folder))
+            }))
+        });
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        crate::storage::fail_directory_for_test(None);
+        let status = root.lock().unwrap().snapshot();
+        assert_eq!(status["afterRunEnd"]["pending"], true, "{status:#}");
+        assert!(root.lock().unwrap().retention_ready().is_err());
+        println!("AFTER_END_LAPSE_PENDING_DTO:{status}");
+        let pending = status["afterRunEnd"]["held"].as_array().unwrap().clone();
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending[0]["kind"], "act_lapsed");
+        assert_eq!(pending[0]["body"]["act"]["recordId"], act);
+        assert_eq!(
+            pending[0]["body"]["c1"]["value"],
+            crate::util::sha256_hex(b"v2")
+        );
+        let landed = rs_for(&peer, &a)
+            .into_iter()
+            .filter(|e| pending.iter().any(|p| p["recordId"] == e["recordId"]))
+            .collect::<Vec<_>>();
+        assert!(
+            landed.is_empty() || landed.len() == 2,
+            "a directory-sync failure may leave the complete group readable, never half a unit"
+        );
+        std::fs::write(&file, b"v3").unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let recovered = rs_for(&peer, &a);
+        for before in &pending {
+            let written = recovered
+                .iter()
+                .find(|e| e["recordId"] == before["recordId"])
+                .unwrap();
+            assert_eq!(written["body"], before["body"]);
+            assert_eq!(written["observedAt"], before["observedAt"]);
+        }
+        let lines = std::fs::read_to_string(&log).unwrap();
+        assert!(
+            lines
+                .lines()
+                .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+                .any(|line| line["format"] == "chirality.rs.group"
+                    && line["entries"].as_array().is_some_and(|entries| pending
+                        .iter()
+                        .all(|p| entries.iter().any(|e| e["recordId"] == p["recordId"])))),
+            "CE10 and its ended label stand in one group line"
+        );
+        for _ in 0..3 {
+            crate::host_tick::tick_project(&homes, &root, peer.project());
+        }
+        let final_records = rs_for(&peer, &a);
+        let lapses = final_records
+            .iter()
+            .filter(|e| e["kind"] == "act_lapsed")
+            .collect::<Vec<_>>();
+        assert_eq!(lapses.len(), 2);
+        assert_eq!(
+            lapses[0]["body"]["c1"]["value"],
+            crate::util::sha256_hex(b"v2")
+        );
+        assert_eq!(
+            lapses[1]["body"]["c1"]["value"],
+            crate::util::sha256_hex(b"v3")
+        );
+        assert_eq!(
+            root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
+            false
+        );
+        println!("AFTER_END_LAPSE_LATE_DTO:{}", root.lock().unwrap().snapshot());
+    }
+    #[test]
+    fn after_end_file_lapse_unknown_alias_and_absent_subject_preserve_the_ended_performance() {
+        let peer = Peer::new();
+        let (root, homes, a, _) = after_end_performed_file_fixture(&peer, "A7");
+        let out = peer.fixture.root.join("out");
+        let actual = peer.fixture.root.join("physical-out");
+        std::fs::rename(&out, &actual).unwrap();
+        std::os::unix::fs::symlink("physical-out", &out).unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let unknown = rs_for(&peer, &a);
+        assert_eq!(
+            unknown
+                .iter()
+                .filter(|e| e["kind"] == "act_lapsed")
+                .last()
+                .unwrap()["body"]["state"],
+            "unknown (unavailable)"
+        );
+        assert_eq!(
+            unknown
+                .iter()
+                .filter(|e| e["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "performed"
+        );
+        std::fs::remove_file(&out).unwrap();
+        std::fs::rename(&actual, &out).unwrap();
+        std::fs::remove_file(out.join("summary.md")).unwrap();
+        crate::host_tick::tick_project(&homes, &root, peer.project());
+        let missing = rs_for(&peer, &a);
+        let last = missing
+            .iter()
+            .filter(|e| e["kind"] == "act_lapsed")
+            .last()
+            .unwrap();
+        assert_eq!(last["body"]["state"], "lapsed (subject absent)");
+        assert_eq!(last["body"]["c1"], "subject absent");
+        assert_eq!(
+            missing
+                .iter()
+                .filter(|e| e["kind"] == "disposition_change")
+                .last()
+                .unwrap()["body"]["disposition"],
+            "lapsed"
+        );
+    }
     #[test]
     fn after_run_end_actual_tick_reopen_and_new_run_keep_finality(){
         for kind in ["A4","A6","A7"]{
