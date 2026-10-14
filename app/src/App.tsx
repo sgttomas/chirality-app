@@ -777,7 +777,11 @@ export function App() {
 
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
-      const r = await invoke(cmd, args);
+      const r: Json = await invoke(cmd, args);
+      // Open the admitted native start in its own source, never the pre-click snapshot.
+      if (cmd === "thread_start" && r?.startGeneration && typeof r?.result?.thread?.id === "string" && r.result.thread.id) {
+        setThreadKey(JSON.stringify([r.startGeneration, r.result.thread.id]));
+      }
       setMessage(`${cmd}: ${JSON.stringify(r).slice(0, 300)}`);
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);

@@ -510,6 +510,11 @@ show nothing of the kind.
 | ST-5 | **Role (C-15).** The start display offers the conversation roles DEL-02-04 lists (HELP_HUMAN, HELPS_HUMANS and WORKING_ITEMS; TASK is not a conversation role, ROLE SL-1, owner ruling 2026-10-10: "TASK is not a conversational role"), plus **"no role"** (R17-9: untyped conversations are allowed). The role whose registry entry has `default_for_new_chat` true (HELP_HUMAN in Root's `agents/registry.json` today) is shown **preselected**, labelled as a preselection, and the person can change it or clear it to "no role" before the first send |
 | ST-6 | The role is **fixed for the conversation's life** (DECISION-L L-2). The header shows it; where DEL-02-04 reports that the role's guidance was edited after this conversation started, the header says "guidance changed since this conversation started" (R19-3), and offers "Continue as ‹role›" (§5.8) |
 
+After an ordinary Start succeeds, the conversation view selects the native
+thread ID in the start result's own full generation. A refused or failed start
+leaves the selected conversation and unsent composer unchanged. Opening the
+conversation sends no text; the person still presses Send explicitly.
+
 The selection states and the last-choice store are DEL-01-05's (IF-10; NR-3
 new row). This file only places them.
 
