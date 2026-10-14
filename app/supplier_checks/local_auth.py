@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import secrets
 import socket
+import socketserver
 import tempfile
 import threading
 import time
@@ -174,6 +175,13 @@ def run_case(binary, root, case):
         def __init__(self, *args, **kwargs):
             self.active, self.stopping = set(), False
             super().__init__(*args, **kwargs)
+
+        def server_bind(self):
+            # This fixture binds only the literal loopback address. HTTPServer's
+            # reverse-name lookup is unnecessary and could stall before the
+            # listener worker/cleanup ownership is established.
+            socketserver.TCPServer.server_bind(self)
+            self.server_name, self.server_port = "localhost", self.server_address[1]
 
         def get_request(self):
             connection, address = super().get_request()

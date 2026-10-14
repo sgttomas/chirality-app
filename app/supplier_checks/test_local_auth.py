@@ -9,6 +9,8 @@ import tempfile
 import threading
 import socket
 import re
+import sys
+import traceback
 import unittest
 from unittest.mock import patch
 
@@ -197,19 +199,51 @@ class LocalAuthDetection(unittest.TestCase):
                     patch.object(http.server.BaseHTTPRequestHandler, "handle_one_request", observe_handler):
                 worker = threading.Thread(target=attempt, daemon=True)
                 worker.start()
+                def owned_stack():
+                    frame = sys._current_frames().get(worker.ident)
+                    return "".join(traceback.format_stack(frame)) if frame is not None else "worker already stopped"
                 try:
+                    self.assertTrue(began.wait(3), "controlled handler did not start:\n" + owned_stack())
                     worker.join(timeout=3)
-                    self.assertFalse(worker.is_alive(), "partial headers held fixture teardown")
+                    self.assertFalse(worker.is_alive(), "partial headers held fixture teardown:\n" + owned_stack())
                     self.assertEqual(errors, [RuntimeError])
                     self.assertEqual(timeouts, [5])
                     self.assertFalse((root / "home/auth.json").exists())
                     self.assertTrue((root / "frames-redacted.json").exists())
-                    self.assertEqual(clients[0].recv(1), b"")
+                    try:
+                        closed = clients[0].recv(1) == b""
+                    except ConnectionResetError:
+                        # An unread partial request can be reset rather than
+                        # FIN-closed. Both prove disconnection; timeouts fail.
+                        closed = True
+                    self.assertTrue(closed, "owned accepted socket remained connected")
                 finally:
                     for client in clients:
                         client.close()
                     worker.join(timeout=6)
-                    self.assertFalse(worker.is_alive(), "owned failing test worker did not stop")
+                    self.assertFalse(worker.is_alive(), "owned failing test worker did not stop:\n" + owned_stack())
+
+    def test_literal_loopback_binding_never_consults_reverse_name_resolution(self):
+        opened = []
+        class FailingNative:
+            def __init__(self, binary, root, canary):
+                opened.append(root)
+                self.frames = RedactedFrames(canary)
+                (root / "home/auth.json").write_text(canary)
+            def send(self, *args, **kwargs):
+                raise RuntimeError("controlled initialization failure")
+            def close(self):
+                pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "case"
+            with patch("local_auth.socket.getfqdn", side_effect=RuntimeError("unexpected reverse lookup")) as lookup, \
+                    patch("local_auth.AuthNative", FailingNative):
+                with self.assertRaisesRegex(RuntimeError, "controlled initialization failure"):
+                    run_case(Path("/owned/identified/codex"), root, "auth-required")
+                lookup.assert_not_called()
+            self.assertEqual(opened, [root])
+            self.assertFalse((root / "home/auth.json").exists())
+            self.assertTrue((root / "frames-redacted.json").exists())
 
 
 if __name__ == "__main__":
