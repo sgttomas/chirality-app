@@ -670,6 +670,17 @@ implemented behavior and qualification limits.
     read the record files directly; Codex 0.160.0 cannot prevent that, and
     such reads are not recorded.
 
+26. The Rust host records actual **Fork** and **Continue as** relationships
+    between native conversations in the selected project's records store,
+    then copies each exact line to `.chirality/fleet/coordination.fleet.jsonl`.
+    Session IDs are qualified by their actual native home/source. Recording
+    requires no objective label or grouping choice. Unknown native outcomes
+    and failed or uncertain recording remain visible limits; host ticks retry
+    the original recording without sending another native command. The Fleet
+    reader retains both format versions as quoted evidence. These logs are
+    currently unsigned and unchained; cold reads restore no conversation or
+    role authority.
+
 ## Modules
 
 | Module | Contribution |

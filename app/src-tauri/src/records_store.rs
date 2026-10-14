@@ -407,10 +407,10 @@ fn append_line(path: &Path, value: &Value) -> Result<(), String> {
 }
 /// The complete lines of an append-only store file (a torn last line is not read).
 fn read_lines(path: &Path) -> Result<Vec<Value>, String> {
-    let bytes = match std::fs::read(path) {
-        Ok(b) => b,
+    let bytes = match std::fs::symlink_metadata(path) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
-        Err(e) => return Err(format!("records store unreadable: {}: {e}", path.display())),
+        Err(e) => return Err(format!("records store unreadable: {}: {e}",path.display())),
+        Ok(_)=>crate::records_retention::read_plain(path).map_err(|e|format!("records store unreadable: {}: {e}",path.display()))?,
     };
     parse_lines(&bytes, path)
 }

@@ -759,3 +759,9 @@ fn an_original_whose_name_is_not_utf8_is_not_copied() {
     let store_dir = attach(&root, false).unwrap().dir.unwrap();
     assert!(std::fs::read_dir(store_dir.join(CONNECTOR_COPY)).map_or(true, |mut d| d.next().is_none()), "nothing copied under a lossy name");
 }
+
+#[test]
+fn records_store_lines_refuse_fifo_and_final_link_without_changing_torn_tail_parsing(){
+ use std::os::unix::fs::symlink;
+ let own=OwnStore::new();let path=own.0.join("invented-read-lines.jsonl");let regular=b"{\"invented\":\"complete\"}\n{\"torn\":";std::fs::write(&path,regular).unwrap();assert_eq!(read_lines(&path).unwrap(),vec![json!({"invented":"complete"})],"compatibility torn-tail parsing remains unchanged");std::fs::remove_file(&path).unwrap();let c=std::ffi::CString::new(path.as_os_str().as_encoded_bytes()).unwrap();assert_eq!(unsafe{libc::mkfifo(c.as_ptr(),0o600)},0);let before=std::time::Instant::now();assert!(read_lines(&path).is_err());assert!(before.elapsed()<std::time::Duration::from_secs(1));std::fs::remove_file(&path).unwrap();let other=own.0.join("other-owned.jsonl");std::fs::write(&other,b"{\"other\":\"not returned\"}\n").unwrap();symlink(&other,&path).unwrap();assert!(read_lines(&path).is_err());assert_eq!(std::fs::read(&other).unwrap(),b"{\"other\":\"not returned\"}\n");
+}

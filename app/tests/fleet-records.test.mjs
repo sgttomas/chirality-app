@@ -47,3 +47,28 @@ test('busy and failed source reads remain explicit without a fabricated empty pa
   assert.match(failed,/role="alert"/);assert.match(failed,/Fleet read failed: selected project unavailable/);
   assert.doesNotMatch(failed,/0 brief record/);
 });
+
+test('actual private native receipt to persisted reader packet to panel preserves source-qualified links',()=>{
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','conversation_roles::tests::native_links_actual_fork_dispatch_receipt_tick_store_copy_and_reader_dto','--','--exact','--nocapture','--test-threads=1'],{cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'}});
+  assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const line=proc.stdout.split('\n').find(line=>line.includes('NATIVE_LINK_DTO:'));assert.ok(line);
+  const actual=JSON.parse(line.slice(line.indexOf('NATIVE_LINK_DTO:')+'NATIVE_LINK_DTO:'.length));
+  const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:actual,error:'',busy:false,refresh:()=>{}}));
+  const row=actual.coordination.nativeRelationships[0];
+  assert.equal(actual.coordination.nativeRelationships.length,1);
+  assert.match(html,/Recorded native conversation links/);assert.match(html,/forked from/);
+  for(const id of [row.record.observationId,row.record.body.source.threadId,row.record.body.thread.threadId,row.record.body.rpc.requestRef,row.record.body.nativeHome.homeId])assert.ok(html.includes(id));
+  assert.match(html,/does not activate a conversation/);assert.match(html,/0.1 undertaking fields establish no native join/);
+  assert.doesNotMatch(html,/<button[^>]*>.*(?:Dispatch|Restore role|Integrate|Select undertaking)/);
+});
+
+test('actual mixed-profile packet keeps mechanical outcomes separate from its sole native relationship',()=>{
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','fleet_records::tests::fleet_reader_native_links_mixed_profile_keeps_legacy_quoted_and_mechanical_separate','--','--exact','--nocapture','--test-threads=1'],{cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'}});
+  assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const line=proc.stdout.split('\n').find(line=>line.includes('NATIVE_LINK_MIXED_DTO:'));assert.ok(line);
+  const actual=JSON.parse(line.slice(line.indexOf('NATIVE_LINK_MIXED_DTO:')+'NATIVE_LINK_MIXED_DTO:'.length));
+  const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:actual,error:'',busy:false,refresh:()=>{}}));
+  assert.equal(actual.coordination.nativeRelationships.length,1);assert.equal(actual.coordination.recordingEvents.length,1);
+  assert.match(html,/Native link recording outcomes/);assert.match(html,/recording_limit/);assert.match(html,/Invented copy failure; native success unchanged/);
+  assert.match(html,/quoted 0.1 compatibility record/);assert.match(html,/undertaking\/thread fields establish no native conversation relationship/);
+});

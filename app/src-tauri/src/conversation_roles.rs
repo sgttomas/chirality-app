@@ -59,6 +59,22 @@ struct Handoff {
     /// `{"state":"sent","turnId":…}` or `{"state":"failed","reason":…}`.
     request: Value,
     started: Option<Value>,
+    native_owner:Option<std::sync::Weak<crate::hosting::Host>>,
+}
+
+/// Frozen source of an actual admitted Continue-as handoff. No JSON constructor,
+/// Serde, or operational authority: it can only identify a recorded relation.
+pub(crate) struct ContinuationSource {
+    generation: Value,
+    thread: String,
+    handoff: String,
+    native_owner:Option<std::sync::Weak<crate::hosting::Host>>,
+}
+impl ContinuationSource {
+    pub(crate) fn generation(&self)->&Value { &self.generation }
+    pub(crate) fn thread(&self)->&str { &self.thread }
+    pub(crate) fn handoff(&self)->&str { &self.handoff }
+    pub(crate) fn belongs_to(&self,host:&crate::hosting::Host)->bool {self.native_owner.as_ref().and_then(std::sync::Weak::upgrade).is_some_and(|owner|std::ptr::eq(owner.as_ref(),host))}
 }
 
 /// App process memory only: open "Continue as" handoffs. A dismissed or
@@ -116,6 +132,7 @@ impl Handoffs {
             request_text: handoff_request_text(target),
             request: json!({"state":"sending"}),
             started: None,
+            native_owner:None,
         };
         let reserved = (handoff.id.clone(), handoff.request_text.clone());
         self.open.push(handoff);
@@ -166,6 +183,14 @@ impl Handoffs {
             "sourceRole":h.source_role,"handoff":h.id}))
     }
 
+    /// Read-only proof from the actual handoff after the existing home/role/
+    /// not-started guards; callers freeze this before the native start.
+    pub(crate) fn continuation_with_source(&self,id:&str,generation:&Value,role:Option<Role>)->Result<(Value,ContinuationSource),String> {
+        let context=self.continuation(id,generation,role)?;
+        let h=self.open.iter().find(|h|h.id==id).ok_or("Continue-as source unavailable")?;
+        Ok((context,ContinuationSource {generation:h.generation.clone(),thread:h.source_thread.clone(),handoff:h.id.clone(),native_owner:h.native_owner.clone()}))
+    }
+    pub(crate) fn continuation_source(&self,id:&str,generation:&Value,role:Option<Role>)->Result<ContinuationSource,String> {self.continuation_with_source(id,generation,role).map(|(_,source)|source)}
     pub fn started(&mut self, id: &str, thread: &str, generation: &Value) {
         if let Some(h) = self.open.iter_mut().find(|h| h.id == id) {
             h.started = Some(json!({"threadId":thread,"generation":generation}));
@@ -310,7 +335,24 @@ pub(crate) fn frozen_limit_account(composition: &crate::role_supply::Composition
 /// `Host::thread_fork_dispatch`), the forked conversation admitted from its
 /// correlated result, and its role bound as inherited from the source's
 /// original binding.
-pub fn fork_conversation(home: &crate::runtime_session::HomeSession, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<Value, String> {
+/// Source-issued successful fork, not deserializable or reconstructed from UI data.
+pub(crate) struct AdmittedFork {result:Value,source:crate::hosting::SourceRequest}
+impl AdmittedFork {
+    pub(crate) fn result(&self)->&Value {&self.result}
+    pub(crate) fn source(&self)->&crate::hosting::SourceRequest {&self.source}
+    pub(crate) fn into_result(self)->Value {self.result}
+}
+pub fn fork_conversation(home:&crate::runtime_session::HomeSession,generation:&Value,source_thread:&str,wait:std::time::Duration)->Result<Value,String> {
+    fork_conversation_observed(home,generation,source_thread,wait).map(AdmittedFork::into_result)
+}
+pub(crate) fn fork_conversation_observed(home: &crate::runtime_session::HomeSession, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<AdmittedFork, String> {
+    let mut source=None;
+    let result=fork_conversation_tracked(home,generation,source_thread,wait,|receipt|source=Some(receipt.clone()))?;
+    Ok(AdmittedFork {result,source:source.ok_or("successful fork lacks its original source receipt")?})
+}
+/// Retain the genuine dispatch even when the following native wait remains
+/// unknown. The callback cannot alter the original command/result semantics.
+pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSession, generation: &Value, source_thread: &str, wait: std::time::Duration, on_dispatch:impl FnOnce(&crate::hosting::SourceRequest)) -> Result<Value, String> {
     let supply_ref=crate::util::opaque_id("sup:")?;
     let receipt = match home.host.thread_fork_dispatch(generation, source_thread) {
         Ok(receipt)=>receipt,
@@ -321,6 +363,7 @@ pub fn fork_conversation(home: &crate::runtime_session::HomeSession, generation:
             return Err(format!("{reason}; role supply observation: {publication}"));
         }
     };
+    on_dispatch(&receipt);
     home.history.lock().unwrap().fork_dispatched_with_supply(receipt.clone(),source_thread,&supply_ref)?;
     let waited = home.host.source_request_wait(&receipt, wait);
     let mut history=home.history.lock().unwrap();history.reconcile(&home.host);
@@ -354,7 +397,7 @@ pub(crate) fn continue_as_begin(
     let source_role = home.history.lock().unwrap().binding(&home_name, thread)
         .map(|binding| binding.role_in_force(&home_name, thread))
         .unwrap_or(RoleInForce::Unknown { reason: "original App supply binding not established".into() });
-    let (id, text) = handoffs.lock().unwrap().reserve(generation, thread, source_role, target)?;
+    let (id,text)={let mut owner=handoffs.lock().unwrap();let(id,text)=owner.reserve(generation,thread,source_role,target)?;owner.open.iter_mut().find(|h|h.id==id).unwrap().native_owner=Some(std::sync::Arc::downgrade(&home.host));(id,text)};
     let outcome = match crate::runtime_session::send_with_pending_notice_in_mode(workflows, generation, thread, &text, None) {
         Some(sent) => notice_turn_outcome(sent),
         None => crate::runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, &text,
@@ -376,10 +419,15 @@ fn notice_turn_outcome(sent: crate::runtime_session::NoticeSend) -> Result<Value
 
 /// `thread_start` with `continue_as` (CA-3): the relation to record, read from
 /// the open handoff in the start's own home, or a refusal before anything is sent.
-pub(crate) fn continuation_for_start(handoffs: &std::sync::Mutex<Handoffs>, home: &crate::runtime_session::HomeSession, continue_as: Option<&str>, role: Option<Role>) -> Result<Option<Value>, String> {
+pub(crate) fn continuation_for_start(handoffs:&std::sync::Mutex<Handoffs>,home:&crate::runtime_session::HomeSession,continue_as:Option<&str>,role:Option<Role>)->Result<Option<Value>,String> {
+    continuation_for_start_observed(handoffs,home,continue_as,role).map(|(context,_)|context)
+}
+/// One actual Handoffs guard and one current home generation produce both
+/// original start metadata and a private source proof before dispatch.
+pub(crate) fn continuation_for_start_observed(handoffs:&std::sync::Mutex<Handoffs>,home:&crate::runtime_session::HomeSession,continue_as:Option<&str>,role:Option<Role>)->Result<(Option<Value>,Option<ContinuationSource>),String> {
     match continue_as {
-        Some(id) => handoffs.lock().unwrap().continuation(id, &home.host.snapshot()["generation"], role).map(Some),
-        None => Ok(None),
+        Some(id)=>{let generation=home.host.snapshot()["generation"].clone();let(context,source)=handoffs.lock().unwrap().continuation_with_source(id,&generation,role)?;Ok((Some(context),Some(source)))},
+        None=>Ok((None,None)),
     }
 }
 
