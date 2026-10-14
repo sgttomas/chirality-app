@@ -12068,6 +12068,7 @@ for line in sys.stdin:
     }
     // WR TX-5 / SQ-END, (d), (j): restart residuals.
     include!("role_r3_run_tests.rs");
+    include!("records_access_role_tests.rs");
     include!("run_restart_tests.rs");
     include!("workflow_chat_selection_tests.rs");
     // RS §14 / DEL-01-02 §7: multi-year scale measurement (ignored; run on request).

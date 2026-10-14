@@ -17,7 +17,7 @@ pub const FORMAT: &str = "chirality.role.supply.observation";
 mod receiving;
 #[cfg(test)]
 pub(crate) use receiving::FAIL_CONTEXT_AFTER_FILE_SYNC;
-pub(crate) use receiving::{PublishedRoleSupply, PreparedRoleRunSupply, read_r3, read_r3_with_relations, read_project_sources};
+pub(crate) use receiving::{PublishedRoleSupply, PreparedRoleRunSupply, read_r3, read_r3_with_relations, read_project_sources, BoundedRoleReading};
 
 pub const OLD_SCHEMA: &str = include_str!("../resources/workflow_role/role-supply-observation-0.1.schema.json");
 pub const SCHEMA: &str =
@@ -25,6 +25,9 @@ pub const SCHEMA: &str =
 const FOLDER: &str = "role-supply";
 const LOG: &str = "observations.jsonl";
 pub(crate) const RELATIVE_LOG: &str = "role-supply/observations.jsonl";
+const METADATA_BUDGET: &str = "role metadata source budget exceeded";
+#[cfg(test)]
+thread_local! {pub(crate) static METADATA_BEFORE_READ:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const {std::cell::RefCell::new(None)};}
 const STANDING: &str = "Quoted App supply observations; mutable file provenance is unverified. No current role, CCE authority, provider adoption or human act is established.";
 #[cfg(test)]
 thread_local! {
@@ -268,6 +271,16 @@ impl RoleLog {
         folder: &File,
         path: &Path,
     ) -> Result<(Vec<Value>, record_lines::Chain, Option<LogBasis>), String> {
+        Self::read_lines_bounded(folder, path, None)
+    }
+    // The capability's read-side hook shares the full reader's chain/schema
+    // checks. The descriptor's Take bound also caps newline-free/racing input;
+    // overflow is never parsed as a successful truncated source.
+    fn read_lines_bounded(
+        folder: &File,
+        path: &Path,
+        limit: Option<usize>,
+    ) -> Result<(Vec<Value>, record_lines::Chain, Option<LogBasis>), String> {
         let file = match open_at(folder, LOG, libc::O_RDONLY) {
             Ok(f) => f,
             Err(e) => {
@@ -290,7 +303,15 @@ impl RoleLog {
         };
         plain(&file)?;
         let before = file.metadata().map_err(|e| e.to_string())?;
-        let mut reader = BufReader::new(file);
+        if limit.is_some_and(|limit| before.len() > limit as u64) {
+            return Err(METADATA_BUDGET.into());
+        }
+        #[cfg(test)]
+        if limit.is_some() {
+            if let Some(hook) = METADATA_BEFORE_READ.with(|h| h.borrow_mut().take()) { hook(); }
+        }
+        let mut reader = BufReader::new((&file).take(limit.map_or(u64::MAX, |n| n as u64 + 1)));
+        let mut consumed = 0usize;
         let mut rows = vec![];
         let mut identities = std::collections::BTreeSet::new();
         let mut chain = record_lines::Chain::default();
@@ -303,6 +324,10 @@ impl RoleLog {
                 == 0
             {
                 break;
+            }
+            consumed = consumed.saturating_add(raw.len());
+            if limit.is_some_and(|limit| consumed > limit) {
+                return Err(METADATA_BUDGET.into());
             }
             if raw.pop() != Some(b'\n') {
                 return Err(
@@ -353,7 +378,7 @@ impl RoleLog {
             chain.step(chain.lines + 1, &raw, row.get("prevLine"))?;
             rows.push(row);
         }
-        let after = reader.get_ref().metadata().map_err(|e| e.to_string())?;
+        let after = file.metadata().map_err(|e| e.to_string())?;
         if (
             before.len(),
             before.mtime(),
@@ -369,7 +394,7 @@ impl RoleLog {
         ) {
             return Err("role observation log changed during read".into());
         }
-        verify_leaf(folder, LOG, reader.get_ref())?;
+        verify_leaf(folder, LOG, &file)?;
         if let Some(limit) =
             record_lines::links_removed(&path.join(LOG), "role supply observations", &chain)
         {

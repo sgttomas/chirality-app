@@ -595,7 +595,12 @@ impl RecordsCapability {
             Err(reason) => (refusal_text(&read_id, &reason), false, json!({"outcome":"refused","refusal":reason})),
             Ok(request) => {
                 let corpus = self.source.read();
-                let prepared = self.project_identity().map(|_|bounded_document(&read_id, &request, page(&corpus, &request, &self.root)));
+                let prepared = self.project_identity().map(|_| {
+                    let (text, mut page) = bounded_document(&read_id, &request, page(&corpus, &request, &self.root));
+                    if text.is_none() || request.operation != "read_run" { return (text, page); }
+                    enrich_role_metadata(&self.project, &corpus, &read_id, &request, &mut page);
+                    (Some(document_text(&read_id, &request, &page)), page)
+                });
                 match prepared {
                     Err(reason) => (refusal_text(&read_id,&reason), false, json!({"outcome":"refused","refusal":reason})),
                     Ok((text,page)) => match text {
@@ -654,10 +659,7 @@ impl RecordsCapability {
 /// when not even an empty page fits.
 fn bounded_document(read_id: &str, request: &Request, mut page: Page) -> (Option<String>, Page) {
     loop {
-        let text = serde_json::to_string(&json!({"format":"chirality.records-read","formatVersion":"0.1","readId":read_id,"standing":STANDING,
-            "excluded":EXCLUDED,"scope":"this conversation's project only","operation":request.operation,"run":request.run,"subject":request.subject,
-            "items":page.items,"next":page.next,"limits":page.limits}))
-        .unwrap_or_default();
+        let text = document_text(read_id, request, &page);
         if text.len() <= RESPONSE_LIMIT {
             return (Some(text), page);
         }
@@ -667,6 +669,45 @@ fn bounded_document(read_id: &str, request: &Request, mut page: Page) -> (Option
         let kept = page.items.len();
         page.next = Some(format!("o:{}", request.offset + kept));
         page.record_ids.truncate(kept.min(page.record_ids.len()));
+    }
+}
+fn document_text(read_id: &str, request: &Request, page: &Page) -> String {
+    serde_json::to_string(&json!({"format":"chirality.records-read","formatVersion":"0.1","readId":read_id,"standing":STANDING,
+        "excluded":EXCLUDED,"scope":"this conversation's project only","operation":request.operation,"run":request.run,"subject":request.subject,
+        "items":page.items,"next":page.next,"limits":page.limits})).unwrap_or_default()
+}
+// Enrich only original, already retained full role R3 items. An optional
+// companion has its own 2 KiB implementation bound and is stubbed/dropped first:
+// the original item, page positions, source, cursor and recordIds never change.
+fn enrich_role_metadata(project: &Path, corpus: &Corpus, read_id: &str, request: &Request, page: &mut Page) {
+    let originals: Vec<_> = corpus.entries.iter()
+        .filter(|e| e.entry["runId"].as_str() == request.run.as_deref())
+        .skip(request.offset).take(page.items.len()).collect();
+    let mut reader = crate::role_observations::BoundedRoleReading::new(project, corpus);
+    let mut readings = Vec::new();
+    for (n, (item, original)) in page.items.iter().zip(originals).enumerate() {
+        if item["quoted"].get("omitted").is_none()
+            && original.entry["kind"] == "supplied_guidance"
+            && ["role guidance at conversation start", "role guidance inherited at fork"]
+                .contains(&original.entry["body"]["supplyForm"].as_str().unwrap_or("")) {
+            let mut reading = reader.reading(&original.entry);
+            if serde_json::to_vec(&reading).map_or(true, |r| r.len() > 2048) {
+                reading = crate::role_observations::BoundedRoleReading::omitted("role-companion-size-omitted");
+            }
+            readings.push((n, reading));
+        }
+    }
+    if let Err(code) = reader.finish() {
+        for (_, reading) in &mut readings { *reading = crate::role_observations::BoundedRoleReading::omitted(code); }
+    }
+    for (n, reading) in readings {
+        page.items[n]["supplierReading"] = reading;
+        if document_text(read_id, request, page).len() > RESPONSE_LIMIT {
+            page.items[n]["supplierReading"] = crate::role_observations::BoundedRoleReading::omitted("role-companion-page-budget-omitted");
+            if document_text(read_id, request, page).len() > RESPONSE_LIMIT {
+                page.items[n].as_object_mut().unwrap().remove("supplierReading");
+            }
+        }
     }
 }
 fn refusal_text(read_id: &str, reason: &str) -> String {

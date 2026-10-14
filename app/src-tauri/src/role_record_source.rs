@@ -867,3 +867,562 @@ pub(crate) fn read_r3_with_relations(project: &Path, entry: &Value, relations: &
     );
     reading
 }
+
+// Capability companion only. These are implementation/test limits, not product
+// commitments. The existing full correspondence receiver and publishers above
+// retain their original behavior. No WR/library source is read by this receiver.
+const METADATA_TOTAL: usize = 2 * 1024 * 1024;
+const METADATA_ROLE_LOG: usize = 1024 * 1024;
+const METADATA_RUN_LOG: usize = 512 * 1024;
+const METADATA_JSON: usize = 64 * 1024;
+const METADATA_GUIDANCE: usize = 512 * 1024;
+const METADATA_FILES: usize = 64;
+const METADATA_LINEAGE: usize = 8;
+const RELATION_CLAIMS: usize = 128;
+const RELATION_BYTES: usize = 512 * 1024;
+const RELATION_INSPECTIONS: usize = 200_000;
+const META_UNAVAILABLE: &str = "role-source-unavailable";
+const META_BUDGET: &str = "role-source-budget-omitted";
+const META_TUPLE: &str = "role-source-tuple-inconsistent";
+const META_RELATION: &str = "role-record-relation-unknown";
+const META_CORRECTED: &str = "role-record-has-corrections";
+type MetadataResult<T> = Result<T, &'static str>;
+
+/// Answer-local, descriptor-bounded historical metadata reader. It cannot mint
+/// a receipt/binding and never returns raw observation, instruction or WR bytes.
+/// One ordinary Corpus is already read for the requested page; relation work
+/// below borrows it rather than scanning project RS files a second time.
+pub(crate) struct BoundedRoleReading<'a> {
+    project: &'a Path,
+    corpus: &'a crate::records_access::Corpus,
+    log: Option<RoleLog>,
+    role_rows: Option<Vec<Value>>,
+    role_path: Option<PathBuf>,
+    folder: Option<File>,
+    admission: Option<storage::Ownership>,
+    payloads: std::collections::BTreeMap<String, Vec<u8>>,
+    runs: std::collections::BTreeMap<String, Vec<Value>>,
+    held: Vec<(PathBuf, File, File, LogBasis)>,
+    remaining: usize,
+    files: usize,
+    inspections: usize,
+    failed: Option<&'static str>,
+}
+impl<'a> BoundedRoleReading<'a> {
+    pub(crate) fn new(project: &'a Path, corpus: &'a crate::records_access::Corpus) -> Self {
+        Self {
+            project,
+            corpus,
+            log: None,
+            role_rows: None,
+            role_path: None,
+            folder: None,
+            admission: None,
+            payloads: Default::default(),
+            runs: Default::default(),
+            held: vec![],
+            remaining: METADATA_TOTAL,
+            files: 0,
+            inspections: 0,
+            failed: None,
+        }
+    }
+    fn allocation(&mut self, bound: usize) -> MetadataResult<usize> {
+        if self.files >= METADATA_FILES || self.remaining == 0 {
+            return Err(META_BUDGET);
+        }
+        self.files += 1;
+        Ok(bound.min(self.remaining))
+    }
+    fn role_rows(&mut self) -> MetadataResult<()> {
+        if self.role_rows.is_some() {
+            return Ok(());
+        }
+        let log = RoleLog::open(self.project).map_err(|_| META_UNAVAILABLE)?;
+        let Some((path, folder, admission, _)) =
+            log.location(false).map_err(|_| META_UNAVAILABLE)?
+        else {
+            return Err(META_UNAVAILABLE);
+        };
+        let bound = self.allocation(METADATA_ROLE_LOG)?;
+        let (rows, _, basis) =
+            RoleLog::read_lines_bounded(&folder, &path, Some(bound)).map_err(|e| {
+                if e == METADATA_BUDGET {
+                    META_BUDGET
+                } else {
+                    META_UNAVAILABLE
+                }
+            })?;
+        let basis = basis.ok_or(META_UNAVAILABLE)?;
+        self.remaining = self.remaining.saturating_sub(basis.length as usize);
+        let file = open_at(&folder, LOG, libc::O_RDONLY).map_err(|_| META_UNAVAILABLE)?;
+        plain(&file).map_err(|_| META_UNAVAILABLE)?;
+        if LogBasis::of(&file.metadata().map_err(|_| META_UNAVAILABLE)?) != basis {
+            return Err(META_UNAVAILABLE);
+        }
+        self.held.push((
+            path.join(LOG),
+            folder.try_clone().map_err(|_| META_UNAVAILABLE)?,
+            file,
+            basis,
+        ));
+        self.log = Some(log);
+        self.role_rows = Some(rows);
+        self.role_path = Some(path);
+        self.folder = Some(folder);
+        self.admission = admission;
+        Ok(())
+    }
+    fn bytes(&mut self, path: &Path, bound: usize) -> MetadataResult<Vec<u8>> {
+        let bound = self.allocation(bound)?;
+        let parent_path = path.parent().ok_or(META_UNAVAILABLE)?;
+        let parent = directory(parent_path).map_err(|_| META_UNAVAILABLE)?;
+        let leaf = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or(META_UNAVAILABLE)?;
+        let file = open_at(&parent, leaf, libc::O_RDONLY).map_err(|_| META_UNAVAILABLE)?;
+        plain(&file).map_err(|_| META_UNAVAILABLE)?;
+        let before = LogBasis::of(&file.metadata().map_err(|_| META_UNAVAILABLE)?);
+        if before.length > bound as u64 {
+            return Err(META_BUDGET);
+        }
+        let mut raw = Vec::new();
+        (&file)
+            .take(bound as u64 + 1)
+            .read_to_end(&mut raw)
+            .map_err(|_| META_UNAVAILABLE)?;
+        if raw.len() > bound {
+            return Err(META_BUDGET);
+        }
+        self.remaining -= raw.len();
+        if before != LogBasis::of(&file.metadata().map_err(|_| META_UNAVAILABLE)?) {
+            return Err(META_UNAVAILABLE);
+        }
+        verify_directory(parent_path, &parent).map_err(|_| META_UNAVAILABLE)?;
+        verify_leaf(&parent, leaf, &file).map_err(|_| META_UNAVAILABLE)?;
+        self.held.push((path.to_owned(), parent, file, before));
+        Ok(raw)
+    }
+    fn payload(&mut self, reference: &Value, bound: usize) -> MetadataResult<Vec<u8>> {
+        let id = &reference["content"];
+        let key = payload_key(id).map_err(|_| META_TUPLE)?.to_owned();
+        let length = reference["byteLength"].as_u64().ok_or(META_TUPLE)?;
+        if length > bound as u64 {
+            return Err(META_BUDGET);
+        }
+        if let Some(raw) = self.payloads.get(&key) {
+            return if raw.len() as u64 == length {
+                Ok(raw.clone())
+            } else {
+                Err(META_TUPLE)
+            };
+        }
+        let path = self
+            .role_path
+            .as_ref()
+            .ok_or(META_UNAVAILABLE)?
+            .join("content")
+            .join(format!("{key}.utf8"));
+        let raw = self.bytes(&path, bound)?;
+        if raw.len() as u64 != length || role_supply::content(&raw) != *id {
+            return Err(META_UNAVAILABLE);
+        }
+        self.payloads.insert(key, raw.clone());
+        Ok(raw)
+    }
+    fn owning_run(&mut self, run: &str) -> MetadataResult<Vec<Value>> {
+        if let Some(entries) = self.runs.get(run) {
+            return Ok(entries.clone());
+        }
+        let home = records_store::home(self.project).map_err(|_| META_UNAVAILABLE)?;
+        if home.attachment.refusal.is_some() {
+            return Err(META_UNAVAILABLE);
+        }
+        let directory = home.attachment.dir.ok_or(META_UNAVAILABLE)?;
+        let path = directory.join(storage::log_rel(
+            Some(run),
+            crate::records::supply::LIVE_WRITER,
+        ));
+        let raw = self.bytes(&path, METADATA_RUN_LOG)?;
+        let name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or(META_UNAVAILABLE)?;
+        let parsed = record_lines::parse(&raw, name, 0, 0, 1, Default::default());
+        if parsed.partial_tail.is_some()
+            || record_lines::links_removed(&path, name, &parsed.chain).is_some()
+            || parsed.lines.iter().any(|l| !l.limits.is_empty())
+        {
+            return Err(META_UNAVAILABLE);
+        }
+        let entries: Vec<Value> = parsed.lines.into_iter().flat_map(|l| l.entries).collect();
+        self.runs.insert(run.to_owned(), entries.clone());
+        Ok(entries)
+    }
+    fn relations(&mut self, entry: &Value, opened: &Value) -> MetadataResult<()> {
+        use std::collections::{BTreeSet, HashSet};
+        if !self.corpus.limits.is_empty() {
+            return Err(META_RELATION);
+        }
+        let mut relevant: BTreeSet<String> = [entry, opened]
+            .into_iter()
+            .filter_map(|e| e["recordId"].as_str().map(str::to_owned))
+            .collect();
+        if relevant.len() != 2 {
+            return Err(META_RELATION);
+        }
+        if relevant.iter().any(|id| id.len() > 256) {
+            return Err(META_BUDGET);
+        }
+        loop {
+            let mut changed = false;
+            for source in &self.corpus.entries {
+                self.inspections += 1;
+                if self.inspections > RELATION_INSPECTIONS {
+                    return Err(META_BUDGET);
+                }
+                let e = &source.entry;
+                if let (Some(id), Some(target)) = (e["recordId"].as_str(), e["corrects"].as_str()) {
+                    if relevant.contains(id) || relevant.contains(target) {
+                        if id.len() > 256 || target.len() > 256 {
+                            return Err(META_BUDGET);
+                        }
+                        changed |= relevant.insert(id.to_owned());
+                        changed |= relevant.insert(target.to_owned());
+                        if relevant.len() > RELATION_CLAIMS {
+                            return Err(META_BUDGET);
+                        }
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        let mut claims = Vec::new();
+        let mut bytes = 0usize;
+        let mut complete = HashSet::new();
+        for source in &self.corpus.entries {
+            self.inspections += 1;
+            if self.inspections > RELATION_INSPECTIONS {
+                return Err(META_BUDGET);
+            }
+            if source.entry["recordId"]
+                .as_str()
+                .is_some_and(|id| relevant.contains(id))
+            {
+                // Count before copying: one oversized correction body must not
+                // allocate an unbounded second JSON record tree.
+                struct Count(usize);
+                impl Write for Count {
+                    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+                        if b.len() > self.0 {
+                            return Err(std::io::Error::other("bound"));
+                        }
+                        self.0 -= b.len();
+                        Ok(b.len())
+                    }
+                    fn flush(&mut self) -> std::io::Result<()> {
+                        Ok(())
+                    }
+                }
+                let mut count = Count(RELATION_BYTES.saturating_sub(bytes));
+                serde_json::to_writer(&mut count, &source.entry).map_err(|_| META_BUDGET)?;
+                bytes = RELATION_BYTES - count.0;
+                if source.log.len() > 1024 || claims.len() == RELATION_CLAIMS {
+                    return Err(META_BUDGET);
+                }
+                let claim = json!({"record":source.entry,"source":{"log":source.log}});
+                complete.insert(source.log.clone());
+                claims.push(claim);
+            }
+        }
+        for target in [entry, opened] {
+            if claims
+                .iter()
+                .filter(|c| c["record"]["recordId"] == target["recordId"])
+                .count()
+                != 1
+                || !claims.iter().any(|c| c["record"] == *target)
+            {
+                return Err(META_RELATION);
+            }
+        }
+        let analysis = crate::decision_view::record_relations::analyze(&claims, &complete);
+        for claim in &claims {
+            let id = claim["record"]["recordId"].as_str().ok_or(META_RELATION)?;
+            let state = analysis.claim_state(id);
+            if state.nonconformant
+                || state.relation_limit.is_some()
+                || state.identity_resolution != "unique readable identity"
+            {
+                return Err(META_RELATION);
+            }
+        }
+        if [entry, opened].iter().any(|e| {
+            analysis
+                .claim_state(e["recordId"].as_str().unwrap())
+                .corrected
+        }) {
+            return Err(META_CORRECTED);
+        }
+        Ok(())
+    }
+    fn read(&mut self, entry: &Value) -> MetadataResult<Value> {
+        if !is_role(entry) {
+            return Err(META_TUPLE);
+        }
+        crate::schema_validation::bundled()
+            .map_err(|_| META_TUPLE)?
+            .validate(entry)
+            .map_err(|_| META_TUPLE)?;
+        let body = &entry["body"];
+        let encoded = body["supplyRecord"]["ref"]
+            .as_str()
+            .and_then(|s| s.strip_prefix("role-run:v1:"))
+            .ok_or(META_TUPLE)?;
+        let tuple: Value = serde_json::from_str(encoded).map_err(|_| META_TUPLE)?;
+        let project = tuple[0].as_str().ok_or(META_TUPLE)?;
+        let ids = tuple[1]
+            .as_array()
+            .filter(|a| !a.is_empty())
+            .ok_or(META_TUPLE)?;
+        if tuple.as_array().is_none_or(|a| a.len() != 3) {
+            return Err(META_TUPLE);
+        }
+        if ids.len() > METADATA_LINEAGE {
+            return Err(META_BUDGET);
+        }
+        let current = records_store::attach(self.project, false)
+            .map_err(|_| META_UNAVAILABLE)?
+            .project
+            .ok_or(META_UNAVAILABLE)?;
+        if project != current {
+            return Err("role-source-other-project");
+        }
+        self.role_rows()?;
+        let all = self.role_rows.as_ref().unwrap();
+        let mut rows = Vec::new();
+        let mut seen = std::collections::BTreeSet::new();
+        for id in ids {
+            let id = id
+                .as_str()
+                .filter(|s| seen.insert((*s).to_owned()))
+                .ok_or(META_TUPLE)?;
+            let found: Vec<_> = all
+                .iter()
+                .filter(|r| r["format"] == FORMAT && r["observationId"] == id)
+                .collect();
+            if found.len() != 1 {
+                return Err(META_UNAVAILABLE);
+            }
+            let row = found[0];
+            unique_success(all, row).map_err(|_| META_TUPLE)?;
+            if row["project"]["projectId"] != project
+                || !["supplied", "inherited"].contains(&row["outcome"].as_str().unwrap_or(""))
+            {
+                return Err(META_TUPLE);
+            }
+            rows.push(row.clone());
+        }
+        for pair in rows.windows(2) {
+            let (fork, parent) = (&pair[0], &pair[1]);
+            if fork["trigger"] != "fork"
+                || fork["outcome"] != "inherited"
+                || fork["lineage"]["inheritedFrom"] != parent["supplyId"]
+                || fork["lineage"]["sourceThread"] != parent["thread"]
+                || fork["request"]["home"] != parent["request"]["home"]
+                || fork["request"]["generation"]["appSession"]
+                    != parent["request"]["generation"]["appSession"]
+                || fork["selection"]["role"] != parent["selection"]["role"]
+            {
+                return Err(META_TUPLE);
+            }
+        }
+        let source = rows.last().unwrap();
+        if source["trigger"] != "thread-start" || source["outcome"] != "supplied" {
+            return Err(META_TUPLE);
+        }
+        // Read only the named original payloads, each through a hard bounded
+        // descriptor. Content bytes are private temporary integrity evidence,
+        // never reconstructed in the returned metadata or retained after answer.
+        let composed = self.payload(&source["appBytes"]["composed"], METADATA_GUIDANCE)?;
+        let carried = &source["carried"]["developerInstructions"];
+        let metadata = carried["parts"].as_array().ok_or(META_TUPLE)?;
+        let refs = source["appBytes"]["parts"].as_array().ok_or(META_TUPLE)?;
+        if metadata.len() != refs.len()
+            || carried["content"] != role_supply::content(&composed)
+            || carried["byteLength"].as_u64() != Some(composed.len() as u64)
+            || std::str::from_utf8(&composed).is_err()
+        {
+            return Err(META_TUPLE);
+        }
+        for (part, reference) in metadata.iter().zip(refs) {
+            let raw = self.payload(reference, METADATA_GUIDANCE)?;
+            let start = usize::try_from(part["offset"].as_u64().ok_or(META_TUPLE)?)
+                .map_err(|_| META_TUPLE)?;
+            let len = usize::try_from(part["length"].as_u64().ok_or(META_TUPLE)?)
+                .map_err(|_| META_TUPLE)?;
+            if part["content"] != role_supply::content(&raw)
+                || composed.get(start..start.checked_add(len).ok_or(META_TUPLE)?)
+                    != Some(raw.as_slice())
+                || std::str::from_utf8(&raw).is_err()
+            {
+                return Err(META_TUPLE);
+            }
+        }
+        let limit_ref_payload = &source["appBytes"]["limitAccount"];
+        let account: Value =
+            serde_json::from_slice(&self.payload(limit_ref_payload, METADATA_JSON)?)
+                .map_err(|_| META_UNAVAILABLE)?;
+        validate_limit(&account).map_err(|_| META_UNAVAILABLE)?;
+        let role_parts: Vec<_> = metadata
+            .iter()
+            .filter(|p| p["kind"] == "role-guidance")
+            .collect();
+        let expected = role_parts
+            .first()
+            .map(|p| json!({"content":p["content"],"source":p["source"]}))
+            .unwrap_or(Value::Null);
+        if role_parts.len() > 1
+            || account["role"] != source["selection"]["role"]
+            || account["roleSet"] != source["selection"]["roleSet"]
+            || account["composedContent"] != carried["content"]
+            || account["roleGuidance"] != expected
+            || (account["role"] == "none") != role_parts.is_empty()
+            || account["role"] == "none"
+                && account["limits"].as_array().is_none_or(|l| !l.is_empty())
+            || expected["source"]["state"] == "modified"
+                && account["limits"]
+                    .as_array()
+                    .is_some_and(|l| l.iter().any(|v| v["standing"] != "unknown"))
+            || role_parts
+                .first()
+                .is_some_and(|p| p["role"] != account["role"])
+        {
+            return Err(META_TUPLE);
+        }
+        let context: Value = serde_json::from_slice(&self.payload(&tuple[2], METADATA_JSON)?)
+            .map_err(|_| META_UNAVAILABLE)?;
+        validate_context(&context).map_err(|_| META_UNAVAILABLE)?;
+        let first = &rows[0];
+        if context["projectId"] != project
+            || context["roleSource"] != source_ref(project, &rows)
+            || context["limitAccount"] != limit_ref(project, source).map_err(|_| META_TUPLE)?
+            || context["home"] != first["request"]["home"]
+            || context["thread"] != first["thread"]
+            || context["generation"]["home"] != context["home"]
+            || context["generation"]["appSession"] != first["request"]["generation"]["appSession"]
+            || body["supplyForm"]
+                != if first["trigger"] == "fork" {
+                    "role guidance inherited at fork"
+                } else {
+                    "role guidance at conversation start"
+                }
+            || body["thread"] != first["thread"]
+            || body["sourceIdentity"] != context["roleSource"]
+            || body["content"] != carried["content"]
+            || body["adoption"] != "unknown"
+            || body["limitAccount"]["ref"] != context["limitAccount"]
+        {
+            return Err(META_TUPLE);
+        }
+        let run = entry["runId"].as_str().ok_or(META_TUPLE)?;
+        let entries = self.owning_run(run)?;
+        let opened: Vec<_> = entries
+            .iter()
+            .filter(|e| e["kind"] == "run_opened" && e["runId"] == run)
+            .collect();
+        if entries
+            .iter()
+            .filter(|e| e["recordId"] == entry["recordId"])
+            .count()
+            != 1
+            || !entries.iter().any(|e| e == entry)
+            || opened.len() != 1
+            || context["run"] != run
+        {
+            return Err(META_TUPLE);
+        }
+        let opened = opened[0];
+        if opened["recordId"] != context["opened"]["recordId"]
+            || opened["observedAt"] != context["opened"]["observedAt"]
+            || body_identity(&opened["body"]).map_err(|_| META_TUPLE)?
+                != context["opened"]["content"]
+            || opened["body"]["conversationRef"] != first["thread"]
+            || opened["body"]["workflow"]["sourceRoot"] != context["scope"]["sourceRoot"]
+            || opened["body"].get("seatRole").is_some_and(|r| {
+                r != if account["role"] == "none" {
+                    "no role"
+                } else {
+                    account["role"].as_str().unwrap_or("")
+                }
+            })
+        {
+            return Err(META_TUPLE);
+        }
+        self.relations(entry, opened)?;
+        // Explicit allowlist: raw rows/guidance, paths, full generation/request,
+        // free-text limit statements/bases and WR references cannot escape here.
+        // The broad source schema admits open-algorithm/unobtainable identities;
+        // this small companion quotes only supported fixed-size App digests,
+        // never a free-text notObtainable reason or arbitrary method string.
+        payload_key(&account["roleSet"]).map_err(|_| META_TUPLE)?;
+        let limits: Vec<_> = account["limits"].as_array().ok_or(META_TUPLE)?.iter().map(|l|
+            json!({"limitId":l["limitId"],"standing":l["standing"],"presentedAs":l["presentedAs"],"notEnforcement":l.get("notEnforcement").cloned().unwrap_or(json!([]))})).collect();
+        let lineage: Vec<_> = rows.iter().map(|r| json!({"observationId":r["observationId"],"supplyId":r["supplyId"],"thread":r["thread"],"trigger":r["trigger"],"outcome":r["outcome"]})).collect();
+        Ok(
+            json!({"state":"historical role metadata available","projectId":project,"recordId":entry["recordId"],"runId":run,
+            "role":account["role"],"content":carried["content"],"roleSet":account["roleSet"],"lineage":lineage,
+            "limitAccount":{"content":limit_ref_payload["content"],"limits":limits},
+            "runContext":{"content":tuple[2]["content"],"thread":context["thread"],"nativeTurn":context["nativeTurn"],"opened":context["opened"],"requestMethod":context["requestMethod"],"writeResult":context["writeResult"],"outcome":context["outcome"]},
+            "limits":["unsigned-historical-file-provenance","guidance-bytes-withheld","wr-check-omitted"],"adoption":"unknown","currentRoleAuthorityRestored":false}),
+        )
+    }
+    pub(crate) fn reading(&mut self, entry: &Value) -> Value {
+        match self.failed.map_or_else(|| self.read(entry), Err) {
+            Ok(value) => value,
+            Err(code) => {
+                // An exhausted/unsafe batch never reopens sources per R3.
+                if [META_BUDGET, META_UNAVAILABLE].contains(&code) {
+                    self.failed = Some(code);
+                }
+                Self::omitted(code)
+            }
+        }
+    }
+    pub(crate) fn omitted(code: &'static str) -> Value {
+        json!({"state":"historical role metadata omitted","limits":[code,"wr-check-omitted"],"adoption":"unknown","currentRoleAuthorityRestored":false})
+    }
+    pub(crate) fn finish(&self) -> MetadataResult<()> {
+        for (path, held_parent, file, basis) in &self.held {
+            let parent =
+                directory(path.parent().ok_or(META_UNAVAILABLE)?).map_err(|_| META_UNAVAILABLE)?;
+            if identity(&parent).map_err(|_| META_UNAVAILABLE)?
+                != identity(held_parent).map_err(|_| META_UNAVAILABLE)?
+            {
+                return Err(META_UNAVAILABLE);
+            }
+            let leaf = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .ok_or(META_UNAVAILABLE)?;
+            let named = open_at(&parent, leaf, libc::O_RDONLY).map_err(|_| META_UNAVAILABLE)?;
+            plain(&named).map_err(|_| META_UNAVAILABLE)?;
+            plain(file).map_err(|_| META_UNAVAILABLE)?;
+            if *basis != LogBasis::of(&file.metadata().map_err(|_| META_UNAVAILABLE)?)
+                || *basis != LogBasis::of(&named.metadata().map_err(|_| META_UNAVAILABLE)?)
+            {
+                return Err(META_UNAVAILABLE);
+            }
+        }
+        if let Some(log) = &self.log {
+            log.check_project().map_err(|_| META_UNAVAILABLE)?;
+        }
+        if let (Some(path), Some(folder)) = (&self.role_path, &self.folder) {
+            verify_directory(path, folder).map_err(|_| META_UNAVAILABLE)?;
+        }
+        Ok(())
+    }
+}

@@ -665,6 +665,14 @@ implemented behavior and qualification limits.
     read the record files directly; Codex 0.160.0 cannot prevent that, and
     such reads are not recorded.
 
+    Full role-guidance records in a **read run** page can include a small
+    historical metadata companion with source identities, recorded role limits
+    and a narrow run context. Raw guidance and source rows are omitted; missing
+    or oversized sources leave the original record visible with a qualified
+    companion. This restores no role authority and does not check WR
+    correspondence. The existing tool definition and read accounting remain
+    unchanged.
+
 ## Modules
 
 | Module | Contribution |

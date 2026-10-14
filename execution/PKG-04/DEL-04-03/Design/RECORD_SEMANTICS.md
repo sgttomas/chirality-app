@@ -1937,7 +1937,9 @@ as described below; its App observation writer remains unbuilt.
   verifiable, with role-supply head coverage explicitly unestablished.
   Current-store matching still requires complete payload-byte and
   administrative coverage under either profile. Auxiliary role rows never
-  enter the R1 index or records capability. The included standard-library `verify.py`
+  enter the R1 index or the capability's record pages. Referenced role R3s can
+  carry the bounded historical metadata companion described in §13.9, without
+  returning those raw rows. The included standard-library `verify.py`
   checks inventories and hashes without the App (`python3 verify.py <bag>`),
   including the chain-head tag's checksum; it does not interpret RS semantics.
   Both say the package is unsigned. Older exports without an administration
@@ -2164,6 +2166,41 @@ It realizes §13.8's agent access and does not change what a record is.
 
   A decision package (DEL-06-02) is not an operation yet: its view joins more
   than records, and no consumer needs it through this tool today.
+- **Referenced role metadata.** A full role-guidance R3 retained in a
+  `read_run` page can have a separate `supplierReading` companion. The
+  original quoted record, source, stub choice, record identities and cursor
+  remain unchanged. The companion gives historical file metadata only:
+  controlled state/limit codes, exact source and lineage identities, selected
+  role and historical limit enums, and a narrow run context. Adoption stays
+  unknown and it restores no current role or CCE authority. WR correspondence
+  is explicitly omitted; this is not the full App supplier reading or complete
+  instruction-byte reconstruction.
+
+  The projection excludes raw role rows, guidance/composed/part text,
+  generation/request objects, paths, free-text policy statements and backend
+  errors, WR content, captures and library acts. Missing, unsafe, inconsistent,
+  corrected or disposed sources qualify the companion; they do not erase or
+  replace the original R3. A bounded relation inspection that cannot establish
+  the prior claim's condition returns unknown/omitted, never an uncorrected
+  claim by default. The input schema, operations, document version and tool
+  definition identity stay unchanged.
+
+  **Implementation test values:** one answer's additional companion source
+  reads are limited to 2 MiB in total, with a 1 MiB role-log limit, 512 KiB
+  owning-run and composed/part-guidance limits, 64 KiB JSON-payload limit,
+  64 source files and lineage depth 8. Reads enforce their
+  remaining budget through opened nonblocking/no-follow regular single-link
+  descriptors, including racing growth; overflow or unavailable integrity
+  yields a safe omission code. Only selected-page role R3s are enriched;
+  already-read corpus facts supply the bounded relation inspection, limited to
+  128 claims, 512 KiB before copying and 200,000 corpus-entry inspections. The
+  existing ordinary corpus read is unchanged and is outside the additional
+  2 MiB companion budget. No new
+  all-project act scan is added for the companion. The ordinary bounded page
+  is formed first. Each companion is at most 2 KiB and is reduced or omitted
+  if it would exceed the final 32 KiB document limit; the original page and
+  cursor survive. The final enriched bytes and digest are recorded by the
+  existing read-log-before-reply path.
 - **Bounds.** At most 50 items a page (20 when no limit is given); a page
   stops before its items pass 16 KiB. An entry over 8 KiB, and a derived
   run summary over 8 KiB, is returned as a stub whose identity fields are cut
@@ -2177,9 +2214,10 @@ It realizes §13.8's agent access and does not change what a record is.
   (no sign, no leading zero). Records are only appended, so an entry
   appended between two pages can make the next page repeat an item but
   never skip one. Returns go to the conversation's model provider, which
-  may be a cloud provider, so pages are small and nothing outside the
-  records is added.
-- **Excluded.** The capability reads only this project's records through a
+  may be a cloud provider, so pages remain small and return only this
+  project's ordinary records and the bounded referenced-role metadata
+  projection. Raw auxiliary rows and guidance bytes remain omitted.
+- **Excluded.** Record pages read only this project's R1 records through a
   storage-independent source: the logs R-1 discovers (§13.8: the project's
   records store subtree with the registered legacy log's imported copy, or
   before an import the §13.7 project logs under `.chirality/records/` and the
