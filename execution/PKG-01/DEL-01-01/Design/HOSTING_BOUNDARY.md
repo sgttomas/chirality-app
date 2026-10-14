@@ -2430,6 +2430,30 @@ rules run as written, not a VER pass.
 
 ## Current implementation conditions
 
+**Supplier EOF during startup (Rust host).** EOF from the current installed
+`handshaking` source first signals only its captured process group before
+reaping the matching Child, closes that exact generation and delivers its held
+frames marked `generationNeverReady`. If the same installed start attempt is
+still `handshaking` at final settlement, it emits one LT-11 with the observed
+exit code or signal, receipt position, malformed-frame and diagnostic-byte
+counts, and the first closure's request counts. The current implementation
+halts after one failure; it adds no automatic restart. The initialize waiter
+cannot write a second failure or admit readiness after closure. A later Stop
+can own the final LT-23 instead; the earlier EOF closure and never-ready
+frames remain. A superseding attempt receives no old-source failure; EOF
+after readiness keeps LT-12.
+
+`hosting_startup_refusal_tests.rs` exercises first start and restart through
+the actual Host with owned synthetic peers, including pending initialize,
+a surviving descendant, a known reply before EOF, Stop/App-quit and
+superseded-source races. Its opt-in cached stock 0.160.0 check uses fresh
+file-auth homes and a
+localhost-only OS sandbox: supported configuration reaches ready, while
+unsupported `approval_policy = "untrusted"` exits before initialize and is
+reported as LT-11. It sends no login, thread or model call and changes no
+person's configuration. These checks establish controller behavior and this
+bounded supplier refusal, not a native App walkthrough or qualification.
+
 **Reply outcome at generation close (Rust host).** The owner chose:
 
 > Close as “Reply outcome unknown” (Recommended)

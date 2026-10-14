@@ -387,6 +387,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 mod tests {
     mod build_selection { include!("hosting_build_selection_tests.rs"); }
     mod stop_admission { include!("hosting_stop_admission_tests.rs"); }
+    mod startup_refusal { include!("hosting_startup_refusal_tests.rs"); }
     mod terminal_export { include!("hosting_terminal_export.rs"); }
     mod lt12 { include!("hosting_lt12_tests.rs"); }
     mod lt23 { include!("hosting_lt23_tests.rs"); }
