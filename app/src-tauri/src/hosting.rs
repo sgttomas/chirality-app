@@ -617,6 +617,8 @@ pub struct Host {
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
+    before_startup_eof_signal: Mutex<Option<Box<dyn FnOnce(i32) + Send>>>,
+    #[cfg(test)]
     before_stop_cleanup: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_successor_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
@@ -688,6 +690,8 @@ impl Host {
             before_delegation_wait: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
+            #[cfg(test)]
+            before_startup_eof_signal: Mutex::new(None),
             #[cfg(test)]
             before_stop_cleanup: Mutex::new(None),
             #[cfg(test)]
@@ -3358,6 +3362,30 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     fn on_eof(&self, generation: &Value) {
         let source_pid={let mut i=self.inner.0.lock().unwrap();i.account_channels.retain(|g|g!=generation);if i.generation!=*generation{return;}i.child_pid};
+        let startup_closure = {
+            let _gate = self.attachment_gate.lock().unwrap();
+            let mut i = self.inner.0.lock().unwrap();
+            if i.generation == *generation && i.child_pid == source_pid && i.state == "handshaking" && !i.server_requests.is_closed(generation)
+                && i.start_admission == Some(StartAdmission::Installed { attempt: i.start_attempt, generation: generation.clone() }) {
+                // Reserve the actual unreaped Child while signalling its group.
+                // A cached numeric PID cannot establish this ownership after wait.
+                // Never wait for another EOF reaper while holding the source gate.
+                match self.child.try_lock() {
+                    Ok(child) if child.as_ref().is_some_and(|c| Some(c.id() as i32) == source_pid) => {
+                        let pid = child.as_ref().unwrap().id() as i32;
+                        #[cfg(test)]
+                        if let Some(hook) = self.before_startup_eof_signal.lock().unwrap().take() { hook(pid); }
+                        unsafe { libc::killpg(pid, libc::SIGKILL); }
+                        let attempt = i.start_attempt;
+                        // Fence repeated EOF and the initialize waiter before reaping;
+                        // retain the first closure's counts for the eventual LT-11.
+                        Self::deliver_never_ready(&mut i);
+                        Some((attempt, Self::close_generation(&mut i)))
+                    }
+                    _ => None,
+                }
+            } else { None }
+        };
         // Reap only the captured owning child, never a successor installed
         // between the first scope check and the final source gate.
         let status=self.child.lock().unwrap().as_mut().filter(|c|Some(c.id() as i32)==source_pid).and_then(|c|c.wait().ok());
@@ -3376,7 +3404,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             "malformedFrameCount": i.malformed,
             "diagnosticOutputBytes": i.stderr_bytes,
         });
-        let counts = Self::close_generation(&mut i);
+        let handshake_ended = startup_closure.as_ref().is_some_and(|(attempt, _)|
+            i.state == "handshaking" && i.start_attempt == *attempt
+            && i.start_admission == Some(StartAdmission::Installed { attempt: *attempt, generation: generation.clone() }));
+        let counts = match startup_closure { Some((_, counts)) => counts, None => Self::close_generation(&mut i) };
         if i.state == "stopping" {
             // LT-23 is written by stop(), which owns the descendant check.
             let gen = i.generation.clone();
@@ -3389,7 +3420,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             self.lt(&mut i, "LT-12", "child-ended-without-stop-record", "exited-unexpectedly",
                     json!({"exitFacts": exit, "closedGeneration": counts}));
             Self::capture_terminal(&mut i,TerminalKind::UnexpectedExit)
-        }else{None};
+        } else if handshake_ended {
+            self.lt(&mut i, "LT-11", "handshake-failed", "halted-after-repeated-failure",
+                    json!({"failure":"supplier ended before initialize handshake completed", "failureCount":1,
+                           "exitFacts":exit, "closedGeneration":counts}));
+            None
+        } else { None };
         drop(i);drop(_source_gate);
         if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
         self.flush_recovery_observations();
