@@ -52,7 +52,8 @@
 //! at a host outcome (FB-16), which this App does not evaluate (AW-8…AW-10).
 //! The live recorder stops at run end. The distinct `after_run_end` observer
 //! records CE-16 against ended arrivals without counting or changing them.
-//! Post-end lapse observations (CE-10) remain unimplemented.
+//! The observer also uses the shared CE-10 comparison for verified performed
+//! single-file A4/A6/A7 sources after end, with the ended lapsed label.
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -605,7 +606,7 @@ impl CheckpointRecorder {
         }
         let Some(read) = records.as_ref() else { return };
         let cache = &mut self.contents;
-        let outputs = lapses_of(&all, read, &crate::util::now_rfc3339(), &mut |subject| cached_content(cache, root, subject), waiting_only);
+        let outputs = lapses_of(&all, read, &crate::util::now_rfc3339(), &mut |subject| cached_content(cache, root, subject), waiting_only, false, None);
         for (_, body) in outputs.iter().filter(|(k, b)| *k == "act_lapsed" && b["when"] == "before resume") {
             for arrival in self.arrivals.iter_mut().filter(|a| a.reference() == body["arrival"]) {
                 arrival.resumed = false;
@@ -1123,30 +1124,63 @@ pub(crate) fn lapse_evaluable(entries: &[Value]) -> bool {
 /// currency (A-10), and the effect of content back at `c0` is RS U-12, so
 /// neither changes a label.
 pub(crate) fn observe_lapses(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current) -> Vec<Output> {
-    lapses_of(entries, read, now, current, false)
+    lapses_of(entries, read, now, current, false, false, None)
+}
+/// CE-10 after a recorded run end. The owning observer validates the source
+/// and counted performance first; only performed/lapsed ended arrivals are
+/// compared. Unknowns and content returning to c0 never restore performance.
+pub(crate) fn observe_ended_lapses(
+    entries: &[Value],
+    read: &ActRead,
+    now: &str,
+    arrivals: &[Value],
+    current: &mut dyn FnMut(&Path) -> Current,
+) -> Vec<Output> {
+    lapses_of(entries, read, now, current, false, true, Some(arrivals))
+}
+/// The performed basis as recorded before the unique run end.
+/// Later observations never manufacture a new performance of an ended run.
+pub(crate) fn ended_lapse_basis(entries: &[Value]) -> Vec<(Value, Value, Value)> {
+    let Some(end) = entries.iter().position(|e| e["kind"] == "run_ended") else {
+        return vec![];
+    };
+    let prefix = &entries[..end];
+    prefix.iter().filter(|e|e["kind"]=="checkpoint_arrival").filter_map(|entry|{
+        let arrival=json!({"checkpoint":entry["body"]["checkpoint"],"arrivalOrdinal":entry["body"]["arrivalOrdinal"]});
+        if disposition(prefix,&[],&arrival).as_deref()!=Some("performed"){return None}
+        let (at,performance)=latest_performance(prefix,&arrival)?;
+        let content=observed_content(&prefix[..at],&arrival).unwrap_or(&entry["body"]["referents"][0]["content"]);
+        Some((entry["body"].clone(),performance.clone(),content.clone()))
+    }).collect()
 }
 /// [`observe_lapses`], for the arrivals whose latest label is *waiting* only
 /// when `waiting_only` (such an arrival has no resume point after its latest
 /// performance, so its lapse is *before resume* whatever an observation's
 /// items show).
-fn lapses_of(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current, waiting_only: bool) -> Vec<Output> {
+fn lapses_of(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnMut(&Path) -> Current, waiting_only: bool, ended: bool, allowed: Option<&[Value]>) -> Vec<Output> {
     use crate::standing::{compare, CurrentContent, Lapse};
     let mut out: Vec<Output> = Vec::new();
+    let ended_basis=if ended {ended_lapse_basis(entries)} else {vec![]};
     let pending = |out: &[Output]| -> Vec<Value> { entries.iter().cloned().chain(out.iter().map(|(k, b)| json!({"kind":k,"body":b}))).collect() };
     for arrival_entry in entries.iter().filter(|e| e["kind"] == "checkpoint_arrival") {
         let body = &arrival_entry["body"];
         let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
+        if allowed.is_some_and(|arrivals| !arrivals.contains(&arrival)) { continue; }
+        if ended && !ended_basis.iter().any(|(b,_,_)|b["checkpoint"]==body["checkpoint"]&&b["arrivalOrdinal"]==body["arrivalOrdinal"]){continue}
         let referents = body["referents"].as_array().map(Vec::as_slice).unwrap_or_default();
         let [referent] = referents else { continue };
         let Some(shown) = referent["subject"].as_str() else { continue };
         let all = pending(&out);
         let latest = disposition(&all, &[], &arrival);
-        if !matches!(latest.as_deref(), Some("performed" | "waiting")) || (waiting_only && latest.as_deref() != Some("waiting")) {
+        if (ended && !matches!(latest.as_deref(), Some("performed" | "lapsed")))
+            || (!ended && !matches!(latest.as_deref(), Some("performed" | "waiting")))
+            || (waiting_only && latest.as_deref() != Some("waiting")) {
             continue;
         }
-        let Some((at, performance)) = latest_performance(&all, &arrival) else { continue };
+        let performance_entries = if ended { &all[..all.iter().position(|e| e["kind"] == "run_ended").unwrap()] } else { &all };
+        let Some((at, performance)) = latest_performance(performance_entries, &arrival) else { continue };
         let resumed = all[at + 1..].iter().any(|e| e["kind"] == "run_resumed" && e["body"]["arrival"] == arrival);
-        let when = if latest.as_deref() == Some("performed") && resumed { "after resume" } else { "before resume" };
+        let when = if ended { "after run end" } else if latest.as_deref() == Some("performed") && resumed { "after resume" } else { "before resume" };
         let (ordinal, answered) = (performance["performanceOrdinal"].clone(), performance["answeredBy"].clone());
         for id in answered.as_array().into_iter().flatten().filter_map(Value::as_str) {
             let Some(act) = read.acts.iter().map(|a| &a["record"]).find(|r| r["kind"] == "human_act" && r["recordId"] == id) else { continue };
@@ -1199,7 +1233,10 @@ fn lapses_of(entries: &[Value], read: &ActRead, now: &str, current: &mut dyn FnM
             if !matches!(state, "lapsed" | "lapsed (subject absent)") {
                 continue;
             }
-            if when == "after resume" {
+            if when == "after run end" {
+                out.push(("disposition_change", json!({"arrival":arrival,"disposition":"lapsed","performanceOrdinal":ordinal,"answeredBy":answered,
+                    "annotations":[{"label":"act lapsed at","actRefs":[id],"time":time,"referents":[shown]}]})));
+            } else if when == "after resume" {
                 out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":ordinal,"answeredBy":answered,
                     "annotations":[{"label":"act lapsed at","actRefs":[id],"time":time,"referents":[shown]}]})));
             } else {

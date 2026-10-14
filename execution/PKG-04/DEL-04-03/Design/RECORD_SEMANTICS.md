@@ -2542,7 +2542,16 @@ machine; `records::durability_tests`, and the ignored
   unchanged ticks reuse them, and each publication rechecks current evidence.
   Relaunch reads the durable relations. A correction or ambiguous arrival
   coordinate withholds an unproved display association while retaining the raw
-  record and an explicit limit. Post-end lapse observation remains unimplemented.
+  record and an explicit limit. For an already performed single App-file
+  A4/A6/A7 arrival, the observer also records post-end CE-10/CE-18 against
+  its latest eligible performance and original bound content (EXEC's current
+  implementation conditions). File currentness is checked independently of
+  record/capture changes; unsafe aliases, non-plain or unreadable sources stay
+  unknown, while proved physical absence can establish a lapse. Pending writes
+  retain the first observed content and time. Warm projections reuse unchanged
+  rows, and hot/cold displays qualify unconfirmed or late publication. Return
+  to the earlier content remains record-only under U-12; a new run inherits
+  no prior performance or lapse.
   Checkpoint eligibility uses the public correction reader's shared analysis
   over borrowed source claims, then moves the original records and verified
   captures into that snapshot. Public views materialize their correction
