@@ -795,7 +795,7 @@ states (OE-1).
 | DEL-01-02 (RECOVERY-v0.2; v0.9) | — (R17-10: DEL-01-02 consumes nothing of DEL-04-03 and writes no RS entry; RECOVERY §8.2) | The custody events of RECOVERY-v0.2 §8 (`recovery.custody-event.schema.json`), which the App writer maps: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement"; `app_restart_interruption` → R11 "App-restart interruption" on the run current in the conversation at the interruption; `observation_lost` / `observation_recovered` reach R8 through DEL-02-03 (CE-13, CE-14) | Designed (PROPOSED), not built; a turn interrupt is not recorded in format 0.1 (§3) |
 | DEL-01-04 (AAC-v0.2, NIR-v0.2; v0.9) | §6 human-act record and §13 entry kinds, which the act control writes (`human_act` *direct capture*, recorder role "App interface (capturing surface)"; `act_declined`) through the writer of §14.1; record-out for act presentation (NIR §8) and the checkpoint and standing display it places (NIR §9) | Captures of acts on App content and of A15 (AAC §1.2, §4); capture evidence objects (AAC §5.2) | The act control's obligation is PROPOSED until SCA-V4-003 carries SC2-01-04-1 (amended by SC3-01-04-1); SEAL-2 open (U-32) |
 | DEL-02-02 (WR-v0.2; v0.9) | A15 records (HA-10), which its `library_entry` cites; R2 *selected* | The A15 descriptor the act control composes from (WR RB-4); the selection record (R2 *selected*); the per-run workflow supply record for R3 (R19-7) | Designed (PROPOSED), not built. No register row names DEL-02-02 as a supplier of DEL-04-03; one is proposed in the F-C return |
-| DEL-02-04 (ROLE-v0.2; v0.9) | R3 and R5a meanings | The supply record 0.2 (role guidance at start and fork), the limit account and the limit observations (ROLE §6) | The separate App observation log and retained bytes are implemented (ROLE §6.1a, §13.8); this R3 reference/resolver receiving path remains unbuilt. The preserved 0.2 proposal is unchanged; DEP-02-04-012 |
+| DEL-02-04 (ROLE-v0.2; v0.9) | R3 and R5a meanings | The supply record 0.2 (role guidance at start and fork), the limit account and the limit observations (ROLE §6) | Current ROLE §6.1a supplies a private receipt for confirmed App observations and exact retained guidance, historical limits and run context. The run owner records the role R3 after `run_opened`; the durable reader resolves its references as quoted evidence, with adoption unknown and no restored role/CCE authority. Observation versions 0.1 and 0.2 remain readable; the separate proposed supply format 0.2 is unchanged. DEP-02-04-012 |
 | External host run recording (DEP-04-03-016; DEP-001) | §§3–9 | Receipts, origin marks, subject content identities, capture evidence and reference, lapse, per-operation settings version, constraint receipt, per-turn guidance, host holds (SQ-02; governance phase), channel restrictions on destination | Adoption unclaimed; OI-013 placement. SWBPIPE answered 2026-09-28 (relayed; no commitment or contribution, RELAY §4): no capture-evidence reference (SQ-01), no host-held route (SQ-02), whole-model identity only (SQ-03), whole-model staleness (SQ-07), session-only receipts (SQ-09), receiptless session undo (SQ-10), no A13 facility (SQ-28) |
 
 ### 10.1 Receivers and suppliers by register row (R9-6)
@@ -1525,7 +1525,8 @@ as described below; its App observation writer remains unbuilt.
   §13.7, `connectors/route-accounts/<uuid>.json` (DEL-07-02 accounts, CRP
   §2), `reads/records-reads.jsonl` (the §13.9 read log),
   `role-supply/observations.jsonl` and `role-supply/content/<sha256>.utf8`
-  (ROLE §6.1a's App observations and immutable App-only guidance bytes),
+  (ROLE §6.1a's App observations, exact App-owned guidance, historical limits
+  and run-start context),
   and, when DEL-06-01
   is built, `fleet/coordination.fleet.jsonl` (the App's own coordination
   observations, also written to the project's log, below), beside the
@@ -2553,7 +2554,16 @@ machine; `records::durability_tests`, and the ignored
   unchanged ticks reuse them, and each publication rechecks current evidence.
   Relaunch reads the durable relations. A correction or ambiguous arrival
   coordinate withholds an unproved display association while retaining the raw
-  record and an explicit limit. Post-end lapse observation remains unimplemented.
+  record and an explicit limit. For an already performed single App-file
+  A4/A6/A7 arrival, the observer also records post-end CE-10/CE-18 against
+  its latest eligible performance and original bound content (EXEC's current
+  implementation conditions). File currentness is checked independently of
+  record/capture changes; unsafe aliases, non-plain or unreadable sources stay
+  unknown, while proved physical absence can establish a lapse. Pending writes
+  retain the first observed content and time. Warm projections reuse unchanged
+  rows, and hot/cold displays qualify unconfirmed or late publication. Return
+  to the earlier content remains record-only under U-12; a new run inherits
+  no prior performance or lapse.
   Checkpoint eligibility uses the public correction reader's shared analysis
   over borrowed source claims, then moves the original records and verified
   captures into that snapshot. Public views materialize their correction

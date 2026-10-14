@@ -261,6 +261,47 @@ impl RoleBinding {
     pub fn supply_ref(&self) -> &str {
         &self.supply_ref
     }
+    pub(crate) fn original_content(&self) -> &Value { &self.original.identity }
+    /// A file row or renderer DTO cannot supply this immutable private binding.
+    /// Match the publication to its actual correlated request and original bytes.
+    pub(crate) fn verify_supply_observation(&self, row: &Value, composition: Option<&Composition>) -> Result<(), String> {
+        if row["supplyId"]!=self.supply_ref || row["thread"]!=self.thread || row["request"]["home"]!=self.home
+            || row["request"]["generation"]!=self.observation.generation
+            || row["request"]["requestIdentity"]!=self.observation.request_id
+            || row["request"]["requestRef"]!=self.observation.request_ref
+            || row["request"]["writeResult"]!="written" || row["request"]["outcome"]!="response-observed-result"
+            || row["request"]["sourceCurrent"]!=true
+            || row["selection"]["role"]!=self.original.role.map(|r|r.name()).unwrap_or("none")
+            || row["supplierReported"]["agentRole"]!=json!(self.observation.agent_role)
+            || row["supplierReported"]["forkedFromId"]!=json!(self.observation.forked_from)
+            || row["supplierReported"]["instructionSources"]!=json!(self.observation.instruction_sources) {
+            return Err("role publication does not match the original admitted private receipt/binding".into());
+        }
+        match &self.origin {
+            Origin::Start => {
+                let composition=composition.ok_or("original start composition absent")?;composition.verify()?;
+                if row["trigger"]!="thread-start" || row["outcome"]!="supplied" || row["request"]["method"]!="thread/start"
+                    || row["lineage"]["continuedFrom"]!=json!(self.continued_from)
+                    || composition.role!=self.original.role || composition.text!=self.original.text
+                    || row["carried"]!=composition.carried || row["selection"]["roleSet"]!=*composition.role_set_identity() {
+                    return Err("role publication start source/composition differs from original binding".into());
+                }
+                if composition.carried["developerInstructions"]["parts"].as_array().ok_or("parts absent")?.len()!=self.original.parts.len(){return Err("original source part count differs".into());}
+                for (part, frozen) in composition.carried["developerInstructions"]["parts"].as_array().ok_or("parts absent")?.iter().zip(&self.original.parts) {
+                    if part["source"]!=frozen.source || part["content"]!=frozen.identity || part["offset"]!=frozen.offset || part["length"]!=frozen.length {
+                        return Err("role publication original source part differs".into());
+                    }
+                }
+            }
+            Origin::InheritedFork {source_thread,source_supply_ref} => {
+                if composition.is_some() || row["trigger"]!="fork" || row["outcome"]!="inherited" || row["request"]["method"]!="thread/fork"
+                    || row["lineage"]["sourceThread"]!=*source_thread || row["lineage"]["inheritedFrom"]!=*source_supply_ref {
+                    return Err("role publication fork lineage differs from original binding".into());
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn role_in_force(&self, home: &str, thread: &str) -> RoleInForce {
         if self.home != home || self.thread != thread {
             return RoleInForce::Unknown {

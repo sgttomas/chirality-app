@@ -687,7 +687,7 @@ pub fn read_project_supply(project: &ProjectRecords) -> Value {
             return json!({"state":"WR records unreadable","limit":e,"standing":HISTORICAL_LIMIT})
         }
     };
-    let (entries, rs_limits) = crate::storage::read_all(project.root());
+    let (entries, rs_limits, role_relations) = crate::role_observations::read_project_sources(project.root());
     let r3: Vec<&Value> = entries
         .iter()
         .filter(|e| e["kind"] == "supplied_guidance")
@@ -723,7 +723,9 @@ pub fn read_project_supply(project: &ProjectRecords) -> Value {
             }
         })
         .collect();
-    json!({"project":crate::attachments::native_path_identity(project.root()),"records":records,"rsLimits":rs_limits,"standing":HISTORICAL_LIMIT})
+    json!({"project":crate::attachments::native_path_identity(project.root()),"records":records,
+        "roleSupplies":r3.iter().filter(|e|["role guidance at conversation start","role guidance inherited at fork"].contains(&e["body"]["supplyForm"].as_str().unwrap_or(""))).map(|e|crate::role_observations::read_r3_with_relations(project.root(),e,&role_relations)).collect::<Vec<_>>(),
+        "rsLimits":rs_limits,"standing":HISTORICAL_LIMIT})
 }
 
 const HISTORICAL_LIMIT: &str = "historical correspondence only; no live native witness, model adoption, registration or run lifecycle inferred";
@@ -988,6 +990,11 @@ pub fn read_correspondence(project: &ProjectRecords, entry: &Value) -> SupplyRea
         return SupplyReading::limited("not supplied_guidance");
     }
     let body = &entry["body"];
+    if ["role guidance at conversation start","role guidance inherited at fork"].contains(&body["supplyForm"].as_str().unwrap_or("")) {
+        let reading=crate::role_observations::read_r3(project.root(),entry);
+        return SupplyReading {standing:if reading["state"]=="quoted historical correspondence"{ReadStanding::HistoricalCorrespondence}else{ReadStanding::Limited},
+            limits:reading["limits"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect()};
+    }
     if ![
         "workflow run start (turn text)",
         "workflow run end notice (turn text)",

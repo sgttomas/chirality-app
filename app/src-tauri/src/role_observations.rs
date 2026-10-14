@@ -13,6 +13,13 @@ use std::{
 };
 
 pub const FORMAT: &str = "chirality.role.supply.observation";
+#[path = "role_record_source.rs"]
+mod receiving;
+#[cfg(test)]
+pub(crate) use receiving::FAIL_CONTEXT_AFTER_FILE_SYNC;
+pub(crate) use receiving::{PublishedRoleSupply, PreparedRoleRunSupply, read_r3, read_r3_with_relations, read_project_sources};
+
+pub const OLD_SCHEMA: &str = include_str!("../resources/workflow_role/role-supply-observation-0.1.schema.json");
 pub const SCHEMA: &str =
     include_str!("../resources/workflow_role/role-supply-observation.schema.json");
 const FOLDER: &str = "role-supply";
@@ -118,6 +125,10 @@ fn verify_directory(path: &Path, file: &File) -> Result<(), String> {
         Ok(())
     }
 }
+fn verify_directory_child(parent:&File,name:&str,held:&File)->Result<(),String>{
+    let named=open_at(parent,name,libc::O_RDONLY|libc::O_DIRECTORY)?;
+    if identity(&named)?!=identity(held)?{Err("role source content directory replaced during read".into())}else{Ok(())}
+}
 fn verify_leaf(parent: &File, name: &str, file: &File) -> Result<(), String> {
     let current = open_at(parent, name, libc::O_RDONLY)?;
     plain(&current)?;
@@ -150,20 +161,16 @@ impl LogBasis {
         }
     }
 }
+#[derive(Debug,Clone)]
+struct PublicationBasis {path:PathBuf,folder:(u64,u64),log:(u64,u64)}
 fn validate(value: &Value) -> Result<(), String> {
-    static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
-    VALIDATOR
-        .get_or_init(|| {
-            jsonschema::options()
-                .offline()
-                .build(&serde_json::from_str::<Value>(SCHEMA).map_err(|e| e.to_string())?)
-                .map_err(|e| e.to_string())
-        })
-        .as_ref()
-        .map_err(Clone::clone)?
-        .validate(value)
-        .map_err(|e| e.to_string())
+    static VALIDATORS: OnceLock<Result<std::collections::BTreeMap<&'static str,jsonschema::Validator>, String>> = OnceLock::new();
+    VALIDATORS.get_or_init(|| [ ("0.1",OLD_SCHEMA),("0.2",SCHEMA) ].into_iter().map(|(version,schema)| {
+        jsonschema::options().offline().build(&serde_json::from_str::<Value>(schema).map_err(|e|e.to_string())?).map(|v|(version,v)).map_err(|e|e.to_string())
+    }).collect()).as_ref().map_err(Clone::clone)?.get(value["formatVersion"].as_str().unwrap_or(""))
+        .ok_or("unsupported role observation format version")?.validate(value).map_err(|e|e.to_string())
 }
+
 fn payload_key(identity: &Value) -> Result<&str, String> {
     let s = identity["value"]
         .as_str()
@@ -450,14 +457,17 @@ impl RoleLog {
         {
             return Err("App content identity differs or changed during read".into());
         }
+        let named=open_at(folder,leaf,libc::O_RDONLY)?;plain(&named)?;
+        if LogBasis::of(&named.metadata().map_err(|e|e.to_string())?)!=LogBasis::of(&after){return Err("App content leaf changed before named-file check".into());}
         verify_leaf(folder, leaf, &file)?;
         Ok(bytes)
     }
-    pub(crate) fn append(
-        &self,
-        mut row: Value,
-        composition: Option<&role_supply::Composition>,
-    ) -> Result<Value, String> {
+    pub(crate) fn append(&self, row:Value, composition:Option<&role_supply::Composition>) -> Result<Value,String> {
+        self.append_row(row,composition).map(|(status,_,_)|status)
+    }
+    fn append_row(
+        &self, mut row:Value, composition:Option<&role_supply::Composition>,
+    ) -> Result<(Value,Value,PublicationBasis),String> {
         // The Root shares this owner across homes. Serialize initial store
         // attachment too, before the cross-process log lock can be opened.
         let _owner = self
@@ -511,7 +521,12 @@ impl RoleLog {
                 held.push((reference.clone(), file));
                 parts.push(reference);
             }
-            row["appBytes"] = json!({"composed":composed,"parts":parts});
+            row["appBytes"] = if row["formatVersion"]=="0.1" {json!({"composed":composed,"parts":parts})} else {
+                let account=crate::conversation_roles::frozen_limit_account(composition)?;receiving::validate_limit(&account)?;
+                let bytes=serde_json::to_vec(&account).map_err(|e|e.to_string())?;
+                let (limit,file)=Self::publish_bytes(&payloads,&bytes)?;held.push((limit.clone(),file));
+                json!({"composed":composed,"parts":parts,"limitAccount":limit})
+            };
             content = Some(payloads);
         }
         let project = records_store::attach(&self.project, false)?
@@ -569,9 +584,7 @@ impl RoleLog {
         if let Some(content) = &content {
             Self::verify_content(&folder, content, &held)?;
         }
-        Ok(
-            json!({"state":"written","observationId":row["observationId"],"supplyId":row["supplyId"],"standing":"App observation publication confirmed; supplier adoption and current role authority remain separate"}),
-        )
+        Ok((json!({"state":"written","observationId":row["observationId"],"supplyId":row["supplyId"],"standing":"App observation publication confirmed; supplier adoption and current role authority remain separate"}),row,PublicationBasis {path,folder:identity(&folder)?,log:identity(&file)?}))
     }
     fn source_bytes(content: Option<&File>, row: &Value) -> Result<Value, String> {
         let folder = content.ok_or("App source content folder absent")?;
@@ -663,6 +676,7 @@ impl RoleLog {
                 }
                 out.push(json!({"record":row,"sourceBytes":source,"limits":row_limits,"lineageObservations":lineage}));
             }
+            if let Some(content)=&content {verify_directory_child(&folder,"content",content)?;}
             self.check_project()?;
             verify_directory(&path, &folder)?;
             Ok(
@@ -721,7 +735,7 @@ pub(crate) fn row(
     lineage: Value,
     limit: Option<&str>,
 ) -> Result<Value, String> {
-    let mut row = json!({"format":FORMAT,"formatVersion":"0.1","observationId":crate::util::opaque_id("role-observation:v1:")?,"supplyId":supply_id,"recorder":"App DEL-02-04 role supply observer","trigger":trigger,"thread":thread,"request":request,"selection":selection,"outcome":outcome,"supplierReported":supplier_reported,"lineage":lineage,"adoption":"unknown"});
+    let mut row = json!({"format":FORMAT,"formatVersion":"0.2","observationId":crate::util::opaque_id("role-observation:v1:")?,"supplyId":supply_id,"recorder":"App DEL-02-04 role supply observer","trigger":trigger,"thread":thread,"request":request,"selection":selection,"outcome":outcome,"supplierReported":supplier_reported,"lineage":lineage,"adoption":"unknown"});
     if let Some(carried) = carried {
         row["carried"] = carried;
     }

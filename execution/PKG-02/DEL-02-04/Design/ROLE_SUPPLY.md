@@ -582,8 +582,11 @@ New exports use chain-head tag profile 0.2. The previous 0.1 RS-only profile
 remains byte/admin verifiable, including arbitrary retained payload names;
 its role-log head coverage is explicitly unestablished.
 
-The current format is **`chirality.role.supply.observation/0.1`**, with
-`role-supply-observation.schema.json`. It is distinct from the preserved
+New observations use **`chirality.role.supply.observation/0.2`**, with
+`role-supply-observation.schema.json`. Observation0.1 is read through its exact
+preserved `role-supply-observation-0.1.schema.json`; mixed logs retain every
+original row and the same chain/head and export profile. Version0.2 adds an
+immutable `appBytes.limitAccount` payload for a carried start. It is distinct from the preserved
 `chirality.role.supply/0.2` proposal above; old schema and witness bytes are
 unchanged. A stable `supplyId` names each attempted start or fork. Each
 immutable observation has its own identity and chain-linked source order.
@@ -637,11 +640,75 @@ even when the file claims prior supply. Legacy0.2 rows keep their exact file
 evidence and unknown H5/home attribution; they are shown only in the full
 project role-history inspection. Provider adoption remains unknown.
 
-The RS R3 role-guidance reference/resolver receiving path remains separate
-and unbuilt; this log does not claim it. Maintained store, source, actual
-Host/private-receipt and role-panel fixtures exercise this App path with
-invented peers and material. They establish no native GUI walkthrough,
-provider adoption, human act, release or shared consumer adoption.
+**Current R3 receiving (`role_record_source.rs`, `record_supply.rs`).** A
+confirmed publication matched to the actual private admitted `RoleBinding`
+mints a receipt for that exact project, native home, full generation, thread,
+request identity/reference, supply account and observation. Generic log append
+and file reading mint no receipt. An inherited receipt retains its distinct
+fork observation and each exact parent observation, through the original
+parent receipt; an account with conflicting terminal observations is refused.
+A failed or landed-but-unconfirmed role publication keeps its quoted file
+reading and native effect separate and supplies no receipt for a new R3.
+A later correlated reply is a separate observation of the original attempt.
+
+The selected role's historical limit assessment is
+`chirality.role.limits.observation/0.1`, described by
+`role-limit-observation.schema.json`, stored as immutable content-identified
+UTF-8 bytes. It uses the original composition's selected part and original
+named shipped-default comparison; modified or unrecognized comparisons retain
+unknown limits, and no role has no role limits. The older proposed per-release
+`chirality.role.limits/0.2` schema and witnesses below are unchanged. Today's
+editable-copy limit display is a separate account and is never substituted
+for the historical assessment.
+
+At an actually observed run start, the App matches the private `turn/start`
+receipt against the original prepared scope and exact parameters. An immutable
+`chirality.role.run.context/0.1` companion (`role-run-context.schema.json`)
+retains that request's home/full generation, thread, identity/reference,
+observed turn/status, project/run/writer, original scope, exact role and limit
+references, WR run-text/selection references, and the owning `run_opened`
+identity/body identity/observation time. The body identity uses
+`chirality.app.rs.body-json.sha256/v1`: SHA-256 of that App JSON body value
+serialized by `serde_json`, without claiming the original log line's bytes;
+the chain still identifies the exact line bytes. It contains no native transcript,
+base instructions or user-message copy. The context and limit bytes share the
+existing `role-supply/content/` payload area and export/retention admission.
+The role R3 follows `run_opened` in the ordinary run log, by reference with
+`adoption: unknown`; its occasion is that run's opening, while the original
+supply time stays in the referenced observation. A context or R3 write that
+fails retains its original private proof, bytes, reserved identity and time
+for the ordinary W-2 retry; a file alone cannot recreate that continuation.
+Those pending entries keep the owning run's shared project activity lease after
+its end. A second controller cannot close the project until they settle, even
+when its own local run list is empty and the supplier has stopped.
+
+The explicit durable workflow-supply read also returns quoted role R3s. It
+resolves exact observations, original composition/parts, historical limits
+and run context, then compares the owning `run_opened` identity/body/time and
+WR sources. The owning run log is opened component-by-component through the
+existing nonblocking, no-follow reader; it must be a singly linked regular
+file with the same opened/named stamp and owning folder throughout that read.
+Missing, substituted, aliased, ambiguously related or disposed sources remain
+limits; a FIFO never becomes a source by delivering valid record bytes. The
+reader uses the selected read home, so a closed, kept project remains readable
+without asking for a write path. A guarded project source pass feeds the existing
+RS W-3/R-6 projector with every connected correction claim and its source limits.
+The pass retains every readable copy and the prior project reader's global
+duplicate-identity warnings and torn-tail limits.
+The original source quote is retained beside `correctedBy`, identity/relation
+diagnostics, correction groups and a qualified `currentClaimStanding`; cross-log
+branches and invalid targets remain unresolved, without selection by enumeration
+order. The context's declared source root must also agree with the actual WR
+selection identity and owning `run_opened` workflow source. The context's prior native-home claim is unsigned App
+file evidence: internal reference agreement does not authenticate a prior
+native home. A cold read creates no role binding, CCE owner, publisher or
+native request. Existing durable RE-4 remains conservative for bare thread
+IDs; this receiving slice does not make its run-start guard home-aware.
+
+Maintained store, source, actual Host/private-receipt, run lifecycle and cold
+reader fixtures exercise this path with invented peers and material. They
+establish no native GUI walkthrough, provider adoption, human act, release
+or shared consumer adoption.
 
 ### 6.2 The limit account (`role-limit-account.schema.json` 0.2; PROPOSED)
 

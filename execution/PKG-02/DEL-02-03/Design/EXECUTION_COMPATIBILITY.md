@@ -603,9 +603,10 @@ While the run is live, CE-10 is recorded for the App-file acts that answer an
 arrival's latest performance, with the before- and after-resume labels of
 §2.4.3, and an act on the current content of a referent lapsed after the resume
 point performs the arrival again (RC-8, JA-1). Other later acts on decided
-arrivals (§4.6) and lapses after run end (CE-10 *after run end*) are not yet
-recorded. A distinct ended-run observer now records later verified App-file acts
-as CE-16, without changing ended dispositions (RE-2; current conditions below). While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
+arrivals (§4.6) are not yet recorded. A distinct ended-run observer records
+later verified App-file acts as CE-16, without changing ended dispositions
+(RE-2). It also records CE-10 *after run end* and a **lapsed** CE-18 for an
+already performed single-file A4/A6/A7 arrival (RC-8; current conditions below). While the run is live, CE-13 is recorded for DEL-01-02's custody losses that
 name its conversation and CE-14 for a later readable recovery read; a deciding
 loss names no arrival and writes no *unknown* label, because which arrival a lost
 production would have been is not established. A loss or recovery of an App
@@ -2442,14 +2443,74 @@ including pending/late-write limits. A coordinate-only persisted CE-16 is not
 attributed to a corrected or nonunique arrival subject, or one whose source
 relation is unresolved. The presentation names that association limit and keeps
 the raw post-end source history inspectable; no chronology or new subject binding
-is inferred from a later correction. No act is counted, disposition or lapse is
-changed, native item/custody event is processed, or arrival is created by this
-observer. A new or continued run receives no old arrival/act observations; its
+is inferred from a later correction. The CE-16 path counts no act and changes
+no disposition or lapse; it processes no native item/custody event and creates
+no arrival. A new or continued run receives no old arrival/act observations; its
 own arrival can count an earlier still-current act under the existing SP-6 rule.
 The maintained synthetic supplier/Host/tick/reopen fixtures exercise A4/A6/A7,
 capture-time and historical-subject boundaries, warm cross-log corrections,
 prewrite evidence change and durable write recovery; they are not a person-act
 or live-provider witness.
+
+**After-run-end file lapses (RC-8 / CE-10; RS L-1…L-8, L-11, L-12).** The same
+project observer compares current bytes only for a single App-file A4/A6/A7
+arrival recorded **performed** before the unique run end. The basis is its last
+pre-end performance, its `answeredBy` acts and exact counted-act citations; a
+legitimate later live performance can bind content different from the original
+arrival's content. The verified act must bind that historical file subject,
+required kind and current performance content. Corrected, conflicting or
+unresolved performance, count, prior lapse or disposition sources hold further
+derivation as well as the opened/ended/arrival conditions above. A new count or
+performance after the recorded end cannot supply a new basis. A post-end
+performed/lapsed label with a different ordinal or answered-act association is
+a source-relation limit; it is not silently normalized to the pre-end basis.
+
+Each current read walks opened physical project/parent folders without following
+aliases, checks the original physical project and all owning names, and compares
+the opened regular file with its final named source. A cache hit repeats the
+owning-folder checks; a leaf stamp alone proves no currency. Missing components
+prove absence only within the verified physical ownership chain. Aliases,
+nonregular files, unreadable or raced sources and the existing bounded read cap
+produce **unknown (unavailable)**, which changes no disposition. The current
+single-subject comparison and record deduplication are shared with live CE-10.
+Unchanged verified source/content observations retain their projections.
+
+Existing records-store retention admission is held before reserving any new CE-16
+or CE-10 observation. A closed retained store still supplies historical views
+with its recording limitation, but ordinary later file edits acquire no new
+pending unit. An explicit native Reopen permits a fresh eligible observation;
+An observation acquires the existing project activity lease before reservation
+under that admission and retains it until all observer W-2 units settle. A
+second Root/process that cannot see private pending bodies still cannot Close
+or dispose over them; an exporter may back up the persisted prefix, but cannot
+settle private W-2 or grant disposal. Process loss releases the lease with the
+process-only custody. Any already-owed unit keeps its identity/body/time.
+
+A known changed identity or subject absence reserves CE-10 and its **lapsed**
+CE-18 as one atomic group in the original App owning run log, retaining the
+performance ordinal, acts, c0/c1 and observation time. Each publication rechecks
+the project/store/run identity, original binding records, correction eligibility
+and current verified act evidence under the existing source control. A failed
+or uncertain write keeps the first coherent c1 and reserved body/time; later
+ordinary file edits do not erase or rewrite that observed interval, and later
+observations wait behind its W-2 retry. Project closure refuses while it is
+pending. Original labels owed to a recorded pre-end lapse keep that lapse's
+recorded time and before/after-resume meaning. Unknowns claim neither lapse nor
+currency. Returning to c0 records the return while preserving the observed lapse
+interval; it does not restore performed (RS U-12 remains open).
+
+Hot and reopened arrival views show the ended **lapsed** label and CE-10 timing,
+with per-observation pending/late-write qualifications. A held observation says
+its label is pending, rather than claiming a durable label. They request no new
+act, resume or arrival. Coordinate-only CE-10/CE-18 history
+is not assigned to a corrected, ambiguous or unresolved current arrival subject,
+and the output facet names the source-association limit. Original observations
+remain inspectable as history. Later CE-16 acts still change no ended disposition,
+and no performance is inherited by a new run. Maintained synthetic owner-flow
+checks exercise A4/A6/A7 hot/cold reads, latest live performance, source/capture
+corrections and freshness, atomic W-2 retries, parent/leaf aliases, nonplain and
+raced files, true absence and the actual DTO display. These are implementation
+checks, not native person-act, supplier or release evidence.
 
 **Checkpoint capture observations.** The checkpoint reader receives the source
 actually attempted by the shared file-act capture reader, rather than resolving
