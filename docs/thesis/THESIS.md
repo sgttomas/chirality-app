@@ -493,7 +493,7 @@ three views.
 
 Implementation and observations are examined at
 `a602024416ace9652f61bb2043889c307fd4e09d`. Tests were inspected rather than
-rerun; source links may reflect later development. Product requirements retain
+rerun. Product requirements retain
 their authority. App v4's frozen foundation is unchanged.
 
 - **R1:** [Root thesis: A Generative Environment for Human–Agent Work][R1].
