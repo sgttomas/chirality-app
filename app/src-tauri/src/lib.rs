@@ -67,6 +67,7 @@ pub(crate) mod run_restart;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
+mod workflow_selection;
 pub(crate) mod workflow_trial_transcript;
 pub(crate) mod host_tick;
 pub(crate) mod delegation_availability;
@@ -253,6 +254,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // and the trial reads run on the host's own tick (`host_tick`).
     s["hostTicks"] = host_tick::tick_state();
     s["workflowRoot"] = host_tick::workflow_status(&state.workflows, &s["nativeView"], state.workspace.is_some());
+    workflow_selection::publish_context(&mut s, &home);
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
@@ -1236,79 +1238,81 @@ fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathB
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
 #[tauri::command(async)]
-fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
+fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    workflow_context_home(&state,&context)?;
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_development_copy(path))
+    noted_selection(&state,&context,|root,chat|root.select_development_copy(chat,path))
 }
-/// The active home's native view, read before a selection takes the Root guard.
-fn active_native_view(state:&AppState)->Value{
-    let home=state.homes.lock().unwrap().active();
-    current_native_view(&home)
+/// The displayed App source is an opaque HomeSession reference, usable even
+/// before Codex starts. A changed active source refuses rather than redirecting.
+fn workflow_context_home(state: &AppState, context: &workflow_selection::Context) -> Result<Arc<runtime_session::HomeSession>, String> {
+    let home = state.homes.lock().unwrap().active();
+    context.verify_home(&home)?;
+    Ok(home)
 }
-/// WR PR-5: a successful selection by the person supersedes agent proposals
-/// received up to `view`; a failed one changes nothing.
-fn noted_selection(state:&AppState,view:&Value,select:impl FnOnce(&mut runtime_session::WorkflowRootSession)->Result<Value,String>)->Result<Value,String>{
-    let mut root=state.workflows.lock().unwrap();
-    let selected=select(&mut root)?;
-    root.note_selection(view);
-    Ok(selected)
+/// Recheck at mutation after any native picker/queued operation. The expected
+/// choice belongs only to the explicit chat, or to explicit no-chat inspection.
+fn noted_selection(state: &AppState, context: &workflow_selection::Context,
+    select: impl FnOnce(&mut runtime_session::WorkflowRootSession, Option<&workflow_selection::Chat>) -> Result<Value, String>) -> Result<Value, String> {
+    workflow_selection::choose(&state.workflows,context,||state.homes.lock().unwrap().active(),select)
+}
+fn active_native_view(state:&AppState)->Value {
+    let home=state.homes.lock().unwrap().active(); current_native_view(&home)
 }
 #[tauri::command(async)]
-fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
+fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|workflows|workflows.select_production_bundle(root,&name))
+    noted_selection(&state,&context,|workflows,chat|workflows.select_production_bundle(chat,root,&name))
 }
 #[tauri::command]
-fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_production_copy(&name))
+fn workflow_select_production_copy(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|{root.verify_library_context(&context)?;root.select_production_copy(chat,&name)})
 }
 #[tauri::command(async)]
-fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
+fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String,context:workflow_selection::Context)->Result<Value,String>{
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
+    workflow_context_home(&state,&context)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
-    let view=active_native_view(&state);
-    let mut root=state.workflows.lock().unwrap();root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 /// "Select revision ‹n›" on a retained review: resolved from the revision
 /// store (WR SL-4); no folder picker.
 #[tauri::command(async)]
-fn workflow_select_registered(state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision))
+fn workflow_select_registered(state:State<'_,AppState>,review_ref:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.select_hot_registered_copy(chat.ok_or("Choose the chat that will keep this selection")?,&review_ref,&revision))
 }
 /// WR LS-1 "Select (in such a process)", SL-1: the person selects a registered
 /// revision from the active library's list; the host resolves it from the
 /// revision store. No folder picker: the store is the library's own.
 #[tauri::command(async)]
-fn workflow_select_listed(state:State<'_,AppState>,library_ref:String,name:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_listed_registered(&library_ref,&name,&revision))
+fn workflow_select_listed(state:State<'_,AppState>,library_ref:String,name:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.select_listed_registered(chat.ok_or("Choose the chat that will keep this selection")?,&library_ref,&name,&revision))
 }
 /// WR SL-2: the person follows "newer revision ‹n› available"; a new selection
 /// event citing the one it replaces.
 #[tauri::command(async)]
-fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.follow_newer_revision(&selection_ref,&revision))
+fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.follow_newer_revision(chat.ok_or("Choose the chat that keeps this selection")?,&selection_ref,&revision))
 }
 /// WR §3: the explicit App project's own library, without a folder picker.
 #[tauri::command(async)]
-fn workflow_open_project_library(state:State<'_,AppState>)->Result<Value,String>{
-    let view=active_native_view(&state);
-    let mut root=state.workflows.lock().unwrap();root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
+fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
     // The library is open either way; a listing that cannot run now says so in the list.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 /// WR SQ-D D-2…D-4 in the host (OI-008 ruling): observe the active library's drafts now.
 #[tauri::command(async)]
-fn workflow_observe_drafts(state:State<'_,AppState>)->Result<Value,String>{
-    let view=active_native_view(&state);
-    state.workflows.lock().unwrap().observe_drafts(&view["items"])
+fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.observe_drafts(&view["items"])
 }
 /// WR TT-3, TT-3a, TT-3b (SQ-DT DT-1…DT-3, SQ-FT FT-1…FT-3): Try pressed on a
 /// listed draft. The host takes the trial snapshot, composes the trial text and
@@ -1409,7 +1413,13 @@ fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,Str
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 #[tauri::command]
-fn workflow_create_draft(state:State<'_,AppState>,name:String)->Result<Value,String>{state.workflows.lock().unwrap().create_selected_draft(&name)}
+fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;
+    let mut root=state.workflows.lock().unwrap();
+    let chat=context.verify_home(&home)?;workflow_context_home(&state,&context)?;
+    root.verify_choice_context(&context,chat.as_ref())?;root.verify_library_context(&context)?;
+    root.create_selected_draft(chat.as_ref(),&name)
+}
 /// J8 (WR §4.6 RF-1): Refine a registered revision from the revision store; no selection.
 #[tauri::command]
 fn workflow_refine_registered(state:State<'_,AppState>,name:String,revision:String)->Result<Value,String>{state.workflows.lock().unwrap().refine_registered(&name,&revision)}
@@ -1460,10 +1470,12 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
     original.accept_result(result)?;Ok(original.status.clone())
 }
 #[tauri::command]
-fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    // WR WP-1: the explicit App project owns WR records; None is refused with no fallback.
-    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text,state.workspace.as_deref())?;Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
+fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The run target differs from the displayed workflow chat; nothing prepared".into());}
+    // The exact displayed choice is rechecked under Root before composing.
+    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),person_text,state.workspace.as_deref())?;
+    Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
 }
 #[tauri::command(async)]
 fn workflow_retry_records(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
@@ -1515,10 +1527,13 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 }
 /// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
 #[tauri::command(async)]
-fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
+fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
-    let next=state.workflows.lock().unwrap().end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The successor target differs from the displayed workflow chat; nothing ended".into());}
+    let mut root=state.workflows.lock().unwrap();let chat=context.verify_home(&home)?.ok_or("Choose a workflow chat")?;workflow_context_home(&state,&context)?;root.verify_choice_context(&context,Some(&chat))?;
+    let next=root.end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    drop(root);
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))
 }
@@ -2066,7 +2081,7 @@ mod workflow_root_context_tests {
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
-        let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(package).unwrap();workflows.create_selected_draft("coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
+        let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(None,package).unwrap();workflows.create_selected_draft(None,"coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
         (root,state,home,library,reference,context)
     }
     #[test]

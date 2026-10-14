@@ -463,11 +463,11 @@ export function RunPanel({ run, conversations, bringBackDefault = null, busy = f
 }
 
 /** The selected workflow before a run (CK-1): its identity and declared part. */
-export function SelectedWorkflow({ selection }: { selection: Json }) {
-  if (!selection || selection.state === "not-selected") return <p>No workflow selected.</p>;
+export function SelectedWorkflow({ selection, inspection = false }: { selection: Json; inspection?: boolean }) {
+  if (!selection || selection.state === "not-selected") return <p>{inspection ? "No workflow content inspected." : "No workflow selected."}</p>;
   const id = selection.identity ?? {};
-  return <div aria-label="Selected workflow">
-    <p>Selected: <b>{text(id.name)}</b> ({text(id.origin)}), revision {text(id.revision).slice(0, 12)} · {text(selection.standing)} · {selection.runnable ? "can be run" : `not runnable: ${text(selection.runLimit)}`}{selection.currentLimit ? ` · current limit: ${text(selection.currentLimit)}` : ""}.</p>
+  return <div aria-label={inspection ? "Inspected workflow content" : "Selected workflow"}>
+    <p>{inspection ? "Inspected:" : "Selected:"} <b>{text(id.name)}</b> ({text(id.origin)}), revision {text(id.revision).slice(0, 12)} · {text(selection.standing)} · {selection.runnable ? "can be run" : `not runnable: ${text(selection.runLimit)}`}{selection.currentLimit ? ` · current limit: ${text(selection.currentLimit)}` : ""}.</p>
     <DeclaredPart declaration={selection.declaration} />
   </div>;
 }
