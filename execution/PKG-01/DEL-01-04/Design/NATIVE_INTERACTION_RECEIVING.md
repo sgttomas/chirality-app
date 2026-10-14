@@ -499,6 +499,15 @@ show nothing of the kind.
 | V-d | App-kept items Codex does not keep in history (for example plan checklist revisions, R17-4) are shown by their owners as "not recoverable after relaunch"; this file shows nothing in their place | — |
 | V-e | After a graceful stop, Codex's history holds a line it wrote itself ("The user interrupted the previous turn on purpose", OBS-2 O-2). The view shows it as "written by Codex when the App stopped it", never as the person's words (G-5) | — |
 
+After explicit **Continue selected conversation**, the view opens the native
+conversation only when the new matching resume dispatch reports active
+admission and the refreshed current source still holds that admission for the
+same history selection. It uses the admitted full generation and native thread
+ID. Read-only, refused, failed, superseded or identity-incomplete results leave
+the conversation selection and unsent composer unchanged. Continue sends no
+message and performs no retry; original App role evidence remains unknown
+after a cold restart.
+
 ### 5.4 Conversation start display (K-3)
 
 | # | Rule |

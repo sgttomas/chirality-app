@@ -127,3 +127,97 @@ test('refused, failed and identity-incomplete Start preserve selection and compo
     await ordinaryStartCase({initialThread: true, outcome});
   }
 });
+
+async function ordinaryContinueCase({initialThread = false, outcome = 'success', source = g}) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const calls = [];
+  const unknownRole = {standing: 'unknown', reason: 'original App role not established in this App process'};
+  const metadata = {thread: {id: 'stored', status: {type: 'notLoaded'}, agentRole: 'HELP_HUMAN'}};
+  const query = {factory_id: 1, query_id: 2, home: source.home, generation: source, method: 'thread/resume', params: {threadId: 'stored'}};
+  const existing = {...thread('existing', null), generation: source};
+  let continueResponded = false;
+  let snapshot = {...host, generation: source, threads: initialThread ? [existing] : [],
+    nativeHistory: {state: 'history-receiving', home: source.home, generation: source, selectionEpoch: 0, threads: [{native: metadata.thread}], dispatches: outcome === 'old-admission' ? [{requestRef: 'req:resume'}] : []}};
+  const previous = window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {
+    calls.push({command, args});
+    if (command === 'host_status') {
+      if (outcome === 'refresh-failed' && continueResponded) throw Error('Current source read failed');
+      return snapshot;
+    }
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'history_select') {
+      snapshot = {...snapshot, nativeHistory: {...snapshot.nativeHistory, selectionEpoch: 1, selected: {threadId: args.threadId, state: 'indexed-read-only', appRole: unknownRole}}};
+      return snapshot.nativeHistory;
+    }
+    if (command !== 'history_action') throw Error(`Unexpected native command: ${command}`);
+    if (args.action === 'metadata') {
+      snapshot = {...snapshot, nativeHistory: {...snapshot.nativeHistory, selected: {...snapshot.nativeHistory.selected, metadata}}};
+      return snapshot.nativeHistory;
+    }
+    assert.equal(args.action, 'continue');
+    if (outcome === 'refused' || outcome === 'failed') throw Error(`Native resume ${outcome}`);
+    const admitted = {generation: source, threadId: 'stored', status: {type: 'idle'}, appRole: unknownRole, nativeResumeObserved: true, resumeRequestRef: 'req:resume'};
+    const dispatch = {generation: source, home: source.home, requestRef: 'req:resume', writeResult: 'written', outcome: 'response-observed-result', sourceCurrent: true, localQuery: query, activeAdmission: admitted};
+    const result = {...snapshot.nativeHistory, selected: {...snapshot.nativeHistory.selected, state: 'resume-response-observed', resumeEligibilityCurrent: true,
+      resume: {thread: {...metadata.thread, status: {type: 'idle'}}}, streamResolutions: {'thread-state': {outcome: 'native-result-observed', query}}}, dispatches: [dispatch]};
+    if (outcome === 'read-only') result.selected.state = 'indexed-read-only';
+    if (outcome === 'ineligible') result.selected.resumeEligibilityCurrent = false;
+    if (outcome === 'not-admitted') delete dispatch.activeAdmission;
+    if (outcome === 'pending') dispatch.outcome = 'pending';
+    if (outcome === 'stale-dispatch') dispatch.sourceCurrent = false;
+    if (outcome === 'missing-id') delete admitted.threadId;
+    if (outcome === 'missing-generation') delete admitted.generation;
+    if (outcome === 'wrong-id') admitted.threadId = 'other';
+    if (outcome === 'wrong-query') dispatch.localQuery = {...query, query_id: 99};
+    snapshot = {...snapshot, nativeHistory: result, threads: [...snapshot.threads, {...admitted, generation: source, threadId: 'stored'}]};
+    if (outcome === 'not-ready') snapshot = {...snapshot, state: 'stopped'};
+    if (outcome === 'no-current-thread') snapshot = {...snapshot, threads: initialThread ? [existing] : []};
+    continueResponded = true;
+    if (outcome === 'source-changed') snapshot = {...snapshot, generation: {...source, spawnCounter: 9}};
+    if (outcome === 'selection-changed') snapshot = {...snapshot, nativeHistory: {...result, selectionEpoch: 2}};
+    if (outcome === 'query-superseded') snapshot = {...snapshot, nativeHistory: {...result, selected: {...result.selected, streamResolutions: {'thread-state': {outcome: 'native-result-observed', query: {...query, query_id: 99}}}}}};
+    return result;
+  }};
+  try {
+    await React.act(async () => {root.render(React.createElement(App));});
+    const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
+    const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
+    const priorKey = JSON.stringify([source, 'existing']);
+    if (initialThread) await change(elements(conversation(), 'select')[0], priorKey);
+    const draft = 'Unsent continuation text é / 家';
+    await change(elements(conversation(), 'textarea')[0], draft);
+    await React.act(async () => {await props(labelled(container, 'select', 'Stored conversation ')).onChange({target: {value: 'stored'}});});
+    await React.act(async () => {await props(button(container, 'Read metadata')).onClick();});
+    assert.equal(selectedKey(), initialThread ? priorKey : '', 'index and metadata reads do not open an operational chat');
+    const continueButton = button(container, 'Continue selected conversation');
+    assert.equal(props(continueButton).disabled, false);
+    await React.act(async () => {await props(continueButton).onClick();});
+    assert.deepEqual(calls.filter(call => call.command === 'history_action').map(call => call.args), ['metadata', 'continue'].map(action => ({generation: source, selectionEpoch: 1, action, cursor: null, direction: 'desc', reference: null})), 'one explicit Continue and no retry');
+    assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'history_select', 'history_action'].includes(call.command)), 'Continue never sends text or changes role');
+    assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
+    assert.equal(selectedKey(), outcome === 'success' ? JSON.stringify([source, 'stored']) : initialThread ? priorKey : '');
+    if (outcome === 'success') {
+      assert.equal(props(button(conversation(), 'Send text')).disabled, false);
+      assert.ok(conversation().textContent.includes('Role not established in this App process'), 'cold role stays unknown despite native agentRole');
+    }
+  } finally {
+    await React.act(() => root.unmount());
+    document.body.removeChild(container);
+    window.__TAURI_INTERNALS__ = previous;
+  }
+}
+
+test('explicit Continue opens the newly admitted current conversation and retains the cold role limit', async () => {
+  await ordinaryContinueCase({});
+  await ordinaryContinueCase({initialThread: true, source: {...g, home: 'another-home', spawnCounter: 2}});
+});
+
+test('Continue with no matching new current admission preserves selection and composer', async () => {
+  for (const outcome of ['read-only', 'ineligible', 'not-admitted', 'refused', 'failed', 'pending', 'stale-dispatch', 'missing-id', 'missing-generation', 'wrong-id', 'wrong-query', 'old-admission', 'source-changed', 'selection-changed', 'query-superseded', 'not-ready', 'no-current-thread', 'refresh-failed']) {
+    await ordinaryContinueCase({initialThread: true, outcome});
+  }
+});

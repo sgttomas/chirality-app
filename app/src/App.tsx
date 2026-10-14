@@ -182,7 +182,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
   </section>;
 }
 
-export function HistoryPanel({ host, refresh }: { host: Json; refresh: () => Promise<void> }) {
+export function HistoryPanel({ host, refresh, setThreadKey }: { host: Json; refresh: () => Promise<Json>; setThreadKey: (key: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [direction, setDirection] = useState("desc");
@@ -193,9 +193,37 @@ export function HistoryPanel({ host, refresh }: { host: Json; refresh: () => Pro
   const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
   const run = async (action: string, cursor: string | null = null, reference: string | null = null, pagingDirection = direction) => {
     setBusy(true); setError("");
-    try { await invoke("history_action", { generation, selectionEpoch: epoch, action, cursor, direction: pagingDirection, reference }); }
+    const priorRequests = new Set((history?.dispatches ?? []).map((dispatch: Json) => dispatch.requestRef));
+    let result: Json;
+    try { result = await invoke("history_action", { generation, selectionEpoch: epoch, action, cursor, direction: pagingDirection, reference }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } setBusy(false); }
+    finally {
+      try {
+        const current = await refresh();
+        const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
+        const resolution = result?.selected?.streamResolutions?.["thread-state"];
+        const dispatch = (result?.dispatches ?? []).find((row: Json) => row.requestRef && !priorRequests.has(row.requestRef)
+          && row.writeResult === "written" && row.outcome === "response-observed-result" && row.sourceCurrent === true
+          && same(row.generation, generation) && same(row.localQuery, resolution?.query)
+          && row.localQuery?.method === "thread/resume" && row.localQuery?.params?.threadId === selected?.threadId);
+        const admitted = dispatch?.activeAdmission;
+        // Only a new matched Continue admission opens a chat; indexed pages remain read-only.
+        if (action === "continue" && admitted?.nativeResumeObserved === true && admitted.resumeRequestRef === dispatch.requestRef
+          && typeof admitted.threadId === "string" && admitted.threadId && admitted.threadId === selected?.threadId
+          && admitted.generation && same(admitted.generation, generation) && same(result?.generation, generation)
+          && result?.selectionEpoch === epoch && result?.selected?.threadId === admitted.threadId
+          && result?.selected?.state === "resume-response-observed" && result?.selected?.resumeEligibilityCurrent === true
+          && resolution?.outcome === "native-result-observed" && current?.state === "ready" && same(current.generation, admitted.generation)
+          && same(current.nativeHistory?.generation, generation) && current.nativeHistory?.selectionEpoch === epoch
+          && current.nativeHistory?.selected?.threadId === admitted.threadId && current.nativeHistory.selected.state === "resume-response-observed"
+          && current.nativeHistory.selected.resumeEligibilityCurrent === true && same(current.nativeHistory.selected.streamResolutions?.["thread-state"], resolution)
+          && (current.threads ?? []).some((row: Json) => row.threadId === admitted.threadId && same(row.generation, admitted.generation)
+            && row.nativeResumeObserved === true && row.resumeRequestRef === dispatch.requestRef)) {
+          setThreadKey(JSON.stringify([admitted.generation, admitted.threadId]));
+        }
+      } catch (e) { setError(String(e)); }
+      setBusy(false);
+    }
   };
   const select = async (threadId: string) => {
     if (!threadId) return;
@@ -756,12 +784,14 @@ export function App() {
 
 
   const refresh = useCallback(async () => {
-    setHost(await invoke("host_status"));
+    const snapshot: Json = await invoke("host_status");
+    setHost(snapshot);
     try {
       setView(await invoke("decision_view"));
     } catch (e) {
       setView({ error: String(e) });
     }
+    return snapshot;
   }, []);
 
   useEffect(() => {
@@ -923,7 +953,7 @@ export function App() {
         nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })}
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
-      <HistoryPanel host={host} refresh={refresh} />
+      <HistoryPanel host={host} refresh={refresh} setThreadKey={setThreadKey} />
 
       <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
