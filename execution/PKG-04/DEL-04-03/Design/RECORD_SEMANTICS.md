@@ -2589,7 +2589,7 @@ machine; `records::durability_tests`, and the ignored
   the seal key basis are unchanged.
   The completed checkpoint act read is an immutable in-process snapshot
   shared by the cache and its readers; keeping or returning it copies no
-  record or capture bodies. A reader's earlier observation remains unchanged
+  record or decline-content bodies. A reader's earlier observation remains unchanged
   after the cache is replaced. A new read still checks the same completeness,
   act epoch, capture stamps and seal-key basis before using a kept snapshot.
   The ended-run observer (`after_run_end.rs`; EXEC §4.9 RE-2 and its current
@@ -2611,8 +2611,14 @@ machine; `records::durability_tests`, and the ignored
   to the earlier content remains record-only under U-12; a new run inherits
   no prior performance or lapse.
   Checkpoint eligibility uses the public correction reader's shared analysis
-  over borrowed source claims, then moves the original records and verified
-  captures into that snapshot. Public views materialize their correction
+  over borrowed source claims. The private snapshot retains every full original
+  record. Only after schema, seal, correspondence and R-8 duplicate-capture
+  resolution does it release the full capture values; declines retain their
+  exact `boundContent` array as `declineBoundContent`, without normalization.
+  These are private verified facts, not a capture DTO. Capture watches, key
+  basis and failure retries are unchanged. Public file-act views resolve full
+  captures independently, including their original scope, purpose and content.
+  Public correction views materialize their correction
   groups, A15 assessment snapshots and quoted record/source objects; the
   checkpoint read consumes compact eligibility facts without materializing
   correction groups or a second quoted record/source tree.
@@ -2735,6 +2741,38 @@ machine; `records::durability_tests`, and the ignored
   These observations establish neither release latency nor a 100,000-act
   memory bound; no large-tier measurement was repeated, and retained records
   and captures still grow with the project's act history.
+
+
+  **Compact private checkpoint snapshot (2026-10-14, debug build).** The
+  maintained ignored `records_scale_report` ran before and after final
+  post-verification compaction with
+  `CHIRALITY_SCALE_TIERS=10:300:1000,100:3000:1000`, fresh scratch stores,
+  sealed captures and a fresh child process for each read path. Baseline is
+  `7022435b91`; its record-reader production bytes match `16c6f2d93`. Each run
+  has 30 entries, each tier has 1,000 ledger rows, and the act child holds its
+  first observation while reading again after a run entry. All fixture acts
+  are positive A7s; decline content is covered by the maintained regression.
+
+  | Runs / acts | Retained rows as compact JSON, before / after | Original records as compact JSON, both | RSS after first read, before / after | Peak through kept read, before / after | First act read, before / after |
+  |---|---|---|---|---|---|
+  | 10 / 300 | 642,891 / 329,911 bytes | 326,611 bytes | 55.8 / 55.8 MB | 56.2 / 56.2 MB | 595 / 598 ms |
+  | 100 / 3,000 | 6,444,392 / 3,308,612 bytes | 3,275,612 bytes | 97.7 / 97.8 MB | 98.1 / 98.2 MB | 2.25 / 2.29 s |
+
+  The original full record values remain in the snapshot. The baseline keeps
+  a full capture for each of its 300 or 3,000 verified acts; the candidate
+  reports zero full-capture rows and zero decline-content rows in these
+  positive-only fixtures. Encoded length measures the private retained
+  representation, not heap size or a memory bound. The baseline serialized
+  after recording time/current/peak RSS; the candidate counts streamed JSON
+  bytes with constant output storage. Both use the same compact JSON encoding.
+  Metric work follows the cold-time and RSS samples. Warm reads after the run
+  entry share the same immutable observation in both versions (2.5 / 2.4 ms
+  and 13.0 / 13.1 ms). Full captures remain transient through duplicate-capture
+  resolution, and freeing values need not release allocator pages. These
+  observations show the smaller retained representation, no RSS or first-peak
+  improvement and no cold-latency improvement; they establish no release or
+  100,000-act bound. Source validation and full record retention still grow
+  with the project history.
 
 ## 15. Local prototype (R12-3)
 

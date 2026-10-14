@@ -84,12 +84,12 @@ discovery or collision handling. A null config value alone establishes no name
 availability; raw role-catalog text or file presence establishes no complete
 origin coverage either.
 
-A current rerun on 2026-10-14 passed seven maintained cases with eleven captured
+An earlier rerun on 2026-10-14 passed seven maintained cases with eleven captured
 provider requests. Its report SHA-256 is
 `fc7794d477269c9e314dd2a901597a9df6299a26182e0a7268bfb3a287137f97`, binding
 checker SHA-256
 `85a4128ecad1545e3707aa14f671cd5634337f460eb3a127d1e58d745ec92e9d` and the
-complete private decoded frames/requests. The current common + WORKING_ITEMS
+complete private decoded frames/requests from that source version. The common + WORKING_ITEMS
 composition is 5565 bytes, SHA-256
 `d9f0157a93b2e1108e5c1e6fead237b0a84b98879f477f7bf2df9c47747ce852`.
 The common + TASK composition is 5434 bytes, SHA-256
@@ -104,7 +104,7 @@ authentication custody and a localhost-only OS sandbox; this child check also
 denies reads under the real macOS `/Users` tree, with an exact-path exception
 only for the selected, resolved and hash-identified
 executable, preserving the documented acquired-path input without admitting its
-siblings or supplier tree. The current seven-case rerun used an owned copy under
+siblings or supplier tree. That seven-case rerun used an owned copy under
 `/Users` at a path containing spaces, quotes and non-ASCII characters; the same
 sandbox denied a synthetic sibling marker. Both owned files
 were removed after the check. The shared Native helper keeps
@@ -113,6 +113,56 @@ sets only its local child environment. No person's configuration or shared
 keyring is used. Current source components and compositions are bound by each
 new report; the historical byte table and original report hash below continue
 to identify their original observation, rather than today's maintained defaults.
+
+## Maintained origin and currency controls
+
+Four additional constructed cases retain the original seven controls:
+
+| Case | Required actual observation |
+|---|---|
+| Declared alias | `config/read` exposes `ALIAS`, not `TASK`; the referenced file's `name` produces the native `TASK` name/description pair. A file named `task.toml` produces `OTHER_ROLE`; nested discovery produces `DEEP_ROLE`. A same-layer standalone `TASK` loses to the declared role. |
+| Nearest trusted project | The selected nested cwd exposes both enabled project layers; the nearer native `TASK` replaces the root-project and home definitions. |
+| Untrusted project | Both constructed project layers report disabled reasons; native `TASK` retains the home definition instead. |
+| Standalone-file currentness | Before and after actual native catalogs show `BEFORE_ROLE` then `TASK` in two newly started threads of the same supplier process/home and cwd. The fixture explicitly changes the file's `name` field and guidance content; complete parsed `config/read` responses and canonical JSON are equal. Native object-key order can differ, so original wire-byte equality is not claimed. |
+
+Every constructed collision sends an empty `thread/start.config`; no App child
+key is added. The checks require the controlled catalog name/description pairs,
+not description-marker presence alone. Original fixture bytes remain unchanged
+against native operations. The currency case retains both source snapshots and
+their hashes, identifies its intentional fixture edit, and checks other source
+bytes and the selected post-edit bytes separately; it does not claim that the
+before-definition stayed current. Both currency requests retain complete parent
+composition and the identified native model template. Exact delegated-child
+composition and correlated identity remain the separate clean/full-history
+controls. The four origin cases do not spawn children or observe an old parent's
+catalog refresh, child-file reload or delivery of the changed guidance.
+
+The complete eleven-case rerun on 2026-10-14 captured sixteen scripted provider
+requests. Its report SHA-256 is
+`ef9c94224c63fb913b718269a3b3da932c68599e6452e17cdf06acec753fc95e`, binding
+checker SHA-256
+`2b620f411e303de90d27105c8ccd61cf2b634a592aa2c9cc7d735e8ba08cc4e8`
+and the complete private inputs and decoded frames. This is bounded receiving
+evidence, not a native namespace
+completeness, App discovery, child-publication or adoption claim.
+
+The official annotated `rust-v0.160.0` tag object
+`79b1b666f2e8551f8abbbca34957227f67f3f553` resolves to source commit
+`a956835d020762cb2b570053af06f643a11c0ecc`. At that commit, the
+[role loader](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/agent-roles/src/loader.rs)
+reads declarations from enabled config layers and standalone files recursively
+under the System/User/Project layers' `agents/` folders. Declared roles precede
+standalone duplicates in one layer; higher layers replace lower roles while
+retaining missing fields. The
+[file parser](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/agent-roles/src/agent_role_config.rs)
+takes the name from file content before a declaration hint.
+The [config read implementation](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/app-server/src/config_manager_service.rs)
+omits packaged-default layers and does not project the resolved standalone-role
+namespace or its file currency. This source pin does not prove executable/build
+correspondence. The controls establish no actual managed/system/profile/plugin
+origin coverage; linked configuration does not establish linked `agents/`
+coverage. A complete-response or source-file reading cannot be treated as a
+complete native namespace snapshot by itself.
 
 ## Repeatable receiving check and remaining App join
 

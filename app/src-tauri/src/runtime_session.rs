@@ -9976,7 +9976,7 @@ for line in sys.stdin:
             .acts
             .iter()
             .find(|r| r["record"]["recordId"] == act)
-            .unwrap()["capture"]["captureId"]
+            .unwrap()["record"]["body"]["captureEvidence"][0]["ref"]
             .as_str()
             .unwrap();
         let path = crate::storage::capture_path(&peer.fixture.root, cap).unwrap();
@@ -10120,7 +10120,7 @@ for line in sys.stdin:
             .acts
             .iter()
             .find(|c| c["record"]["recordId"] == act)
-            .unwrap()["capture"]["captureId"]
+            .unwrap()["record"]["body"]["captureEvidence"][0]["ref"]
             .as_str()
             .unwrap();
         let path = crate::storage::capture_path(&peer.fixture.root, id).unwrap();
@@ -10470,7 +10470,7 @@ for line in sys.stdin:
             .acts
             .iter()
             .find(|r| r["record"]["recordId"] == act)
-            .unwrap()["capture"]["captureId"]
+            .unwrap()["record"]["body"]["captureEvidence"][0]["ref"]
             .as_str()
             .unwrap();
         let path = crate::storage::capture_path(&peer.fixture.root, id).unwrap();
@@ -10959,7 +10959,7 @@ for line in sys.stdin:
         let second="run:workflow:synthetic-second-ended";let log=crate::records::supply::run_log(&peer.fixture.root,second).unwrap();let mut text=String::new();
         for entry in rs_for(&peer,&a) {let mut e=entry;e["runId"]=json!(second);if e["kind"]=="run_opened"{e["body"]["runId"]=json!(second);}e["recordId"]=json!(crate::util::opaque_id("rec:app:").unwrap());text.push_str(&format!("{e}\n"));}
         std::fs::create_dir_all(log.parent().unwrap()).unwrap();std::fs::write(log,crate::record_lines::fixture::rechain(text.as_bytes())).unwrap();
-        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let cap=read.acts.iter().find(|c|c["record"]["recordId"]==act).unwrap()["capture"]["captureId"].as_str().unwrap();let path=crate::storage::capture_path(&peer.fixture.root,cap).unwrap();let bytes=std::fs::read(&path).unwrap();let changed=path.clone();
+        let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let cap=read.acts.iter().find(|c|c["record"]["recordId"]==act).unwrap()["record"]["body"]["captureEvidence"][0]["ref"].as_str().unwrap();let path=crate::storage::capture_path(&peer.fixture.root,cap).unwrap();let bytes=std::fs::read(&path).unwrap();let changed=path.clone();
         crate::after_run_end::AFTER_WRITE.with(|h|*h.borrow_mut()=Some(Box::new(move||std::fs::remove_file(changed).unwrap())));
         crate::host_tick::tick_project(&homes,&root,peer.project());let records=peer.fixture.rs_entries();assert_eq!(records.iter().filter(|r|r["kind"]=="act_after_run_end").count(),1,"later publication must not reuse stale capture evidence");let status=root.lock().unwrap().snapshot();assert_eq!(status["afterRunEnd"]["pending"],true);
         std::fs::write(path,bytes).unwrap();for _ in 0..3 {crate::host_tick::tick_project(&homes,&root,peer.project());}assert_eq!(peer.fixture.rs_entries().iter().filter(|r|r["kind"]=="act_after_run_end").count(),2);assert_eq!(root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],false);
@@ -10969,7 +10969,7 @@ for line in sys.stdin:
     fn after_run_end_prewrite_changed_act_is_held_then_recovers_original_identity(){
         let peer=Peer::new();let(root,homes,a)=after_run_end_fixture(&peer,"A7");
         let act=record_file_act(&peer,"out/summary.md","A7",b"v1",&crate::util::now_rfc3339());
-        let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let capture=read.acts.iter().find(|r|r["record"]["recordId"]==act).unwrap()["capture"]["captureId"].as_str().unwrap().to_owned();
+        let read=crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();let capture=read.acts.iter().find(|r|r["record"]["recordId"]==act).unwrap()["record"]["body"]["captureEvidence"][0]["ref"].as_str().unwrap().to_owned();
         let path=crate::storage::capture_dir(&peer.fixture.root).unwrap().join(format!("{}.json",crate::storage::key(&capture)));let bytes=std::fs::read(&path).unwrap();let changed=path.clone();
         crate::after_run_end::BEFORE_WRITE.with(|h|*h.borrow_mut()=Some(Box::new(move||std::fs::remove_file(changed).unwrap())));
         crate::host_tick::tick_project(&homes,&root,peer.project());

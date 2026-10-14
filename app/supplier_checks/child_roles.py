@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import re
 import signal
 import subprocess
 import sys
@@ -27,6 +28,7 @@ RESOURCES = Path(__file__).resolve().parents[1] / "src-tauri/resources/instructi
 DESCRIPTION = "Bounded TASK child with complete App guidance"
 USER_DESCRIPTION = "Synthetic person-defined TASK; preserve this definition"
 STANDALONE_DESCRIPTION = "Synthetic standalone person-defined TASK; preserve this definition"
+ORIGIN_CASES = ("declared-alias", "project-nearest", "project-untrusted", "role-file-currentness")
 
 
 def sha(data):
@@ -63,7 +65,7 @@ def fixture_role_overrides(case, roles, role_file):
     """
     if roles is not None and not isinstance(roles, dict):
         raise RuntimeError("native effective role configuration is unknown; no role override sent")
-    if case in ("baseline", "standalone-collision") or (isinstance(roles, dict) and "TASK" in roles):
+    if case in ("baseline", "standalone-collision", *ORIGIN_CASES) or (isinstance(roles, dict) and "TASK" in roles):
         return {}
     return {"agents.TASK.description": DESCRIPTION, "agents.TASK.config_file": str(role_file)}
 
@@ -77,6 +79,75 @@ def fixture_sandbox(binary):
             '(allow network-inbound (local ip "localhost:*"))\n'
             '(deny file-read* (subpath "/Users"))\n'
             f'(allow file-read* (literal {json.dumps(str(binary), ensure_ascii=False)}))\n')
+
+
+def write_origin_role(path, name, description, guidance="Synthetic person fixture guidance"):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('name = ' + json.dumps(name) + '\ndescription = ' + json.dumps(description) +
+                    '\ndeveloper_instructions = ' + json.dumps(guidance) + '\n')
+
+
+def prepare_origin_case(root, case):
+    """Known synthetic inputs only; this does not discover the person's roles."""
+    cwd, config = root / "work", ""
+    expected, absent, changing = [], [], None
+    if case == "declared-alias":
+        named = root / "person-role.toml"
+        write_origin_role(named, "TASK", "FILE_NAMED_TASK_DESCRIPTION")
+        config += ('[agents.ALIAS]\ndescription = "TABLE_ALIAS_DESCRIPTION"\nconfig_file = ' +
+                   json.dumps(str(named)) + '\n')
+        write_origin_role(root / "home/agents/task.toml", "OTHER_ROLE", "FILENAME_IS_NOT_ROLE_NAME")
+        write_origin_role(root / "home/agents/nested/deep.toml", "DEEP_ROLE", "RECURSIVE_ROLE_DESCRIPTION")
+        write_origin_role(root / "home/agents/nested/conflict.toml", "TASK", "STANDALONE_TASK_SHADOWED")
+        expected = [("TASK", "FILE_NAMED_TASK_DESCRIPTION"), ("OTHER_ROLE", "FILENAME_IS_NOT_ROLE_NAME"),
+                    ("DEEP_ROLE", "RECURSIVE_ROLE_DESCRIPTION")]
+        absent = ["TABLE_ALIAS_DESCRIPTION", "STANDALONE_TASK_SHADOWED"]
+    elif case in ("project-nearest", "project-untrusted"):
+        subprocess.run(["/usr/bin/git", "-c", "init.defaultBranch=main", "-c", "init.templateDir=", "init", str(cwd)],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                       env={"PATH": "/usr/bin:/bin", "HOME": str(root / "os-home"),
+                            "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"})
+        write_origin_role(root / "home/agents/home.toml", "TASK", "HOME_TASK_DESCRIPTION")
+        write_origin_role(cwd / ".codex/agents/root.toml", "TASK", "ROOT_TASK_DESCRIPTION")
+        write_origin_role(cwd / "near/.codex/agents/near.toml", "TASK", "NEAR_TASK_DESCRIPTION")
+        (cwd / "near/leaf").mkdir()
+        trust = "trusted" if case == "project-nearest" else "untrusted"
+        config += '[projects.' + json.dumps(str(cwd)) + ']\ntrust_level = ' + json.dumps(trust) + '\n'
+        cwd = cwd / "near/leaf"
+        expected = [("TASK", "NEAR_TASK_DESCRIPTION" if trust == "trusted" else "HOME_TASK_DESCRIPTION")]
+        absent = ["HOME_TASK_DESCRIPTION", "ROOT_TASK_DESCRIPTION"] if trust == "trusted" else ["NEAR_TASK_DESCRIPTION", "ROOT_TASK_DESCRIPTION"]
+    elif case == "role-file-currentness":
+        changing = root / "home/agents/unrelated-filename.toml"
+        write_origin_role(changing, "BEFORE_ROLE", "BEFORE_ROLE_DESCRIPTION", "Synthetic before guidance")
+        expected, absent = [("TASK", "AFTER_TASK_DESCRIPTION")], ["BEFORE_ROLE_DESCRIPTION"]
+    return cwd, config, expected, absent, changing
+
+
+def assert_origin_catalog(catalog, pairs, absent):
+    # Exact controlled 0.160.0 formatting, not a generic namespace parser.
+    for name, description in pairs:
+        pattern = rf"(?m)^{re.escape(name)}: \{{\n{re.escape(description)}\n\}}(?:\n|$)"
+        assert re.search(pattern, catalog), "constructed native name/description association missing"
+    assert all(marker not in catalog for marker in absent), "shadowed or disabled role definition retained"
+
+
+def wait_origin_turn(native, thread):
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        frame = native.incoming.get(timeout=max(.001, deadline - time.monotonic()))
+        native.frames.append({"direction": "received", "frame": frame})
+        if frame.get("method") == "turn/completed" and frame.get("params", {}).get("threadId") == thread:
+            return
+    raise TimeoutError("origin fixture turn did not report completion")
+
+
+def unchanged_config_reading(before, after):
+    # Native object-key order is not stable. Compare every parsed field and
+    # canonical JSON byte, retaining original snapshots/frames separately.
+    canonical = lambda value: json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+    before_bytes, after_bytes = canonical(before), canonical(after)
+    assert before == after and before_bytes == after_bytes, "config response unexpectedly reports standalone-file currency"
+    return before_bytes
 
 
 class Native:
@@ -170,6 +241,8 @@ def run_case(binary, root, case, parent, task):
     (root / "os-home").mkdir()
     (root / "work").mkdir()
     (root / "network.sb").write_text(fixture_sandbox(binary))
+    # Git/setup failures in new origin inputs occur before any provider starts.
+    selected_cwd, origin_config, origin_expected, origin_absent, changing = prepare_origin_case(root, case)
     captures, lock = [], threading.Lock()
     spawning = case in ("none", "all")
 
@@ -231,17 +304,46 @@ def run_case(binary, root, case, parent, task):
         standalone = root / "home/agents/task.toml"
         standalone.write_text('name = "TASK"\ndescription = ' + json.dumps(STANDALONE_DESCRIPTION) +
                               '\ndeveloper_instructions = "STANDALONE_PERSON_DEFINED_TASK_MARKER"\n')
+    config += origin_config
     original_config = config.encode()
     original_standalone = standalone.read_bytes() if standalone is not None else None
     (root / "home/config.toml").write_text(config)
+    origin_sources = {path: path.read_bytes() for path in root.rglob("*.toml")} if case in ORIGIN_CASES else {}
+    origin_reading = {}
     native = None
     try:
         native = Native(binary, root)
         native.send("initialize", {"clientInfo": {"name": "child_carrier_fixture", "version": "0.0.0"},
                                    "capabilities": {"experimentalApi": True}})
         native.send("initialized", {}, notification=True)
-        effective = native.send("config/read", {"includeLayers": True, "cwd": str(root / "work")})
+        effective = native.send("config/read", {"includeLayers": True, "cwd": str(selected_cwd)})
         save(root / "effective-config.json", effective)
+        if changing is not None:
+            before = native.send("thread/start", {"model": "gpt-6.1-sol", "modelProvider": "fixture",
+                "cwd": str(selected_cwd), "developerInstructions": parent, "config": {}})["thread"]["id"]
+            native.send("turn/start", {"threadId": before, "input": [{"type": "text", "text": "Synthetic before-change capture only."}]})
+            wait_origin_turn(native, before)
+            assert len(captures) == 1, "before-change catalog not captured exactly once"
+            before_catalog = role_description(captures[0]["body"])
+            assert_origin_catalog(before_catalog, [("BEFORE_ROLE", "BEFORE_ROLE_DESCRIPTION")], ["AFTER_TASK_DESCRIPTION"])
+            assert all(path.read_bytes() == data for path, data in origin_sources.items()), "person fixture bytes changed before the intentional mutation"
+            before_bytes = changing.read_bytes()
+            write_origin_role(changing, "TASK", "AFTER_TASK_DESCRIPTION", "Synthetic after guidance")
+            after_bytes = changing.read_bytes()
+            assert before_bytes != after_bytes, "fixture did not change the role name/content"
+            repeated = native.send("config/read", {"includeLayers": True, "cwd": str(selected_cwd)})
+            save(root / "effective-config-after.json", repeated)
+            canonical_reading = unchanged_config_reading(effective, repeated)
+            (root / "effective-config-canonical.json").write_bytes(canonical_reading + b"\n")
+            save(root / "role-file-change.json", {"actor": "synthetic fixture", "path": str(changing.relative_to(root)),
+                "before": before_bytes.decode(), "after": after_bytes.decode(),
+                "beforeSha256": sha(before_bytes), "afterSha256": sha(after_bytes)})
+            origin_sources[changing] = after_bytes  # Only the fixture's intentional mutation.
+            origin_reading.update({"sameConfigResponseAfterRoleChange": True, "nativeCatalogBeforeObserved": True,
+                "beforeThreadId": before, "beforeRoleFileSha256": sha(before_bytes), "afterRoleFileSha256": sha(after_bytes),
+                "fixtureRoleMutation": True, "beforeAndAfterSourceSnapshotsRetained": True,
+                "canonicalConfigResponseSha256": sha(canonical_reading),
+                "configReading": "complete parsed responses and canonical JSON equal; native key order is not wire-byte identity"})
         roles = effective["config"]["agents"]
         overrides = fixture_role_overrides(case, roles, role_file)
         if case == "collision":
@@ -250,8 +352,18 @@ def run_case(binary, root, case, parent, task):
         if case == "standalone-collision":
             assert roles is None, "counterexample requires agents:null, not an exposed config table"
             assert not overrides, "known standalone fixture collision must withhold every App child key"
+        if case in ORIGIN_CASES:
+            assert not overrides, "known origin collision must withhold every App child key"
+            if case == "declared-alias":
+                assert isinstance(roles, dict) and "ALIAS" in roles and "TASK" not in roles
+            else:
+                assert roles is None, "standalone origin control requires agents:null"
+            if case in ("project-nearest", "project-untrusted"):
+                project_layers = [row for row in effective["layers"] if row["name"]["type"] == "project"]
+                assert len(project_layers) == 2, "selected cwd did not expose both constructed project layers"
+                assert all(bool(row.get("disabledReason")) == (case == "project-untrusted") for row in project_layers)
         started = native.send("thread/start", {"model": "gpt-6.1-sol", "modelProvider": "fixture",
-            "cwd": str(root / "work"), "developerInstructions": parent, "config": overrides})
+            "cwd": str(selected_cwd), "developerInstructions": parent, "config": overrides})
         thread = started["thread"]["id"]
         native.send("turn/start", {"threadId": thread, "input": [{"type": "text",
             "text": "Synthetic carrier check; only scripted fixture responses follow."}]})
@@ -270,8 +382,8 @@ def run_case(binary, root, case, parent, task):
                 break
         else:
             raise TimeoutError("fixture turns did not report completion")
-        assert len(captures) == (3 if spawning else 1), "unexpected supplier request count"
-        first = captures[0]["body"]
+        assert len(captures) == (3 if spawning else 2 if changing is not None else 1), "unexpected supplier request count"
+        first = captures[-1 if changing is not None else 0]["body"]
         assert parent in developer_texts(first), "complete parent composition not carried as developer guidance"
         assert sha(developer_texts(first)[0].encode()) == BASE_SHA, "native model template differs from selected reference"
         offered = role_description(first)
@@ -285,10 +397,31 @@ def run_case(binary, root, case, parent, task):
             assert standalone.read_bytes() == original_standalone, "standalone person definition bytes changed"
             start_frames = [row["frame"] for row in native.frames if row["direction"] == "sent" and row["frame"].get("method") == "thread/start"]
             assert len(start_frames) == 1 and start_frames[0]["params"]["config"] == {}, "standalone negative sent App child keys"
+        elif case in ORIGIN_CASES:
+            assert_origin_catalog(offered, origin_expected, origin_absent)
+            assert DESCRIPTION not in offered, "known origin fixture supplied an App child role"
+            assert all(path.read_bytes() == data for path, data in origin_sources.items()), "person fixture bytes changed during native run"
+            start_frames = [row["frame"] for row in native.frames if row["direction"] == "sent" and row["frame"].get("method") == "thread/start"]
+            assert len(start_frames) == (2 if changing is not None else 1)
+            assert all(row["params"]["config"] == {} and row["params"]["cwd"] == str(selected_cwd) for row in start_frames)
+            for capture in captures:
+                assert parent in developer_texts(capture["body"]), "origin control lost complete parent guidance"
+                assert sha(developer_texts(capture["body"])[0].encode()) == BASE_SHA, "origin control changed native model template"
+            origin_reading.update({"nativeCatalogAfterObserved": True, "selectedCwd": str(selected_cwd),
+                "threadId": thread, "appChildKeysWithheldByFixture": True,
+                "expectedNameDescriptions": dict(origin_expected), "absentDescriptions": origin_absent,
+                "sourceFileSha256": {str(path.relative_to(root)): sha(data) for path, data in origin_sources.items()},
+                "discoveryStanding": "known synthetic origins; not namespace completeness or App discovery"})
+            if changing is None:
+                origin_reading["originalDefinitionBytesRetained"] = True
+            else:
+                assert before != thread, "currency catalogs were not observed in separate starts of the same native source"
+                origin_reading.update({"postMutationDefinitionBytesRetained": True, "otherDefinitionBytesUnchanged": True})
         else:
             assert DESCRIPTION in offered, "per-thread custom role was not advertised"
         findings = {"case": case, "requests": len(captures), "nativeTemplate": BASE_SHA,
-                    "customRoleOffered": DESCRIPTION in offered, "personRolePreserved": True if case in ("collision", "standalone-collision") else None}
+                    "customRoleOffered": DESCRIPTION in offered, "personRolePreserved": True if changing is None and case in ("collision", "standalone-collision", *ORIGIN_CASES) else None}
+        findings.update(origin_reading)
         if case == "standalone-collision":
             findings.update({"effectiveAgentsNull": True, "standaloneDescriptionRetained": True,
                              "appChildKeysWithheldByFixture": True, "originalDefinitionBytesRetained": True,
@@ -350,7 +483,7 @@ def main():
               "standing": "scripted stock-supplier carriage; not App integration, adoption, enforcement or qualification"}
     print(f"Private evidence: {root}", flush=True)
     report["cases"] = [run_case(binary, root / case, case, parent, task)
-                       for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all")]
+                       for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all", *ORIGIN_CASES)]
     report["evidenceFiles"] = {str(path.relative_to(root)): sha(path.read_bytes())
                              for path in sorted(root.rglob("*.json"))}
     save(root / "report.json", report)
