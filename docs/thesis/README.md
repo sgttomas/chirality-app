@@ -4,21 +4,21 @@
 
 [Read the thesis](THESIS.md).
 
-The App thesis examines why agent participation needs a relation to an
+The App thesis examines why agent participation needs a relationship to an
 application's objects, operations and consequences, and why workflow authoring
 is the first exemplar.
 
 This is the operative emphasis of one research work. The
 [shared introduction](../../../../docs/thesis/INTRODUCTION.md) develops its
-question; Root gives normative emphasis, App operative emphasis and SWBPIPE
-evaluative emphasis. These are overlapping views: ontology, epistemology,
-praxeology and axiology inform each, and findings return to revise the means
-and purposes of work under the relevant authority. The App makes the shared
-orientation actionable through method authoring,
-meaningful host operations and recoverable work.
+question. Root gives the normative emphasis, App the operative emphasis and
+SWBPIPE the evaluative emphasis. These views overlap: ontology, epistemology,
+praxeology and axiology inform each of them, and findings return to revise the
+means and purposes of work under the relevant authority. The App makes the
+shared orientation actionable through method authoring, meaningful host
+operations and recoverable work.
 
 The [support-arrangement example](../../../../docs/thesis/WORKED_EXAMPLE.md)
-connects the views through an illustrative revision; the
+connects the views through an illustrative revision. The
 [shared conclusion](../../../../docs/thesis/CONCLUSION.md) brings their
 argument and remaining questions together.
 
