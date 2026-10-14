@@ -228,6 +228,21 @@ the person's configuration and is **never** recorded as enforcing L-TASK-1
 
 ## 4. Native association (REQ-001, REQ-003; AC-003)
 
+**Native relationship identity (owner, 2026-10-14).**
+
+> You shouldn't link to ephemeral ideas of an objective (an "undertaking") when there's session IDs that presumably are created for each unique session and can be linked to indicate when something was forked?  I don't like this idea of an "undertaking" being used at all as an identity.
+
+Native relationship observations use the actual native conversation IDs,
+qualified by their source/home, and preserve the original observed request
+and generation context. An observation has its own stable record identity.
+An objective or undertaking description supplies no identity, association key
+or prerequisite for recording. A fork or continued-from relation links the
+identified conversations; it neither requires a classification choice nor
+derives that link from a folder, workflow choice or objective description.
+The current format and reader are to be brought into correspondence with
+this direction. Existing 0.1 files remain readable as quoted source records;
+their undertaking fields cannot establish native conversation identity.
+
 **Supplier facts** (Codex 0.158.0; delegation surfaces unchanged at 0.160.0
 per VC):
 - **Observed through the OBS-2 adapter, not stock behaviour.** A child is
