@@ -504,8 +504,9 @@ conversation only when the new matching resume dispatch reports active
 admission and the refreshed current source still holds that admission for the
 same history selection. It uses the admitted full generation and native thread
 ID. Read-only, refused, failed, superseded or identity-incomplete results leave
-the conversation selection and unsent composer unchanged. Continue sends no
-message and performs no retry; original App role evidence remains unknown
+the conversation selection and unsent composer unchanged. A newer source or
+conversation choice made while the refresh is pending takes precedence over
+its delayed result. Continue sends no message and performs no retry; original App role evidence remains unknown
 after a cold restart.
 
 ### 5.4 Conversation start display (K-3)

@@ -138,7 +138,14 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
   const query = {factory_id: 1, query_id: 2, home: source.home, generation: source, method: 'thread/resume', params: {threadId: 'stored'}};
   const existing = {...thread('existing', null), generation: source};
   let continueResponded = false;
-  let snapshot = {...host, generation: source, threads: initialThread ? [existing] : [],
+  const interleave = outcome === 'delayed-source-choice' || outcome === 'delayed-chat-choice';
+  let releaseDecision, decisionHeld, pendingContinue;
+  const heldDecision = new Promise(resolve => {releaseDecision = resolve;});
+  const reachedDecision = new Promise(resolve => {decisionHeld = resolve;});
+  let holdNextDecision = interleave;
+  let expectedKey = outcome === 'success' ? JSON.stringify([source, 'stored']) : initialThread ? JSON.stringify([source, 'existing']) : '';
+  let snapshot = {...host, generation: source, threads: interleave ? [existing, {...thread('other-current', null), generation: source}] : initialThread ? [existing] : [],
+    homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}, {modeHomeClass: 'api-key'}]},
     nativeHistory: {state: 'history-receiving', home: source.home, generation: source, selectionEpoch: 0, threads: [{native: metadata.thread}], dispatches: outcome === 'old-admission' ? [{requestRef: 'req:resume'}] : []}};
   const previous = window.__TAURI_INTERNALS__;
   window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {
@@ -147,7 +154,17 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
       if (outcome === 'refresh-failed' && continueResponded) throw Error('Current source read failed');
       return snapshot;
     }
-    if (command === 'decision_view') return {rows: []};
+    if (command === 'decision_view') {
+      if (continueResponded && holdNextDecision) {holdNextDecision = false; decisionHeld(); return heldDecision;}
+      return {rows: []};
+    }
+    if (command === 'select_home') {
+      const nextSource = {...source, home: 'chosen-other-home', spawnCounter: 2};
+      snapshot = {...snapshot, generation: nextSource, homeRouting: {...snapshot.homeRouting, activeModeHomeClass: args.modeHomeClass},
+        threads: [{...thread('other-current', null), generation: nextSource}],
+        nativeHistory: {...snapshot.nativeHistory, generation: nextSource, home: nextSource.home, selectionEpoch: 0, selected: null, dispatches: []}};
+      return {state: 'selected'};
+    }
     if (command === 'native_confirmation_content') return [];
     if (command === 'history_select') {
       snapshot = {...snapshot, nativeHistory: {...snapshot.nativeHistory, selectionEpoch: 1, selected: {threadId: args.threadId, state: 'indexed-read-only', appRole: unknownRole}}};
@@ -195,16 +212,29 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     assert.equal(selectedKey(), initialThread ? priorKey : '', 'index and metadata reads do not open an operational chat');
     const continueButton = button(container, 'Continue selected conversation');
     assert.equal(props(continueButton).disabled, false);
-    await React.act(async () => {await props(continueButton).onClick();});
+    if (interleave) {
+      await React.act(async () => {pendingContinue = props(continueButton).onClick(); await reachedDecision;});
+      // The old host_status has rendered, but its decision_view is still held.
+      if (outcome === 'delayed-source-choice') {
+        await React.act(async () => {await props(button(container, 'Use api-key home')).onClick();});
+      }
+      expectedKey = JSON.stringify([snapshot.generation, 'other-current']);
+      await change(elements(conversation(), 'select')[0], expectedKey);
+      assert.equal(selectedKey(), expectedKey, 'the person has chosen the newer current chat');
+      await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
+    } else {
+      await React.act(async () => {await props(continueButton).onClick();});
+    }
     assert.deepEqual(calls.filter(call => call.command === 'history_action').map(call => call.args), ['metadata', 'continue'].map(action => ({generation: source, selectionEpoch: 1, action, cursor: null, direction: 'desc', reference: null})), 'one explicit Continue and no retry');
-    assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'history_select', 'history_action'].includes(call.command)), 'Continue never sends text or changes role');
+    assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'history_select', 'history_action', 'select_home'].includes(call.command)), 'Continue never sends text or changes role');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
-    assert.equal(selectedKey(), outcome === 'success' ? JSON.stringify([source, 'stored']) : initialThread ? priorKey : '');
+    assert.equal(selectedKey(), expectedKey, 'a delayed Continue cannot replace a newer source or chat choice');
     if (outcome === 'success') {
       assert.equal(props(button(conversation(), 'Send text')).disabled, false);
       assert.ok(conversation().textContent.includes('Role not established in this App process'), 'cold role stays unknown despite native agentRole');
     }
   } finally {
+    if (pendingContinue) await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
     await React.act(() => root.unmount());
     document.body.removeChild(container);
     window.__TAURI_INTERNALS__ = previous;
@@ -220,4 +250,10 @@ test('Continue with no matching new current admission preserves selection and co
   for (const outcome of ['read-only', 'ineligible', 'not-admitted', 'refused', 'failed', 'pending', 'stale-dispatch', 'missing-id', 'missing-generation', 'wrong-id', 'wrong-query', 'old-admission', 'source-changed', 'selection-changed', 'query-superseded', 'not-ready', 'no-current-thread', 'refresh-failed']) {
     await ordinaryContinueCase({initialThread: true, outcome});
   }
+});
+
+
+test('a Continue refresh awaiting decision_view cannot overwrite a newer source or chat choice', async () => {
+  await ordinaryContinueCase({initialThread: true, outcome: 'delayed-source-choice'});
+  await ordinaryContinueCase({initialThread: true, outcome: 'delayed-chat-choice'});
 });

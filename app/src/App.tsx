@@ -182,10 +182,13 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
   </section>;
 }
 
-export function HistoryPanel({ host, refresh, setThreadKey }: { host: Json; refresh: () => Promise<Json>; setThreadKey: (key: string) => void }) {
+export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host: Json; refresh: () => Promise<Json>; threadKey: string; setThreadKey: (key: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [direction, setDirection] = useState("desc");
+  // A source or chat choice rendered during the pending refresh supersedes its old snapshot.
+  const latest = useRef({ host, threadKey });
+  latest.current = { host, threadKey };
   const history = host?.nativeHistory;
   const selected = history?.selected;
   const generation = history?.generation;
@@ -199,7 +202,8 @@ export function HistoryPanel({ host, refresh, setThreadKey }: { host: Json; refr
     catch (e) { setError(String(e)); }
     finally {
       try {
-        const current = await refresh();
+        const refreshed = await refresh();
+        const current = latest.current.host === host ? refreshed : latest.current.host;
         const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
         const resolution = result?.selected?.streamResolutions?.["thread-state"];
         const dispatch = (result?.dispatches ?? []).find((row: Json) => row.requestRef && !priorRequests.has(row.requestRef)
@@ -208,7 +212,7 @@ export function HistoryPanel({ host, refresh, setThreadKey }: { host: Json; refr
           && row.localQuery?.method === "thread/resume" && row.localQuery?.params?.threadId === selected?.threadId);
         const admitted = dispatch?.activeAdmission;
         // Only a new matched Continue admission opens a chat; indexed pages remain read-only.
-        if (action === "continue" && admitted?.nativeResumeObserved === true && admitted.resumeRequestRef === dispatch.requestRef
+        if (action === "continue" && latest.current.threadKey === threadKey && admitted?.nativeResumeObserved === true && admitted.resumeRequestRef === dispatch.requestRef
           && typeof admitted.threadId === "string" && admitted.threadId && admitted.threadId === selected?.threadId
           && admitted.generation && same(admitted.generation, generation) && same(result?.generation, generation)
           && result?.selectionEpoch === epoch && result?.selected?.threadId === admitted.threadId
@@ -953,7 +957,7 @@ export function App() {
         nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })}
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
-      <HistoryPanel host={host} refresh={refresh} setThreadKey={setThreadKey} />
+      <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 
       <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
