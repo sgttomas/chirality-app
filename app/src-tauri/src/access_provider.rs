@@ -269,7 +269,7 @@ impl Host {
             .request_begin_with_access_offer(
                 "config/read",
                 json!({"cwd":cwd,"includeLayers":true}),
-                json!({"kind":"person-directed-access-admission"}),
+                json!({"kind":"app-rule","name":"access-provider-admission"}),
                 false,
                 Some(generation),
                 false,

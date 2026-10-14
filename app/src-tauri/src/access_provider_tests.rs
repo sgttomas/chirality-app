@@ -644,3 +644,88 @@ fn access_provider_known_metadata_field_shapes_cannot_hide_modeled_malformed_dat
     peer.frame();
     peer.safe();
 }
+#[test]
+fn access_provider_actual_private_read_records_conform_to_canonical_schema() {
+    let schema: Value = serde_json::from_str(include_str!(
+        "../resources/hosting/hosting.client-request-record.schema.json"
+    ))
+    .unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    for mode in [
+        "success",
+        "native-error",
+        "entry-refused",
+        "malformed-result",
+        "timeout",
+        "not-ready",
+    ] {
+        let mut peer = Peer::new("home");
+        if mode == "not-ready" {
+            peer.host.inner.0.lock().unwrap().state = "stopped".into();
+        } else {
+            let m = mode;
+            *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(
+                move |host, source| {
+                    let frame = match m {
+                        "success" => {
+                            Some(json!({"id":source.request_id(),"result":config(json!({}))}))
+                        }
+                        "native-error" => Some(
+                            json!({"id":source.request_id(),"error":{"code":-32603,"message":CANARY,"data":{"private":CANARY}}}),
+                        ),
+                        "entry-refused" => {
+                            let mut def = local();
+                            def["env_key"] = json!(CANARY);
+                            Some(
+                                json!({"id":source.request_id(),"result":config(json!({"anonymous":def}))}),
+                            )
+                        }
+                        "malformed-result" => {
+                            Some(json!({"id":source.request_id(),"result":{"config":CANARY}}))
+                        }
+                        _ => None,
+                    };
+                    if let Some(frame) = frame {
+                        host.on_line(&serde_json::to_vec(&frame).unwrap(), source.generation());
+                    }
+                },
+            ));
+        }
+        let result = peer.read(
+            if mode == "entry-refused" {
+                "local-provider"
+            } else {
+                "chatgpt-account"
+            },
+            if mode == "entry-refused" {
+                "anonymous"
+            } else {
+                "openai"
+            },
+        );
+        assert_eq!(result.is_ok(), mode == "success");
+        if mode != "not-ready" {
+            assert_eq!(peer.frame()["method"], "config/read");
+        }
+        let rows = peer.host.snapshot()["clientRequests"].clone();
+        assert_eq!(rows.as_array().unwrap().len(), 1);
+        let row = &rows[0];
+        assert_eq!(
+            row["initiator"],
+            json!({"kind":"app-rule","name":"access-provider-admission"})
+        );
+        validator
+            .validate(row)
+            .unwrap_or_else(|error| panic!("{mode}: {error}"));
+        assert_eq!(
+            row["outcome"],
+            match mode {
+                "native-error" => "response-observed-error",
+                "timeout" => "pending",
+                "not-ready" => "refused-not-sent",
+                _ => "response-observed-result",
+            }
+        );
+        peer.safe();
+    }
+}
