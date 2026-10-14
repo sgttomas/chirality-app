@@ -813,6 +813,20 @@ Add `--include-flat-model` to exercise the supported alternate flat function
 renderer as well. The check reports the actual model/provider and hot/cold
 `namespaceTools` values; a flat declaration does not establish a false value.
 
+The opt-in local-auth supplier check uses the same identified binary and fresh
+isolated homes. It supplies only an invented generated canary, captures exact
+Bearer correspondence at a loopback HTTP400 fixture hot and after restart,
+and checks the anonymous route, logout persistence and native ChatGPT-only
+policy refusal. It makes no prediction or real-key validation. Redacted
+evidence stays in the reported scratch directory; the owned auth leaf is
+removed even on failure and Native stderr is discarded before transfer.
+Authenticated local App access remains unoffered. From `app/`:
+
+```sh
+python3 supplier_checks/test_local_auth.py
+python3 supplier_checks/local_auth.py --codex "$CHIRALITY_CODEX_BIN"
+```
+
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture
 failure/recovery, ordering, namespace and provenance negatives. With no supplier
