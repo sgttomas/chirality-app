@@ -108,7 +108,11 @@ pub(crate) struct Chain {
 impl Chain {
     /// Takes one complete link line (`no` from 1) with its link, if it has one.
     pub(crate) fn step(&mut self, no: usize, raw: &[u8], link: Option<&Value>) -> Result<(), String> {
-        let identity = line_identity(raw);
+        self.step_identity(no, line_identity(raw), link)
+    }
+    // Only this module's parser may reuse its already observed raw-byte digest.
+    // Other callers retain step(raw), so a quoted field cannot supply a digest.
+    fn step_identity(&mut self, no: usize, identity: String, link: Option<&Value>) -> Result<(), String> {
         let result = match link {
             None if self.linked => Err(format!("chain broken at line {no}: no chain link after linked lines; never repaired")),
             None => {
@@ -203,6 +207,17 @@ pub(crate) fn parse_with(bytes: &[u8], name: &str, first: usize, base: u64, expe
     // the disk index, so W-0 lookahead and grouped-line semantics stay shared.
     parse_reader(std::io::Cursor::new(bytes), name, first, base, expected, chain, each).expect("slice read")
 }
+// A decoded recovery label without any JSON escaping must occur literally in
+// the source bytes. Its absence therefore proves a non-marker even with
+// duplicate keys (Value keeps their last value). Possible markers, escaped
+// keys/values and undecodable text retain the original Value interpretation.
+fn recovery_lookahead(raw: &[u8]) -> Option<Value> {
+    if std::str::from_utf8(raw).is_ok_and(|text| !text.contains('\\') && !text.contains(crate::records::PARTIAL_NOT_RECOVERED)) {
+        None
+    } else {
+        serde_json::from_slice(raw).ok()
+    }
+}
 /// Stream R-2 with one complete line of lookahead (W-0 can name the line
 /// immediately before it). Memory is bounded by two lines, including a group.
 #[allow(clippy::too_many_arguments)]
@@ -225,10 +240,10 @@ pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first:
         // still-torn W-0 observation is not evidence that recovery happened.
         let mut recovered = false;
         if next.ends_with(b"\n") {
-            if let Ok(v) = serde_json::from_slice::<Value>(&next[..next.len() - 1]) {
+            if let Some(v) = recovery_lookahead(&next[..next.len() - 1]) {
                 let named = v["body"]["subjectRef"].as_str().unwrap_or_default();
                 if v["kind"] == "evidence_limit" && v["body"]["label"] == crate::records::PARTIAL_NOT_RECOVERED && named.starts_with(&format!("line {no};")) {
-                    let mismatch = if named != crate::records::torn_line_ref(no, &raw) {
+                    let mismatch = if named != format!("line {no}; {} bytes; sha256 {}", line.len, line.digest) {
                         Some(format!("line {no}: the \"partial entry not recovered\" limit after it names other bytes; read as written"))
                     } else if is_valid_line(&raw) {
                         Some(format!("line {no}: a complete entry, although the limit after it names it as torn; read as written"))
@@ -243,7 +258,7 @@ pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first:
             let decoded = match &validator { Ok(v) => decode_line(&raw, v), Err(e) => Err(NotRead::Invalid(e.clone())) };
             match decoded {
                 Ok((entries, link)) => {
-                    if let Err(broken) = chain.step(no, &raw, link.as_ref()) { line.limits.push(format!("{name}: {broken}")); }
+                    if let Err(broken) = chain.step_identity(no, line.digest.clone(), link.as_ref()) { line.limits.push(format!("{name}: {broken}")); }
                     for entry in &entries {
                         let seq = entry["seq"].as_u64().unwrap_or(0);
                         if seq != expected { line.limits.push(format!("{name}: sequence incomplete/disagrees: expected {expected}, found {seq} at line {no}")); }
@@ -252,7 +267,7 @@ pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first:
                     line.entries = entries;
                 }
                 Err(not_read) => {
-                    chain.last = Some(line_identity(&raw)); chain.lines += 1;
+                    chain.last = Some(line.digest.clone()); chain.lines += 1;
                     line.limits.push(match not_read { NotRead::Unreadable => format!("{name}: unreadable line {no}"), NotRead::Invalid(e) => format!("{name}: invalid line {no}: {e}") });
                 }
             }
@@ -318,3 +333,7 @@ pub(crate) mod fixture {
         out
     }
 }
+
+#[cfg(test)]
+#[path = "record_lines_regression_tests.rs"]
+mod regression_tests;

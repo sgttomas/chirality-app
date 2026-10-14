@@ -2549,6 +2549,13 @@ machine; `records::durability_tests`, and the ignored
   database; in-process state keeps per-log limits, chain and growth metadata.
   Reads and rebuilds stream the shared R-2 parser's lines. Earlier in-process
   index measurements below remain observations of the versions named there.
+  The parser reuses each observed raw-line digest for the chain and W-0's
+  exact-byte comparison. W-0 lookahead skips JSON decoding only when valid
+  UTF-8 contains neither a JSON escape nor the literal recovery label; every
+  possible marker keeps the full JSON interpretation. Raw-byte identities,
+  including a carriage return before the line feed, and the existing torn-line,
+  group, sequence and chain limits are unchanged. The differential regression
+  checks compare complete parsed observations with the earlier interpretation.
 
   How it stays current:
   - Each refresh re-walks the tree and takes every log's and directory's
