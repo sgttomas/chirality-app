@@ -795,7 +795,7 @@ states (OE-1).
 | DEL-01-02 (RECOVERY-v0.2; v0.9) | — (R17-10: DEL-01-02 consumes nothing of DEL-04-03 and writes no RS entry; RECOVERY §8.2) | The custody events of RECOVERY-v0.2 §8 (`recovery.custody-event.schema.json`), which the App writer maps: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement"; `app_restart_interruption` → R11 "App-restart interruption" on the run current in the conversation at the interruption; `observation_lost` / `observation_recovered` reach R8 through DEL-02-03 (CE-13, CE-14) | Designed (PROPOSED), not built; a turn interrupt is not recorded in format 0.1 (§3) |
 | DEL-01-04 (AAC-v0.2, NIR-v0.2; v0.9) | §6 human-act record and §13 entry kinds, which the act control writes (`human_act` *direct capture*, recorder role "App interface (capturing surface)"; `act_declined`) through the writer of §14.1; record-out for act presentation (NIR §8) and the checkpoint and standing display it places (NIR §9) | Captures of acts on App content and of A15 (AAC §1.2, §4); capture evidence objects (AAC §5.2) | The act control's obligation is PROPOSED until SCA-V4-003 carries SC2-01-04-1 (amended by SC3-01-04-1); SEAL-2 open (U-32) |
 | DEL-02-02 (WR-v0.2; v0.9) | A15 records (HA-10), which its `library_entry` cites; R2 *selected* | The A15 descriptor the act control composes from (WR RB-4); the selection record (R2 *selected*); the per-run workflow supply record for R3 (R19-7) | Designed (PROPOSED), not built. No register row names DEL-02-02 as a supplier of DEL-04-03; one is proposed in the F-C return |
-| DEL-02-04 (ROLE-v0.2; v0.9) | R3 and R5a meanings | The supply record 0.2 (role guidance at start and fork), the limit account and the limit observations (ROLE §6) | Designed (PROPOSED), not built; DEP-02-04-012 |
+| DEL-02-04 (ROLE-v0.2; v0.9) | R3 and R5a meanings | The supply record 0.2 (role guidance at start and fork), the limit account and the limit observations (ROLE §6) | The separate App observation log and retained bytes are implemented (ROLE §6.1a, §13.8); this R3 reference/resolver receiving path remains unbuilt. The preserved 0.2 proposal is unchanged; DEP-02-04-012 |
 | External host run recording (DEP-04-03-016; DEP-001) | §§3–9 | Receipts, origin marks, subject content identities, capture evidence and reference, lapse, per-operation settings version, constraint receipt, per-turn guidance, host holds (SQ-02; governance phase), channel restrictions on destination | Adoption unclaimed; OI-013 placement. SWBPIPE answered 2026-09-28 (relayed; no commitment or contribution, RELAY §4): no capture-evidence reference (SQ-01), no host-held route (SQ-02), whole-model identity only (SQ-03), whole-model staleness (SQ-07), session-only receipts (SQ-09), receiptless session undo (SQ-10), no A13 facility (SQ-28) |
 
 ### 10.1 Receivers and suppliers by register row (R9-6)
@@ -1505,7 +1505,9 @@ settled. **Implemented** (App `records_store.rs`, `storage.rs`): Placement,
 Project identity, Existing records and Failures below, for a project's run
 logs, outside-run act logs, captures and WR WP-1 records, and (U-STORE-6,
 "Split by who writes") for its connector route accounts (DEL-07-02,
-`connector_route_store.rs`) and the agents' records read log (§13.9); Units
+`connector_route_store.rs`) and the agents' records read log (§13.9), and
+the App's role-supply observations and exact retained App guidance bytes
+(DEL-02-04, ROLE §6.1a, `role_observations.rs`); Units
 written together and the chain of Tamper-evidence (App `record_lines.rs`,
 `records.rs`, `records_index.rs`) for every RS log the App writes. The
 derived SQLite index, BagIt export and recorded retention controls below
@@ -1521,7 +1523,10 @@ as described below; its App observation writer remains unbuilt.
   `acts/<safe-writer-storage-key>.jsonl`, `captures/` (and
   `captures/pending/`) and `workflow/` (WR §16.8 WP-1 records), keyed as in
   §13.7, `connectors/route-accounts/<uuid>.json` (DEL-07-02 accounts, CRP
-  §2), `reads/records-reads.jsonl` (the §13.9 read log) and, when DEL-06-01
+  §2), `reads/records-reads.jsonl` (the §13.9 read log),
+  `role-supply/observations.jsonl` and `role-supply/content/<sha256>.utf8`
+  (ROLE §6.1a's App observations and immutable App-only guidance bytes),
+  and, when DEL-06-01
   is built, `fleet/coordination.fleet.jsonl` (the App's own coordination
   observations, also written to the project's log, below), beside the
   store's own records: `store.json` (the store's identity,
@@ -1907,7 +1912,8 @@ as described below; its App observation writer remains unbuilt.
   Imported connector files keep every byte, including interrupted-publication
   `.tmp` files and unusual `.lock` names. The package has `bagit.txt`, a
   `manifest-sha256.txt` covering every payload file exactly once, a protected
-  `records-chain-heads.json` tag computed from the copied RS logs, and a
+  `records-chain-heads.json` tag computed from the copied RS logs and the
+  role-supply observation log through its own schema/chain reader, and a
   `records-administration.json` tag containing the project's identity and the
   prior administrative events' exact UTF-8 bytes as reversible JSON strings
   (whitespace and line endings preserved), and a `tagmanifest-sha256.txt`
@@ -1925,7 +1931,12 @@ as described below; its App observation writer remains unbuilt.
   evidence gaps remain in the copied records and the chain-head tag; a verified
   package certifies its bytes, not complete history or human-act authenticity.
   **Verify an exported package** rechecks the full inventory, both manifests
-  and the copied RS chain heads. The included standard-library `verify.py`
+  and the copied logs' declared chain-head profile. New tags use profile 0.2
+  for RS and role-supply heads; the older 0.1 RS-only profile remains
+  verifiable, with role-supply head coverage explicitly unestablished.
+  Current-store matching still requires complete payload-byte and
+  administrative coverage under either profile. Auxiliary role rows never
+  enter the R1 index or records capability. The included standard-library `verify.py`
   checks inventories and hashes without the App (`python3 verify.py <bag>`),
   including the chain-head tag's checksum; it does not interpret RS semantics.
   Both say the package is unsigned. Older exports without an administration

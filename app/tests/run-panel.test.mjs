@@ -284,7 +284,7 @@ test('the selected workflow shows its declared part instead of a JSON dump',()=>
   const undeclared=h(DeclaredPart,{declaration:{raw:null,reading:'undeclared',categories:Object.fromEntries(cats.map(c=>[c,'undeclared'])),elements:{},findings:[]}});
   assert.ok(undeclared.includes('declares no requirements part')&&undeclared.includes('Not declared.'));
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<SelectedWorkflow selection={data?.selection}/>')&&app.includes('<RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>'));
+  assert.ok(app.includes('<SelectedWorkflow selection={selected} inspection={!thread}/>')&&app.includes('<RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>'));
 });
 
 test('Bring a real run back to authoring calls the host only on the press, with the chosen conversation (TT-10, TT-11)',()=>{

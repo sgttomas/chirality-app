@@ -101,6 +101,10 @@ needs:
   gating: false
   evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/role_observations.rs
+- app/src-tauri/resources/workflow_role/role-supply-observation.schema.json
+- app/src-tauri/src/records_export.rs
+- app/src-tauri/src/records_index.rs
 - app/src-tauri/src/instruction_seed_history.rs
 - app/src-tauri/src/instruction_store.rs
 - app/src-tauri/src/conversation_roles.rs
@@ -108,6 +112,8 @@ code_paths:
 - app/src-tauri/src/role_supply.rs
 - app/src/ConversationRoles.tsx
 checks:
+- app/src-tauri/src/role_observations_tests.rs
+- app/src-tauri/src/role_observations_host_tests.rs
 - app/src-tauri/src/instruction_seed_tests.rs
 - app/src-tauri/src/role_guidance_reads_tests.rs
 - app/src-tauri/src/conversation_roles_tests.rs

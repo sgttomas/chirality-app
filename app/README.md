@@ -167,12 +167,17 @@ implemented behavior and qualification limits.
     **Select revision ‹n›** is offered only when this process holds that
     revision; following it is a new selection whose `selection_record` cites
     the one it replaces (`replaces`). Any person's selection of a registered
-    revision replacing another registered selection cites it the same way
-    (§5.4); a candidate selection that cannot run is not cited. The selection
-    stays App-wide, not per conversation as WR §5.4 is headed. A selection is
-    recorded when a run of it is prepared, since the record names the run's
-    conversation, so a replaced selection no run used has no record of its
-    own. Bundled (LS-5) entries remain inspect-only candidates.
+    revision replacing another registered selection in the same chat cites it
+    the same way (§5.4); a candidate selection that cannot run is not cited.
+    The owner chose: "Each chat keeps its own selection (Recommended)".
+    Each chat keeps its pending choice in its actual App home source; started
+    runs retain their own revision, and a new chat has no selection. Library
+    browsing and explicit no-chat inspection stay shared; inspection supplies
+    no next-workflow default. The App constructs a selection record when a run
+    is prepared and publishes it before dispatch, since the record names the
+    run's conversation; a replaced selection no run used has no record of its
+    own. Whether a record is due at selection itself remains open with the WR
+    owner. Bundled (LS-5) entries remain inspect-only candidates.
 17. The selected conversation shows its native activity readably: messages,
     reasoning summaries, plan items and checklist revisions, tool rows and
     descendants, grouped by turn in native start order and, within a turn, in
@@ -596,6 +601,14 @@ implemented behavior and qualification limits.
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
 
+    The Rust host records each App start/fork attempt's actual supply
+    observations in the project's explicit records store (ROLE §6.1a),
+    retaining content-identified copies of the exact App-owned guidance
+    bytes. **Read quoted role-supply history** inspects those bytes and
+    recorded outcomes without a native request. Cold history is unsigned,
+    unverified file evidence; it leaves the current conversation's role
+    unknown and restores no role binding or CCE owner.
+
 25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
     "I choose option B"). Conversations the App starts in its current project
     (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
@@ -669,7 +682,8 @@ implemented behavior and qualification limits.
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
-| `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
+| `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings |
+| `role_observations.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations and exact retained App guidance bytes, with explicit quoted cold-history inspection; cold claims restore no role/CCE authority, and the R3 reference/resolver receiving path remains unbuilt |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence (in the project's records store subtree; earlier in-project accounts read in place until imported) and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |

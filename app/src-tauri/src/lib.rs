@@ -45,6 +45,7 @@ pub mod home_resources;
 pub mod native_items;
 pub mod native_history;
 pub mod role_lifecycle;
+pub mod role_observations;
 pub mod native_requests;
 pub mod receiving;
 pub mod recorder;
@@ -66,6 +67,7 @@ pub(crate) mod run_restart;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
+mod workflow_selection;
 pub(crate) mod workflow_trial_transcript;
 pub(crate) mod host_tick;
 pub(crate) mod delegation_availability;
@@ -101,6 +103,7 @@ pub struct AppState {
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
     trace_selection: Mutex<runtime_session::TraceSelectionSession>,
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
+    role_log: Result<Arc<role_observations::RoleLog>, String>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
@@ -203,8 +206,10 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
-    let mut history = home.history.lock().unwrap();
-    history.reconcile(&home.host);
+    // Native commands and the per-home Rust tick reconcile private receipts.
+    // Status projects the last received history; polling does not write role
+    // observations or admit a genuinely late native outcome.
+    let history = home.history.lock().unwrap();
     let root = state.instructions_root.lock().unwrap().clone();
     s["nativeHistory"] = history.snapshot(root.as_deref().ok());
     s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
@@ -249,6 +254,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // and the trial reads run on the host's own tick (`host_tick`).
     s["hostTicks"] = host_tick::tick_state();
     s["workflowRoot"] = host_tick::workflow_status(&state.workflows, &s["nativeView"], state.workspace.is_some());
+    workflow_selection::publish_context(&mut s, &home);
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
@@ -550,6 +556,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                     if let Some(context)=account.host.records_project_context(){host.configure_records_capability_with_context(capability,context);}else{host.configure_records_capability(capability);}
                 }
                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
+                home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
                 bootstrap.validate_binding(home.class(),&config)?;
@@ -737,6 +744,12 @@ fn prepare_role_entry(
     let composition = runtime_session::compose_role(root, role)?;
     Ok((composition, package))
 }
+#[tauri::command(async)]
+fn role_supply_history(state:State<'_,AppState>,generation:Value,thread:Option<String>)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    let name=generation["home"].as_str().ok_or("actual native home absent")?;
+    let view=home.history.lock().unwrap().read_role_supply(name,thread.as_deref());if home.host.snapshot()["generation"]!=generation{return Err("native home generation changed during role history read; refresh the selection".into());}Ok(view)
+}
 fn refused_role_entry(role: Option<role_supply::Role>, reason: &str) -> Value {
     json!({"state":"refused-before-send","selection":role,"roleSet":role_supply::content(role_supply::BUNDLED_ROLE_SET),"reason":reason,"adoption":"unknown"})
 }
@@ -751,9 +764,10 @@ fn thread_start(
     entry_id: String,
     mode_home_class: String,
     role: Option<role_supply::Role>,
+    preselected: Option<bool>,
     continue_as: Option<String>,
 ) -> Result<Value, String> {
-    start_conversation(&app, &state, model, model_provider, entry_id, &mode_home_class, role, continue_as)
+    start_conversation(&app, &state, model, model_provider, entry_id, &mode_home_class, role, continue_as, preselected)
 }
 /// A new conversation as `thread_start` starts it (ROLE T-2): also the start of
 /// a clean trial's conversation (WR FT-4), which passes no `continue_as`.
@@ -767,11 +781,32 @@ fn start_conversation(
     mode_home_class: &str,
     role: Option<role_supply::Role>,
     continue_as: Option<String>,
+    preselected: Option<bool>,
 ) -> Result<Value, String> {
+    let supply_ref=util::opaque_id("sup:")?;
+    let home=home_class(mode_home_class).and_then(|class|state.homes.lock().unwrap().entry(class));
+    let generation=home.as_ref().map(|home|home.host.snapshot()["generation"].clone()).unwrap_or(Value::Null);
+    let mut dispatch_invoked=false;
+    let mut resolved_continued_from=None;
+    let result=start_conversation_inner(app,state,model,model_provider,entry_id,mode_home_class,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from);
+    if let Err(reason)=&result {
+        if !dispatch_invoked {
+            let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
+            let publication=history.role_refused_continuing(&supply_ref,&generation,role,preselected,reason,true,resolved_continued_from);
+            if let Ok(home)=home{home.role_supply_status.lock().unwrap()["roleSupplyRecord"]=publication.clone();}
+            return Err(format!("{reason}; role supply observation: {publication}"));
+        }
+    }
+    result
+}
+#[allow(clippy::too_many_arguments)]
+fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,model_provider:String,entry_id:String,mode_home_class:&str,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     let home = state.homes.lock().unwrap().entry(home_class(mode_home_class)?)?;
+    home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
     let continued_from = conversation_roles::continuation_for_start(&state.continue_as, &home, continue_as.as_deref(), role)?;
+    *resolved_continued_from=continued_from.clone();
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
@@ -806,17 +841,18 @@ fn start_conversation(
     // either shared state publishes Starting. Transport waits hold no slot lock.
     let supply_ref = {
         let mut slot = home.access_selection.lock().unwrap();
-        let supply_ref = runtime_session::claim_start(&mut slot, selection, || util::opaque_id("sup:"))?;
-        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+        let supply_ref = runtime_session::claim_start(&mut slot, selection, || Ok(supply_ref.to_owned()))?;
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
     // Host receipt IDs, exact sent bytes and correlated results bind its role.
+    *dispatch_invoked=true;
     let dispatch = home.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
-            home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &supply_ref, continued_from.clone())
+            home.history.lock().unwrap().start_dispatched_selected(receipt.clone(), &composition, &supply_ref, continued_from.clone(), preselected)
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
             let waited = home.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
             home.history.lock().unwrap().reconcile(&home.host);
@@ -826,8 +862,14 @@ fn start_conversation(
                 Err(error) => Err(error),
             }
         },
-        Err(error) => Err(error),
+        Err(error) => {
+            let publication=home.history.lock().unwrap().role_refused_continuing(&supply_ref,&generation,role,preselected,&error,false,continued_from.clone());
+            home.role_supply_status.lock().unwrap()["roleSupplyRecord"]=publication;
+            Err(format!("{error}; role supply observation: {}",home.role_supply_status.lock().unwrap()["roleSupplyRecord"]))
+        },
     } })();
+    let record_status=home.history.lock().unwrap().role_record_status(&supply_ref);
+    let record_status=if record_status.is_null(){home.role_supply_status.lock().unwrap()["roleSupplyRecord"].clone()}else{record_status};
     let result = {
         let mut slot = home.access_selection.lock().unwrap();
         let result = match slot.as_mut() {
@@ -836,14 +878,15 @@ fn start_conversation(
         };
         let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
-            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         }
+        if !record_status.is_null(){status["roleSupplyRecord"]=record_status.clone();}
         result
     };
     conversation_roles::mark_started(&state.continue_as, continue_as.as_deref(), &result, &generation);
     // The start's own generation, for a caller that continues in the new
     // conversation (a clean trial's first turn, WR FT-4).
-    let result = result.map(|mut response| { response["startGeneration"] = generation.clone(); response });
+    let result = result.map(|mut response| { response["startGeneration"] = generation.clone(); response["roleSupplyRecord"]=record_status.clone(); response });
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
@@ -990,7 +1033,13 @@ fn continue_as_dismiss(state: State<'_, AppState>, id: String) -> Result<(), Str
 /// NIR CA-4, ROLE F-1: "Fork (same role)".
 #[tauri::command(async)]
 fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: String) -> Result<Value, String> {
-    let forked = conversation_roles::fork_command(&state.homes, &generation, &thread_id, std::time::Duration::from_secs(20))?;
+    let routed=state.homes.lock().unwrap().for_generation(&generation);
+    let home=match routed {Ok(home)=>home,Err(reason)=>{
+        let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
+        let publication=history.fork_refused(&util::opaque_id("sup:")?,&Value::Null,&thread_id,&reason,true);
+        return Err(format!("{reason}; role supply observation: {publication}"));
+    }};
+    let forked = conversation_roles::fork_conversation(&home, &generation, &thread_id, std::time::Duration::from_secs(20))?;
     // WR TT-3b: a fork of a trial conversation is labelled and offers no run.
     if let Some(fork) = forked["thread"]["threadId"].as_str() {
         state.workflows.lock().unwrap().mark_fork(&thread_id, fork);
@@ -1189,79 +1238,81 @@ fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathB
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
 #[tauri::command(async)]
-fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
+fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    workflow_context_home(&state,&context)?;
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_development_copy(path))
+    noted_selection(&state,&context,|root,chat|root.select_development_copy(chat,path))
 }
-/// The active home's native view, read before a selection takes the Root guard.
-fn active_native_view(state:&AppState)->Value{
-    let home=state.homes.lock().unwrap().active();
-    current_native_view(&home)
+/// The displayed App source is an opaque HomeSession reference, usable even
+/// before Codex starts. A changed active source refuses rather than redirecting.
+fn workflow_context_home(state: &AppState, context: &workflow_selection::Context) -> Result<Arc<runtime_session::HomeSession>, String> {
+    let home = state.homes.lock().unwrap().active();
+    context.verify_home(&home)?;
+    Ok(home)
 }
-/// WR PR-5: a successful selection by the person supersedes agent proposals
-/// received up to `view`; a failed one changes nothing.
-fn noted_selection(state:&AppState,view:&Value,select:impl FnOnce(&mut runtime_session::WorkflowRootSession)->Result<Value,String>)->Result<Value,String>{
-    let mut root=state.workflows.lock().unwrap();
-    let selected=select(&mut root)?;
-    root.note_selection(view);
-    Ok(selected)
+/// Recheck at mutation after any native picker/queued operation. The expected
+/// choice belongs only to the explicit chat, or to explicit no-chat inspection.
+fn noted_selection(state: &AppState, context: &workflow_selection::Context,
+    select: impl FnOnce(&mut runtime_session::WorkflowRootSession, Option<&workflow_selection::Chat>) -> Result<Value, String>) -> Result<Value, String> {
+    workflow_selection::choose(&state.workflows,context,||state.homes.lock().unwrap().active(),select)
+}
+fn active_native_view(state:&AppState)->Value {
+    let home=state.homes.lock().unwrap().active(); current_native_view(&home)
 }
 #[tauri::command(async)]
-fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
+fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|workflows|workflows.select_production_bundle(root,&name))
+    noted_selection(&state,&context,|workflows,chat|workflows.select_production_bundle(chat,root,&name))
 }
 #[tauri::command]
-fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_production_copy(&name))
+fn workflow_select_production_copy(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|{root.verify_library_context(&context)?;root.select_production_copy(chat,&name)})
 }
 #[tauri::command(async)]
-fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
+fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String,context:workflow_selection::Context)->Result<Value,String>{
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
+    workflow_context_home(&state,&context)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
-    let view=active_native_view(&state);
-    let mut root=state.workflows.lock().unwrap();root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 /// "Select revision ‹n›" on a retained review: resolved from the revision
 /// store (WR SL-4); no folder picker.
 #[tauri::command(async)]
-fn workflow_select_registered(state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision))
+fn workflow_select_registered(state:State<'_,AppState>,review_ref:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.select_hot_registered_copy(chat.ok_or("Choose the chat that will keep this selection")?,&review_ref,&revision))
 }
 /// WR LS-1 "Select (in such a process)", SL-1: the person selects a registered
 /// revision from the active library's list; the host resolves it from the
 /// revision store. No folder picker: the store is the library's own.
 #[tauri::command(async)]
-fn workflow_select_listed(state:State<'_,AppState>,library_ref:String,name:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.select_listed_registered(&library_ref,&name,&revision))
+fn workflow_select_listed(state:State<'_,AppState>,library_ref:String,name:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.select_listed_registered(chat.ok_or("Choose the chat that will keep this selection")?,&library_ref,&name,&revision))
 }
 /// WR SL-2: the person follows "newer revision ‹n› available"; a new selection
 /// event citing the one it replaces.
 #[tauri::command(async)]
-fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,revision:String)->Result<Value,String>{
-    let view=active_native_view(&state);
-    noted_selection(&state,&view,|root|root.follow_newer_revision(&selection_ref,&revision))
+fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,revision:String,context:workflow_selection::Context)->Result<Value,String>{
+    noted_selection(&state,&context,|root,chat|root.follow_newer_revision(chat.ok_or("Choose the chat that keeps this selection")?,&selection_ref,&revision))
 }
 /// WR §3: the explicit App project's own library, without a folder picker.
 #[tauri::command(async)]
-fn workflow_open_project_library(state:State<'_,AppState>)->Result<Value,String>{
-    let view=active_native_view(&state);
-    let mut root=state.workflows.lock().unwrap();root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
+fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
     // The library is open either way; a listing that cannot run now says so in the list.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 /// WR SQ-D D-2…D-4 in the host (OI-008 ruling): observe the active library's drafts now.
 #[tauri::command(async)]
-fn workflow_observe_drafts(state:State<'_,AppState>)->Result<Value,String>{
-    let view=active_native_view(&state);
-    state.workflows.lock().unwrap().observe_drafts(&view["items"])
+fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
+    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    root.observe_drafts(&view["items"])
 }
 /// WR TT-3, TT-3a, TT-3b (SQ-DT DT-1…DT-3, SQ-FT FT-1…FT-3): Try pressed on a
 /// listed draft. The host takes the trial snapshot, composes the trial text and
@@ -1299,7 +1350,7 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String)->Result<Value,SendRefusal>{
     let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class).map_err(SendRefusal::kept)?).map_err(SendRefusal::kept)?;
     runtime_session::trial_flows::start_clean_trial(&state.workflows,&reference,
-        ||start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None),
+        ||start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None,None),
         |generation,thread|runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,generation,thread,&person_text))
 }
 /// WR TT-9, H-5: the Codex home holding `thread` now (the trial's own home).
@@ -1362,7 +1413,13 @@ fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,Str
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 #[tauri::command]
-fn workflow_create_draft(state:State<'_,AppState>,name:String)->Result<Value,String>{state.workflows.lock().unwrap().create_selected_draft(&name)}
+fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;
+    let mut root=state.workflows.lock().unwrap();
+    let chat=context.verify_home(&home)?;workflow_context_home(&state,&context)?;
+    root.verify_choice_context(&context,chat.as_ref())?;root.verify_library_context(&context)?;
+    root.create_selected_draft(chat.as_ref(),&name)
+}
 /// J8 (WR §4.6 RF-1): Refine a registered revision from the revision store; no selection.
 #[tauri::command]
 fn workflow_refine_registered(state:State<'_,AppState>,name:String,revision:String)->Result<Value,String>{state.workflows.lock().unwrap().refine_registered(&name,&revision)}
@@ -1413,10 +1470,12 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
     original.accept_result(result)?;Ok(original.status.clone())
 }
 #[tauri::command]
-fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    // WR WP-1: the explicit App project owns WR records; None is refused with no fallback.
-    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text,state.workspace.as_deref())?;Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
+fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The run target differs from the displayed workflow chat; nothing prepared".into());}
+    // The exact displayed choice is rechecked under Root before composing.
+    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),person_text,state.workspace.as_deref())?;
+    Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
 }
 #[tauri::command(async)]
 fn workflow_retry_records(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
@@ -1468,10 +1527,13 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 }
 /// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
 #[tauri::command(async)]
-fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
-    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
+fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
-    let next=state.workflows.lock().unwrap().end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The successor target differs from the displayed workflow chat; nothing ended".into());}
+    let mut root=state.workflows.lock().unwrap();let chat=context.verify_home(&home)?.ok_or("Choose a workflow chat")?;workflow_context_home(&state,&context)?;root.verify_choice_context(&context,Some(&chat))?;
+    let next=root.end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    drop(root);
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))
 }
@@ -1764,6 +1826,7 @@ pub fn run() {
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
+        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
@@ -1795,6 +1858,7 @@ pub fn run() {
             // App data folder, outside every project.
             if let Ok(data) = data.as_ref() { capture_seal::install(data); installation::install(data); }
             let state = app.state::<AppState>();
+            home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
             *state.home_bootstrap.lock().unwrap() = (|| {
                 let data=data.as_ref().map_err(Clone::clone)?;
                 let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
@@ -1957,6 +2021,7 @@ pub fn run() {
             host_start,
             codex_stop,
             thread_start,
+            role_supply_history,
             history_action,
             history_select,
             conversation_send_text,
@@ -2012,11 +2077,11 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
-        let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(package).unwrap();workflows.create_selected_draft("coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
+        let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(None,package).unwrap();workflows.create_selected_draft(None,"coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
         (root,state,home,library,reference,context)
     }
     #[test]

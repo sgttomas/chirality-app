@@ -281,12 +281,20 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
 /// correlated result, and its role bound as inherited from the source's
 /// original binding.
 pub fn fork_conversation(home: &crate::runtime_session::HomeSession, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<Value, String> {
-    let receipt = home.host.thread_fork_dispatch(generation, source_thread)?;
-    let evidence = home.host.source_request_wait(&receipt, wait)?;
-    let row = home.host.thread_fork_finish(&receipt).map_err(|e| format!("{e} (fork request outcome: {})", evidence["outcome"]))?;
-    let binding = home.history.lock().unwrap().fork_observed(&home.host, &receipt, source_thread);
-    Ok(json!({"thread":row,"role":binding.unwrap_or_else(|error| json!({"standing":"unknown","reason":format!("the fork's role binding was refused: {error}")})),
-        "standing":"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."}))
+    let supply_ref=crate::util::opaque_id("sup:")?;
+    let receipt = match home.host.thread_fork_dispatch(generation, source_thread) {
+        Ok(receipt)=>receipt,
+        Err(reason)=>{
+            let actual=home.host.snapshot()["generation"].clone();
+            let source=if actual==*generation{actual}else{Value::Null};
+            let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,reason.starts_with("refused-not-sent:"));
+            return Err(format!("{reason}; role supply observation: {publication}"));
+        }
+    };
+    home.history.lock().unwrap().fork_dispatched_with_supply(receipt.clone(),source_thread,&supply_ref)?;
+    let waited = home.host.source_request_wait(&receipt, wait);
+    let mut history=home.history.lock().unwrap();history.reconcile(&home.host);
+    match history.fork_result(&receipt){Some(result)=>result,None=>Err(match waited{Ok(evidence)=>format!("Fork remains {} (write {}); native receipt retained, no automatic retry",evidence["outcome"],evidence["writeResult"]),Err(error)=>error})}
 }
 
 /// The `conversation_fork` command body: route to the home that owns the

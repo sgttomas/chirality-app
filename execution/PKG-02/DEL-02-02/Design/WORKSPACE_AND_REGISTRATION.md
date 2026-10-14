@@ -1009,10 +1009,23 @@ capture it keeps G-1R pending, without a ledger line, until the log reads again;
 a missing or differently bound record instead ends *not completed*. Confirmation
 of this pending interpretation remains open with the WR owner.
 
-**Open record correspondence — SL-2 `replaces`.** The App keeps one App-wide
-selection, not one per conversation as §5.4 is headed, and writes a
-`selection_record` when a run of the selection is prepared, because the record
-names the run's conversation. A selection that replaces a registered selection
-cites its `selection_id` in `replaces`; a replaced selection that no run used
-has no record of its own. Whether a record is due at the selection itself
-remains open with the WR owner.
+**Selection scope — owner decision, 2026-10-13.** The owner chose:
+"Each chat keeps its own selection (Recommended)". Selecting B in chat 2 leaves chat 1's
+pending A selection in place. Each started run retains its own revision; a new
+chat has no selection. Library browsing remains shared. An explicit no-chat
+inspection can be used to make a draft, and supplies no next-workflow default.
+The App binds each pending choice to the actual App home source and native
+thread identity. Selection, inspection, draft-copy and run-preparation controls
+carry the displayed source, full native generation, history selection epoch and
+choice reference; a changed context is refused rather than rebound. A proposal
+supersession mark belongs only to that home and chat. The pending choices and
+no-chat inspection are process memory, as before; recorded runs remain
+reconstructable through their own revision and source records.
+
+**Open record correspondence — SL-2 `replaces`.** The App constructs a
+`selection_record` for a prepared run and publishes it with that run's WR
+records before dispatch, because the record names the run's conversation. A
+selection that replaces a registered selection in the same chat cites its
+`selection_id` in `replaces`; a replaced selection that no run used has no
+record of its own. Whether a record is due at the selection itself remains
+open with the WR owner.

@@ -162,3 +162,47 @@ test('the header shows the host’s trial header and the trials started here (TT
   assert.ok(!header(thread()).includes('Trial header'),'no trial line for an ordinary conversation');
   assert.equal(h(TrialHeader,{}),'');
 });
+
+test('cold supply history is quoted with source bytes and limits, never current role authority',()=>{
+  const {RoleSupplyHistory}=load('ConversationRoles.tsx');
+  const view={standing:'Quoted App observations; mutable provenance unverified',limits:['unfinished import'],observations:[{record:{trigger:'thread-start',outcome:'supplied',supplyId:'sup:old',adoption:'unknown'},sourceBytes:{composed:'<do not execute>\r\n',parts:[{source:{path:'AGENTS.md'},kind:'product-guidance',text:'Old exact common'}]},limits:['source claim unverified']}]};
+  const html=h(RoleSupplyHistory,{view});assert.ok(html.includes('Quoted App role-supply history'));assert.ok(html.includes('unfinished import')&&html.includes('source claim unverified'));assert.ok(html.includes('&lt;do not execute&gt;'));assert.ok(html.includes('Old exact common'));assert.ok(html.includes('does not set the conversation&#x27;s role or restore CCE authority'));assert.ok(html.includes('Supplier adoption remains unknown'));
+  const headerHtml=header(thread({appRole:{standing:'unknown',reason:'original App supply binding not established'}}));assert.ok(headerHtml.includes('Role not established in this App process'));assert.ok(!headerHtml.includes('Role: <b>HELP_HUMAN</b>'));
+});
+test('unavailable or empty quoted history keeps visible limits and bytes unknown',()=>{
+  const {RoleSupplyHistory}=load('ConversationRoles.tsx');const html=h(RoleSupplyHistory,{view:{limits:['store unavailable; history incomplete'],observations:[]}});assert.ok(html.includes('store unavailable; history incomplete'));assert.ok(html.includes('No role-supply observations were returned. The limits above apply.'));
+  const old=h(RoleSupplyHistory,{view:{observations:[{record:{trigger:'fork',outcome:'unknown'},sourceBytes:null,limits:['source supply reference missing']}]}});assert.ok(old.includes('source supply reference missing'));assert.ok(old.includes('Exact App instruction bytes are not established'));
+  const supply=h(SupplyStatus,{supply:{state:'response-observed',roleSupplyRecord:{state:'not-confirmed',limit:'flush unknown'}}});assert.ok(supply.includes('Role-supply history was not confirmed: flush unknown'));assert.ok(supply.includes('Native effects remain as observed; nothing is resent'));
+});
+
+test('an old pending source read cannot populate a new home or conversation scope',async()=>{
+  let cursor=0;const slots=[];let effectScope;let cleanup;
+  const hooks={useState(initial){const index=cursor++;if(!(index in slots))slots[index]=initial;return [slots[index],value=>{slots[index]=value;}];},useRef(initial){const index=cursor++;if(!(index in slots))slots[index]={current:initial};return slots[index];},useEffect(effect,deps){cursor++;if(effectScope!==deps[0]){cleanup?.();effectScope=deps[0];cleanup=effect();}}};
+  const url=new URL('../src/ConversationRoles.tsx',import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};const real=localRequire(createRequire(url));new Function('require','exports',compiled.outputText)(name=>name==='react'?hooks:real(name),exports);
+  let finish;const old=new Promise(resolve=>{finish=resolve;});const render=props=>{cursor=0;return exports.RoleHistoryReader(props);};
+  const first=render({scope:'homeA/thread/counter1',ready:true,read:()=>old});first.props.children[0].props.onClick();assert.equal(slots[1],true);
+  const current=render({scope:'homeB/thread/counter2',ready:true,read:async()=>({observations:[{record:{supplyId:'sup:current'}}]})});finish({observations:[{record:{supplyId:'sup:old'}}]});await new Promise(resolve=>setImmediate(resolve));assert.equal(slots[0],null);assert.equal(slots[1],false);
+  current.props.children[0].props.onClick();await new Promise(resolve=>setImmediate(resolve));assert.equal(slots[0].observations[0].record.supplyId,'sup:current');cleanup?.();
+});
+
+test('late source-bound supply is shown separately from the original wait, never borrowed from another start',()=>{
+  const carried={baseInstructions:'not-set',developerInstructions:{content:{method:'chirality.app.exact-bytes.sha256/v1',value:'a'.repeat(64)},byteLength:15,parts:[{source:{path:'AGENTS.md',state:'default'},length:10},{source:{path:'agents/AGENT_HELP_HUMAN.md',state:'modified'},length:5}]}};
+  const roleSet={method:'chirality.app.exact-bytes.sha256/v1',value:'b'.repeat(64)};
+  const fixture={state:'start-failed-or-unknown',supplyRef:'sup:late',selection:'HELP_HUMAN',generation:g,carried,roleSet,originalStartReceipts:[{supplyRef:'sup:late',selection:'HELP_HUMAN',generation:structuredClone(g),carried:structuredClone(carried),roleSet:structuredClone(roleSet),requestRef:'actual-private-receipt-fixture',requestIdentity:201,activeAdmission:true,writeResult:'written',outcome:'response-observed-result'}]};
+  // The optional packet comes from the maintained actual Host→tick test's
+  // ROLE_LATE_DTO output. CI also checks the same join shape without requiring
+  // an external run artifact; neither packet changes live role authority.
+  const supply=process.env.CHIRALITY_ROLE_LATE_PACKET?JSON.parse(readFileSync(process.env.CHIRALITY_ROLE_LATE_PACKET,'utf8')):fixture;
+  const rendered=h(SupplyStatus,{supply});
+  assert.ok(rendered.includes('Last start call: start-failed-or-unknown'));
+  assert.ok(rendered.includes('Supplied at start (retained original receipt)'));
+  assert.ok(!rendered.includes('native supply not established'));
+  assert.ok(rendered.includes('Whether the model takes it up is unknown.'));
+  for(const change of [r=>{r.supplyRef+='-foreign';},r=>{r.selection='WORKING_ITEMS';},r=>{r.generation.spawnCounter++;},r=>{r.carried.developerInstructions.content.value='0'.repeat(64);},r=>{r.roleSet.value='0'.repeat(64);},r=>{r.activeAdmission=false;},r=>{r.writeResult='write-failed';},r=>{r.outcome='response-observed-error';},r=>{delete r.requestRef;}]){
+    const wrong=structuredClone(supply);change(wrong.originalStartReceipts[0]);const html=h(SupplyStatus,{supply:wrong});
+    assert.ok(html.includes('Prepared App guidance; native supply not established by a matching retained receipt'));
+    assert.ok(!html.includes('Supplied at start (retained original receipt)'));
+  }
+  const prepared=structuredClone(supply);prepared.state='response-observed';prepared.originalStartReceipts=[];
+  assert.ok(!h(SupplyStatus,{supply:prepared}).includes('Supplied at start'));
+});
