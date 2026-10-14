@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 /// started, one completed agent message (text from `summary.txt`) and the
 /// turn ended with the status in `turn-status` (default `completed`).
 const PEER: &str = r#"#!/usr/bin/python3
-import sys,json,os,threading
+import sys,json,os,threading,time
 if '--version' in sys.argv:
  print('codex-cli 0.160.0');sys.exit(0)
 lock=threading.Lock()
@@ -27,6 +27,13 @@ def thread(i,extra=None):
  return t
 def settled(t):
  return {'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+def result(f,r,kind):
+ if os.path.exists('defer-'+kind):
+  def later():
+   while not os.path.exists('release-'+kind): time.sleep(.01)
+   emit({'id':f['id'],'result':r})
+  threading.Thread(target=later,daemon=True).start()
+ else: emit({'id':f['id'],'result':r})
 n={'start':0,'fork':0,'turn':0}
 for line in sys.stdin:
  f=json.loads(line)
@@ -34,12 +41,13 @@ for line in sys.stdin:
  m=f.get('method')
  if m=='initialize': emit({'id':f['id'],'result':{'userAgent':'unqualified-roles-fixture'}});continue
  if m=='thread/start':
-  n['start']+=1;emit({'id':f['id'],'result':settled(thread('thread' if n['start']==1 else 'thread-%d'%n['start']))});continue
+  n['start']+=1;result(f,settled(thread('thread' if n['start']==1 else 'thread-%d'%n['start'])),'start');continue
  if m=='thread/fork':
   n['fork']+=1;mode=open('fork-mode').read().strip() if os.path.exists('fork-mode') else 'new'
+  if mode=='error': emit({'id':f['id'],'error':{'code':-32600,'message':'invented native refusal'}});continue
   src=f['params']['threadId']
   t=thread(src,{'forkedFromId':src}) if mode=='same' else thread('fork-%d'%n['fork'],{'forkedFromId':'elsewhere' if mode=='unrelated' else src})
-  emit({'id':f['id'],'result':settled(t)});continue
+  result(f,settled(t),'fork');continue
  if m=='turn/start':
   n['turn']+=1;tid='turn-%d'%n['turn'];th=f['params']['threadId']
   emit({'id':f['id'],'result':{'turn':{'id':tid,'status':'inProgress','items':[],'error':None}}})
@@ -418,3 +426,51 @@ fn limit_account_is_handed_in_its_schema_and_task_is_stated_not_enforced() {
     assert_eq!(limit_account(None)["notRead"].as_array().unwrap().len(), 4);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+
+// Actual private Host receipts through the owned Python peer. No supplier or
+// native human witness; generated source/result fixtures only.
+struct LinksFixture {native:Fixture,store:PathBuf}
+impl LinksFixture {
+ fn new()->Self{let store=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("native-links-store-").unwrap());crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));let native=Fixture::new();crate::records_store::attach(&native.root,true).unwrap();Self{native,store}}
+ fn log(&self)->PathBuf{crate::records_store::attach(&self.native.root,false).unwrap().dir.unwrap().join("fleet/coordination.fleet.jsonl")}
+ fn copied(&self)->PathBuf{self.native.root.join(".chirality/fleet/coordination.fleet.jsonl")}
+}
+impl Drop for LinksFixture {fn drop(&mut self){let _=self.native.home.host.stop("owned fixture cleanup","test ended");crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.store);}}
+#[test]
+fn native_links_actual_fork_dispatch_receipt_tick_store_copy_and_reader_dto(){
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::WORKING_ITEMS),None);let before=f.role(&source);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);
+ let result=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_secs(2),|receipt|{links.track_fork(context,Arc::clone(&f.home.host),receipt.clone()).unwrap();}).unwrap();
+ let native_before=f.home.host.snapshot()["threads"].clone();links.retry(Some(&f.root));assert_eq!(links.snapshot()["observations"].as_array().unwrap().len(),1);assert_eq!(f.home.host.snapshot()["threads"],native_before);assert_eq!(f.role(&source),before);let rows:Vec<Value>=std::fs::read_to_string(l.log()).unwrap().lines().map(|s|serde_json::from_str(s).unwrap()).collect();assert_eq!(rows.len(),1);assert_eq!(rows[0]["body"]["source"]["threadId"],source);assert_eq!(rows[0]["body"]["thread"]["threadId"],result["thread"]["threadId"]);assert_eq!(std::fs::read(l.log()).unwrap(),std::fs::read(l.copied()).unwrap());for _ in 0..3{links.retry(Some(&f.root));}assert_eq!(std::fs::read_to_string(l.log()).unwrap().lines().count(),1);
+ let dto=crate::read_fleet_records_for_workspace(Some(&f.root)).unwrap();assert_eq!(dto["coordination"]["nativeRelationships"].as_array().unwrap().len(),1);assert_eq!(dto["coordination"]["nativeRelationships"][0]["record"],rows[0]);println!("NATIVE_LINK_DTO:{}",serde_json::to_string(&dto).unwrap());
+}
+#[test]
+fn native_links_actual_unknown_fork_later_tick_without_resend_or_authority(){
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);std::fs::write(f.root.join("defer-fork"),"owned delay").unwrap();let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);
+ let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_millis(15),|receipt|{links.track_fork(context,Arc::clone(&f.home.host),receipt.clone()).unwrap();});assert!(native.is_err());links.retry(Some(&f.root));assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].is_string());let before=f.home.host.snapshot()["threads"].clone();std::fs::write(f.root.join("release-fork"),"owned release").unwrap();let until=Instant::now()+Duration::from_secs(3);loop{links.retry(Some(&f.root));if !links.snapshot()["observations"].as_array().unwrap().is_empty(){break;}assert!(Instant::now()<until);std::thread::sleep(Duration::from_millis(10));}assert_eq!(f.home.host.snapshot()["threads"],before,"recording late source fact grants no native fork admission");assert_eq!(f.wire().iter().filter(|frame|frame["method"]=="thread/fork").count(),1);assert_eq!(std::fs::read(l.log()).unwrap(),std::fs::read(l.copied()).unwrap());
+}
+#[test]
+fn native_links_actual_continue_proof_late_closed_source_and_no_cold_authority(){
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::HELP_HUMAN),None);let handoffs=std::sync::Mutex::new(Handoffs::default());let workflows=std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());let opened=continue_as_begin(&handoffs,&workflows,&f.home,&f.generation,&source,Some(Role::WORKING_ITEMS)).unwrap();let id=opened["id"].as_str().unwrap();let(metadata,proof)=continuation_for_start_observed(&handoffs,&f.home,Some(id),Some(Role::WORKING_ITEMS)).unwrap();assert_eq!(metadata.unwrap()["sourceThread"],source);let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);std::fs::write(f.root.join("defer-start"),"owned delay").unwrap();let request=f.home.host.thread_start_with_guidance_dispatch(&f.generation,&f.root.to_string_lossy(),"fixture-model","fixture-provider","synthetic exact new role").unwrap();let mut links=crate::native_conversation_links::Session::default();links.track_continued(context,Arc::clone(&f.home.host),request.clone(),proof.unwrap()).unwrap();let unknown=f.home.host.source_request_wait(&request,Duration::from_millis(10)).unwrap();assert_eq!(unknown["outcome"],"pending");std::fs::write(f.root.join("release-start"),"owned release").unwrap();let until=Instant::now()+Duration::from_secs(3);while f.home.host.source_request_status(&request).unwrap()["outcome"]!="response-observed-result"{assert!(Instant::now()<until);std::thread::sleep(Duration::from_millis(10));}let original_threads=f.home.host.snapshot()["threads"].clone();f.home.host.stop("owned fixture closed generation","fixture").unwrap();assert_eq!(request.evidence()["sourceCurrent"],false);links.retry(Some(&f.root));assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["relation"],"continued from");assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["source"]["threadId"],source);assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["thread"]["generation"],f.generation);assert_eq!(f.home.host.snapshot()["threads"],original_threads);let mut cold=crate::native_conversation_links::Session::default();cold.retry(Some(&f.root));assert!(cold.snapshot()["observations"].as_array().unwrap().is_empty());assert!(cold.snapshot()["nativeAttempts"].as_array().unwrap().is_empty());assert_eq!(f.wire().iter().filter(|frame|frame["method"]=="thread/start").count(),2);
+}
+
+#[test]
+fn native_links_actual_failed_foreign_or_missing_context_keeps_native_result_separate(){
+ for mode in ["same","unrelated"] {let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);std::fs::write(f.root.join("fork-mode"),mode).unwrap();let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let result=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_secs(2),|r|{links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(result.is_err());links.retry(Some(&f.root));assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].is_string());assert!(!l.log().exists());}
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(None,&f.home);let mut retained=None;let result=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_secs(2),|r|{retained=Some(r.clone());links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();}).unwrap();links.retry(Some(&f.root));assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["thread"]["threadId"],result["thread"]["threadId"]);assert!(links.snapshot()["observations"][0]["permanentRecordingLimit"].is_string());assert!(!l.log().exists());let foreign=Arc::new(crate::hosting::Host::new());let bad=links.track_fork(crate::native_conversation_links::freeze_source(Some(&f.root),&f.home),foreign,retained.unwrap());assert!(bad.is_err());assert!(links.snapshot()["limits"].as_array().unwrap().iter().any(|v|v.as_str().unwrap().contains("another Host")));
+}
+
+#[test]
+fn native_links_closed_context_keeps_actual_native_result_as_permanent_limit(){let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);let actor=crate::act_control::person(Some("invented fixture"),Some("invented OS account"));let observed=json!({"fixture":"synthetic explicit callback; no live human act"});let plan=crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).unwrap();crate::records_retention::apply(plan,&actor,&observed).unwrap();let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_secs(2),|receipt|{links.track_fork(context,Arc::clone(&f.home.host),receipt.clone()).unwrap();}).unwrap();links.retry(Some(&f.root));assert!(!links.has_pending());assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["thread"]["threadId"],native["thread"]["threadId"]);assert!(links.snapshot()["observations"][0]["permanentRecordingLimit"].as_str().unwrap().contains("closed"));assert!(!l.log().exists());assert!(!l.copied().exists());}
+
+#[test]
+fn native_links_actual_closed_unknown_releases_custody_without_fabricating_relationship(){
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);std::fs::write(f.root.join("defer-fork"),"owned unknown").unwrap();let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_millis(15),|r|{links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(native.is_err());assert!(links.has_pending());f.home.host.stop("owned fixture terminal source","fixture").unwrap();links.retry(Some(&f.root));assert!(!links.has_pending());assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].as_str().unwrap().contains("unknown"));assert!(!l.log().exists());let actor=crate::act_control::person(Some("invented second controller"),Some("invented OS"));let observed=json!({"fixture":"explicit synthetic controller, no live human act"});assert!(crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).is_ok());assert_eq!(f.wire().iter().filter(|r|r["method"]=="thread/fork").count(),1);
+}
+#[test]
+fn native_links_actual_error_and_failed_write_release_original_custody(){
+ for failed_write in [false,true] {let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let prior=if failed_write{crate::hosting::install_broken_test_input(&f.home.host)}else{std::fs::write(f.root.join("fork-mode"),"error").unwrap();None};let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_millis(50),|r|{links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(native.is_err());links.retry(Some(&f.root));assert!(!links.has_pending());assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].is_string());assert!(!l.log().exists());drop(prior);}
+}
+
+#[test]
+fn native_links_definite_pre_dispatch_refusal_drops_unused_original_custody(){let l=LinksFixture::new();let f=&l.native;let _=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let actor=crate::act_control::person(Some("invented second controller"),Some("invented OS"));let observed=json!({"fixture":"synthetic explicit controller"});let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);assert!(crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).is_err());let calls=std::cell::Cell::new(0);let refusal=fork_conversation_tracked(&f.home,&f.generation,"not-an-actual-loaded-source",Duration::from_millis(10),|r|{calls.set(calls.get()+1);links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(refusal.is_err());assert_eq!(calls.get(),0);assert!(!links.has_pending());assert!(crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).is_ok());assert_eq!(f.wire().iter().filter(|r|r["method"]=="thread/fork").count(),0);}

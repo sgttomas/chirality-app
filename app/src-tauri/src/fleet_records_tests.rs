@@ -132,7 +132,7 @@ fn fleet_reader_actual_adapter_retains_accepted_prefix_through_loss_rewrite_and_
     // A newly created descriptor at the same pathname cannot reset the prefix.
     let c=f.row("fl:accepted-c","legitimate-append");let restored=[original,c.clone()].concat();
     f.put(&log,&restored);f.put(&f.project_log(),&restored);
-    let view=f.read();assert_eq!(observations(&view).len(),3);
+    let view=f.read();assert_eq!(observations(&view).len(),3);println!("NATIVE_LINK_MIXED_DTO:{}",serde_json::to_string(&view).unwrap());
     assert_eq!(view["coordination"]["protectedLog"]["complete"],true);
     assert!(!has_limit(&view,"previously accepted protected fleet history"));
     f.put(&log,&[a.clone(),b.clone()].concat());assert_refused();
@@ -403,4 +403,10 @@ fn fleet_only_protected_payload_exports_without_joining_rs_readers_or_import_cen
     let (original,id,_)=ordinary_legacy(&f);ordinary_consumers(&f,&original,&id,&capability,1);
     assert!(records_store::write_dir(&f.project).unwrap_err().contains("import needed"));
     assert!(crate::records_export::export(&f.project,&f.root.join("refused-later-legacy")).unwrap_err().contains("need import"));
+}
+
+#[test]
+fn fleet_reader_native_links_mixed_profile_keeps_legacy_quoted_and_mechanical_separate(){
+ let f=Fixture::new();let g=json!({"appSession":"invented-session","home":"invented-native-home","spawnCounter":1});let native=json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":"fl:app:invented-native-link","kind":"related_conversation","recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented observation","body":{"relation":"forked from","source":{"threadId":"same-source","generation":g},"thread":{"threadId":"same-fork","generation":g},"nativeHome":{"homeId":"invented-native-home","root":crate::attachments::native_path_identity(&f.project),"physical":{"device":1,"inode":1}},"rpc":{"method":"thread/fork","requestId":1,"requestRef":"invented:rpc-1"},"typesPin":crate::hosting::DECLARED_PIN}});let limit=json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":"fl:app:invented-copy-limit","kind":"recording_limit","recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented later observation","body":{"originalObservationId":native["observationId"],"phase":"project","statement":"Invented copy failure; native success unchanged"}});let line=|r:&Value|{let mut bytes=serde_json::to_vec(r).unwrap();bytes.push(b'\n');validate_line(&bytes).unwrap();bytes};f.pair(&[f.row("fl:quoted-old","old undertaking label"),line(&native),line(&limit)]);let before=inventory(&f.root);let view=f.read();assert_eq!(inventory(&f.root),before);assert_eq!(view["coordination"]["nativeRelationships"].as_array().unwrap().len(),1);assert_eq!(view["coordination"]["recordingEvents"].as_array().unwrap().len(),1);assert_eq!(view["coordination"]["nativeRelationships"][0]["record"],native);assert!(view["coordination"]["governingStoreRecords"][0]["standing"].as_str().unwrap().contains("undertaking/thread fields establish no native"));assert_eq!(observations(&view).len(),3);println!("NATIVE_LINK_MIXED_DTO:{}",serde_json::to_string(&view).unwrap());
+ let conflict_fixture=Fixture::new();let mut other=native.clone();other["observationId"]=json!("fl:app:duplicate-native-receipt");other["body"]["thread"]["threadId"]=json!("conflicting-fork");conflict_fixture.pair(&[line(&native),line(&other)]);let view=conflict_fixture.read();assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());assert!(has_limit(&view,"duplicate/conflicting original native request identity"));assert_eq!(view["coordination"]["protectedLog"]["complete"],false);
 }

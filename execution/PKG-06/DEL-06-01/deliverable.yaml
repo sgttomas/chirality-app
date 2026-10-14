@@ -1,14 +1,19 @@
 id: DEL-06-01
 name: Bounded delegation and current work-graph records
 code_paths:
+- app/src-tauri/src/native_conversation_links.rs
+- app/src-tauri/src/conversation_roles.rs
 - app/src-tauri/src/fleet_records.rs
 - app/src-tauri/src/lib.rs
 - app/src-tauri/src/records_store.rs
 - app/src-tauri/src/records_index.rs
 - app/src-tauri/src/records_export.rs
 - app/src-tauri/schemas/fleet.record.schema.json
+- app/src-tauri/schemas/fleet.native-links.schema.json
 - app/src/FleetRecordsPanel.tsx
 checks:
+- app/src-tauri/src/native_conversation_links_tests.rs
+- app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/src/fleet_records_tests.rs
 - app/tests/fleet-records.test.mjs
 - app/src-tauri/schemas/sync.py

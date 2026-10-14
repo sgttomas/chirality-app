@@ -98,17 +98,21 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   File-native readers have no such protection: they read the project file as
   it is. INV-FL-2 refuses App-observation kinds only from a recorder other
   than the App, so an entry an agent writes there naming the App as its
-  recorder passes it; file-native readers cannot tell it from a real one. The project log's shape
-  and format are unchanged, so REQ-005's consumers need no new account. This
-  is read by the current App source slice (§6.1). No App fleet producer
-  writes either copy today; the native writer and association remain Design.
+  recorder passes it; file-native readers cannot tell it from a real one. The quoted 0.1 shapes remain unchanged. The added 0.2 native-links
+  profile and its consumers are accounted for in §8. This
+  is read by the current App source slice (§6.1). The 0.2 native-link writer (§6.2) now writes both copies from actual
+  source-issued Fork/Continue-as results. The 0.1 dispatch/child producer and
+  its association remain Design.
 - **FR-D2 Format (PROPOSED).** Its own versioned JSON records,
   `chirality.fleet.record` 0.1 (`fleet.record.schema.json`): one file per
   brief and per graph revision, and one append-only JSON Lines log. Reason:
   V4-HI-63 needs identified versions and consumers. The method's current
   Markdown work graphs (Root SPEC §9.8) are a practice DEL-10-02 owns, not a
   format with identified versions; this format does not change them, and
-  their adoption of it would be a separate instruction change.
+  their adoption of it would be a separate instruction change. The separate
+  0.2 native-links profile (`fleet.native-links.schema.json`, §6.2) carries
+  the implemented conversation relationships and mechanical recording outcomes;
+  it changes no 0.1 brief/graph shape.
 - **FR-D3 Location and placement (settled, owner 2026-10-10).** The records
   live with the user's project (V4-REC-02 as then worded; RS OF-9), in one fixed default
   folder, `<project>/.chirality/fleet/`: `briefs/`, `graphs/<undertaking>/`
@@ -136,9 +140,10 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   stays in `<project>/.chirality/fleet/coordination.fleet.jsonl`, and the
   App also keeps its own observations in the records store, whose copy
   governs inside the App (FR-D1 "Where the App's observations are kept").
-  Briefs and graphs stay in `<project>/.chirality/fleet/`. The App has no
-  fleet writer yet, so nothing in `.chirality/fleet/` is in the records
-  store's import census. This log is not the registered legacy log
+  Briefs and graphs stay in `<project>/.chirality/fleet/`. The App now
+  writes 0.2 native links and recording outcomes to both copies (§6.2);
+  the 0.1 dispatch/child writer remains Design. Fleet stays outside the
+  ordinary RS import census; whole Fleet payload export is separate (§6.1). This log is not the registered legacy log
   `records/coordination.rs.jsonl` (RS §13.7), which is an RS record log, a
   different file in a different format.
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
@@ -239,8 +244,8 @@ An objective or undertaking description supplies no identity, association key
 or prerequisite for recording. A fork or continued-from relation links the
 identified conversations; it neither requires a classification choice nor
 derives that link from a folder, workflow choice or objective description.
-The current format and reader are to be brought into correspondence with
-this direction. Existing 0.1 files remain readable as quoted source records;
+The 0.2 native-links profile and current Rust observer/reader implement
+this direction for App Fork and Continue-as results. Existing 0.1 files remain readable as quoted source records;
 their undertaking fields cannot establish native conversation identity.
 
 **Supplier facts** (Codex 0.158.0; delegation surfaces unchanged at 0.160.0
@@ -322,7 +327,8 @@ derives the facts only.
 `fleet_records.rs` reads the fixed `.chirality/fleet/` packet in the Root's
 selected project workspace. The path-free `read_fleet_records` native command
 is called only by the panel's explicit Refresh. It returns all readable
-schema-valid 0.1 brief files, graph revision files and coordination rows with
+schema-valid 0.1 brief files, graph revision files and coordination rows, plus
+0.2 native-link and mechanical recording-outcome rows, with
 their complete record, source path/line, claimed recorder and source limits.
 Unknown formats/kinds, malformed files, unreadable members and an unclosed
 final log line remain explicit limits. References are quoted without following
@@ -370,11 +376,82 @@ the RS corpus, chain-head list, ordinary RS-home decision and legacy import
 census. A fleet-only payload can be exported when no ordinary history waits for
 import; adding fleet never bypasses a required or unfinished import. An empty
 capture folder or its exact ownership-control file establishes no ordinary RS
-home, including when export created the control. No producer or native
-association is added: the completed spawn prompt and undertaking binding are
-not available from the current native snapshot (§4). The prototype's graph
+home, including when export created the control. The completed spawn prompt
+is still unavailable from the current native snapshot (§4); no native dispatch
+or child-state producer is added. The prototype's graph
 content-identity method remains a TEST VALUE (§11); selectors are quoted with an
 unsupported-method limit, and no current graph is chosen.
+
+### 6.2 Native conversation-link recording
+
+`native_conversation_links.rs` records actual source-issued `thread/fork` and
+Continue-as `thread/start` results. It retains the selected project's existing
+store association, physical project/store source and native home/configuration
+source before dispatch. The original project activity custody is acquired under stable admission and
+retained through a live unknown request, the known relation, both copies and its
+mechanical outcomes, so another controller cannot close/export/dispose over owed
+recording. Definite failure or a closed source with no retained response and no
+write in progress releases custody with an explicit historical unknown/failure
+limit; no timeout/dismissal or new retry lease is introduced. An already-retained
+result or in-progress write stays distinct. The native conversation key is the actual thread ID
+qualified by that stable home/source; generation, App session, RPC identity and
+private request reference are observation context. Neither an objective label
+nor a workflow/source-ref joins conversations. The native-links 0.2 schema has
+an immutable `observationId`, first `observedAt`, source/destination thread IDs,
+the frozen native home and the original RPC context, with no undertaking field.
+The 0.1 schema and files remain byte-preserved quoted compatibility; their fields
+do not enter the native relationship projection.
+
+The real Continue-as Handoffs guard produces both original start metadata and a
+private, non-deserializable source proof before the RPC. Fork retains its genuine
+source-issued request before waiting. The observer validates the correlated
+successful envelope and full pinned response shape. Unknown waits, definite
+failure and closed unknown sources remain explicit status limits; tick reads only
+retained original Host facts, with no second command, web polling, native resend,
+operational admission or cold receipt mint. A genuinely known result first
+observed after generation closure is historical evidence only. Missing original
+source/association or an already closed/disposed project is a permanent recording
+limit for that operation; native success is not rewritten as recording refusal.
+
+Publication writes the governing store's `fleet/coordination.fleet.jsonl` first,
+then copies the same frozen exact line to the co-written project log. App writes
+share current store admission/import/terminal guards and writer ownership. Safe
+held parent descriptors and nonblocking/no-follow regular single-link leaves,
+complete schema/identity checks, prefix proof, source revalidation and ancestor
+sync protect the append. Torn, unknown, conflicting or replaced sources are
+refused without truncation, reassociation or automatic repair. Failed or uncertain
+callbacks retain the original relation bytes, ID and first observation time.
+Until the governing store line lands, its original bytes/ID/time and retry proof
+are held by this App process only. Under existing AS03/SQ-Q quit semantics, quit
+may proceed despite a ledger failure: quitting before that first durable line may
+leave no Fleet relation record, and cold files cannot reconstruct the private
+native request/handoff proof. Once the governing exact line lands, cold project-copy
+recovery remains available. This adds no quit veto or new timeout/dismissal policy.
+
+A separate 0.2 `recording_limit`/`recording_recovered` references that ID once per
+meaning/phase transition. Later proved exact presence/sync does not rewrite the
+original callback as success. Failure to record these mechanical rows stays in
+status rather than recursively logging the logger's failure.
+
+Tick also repairs a missing exact project copy from a healthy existing governing
+source. Cold recovery quotes stored lines; it neither observes a new native fact
+nor restores role, work state, CCE or current conversation authority. Existing
+mechanical failure evidence gets a separate later-presence recovery row. New cold
+copy work is not reserved while the project is closed or disposed; already owed
+recording retains its original context. Stable unchanged sources reuse their
+recovery basis, and completed copies retain compact status rather than a second
+full history. Placement limits continue to qualify file provenance, including
+agent-writable development stores.
+
+Both Fleet versions remain outside the RS parser/index/capability/import census.
+Fleet records are currently **unchained and unsigned**: per-process exact-prefix
+proof catches known shrink/rewrite, but cold restart cannot authenticate a prior
+valid prefix or detect a tail removed before its first read. BagIt includes the
+whole Fleet payload bytes without claiming a Fleet chain head or signature. The
+manual panel retains complete source records/order/limits, shows 0.2 relationships
+and mechanical outcomes separately, and derives no dispatch/child/graph/work state.
+This implements the native-link contribution only; it does not claim DEL-06-01's
+full brief/graph/dispatch implementation or a native supplier witness.
 
 The following writer/derived-reader rules continue to describe the Design and
 prototype beyond this source slice.
@@ -504,7 +581,8 @@ and every one is already admitted. DEL-01-03 must not consume these records
 
 | Format | Version | Writers | Consumers | Change rule |
 |---|---|---|---|---|
-| `chirality.fleet.record` | 0.1 (PROPOSED) | Agents and the person (FR-D1); the App writer for observed kinds | DEL-06-02 (views), DEL-09-05 (witness), DEL-09-11 (reconstruction, through its input set); **PEC: none adopted** (OI-022; DEP-002 unestablished) | A minor version adds optional elements or kinds; a reader that does not know them reads the rest and lists them as unread. A major version changes meaning. Before any consumer path relies on a change, the change is listed here with its consumers; for PEC, DEL-07-01 supplies the affected coverage and adoption account (DEP-06-01-011). A projection never governs this writer (V4-HI-63) |
+| `chirality.fleet.record` | 0.1 (quoted compatibility; schema unchanged) | Agents and the person (FR-D1); the App writer for observed kinds | DEL-06-02 (views), DEL-09-05 (witness), DEL-09-11 (reconstruction, through its input set); **PEC: none adopted** (OI-022; DEP-002 unestablished) | A minor version adds optional elements or kinds; a reader that does not know them reads the rest and lists them as unread. A major version changes meaning. Before any consumer path relies on a change, the change is listed here with its consumers; for PEC, DEL-07-01 supplies the affected coverage and adoption account (DEP-06-01-011). A projection never governs this writer (V4-HI-63) |
+| `chirality.fleet.record` native-links profile | 0.2 | Actual Rust App observer for source-issued Fork/Continue-as facts and mechanical recording outcomes; exact project copies | Rust Fleet reader/manual panel consume 0.1 and 0.2 separately. RS readers/index/capability and chain heads exclude both; BagIt includes their complete bytes. DEL-06-02/09-05/09-11 receive quoted files only until their own consumer adopts this profile. PEC has no adopted Fleet coverage; no receiving adoption is inferred | New narrowly versioned profile, no retrospective rewrite of 0.1. Old readers may list these rows unread. Source-qualified native conversation IDs replace undertaking identity only for the new native profile under the quoted owner direction in §4; no graph or work-state derivation is added |
 
 Example change (bounded): adding a `priority` element to work items is minor.
 DEL-06-02 ignores it until it adopts the change. If PEC later consumes items,
