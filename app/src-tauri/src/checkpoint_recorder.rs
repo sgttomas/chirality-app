@@ -213,9 +213,10 @@ pub(crate) type ActSource<'a> = &'a mut dyn FnMut() -> Result<ActRead, String>;
 /// (uncorrected) records written by
 /// the App's capturing surface whose one cited capture object resolves,
 /// validates and says what the record says (SP-3, RS R-8, HA-1). Each full
-/// original record is retained. After verification and duplicate-capture
-/// resolution, full captures are released; only declines retain their exact
-/// `boundContent` array under `declineBoundContent`, never a slim capture DTO.
+/// original record is retained. Each full capture is released after its
+/// successful per-claim verification and exact decline-content extraction.
+/// Only declines retain their `boundContent` array under `declineBoundContent`,
+/// never a slim capture DTO. Publication follows global duplicate-capture resolution.
 /// `unresolved` are `{record, reason}`: records that claim a file act but
 /// cannot be so verified; they never become acts (RS §13.7) and are shown as
 /// an "unresolvable reference" limit on an arrival whose file they name.
