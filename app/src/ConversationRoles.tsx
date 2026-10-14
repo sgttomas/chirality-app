@@ -70,10 +70,19 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected, group 
 export function SupplyStatus({ supply }: { supply: Json }) {
   if (!supply || !supply.state) return <p>Role guidance: no conversation started in this home yet.</p>;
   const parts = list(supply.carried?.developerInstructions?.parts);
+  const receipt = list(supply.originalStartReceipts).find((r: Json) =>
+    typeof supply.supplyRef === "string" && supply.supplyRef.length > 0 && r.supplyRef === supply.supplyRef &&
+    r.activeAdmission === true && r.writeResult === "written" && r.outcome === "response-observed-result" &&
+    typeof r.requestRef === "string" && r.requestRef.length > 0 && r.requestIdentity != null &&
+    Object.prototype.hasOwnProperty.call(supply, "selection") && r.selection === (supply.selection ?? null) &&
+    supply.generation != null && r.generation != null && supply.roleSet != null && r.roleSet != null && r.carried?.developerInstructions != null &&
+    JSON.stringify(r.generation) === JSON.stringify(supply.generation) &&
+    JSON.stringify(r.roleSet) === JSON.stringify(supply.roleSet) &&
+    JSON.stringify(r.carried) === JSON.stringify(supply.carried));
   return <div>
-    <p>Last start: {text(supply.state)} · role {supply.selection ? text(supply.selection) : "none"}{supply.continuedFrom ? ` · continues conversation ${text(supply.continuedFrom.sourceThread)}` : ""}.
+    <p>Last start call: {text(supply.state)} · role {supply.selection ? text(supply.selection) : "none"}{supply.continuedFrom ? ` · continues conversation ${text(supply.continuedFrom.sourceThread)}` : ""}.
       {supply.reason ? ` Refused before sending: ${text(supply.reason)}.` : ""}</p>
-    {parts.length > 0 && <p><small>{supply.state === "response-observed" ? "Supplied at start" : "Prepared App guidance; native supply not established"}: {parts.map((p: Json) => `${text(p.source?.path)} (${text(p.source?.state)}, ${text(p.length)} bytes)`).join(" + ")}; App base instructions not set. Whether the model takes it up is unknown.</small></p>}
+    {parts.length > 0 && <p><small>{receipt ? "Supplied at start (retained original receipt)" : "Prepared App guidance; native supply not established by a matching retained receipt"}: {parts.map((p: Json) => `${text(p.source?.path)} (${text(p.source?.state)}, ${text(p.length)} bytes)`).join(" + ")}; App base instructions not set. Whether the model takes it up is unknown.</small></p>}
     {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
     <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
   </div>;

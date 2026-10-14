@@ -867,3 +867,185 @@ fn resolved_continue_as_refusal_keeps_its_known_relation_and_role_set_without_ca
         "supplied"
     );
 }
+
+#[test]
+fn actual_host_tick_records_late_start_and_fork_without_web_view_polling() {
+    let mut f = RoleFixture::new();
+    let start = f.start("", "sup:tick-start", None);
+    let home = Arc::new(
+        crate::runtime_session::HomeSession::new(
+            crate::home_resources::HomeClass::Account,
+            f.host.clone(),
+            Err("unused fixture config".into()),
+        )
+        .unwrap(),
+    );
+    *home.history.lock().unwrap() = std::mem::take(&mut f.history);
+    let homes = Mutex::new(crate::runtime_session::HomeRouter::new(home.clone()).unwrap());
+    let workflows = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let requests = f.host.client_requests().len();
+    f.host.on_line(
+        &serde_json::to_vec(&json!({"id":start.request_id(),"result":role_native("tick-source")}))
+            .unwrap(),
+        &g(),
+    );
+    // This is host_status's history projection. It establishes no new role
+    // and writes no observation even though the private reply is now present.
+    let projected = home.history.lock().unwrap().snapshot(None);
+    assert_eq!(projected["startReceipts"][0]["outcome"], "pending");
+    assert_eq!(projected["startReceipts"][0]["waitingEnded"], true);
+    assert!(!home.history.lock().unwrap().start_admitted(&start));
+    assert_eq!(
+        home.history
+            .lock()
+            .unwrap()
+            .read_role_supply("conversation-home", None)["observations"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    // The tick is the only reconciler after the actual reply. There is no
+    // host_status/read/history command or web-view polling in this path.
+    crate::host_tick::tick_project(&homes, &workflows, Some(&f.project));
+    assert!(home.history.lock().unwrap().start_admitted(&start));
+    assert_eq!(
+        home.history
+            .lock()
+            .unwrap()
+            .role("conversation-home", "tick-source")["role"],
+        "HELP_HUMAN"
+    );
+    assert_eq!(
+        f.host.client_requests().len(),
+        requests,
+        "tick never resends native work"
+    );
+    let view = home
+        .history
+        .lock()
+        .unwrap()
+        .read_role_supply("conversation-home", None);
+    assert_eq!(
+        view["observations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["record"]["outcome"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["unknown", "supplied"]
+    );
+    let receipts = home.history.lock().unwrap().snapshot(None)["startReceipts"].clone();
+    assert_eq!(receipts[0]["supplyRef"], "sup:tick-start");
+    assert_eq!(receipts[0]["selection"], "HELP_HUMAN");
+    assert_eq!(receipts[0]["carried"], f.composition.carried);
+    // The production roleSupply/nativeHistory join after the original call
+    // ended unknown. Consumers may render these genuine fixture receipts;
+    // this is App/Host evidence, never a native GUI or supplier witness.
+    println!(
+        "ROLE_LATE_DTO:{}",
+        json!({"state":"start-failed-or-unknown","supplyRef":"sup:tick-start","selection":f.composition.role,"roleSet":f.composition.role_set_identity(),"generation":g(),"carried":f.composition.carried,"originalStartReceipts":receipts})
+    );
+    let (result, frame) = exchange(&f.host, None, vec![], || {
+        crate::conversation_roles::fork_conversation(
+            &home,
+            &g(),
+            "tick-source",
+            Duration::from_millis(10),
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!(frame["method"], "thread/fork");
+    assert!(frame["params"].get("developerInstructions").is_none());
+    let requests = f.host.client_requests().len();
+    let mut native = role_native("tick-fork");
+    native["thread"]["forkedFromId"] = json!("tick-source");
+    f.host.on_line(
+        &serde_json::to_vec(&json!({"id":frame["id"],"result":native})).unwrap(),
+        &g(),
+    );
+    crate::host_tick::tick_project(&homes, &workflows, Some(&f.project));
+    assert_eq!(
+        home.history
+            .lock()
+            .unwrap()
+            .role("conversation-home", "tick-fork")["role"],
+        "HELP_HUMAN"
+    );
+    for _ in 0..2 {
+        crate::host_tick::tick_project(&homes, &workflows, Some(&f.project));
+    }
+    let view = home
+        .history
+        .lock()
+        .unwrap()
+        .read_role_supply("conversation-home", None);
+    assert_eq!(
+        view["observations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["record"]["outcome"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["unknown", "supplied", "unknown", "inherited"]
+    );
+    assert_eq!(
+        f.host.client_requests().len(),
+        requests,
+        "no native start/fork replay from ticks"
+    );
+}
+
+#[test]
+fn actual_host_tick_keeps_late_closed_or_replaced_generation_unknown() {
+    for replaced in [false, true] {
+        let mut f = RoleFixture::new();
+        let start = f.start("", "sup:tick-closed", None);
+        let home = Arc::new(
+            crate::runtime_session::HomeSession::new(
+                crate::home_resources::HomeClass::Account,
+                f.host.clone(),
+                Err("unused fixture config".into()),
+            )
+            .unwrap(),
+        );
+        *home.history.lock().unwrap() = std::mem::take(&mut f.history);
+        let homes = Mutex::new(crate::runtime_session::HomeRouter::new(home.clone()).unwrap());
+        let workflows = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+        let requests = f.host.client_requests().len();
+        {
+            let mut inner = f.host.inner.0.lock().unwrap();
+            Host::close_generation(&mut inner);
+            if replaced {
+                inner.generation["spawnCounter"] = json!(2);
+            }
+        }
+        f.host.on_line(
+            &serde_json::to_vec(
+                &json!({"id":start.request_id(),"result":role_native("must-not-admit")}),
+            )
+            .unwrap(),
+            &g(),
+        );
+        crate::host_tick::tick_project(&homes, &workflows, Some(&f.project));
+        assert!(!home.history.lock().unwrap().start_admitted(&start));
+        assert_eq!(
+            home.history
+                .lock()
+                .unwrap()
+                .role("conversation-home", "must-not-admit")["standing"],
+            "unknown"
+        );
+        assert_eq!(f.host.client_requests().len(), requests);
+        let view = home
+            .history
+            .lock()
+            .unwrap()
+            .read_role_supply("conversation-home", None);
+        assert!(view["observations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["record"]["outcome"] == "unknown"));
+    }
+}

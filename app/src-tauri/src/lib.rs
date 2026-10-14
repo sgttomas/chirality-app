@@ -205,8 +205,10 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
-    let mut history = home.history.lock().unwrap();
-    history.reconcile(&home.host);
+    // Native commands and the per-home Rust tick reconcile private receipts.
+    // Status projects the last received history; polling does not write role
+    // observations or admit a genuinely late native outcome.
+    let history = home.history.lock().unwrap();
     let root = state.instructions_root.lock().unwrap().clone();
     s["nativeHistory"] = history.snapshot(root.as_deref().ok());
     s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
@@ -838,7 +840,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     let supply_ref = {
         let mut slot = home.access_selection.lock().unwrap();
         let supply_ref = runtime_session::claim_start(&mut slot, selection, || Ok(supply_ref.to_owned()))?;
-        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
@@ -874,7 +876,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
         };
         let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
-            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
         }
         if !record_status.is_null(){status["roleSupplyRecord"]=record_status.clone();}
         result

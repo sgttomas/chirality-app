@@ -184,3 +184,25 @@ test('an old pending source read cannot populate a new home or conversation scop
   const current=render({scope:'homeB/thread/counter2',ready:true,read:async()=>({observations:[{record:{supplyId:'sup:current'}}]})});finish({observations:[{record:{supplyId:'sup:old'}}]});await new Promise(resolve=>setImmediate(resolve));assert.equal(slots[0],null);assert.equal(slots[1],false);
   current.props.children[0].props.onClick();await new Promise(resolve=>setImmediate(resolve));assert.equal(slots[0].observations[0].record.supplyId,'sup:current');cleanup?.();
 });
+
+test('late source-bound supply is shown separately from the original wait, never borrowed from another start',()=>{
+  const carried={baseInstructions:'not-set',developerInstructions:{content:{method:'chirality.app.exact-bytes.sha256/v1',value:'a'.repeat(64)},byteLength:15,parts:[{source:{path:'AGENTS.md',state:'default'},length:10},{source:{path:'agents/AGENT_HELP_HUMAN.md',state:'modified'},length:5}]}};
+  const roleSet={method:'chirality.app.exact-bytes.sha256/v1',value:'b'.repeat(64)};
+  const fixture={state:'start-failed-or-unknown',supplyRef:'sup:late',selection:'HELP_HUMAN',generation:g,carried,roleSet,originalStartReceipts:[{supplyRef:'sup:late',selection:'HELP_HUMAN',generation:structuredClone(g),carried:structuredClone(carried),roleSet:structuredClone(roleSet),requestRef:'actual-private-receipt-fixture',requestIdentity:201,activeAdmission:true,writeResult:'written',outcome:'response-observed-result'}]};
+  // The optional packet comes from the maintained actual Host→tick test's
+  // ROLE_LATE_DTO output. CI also checks the same join shape without requiring
+  // an external run artifact; neither packet changes live role authority.
+  const supply=process.env.CHIRALITY_ROLE_LATE_PACKET?JSON.parse(readFileSync(process.env.CHIRALITY_ROLE_LATE_PACKET,'utf8')):fixture;
+  const rendered=h(SupplyStatus,{supply});
+  assert.ok(rendered.includes('Last start call: start-failed-or-unknown'));
+  assert.ok(rendered.includes('Supplied at start (retained original receipt)'));
+  assert.ok(!rendered.includes('native supply not established'));
+  assert.ok(rendered.includes('Whether the model takes it up is unknown.'));
+  for(const change of [r=>{r.supplyRef+='-foreign';},r=>{r.selection='WORKING_ITEMS';},r=>{r.generation.spawnCounter++;},r=>{r.carried.developerInstructions.content.value='0'.repeat(64);},r=>{r.roleSet.value='0'.repeat(64);},r=>{r.activeAdmission=false;},r=>{r.writeResult='write-failed';},r=>{r.outcome='response-observed-error';},r=>{delete r.requestRef;}]){
+    const wrong=structuredClone(supply);change(wrong.originalStartReceipts[0]);const html=h(SupplyStatus,{supply:wrong});
+    assert.ok(html.includes('Prepared App guidance; native supply not established by a matching retained receipt'));
+    assert.ok(!html.includes('Supplied at start (retained original receipt)'));
+  }
+  const prepared=structuredClone(supply);prepared.state='response-observed';prepared.originalStartReceipts=[];
+  assert.ok(!h(SupplyStatus,{supply:prepared}).includes('Supplied at start'));
+});

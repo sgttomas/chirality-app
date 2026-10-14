@@ -593,6 +593,14 @@ implemented behavior and qualification limits.
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
 
+    The Rust host records each App start/fork attempt's actual supply
+    observations in the project's explicit records store (ROLE §6.1a),
+    retaining content-identified copies of the exact App-owned guidance
+    bytes. **Read quoted role-supply history** inspects those bytes and
+    recorded outcomes without a native request. Cold history is unsigned,
+    unverified file evidence; it leaves the current conversation's role
+    unknown and restores no role binding or CCE owner.
+
 25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
     "I choose option B"). Conversations the App starts in its current project
     (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
@@ -666,7 +674,8 @@ implemented behavior and qualification limits.
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
-| `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
+| `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings |
+| `role_observations.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations and exact retained App guidance bytes, with explicit quoted cold-history inspection; cold claims restore no role/CCE authority, and the R3 reference/resolver receiving path remains unbuilt |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence (in the project's records store subtree; earlier in-project accounts read in place until imported) and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |

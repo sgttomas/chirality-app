@@ -608,6 +608,12 @@ operation, change a known native effect, fall back to another store, or claim
 successful history publication. A write whose flush is unconfirmed may have
 landed; later file reading establishes only the quoted row that exists,
 never success of its original publication callback.
+The Rust record tick reconciles each home's retained private receipts without
+requiring a web-view poll, releasing History before runtime or run locks.
+Command callbacks handle their in-wait outcomes; status reads only the
+retained view. The live supply caption joins the exact attempt's `supplyRef`,
+selection, carried identity and full generation to its admitted private
+receipt; an earlier wait outcome remains a separate fact.
 
 For a carried start, the writer retains the exact App-owned common, role
 and composed UTF-8 bytes as immutable content-identified payloads. The reader

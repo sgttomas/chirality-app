@@ -59,6 +59,14 @@ pub(crate) fn receive_view(home: &HomeSession) -> Value {
 /// observations of its open runs. Lock order as `host_status`: runtime, then
 /// Root, then a run.
 pub(crate) fn tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) {
+    // Reconcile only this home's retained private receipts. A genuinely late
+    // role outcome is recorded even when no web view polls this home. Release
+    // History before runtime/Root/run locks: host_status takes runtime then
+    // History, so retaining this guard across receive_view would invert order.
+    {
+        let mut history = home.history.lock().unwrap();
+        history.reconcile(&home.host);
+    }
     let view = receive_view(home);
     record_run_observations(workflows, &view);
 }

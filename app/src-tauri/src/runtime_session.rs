@@ -1160,6 +1160,9 @@ impl HistorySession {
         let error = prepared.as_ref().err().cloned();
         let mut summary = receipt_summary(&e);
         summary["roleSet"] = composition.role_set_identity().clone();
+        summary["supplyRef"] = json!(supply_ref);
+        summary["selection"] = json!(composition.role);
+        summary["carried"] = composition.carried.clone();
         if let Some(error) = error.as_ref() {
             summary["rolePreparationError"] = json!(error);
         }
@@ -1198,6 +1201,9 @@ impl HistorySession {
             let role_set = pending.evidence["roleSet"].clone();
             pending.evidence = receipt_summary(&status);
             pending.evidence["roleSet"] = role_set;
+            pending.evidence["supplyRef"] = json!(pending.observation.supply_ref);
+            pending.evidence["selection"] = json!(pending.observation.composition.role);
+            pending.evidence["carried"] = pending.observation.composition.carried.clone();
             if let Some(record_status)=record_status{pending.evidence["roleSupplyRecord"]=record_status;}
             if let Some(error) = preparation_error {
                 pending.evidence["rolePreparationError"] = error;
@@ -7942,8 +7948,8 @@ for line in sys.stdin:
         assert_eq!(kinds_for(&peer,&a).len(),after.len(),"recorded once");
         // host_status itself no longer drives the recorder.
         let lib=include_str!("lib.rs");let start=lib.find("fn host_status(").unwrap();let body=&lib[start..start+lib[start..].find("\n}\n").unwrap()];
-        assert!(!body.contains("record_run_observations")&&!body.contains("trial_reads_due"),"host_status is a read");
-        assert!(lib.contains("host_tick::tick(&state.homes, &state.workflows)"),"the App runs the host tick");
+        assert!(!body.contains("record_run_observations")&&!body.contains("trial_reads_due")&&!body.contains("history.reconcile"),"host_status is a read");
+        assert!(lib.contains("host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref())"),"the App runs its explicit-project host tick");
     }
     #[test]
     fn delegated_trial_prefills_sends_only_on_send_and_links_only_on_acknowledgment(){
