@@ -5036,10 +5036,12 @@ impl WorkflowRootSession {
             }
         }
         let reading = crate::records::supply::read_project_runs(records, &[]);
+        #[cfg(test)]
+        AFTER_RUN_PRIOR_READING.with(|hook| { if let Some(action) = hook.borrow_mut().take() { action(); } });
         if let Some(cold) = reading
             .possibly_live_in(thread)
             .into_iter()
-            .find(|r| !hot.contains(&r.run))
+            .find(|r| !hot.contains(&r.run) && !(reading.limits.is_empty() && self.hot_run_in_other_home(r, home, thread, records)))
         {
             return Err(match &cold.lifecycle {
                 crate::records::supply::RecordedLifecycle::Unknown(reason) => format!("A workflow run recorded in this conversation is in an unknown state ({}: {reason}; record limits: {:?}); it may still be live, so no second run is started (RE-7). Repair the record, then End it with \"End this interrupted run\". Nothing prepared", cold.run, reading.limits),
@@ -5047,6 +5049,75 @@ impl WorkflowRootSession {
             });
         }
         Ok(prior)
+    }
+    /// A durable opening has no persisted native home. Only the original held
+    /// run can disambiguate it here; missing/busy/conflicting proof is unknown.
+    fn hot_run_in_other_home(
+        &self,
+        recorded: &crate::records::supply::RecordedRun,
+        home: &str,
+        thread: &str,
+        records: &crate::workflow_workspace::publication::ProjectRecords,
+    ) -> bool {
+        if recorded.lifecycle != crate::records::supply::RecordedLifecycle::OpenInterrupted { return false; }
+        let Some(owner) = self.runs.get(&recorded.run) else { return false; };
+        let Ok(run) = owner.try_lock() else { return false; };
+        let scope = run.prepared().scope();
+        let Some(source) = run.source.as_ref() else { return false; };
+        if scope.home.is_empty() || scope.home == home || scope.run != recorded.run
+            || scope.conversation != thread || scope.generation["home"] != scope.home
+            || crate::recovery::generation_ref(&scope.generation).is_err()
+            || source.generation() != &scope.generation
+            || source.attempted_frame()["method"] != "turn/start"
+            || source.attempted_frame()["params"]["threadId"] != thread
+            || !run.attempted || run.turn_id.as_ref().is_none_or(String::is_empty)
+            || run.published.is_none() || run.project.root() != run.project_root
+        { return false; }
+        let mut openings = run.entries.iter().filter(|e| e.kind == "run_opened");
+        let Some(original) = openings.next() else { return false; };
+        if openings.next().is_some() || original.refused.is_some()
+            || original.body["runId"] != recorded.run || original.body["conversationRef"] != thread
+        { return false; }
+        let Ok(held) = run.project.original_source_binding() else { return false; };
+        let Ok(requested) = records.source_binding() else { return false; };
+        if !held.same_source(&requested) { return false; }
+        let owning = held.records_root().join(crate::storage::log_rel(Some(&recorded.run), crate::records::supply::LIVE_WRITER));
+        let mut basis = Vec::new();
+        let exact = crate::records_index::with_index(records.root(), |index| {
+            if !index.limits().is_empty() || !index.partials().is_empty() { return false; }
+            let mut found = 0;
+            for path in index.paths() {
+                let Some(revision) = index.log_revision(&path) else { return false; };
+                basis.push((path.clone(), revision));
+                let Ok(entries) = index.entries_in_log(&path) else { return false; };
+                for entry in entries {
+                    // The first lifecycle projection may predate a new end.
+                    // No current ending can support this open-run exception.
+                    if entry["kind"] == "run_ended" && entry["runId"] == recorded.run { return false; }
+                    // Identity conflicts in any kind, or another opening for
+                    // this run, prevent an exclusion. Every candidate is reread.
+                    if entry["recordId"] == original.record_id || (entry["kind"] == "run_opened" && entry["runId"] == recorded.run) {
+                        if path != owning || entry["kind"] != "run_opened"
+                            || entry["recordId"] != original.record_id || entry["runId"] != recorded.run
+                            || entry["body"] != original.body || entry["observedAt"] != original.observed_at
+                        { return false; }
+                        found += 1;
+                    }
+                }
+            }
+            found == 1 && index.limits().is_empty() && index.partials().is_empty()
+        });
+        // Checked query lines do not establish absence of a later append.
+        // Refresh again: an added/changed/removed log or cache rebuild changes
+        // the private source revision basis and keeps the refusal conservative.
+        let stable = exact && crate::records_index::with_index(records.root(), |index| {
+            index.paths().len() == basis.len() && basis.iter().all(|(path, revision)| index.log_revision(path) == Some(*revision))
+                && index.limits().is_empty() && index.partials().is_empty()
+        });
+        // Recheck named placement after reading. Retention admissions are held
+        // throughout; persistent source substitution cannot become a proof.
+        stable && run.project.source_binding().is_ok_and(|now| held.same_source(&now))
+            && records.source_binding().is_ok_and(|now| requested.same_source(&now))
     }
     fn conversation_run(
         &self,
@@ -5726,6 +5797,8 @@ thread_local! {
     /// Test hook: the next `WorkflowRun::send` panics while its lock is held,
     /// before (`Some(false)`) or after (`Some(true)`) its write is attempted.
     static PANIC_IN_SEND: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+    /// Mutate the authoritative record after the first lifecycle projection.
+    static AFTER_RUN_PRIOR_READING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
 }
 /// A start's notice holds (TX-5), released exactly once: by `release` with the
 /// start's outcome on the normal path, or on drop if the start's send path
@@ -10867,6 +10940,7 @@ for line in sys.stdin:
     // WR TX-5 / SQ-END, (d), (j): restart residuals.
     include!("run_restart_tests.rs");
     include!("workflow_chat_selection_tests.rs");
+    include!("home_qualified_hot_run_tests.rs");
     // RS §14 / DEL-01-02 §7: multi-year scale measurement (ignored; run on request).
     include!("records_scale_tests.rs");
 }

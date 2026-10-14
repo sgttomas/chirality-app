@@ -973,6 +973,24 @@ written. This use is the consumer side of a proposed row, DEL-02-03 →
 DEL-01-02 (D1's NR-D1-1, no SCC by D1's check), which the register owner
 decides.
 
+**Current App run-start gate.** REC's conversation identity includes its native
+home; two held runs in distinct homes can have the same bare native thread ID.
+For a new start, an otherwise possibly-live durable opening is excluded only
+when its original held run proves the other home, and the original physical
+project and records-home association still agree with the requested project.
+The safe authoritative log reader must find one unique owning `run_opened`
+matching that held entry's identity, full body and observation time, with no
+current ending. A second index refresh must retain the same private log revision
+and discovery basis, so a later append or changed source cannot support the
+exception from stale query positions. Its original records-home directory pin is retained during WR publication, before the native
+start consumes the run text; a newly opened handle cannot supply that proof.
+An exact landed entry with an unconfirmed publication callback can match the
+original held pending entry. Busy, missing, conflicting or changed-source proof
+keeps the conservative refusal. This adds no persisted home claim or cold run
+authority: reopened and legacy openings without the original hot proof still
+use the existing RE-4/RE-7 guard. Named source placement is rechecked after the
+read; no atomic lifetime against external filesystem replacement is claimed.
+
 **The placement question, prepared (OI-014; not asked in this pass).** Where
 the App-side checker and recorder live: (a) inside the App, as local
 implementations that conform to shared schemas and fixtures (this file's two

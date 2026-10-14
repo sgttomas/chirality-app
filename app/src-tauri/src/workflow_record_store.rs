@@ -148,6 +148,38 @@ fn validate(envelope: &Value) -> Result<(), String> {
         .validate(envelope)
         .map_err(|e| e.to_string())
 }
+#[derive(Debug, Clone)]
+struct RecordsHome {
+    path: PathBuf,
+    identity: (u64, u64),
+}
+/// Read-only physical source proof, kept with its retention admission while used.
+/// It establishes no run or native-home authority.
+pub(crate) struct ProjectSourceBinding {
+    project: (u64, u64),
+    records: RecordsHome,
+    _directory: File,
+    _admission: Option<crate::storage::Ownership>,
+}
+impl ProjectSourceBinding {
+    pub(crate) fn same_source(&self, other: &Self) -> bool {
+        self.project == other.project && self.records.path == other.records.path
+            && self.records.identity == other.records.identity
+    }
+    pub(crate) fn records_root(&self) -> &Path { &self.records.path }
+}
+fn opened_directory(path: &Path) -> Result<File, String> {
+    if !path.is_absolute() { return Err("absolute records source required".into()); }
+    let mut directory = File::open("/").map_err(|e| e.to_string())?;
+    for part in path.components() {
+        match part {
+            std::path::Component::RootDir => {},
+            std::path::Component::Normal(s) => directory = child(&directory, s.to_str().ok_or("non-UTF8 source component")?, false)?,
+            _ => return Err("non-normal records source path".into()),
+        }
+    }
+    Ok(directory)
+}
 /// Explicit opened-project scope. Directory descriptor traversal never follows symlinks.
 #[derive(Debug)]
 pub struct ProjectRecords {
@@ -156,7 +188,7 @@ pub struct ProjectRecords {
     identity: (u64, u64),
     /// The project's records store folder once this handle has resolved it:
     /// later reads and writes keep to it even if the path is replaced.
-    store: std::sync::Mutex<Option<PathBuf>>,
+    store: std::sync::Mutex<Option<RecordsHome>>,
 }
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
@@ -190,13 +222,47 @@ impl ProjectRecords {
         // A previously resolved reader belongs to that original store identity,
         // even if another folder now stands at the project path. Consult its
         // retention state without reassociating through the replacement path.
-        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir);}
+        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir.path);}
         let attachment=crate::records_store::attach(&self.root,false)?;
         match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
     }
     /// The explicit opened-project path this handle was opened from.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+    /// Original project descriptor versus the currently named physical project
+    /// and read home. This never mints a store or writes a record. A previously
+    /// resolved store must still be the same directory and current association.
+    pub(crate) fn source_binding(&self) -> Result<ProjectSourceBinding, String> {
+        let current = Self::open(&self.root)?;
+        if current.identity != self.identity {
+            return Err("opened project source was replaced".into());
+        }
+        let admission = self.read_admission()?;
+        let home = crate::records_store::home(&self.root)?;
+        if let Some(reason) = home.attachment.refusal { return Err(reason); }
+        let path = match (home.store_mode, home.attachment.dir) {
+            (true, Some(dir)) => dir,
+            _ => self.root.join(crate::storage::LEGACY_RECORDS),
+        };
+        let directory = opened_directory(&path)?;
+        let metadata = directory.metadata().map_err(|e| e.to_string())?;
+        let records = RecordsHome { path, identity: (metadata.dev(), metadata.ino()) };
+        if let Some(original) = self.store.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            if original.path != records.path || original.identity != records.identity {
+                return Err("original records home or its project association changed".into());
+            }
+        }
+        Ok(ProjectSourceBinding { project: self.identity, records, _directory: directory, _admission: admission })
+    }
+    /// A source this handle resolved before publication, rather than a source
+    /// first encountered during a later comparison. Missing original custody
+    /// cannot be filled by the current directory's matching file claims.
+    pub(crate) fn original_source_binding(&self) -> Result<ProjectSourceBinding, String> {
+        if self.store.lock().unwrap_or_else(|p| p.into_inner()).is_none() {
+            return Err("original records-home directory was not retained".into());
+        }
+        self.source_binding()
     }
     /// References of this project's own published WR records (non-recursive;
     /// no other project or library is searched). Staging files are excluded.
@@ -232,7 +298,7 @@ impl ProjectRecords {
     fn workflow_dir(&self, create: bool) -> Result<Option<File>, String> {
         let cached = self.store.lock().unwrap_or_else(|p| p.into_inner()).clone();
         let store = match cached {
-            Some(dir) if !create => Some(dir),
+            Some(dir) if !create => Some(dir.path),
             _ => {
                 // Resolved from the path: only while the path still names the
                 // pinned project folder, so no other folder's records are used.
@@ -250,7 +316,15 @@ impl ProjectRecords {
                     }
                 };
                 if let Some(dir) = &resolved {
-                    *self.store.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.clone());
+                    let opened = opened_directory(dir)?;
+                    let metadata = opened.metadata().map_err(|e| e.to_string())?;
+                    let source = RecordsHome { path: dir.clone(), identity: (metadata.dev(), metadata.ino()) };
+                    let mut original = self.store.lock().unwrap_or_else(|p| p.into_inner());
+                    if let Some(held) = original.as_ref() {
+                        if held.path != source.path || held.identity != source.identity {
+                            return Err("original records home changed; nothing read or written".into());
+                        }
+                    } else { *original = Some(source); }
                 }
                 resolved
             }
