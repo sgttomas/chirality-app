@@ -151,7 +151,7 @@ def unchanged_config_reading(before, after):
 
 
 class Native:
-    def __init__(self, binary, root, local_oss_port=None):
+    def __init__(self, binary, root, local_oss_port=None, discard_stderr=False):
         self.frames, self.incoming, self.counter = [], queue.Queue(), 0
         env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR", "USER", "LOGNAME")
                if key in os.environ}
@@ -164,7 +164,9 @@ class Native:
             if not isinstance(local_oss_port, int) or not 1 <= local_oss_port <= 65535:
                 raise ValueError("local OSS port must be an integer in 1..65535")
             env["CODEX_OSS_BASE_URL"] = f"http://127.0.0.1:{local_oss_port}/v1"
-        self.stderr = (root / "stderr.log").open("w")
+        # Credential-carrier fixtures can discard diagnostics before transfer;
+        # existing noncredential checks retain their private stderr unchanged.
+        self.stderr = open(os.devnull, "w") if discard_stderr else (root / "stderr.log").open("w")
         self.process = subprocess.Popen(
             ["/usr/bin/sandbox-exec", "-f", str(root / "network.sb"), str(binary),
              "-c", 'cli_auth_credentials_store="file"', "app-server"],

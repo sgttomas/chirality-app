@@ -99,5 +99,9 @@ needs:
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/act_control.rs
+- app/supplier_checks/local_auth.py
+- app/supplier_checks/child_roles.py
 checks:
 - execution/PKG-01/DEL-01-05/Design/prototype/check_explicit_project_context.py
+- app/supplier_checks/test_local_auth.py
+- app/supplier_checks/local_auth.py
