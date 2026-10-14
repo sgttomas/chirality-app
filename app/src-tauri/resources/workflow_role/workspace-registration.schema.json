@@ -1627,8 +1627,10 @@
           "$ref": "#/$defs/text"
         },
         "linked_by": {
+          "description": "Observed linking route, not operator identity. New explicit-command observations use explicit link control; by the person is a retained legacy claim and must not be rewritten.",
           "enum": [
             "begin marker found",
+            "explicit link control",
             "by the person"
           ]
         },

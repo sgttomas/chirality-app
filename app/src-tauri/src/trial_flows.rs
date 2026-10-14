@@ -12,7 +12,7 @@
 use super::{current_conversation, HomeSession, RunLifecycle, WorkflowRootSession};
 use crate::workflow_trial_transcript::{self as transcript, TranscriptInput, TranscriptSource, TrialTextLine, TurnRead};
 use crate::workflow_workspace::package_copy::{self, CopyStanding};
-use crate::workflow_workspace::registration::drafts::trials::{PreparedTrial, SentTrial, TrialKind, TrialObservation};
+use crate::workflow_workspace::registration::drafts::trials::{PreparedTrial, SentTrial, TrialKind, TrialLinkMethod, TrialObservation};
 use crate::workflow_workspace::{FidelityReading, Snapshot, TrialText, TRIAL_AREA};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -896,7 +896,7 @@ impl WorkflowRootSession {
                             let refs: Vec<&str> = texts.iter().map(String::as_str).collect();
                             let reading = text.fidelity(&refs);
                             for observation in [
-                                TrialObservation::SubAgentLinked { child_thread: child.clone(), by_person: false },
+                                TrialObservation::SubAgentLinked { child_thread: child.clone(), method: TrialLinkMethod::BeginMarker },
                                 TrialObservation::Fidelity { read_thread: Some(child.clone()), reading, limits: vec!["first user message read on the child (thread/turns/list, thread/items/list); text the authoring agent added around the trial text is not judged".into()] },
                             ] {
                                 recorded.push(self.trials.record_observation(&reference, observation).unwrap_or_else(|e| json!({"trial":reference,"limit":e})));
@@ -918,7 +918,7 @@ impl WorkflowRootSession {
         recorded
     }
 
-    /// TT-9 by the person: Link as trial ‹n› / unlink. A display relation, not an act.
+    /// TT-9 explicit link control / unlink. A display relation, not an act; no operator identity is captured.
     pub fn link_trial_child(&mut self, reference: &str, child: &str, link: bool, view: &Value) -> Result<Value, String> {
         let record = self.trials.link(reference).cloned().ok_or_else(|| format!("No trial link {reference}"))?;
         if record["trial"]["kind"] != "delegated" {
@@ -935,7 +935,7 @@ impl WorkflowRootSession {
             if self.linked_child(reference).as_deref() == Some(child) {
                 return Err("That sub-agent is already linked to this trial".into());
             }
-            TrialObservation::SubAgentLinked { child_thread: child.to_owned(), by_person: true }
+            TrialObservation::SubAgentLinked { child_thread: child.to_owned(), method: TrialLinkMethod::ExplicitControl }
         } else {
             if self.linked_child(reference).as_deref() != Some(child) {
                 return Err("That sub-agent is not linked to this trial".into());
@@ -1334,7 +1334,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
                     continue;
                 }
                 let reading = text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>());
-                results.push(root.trials.record_observation(reference, TrialObservation::SubAgentLinked { child_thread: child.clone(), by_person: false })?);
+                results.push(root.trials.record_observation(reference, TrialObservation::SubAgentLinked { child_thread: child.clone(), method: TrialLinkMethod::BeginMarker })?);
                 results.push(root.trials.record_observation(reference, TrialObservation::Fidelity { read_thread: Some(child), reading, limits: vec!["read at the person's request".into()] })?);
             }
             Ok(_) => {}

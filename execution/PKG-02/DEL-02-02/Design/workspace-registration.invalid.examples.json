@@ -752,5 +752,36 @@
         "name": "spacing-review"
       }
     }
+  },
+  {
+    "case": "INV-23 trial link: an operator assertion is not a linking method",
+    "kind": "trial_observation",
+    "expect": "linked_by outside its strict enum",
+    "instance": {
+      "record_kind": "trial_observation",
+      "observation_id": "trial-observation:0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c44",
+      "trial": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+      "observation": "sub-agent linked",
+      "time": "t31",
+      "child_thread": "thr-30-child-1",
+      "linked_by": "by an agent",
+      "standing": "observation of a trial; not a run record, registration, checking or acceptance"
+    }
+  },
+  {
+    "case": "INV-24 trial link: linking captures no operator identity",
+    "kind": "trial_observation",
+    "expect": "additional operator property refused",
+    "instance": {
+      "record_kind": "trial_observation",
+      "observation_id": "trial-observation:0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c44",
+      "trial": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+      "observation": "sub-agent linked",
+      "time": "t31",
+      "child_thread": "thr-30-child-1",
+      "linked_by": "explicit link control",
+      "standing": "observation of a trial; not a run record, registration, checking or acceptance",
+      "operator": "human"
+    }
   }
 ]

@@ -8202,14 +8202,14 @@ for line in sys.stdin:
         let again=trial_flows::read_trial_again(&root,&peer.home,&reference,&descendant_view(&peer,&[])).unwrap();
         assert_eq!(again["recorded"][0]["fidelity"]["state"],"differs");assert_eq!(again["recorded"][0]["fidelity"]["difference"],"workflow body differs");
         assert_eq!(links(&peer).observations(&reference).len(),3);
-        // Unreadable child: listed "input not read"; the person links it, then unlinks.
+        // Unreadable child: listed "input not read"; the explicit control links it, then unlinks.
         peer.set_mode("child-mode","error");
         tick_reads(&peer,&root,&descendant_view(&peer,&["child-d"]));
         let rows=trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]));
         assert!(rows[0]["subAgent"]["unread"].as_array().unwrap().iter().any(|c|c=="child-d"));
         let view=descendant_view(&peer,&["child-d"]);
         assert!(root.lock().unwrap().link_trial_child(&reference,"thread-77",true,&view).unwrap_err().contains("not a sub-agent"),"the person links only a sub-agent of the authoring conversation");
-        let linked=root.lock().unwrap().link_trial_child(&reference,"child-d",true,&view).unwrap();assert_eq!(linked["linked_by"],"by the person");
+        let linked=root.lock().unwrap().link_trial_child(&reference,"child-d",true,&view).unwrap();assert_eq!(linked["linked_by"],"explicit link control");
         root.lock().unwrap().link_trial_child(&reference,"child-d",false,&Value::Null).unwrap();
         assert_eq!(trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]))[0]["subAgent"]["state"],"sub-agent not linked","the latest link or unlink stands");
     }
@@ -8225,7 +8225,7 @@ for line in sys.stdin:
     // Trial witness 2026-10-10 (a): once the person links a sub-agent, it is no
     // longer offered "Link as trial ‹n›" for that trial.
     #[test]
-    fn a_sub_agent_linked_by_the_person_is_not_offered_again_for_its_trial(){
+    fn a_sub_agent_linked_through_control_is_not_offered_again_for_its_trial(){
         let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
         let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
         let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();

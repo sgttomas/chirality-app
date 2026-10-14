@@ -393,7 +393,7 @@ fn trial_links_are_create_once_survive_relaunch_and_list_per_draft_with_observat
     bad.clean_conversation = None;
     assert!(store.record_sent(&second, &bad).is_err());
     // Observations (TT-9, TT-10).
-    store.record_observation(first.text.reference(), TrialObservation::SubAgentLinked { child_thread: "child-1".into(), by_person: false }).unwrap();
+    store.record_observation(first.text.reference(), TrialObservation::SubAgentLinked { child_thread: "child-1".into(), method: TrialLinkMethod::BeginMarker }).unwrap();
     let reading = first.text.fidelity(&[first.text.text()]);
     store.record_observation(first.text.reference(), TrialObservation::Fidelity { read_thread: Some("child-1".into()), reading, limits: vec![] }).unwrap();
     store.record_observation(first.text.reference(), TrialObservation::SubAgentUnlinked { child_thread: "child-1".into() }).unwrap();
@@ -431,6 +431,69 @@ fn trial_links_are_create_once_survive_relaunch_and_list_per_draft_with_observat
     assert!(memory.limits()[0].contains("process memory only"));
 }
 
+// Origin is a route observation. New controls capture no operator identity;
+// the cold reader retains the older person-attribution claim byte for byte.
+#[test]
+fn trial_link_origins_reopen_without_rewriting_legacy_claims_or_creating_acts() {
+    let s = Scratch::new();
+    s.put("origin-check", "x");
+    let trial = s.prepare("origin-check").unwrap();
+    let mut store = TrialLinks::open(&s.app_data());
+    store.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    let legacy = json!({"record_kind":"trial_observation",
+        "observation_id":"trial-observation:00000000-0000-4000-8000-000000000001",
+        "trial":trial.text.reference(),"observation":"sub-agent linked",
+        "time":"2020-01-01T00:00:00.000Z","child_thread":"legacy-child",
+        "linked_by":"by the person","standing":OBSERVATION_STANDING});
+    let legacy_file = s.app_data().join(TRIAL_POINTERS).join("observation-00000000-0000-4000-8000-000000000001.json");
+    let legacy_bytes = format!("  {}\n", serde_json::to_string_pretty(&legacy).unwrap()).into_bytes();
+    fs::write(&legacy_file, &legacy_bytes).unwrap(); // create a pre-existing legacy fixture
+    drop(store);
+    let mut cold = TrialLinks::open(&s.app_data());
+    assert!(cold.limits().is_empty(), "{:?}", cold.limits());
+    assert_eq!(cold.observations(trial.text.reference()), vec![legacy.clone()]);
+    assert_eq!(cold.trials_for_draft(&trial.key, None)[0]["subAgent"]["linkedBy"], "by the person", "quote the claim; no normalization");
+    assert_eq!(fs::read(&legacy_file).unwrap(), legacy_bytes);
+    let explicit = cold.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked {
+        child_thread: "control-child".into(), method: TrialLinkMethod::ExplicitControl,
+    }).unwrap();
+    assert_eq!(explicit["linked_by"], "explicit link control");
+    let marker = cold.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked {
+        child_thread: "marker-child".into(), method: TrialLinkMethod::BeginMarker,
+    }).unwrap();
+    assert_eq!(marker["linked_by"], "begin marker found");
+    drop(cold);
+    let reopened = TrialLinks::open(&s.app_data());
+    assert!(reopened.limits().is_empty(), "{:?}", reopened.limits());
+    assert_eq!(reopened.observations(trial.text.reference()), vec![legacy, explicit.clone(), marker]);
+    assert_eq!(fs::read(&legacy_file).unwrap(), legacy_bytes, "new writes and cold reads never rewrite legacy bytes");
+    for observation in reopened.observations(trial.text.reference()) {
+        assert_eq!(observation["record_kind"], "trial_observation");
+        assert_eq!(observation["standing"], OBSERVATION_STANDING);
+        for absent in ["operator", "decision_actor", "act", "act_kind", "a15_record", "workflow", "run"] {
+            assert!(observation.get(absent).is_none(), "no promotion through {absent}");
+        }
+    }
+    assert_eq!(reopened.trials_for_draft(&trial.key, None)[0]["fidelity"]["state"], "not checked");
+    assert_eq!(entries(&s.app_data().join(TRIAL_POINTERS)).len(), 4, "only one trial link and three observations");
+    let mut unsupported = explicit.clone();
+    unsupported["linked_by"] = json!("by an agent");
+    assert!(crate::workflow_workspace::wr_validate("trial_observation", &unsupported).is_err());
+    unsupported = explicit;
+    unsupported["operator"] = json!("human");
+    assert!(crate::workflow_workspace::wr_validate("trial_observation", &unsupported).is_err());
+}
+
+#[test]
+fn trial_schema_resource_is_byte_equal_to_its_source_and_source_map_hash() {
+    let source = include_str!("../../../execution/PKG-02/DEL-02-02/Design/workspace-registration.schema.json");
+    let resource = include_str!("../resources/workflow_role/workspace-registration.schema.json");
+    assert_eq!(source, resource);
+    let map: Value = serde_json::from_str(include_str!("../resources/workflow_role/SOURCE_MAP.json")).unwrap();
+    let mapped = map.as_array().unwrap().iter().find(|entry| entry["resource"] == "workspace-registration.schema.json").unwrap();
+    assert_eq!(mapped["sha256"], crate::role_supply::content(resource.as_bytes())["value"]);
+}
+
 // Torn or damaged records are reported, never hidden or rewritten; hidden
 // staging leftovers and non-.json entries are reported, not read as records;
 // a record's file name must name it.
@@ -441,8 +504,8 @@ fn damaged_links_and_observations_are_reported_not_hidden_or_rewritten() {
     let trial = s.prepare("load-check").unwrap();
     let mut store = TrialLinks::open(&s.app_data());
     let link = store.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
-    let observed = store.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked { child_thread: "c".into(), by_person: true }).unwrap();
-    assert_eq!(observed["linked_by"], "by the person");
+    let observed = store.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked { child_thread: "c".into(), method: TrialLinkMethod::ExplicitControl }).unwrap();
+    assert_eq!(observed["linked_by"], "explicit link control");
     let dir = s.app_data().join(TRIAL_POINTERS);
     // A torn record (a truncated write by something other than the App's atomic writer).
     let torn = dir.join("trial-11111111-1111-4111-8111-111111111111.json");
@@ -547,7 +610,7 @@ fn observation_times_strictly_increase_over_the_latest() {
     let trial = s.prepare("load-check").unwrap();
     let mut store = TrialLinks::open(&s.app_data());
     store.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
-    let first = store.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked { child_thread: "c".into(), by_person: false }).unwrap();
+    let first = store.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked { child_thread: "c".into(), method: TrialLinkMethod::BeginMarker }).unwrap();
     let future = loop {
         let now = crate::util::now_rfc3339();
         let ms: u32 = now[20..23].parse().unwrap();

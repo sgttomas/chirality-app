@@ -67,6 +67,15 @@ export type DraftsState = { authoring: string; chosen: string[]; compared: Json 
 export const initialDraftsState: DraftsState = { authoring: "", chosen: [], compared: null, compareError: "", bbTarget: {}, bbNative: {} };
 type Update = (patch: Partial<DraftsState>) => void;
 
+// TT-9/WR §8: this is the observed linking route, never an operator identity.
+// Keep the earlier literal as a quoted claim; do not relabel stored observations.
+function linkOriginWords(origin: Json): string {
+  if (origin === "explicit link control") return "linked through the link control; operator not observed";
+  if (origin === "begin marker found") return "linked after a begin marker was found";
+  if (origin === "by the person") return "legacy record says “by the person”; operator not established by this record";
+  return `link origin reported as “${text(origin)}”; operator not observed`;
+}
+
 function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: DraftAct }) {
   const sub = trial.subAgent;
   if (!sub) return <>sub-agent not linked</>;
@@ -77,7 +86,7 @@ function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: Draft
   const unreadReason = (child: Json) => text(list(sub.unreadReasons).find((r: Json) => text(r?.thread) === text(child))?.reason);
   const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button>;
   return <>
-    {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (linked ${text(sub.linkedBy)})` : ""}{" "}
+    {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (${linkOriginWords(sub.linkedBy)})` : ""}{" "}
       <button disabled={busy} onClick={() => { void act("workflow_trial_unlink", { reference: trial.reference, childThread: sub.thread }); }}>Unlink</button></> : "sub-agent not linked"}
     {list(sub.alsoGiven).filter(candidate).length > 0 && <> · also given this trial's workflow: {list(sub.alsoGiven).filter(candidate).map(text).join(", ")}</>}
     {list(sub.unread).filter(candidate).map((child: Json) => <span key={text(child)}> · sub-agent {text(child)} started in the trial turn (input not read{unreadReason(child) ? `: ${unreadReason(child)}` : ""}){" "}{linkButton(child)}</span>)}

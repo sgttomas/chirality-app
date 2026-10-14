@@ -7,7 +7,7 @@
   {
     "resource": "workspace-registration.schema.json",
     "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/workspace-registration.schema.json",
-    "sha256": "b3f9a85110f7000f17becb67a83f707ffcbe5c0d0e9f54faede96a84898a9d53"
+    "sha256": "66dc407802e8f927e6414f0db60e3d52e341e34b651151dc14524ebc048edc22"
   },
   {
     "resource": "checkpoint-record-entries.schema.json",

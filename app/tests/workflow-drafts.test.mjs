@@ -150,11 +150,11 @@ test('trial rows read each state in the design’s words (TT-4, TT-9)',()=>{
   assert.match(plain,/Fidelity: not checked/);
   assert.match(plain,/Snapshot: trial snapshot unchanged/);
   assert.match(plain,/Not brought back/);
-  const rich=trialHtml(trial({version:'earlier',subAgent:{state:'linked',thread:'child-1',linkedBy:'automatically',alsoGiven:['child-2']},
+  const rich=trialHtml(trial({version:'earlier',subAgent:{state:'linked',thread:'child-1',linkedBy:'begin marker found',alsoGiven:['child-2']},
     fidelity:{state:'differs',difference:'framing differs, workflow body equal',limits:['header not compared']},
     broughtBack:[{time:'2026-10-10T02:00:00Z',to:{generation:g,threadId:'auth'}}],filesOutsideWorkFolder:{count:2,reading:'files changed outside the trial work folder: 2 (from file-change items; shell writes not observed)'}}));
   assert.match(rich,/earlier version/);
-  assert.match(rich,/sub-agent child-1 \(linked automatically\)/);
+  assert.match(rich,/sub-agent child-1 \(linked after a begin marker was found\)/);
   assert.match(rich,/also given this trial&#x27;s workflow: child-2/);
   assert.match(rich,/the sub-agent&#x27;s input differs from the run text: framing differs, workflow body equal \(header not compared\)/);
   assert.match(rich,/Brought back: 2026-10-10T02:00:00Z to auth/);
@@ -208,7 +208,7 @@ test('a sub-agent whose task is not readable reads "not checkable", stays linkab
   assert.deepEqual(r.calls,[['workflow_trial_link',{reference:'trial:fixture',childThread:'child-s'}]]);
   const linked=at(notCheckable.linked);
   const after=trialHtml(linked);
-  assert.match(after,/sub-agent child-s \(linked by the person\)/);
+  assert.match(after,/sub-agent child-s \(linked through the link control; operator not observed\)/);
   assert.match(after,/Fidelity: not checkable: the sub-agent&#x27;s task arrived as an encrypted inter-agent message[^.]*\./);
   assert.doesNotMatch(after,/no fidelity reading yet/);
   assert.equal(find(trialTree(linked).tree,n=>n.type==='button'&&/Link as trial|Read again/.test(label(n))).length,0);
@@ -366,4 +366,20 @@ test('damaged trial pointers and non-conforming transitions are shown, not hidde
   assert.match(h,/changed transition not reported/);
   const clean=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data:{...data,transitionLimits:[]},workspace:true,pointerLimits:[],busy:false,act:async()=>{}}));
   assert.doesNotMatch(clean,/Draft workspace limits/);
+});
+
+
+test('trial link origin labels preserve legacy claims without asserting operator identity',()=>{
+  const html=origin=>trialHtml(trial({subAgent:{state:'linked',thread:'child-origin',linkedBy:origin}}));
+  assert.match(html('explicit link control'),/linked through the link control; operator not observed/);
+  assert.doesNotMatch(html('explicit link control'),/linked by the person/);
+  assert.match(html('by the person'),/legacy record says “by the person”; operator not established by this record/);
+  assert.match(html('begin marker found'),/linked after a begin marker was found/);
+  assert.match(html('unrecognised source'),/link origin reported as “unrecognised source”; operator not observed/);
+  for(const origin of ['explicit link control','by the person','begin marker found']){
+    const row=trial({subAgent:{state:'linked',thread:'child-origin',linkedBy:origin}});
+    const r=trialTree(row);button(r.tree,'Unlink').props.onClick();
+    assert.deepEqual(r.calls,[['workflow_trial_unlink',{reference:'trial:1',childThread:'child-origin'}]],'origin changes no control routing or act standing');
+    assert.match(trialHtml(row),/Fidelity: not checked/);
+  }
 });

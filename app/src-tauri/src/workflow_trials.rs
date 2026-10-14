@@ -142,10 +142,16 @@ pub(crate) struct SentTrial {
     /// The fresh conversation of a clean trial; None for a delegated one.
     pub clean_conversation: Option<String>,
 }
+/// The observed linking route, independent of who operated the control.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum TrialLinkMethod {
+    BeginMarker,
+    ExplicitControl,
+}
 /// A later fact about a trial (TT-4, TT-9, TT-10).
 #[derive(Debug, Clone)]
 pub(crate) enum TrialObservation {
-    SubAgentLinked { child_thread: String, by_person: bool },
+    SubAgentLinked { child_thread: String, method: TrialLinkMethod },
     SubAgentUnlinked { child_thread: String },
     Fidelity { read_thread: Option<String>, reading: FidelityReading, limits: Vec<String> },
     BroughtBack { target_conversation: String, transcript: String, shortenings: Vec<String> },
@@ -321,10 +327,13 @@ impl TrialLinks {
         let mut record = json!({"record_kind":"trial_observation","observation_id":id,"trial":reference,
             "time":self.later_time(reference),"standing":OBSERVATION_STANDING});
         match observation {
-            TrialObservation::SubAgentLinked { child_thread, by_person } => {
+            TrialObservation::SubAgentLinked { child_thread, method } => {
                 record["observation"] = json!("sub-agent linked");
                 record["child_thread"] = json!(child_thread);
-                record["linked_by"] = json!(if by_person { "by the person" } else { "begin marker found" });
+                record["linked_by"] = json!(match method {
+                    TrialLinkMethod::BeginMarker => "begin marker found",
+                    TrialLinkMethod::ExplicitControl => "explicit link control",
+                });
             }
             TrialObservation::SubAgentUnlinked { child_thread } => {
                 record["observation"] = json!("sub-agent unlinked");

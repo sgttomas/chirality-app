@@ -45,7 +45,7 @@
     "sequence": 1,
     "subAgent": {
       "alsoGiven": [],
-      "linkedBy": "by the person",
+      "linkedBy": "explicit link control",
       "notCheckable": [],
       "state": "linked",
       "thread": "child-s",

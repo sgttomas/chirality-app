@@ -1382,7 +1382,7 @@ fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeS
     let entries=state.homes.lock().unwrap().entries();
     runtime_session::trial_flows::trial_home(&state.workflows,&entries,reference)
 }
-/// WR TT-9: Link as trial ‹n› / unlink, by the person.
+/// WR TT-9: explicit Link as trial ‹n› / unlink controls; operator identity is not observed.
 #[tauri::command]
 fn workflow_trial_link(state:State<'_,AppState>,reference:String,child_thread:String)->Result<Value,String>{
     let view=trial_home(&state,&reference)?.runtime.lock().unwrap().native_view();
