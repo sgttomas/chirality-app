@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-02-01:workflow-declaration:WD-v0.8",
-  "title": "Workflow declared part (DEL-02-01 WD-v0.8 §3.5-§3.7, §4; PROPOSED)",
-  "description": "PROPOSED schema of the JSON document carried in a workflow package's WORKFLOW.md as the fenced block with info string `workflow-declaration` (WD §3.5). Names are Chirality's own; no host or supplier wire field is selected. The schema states the conformant form an author writes at contract version WD-v0.8. A consumer does not reject a whole document for an element-level failure: it reads in the order of WD §3.7, attributes each failure to its element and classifies it by WD §3.4 and §11. An omitted category is undeclared; an empty array is declared empty. Status: DRAFT, unsupplied, not implemented, not accepted.",
+  "title": "Workflow declared part (DEL-02-01 WD-v0.8 §3.5-§3.7, §4)",
+  "description": "Schema of the JSON document carried in a workflow package's WORKFLOW.md as the fenced block with info string `workflow-declaration` (WD §3.5). Names are Chirality's own; no host or supplier wire field is selected. The schema states the conformant form an author writes at contract version WD-v0.8. A consumer does not reject a whole document for an element-level failure: it reads in the order of WD §3.7, attributes each failure to its element and classifies it by WD §3.4 and §11. An omitted category is undeclared; an empty array is declared empty. Status: carriage and representation settled with consumer confirmation on 2026-10-15 (WD U-01, U-02); read by the App's declaration reader. Harness capability names (U-08) and the governed flag remain PROPOSED.",
   "type": "object",
   "required": ["declaration_contract_version"],
   "additionalProperties": false,

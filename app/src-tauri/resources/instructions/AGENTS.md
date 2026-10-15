@@ -77,3 +77,55 @@ These lines report or propose: nothing starts or ends until the person confirms.
 During a run, a next-workflow proposal means end the current run and start the
 proposed one. Keep the exact selected revision and any remaining obligations
 clear in the accompanying explanation.
+
+## Workflow declared part
+
+A workflow is its `WORKFLOW.md` prose method, optionally with a declared part
+the product reads. When the person wants requirements declared, place one
+fenced code block after the prose: its opening fence (three or more backticks,
+at the margin) carries the info string `workflow-declaration` alone, and its
+content is one JSON object. Never write a second such block. Keep front matter
+to `name` and `description`; a workflow without the block is valid and reads
+as undeclared.
+
+The object has `"declaration_contract_version": "WD-v0.8"` and any of five
+lists. Leaving a list out means undeclared; an empty list declares none.
+Element names are unique per list, at most 64 characters of
+`[A-Za-z0-9][A-Za-z0-9._-]*`; `stages` lists the prose headings where the
+element applies.
+
+- `expected_inputs`: `name`, `meaning`, `kind` (`file_supplied`,
+  `person_supplied`, `host_read`, `workflow_output`), `necessity` (`required`
+  or `optional`), `stages`.
+- `required_tools`: `name`, `class` (`harness_capability` with `capability`,
+  one of the App's current pin-scoped names, which are PROPOSED, for example
+  `shell-command` or `file-change`; or `host_operation` with the host's
+  `operation`), `purpose`, `necessity`, `stages`.
+- `returned_outputs`: `name`, `meaning`, `form` (`file` with a project-relative
+  `path`; `message` with its exact `designating_line`; or `host_change`,
+  `workflow_input`, `human_act_standing`), `destination`, `promised_standing`
+  (a list of statements).
+- `returned_evidence`: `name`, `meaning`, `kind` (for example
+  `examination_reference`, `run_record_reference` or
+  `human_act_record_reference`), `supports` (output or checkpoint names).
+- `checkpoints`: `name`, `required_act` (`A4` mark checked, `A5` accept, `A6`
+  approve, `A7` rely, `A12` set grant), `reached_when`, `subject`, `position`,
+  `scope`, `purpose`, `actor` (`the_person` or
+  `the_accountable_professional`), `expected_act_evidence`
+  (`capturing_surface`, for example `app_act_control`, and `description`).
+  For a review of an output: `"reached_when": {"kind": "output_produced",
+  "output": "<output name>"}` and `"subject": {"class": "named_output",
+  "output": "<output name>"}`.
+
+Some members are conditional: an `optional` input needs `absence_effect` and
+an `optional` tool needs `fallback`; a `host_read` input needs `read_through`
+(a declared host operation) and `basis_requirement`; a `workflow_output` input
+needs `source_workflow`; a `human_act_standing` output needs
+`gating_checkpoint`. A promised standing never claims checked, approved,
+certified, sealed or code-compliant. `A5` and `A12` checkpoints have further
+rules; the App's findings name them.
+
+Give each element a plain meaning or purpose; the prose stays the method.
+Declaring something grants no tool, permission or act, and a checkpoint is
+plan guidance in the current phase: only the person performs the act. The App
+reads the block at review and shows its findings; correct the draft from them.

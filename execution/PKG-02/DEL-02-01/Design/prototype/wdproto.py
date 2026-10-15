@@ -2,7 +2,7 @@
 """wdproto.py - design prototype for DEL-02-01 WD-v0.8 (declared-part carriage).
 
 NOT PRODUCT CODE. A design aid (R12-3): it renders and parses workflow
-packages in the PROPOSED carriage of WD §3.5, validates the declared part
+packages in the carriage of WD §3.5 (settled, U-01), validates the declared part
 against workflow-declaration.schema.json with a small JSON Schema subset
 validator, and reads it in the order of WD §3.7. Python 3 standard library
 only; no network; writes only under a temporary directory.

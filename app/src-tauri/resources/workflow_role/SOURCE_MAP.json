@@ -2,7 +2,7 @@
   {
     "resource": "workflow-declaration.schema.json",
     "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/workflow-declaration.schema.json",
-    "sha256": "bb01a004e40da89e20183876774afc2308a921376eee4cf75e0c66fcdb405337"
+    "sha256": "75fd9a25ee285df793670ba984586151ad7a999aefb0d0c447451a699bcb9ef8"
   },
   {
     "resource": "workspace-registration.schema.json",

@@ -283,6 +283,14 @@ default reaches freshly seeded instruction stores. Its exact current bytes
 have a live source binding, distinct from the historical V0 and native-supplier
 witnesses. Guidance still applies at conversation start only (§5.5).
 
+The bundled common guidance also describes the workflow declared part as
+DEL-02-01 settled it on 2026-10-15 (WD §3.5, §3.6; U-01, U-02): one
+`workflow-declaration` block in `WORKFLOW.md`, its five lists with their
+members and main conditional rules, and that declaring grants no tool,
+permission or act; the App's review findings cover the rest. It follows
+WD; when WD's carriage or representation changes, this guidance changes
+with it.
+
 - **GS-1 Seed.** At first start the App copies each default into
   `<App data>/instructions/` (same relative paths), creating each file
   exclusively; it never overwrites an existing file. A seed record beside them

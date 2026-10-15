@@ -2,7 +2,7 @@
 - Contribution: DEL-02-01/WD-v0.9 (supersedes DEL-02-01/WD-v0.8, last changed at `153a7c533b`, file sha256 `517821d18fc958301d3adaeb63caf11ab50f7e1ca3ec5a644a3bb4ec78b25b0e`; WD-v0.7, last changed at `c896a99d90`, file sha256 `a02f5d59b475763a0ee49ed649a9f00fae361057a5bfa42d6e0d00b21a6b070a`; WD-v0.6, last changed at `f5ceef164`, file sha256 `43a9962f025de384e1cdaedea9a648da74e20216476a04f2394cfa3851f47eb9`; WD-v0.5, last changed at `c6f81a4f2` and unchanged at `bcc25624d`, file sha256 `e55d69cbd25922efa5c25f3349c60dbdaaa7cb3e30ef14c9482fddeb18d76c66`; WD-v0.4 committed at `8fb51f07f`, file sha256 `e492ff635de972466c8a932355beeae848e1f3d3f60de7304e88963352d8e88e`; WD-v0.3 sha256 `84841d9f539767b9ff7ae225fec27f0dc4ebbd2c161c41aff179bbae97f345eb`; WD-v0.2 sha256 `c25bccc5f3ac02c84522148eeaa8a6ef0f5eb4a380686773cff45f57a448a55c`; WD-v0.1 sha256 `bacfcb71ca9585b950444c0218fdd5283f5b2f5d0c8f981411395278b286fc5e`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R9-1; PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001; §4.3.0): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is plan guidance that the person and the agents manage, and neither the App nor a host's embedded loop enforces a hold, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind. The checkpoint fields are all kept, and the optional **`governed`** flag (PROPOSED, R8-1) marks the checkpoints a later **governance phase** will enforce. Hold support (§4.3.8) is the governance-phase definition, retained.
-- Serves: OUT-001, OUT-002 (at v0.8 with a PROPOSED carriage, §3.5, and schema, `workflow-declaration.schema.json`, §3.6), OUT-003 (map version), OUT-004 (fixture design; at v0.8 also conformance instances and a design prototype, `prototype/`, which is not product code); REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006; AC-001…AC-007 by designed verification; VER-001…VER-007 (cases designed, none run)
+- Serves: OUT-001, OUT-002 (carriage, §3.5, and schema, `workflow-declaration.schema.json`, §3.6, settled 2026-10-15 with consumer confirmation, U-01 and U-02), OUT-003 (map version), OUT-004 (fixture design; at v0.8 also conformance instances and a design prototype, `prototype/`, which is not product code); REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006; AC-001…AC-007 by designed verification; VER-001…VER-007 (cases designed, none run)
 - Basis: the accepted basis as amended by SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), at its current bytes (R9-5): P/docs/PRD.md sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd; P/docs/ARCHITECTURE.md sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c; P/docs/HOST_INTEGRATION.md sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f; P/docs/EXAMINATION.md sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (the v0.1–v0.6 passes read these four at repo 6e18505e3, before the amendments). ScopeOfWork.md sha256 9479fc882decd3721a346ff5723751091db9965a65d6078baf6562ed1779bd49 (SCA-V4-003 revision; re-pinned at pass-4 closeout C1 under R23-5, was `ef360edf…2f17`; SCA-V4-003 blocks read: G-0201-01…03, none requiring a change to this file's design text); earlier revisions of the contract: (revised by SCA-V4-001: CLM-002, CLM-003, REQ-002, REQ-003, REQ-006, VER-003 and TBD-003, with TBD-004 and AX-005 added; and by SCA-V4-002: CLM-002, with AX-006 added; the v0.1–v0.6 passes read sha256 080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294). Sections and requirements relied on: P/docs/PRD.md §2.2 (V4-HOST-05/06), §2.4 (V4-SHR-01…03), §4.1 (V4-WF-01…06), §4.2 (V4-ROLE-01…03), §4.3 (V4-EXE-01/03), §4.5 (V4-AUT-01…05), §4.7 (V4-REC-01…05); P/docs/ARCHITECTURE.md §1 (M-1, M-3, M-5), §4, §5 (V4-ARC-20/21); P/docs/HOST_INTEGRATION.md §1, §2 (V4-HI-02…04), §3 (V4-HI-11/12), §4 (V4-HI-20…25), §5 (V4-HI-30…33), §6 (V4-HI-40…42), §9 (V4-HI-70/71); P/docs/EXAMINATION.md V4-EXM-10, -14, -21, -22; DECISION_BRIEF.html #d2, #d3, #d5; SCC-CASE-002 Case_Datasheet M1 rows; Open_Issues.csv OI-003, OI-013, OI-014, OI-018, OI-021; owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 `f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e`), rulings D1 (scope), D2 (OI-001), D3 (OI-002); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (OWNER_DECISIONS.md at `f05c7e4cd`, sha256 `a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c`), D5 (external-channel model destination: user flexibility) and D6 (App-side run holds deferred to SWBPIPE SQ-02); owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `-DECISION-4` with its clarification (OWNER_DECISIONS.md current sha256 `5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2`, which also holds DECISION-5 and its confirmation; read for v0.6 at `bcc25624d`, sha256 `a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776`): host joins deferred; D4-1 phased checkpoints; the owner's confirmation of the R8-11 item 2 reading of D2's "or a declared checkpoint" (`APP-V4-BASIS-ALIGN-20260928` DECISION-7, accepting OWNER_ITEMS O-25 "as recommended"; OWNER_DECISIONS.md sha256 `ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b`). Root reuse sources read (not adopted): `workflows/WORKFLOW_TEMPLATE.md`, `workflows/*/execution.json` (66 companions surveyed), `workflows/catalog.yaml`, `workflows/catalog.schema.json`, `workflows/index.json`, `workflows/create-workflow/WORKFLOW.md`, `docs/SPEC.md` §9.1–9.8, `docs/AGENT_WORKFLOW_RUNTIME.md`.
 - Consumed inputs:
   - **v0.9 inputs (design pass 3, run `APP-V4-DESIGN-PASS-3-20261001`, node F-D: first-increment edits).** Each sha256 computed with `shasum -a 256` in the working tree at HEAD `e4e14d6ae6` on 2026-10-02; paths under `AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`: `BRIEFS.md` sha256 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("Common rules"; "F — first-increment edits"); `F/F0_JOINS.md` sha256 e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§1.6 FW-01…FW-13, §1.14, §2; a consolidation, which decides nothing); `R17_RESOLUTIONS.md` sha256 b0af81bcbad9bc52fddc99119c42a19019a9b174677d5b92a0a2f5c8b4f8e198 (R17-8 as amended by R19-1; R17-9; R17-11); `R18_RESOLUTIONS.md` sha256 abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1: C-04, C-05; R18-9); `R19_RESOLUTIONS.md` sha256 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-1…R19-8; where an F0 row conflicts with R19, R19 wins and the change table says so); `R20_RESOLUTIONS.md` (R20-5, R20-6 added while this node ran; current) sha256 516d0fe0d3cddb1ef98266e30b37f53067e94e467ad08313df6557a79f1fb1c3 (R20-1, R20-3, R20-4; received during this node); the D round-2 returns `D/D1.md` df731fa3d29dc2c67a71aa9110c07acd7ab05c4d5db2a5f2fc1404929c395c6b, `D/D2.md` 943d51407c62957533dbddd6aa456ab77dd61245f5738af112b349c5b42b7134, `D/D4.md` c2c7e74d91f2d121789f5aaa465514c68a176fc1fa23dc66ea21a6b86c0c00e6, `D/D6.md` 9c6044c73833b1bc95b73947ac2f1d2e7da2310caa90e85516d7d59c4c7cb72f (their "Round 2" join sections; D2 J-6, D6 FW-11, FW-12); `OWNER_DECISIONS.md` sha256 ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-K3 revised: K-6…K-10; DECISION-L: L-2, L-4). Supplier records, read only: `DEL-01-01/Design/OBS_2_0.158.0.md` sha256 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 (O-4, O-5, O-8; R18-9: delegation items observed only through an adapter) and `OBS_3_0.158.0.md` sha256 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (W-1…W-6), and the committed generated types at 0.158.0, checked by script: `multiAgentMode` is "@deprecated Ignored" on `ThreadStartParams` and `TurnStartParams`; `Model.multiAgentVersion` has the values `disabled`, `v1`, `v2`; `ModelProviderCapabilitiesReadResponse` has the boolean `namespaceTools`. The pass-3 Design files are cited at the v0.2 labels their owners are writing in parallel, by section as numbered at v0.1 (node F-E checks the numbers): DEL-01-02/RECOVERY-v0.2, DEL-01-04/AAC-v0.2, DEL-02-02/WR-v0.2, DEL-02-04/ROLE-v0.2. Their v0.1 bytes were read; later in the node ROLE-v0.2, NPTD-v0.2 and the partly written WR-v0.2 (its §16 "Run text, supply check and chaining", LS-8, §4.7) were read in the working tree; no v0.2 byte is pinned here.
@@ -24,7 +24,7 @@
   - DEL-05-02 PANEL-v0.2 needs known through IR1-C J2/J3 (file not read). DEL-02-02, DEL-02-03, DEL-02-04: accepted SoWs only. SWBPIPE answers received 2026-09-28 (RELAY_ANSWERS_SWBPIPE.md, above); no SWBPIPE consumer needs, commitment or contribution received (DEP-001). (This line records the earlier passes. At v0.7 PANEL is read directly: first bullet.)
 - Receivers: CASE-002 M1 "Workflow-contract owner" row: DEL-02-03 (OUT-001, OUT-002; REQ-001, REQ-002, REQ-004; VER-001, VER-002, VER-004; W7 in this undertaking); DEL-05-01 (OUT-001, OUT-004; REQ-005, REQ-007; VER-008); DEL-05-02 (OUT-001; REQ-001; VER-001); DEL-02-01 self-check (OUT-004; REQ-004, REQ-005; VER-004, VER-005). DEL-02-02 (OUT-001, OUT-004; REQ-005; VER-004) and DEL-02-04 (OUT-001, OUT-002; REQ-001, REQ-002, REQ-004; VER-001, VER-005) are named receivers; left outside the first increment by owner ruling D1, they are designed in design pass 3 (`APP-V4-DESIGN-PASS-3-20261001`): DEL-02-02 in WR-v0.2, DEL-02-04 in ROLE-v0.2 (§8). From the live registers (R9-6; ACTIVE rows; detail in §8): DEL-02-03 (DEP-02-03-009); DEL-03-02 (DEP-03-02-027); DEL-03-03 (DEP-02-01-027); DEL-03-04 (DEP-03-04-008); DEL-05-01 (DEP-05-01-016); DEL-05-02 (DEP-05-02-005); DEL-09-06 (DEP-09-06-025); DEL-02-02 (DEP-02-02-014) and DEL-02-04 (DEP-02-04-011), designed in design pass 3; and, outside this increment, DEL-08-02 (DEP-08-02-006), DEL-09-02 (DEP-09-02-015) and DEL-10-03 (DEP-10-03-008).
 
-Companion: [EXAMPLES.md](EXAMPLES.md) (DEL-02-01/WD-EX-v0.9). Beside this file (PROPOSED, R12-1, R12-2): the schema [workflow-declaration.schema.json](workflow-declaration.schema.json) with its conformance instances [workflow-declaration.valid.example.json](workflow-declaration.valid.example.json) (E1) and [workflow-declaration.invalid.example.json](workflow-declaration.invalid.example.json), and the design prototype [prototype/](prototype/README.md) (not product code, R12-3).
+Companion: [EXAMPLES.md](EXAMPLES.md) (DEL-02-01/WD-EX-v0.9). Beside this file (R12-1, R12-2; settled with U-02): the schema [workflow-declaration.schema.json](workflow-declaration.schema.json) with its conformance instances [workflow-declaration.valid.example.json](workflow-declaration.valid.example.json) (E1) and [workflow-declaration.invalid.example.json](workflow-declaration.invalid.example.json), and the design prototype [prototype/](prototype/README.md) (not product code, R12-3).
 
 ---
 
@@ -256,10 +256,10 @@ App and host consumers receive them. Workflow source identity and the
 promised-versus-observed distinction. The shared-contract responsibility map
 (OUT-003), with each consumer need and each open allocation labelled.
 
-**What it proposes at v0.8, and what it does not define.** It PROPOSES
-where the declared part is carried (§3.5), its JSON representation with
-Chirality's own field names and a JSON Schema (§3.6), and the order in which
-a consumer reads it (§3.7), with consumer confirmation pending (U-01, U-02).
+**What it defines, and what it does not.** It defines where the declared
+part is carried (§3.5) and its JSON representation with Chirality's own field
+names and a JSON Schema (§3.6), both settled with consumer confirmation on
+2026-10-15 (U-01, U-02), and the order in which a consumer reads it (§3.7).
 It does not choose a host or supplier wire format, TypeScript or other
 language types, a parser implementation, a host-native content-identity algorithm
 (the bounded App method is selected in §6.1 under U-03), a transport (MCP or CLI), persistence, process/thread placement or
@@ -334,16 +334,16 @@ either.
 - **R-3** The declared part shall live inside the package and travel with it.
   A derived index, registry or host database may reflect it but is not its
   authority.
-- **R-4** Physical carriage is PROPOSED at v0.8 (§3.5; U-01): one fenced
-  block in `WORKFLOW.md`. Each option was weighed against R-1…R-3. OUT-002's
-  open declared-part schema is `workflow-declaration.schema.json` (§3.6;
-  PROPOSED).
+- **R-4** Physical carriage is settled (§3.5; U-01): one fenced block in
+  `WORKFLOW.md`. Each option was weighed against R-1…R-3. OUT-002's open
+  declared-part schema is `workflow-declaration.schema.json` (§3.6; settled,
+  U-02).
 
 ### 3.3 Declaration contract version
 
 - **declaration contract version** identifies which version of this meaning
   the declared part is written against. Its value is the contract label,
-  `WD-v0.8` at this version (PROPOSED; §3.6). No representation existed
+  `WD-v0.8` at this version (§3.6; settled with U-02). No representation existed
   before v0.8, so no earlier value is readable. A consumer reads a declared
   part only at a version it knows; any other value is preserved, reported,
   and makes the declared part **not established** (§3.4; §3.7 VO-3; EXEC
@@ -366,7 +366,7 @@ either.
 | Declared part present, a category omitted | That category is **undeclared**. This differs from **declared empty** (an explicit statement that none are expected). Only "declared empty" supports "this workflow declares no checkpoints". |
 | Unrecognized element or newer contract version | Preserve it unchanged and report it as unrecognized. An unrecognized element in the required-tool or checkpoint category makes the corresponding result **not established**, never a pass. For a checkpoint, that result is the checkpoint's own reading. In Phase 1 it does not change the requirement-check result; in the governance phase a governed checkpoint so affected makes the check *not established* (§4.3.0, §4.3.8 HS-1). |
 
-### 3.5 Carriage of the declared part (PROPOSED at v0.8; U-01; S1-C WD 5)
+### 3.5 Carriage of the declared part (settled 2026-10-15; U-01; S1-C WD 5)
 
 **Options weighed.** Each satisfies R-1 (it is text). They differ as follows.
 
@@ -376,7 +376,7 @@ either.
 | (b) **A delimited body section in `WORKFLOW.md`**: one fenced code block with a reserved info string, holding JSON | One file travels with the package (R-3), including a single-file package. The agent that reads `WORKFLOW.md` receives the declared part with the prose, which is the product's part (i) of R9-1 ("give the agent the declared checkpoint with the workflow"), settled by DECISION-K1 K1-1 ("the product gives the agent the checkpoint"), with no second file to supply. Prose and declared part are reviewed in one diff. JSON is read by every language's standard library, and the block shows as a code block in any Markdown viewer (R-1) | Needs an exact delimiter rule, including a rule for quoted examples (CR-1…CR-4). JSON has no comments, so R-2 is met by the `meaning` and `purpose` members and by the prose around the block. A change to the declared part changes the prose file; that costs nothing, because the revision covers every file of the package anyway (§6.1) |
 | (c) A companion file (for example `declaration.json` beside Root's `execution.json`) | The simplest parse; mirrors Root's `execution.json` | Two files to keep consistent. A person or harness given only `WORKFLOW.md` does not see the declared part, so every supply must name both files, and a single-file package becomes two. The Root precedent is a *restriction* file, and a requirement file beside it invites the misreading E6 guards against (§4.2.3) |
 
-**Choice: (b), PROPOSED**, for the reasons in its row. The prototype
+**Choice: (b)**, for the reasons in its row; settled 2026-10-15 (U-01). The prototype
 (`prototype/wdproto.py`, R12-3) renders E1 and E1d in it and reads them back,
 reads the real Root packages E5 and E6, and a second extractor in node's
 standard library gives the same JSON for E1 (WD-EX E1, E1d, E5, E6; §13.1).
@@ -384,7 +384,7 @@ The JSON document of §3.6 is the same whatever the carriage: moving to (c)
 later would change only CR-1…CR-4, not the schema or anything a consumer
 does after VO-2.
 
-**Carriage rules (PROPOSED).**
+**Carriage rules.**
 
 - **CR-1 The block.** The declared part is the content of the fenced code
   block in `WORKFLOW.md` whose opening line has at most three leading spaces,
@@ -418,7 +418,7 @@ does after VO-2.
   the run; R19-7), or when it reads the file. A read of the file is a tool
   item, not evidence of supply (R17-8; R19-7).
 
-### 3.6 Representation and schema (PROPOSED at v0.8; U-02; R12-1, R12-2)
+### 3.6 Representation and schema (settled 2026-10-15; U-02; R12-1, R12-2)
 
 The declared part is one JSON object described by
 [workflow-declaration.schema.json](workflow-declaration.schema.json) (JSON
@@ -474,7 +474,7 @@ element's failure (§3.7 VO-5).
   A reference to a required tool is by its **tool local name** (§4.2.2); a
   consumer that reports per reference needs that name as well as the
   operation identity, since two references may name one operation.
-- **Workflow identity (V18-2 m-9; PROPOSED).** The schema's
+- **Workflow identity (V18-2 m-9; settled with U-02).** The schema's
   `$defs/workflow_identity` writes the §6.1 tuple, with `derived_from` as a
   nested tuple, never a string. It is not a member of the declared part; a
   consumer schema that carries a workflow identity references it or states
@@ -1570,7 +1570,7 @@ Root material is a reuse source, not v4 authority (PRD V4-CST-04; ARCH §5).
 |---|---|---|
 | Package = immediate folder containing `WORKFLOW.md`; name matches folder (SPEC §9.3; runtime "Workflow packages") | **Keep** | Satisfies V4-SHR-02; existing consumers read it. |
 | Name rule 1–64 lowercase letters/digits in hyphen-separated segments (`catalog.schema.json`; `create-workflow`) | **Keep as reuse candidate**; confirm in OUT-004 fixtures | Source compatibility; no v4 reason to differ. |
-| YAML front matter `name`, `description` (`WORKFLOW_TEMPLATE.md`) | **Keep**, with `name` and `description` only; the declared part is carried in the body (§3.5, PROPOSED at v0.8) | Description supports selection; structured content in the front matter would need a YAML parser and would meet Root consumers that expect two strings (§3.5 option (a)). |
+| YAML front matter `name`, `description` (`WORKFLOW_TEMPLATE.md`) | **Keep**, with `name` and `description` only; the declared part is carried in the body (§3.5, settled) | Description supports selection; structured content in the front matter would need a YAML parser and would meet Root consumers that expect two strings (§3.5 option (a)). |
 | Free prose body, no prescribed headings | **Keep** | V4-WF-01 retains prose. |
 | Inputs, outputs, checks and human checkpoints stated only in prose | **Change**: add the declared part, keep the prose | V4-WF-01 requires an observable declared part. |
 | `execution.json` `compatible_roles` | **Keep** (§4.7) | Four roles are common. |
@@ -1735,8 +1735,8 @@ represented as agreed (AC-005).
 
 | ID | Item | Owner | Point of need | Effect on this definition |
 |---|---|---|---|---|
-| U-01 | Physical carriage of the declared part | DEL-02-01, with consumer confirmation | Consumer confirmation at the next comparison (V18) | **PROPOSED at v0.8** (§3.5): one fenced block `workflow-declaration` in `WORKFLOW.md`, holding JSON; the options are weighed there. The prototype renders and reads E1, E1d, E5 and E6 in it (§13.1). DEL-02-03, DEL-05-01 and DEL-05-02 confirm or object; until then it is not settled. |
-| U-02 | Field names, value encodings, schema language | DEL-02-01 with consumers | As U-01 | **PROPOSED at v0.8** (§3.6): JSON, snake_case members, JSON Schema 2020-12 (`workflow-declaration.schema.json`). Values owned by C (operation identity, version) and P (outcome names) follow their owners; the outcome tokens are P-v0.8's `item_state` spellings (R14-6). The identity tuple is `$defs/workflow_identity` (§3.6). |
+| U-01 | Physical carriage of the declared part | DEL-02-01, with consumer confirmation | — | **Settled 2026-10-15** (§3.5): one fenced block `workflow-declaration` in `WORKFLOW.md`, holding JSON, read by CR-1…CR-7. Confirmed by the consumers: **DEL-02-03** (EXEC §9.1 DEL-02-01 row; the App's reader `app/src-tauri/src/workflow_declaration.rs` implements CR-1…CR-6 and feeds the compatibility report and the App reviews); **DEL-05-01** (LOOP §10.1 Declarations row; C-6: the host loop reads the resolved declaration; the host parser is the external host owner's, and SWBPIPE has none today, DEL-09-06 `RELAY_ANSWERS_SWBPIPE.md`); **DEL-05-02** (PANEL §3.2 and §3.11: at selection the panel presents the declared part and the check's readings, read from WD, C and the check, and during a run the loop's declaration-finding events; it reads no carriage itself). No consumer objected. A host's actual adoption remains with its owner (DEP-001; OI-013). Authoring guidance follows in DEL-02-04 (ROLE §4.2). |
+| U-02 | Field names, value encodings, schema language | DEL-02-01 with consumers | — | **Settled 2026-10-15** (§3.6), with the same confirmations as U-01: JSON, snake_case members, JSON Schema 2020-12 (`workflow-declaration.schema.json`, bundled unchanged in the App as `app/src-tauri/resources/workflow_role/workflow-declaration.schema.json`), the element-to-field map and `$defs/workflow_identity`. Values owned by C (operation identity, version) and P (outcome names) follow their owners; the outcome tokens are P-v0.8's `item_state` spellings (R14-6). Not settled by this row: the harness capability names (U-08) and the `governed` flag (R8-1), which stay PROPOSED. |
 | U-03 | Revision algorithm, framing and method designation | DEL-02-01 with DEL-04-03 (and HOSTING U-08) | Before revision comparison claims | CC-CONTENT-IDENTITY selects the App-only method/framing in §6.1; fresh independent review/consumer propagation required. Host-native identity methods and HOSTING's wider U-08 stay unselected; historical illustration is not silently upgraded. |
 | U-05 | Operation-specific reserved additions: `UNRESOLVED{OI-021}` | Owner via outside SWB session with App/shared owner | Before connected-activity SoW | D2 list applies; additions not assumed. |
 | U-05b | Host capture-evidence reference per act kind (relay question, R2-20) | SWBPIPE owner decision (PB-TBD-002; DEL-16-03 actor identity; ANS §2) | Before host act-recording integration | Without it no host-content checkpoint can be *performed* (I-5). SQ-01 answered: no durable reference; no person identity or time, even in DRAFT #885. |

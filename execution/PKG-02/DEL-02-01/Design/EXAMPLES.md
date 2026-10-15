@@ -2,7 +2,7 @@
 - Contribution: DEL-02-01/WD-EX-v0.9 (companion to DEL-02-01/WD-v0.9, `WORKFLOW_DECLARATION.md`, and to its schema `workflow-declaration.schema.json`; supersedes WD-EX-v0.8, last changed at `153a7c533b`, file sha256 `275ea54d32cd8f487ec9a0f017aaa33b01ee43c79d7a675b53a7652c3519e2fd`; WD-EX-v0.7, last changed at `c896a99d90`, file sha256 `b2b554d815503deab076b737a96b353ca279fa50b1ed578b94bf6a1c059727d9`; WD-EX-v0.6, last changed at `f5ceef164`, file sha256 `8d60ed7850e6935b8410217c8867c59554c7de9aec28c60514e88ff5f0cff36e`; WD-EX-v0.5, last changed at `c6f81a4f2` and unchanged at `bcc25624d`, file sha256 `67e2d8ed187ad7f2134592f4f9ec744d9af33c49882d772648d42c340f531d42`; WD-EX-v0.4 committed at `8fb51f07f`, file sha256 `60ce307a25fe1f9aaad0826985e02aaa6ebd68d86a6d972b1d5a1e39b3128ca4`; WD-EX-v0.3 sha256 `0f1058d7f0990e766b3effc3d3de24fc16383197874cced1f5b4212419cf018d`; WD-EX-v0.2 sha256 `50b7600de8503f51f440e5947ebd4ea7a559781e2497d5d880a8d683f7a9c43e`; WD-EX-v0.1 sha256 `69ac3dbfc5f97e2982418b918996df9b4a6abc674588c627e3e96fb4c133d55a`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R9-1; PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001; WD §4.3.0): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is plan guidance that the person and the agents manage, and neither the App nor a host's embedded loop enforces a hold, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind. So the examples' checkpoints are **plan guidance** in the current phase. Where an example shows a hold, it is the **governance-phase** reading (retained), with each checkpoint read as if declared `governed`; no fixture declares the flag (WD U-33 closed).
-- Serves: OUT-001, OUT-002 (explanatory examples, and at v0.8 the normative rendering of E1 and E1d in the PROPOSED carriage, WD §3.5); OUT-004 (fixture subjects; at v0.8 also conformance instances read by the design prototype `prototype/wdproto.py`, which is not product code); REQ-001, REQ-002, REQ-003, REQ-004; VER-001…VER-004, VER-007
+- Serves: OUT-001, OUT-002 (explanatory examples, and at v0.8 the normative rendering of E1 and E1d in the carriage, WD §3.5, settled with U-01); OUT-004 (fixture subjects; at v0.8 also conformance instances read by the design prototype `prototype/wdproto.py`, which is not product code); REQ-001, REQ-002, REQ-003, REQ-004; VER-001…VER-004, VER-007
 - Basis: the accepted basis as amended by SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), at its current bytes (R9-5): PRD.md sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd; ARCHITECTURE.md sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c; HOST_INTEGRATION.md sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f; EXAMINATION.md sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (the v0.1–v0.6 passes read these at repo 6e18505e3, before the amendments). ScopeOfWork.md sha256 9479fc882decd3721a346ff5723751091db9965a65d6078baf6562ed1779bd49 (SCA-V4-003 revision; re-pinned at pass-4 closeout C1 under R23-5, was `ef360edf…2f17`; SCA-V4-003 blocks read: G-0201-01…03, none requiring a change to this file's design text); earlier revisions of the contract: (revised by SCA-V4-001 and SCA-V4-002; the v0.1–v0.6 passes read sha256 080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294). Requirements relied on: PRD V4-WF-01…06, V4-HOST-05/06, V4-AUT-01/03/05, V4-EXE-01/03; HOST_INTEGRATION V4-HI-11, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-70/71; DECISION_BRIEF #d3, #d5; owner decisions `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (D2, D3) and `-DECISION-2` (D5, D6; OWNER_DECISIONS.md at `f05c7e4cd` sha256 `a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c`); Root `workflows/WORKFLOW_TEMPLATE.md`, `workflows/create-workflow/WORKFLOW.md`, `workflows/project-dag/execution.json`
 - **v0.9 inputs (design pass 3, run `APP-V4-DESIGN-PASS-3-20261001`, node F-D).** As WD-v0.9's v0.9 inputs line (the same files at the same sha256: `BRIEFS.md` `316ea293…`, `F/F0_JOINS.md` `e93608be…` §1.7 FX-01, FX-02 and §1.14, `R17_RESOLUTIONS.md` `b0af81bc…` R17-11, `R19_RESOLUTIONS.md` `16930ecd…`, `OWNER_DECISIONS.md` `ea96c557…` K-6…K-8, L-4). WR-v0.2 (§2.2 ID-1, §4.1 SP-3, SP-6, DS-1…DS-3, §4.4 SL-2) and AAC-v0.2 (§4.1, §4.2) are cited at the v0.2 labels being written in parallel, by section as numbered at v0.1. No fixture block, declared part or L-WDEX label changes, so the prototype's byte-for-byte comparisons are unaffected.
 - **v0.8 inputs (Wave B, node B1 of run `APP-V4-DESIGN-PASS-2-20260930`).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R12_RESOLUTIONS.md` sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-3, R12-5, R12-10); `BRIEFS.md` sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B", row B1); `OWNER_DECISIONS.md` sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1); `SURVEY/S1-C.md` sha256 5b60dd41a8c269902a9b360bf4cdc7c8106c464564bcc2fc1623948661c7eaa0 (§B.8 items 2–4). Companion WD-v0.8 (§3.5–§3.7, §4.2.5, §4.3.1, §4.4, §6.1). Siblings by label and section, read in the working tree while other Wave B nodes edit them: ACT-POLICY-v0.7 §2.1 (A6, A7), §2.6, §13 (L-ACT-6); C-v0.7 §10.1–§10.4, §10.7; EXEC-v0.5 §4.5, §4.7, §5. Root `workflows/create-workflow/WORKFLOW.md` and `workflows/project-dag/` (`WORKFLOW.md`, `execution.json`) read at HEAD `86cafc0e1c`, unchanged since `6e18505e3` (`git diff --stat` empty). The prototype's command, date and output are recorded in `WAVE_B/B1.md`.
@@ -147,12 +147,12 @@ SWBPIPE operation, catalog identity, receipt, human act or the selected first
 connected operation (`UNRESOLVED{OI-021}`).
 
 **Rendering note (v0.8).** E1 and E1d are rendered in the carriage that
-WD-v0.8 §3.5 proposes: the declared part is the JSON block with the info
+WD §3.5 settles (U-01): the declared part is the JSON block with the info
 string `workflow-declaration` in `WORKFLOW.md`, valid against
 `workflow-declaration.schema.json` (WD §3.6). That rendering is the fixture.
 The Markdown tables beside it explain the same content and are not a second
-declaration. Carriage and schema are PROPOSED, with consumer confirmation
-pending (WD U-01, U-02). A line `<!-- wd-proto:… -->` marks a block that
+declaration. Carriage and schema are settled (WD U-01, U-02,
+2026-10-15). A line `<!-- wd-proto:… -->` marks a block that
 `prototype/wdproto.py` compares with its fixture; it does not render.
 Revisions such as ⟨rev-A2⟩ are labels for content identities whose algorithm
 is unselected (WD U-03). At WD-EX-v0.9 the carriage, the schema and the
@@ -200,7 +200,7 @@ adaptation is C §10.1's ⟨rev-3⟩ (E3). In WD-EX-v0.4 the fixture content of
 ⟨rev-A2⟩ includes the optional OP-C12 steps (R4-20; formerly DEL-09-06
 L-CA-1).
 
-**`WORKFLOW.md` — rendered in the PROPOSED carriage (normative for this
+**`WORKFLOW.md` — rendered in the carriage (normative for this
 fixture; WD §3.5).**
 
 <!-- wd-proto:E1.WORKFLOW.md -->
@@ -681,7 +681,7 @@ satisfies nothing at `CP-grant`. *Held actions of `CP-grant`:* **host
 operations only** — the held OP-C9 call (kind (a)). A variant of `CP-grant` naming no setting
 content is **invalid**, unconditionally (WD FB-17).
 
-**`WORKFLOW.md` — rendered in the PROPOSED carriage (normative for this
+**`WORKFLOW.md` — rendered in the carriage (normative for this
 fixture; WD §3.5).** E1c's `CP-check` appears here as part of E1d; E1c's own
 package declares the same `label-support` tool and `CP-check` without
 `CP-grant`. E1d declares no inputs, outputs or evidence, so those three
@@ -1271,7 +1271,7 @@ Same register as WD-v0.9 §12. Items that shape these examples:
 
 | item | owner | point of need | effect on these examples |
 |---|---|---|---|
-| U-01/U-02 carriage and representation: **PROPOSED at WD-v0.8** (WD §3.5, §3.6) | DEL-02-01, with consumer confirmation (DEL-02-03, DEL-05-01, DEL-05-02) | the next comparison (V18) | E1 and E1d are rendered in the proposed carriage; the tables explain them |
+| U-01/U-02 carriage and representation: **settled 2026-10-15** (WD §3.5, §3.6) | DEL-02-01, with consumer confirmation (DEL-02-03, DEL-05-01, DEL-05-02) | — | E1 and E1d are rendered in the carriage; the tables explain them |
 | U-08 harness capability names: **PROPOSED at WD-v0.8**, scoped to pin 0.158.0 (WD §4.2.5) | DEL-02-01 with DEL-01-01 and DEL-02-03 | before the App-side required-tool check | E1e `file-change` and L-WDEX-15 `shell-command` read as recognized names; presence follows EXEC EV-3 and EV-3a (node G): with no signal read, *not established* |
 | U-32 on subject absent: **decided at WD-v0.8 (PROPOSED)** | DEL-02-01 | — | L-WDEX-28 |
 | U-03 revision algorithm | DEL-02-01 with DEL-04-03 | before revision comparisons | ⟨rev-A2⟩, ⟨rev-3⟩ are labels |

@@ -925,3 +925,69 @@ fn untrusted_page_bytes_and_adapter_matches_never_grant_authority() {
             .contains("\"verified\""));
     }
 }
+
+/// The bundled product guidance describes the declared part (WD §3.5, §3.6;
+/// U-01, U-02 settled). The guidance must keep naming the block and these
+/// members and values, and one declaration covering all five lists, written
+/// from them in the form the guidance shows, must read as recognized with no
+/// findings. Conditional rules (optional members, A5, A12) are left to the
+/// reader's own tests.
+#[test]
+fn declared_part_written_from_bundled_guidance_reads_recognized() {
+    let guidance = include_str!("../resources/instructions/AGENTS.md");
+    for named in [
+        "workflow-declaration", "\"declaration_contract_version\": \"WD-v0.8\"",
+        "`expected_inputs`", "`required_tools`", "`returned_outputs`",
+        "`returned_evidence`", "`checkpoints`", "`file_supplied`",
+        "`harness_capability`", "`shell-command`", "`examination_reference`",
+        "`app_act_control`", "\"output_produced\"", "\"named_output\"",
+    ] {
+        assert!(guidance.contains(named), "guidance no longer names {named}");
+    }
+    let doc = json!({
+        "declaration_contract_version": "WD-v0.8",
+        "expected_inputs": [{"name": "labels", "meaning": "The label list to check.",
+            "kind": "file_supplied", "necessity": "required", "stages": ["Method"]}],
+        "required_tools": [{"name": "shell", "class": "harness_capability",
+            "capability": "shell-command", "purpose": "Run the checking helper.",
+            "necessity": "required", "stages": ["Method"]}],
+        "returned_outputs": [{"name": "report", "meaning": "Sorted unique labels.",
+            "form": "file", "path": "reports/unique-labels.txt",
+            "destination": "The project folder.",
+            "promised_standing": ["Agent-checked only; not accepted."]}],
+        "returned_evidence": [{"name": "checks", "meaning": "The checks the agent ran.",
+            "kind": "examination_reference", "supports": ["report"]}],
+        "checkpoints": [{"name": "review", "required_act": "A4",
+            "reached_when": {"kind": "output_produced", "output": "report"},
+            "subject": {"class": "named_output", "output": "report"},
+            "position": "After the report is written.", "scope": "The report file.",
+            "purpose": "The person checks the report.", "actor": "the_person",
+            "expected_act_evidence": {"capturing_surface": "app_act_control",
+                "description": "Marked checked in the App."}}]
+    });
+    let text = format!(
+        "---\nname: check-labels\ndescription: Check a label list.\n---\n# Method\nRun the helper.\n\n## Review\nThe person reviews.\n\n{}",
+        declared(doc.clone())
+    );
+    let r = workflow_declaration::read(&text).unwrap();
+    assert_eq!(r.reading, Reading::Recognized, "{r:?}");
+    assert!(r.findings.is_empty(), "{r:?}");
+    for category in ["expected_inputs", "required_tools", "returned_outputs", "returned_evidence", "checkpoints"] {
+        assert_eq!(r.categories[category], Reading::Recognized, "{category}: {r:?}");
+    }
+    assert!(r.elements.values().flatten().all(|e| e.reading == Reading::Recognized && e.findings.is_empty()), "{r:?}");
+
+    // Conditional rules the guidance states: an optional input needs
+    // `absence_effect`, and a promised standing never claims "checked".
+    let mut optional = doc.clone();
+    optional["expected_inputs"][0]["necessity"] = json!("optional");
+    let r = workflow_declaration::read(&declared(optional.clone())).unwrap();
+    assert!(r.elements["expected_inputs"].iter().any(|e| e.reading != Reading::Recognized), "{r:?}");
+    optional["expected_inputs"][0]["absence_effect"] = json!("The check does not run.");
+    let r = workflow_declaration::read(&declared(optional)).unwrap();
+    assert!(r.elements["expected_inputs"].iter().all(|e| e.reading == Reading::Recognized), "{r:?}");
+    let mut claimed = doc;
+    claimed["returned_outputs"][0]["promised_standing"] = json!(["checked"]);
+    let r = workflow_declaration::read(&declared(claimed)).unwrap();
+    assert!(r.elements["returned_outputs"].iter().any(|e| e.reading != Reading::Recognized), "{r:?}");
+}

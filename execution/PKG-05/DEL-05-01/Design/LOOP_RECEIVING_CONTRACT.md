@@ -2335,7 +2335,7 @@ Verdict form: "continued usability observed for X on candidate Y".
 | Treatment resolution, exposure evaluation, de-duplication | Excluded; relays | ACT (policy), C/P | Host route | DEP-001; §13 | Not received |
 | Catalog, read basis, exposure, fixture | Consumes | DEL-03-01 | Implements | TBD-003 | C-v0.8 (V-GR1 present) |
 | Proposal and outcomes | Consumes | DEL-03-02 | Route, receipts | TBD-002 | P-v0.8 (carriage assurance per R5-2, governance phase per R8-1) |
-| Declarations | Consumes | DEL-02-01 | Host workflows | OI-014; OI-013 | WD-v0.8 (§4.3.0 Phase 1; `governed` flag PROPOSED) |
+| Declarations | Consumes | DEL-02-01 | Host workflows | OI-014; OI-013 | WD-v0.8 (§4.3.0 Phase 1; `governed` flag PROPOSED). WD §3.5 carriage and §3.6 representation confirmed 2026-10-15 (U-01, U-02): the loop reads the resolved declaration (C-6); the parser is the host owner's (§0) |
 | Hold machine | Phase 1: evaluates reached-when and records (§2.4.0). Governance phase: realizes EXEC §4's hold content in host loops (§2.4.4) | DEL-02-03 (EXEC-v0.6 §2.1, §2.2, §4, PROPOSED (W7); §2.4 recorder) | Host construction | OI-013; OI-014; D6 (App side; closed for Phase 1) | EXEC-v0.6 |
 | Act policy | Consumes | DEL-04-01 | Enforces own list; offers and captures acts | OI-021; consequence vocabulary | ACT-POLICY-v0.8 |
 | Grant display states | Carries | DEL-04-02 | Controls | None: the register row is DEP-05-01-025 (2026-09-29 extraction; SoW CLM-002) | AS-v0.8 |
