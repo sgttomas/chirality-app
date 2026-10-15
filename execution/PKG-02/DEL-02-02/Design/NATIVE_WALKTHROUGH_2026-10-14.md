@@ -12,14 +12,16 @@
   rows below during the run, from the App's screens and the scratch
   project's files. No screenshots are kept.
 - **Scope of this record:** the second half of the walkthrough, from a
-  relaunch onward. The first half (planning, real tools, the first draft,
+  relaunch onward, through J-9 on 2026-10-15. The first half (planning, real tools, the first draft,
   registration of revision 1, two reuses, a relaunch with re-confirmation,
   and the first refinement with its trials) was observed in an earlier
   session whose notes were not kept. Its outcome appears below only as the
   records found on disk at relaunch.
 - **Candidate:** main `2cf49bfd97` (with #1379 and #1381), built from a clean
   checkout as a debug bundle with a walkthrough bundle identifier. Not a
-  package candidate.
+  package candidate. The first half ran on earlier builds of the same
+  launcher; the owner ruled on 2026-10-15: "I accept the earlier steps as
+  carried over to build 2cf49bfd97."
 - **Supplier:** stock Codex 0.160.0 (`codex-cli 0.160.0`), a complete cached
   npm vendor package; the App reported supplier standing
   *unverified-development* and verification *unverifiable*.
@@ -56,27 +58,49 @@
 | 7 | Read stored conversations; select `01a13acc…`; Read metadata | History state *indexed-read-only*, current resume eligibility false, App role in force unknown ("original App supply binding not established"), native agentRole null |
 | 8 | Continue selected conversation | State *resume-response-observed*, resume eligibility true. The conversation appeared as the current-generation conversation, `gpt-6.1-sol` via `openai`, role "Role not established in this App process", with "Trials started here: trial 1 … trial 2 … trial 3"; delegation read *available* |
 | 9 | Second refinement requested in that conversation, stating only the intent: source-line references for duplicate labels | Turn `01a13d42-7e51-7730-994d-7da3e35c5340` completed in 59573 ms with no request to the person. The agent chose the report itself: `duplicate-source-lines.txt`, one row per duplicate label with its ascending 1-based line numbers by `str.splitlines()`, in `duplicate-counts.txt`'s order; the three existing reports unchanged. It ran the draft's tests (8 passed), a compatibility check of the existing reports against revision 2 over six cases, and a check that the 56 files outside the draft were unchanged. Its final answer stated the new report and the checks, and "Ready for App trial and review. No registration or acceptance occurred." It did not name its format choices as choices for the person |
-| 10 | Independent check of the refined draft | Only the three draft files changed; content `4094b24f8281`. The tests passed in a separate scratch workspace and left the draft unchanged; a sample with a blank line, CRLF and an unterminated last line gave the expected references. The draft was not tried, reviewed or registered; the walkthrough stopped here at the owner's direction |
+| 10 | Independent check of the refined draft | Only the three draft files changed; content `4094b24f8281`. The tests passed in a separate scratch workspace and left the draft unchanged; a sample with a blank line, CRLF and an unterminated last line gave the expected references |
+| 11 | The owner asked, through the authoring conversation, to "Add the workflow's declared part to the current draft, along with the second refinement." | Turn `01a13d6b-83b0-7f30-bd69-662254baccea` completed in 7505 ms without editing. The agent asked what "declared part" meant ("for example, a role declaration or a specific App metadata field?"). The App's bundled guidance does not describe the declared part or its carriage, which DEL-02-01 holds PROPOSED pending consumer confirmation (U-01, U-02). The owner chose to finish without a declaration |
+| 12 | Refresh draft list; choose `01a13acc…` as authoring conversation | "draft — not registered", content `4094b24f8281`, App-recorded base `e2d85206b375`; attribution "last change seen in Codex file-change item … (conversation 01a13acc…)" |
+| 13 | Try in a fresh conversation; inputs naming a new person-supplied file (`walkthrough/trial-4/input.txt`: duplicates, a blank line, surrounding spaces, a case variant); no role; `gpt-6.1-sol` via `openai`, ChatGPT entry; sent | Trial 4, trial text 9136 bytes, identity `24c41694d813`; new conversation `01a13d78-0b8b-7793-bc3a-62d24094910e`, header "Trial 4 … not registered; not a workflow run · authoring conversation 01a13acc…". No request to the person. Reports in the trial work folder equalled the expected bytes (`bucket 2,8`, `clamp 1,4`, `gauge 5,7`; summary hash equal to the input's); input unchanged. The agent ended "Acceptance remains pending your review. This was an unregistered trial, not a workflow run" and "Workflow finished: project:check-workshop-labels". Row: "workflow given verbatim (trial header present)", files changed outside the trial work folder 0 |
+| 14 | Review for registration… | `review:c6dc25d7-015b-4ef0-ab64-b2b83679526a`, disposition *new revision*, base `e2d85206b375` with lineage to `b39a734e968e`, `stale_base` false, no hygiene findings; the declared-part reading *undeclared* in all five categories with no findings; file digests equal to the draft's; "Last clean trial: content 4094b24f8281 — matches the version under review". Host review digest `08c074b5b83d…` equalled the view's recomputation. The previous review showed as "Retained review" |
+| 15 | The owner registered through the native A15 confirmation | Act record seq 4 `rec:app:1b90b41f…`, bound content `4094b24f8281`; capture `cap:093d4ce6…` naming `descriptor:review:c6dc25d7…`; ledger line 4 *registered*, *new revision*, sequence 3, prior `e2d85206b375`, written 2026-10-15T11:09:57Z. The line chain held; the installed copy and store hold `4094b24f8281`; revisions 1 and 2 kept |
+| 16 | Workflow chat `01a13acc…`; Select revision 3 | "Selected: check-workshop-labels (project), revision 4094b24f8281 · registered revision · can be run." "This workflow declares no requirements part; its text is the whole method," then Inputs, Tools, Checkpoints (plan guidance), Outputs and Evidence returned each "Not declared" |
+| 17 | Person text naming a new input (`walkthrough/reuse-rev3/input.txt`: a CRLF line, an unterminated last line, surrounding spaces); Prepare exact selected workflow text; Record, then send original prepared text once | `run:workflow:c09eefc0-01a8-40cc-b826-7fcf11b7112a` opened (2026-10-15T11:14:00Z) for `4094b24f8281`; advisory CK-1 and CK-2 "requirement check not established … it never decides whether the run starts", role "not established" after the restart. The agent ran the tests and its own exact-byte checks, and ended "Paused for human review; acceptance remains unperformed" and "Workflow finished: project:check-workshop-labels". The reports equalled the expected bytes (`hammer 1,3,8`, `tape 5,9`, `wrench 2,6`; 9 nonblank, 5 unique, 3 duplicate, 4 extra); input unchanged |
+| 18 | End run (the run card's control), at the owner's direction | `run_ended` 2026-10-15T11:21:49Z, cause "ended by the person". The End run offered beneath the "Workflow finished" message, which records "completed", was not the one used |
 
 ## Notes
 
-- **No defect was found in the steps observed.** Rows 3, 5 and 6 behave as
-  §5 and the registration rules describe: the review names exactly the
-  listed content, the capture binds the review and its content, and the
-  draft list is an observation taken when listed.
+- **No App defect was found in the steps observed.** Rows 3, 5, 6, 14 and 15
+  behave as §5 and the registration rules describe: the review names exactly
+  the listed content, the capture binds the review and its content, and the
+  draft list is an observation taken when listed. With J-9 the journey has
+  three registered revisions in one lineage and a run of each of revisions 1
+  and 3 on new inputs.
+- **The declared part is read and shown, but none was authored.** Every
+  review, the selection view and the run card show the reading, *undeclared*
+  in all five categories; a prose-only workflow is valid (HY-6, WD E5). The
+  authoring agent did not recognize the term when asked (row 11): nothing the
+  App supplies to it describes the declared part, whose carriage and field
+  names remain PROPOSED (DEL-02-01 U-01, U-02). Whether the undeclared
+  reading meets AC-001's declared-part clause is the owner's judgement.
 - **The authoring agent settles open choices itself.** Given only an intent,
   it decided the report format without asking and reported the result, not
   the choices. The person sees the choices only by reading the workflow text
   at review. No commitment requires otherwise (V4-WF-02 holds: the change
   stays a draft until review and registration); this is recorded for the
   owner's assessment of the authoring experience.
-- **The stored-conversation and current-conversation selectors** could not
-  be operated by background UI automation; selecting a conversation needed
+- **Two End run controls record different causes.** The run card's control
+  records "ended by the person"; the control offered beneath the agent's
+  "Workflow finished" message records "completed" (row 18), as the run card's
+  own text states.
+- **The stored-conversation, current-conversation, workflow-chat, authoring
+  and access-entry selectors** could not be operated by background UI
+  automation; selecting a conversation needed
   foreground control. This is a fact about the automation used, not about
   the App.
 
 ## Not exercised
 
 A delegated trial from a conversation resumed after a cold restart; bringing
-a trial back; Compare across a relaunch; the second refinement's trial,
-review and registration; a run of revision 2.
+a trial back; Compare across a relaunch; a run of revision 2; a workflow with
+a declared part; the person's acceptance of either run's result.
