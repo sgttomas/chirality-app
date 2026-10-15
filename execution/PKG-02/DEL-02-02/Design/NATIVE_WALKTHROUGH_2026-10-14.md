@@ -1,8 +1,9 @@
 # Native workflow-making walkthrough, 2026-10-14 (observation record)
 
 - **Status:** observation record of an exploratory walkthrough of the
-  WR-VC-01 journey (VER-001). It marks no acceptance criterion, VER item,
-  stage or qualification as met; that assessment is the owner's. Formal
+  WR-VC-01 journey (VER-001), with HELP_HUMAN's assessment against AC-001
+  (last section). The assessment is not the owner's acceptance and marks no
+  VER item, stage or qualification as met. Formal
   admission of a UI-automation tool (DEL-09-01 §8.3, EXP-DC-N2) and packaged
   qualification were not performed. Authenticated local-server and API-key
   conversations were not exercised.
@@ -81,8 +82,10 @@
   in all five categories; a prose-only workflow is valid (HY-6, WD E5). The
   authoring agent did not recognize the term when asked (row 11): nothing the
   App supplies to it describes the declared part, whose carriage and field
-  names remain PROPOSED (DEL-02-01 U-01, U-02). Whether the undeclared
-  reading meets AC-001's declared-part clause is the owner's judgement.
+  names remain PROPOSED (DEL-02-01 U-01, U-02). The question arrived as
+  an agent message: Codex's `request_user_input_async` returned
+  `{"accepted":true}` at once and delivered the question as an `AgentMessage`
+  item with `delivery: "async"`, so no native request was left waiting.
 - **The authoring agent settles open choices itself.** Given only an intent,
   it decided the report format without asking and reported the result, not
   the choices. The person sees the choices only by reading the workflow text
@@ -99,8 +102,71 @@
   foreground control. This is a fact about the automation used, not about
   the App.
 
+## First half, from the authoring conversation's history
+
+The Codex session history of `01a13acc…` (scratch home, read-only) carries
+the first half the earlier notes lost, in UTC:
+
+- **Plan and revision (J-1).** 14:33 "Help me plan a small reusable workflow
+  for checking an invented list of workshop-kit item labels…"; 14:48 "Revise
+  the plan to trim surrounding whitespace and ignore blank labels…", then
+  implement and check the example.
+- **Real tools (J-2).** The first tool calls at 14:48 failed: the supplier
+  package then lacked `codex-code-mode-host`. After the owner restored the
+  complete package, from 15:40 the agent ran shell commands and file patches,
+  and an independent check found and the agent repaired a preservation bug
+  (16:00). At 15:40 the project held only `.chirality/project.json` and two
+  decision-package files from an earlier stage: no workflow, draft or library.
+- **Draft (J-3)** written at 16:02 under `.chirality/workflow-drafts/`, and
+  revised at 16:18 for two reuse issues before any trial.
+- **Trial, review, registration (J-4–J-6).** Delegated trial 1 at 18:13;
+  registration of revision 1 at 18:48 (ledger line 1).
+- **Reuse (J-7).** Runs at 18:52 and, after a relaunch and re-confirmation
+  (20:16), 20:17, on inputs differing from the example.
+- **Native requests.** A command-approval request denied by the person
+  (19:22) and a separate one approved (19:31); two long-command interruption
+  checks (19:36, 19:53).
+- **First refinement (J-8)** from 20:49.
+
+## Receiving joins (Design §7)
+
+| Join | Observed | Gap or limit |
+|---|---|---|
+| DEL-01-03 plans, tools, delegation | Tool items (commands, file changes, outputs, statuses) in every conversation; delegation read *available*; delegated trial 1 with a sub-agent the person linked | No plan items: plan mode "not checked for this Codex connection" (J-1 proceeded in prose, as K-5 allows). No delegated trial after the cold restart |
+| DEL-01-04 requests, outcomes, draft view, trial messages | Approval requests answered both ways; trial texts pre-filled and sent once; a clean trial opened its own conversation; the review package (RB-2); run start and end marks | Bring-back not exercised; in the second half, trial 4's text and revision 3's run text were sent by HELP_HUMAN at the owner's direction |
+| DEL-01-04 act control | Four A15 captures from the native confirmation (registrations of revisions 1–3 and one DS-8 re-confirmation), each naming its review's descriptor and binding its content | Actor identity not verified (stated by the App); the act control's refusal of automation (EXP-DC-N2 DC-N2) not tested |
+| DEL-02-01 portable contract | Identity tuples and revisions agree with independent recomputation of `chirality.app.workflow-package.sha256/v1`; the declared-part reader's result in every review, the selection and the run card | No declared part authored (row 11); carriage and fields PROPOSED (U-01, U-02); revision algorithm U-03 open |
+| DEL-02-03 execution, compatibility | Three runs started from registered revisions; advisory CK-1/CK-2 shown, never deciding; the supply check of revision 3's run *verified* against native turn `01a13f44-dce6-7e31-ba00-3211873dc55b` | Requirement checks "not established" with nothing declared; the supply check needs that turn read in native History first, otherwise it reports "turn not received in this selected history" |
+| DEL-02-04 role guidance | Roles shown per conversation; trial 4 started with no role | After the cold restart the authoring conversation's role reads "not established"; nothing flows for workflows (Design §7) |
+| DEL-04-01 / DEL-04-03 acts and records | A15 records in one intact line chain; ledger lines cite them; run records open, model turns, end and supply | — |
+| DEL-01-02 recovery | Relaunch, resumption of the authoring conversation from history, runs before and after relaunch | — |
+| DEL-01-05 access | Trial 4's conversation started with no model until one was chosen | — |
+| DEL-01-01 supplier | `fileChange` attribution of the draft's last change | Codex 0.160.0 unverified-development; the qualification pin is not established |
+
 ## Not exercised
 
 A delegated trial from a conversation resumed after a cold restart; bringing
 a trial back; Compare across a relaunch; a run of revision 2; a workflow with
 a declared part; the person's acceptance of either run's result.
+
+## Assessment against AC-001 (HELP_HUMAN)
+
+AC-001 is **met on this evidence** for build `2cf49bfd97`, with the earlier
+steps carried over by the owner's ruling (Candidate, above):
+
+- plan creation and revision, real tool execution, draft creation, actual
+  review and registration, reuse on new inputs, and two refinements each
+  tried, reviewed, registered and, for the second, reused: observed (rows
+  above and the first-half history);
+- the declared part observable: the reader's result is shown at review,
+  selection and run, as TT-6 and RB-2 design it; it read *undeclared*, which
+  is valid (HY-6). A declared workflow was not exercised;
+- native transitions observable: turns, items, requests, captures and run
+  marks were shown and recorded;
+- gaps at every receiving join: the table above.
+
+Limits that do not change the assessment: an exploratory walkthrough with
+non-admitted UI automation (DEL-09-01 §8.1 N-2), a debug bundle rather than a
+package candidate, a project folder holding only the App project file and
+two decision packages at the start, and the items under *Not exercised*.
+
