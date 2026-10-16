@@ -96,13 +96,14 @@ element applies.
 
 - `expected_inputs`: `name`, `meaning`, `kind` (`file_supplied`,
   `person_supplied`, `host_read`, `workflow_output`), `necessity` (`required`
-  or `optional`), `stages`. A `host_read` is data read from a connected host
-  application; the workflow's own package files are not inputs.
+  or `optional`), `stages`. A `host_read` is a host object or view obtained
+  through a connected host application's catalog read.
 - `required_tools`: `name`, `class` (`harness_capability` with `capability`,
   one of the App's current pin-scoped names, which are PROPOSED, for example
   `shell-command` for commands you run or `file-change` for files you write;
-  or `host_operation` with the `operation` of a connected host application,
-  never one of your own tools), `purpose`, `necessity`, `stages`.
+  or `host_operation` with the catalog `operation` of a connected host
+  application, also when you reach it through an MCP server or a command
+  line, never your own tool's name), `purpose`, `necessity`, `stages`.
 - `returned_outputs`: `name`, `meaning`, `form` (`file` with a project-relative
   `path`; `message` with its exact `designating_line`; or `host_change`,
   `workflow_input`, `human_act_standing`), `destination`, `promised_standing`
@@ -118,10 +119,10 @@ element applies.
   For a review of an output: `"reached_when": {"kind": "output_produced",
   "output": "<output name>"}` and `"subject": {"class": "named_output",
   "output": "<output name>"}`, with `A4`, `A6` (engineering approval only) or
-  `A7` (by the accountable professional); name the act you chose to the
-  person. `A5` accepts the change items of a host proposal: only with
-  `reached_when` kind `host_outcome` on the outcome `queued` and subject
-  class `change_items_of_named_proposal`, never on an output.
+  `A7` (by the accountable professional). `A5` accepts the change items of a
+  host proposal: only with `reached_when` kind `host_outcome` (its `tools`
+  and the outcome `queued`) and subject class
+  `change_items_of_named_proposal`, never on an output.
 
 Some members are conditional: an `optional` input needs `absence_effect` and
 an `optional` tool needs `fallback`; a `host_read` input needs `read_through`

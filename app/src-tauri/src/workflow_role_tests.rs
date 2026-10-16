@@ -930,8 +930,9 @@ fn untrusted_page_bytes_and_adapter_matches_never_grant_authority() {
 /// U-01, U-02 settled). The guidance must keep naming the block and these
 /// members and values, and one declaration covering all five lists, written
 /// from them in the form the guidance shows, must read as recognized with no
-/// findings. Conditional rules (optional members, A5, A12) are left to the
-/// reader's own tests.
+/// findings. Some conditional rules the guidance states (optional members, a
+/// host read's tool, A5) are checked here; A12 is left to the reader's own
+/// tests.
 #[test]
 fn declared_part_written_from_bundled_guidance_reads_recognized() {
     let guidance = include_str!("../resources/instructions/AGENTS.md");
@@ -1000,13 +1001,15 @@ fn declared_part_written_from_bundled_guidance_reads_recognized() {
     assert!(r.elements.values().flatten().all(|e| e.reading == Reading::Recognized), "{r:?}");
     host["expected_inputs"][0]["read_through"] = json!("example.read");
     let r = workflow_declaration::read(&declared(host)).unwrap();
-    assert!(r.elements["expected_inputs"].iter().all(|e| e.reading == Reading::NotEstablished
-        && e.findings.iter().any(|f| f.starts_with("FB-21"))), "{r:?}");
+    let input = &r.elements["expected_inputs"][0];
+    assert!(input.reading == Reading::NotEstablished
+        && input.findings.iter().any(|f| f.starts_with("FB-21")), "{r:?}");
     let mut accept = doc.clone();
     accept["checkpoints"][0]["required_act"] = json!("A5");
     let r = workflow_declaration::read(&declared(accept)).unwrap();
-    assert!(r.elements["checkpoints"].iter().all(|e| e.reading == Reading::Invalid
-        && e.findings.iter().any(|f| f.starts_with("FB-16"))), "{r:?}");
+    let checkpoint = &r.elements["checkpoints"][0];
+    assert!(checkpoint.reading == Reading::Invalid
+        && checkpoint.findings.iter().any(|f| f.starts_with("FB-16")), "{r:?}");
     let mut claimed = doc;
     claimed["returned_outputs"][0]["promised_standing"] = json!(["checked"]);
     let r = workflow_declaration::read(&declared(claimed)).unwrap();
