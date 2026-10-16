@@ -9,7 +9,7 @@
   "sources": [
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/ROLE_SUPPLY.md",
-      "sha256": "88eb9ac445243c0ddcb9e12725a29feed27c4c398ddca8889f570074546daab2",
+      "sha256": "b2f04bdc5e2330de8452e05eea8aae35d386c1c84cb278ce9d452566362919b1",
       "readExtent": "4.1; 4.2 current records and declared-part guidance and GS-1 through GS-7; 6.1; U-R6/U-R11",
       "basisFileSha256": "422e6f2dabf46928aed249c10385c4b00f50990cfdba0b525d7a4c6a876b71ac",
       "selectors": [
@@ -32,8 +32,8 @@
     },
     {
       "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
-      "sha256": "b00efd3a6203593a4385028dbafe1db0049753286ac357d188499c45f0cb7a20",
-      "readExtent": "3.5–3.6 (declared-part carriage and representation, settled U-01/U-02); 5.1–5.2",
+      "sha256": "fc8903d5583cbe03a2792623f2c76c6117eb88f81416c797deb182b98417db62",
+      "readExtent": "3.5–3.6 (declared-part carriage and representation, settled U-01/U-02); 4.1 input source; 4.2.2 tool reference; 4.3.1 A5 combination rule; 5.1–5.2",
       "basisFileSha256": "9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
       "selectors": [
         {
@@ -41,6 +41,15 @@
         },
         {
           "heading": "### 3.6 Representation and schema (settled 2026-10-15; U-02; R12-1, R12-2)"
+        },
+        {
+          "linePrefix": "| **input source** (v0.8; PROPOSED) |"
+        },
+        {
+          "linePrefix": "| **tool reference** |"
+        },
+        {
+          "linePrefix": "| A5 |"
         },
         {
           "heading": "### 5.1 Common meaning (settled)"
@@ -153,8 +162,8 @@
   "guidance": [
     {
       "path": "AGENTS.md",
-      "sha256": "1abc79743944a2644f5a0552ee0353aab7d0828a82d9f648ddcf0d693a5cea4b",
-      "byteLength": 7343
+      "sha256": "57b354818b7e5f90c8f56781dab666f5983c08865d09754dc32eab1559825bac",
+      "byteLength": 7934
     },
     {
       "path": "agents/AGENT_HELPS_HUMANS.md",

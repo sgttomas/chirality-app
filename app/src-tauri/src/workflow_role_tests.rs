@@ -941,6 +941,7 @@ fn declared_part_written_from_bundled_guidance_reads_recognized() {
         "`returned_evidence`", "`checkpoints`", "`file_supplied`",
         "`harness_capability`", "`shell-command`", "`examination_reference`",
         "`app_act_control`", "\"output_produced\"", "\"named_output\"",
+        "`change_items_of_named_proposal`", "declared `host_operation` tool",
     ] {
         assert!(guidance.contains(named), "guidance no longer names {named}");
     }
@@ -986,6 +987,26 @@ fn declared_part_written_from_bundled_guidance_reads_recognized() {
     optional["expected_inputs"][0]["absence_effect"] = json!("The check does not run.");
     let r = workflow_declaration::read(&declared(optional)).unwrap();
     assert!(r.elements["expected_inputs"].iter().all(|e| e.reading == Reading::Recognized), "{r:?}");
+    // A host read names a declared host-operation tool by its `name`, not by
+    // the operation; and A5 is never the act on an output (FB-21, FB-16).
+    let mut host = doc.clone();
+    host["required_tools"] = json!([{"name": "basis-read", "class": "host_operation",
+        "operation": "example.read", "purpose": "Read the basis from the host.",
+        "necessity": "required", "stages": ["Method"]}]);
+    host["expected_inputs"] = json!([{"name": "basis", "meaning": "The host's basis rows.",
+        "kind": "host_read", "necessity": "required", "read_through": "basis-read",
+        "basis_requirement": "Current rows.", "stages": ["Method"]}]);
+    let r = workflow_declaration::read(&declared(host.clone())).unwrap();
+    assert!(r.elements.values().flatten().all(|e| e.reading == Reading::Recognized), "{r:?}");
+    host["expected_inputs"][0]["read_through"] = json!("example.read");
+    let r = workflow_declaration::read(&declared(host)).unwrap();
+    assert!(r.elements["expected_inputs"].iter().all(|e| e.reading == Reading::NotEstablished
+        && e.findings.iter().any(|f| f.starts_with("FB-21"))), "{r:?}");
+    let mut accept = doc.clone();
+    accept["checkpoints"][0]["required_act"] = json!("A5");
+    let r = workflow_declaration::read(&declared(accept)).unwrap();
+    assert!(r.elements["checkpoints"].iter().all(|e| e.reading == Reading::Invalid
+        && e.findings.iter().any(|f| f.starts_with("FB-16"))), "{r:?}");
     let mut claimed = doc;
     claimed["returned_outputs"][0]["promised_standing"] = json!(["checked"]);
     let r = workflow_declaration::read(&declared(claimed)).unwrap();

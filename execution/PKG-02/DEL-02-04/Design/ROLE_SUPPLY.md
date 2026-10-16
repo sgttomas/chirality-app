@@ -287,9 +287,17 @@ The bundled common guidance also describes the workflow declared part as
 DEL-02-01 settled it on 2026-10-15 (WD §3.5, §3.6; U-01, U-02): one
 `workflow-declaration` block in `WORKFLOW.md`, its five lists with their
 members and main conditional rules, and that declaring grants no tool,
-permission or act; the App's review findings cover the rest. It follows
-WD; when WD's carriage or representation changes, this guidance changes
-with it.
+permission or act; the App's review findings cover the rest. It also states
+three rules an authoring agent misread in the DEL-02-02 native walkthrough
+(2026-10-16):
+- a host read and a host operation belong to a connected host application,
+  not to the agent's own tools (WD §4.1 input source, §4.2.2 tool reference);
+- `read_through` names a declared tool by its local name;
+- `A5` applies only to a queued proposal's change items (§4.3.1, FB-16), so an
+  output's review uses `A4`, `A6` or `A7`.
+
+It follows WD; when WD's carriage, representation or those rules change,
+this guidance changes with it.
 
 - **GS-1 Seed.** At first start the App copies each default into
   `<App data>/instructions/` (same relative paths), creating each file
