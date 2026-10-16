@@ -930,9 +930,8 @@ fn untrusted_page_bytes_and_adapter_matches_never_grant_authority() {
 /// U-01, U-02 settled). The guidance must keep naming the block and these
 /// members and values, and one declaration covering all five lists, written
 /// from them in the form the guidance shows, must read as recognized with no
-/// findings. Some conditional rules the guidance states (optional members, a
-/// host read's tool, A5) are checked here; A12 is left to the reader's own
-/// tests.
+/// findings. The conditional rules the guidance states (optional members, a
+/// host read's tool, A5, A12) are checked here too.
 #[test]
 fn declared_part_written_from_bundled_guidance_reads_recognized() {
     let guidance = include_str!("../resources/instructions/AGENTS.md");
@@ -1010,6 +1009,12 @@ fn declared_part_written_from_bundled_guidance_reads_recognized() {
     let checkpoint = &r.elements["checkpoints"][0];
     assert!(checkpoint.reading == Reading::Invalid
         && checkpoint.findings.iter().any(|f| f.starts_with("FB-16")), "{r:?}");
+    let mut grant = doc.clone();
+    grant["checkpoints"][0]["required_act"] = json!("A12");
+    let r = workflow_declaration::read(&declared(grant)).unwrap();
+    let checkpoint = &r.elements["checkpoints"][0];
+    assert!(checkpoint.reading == Reading::Invalid
+        && checkpoint.findings.iter().any(|f| f.starts_with("FB-17")), "{r:?}");
     let mut claimed = doc;
     claimed["returned_outputs"][0]["promised_standing"] = json!(["checked"]);
     let r = workflow_declaration::read(&declared(claimed)).unwrap();
