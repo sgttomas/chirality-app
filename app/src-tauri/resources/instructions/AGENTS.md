@@ -96,11 +96,14 @@ element applies.
 
 - `expected_inputs`: `name`, `meaning`, `kind` (`file_supplied`,
   `person_supplied`, `host_read`, `workflow_output`), `necessity` (`required`
-  or `optional`), `stages`.
+  or `optional`), `stages`. A `host_read` is a host object or view obtained
+  through a connected host application's catalog read.
 - `required_tools`: `name`, `class` (`harness_capability` with `capability`,
   one of the App's current pin-scoped names, which are PROPOSED, for example
-  `shell-command` or `file-change`; or `host_operation` with the host's
-  `operation`), `purpose`, `necessity`, `stages`.
+  `shell-command` for commands you run or `file-change` for files you write;
+  or `host_operation` with the catalog `operation` of a connected host
+  application, also when you reach it through an MCP server or a command
+  line, never your own tool's name), `purpose`, `necessity`, `stages`.
 - `returned_outputs`: `name`, `meaning`, `form` (`file` with a project-relative
   `path`; `message` with its exact `designating_line`; or `host_change`,
   `workflow_input`, `human_act_standing`), `destination`, `promised_standing`
@@ -115,15 +118,19 @@ element applies.
   (`capturing_surface`, for example `app_act_control`, and `description`).
   For a review of an output: `"reached_when": {"kind": "output_produced",
   "output": "<output name>"}` and `"subject": {"class": "named_output",
-  "output": "<output name>"}`.
+  "output": "<output name>"}`, with `A4`, `A6` (engineering approval only) or
+  `A7` (by the accountable professional). `A5` accepts the change items of a
+  host proposal: only with `reached_when` kind `host_outcome` (its `tools`
+  and the outcome `queued`) and subject class
+  `change_items_of_named_proposal`, never on an output.
 
 Some members are conditional: an `optional` input needs `absence_effect` and
 an `optional` tool needs `fallback`; a `host_read` input needs `read_through`
-(a declared host operation) and `basis_requirement`; a `workflow_output` input
-needs `source_workflow`; a `human_act_standing` output needs
-`gating_checkpoint`. A promised standing never claims checked, approved,
-certified, sealed or code-compliant. `A5` and `A12` checkpoints have further
-rules; the App's findings name them.
+(the `name` of a declared `host_operation` tool) and `basis_requirement`; a
+`workflow_output` input needs `source_workflow`; a `human_act_standing` output
+needs `gating_checkpoint`. A promised standing never claims checked, approved,
+certified, sealed or code-compliant. An `A12` checkpoint needs subject class
+`grant_setting` with its `setting`; the App's findings name other rules.
 
 Give each element a plain meaning or purpose; the prose stays the method.
 Declaring something grants no tool, permission or act, and a checkpoint is

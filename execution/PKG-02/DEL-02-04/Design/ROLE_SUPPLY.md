@@ -287,9 +287,24 @@ The bundled common guidance also describes the workflow declared part as
 DEL-02-01 settled it on 2026-10-15 (WD §3.5, §3.6; U-01, U-02): one
 `workflow-declaration` block in `WORKFLOW.md`, its five lists with their
 members and main conditional rules, and that declaring grants no tool,
-permission or act; the App's review findings cover the rest. It follows
-WD; when WD's carriage or representation changes, this guidance changes
-with it.
+permission or act; the App's review findings cover the rest. It also states
+these WD rules, added after the earlier wording led to two element findings
+(FB-16, FB-21) in the declared-part refinement of the DEL-02-02 native
+walkthrough (`NATIVE_WALKTHROUGH_2026-10-14.md`, 2026-10-16):
+- a host read is a host object or view obtained through a host's catalog
+  read, and a host operation is a connected host's catalog operation, also
+  when reached through an MCP server or a command line; the agent's own
+  commands and file writes are harness capabilities (WD §4.1 input kind,
+  §4.2.1, §4.2.2 tool reference);
+- `read_through` names a declared `host_operation` tool by its local name
+  (§4.1 input source; FB-21);
+- `A5` applies only to a queued proposal's change items (§4.3.1, FB-16), so an
+  output's review uses `A4`, `A6` (engineering approval only) or `A7` (the
+  accountable professional; §4.3.1 required act kind, actor requirement);
+  `A12` needs subject class `grant_setting` with its setting (FB-17).
+
+It follows WD; when WD's carriage, representation or those rules change,
+this guidance changes with it.
 
 - **GS-1 Seed.** At first start the App copies each default into
   `<App data>/instructions/` (same relative paths), creating each file
