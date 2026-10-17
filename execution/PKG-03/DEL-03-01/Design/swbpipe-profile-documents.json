@@ -881,6 +881,194 @@
    }
   ]
  },
+ "read_before_revision_regression": {
+  "basis": {
+   "canonical_content_identity": "sh1:a5734cdea47e14e4",
+   "generation": {
+    "not_supplied": "host_declares_none"
+   },
+   "identity_method": "m-sh1-wm",
+   "model_revision": "r13",
+   "workspace_identity": {
+    "not_supplied": "host_declares_none"
+   }
+  },
+  "edition": "e2",
+  "operation": {
+   "operation_identity": "OP-C1",
+   "operation_version": "v1"
+  },
+  "outcome": "success",
+  "standing": {
+   "currency": "current",
+   "host_checks": [
+    {
+     "check_name": "equilibrium",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    },
+    {
+     "check_name": "unit-consistency",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    }
+   ],
+   "human_act_evidence": [],
+   "known_limitations": [
+    "linear supports assumed"
+   ]
+  },
+  "surface": "X",
+  "views": [
+   {
+    "diagnostics": [],
+    "results": [],
+    "tables": [
+     {
+      "columns": [
+       {
+        "column_identity": "location_m",
+        "meaning": "location along the run",
+        "unit": "m",
+        "value_kind": "number"
+       },
+       {
+        "column_identity": "type",
+        "meaning": "support type",
+        "unit": null,
+        "value_kind": "enumeration"
+       },
+       {
+        "column_identity": "stiffness",
+        "meaning": "stiffness",
+        "unit": "N/m",
+        "value_kind": "text"
+       },
+       {
+        "column_identity": "label",
+        "meaning": "display label",
+        "unit": null,
+        "value_kind": "text"
+       }
+      ],
+      "meaning": "supports on R-100",
+      "rows": [
+       {
+        "cells": {
+         "label": "G-1",
+         "location_m": 0.5,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-1"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-2",
+         "location_m": 2.0,
+         "stiffness": "rigid",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-2"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-3",
+         "location_m": 8.4,
+         "stiffness": "1.8e6",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-3"
+        }
+       },
+       {
+        "cells": {
+         "label": "G-4b",
+         "location_m": 11.0,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-4"
+        }
+       }
+      ],
+      "table_identity": "supports-R-100"
+     },
+     {
+      "columns": [
+       {
+        "column_identity": "from",
+        "meaning": "start node",
+        "unit": null,
+        "value_kind": "identity"
+       },
+       {
+        "column_identity": "to",
+        "meaning": "end node",
+        "unit": null,
+        "value_kind": "identity"
+       }
+      ],
+      "meaning": "geometry of R-100",
+      "rows": [
+       {
+        "cells": {
+         "from": "N-1",
+         "to": "N-2"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "R-100"
+        }
+       }
+      ],
+      "table_identity": "run-R-100"
+     }
+    ],
+    "view_identity": "main"
+   }
+  ]
+ },
  "requests": {
   "PR-W1": {
    "items": [
@@ -1052,6 +1240,62 @@
    "proposal_identity": {
     "minted_by": "proposer",
     "value": "PR-W6"
+   },
+   "relied_on_basis": [
+    {
+     "canonical_content_identity": "sh1:a5734cdea47e14e4",
+     "generation": {
+      "not_supplied": "host_declares_none"
+     },
+     "identity_method": "m-sh1-wm",
+     "model_revision": "r13",
+     "workspace_identity": {
+      "not_supplied": "host_declares_none"
+     }
+    }
+   ],
+   "requested_mode": "propose"
+  },
+  "PR-W8": {
+   "items": [
+    {
+     "affected_object": {
+      "object_identity": "S-1"
+     },
+     "attribute": "stiffness",
+     "item_identity": "1",
+     "new_value": "2.5e6",
+     "old_value": "2.0e6",
+     "operation_identity": "OP-C5",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:a5734cdea47e14e4",
+       "subject_identity": "S-1"
+      }
+     ]
+    }
+   ],
+   "origin": {
+    "author_identity": "unverified",
+    "author_type": "agent",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "reason": "Stiffen S-1 (queued before an edit that is then undone)",
+    "seat_role_meaning": "external agent (App Codex)",
+    "workflow_identity": {
+     "kind": "workflow",
+     "name": "supports-adjust",
+     "origin": "host",
+     "revision": "rev-3",
+     "source_root": "fx-root"
+    },
+    "workflow_run": "12"
+   },
+   "proposal_identity": {
+    "minted_by": "proposer",
+    "value": "PR-W8"
    },
    "relied_on_basis": [
     {
@@ -1413,6 +1657,41 @@
    "kind": "recorded_state",
    "observed_at": "t0006",
    "proposal_identity": "PR-W5",
+   "submissions_recorded": 1
+  },
+  "PR-W8 queued before edit and restore": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:a5734cdea47e14e4",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r13",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": false,
+    "counts": {
+     "queued": 1
+    },
+    "open": true,
+    "summary": "queued"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:be1dcf16ff4e6d53",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "state": "queued"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0011",
+   "proposal_identity": "PR-W8",
    "submissions_recorded": 1
   }
  }

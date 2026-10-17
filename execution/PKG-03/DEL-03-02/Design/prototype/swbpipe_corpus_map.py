@@ -48,18 +48,25 @@ SOURCES = [
     (f"{CORPUS}/README.md", "corpus format, comparison rules, review status of each case range"),
     (f"{PIPING}/core/model_operations/operation_applier/src/lib.rs",
      "single-operation outcome; acceptance record (no actor, act reference or time); binding status; "
-     "OP-STALE-BEFORE-VALUE; agent-authored k rule O5 on asserted author_type; engine version 0.1.0"),
+     "OP-STALE-BEFORE-VALUE; agent-authored k rule O5 on asserted author_type; engine version 0.1.0; "
+     "28 change kinds (:2380-2409)"),
     (f"{PIPING}/core/model_operations/operation_applier/src/atomic_batch.rs",
      "per-batch Apply: atomic commit or rollback, one acceptance basis per batch, claimed hash required, "
-     "author and source identity asserted metadata only"),
+     "optional plan source_model_hash checked (:98-105), author and source identity asserted metadata only"),
     (f"{PIPING}/core/model_operations/operation_applier/src/bend_authoring.rs", "OP-BEND-FLEXIBILITY-USER-ENTRY-REQUIRED"),
     (f"{PIPING}/core/serialization/canonical_json/src/lib.rs", "RFC 8785 canonical JSON behind the whole-model hash"),
     (f"{PIPING}/fixtures/canonical_hash/cases.json", "canonical hash vectors"),
     (f"{PIPING}/apps/desktop/src/services/operationBatchService.ts", "batch outcome type; apply/validate routes"),
-    (f"{PIPING}/apps/desktop/src/types.ts", "OperationAcceptanceRecord; AppliedOperationReceipt (session receipt)"),
+    (f"{PIPING}/apps/desktop/src/types.ts",
+     "OperationAcceptanceRecord; AppliedOperationReceipt (session receipt); 28 change kinds (:1010-1038)"),
+    (f"{PIPING}/apps/desktop/src/App.tsx",
+     "intake wiring: OfflineProposalIntakePanel onQueueBatch (:493); BatchReviewPanel onApply (:528)"),
     (f"{PIPING}/apps/desktop/src/features/workspace/workspaceSession.ts",
-     "batch Apply gated on the registered basis hash; session receipt minted in UI state; receipts reset on open/create"),
-    (f"{PIPING}/apps/desktop/src/features/toolkit/BatchReviewPanel.tsx", "Clear pending changes and batches (no record)"),
+     "queued batch: a new session entry bound to the model and revision current when queued (:1127-1138); "
+     "Apply gated on that revision (:1151) and basis hash (:1162), applied at :1163; session receipt minted in UI "
+     "state (:1191-1192); queue and receipts reset on project create or open (:1945-1948, :2015-2018)"),
+    (f"{PIPING}/apps/desktop/src/features/toolkit/BatchReviewPanel.tsx",
+     "Clear pending changes and batches (no record); Apply disabled for a batch queued at an earlier revision (:42-49)"),
     (f"{PIPING}/apps/desktop/src/features/offline-proposal-intake/OfflineProposalIntakePanel.tsx",
      "proposals arrive as files; author attribution not verified; no connected agent provider"),
     (f"{PIPING}/apps/desktop/src/features/workspace/shellLayout.ts", "Agent: not available yet"),
@@ -89,9 +96,13 @@ NR = {
     "NR-11": "an actor-dependent rule is a validation error on caller-asserted author_type, not a treatment on a verified actor",
 }
 APP = {
-    "A-01": "no App representation for an application at a person-initiated host Apply without an attributable act record",
+    "A-01": "no App representation for an application at a person-initiated host Apply without an attributable act "
+            "record; kept unrepresentable until SWBPIPE supplies NR-01 (A-01 option (i); "
+            "SWBPIPE_CORPUS_RECEIVING.md section 4)",
     "A-02": "resulting_object.relation has no 'removed' for a deletion",
     "A-03": "no element for an application's persistence status (session only, not saved)",
+    "A-04": "P section 3.5 PM-5 has no rule for de-duplication scope 'not stated': whether a repeat answered as a first "
+            "receipt is its own submission, and what the earlier submission's state then is",
 }
 NEVER = ["acceptance by a named person (A5)", "a per-change act", "rejection (A10)", "withdrawal (A11)",
          "checking (A4)", "engineering approval (A6)", "professional reliance (A7)"]
@@ -103,6 +114,21 @@ def sha(p):
 
 def corpus_files():
     return sorted((ROOT / CORPUS).glob("case_*.json"))
+
+
+def review_status(path):
+    """The corpus README's review_status for this case (pinned README)."""
+    n = int(path.name.split("_")[1])
+    if n == 15:
+        return ("accepted 2026-06-12 (DEC-030); its regenerated claimed hash and binding-status expectation are "
+                "pending their own human review entry")
+    if n <= 57:
+        return "human-reviewed and accepted 2026-06-12 (DEC-030)"
+    if n <= 65:
+        return "human-reviewed and accepted 2026-06-12 (DEC-032)"
+    if n <= 75:
+        return "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
+    return "generated from the Rust contract reference; pending its own human review entry"
 
 
 def write_pins():
@@ -159,7 +185,8 @@ def map_case(path):
             "application_status": status, "diagnostic_codes": codes, "binding_status": mb["binding_status"],
             "claimed_model_hash": "present" if claimed else "absent",
             "acceptance": out["acceptance"], "diff_rows": len(out.get("diff_preview") or []),
-            "resulting_whole_model_hash": d["expected"]["applied_model_canonical_sha256"]}
+            "resulting_whole_model_hash": d["expected"]["applied_model_canonical_sha256"],
+            "corpus_review_status": review_status(path)}
     terms = {"author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)" if intent.get("author_type")
              else "not supplied (intent incomplete)",
              "evaluated_basis": evaluated_basis(out),
@@ -180,10 +207,11 @@ def map_case(path):
             terms["proposal_view_rows"] = host["diff_rows"]
     elif status == "applied_to_session_model":
         outcome = None
-        terms["outcome_statement"] = ("no contract outcome: the host applied the change to its session model at the "
-                                      "person's Apply, recording only acceptance basis "
-                                      f"'{out['acceptance']['acceptance_basis']}'; P 'applied' needs branch "
-                                      "after_acceptance with an A5 act record, or direct_under_grant, and neither holds")
+        terms["outcome_statement"] = ("no contract outcome: the host applied the change to its session model at a host "
+                                      "Apply recorded only as acceptance_basis "
+                                      f"'{out['acceptance']['acceptance_basis']}' (no actor, act reference or time); "
+                                      "P 'applied' needs branch after_acceptance with an A5 act record, or "
+                                      "direct_under_grant with an established grant, and neither holds")
         terms["host_stated_acceptance_basis"] = out["acceptance"]["acceptance_basis"]
         terms["resulting_revision"] = {"canonical_content_identity": host["resulting_whole_model_hash"],
                                        "model_revision": "not supplied"}
@@ -269,6 +297,9 @@ def invariants(doc, fails):
         ("unverified", "not supplied")) for r in rows))
     check(fails, "the App computes no identity: every evaluated basis copies the host hash and marks the rest not supplied",
           all(r["app"]["contract_terms"]["evaluated_basis"]["model_revision"] == {"not_supplied": "omitted"} for r in rows))
+    pending = [r for r in rows if "pending" in r["host"]["corpus_review_status"]]
+    check(fails, f"every row carries the corpus README's review status; {len(pending)} rows (case 15, cases 66-84) are "
+          "pending SWBPIPE's own human review", len(pending) == 20 and all(r["host"]["corpus_review_status"] for r in rows))
     k = next(r for r in rows if r["file"].startswith("case_84_"))
     check(fails, "the agent-authored k refusal (case 84) is refused_invalid as the host states it, with NR-11",
           k["app"]["contract_outcome"] == "refused_invalid" and "NR-11" in k["app"]["blocked_by"])

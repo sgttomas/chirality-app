@@ -12,6 +12,14 @@ Since the RP-2 repair (R14-8 N-18), --check also verifies that every item
 that left the queue carries its explicit item-left event (P §4.3) with the
 matching cause and a time, and that no other item carries one.
 
+A repeated submission under an identity already seen, answered as a first
+receipt (not from recorded state), is checked as its own submission, from
+*drafted*: its states are never transitions of the earlier submission's items.
+Where the host does not state its de-duplication scope (P §3.5 PM-5, scope
+*not stated*), the earlier submission's state is reported unknown from that
+point (SWB-CORPUS A-04). Whether a document answers a submission or an
+observation is read from the run's native items (the call the App made).
+
 Nothing here is host behaviour. The table is PROPOSED; the host decides what
 it does, and the App receives it (P §4.6).
 """
@@ -173,11 +181,27 @@ def selftest():
     return ok
 
 
+def request_kinds(run):
+    """(run, step, path) -> 'submit' or 'observe', from the call the App made (its native item)."""
+    kinds = {}
+    for line in (Path(run) / "native_items.jsonl").read_text().splitlines():
+        rec = json.loads(line)
+        item = rec["item"]
+        call = item.get("tool") if item.get("type") == "mcpToolCall" else " ".join(str(item.get("command", "")).split()[2:3])
+        kind = {"submit-proposal": "submit", "submit": "submit", "observe-proposal": "observe", "observe": "observe"}.get(call)
+        if kind:
+            kinds[(rec["run"], rec["step"], rec["path"])] = kind
+    return kinds
+
+
 def check_run(run):
     ok = True
     last = {}
     n = 0
     nl = 0
+    kinds = request_kinds(run)
+    submissions = {}          # (run, identity) -> submissions answered as first receipts
+    unknown = {}              # (run, identity) -> the step from which the first submission's state is unknown
     for line in (Path(run) / "host_docs.jsonl").read_text().splitlines():
         rec = json.loads(line)
         doc = rec["doc"]
@@ -185,6 +209,12 @@ def check_run(run):
             continue
         n += 1
         key = (rec["run"], doc["proposal_identity"])
+        if kinds.get((rec["run"], rec["step"], rec["path"])) == "submit" and not doc.get("answered_from_recorded_state"):
+            submissions[key] = submissions.get(key, 0) + 1
+            if submissions[key] > 1:                  # a repeat answered as a first receipt: its own submission
+                if doc["dedup_scope"] == "not_stated":
+                    unknown.setdefault(key, rec["step"])
+                key = (key[0], f"{key[1]} (submission {submissions[key]}, {rec['step']})")
         if derive(doc["items"]) != doc["derived_state"]:
             ok = False
             print(f"FAIL derived state {key} at {rec['step']}")
@@ -202,7 +232,9 @@ def check_run(run):
           f"every derived state equals DS-1..DS-4; every item that left carries its item-left event "
           f"({nl} item-left events, each with cause and time) and no other item carries one")
     for k, v in sorted(last.items()):
-        print(f"      final {k[0]}/{k[1]} item {k[2]}: {v}")
+        note = (f" (last observed); unknown from {unknown[k[:2]]}: a repeat was answered as a first receipt and the "
+                f"host states no de-duplication scope (PM-5)") if k[:2] in unknown else ""
+        print(f"      final {k[0]}/{k[1]} item {k[2]}: {v}{note}")
     return ok
 
 

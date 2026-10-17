@@ -26,6 +26,11 @@ only what SWBPIPE's sources show at the commit pinned in DEL-03-02
     the double's own state, readable by no agent path, and no per-item act),
     **clear** (discards queued submissions with no record) and **restart**
     (session records lost). There is no accept, reject, grant or enable control.
+    Apply is gated as SWBPIPE gates a queued batch: on the model revision at
+    which it was queued, then on the whole-model identity (workspaceSession.ts
+    :1151, :1162). A submission queued at an earlier revision is not applied,
+    even if the model's content has returned to what it was; it stays queued,
+    with no record, until the person clears it.
 
 Elements the App schemas require that SWBPIPE does not supply are supplied by
 the double and are not SWBPIPE behaviour: the change-item content identity
@@ -147,7 +152,8 @@ def submit(st, req):
             for rec in items:
                 rec["state"] = "queued"
             st["swb_queue"].append({"proposal_identity": pid, "request": req, "items": copy.deepcopy(items),
-                                    "status": "queued"})
+                                    "status": "queued", "queued_revision": st["revision"],     # SWBPIPE :1129-1138
+                                    "queued_identity": whole(st["model"])})
     return answer(st, pid, items)
 
 
@@ -215,9 +221,10 @@ def person_main(state_dir, words):
                       and e["status"] == "queued"), None)
         if entry is None:
             out["result"] = "nothing queued under that identity"
-        elif entry["request"]["relied_on_basis"][0].get("canonical_content_identity") != whole(st["model"]):
-            entry["status"] = "refused_stale_at_apply"          # whole-model scope; nothing applied, no record of an act
-            out["result"] = entry["status"]
+        elif entry["queued_revision"] != st["revision"]:          # SWBPIPE :1151: Apply unavailable; the batch stays
+            out["result"] = "not_applied_model_revision_changed"  # listed, nothing applied, no record (BatchReviewPanel :42-49)
+        elif entry["queued_identity"] != whole(st["model"]):
+            out["result"] = "not_applied_model_changed"          # SWBPIPE :1162: whole-model scope; the batch stays listed
         else:
             for it in entry["request"]["items"]:
                 apply_effects(st, it)

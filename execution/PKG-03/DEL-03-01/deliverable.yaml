@@ -155,5 +155,6 @@ checks:
 - execution/PKG-03/DEL-03-01/Design/prototype/run_swbpipe_profile.py
 - app/src-tauri/tests/swbpipe_receiving.rs
 code_paths:
+- app/src-tauri/src/catalog.rs
 - execution/PKG-03/DEL-03-01/Design/prototype/simhost.py
 - execution/PKG-03/DEL-03-01/Design/prototype/simhost_swbpipe.py

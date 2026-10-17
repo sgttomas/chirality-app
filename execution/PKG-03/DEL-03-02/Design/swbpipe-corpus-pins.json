@@ -13,12 +13,12 @@
   {
    "path": "projects/chirality-piping/core/model_operations/operation_applier/src/lib.rs",
    "sha256": "bccd3af7b09b3a66e635e6929c6c0032ecf02841deb6a0f712561946f57cb9fe",
-   "read_for": "single-operation outcome; acceptance record (no actor, act reference or time); binding status; OP-STALE-BEFORE-VALUE; agent-authored k rule O5 on asserted author_type; engine version 0.1.0"
+   "read_for": "single-operation outcome; acceptance record (no actor, act reference or time); binding status; OP-STALE-BEFORE-VALUE; agent-authored k rule O5 on asserted author_type; engine version 0.1.0; 28 change kinds (:2380-2409)"
   },
   {
    "path": "projects/chirality-piping/core/model_operations/operation_applier/src/atomic_batch.rs",
    "sha256": "adf95be08d8c5bb81b0572e08122f8736b35a5e41cc5fed61a9875092bbefa29",
-   "read_for": "per-batch Apply: atomic commit or rollback, one acceptance basis per batch, claimed hash required, author and source identity asserted metadata only"
+   "read_for": "per-batch Apply: atomic commit or rollback, one acceptance basis per batch, claimed hash required, optional plan source_model_hash checked (:98-105), author and source identity asserted metadata only"
   },
   {
    "path": "projects/chirality-piping/core/model_operations/operation_applier/src/bend_authoring.rs",
@@ -43,17 +43,22 @@
   {
    "path": "projects/chirality-piping/apps/desktop/src/types.ts",
    "sha256": "1527e3a4bbf86554a6d447df48b7f85d0c06f72ebbab3ddf74e5d3b1cd7e211a",
-   "read_for": "OperationAcceptanceRecord; AppliedOperationReceipt (session receipt)"
+   "read_for": "OperationAcceptanceRecord; AppliedOperationReceipt (session receipt); 28 change kinds (:1010-1038)"
+  },
+  {
+   "path": "projects/chirality-piping/apps/desktop/src/App.tsx",
+   "sha256": "5eb92c688aed14834778a72341d5e9796944249b6e5cc98e4cbcab1a0b820c1b",
+   "read_for": "intake wiring: OfflineProposalIntakePanel onQueueBatch (:493); BatchReviewPanel onApply (:528)"
   },
   {
    "path": "projects/chirality-piping/apps/desktop/src/features/workspace/workspaceSession.ts",
    "sha256": "087c6492508ecfd9826c24abebf5071c44d0e58a9015200bc09de02d08e24de0",
-   "read_for": "batch Apply gated on the registered basis hash; session receipt minted in UI state; receipts reset on open/create"
+   "read_for": "queued batch: a new session entry bound to the model and revision current when queued (:1127-1138); Apply gated on that revision (:1151) and basis hash (:1162), applied at :1163; session receipt minted in UI state (:1191-1192); queue and receipts reset on project create or open (:1945-1948, :2015-2018)"
   },
   {
    "path": "projects/chirality-piping/apps/desktop/src/features/toolkit/BatchReviewPanel.tsx",
    "sha256": "66a4f562d1354ea86041858b678c7c92e477d071aedb1a5a9ad4cdc59b976ba5",
-   "read_for": "Clear pending changes and batches (no record)"
+   "read_for": "Clear pending changes and batches (no record); Apply disabled for a batch queued at an earlier revision (:42-49)"
   },
   {
    "path": "projects/chirality-piping/apps/desktop/src/features/offline-proposal-intake/OfflineProposalIntakePanel.tsx",

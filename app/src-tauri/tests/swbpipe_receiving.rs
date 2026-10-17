@@ -90,12 +90,65 @@ fn a_host_apply_is_never_received_as_acceptance_or_as_applied() {
                         "resulting_revision": terms["resulting_revision"]["canonical_content_identity"], "resulting_objects": [resulting]}}));
         let err = validate_host_state(&after_acceptance).unwrap_err();
         assert!(err.contains("after_acceptance requires supplied A5"), "{}: {err}", row["file"]);
+        // The direct branch would claim a grant. SWBPIPE has none, and a state alone establishes none (P §4.4).
+        let mut direct = after_acceptance.clone();
+        direct["items"][0]["applied"]["branch"] = "direct_under_grant".into();
+        let err = validate_host_state(&direct).unwrap_err();
+        assert!(err.contains("direct_under_grant requires an established direct grant reference"), "{}: {err}", row["file"]);
+        // Read as the person's acceptance, the Apply is refused for the A5 it lacks.
         let mut accepted = after_acceptance.clone();
         accepted["items"][0]["state"] = "accepted".into();
         accepted["items"][0].as_object_mut().unwrap().remove("applied");
         accepted["derived_state"] = json!({"summary": "accepted", "counts": {"accepted": 1}, "open": true, "all_items_decided": false});
-        assert!(validate_host_state(&accepted).unwrap_err().contains("schema-invalid"), "{}", row["file"]);
+        let err = validate_host_state(&accepted).unwrap_err();
+        assert!(err.contains("domain-invalid state: accepted requires A5"), "{}: {err}", row["file"]);
     }
+    // Received against a bound SWBPIPE-form request (propose mode, no grant), the direct reading is refused too.
+    let p = profile();
+    let w1 = bound(&p, "PR-W1", "read_before_apply");
+    let mut direct = p["states"]["PR-W1 queued"].clone();
+    for item in direct["items"].as_array_mut().unwrap() {
+        item["state"] = "applied".into();
+        item["applied"] = json!({"branch": "direct_under_grant", "receipt_reference": "test-placeholder:NR-05",
+                                 "relied_on_basis": p["requests"]["PR-W1"]["relied_on_basis"][0], "resulting_revision": "test-placeholder:NR-06",
+                                 "resulting_objects": "not_supplied"});
+    }
+    direct["derived_state"] = json!({"summary": "applied", "counts": {"applied": 2}, "open": false, "all_items_decided": false});
+    let err = w1.receive_state(&bytes(&direct)).unwrap_err();
+    assert!(err.contains("direct_under_grant requires an established direct grant reference"), "{err}");
+}
+
+#[test]
+fn validate_only_rows_are_received_as_non_mutating_check_outcomes() {
+    let m = value("swbpipe-corpus-mapping.json");
+    let p = profile();
+    let cat = Catalog::receive(&bytes(&p["catalog"])).unwrap();
+    let row = |n: &str| m["cases"].as_array().unwrap().iter().find(|r| r["file"].as_str().unwrap().starts_with(n)).unwrap().clone();
+    // Case 38: the preview's error is a C §4.1 error of that check, reported by the host. Nothing is queued or applied.
+    let blocked = row("case_38_");
+    assert_eq!(blocked["app"]["contract_outcome"], "error");
+    let terms = &blocked["app"]["contract_terms"];
+    let error = json!({"outcome": "error", "reporter": "host",
+                       "operation": {"operation_identity": "test-placeholder:NR-10", "operation_version": "test-placeholder:NR-10"},
+                       "evaluated_basis": terms["evaluated_basis"],
+                       "error": {"error_identity": terms["error_identities"][0], "meaning": terms["outcome_statement"], "effect": "none"}});
+    let ReadObservation::NonSuccess { document, .. } = cat.receive_read(&bytes(&error)).unwrap() else { panic!("case 38") };
+    assert_eq!(document["error"]["error_identity"], terms["error_identities"][0]);
+    assert_eq!(document["error"]["effect"], "none");
+    // Case 14: the preview's success, with the host's evaluated basis. SWBPIPE has no catalog (NR-10), so the
+    // operation is undiscovered and the read is refused.
+    let passed = row("case_14_");
+    assert_eq!(passed["app"]["contract_outcome"], "success");
+    let mut success = p["read_before_apply"].clone();
+    success["basis"] = passed["app"]["contract_terms"]["evaluated_basis"].clone();
+    let mut undiscovered = success.clone();
+    undiscovered["operation"] = json!({"operation_identity": "test-placeholder:NR-10", "operation_version": "test-placeholder:NR-10"});
+    assert!(cat.receive_read(&bytes(&undiscovered)).unwrap_err().contains("undiscovered operation/version"));
+    // With the double's read operation standing in for a catalog entry, the success is received but cannot be
+    // cited: the host's basis carries no model revision (NR-06).
+    let ReadObservation::Success(read) = cat.receive_read(&bytes(&success)).unwrap() else { panic!("case 14") };
+    assert!(!read.citable);
+    assert_eq!(read.basis()["model_revision"], json!({"not_supplied": "omitted"}));
 }
 
 #[test]

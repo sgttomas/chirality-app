@@ -63,7 +63,7 @@ Notes on particular rows:
   mismatch is scope *whole model*, failing targets not supplied (P §5; R8-3).
 - `OP-CLAIMED-MODEL-HASH-METADATA-INVALID` and `-UNSUPPORTED` (cases 80, 81) are
   *refused — invalid*: a malformed or other-method basis claim is incomparable
-  (C §5.2 rule 6), never stale.
+  (C §5.2 rule 6), never stale. Case 79 is the stale claimed-hash refusal.
 - `OP-DIRECT-MUTATION-BLOCKED` (case 35) is the host refusing a request to
   bypass its one route; it supports P S-P1.
 - Case 84 (`OP-BEND-FLEXIBILITY-USER-ENTRY-REQUIRED`, an agent-authored bend
@@ -74,6 +74,11 @@ Notes on particular rows:
 - Author identity is *unverified* on every row: `author_type` is supplied by
   the caller (SQ-14; the batch route records
   `source_identity_verification: "not_performed_asserted_metadata_only"`).
+- Each row carries the review status that the corpus README gives its case
+  (`host.corpus_review_status`). Case 15 and cases 66–84 are pending SWBPIPE's
+  own human review entry. NR-11 rests on case 84, and the basis-claim rows
+  rest on cases 79–81, so those findings stand on expectations SWBPIPE has
+  not yet reviewed.
 
 No case lands on *accepted*, *rejected*, *withdrawn* or *applied*, and no row
 carries a decision. `swbpipe_corpus_map.py` checks this, and so do the App
@@ -89,15 +94,15 @@ commit, and the cases or route it affects. Paths are under
 |---|---|---|---|
 | **NR-01** | An acceptance record per change: who accepted (the person's identity), an act reference, the capture time, a capture-evidence reference, bound to that change's content identity (P §3.1 rules 1–2, §10) | The Apply outcome carries one record per call or per batch: `acceptance_basis: user_initiated_apply_in_local_session`, `acceptance_is_professional_approval: false`, `persistence_status: session_state_only_not_yet_saved`. There is no actor, act reference or time (`operation_applier/src/lib.rs:2222-2227`; `atomic_batch.rs:194-198`; `apps/desktop/src/types.ts:1109-1113`) | All 34 applied cases; every per-batch Apply |
 | **NR-02** | A rejection record (A10) per change, by the person | There is no rejection on the Apply route: "Clear pending changes and batches" discards queued batches with no record (`apps/desktop/src/features/toolkit/BatchReviewPanel.tsx:37`). The DEL-16-03 constructor that writes accepted, rejected and held records with actor fields (`core/model_operations/audit_trail/engine.py:137-236`) is called only by tests, not by Apply | V4-EXM-20's rejection |
-| **NR-03** | A decision per change within one submission (row-by-row accept and reject) | Agent proposals arrive as batches, which are validated and applied atomically, all or nothing (`atomic_batch.rs:1-16`, `:184`; offline intake applies `frozenSubmission.batch` at `apps/desktop/src/features/workspace/workspaceSession.ts:1305-1306`). Per-intent Apply exists only for the person's own editor intents (`apps/desktop/src/features/operations/OperationApplyPanel.tsx`) | V4-EXM-20's row-by-row acceptance |
+| **NR-03** | A decision per change within one submission (row-by-row accept and reject) | Agent proposals arrive as batches, which are validated and applied atomically, all or nothing (`atomic_batch.rs:1-16`, `:184`). The offline intake queues a batch (`OfflineProposalIntakePanel`'s `onQueueBatch`, `apps/desktop/src/App.tsx:493`, calls `handleQueueOperationBatch`, `apps/desktop/src/features/workspace/workspaceSession.ts:1127`). The person's "Apply entire batch" (`BatchReviewPanel.tsx:49`; `App.tsx:528`) runs `handleRunOperationBatch(entry, true)` (`workspaceSession.ts:1150`), which applies the whole batch at `:1163`. Per-intent Apply exists only for the person's own editor intents (`apps/desktop/src/features/operations/OperationApplyPanel.tsx`) | V4-EXM-20's row-by-row acceptance |
 | **NR-04** | A change-item content identity, assigned by the host when it first receives the change, with its method designation (P §3.5 PM-6) | Only caller-supplied `operation_id` and `change_id`, plus `batch_hash` for a batch (`atomic_batch.rs:188`) | Every case: without it no item state can be recorded |
-| **NR-05** | A receipt reference on the application outcome, readable by the proposer, durable or with its durability stated | The engine outcome has none. The desktop mints `receipt_id: applied-<review>` in UI session state (`workspaceSession.ts:1329-1330`). It is reset on project create or open (`:1945-1948`, `:2015-2018`) and readable by no agent | All 34 applied cases |
+| **NR-05** | A receipt reference on the application outcome, readable by the proposer, durable or with its durability stated | The engine outcome has none. On a batch Apply the desktop mints `receipt_id: applied-<queue key>` in UI session state (`workspaceSession.ts:1191-1192`). It is reset on project create or open (`:1945-1948`, `:2015-2018`) and readable by no agent | All 34 applied cases |
 | **NR-06** | A complete basis on outcomes: a model revision (C §5.2 rule 1). Without one, a basis is *basis incomplete* | Outcomes carry only the whole-model hash (sha256 over RFC 8785 canonical JSON of the model payload; `operation_applier/src/lib.rs:44`). The desktop keeps a revision counter in session (SQ-07 (c)), but no outcome carries it | Every case |
 | **NR-07** | The relied-on basis carried through to the outcome (P §3.2) | 77 of 84 cases carry no claimed hash. Their binding is `no_claimed_hash_before_state_check_is_the_staleness_guard` (`lib.rs:7999`). Batches do require one (`OP-BATCH-MODEL-HASH-REQUIRED`, `atomic_batch.rs:90`) | 77 cases |
-| **NR-08** | A proposal record under the proposer's identity: de-duplication before the basis check, a submission count, a time, and observation by identity (P §3.5 PM-3–PM-5, §5) | None on main. Each queue action is a new session entry. PR #885's `status` by ticket was closed unmerged on 2026-10-09. A retry after an unobserved Apply is therefore refused stale by its own effect, and an unknown outcome cannot be resolved | Every case; the profile shows both (SW-P6, SW-P7) |
+| **NR-08** | A proposal record under the proposer's identity: de-duplication before the basis check, a submission count, a time, and observation by identity (P §3.5 PM-3–PM-5, §5) | None on main. Each queue action adds a session entry under a fresh key, bound to the model and revision current when it is queued (`workspaceSession.ts:1127-1138`). Apply checks only that entry's revision and model hash (`:1151`, `:1162`); nothing is kept under the proposer's identity. PR #885's `status` by ticket was closed unmerged on 2026-10-09. A retry after an unobserved Apply is therefore checked like a first receipt, against the model as it then is. Whether it is refused depends on the operations submitted and what they claim: a plan `source_model_hash` (`atomic_batch.rs:98-105`) or a before-value (`OP-STALE-BEFORE-VALUE`) taken before the first Apply can block it, while a retry whose claims and other validation conditions still hold can be applied again. An unknown outcome cannot be resolved | Every case. Two scenarios are demonstrated only by the test double (§5): SW-P6, an answer lost and the outcome unknown; SW-P7, a retry refused stale because its whole-model basis claim predates the Apply |
 | **NR-09** | A route that carries agent-originated proposals and their outcomes | On main, proposals arrive only as JSON files in the offline intake: "Author attribution is supplied by the file and is not verified identity. This workflow has no connected agent provider." (`apps/desktop/src/features/offline-proposal-intake/OfflineProposalIntakePanel.tsx:26`). The agent strip reads "Agent: not available yet" (`apps/desktop/src/features/workspace/shellLayout.ts:147`) | Every case |
-| **NR-10** | A capability catalog: operation identity and version, declared errors and preconditions, class, exposure per surface, catalog edition (C §2–§3) | 27 change kinds under one engine version `0.1.0` (`lib.rs:39`); diagnostic codes are stable but not declared per operation | Every case |
-| **NR-11** | Authority rules stated as treatments, held on a verified actor: an agent asking for something only the person may do is *not permitted*, naming the rule (P §2) | Rule O5 ("an agent never writes" the bend flexibility factor k) is a blocking validation diagnostic keyed on caller-asserted `author_type` (`lib.rs:1356-1369`), so an agent that asserts `user` is not distinguished | Case 84; any later actor rule |
+| **NR-10** | A capability catalog: operation identity and version, declared errors and preconditions, class, exposure per surface, catalog edition (C §2–§3) | 28 change kinds (`lib.rs:2380-2409`; `apps/desktop/src/types.ts:1010-1038`) under one engine version `0.1.0` (`lib.rs:39`); diagnostic codes are stable but not declared per operation | Every case |
+| **NR-11** | Authority rules stated as treatments, held on a verified actor: an agent asking for something only the person may do is *not permitted*, naming the rule (P §2) | Rule O5 ("an agent never writes" the bend flexibility factor k) is a blocking validation diagnostic keyed on caller-asserted `author_type` (`lib.rs:1356-1369`), so an agent that asserts `user` is not distinguished | Case 84 (pending SWBPIPE's human review); any later actor rule |
 
 Not blockers. The App records these as evidence limits and can receive them:
 
@@ -113,9 +118,10 @@ Not blockers. The App records these as evidence limits and can receive them:
 
 | Id | Gap | Consequence |
 |---|---|---|
-| **A-01** | P's *applied* state requires branch `after_acceptance` with a supplied A5, or `direct_under_grant`. Neither fits an application made at a person-initiated host Apply that records no attributable act. The App receiver (`app/src-tauri/src/proposal.rs`, `validate_host_state`) refuses the first without an A5. The second would claim a grant SWBPIPE does not have | A choice for the App coordinator: (i) keep such an application unrepresentable until SWBPIPE supplies NR-01; or (ii) add a weaker App form, "applied at the host's Apply; no attributable act recorded". Option (ii) changes an interface received by DEL-04-03 (record format), DEL-02-01 and DEL-02-03 (checkpoint mapping), DEL-05-01, DEL-05-02 and DEL-03-03. Until one of the two is done, an App record cannot show the person's acceptance of a SWBPIPE change |
+| **A-01** | P's *applied* state requires branch `after_acceptance` with a supplied A5, or `direct_under_grant`. Neither fits an application made at a person-initiated host Apply that records no attributable act. The App receiver (`app/src-tauri/src/proposal.rs`) refuses the first without an A5. It refuses the second unless the bound request establishes a direct grant: requested mode `apply_directly`, drafted under an effective direct grant that names its settings reference (P §3.3, §4.4). SWBPIPE has no grant to supply | Decided by the App coordinator on 2026-10-17: option (i). Such an application stays unrepresentable until SWBPIPE supplies NR-01, and no weaker App form is added. The option not taken, (ii), was an App form "applied at the host's Apply; no attributable act recorded", which would have changed an interface received by DEL-04-03 (record format), DEL-02-01 and DEL-02-03 (checkpoint mapping), DEL-05-01, DEL-05-02 and DEL-03-03. Until NR-01, an App record cannot show the person's acceptance of a SWBPIPE change |
 | **A-02** | `resulting_object.relation` has no *removed* | 12 deletion cases cannot list the removed object |
 | **A-03** | No element states that an application is to session state only, not yet saved | Recorded today only as a known limitation |
+| **A-04** | P §3.5 PM-5 says what a host's stated de-duplication scope means, but not what the App records when the scope is *not stated*: whether a repeat answered as a first receipt is its own submission, and what the earlier submission's state then is. SWBPIPE states no scope (NR-08) | The P state check (`prototype/proposal_states.py --check`) treats such a repeat as its own submission and reports the earlier one's state unknown from that point. P needs the rule (a PM-5 addition) before an App record relies on it |
 
 The profile also shows a smaller App gap. An observation answered *not exposed*
 by a host that offers none is held by App custody as an invalid host claim. The
@@ -138,13 +144,17 @@ has:
 - no enablement facility;
 - SWBPIPE's person controls: **apply** (one atomic application, one commit; only
   the host-stated acceptance basis and a session receipt, both in the double's
-  own state), **clear** (no record) and **restart** (session records lost).
+  own state), **clear** (no record) and **restart** (session records lost);
+- Apply gated as SWBPIPE gates a queued batch: first on the model revision at
+  which the submission was queued, then on the whole-model identity
+  (`workspaceSession.ts:1151`, `:1162`). A submission that cannot be applied
+  stays queued, with no record, until the person clears it.
 
 It supplies the change-item content identity and the model revision, which
 SWBPIPE does not (NR-04, NR-06). Those are the double's, not SWBPIPE's.
 
 `run_swbpipe_profile.py` appends a run to an SH-1 run directory, over both native
-paths. Its 16 checks cover:
+paths. Its 17 checks cover:
 
 - discovery and reads on whole-model identities;
 - a queued submission with no act;
@@ -155,7 +165,11 @@ paths. Its 16 checks cover:
 - the atomic invalid refusal;
 - a lost answer staying unknown;
 - Clear leaving no record;
-- a resubmission refused stale by its own effect, which is why NR-08 matters.
+- a resubmission refused stale because its basis claim predates the Apply
+  (SW-P7), one of the outcomes NR-08 describes;
+- an Apply that still does nothing after an edit is made and undone: the model
+  content is as it was when the submission was queued, but the revision is
+  not (SW-A3).
 
 Its documents are committed as `../../DEL-03-01/Design/swbpipe-profile-documents.json`
 and received by the App tests.
@@ -164,8 +178,9 @@ and received by the App tests.
 
 V4-EXM-20 and DEL-11-03 AC-002 expect the person to accept proposed changes
 row by row, with one rejection, recorded as the person's acts. In SWBPIPE that
-needs NR-01, NR-02 and NR-03, on a route that exists (NR-09). Then either the
-App records the acceptance from those host records, or the owner rules on A-01.
+needs NR-01, NR-02 and NR-03, on a route that exists (NR-09). The App then
+records the acceptance from those host records. Until then, A-01 as decided
+(option (i)) keeps a SWBPIPE application unrepresentable.
 On the evidence here, no SWBPIPE outcome at the pinned commit can be recorded
 as the person's acceptance.
 

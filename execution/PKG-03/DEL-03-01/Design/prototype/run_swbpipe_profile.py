@@ -29,6 +29,7 @@ from pathlib import Path  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_fixture as rf  # noqa: E402
+import simhost_swbpipe as swb  # noqa: E402
 
 SWBSIM = [sys.executable, "-B", str(rf.PROTO / "simhost_swbpipe.py")]
 EXAMPLES = rf.PROTO.parent / "swbpipe-profile-documents.json"
@@ -138,9 +139,10 @@ def timeline(out, checks):
                    r2["basis"]["model_revision"] == "r13" and subjects_identical_to_whole_model(r2)
                    and all(s2[k]["subject_content_identity"] != s1[k]["subject_content_identity"] for k in ("S-1", "S-2"))))
     stale_apply = r.person("apply", "PR-W2")
-    checks.append(("SW-A2 the person's Apply of PR-W2 is refused stale inside the host (whole-model scope); nothing "
-                   "applied; no agent path observes it", stale_apply["result"] == "refused_stale_at_apply"
-                   and r.state_doc()["revision"] == 13))
+    checks.append(("SW-A2 the person's Apply of PR-W2, queued at r12, does nothing now the model is r13: nothing "
+                   "applied, the submission stays queued with no record, and no agent path observes it",
+                   stale_apply["result"] == "not_applied_model_revision_changed" and r.state_doc()["revision"] == 13
+                   and {e["proposal_identity"]: e for e in r.state_doc()["swb_queue"]}["PR-W2"]["status"] == "queued"))
     w4 = rf.proposal("PR-W4", B1, s1, [w2["items"][0]], reason="Stiffen S-1 (stale basis)")
     p4 = r.mcp_call("SW-P4", "submit-proposal", {"proposal": w4})
     checks.append(("SW-P4 a submission on the earlier basis: every item refused stale, scope whole model, failing "
@@ -169,17 +171,35 @@ def timeline(out, checks):
     checks.append(("SW-P6 a submission whose answer is lost cannot be observed (not exposed): its outcome stays unknown",
                    o6["outcome"] == "not_exposed_on_this_surface"))
     cleared = r.person("clear")
-    checks.append(("SW-C the person's Clear discards PR-W6 with no record (no A10, no item-left event in the host)",
-                   cleared["result"].startswith("1 ") and all(e["proposal_identity"] != "PR-W6" for e in r.state_doc()["swb_queue"])))
+    checks.append(("SW-C the person's Clear discards PR-W2 and PR-W6 with no record (no A10, no item-left event in the host)",
+                   cleared["result"].startswith("2 ") and not {"PR-W2", "PR-W6"} & {e["proposal_identity"] for e in r.state_doc()["swb_queue"]}))
     again = r.cli("SW-P7", ["submit"], json.dumps(w1))
-    checks.append(("SW-P7 resubmitting applied PR-W1 is not de-duplicated: it is checked like a first receipt and "
-                   "refused stale by its own effect (contrary to P §5 precedence; SWBPIPE NR-08)",
+    checks.append(("SW-P7 resubmitting applied PR-W1 is not de-duplicated: this double checks it like a first receipt and "
+                   "refuses it stale because its whole-model basis claim predates Apply (SWBPIPE NR-08)",
                    not again["answered_from_recorded_state"] and all(i["state"] == "refused_stale" for i in again["items"])))
     r.person("restart")
     checks.append(("SW-S restart: session records (queue and receipts) are lost; the model is kept",
                    r.state_doc()["swb_queue"] == [] and r.state_doc()["swb_receipts"] == [] and r.state_doc()["revision"] == 13))
+    # SWBPIPE gates Apply on the revision a batch was queued at (workspaceSession.ts:1151), not only on the model hash.
+    r3 = r.cli("SW-R3", ["call", "OP-C1"], json.dumps({"run": "R-100"}))
+    s3 = rf.rows_of(r3, "supports")
+    w8 = rf.proposal("PR-W8", r3["basis"], s3, [dict(w2["items"][0], relied_on_targets=[rf.target(s3, "S-1")])],
+                     reason="Stiffen S-1 (queued before an edit that is then undone)")
+    p8 = r.cli("SW-P8", ["submit"], json.dumps(w8))
+    r.person("edit", "S-4", "label", "G-4x")
+    r.person("edit", "S-4", "label", "G-4b")
+    reverted = r.state_doc()
+    blocked = r.person("apply", "PR-W8")
+    after = r.state_doc()
+    checks.append(("SW-A3 PR-W8 queued at r13; S-4's label edited (r14) and restored (r15), so the whole-model identity "
+                   "is again the queued one; the person's Apply still does nothing (queued revision is not current), "
+                   "PR-W8 stays queued and the model stays r15",
+                   p8["derived_state"]["summary"] == "queued" and reverted["revision"] == 15
+                   and swb.whole(reverted["model"]) == r3["basis"]["canonical_content_identity"]
+                   and blocked["result"] == "not_applied_model_revision_changed" and after["revision"] == 15
+                   and after["swb_queue"][-1]["status"] == "queued"))
     r.stop_mcp()
-    r.requests = {"PR-W1": w1, "PR-W4": w4, "PR-W6": w6}
+    r.requests = {"PR-W1": w1, "PR-W4": w4, "PR-W6": w6, "PR-W8": w8}
     return r
 
 
@@ -192,9 +212,11 @@ def documents(r):
                           "model revisions are supplied by the double (SWBPIPE NR-04, NR-06)."),
             "generator": "DEL-03-01 Design/prototype/run_swbpipe_profile.py --write-examples",
             "catalog": doc["SW-D"], "read_before_apply": doc["SW-R1"], "read_after_apply": doc["SW-R2"],
+            "read_before_revision_regression": doc["SW-R3"],
             "requests": r.requests,
             "states": {"PR-W1 queued": doc["SW-P1"], "PR-W4 refused stale": next(d["doc"] for d in r.docs if d["step"] == "SW-P4"),
-                       "PR-W5 refused invalid": doc["SW-P5"], "PR-W1 resubmitted after Apply": doc["SW-P7"]},
+                       "PR-W5 refused invalid": doc["SW-P5"], "PR-W1 resubmitted after Apply": doc["SW-P7"],
+                       "PR-W8 queued before edit and restore": doc["SW-P8"]},
             "observation_not_exposed": doc["SW-O"]}
 
 

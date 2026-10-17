@@ -46,7 +46,7 @@ impl BoundProposal {
     pub fn identity(&self) -> &str { self.document["proposal_identity"]["value"].as_str().unwrap() }
     pub fn receive_state(&self, bytes: &[u8]) -> Result<HostObservation, String> {
         let document: Value = serde_json::from_slice(bytes).map_err(|e| format!("schema-invalid JSON: {e}"))?;
-        validate_host_state(&document)?;
+        check_host_state(&document, established_direct_grant(&self.document))?;
         if document["proposal_identity"] != self.identity() { return Err("domain-invalid state: proposal identity mismatch".into()); }
         if document["kind"] == "recorded_state" {
             let source = self.document["items"].as_array().unwrap();
@@ -66,10 +66,39 @@ impl BoundProposal {
         Ok(HostObservation { document, bytes: bytes.to_vec() })
     }
 }
+/// P §4.4 entry condition, as far as the App can establish it: a direct
+/// request (`apply_directly`) drafted under an effective direct grant that
+/// names its settings reference (P §3.3 standing at drafting). A recorded
+/// state carries no grant or settings reference of its own, so this bound
+/// request is the only grant reference a direct application is received on.
+fn established_direct_grant(proposal: &Value) -> bool {
+    let standing = &proposal["origin"]["standing_at_drafting"];
+    proposal["requested_mode"] == "apply_directly"
+        && matches!(standing["display_state"].as_str(), Some("effective_person_set" | "effective_policy_default"))
+        && standing["grant_value"] == "direct"
+        && standing["settings_reference"].as_str().is_some_and(|s| !s.is_empty())
+}
+/// Act standing comes first so that its refusal names the missing act rather
+/// than a generic shape failure: an accepted, rejected or withdrawn item must
+/// carry the A5, A10 or A11 that makes it so (P §4.6, §10).
+fn check_act_standing(document: &Value) -> Result<(), String> {
+    if document["kind"] != "recorded_state" { return Ok(()); }
+    for item in document["items"].as_array().map(Vec::as_slice).unwrap_or_default() {
+        let state = item["state"].as_str().unwrap_or_default();
+        let required = match state { "accepted" => "A5", "rejected" => "A10", "withdrawn" => "A11", _ => continue };
+        if item["decision"]["act_kind"].as_str() != Some(required) { return Err(format!("domain-invalid state: {state} requires {required}")); }
+    }
+    Ok(())
+}
 /// Shared P semantic receiving oracle, also used for retained dispatch results.
 /// Shape success does not establish a human act; supplied references are only
 /// claims being checked for internal consistency, never native act capture.
-pub fn validate_host_state(document: &Value) -> Result<(), String> {
+/// A state document alone establishes no grant, so a direct application is
+/// refused here; `BoundProposal::receive_state` receives one only against a
+/// bound request that establishes the grant.
+pub fn validate_host_state(document: &Value) -> Result<(), String> { check_host_state(document, false) }
+fn check_host_state(document: &Value, direct_grant: bool) -> Result<(), String> {
+    check_act_standing(document)?;
     contracts()?.validate(STATE, document)?;
     if document["kind"] != "recorded_state" { return Ok(()); }
     let items = document["items"].as_array().unwrap();
@@ -78,12 +107,13 @@ pub fn validate_host_state(document: &Value) -> Result<(), String> {
         if !ids.insert(item["item_identity"].as_str().unwrap()) { return Err("domain-invalid state: duplicate item identity".into()); }
         let state = item["state"].as_str().unwrap();
         let act = item["decision"]["act_kind"].as_str();
-        let required = match state { "accepted" => Some("A5"), "rejected" => Some("A10"), "withdrawn" => Some("A11"), _ => None };
-        if required.is_some() && act != required { return Err(format!("domain-invalid state: {state} requires {}",required.unwrap())); }
         if let Some(applied) = item.get("applied") {
             if !matches!(state,"applied"|"applied_then_reversed") { return Err("domain-invalid state: applied association on non-applied item".into()); }
             if applied["branch"] == "after_acceptance" && act != Some("A5") { return Err("domain-invalid state: after_acceptance requires supplied A5".into()); }
-            if applied["branch"] == "direct_under_grant" && act.is_some() { return Err("domain-invalid state: direct application never implies acceptance".into()); }
+            if applied["branch"] == "direct_under_grant" {
+                if act.is_some() { return Err("domain-invalid state: direct application never implies acceptance".into()); }
+                if !direct_grant { return Err("domain-invalid state: direct_under_grant requires an established direct grant reference".into()); }
+            }
         }
         if matches!(state,"drafted"|"validated"|"queued"|"left_queue") && act.is_some() {
             return Err("domain-invalid state: decision inconsistent with undecided state".into());

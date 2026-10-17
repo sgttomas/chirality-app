@@ -9,7 +9,7 @@
  },
  "sources": {
   "pins": "swbpipe-corpus-pins.json",
-  "pins_sha256": "b4c234384d9147fb4ea89a3342742ccc395b5b51b139f978b41cc33e26340c52",
+  "pins_sha256": "dffa82a536d8036e277ace10adf23438e9c0499c41d2dd2edc3329e29854ee8e",
   "commit": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab"
  },
  "no_row_establishes": [
@@ -36,9 +36,10 @@
    "NR-11": "an actor-dependent rule is a validation error on caller-asserted author_type, not a treatment on a verified actor"
   },
   "app_side": {
-   "A-01": "no App representation for an application at a person-initiated host Apply without an attributable act record",
+   "A-01": "no App representation for an application at a person-initiated host Apply without an attributable act record; kept unrepresentable until SWBPIPE supplies NR-01 (A-01 option (i); SWBPIPE_CORPUS_RECEIVING.md section 4)",
    "A-02": "resulting_object.relation has no 'removed' for a deletion",
-   "A-03": "no element for an application's persistence status (session only, not saved)"
+   "A-03": "no element for an application's persistence status (session only, not saved)",
+   "A-04": "P section 3.5 PM-5 has no rule for de-duplication scope 'not stated': whether a repeat answered as a first receipt is its own submission, and what the earlier submission's state then is"
   }
  },
  "counts": {
@@ -70,7 +71,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:3e1d4dc36708da2f8ecdcf0b11d45126bb00d3620468b781c4089e4ff390cead"
+    "resulting_whole_model_hash": "sha256:3e1d4dc36708da2f8ecdcf0b11d45126bb00d3620468b781c4089e4ff390cead",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -90,7 +92,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:3e1d4dc36708da2f8ecdcf0b11d45126bb00d3620468b781c4089e4ff390cead",
@@ -141,7 +143,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:94ce702c229ce6cb5dc9e3e164af5cc93335a8f4bd19e0ca143748b9e06a3856"
+    "resulting_whole_model_hash": "sha256:94ce702c229ce6cb5dc9e3e164af5cc93335a8f4bd19e0ca143748b9e06a3856",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -161,7 +164,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:94ce702c229ce6cb5dc9e3e164af5cc93335a8f4bd19e0ca143748b9e06a3856",
@@ -212,7 +215,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:ec232c1ab3ea8ad3b2d086454e7553045bd514490ba880ded04ee922b1c695c5"
+    "resulting_whole_model_hash": "sha256:ec232c1ab3ea8ad3b2d086454e7553045bd514490ba880ded04ee922b1c695c5",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -232,7 +236,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:ec232c1ab3ea8ad3b2d086454e7553045bd514490ba880ded04ee922b1c695c5",
@@ -283,7 +287,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:ed67ededfa52a811096d0c500a99df107196e4a64e732d26f74fce1760b7a7d6"
+    "resulting_whole_model_hash": "sha256:ed67ededfa52a811096d0c500a99df107196e4a64e732d26f74fce1760b7a7d6",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -303,7 +308,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:ed67ededfa52a811096d0c500a99df107196e4a64e732d26f74fce1760b7a7d6",
@@ -354,7 +359,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:93e302a7d2cf297d23dfc822f3b08b11aaf9b39ca309b2d9e8c153169018d0ae"
+    "resulting_whole_model_hash": "sha256:93e302a7d2cf297d23dfc822f3b08b11aaf9b39ca309b2d9e8c153169018d0ae",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -374,7 +380,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:93e302a7d2cf297d23dfc822f3b08b11aaf9b39ca309b2d9e8c153169018d0ae",
@@ -425,7 +431,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:c01ad0d765c1f0f4e0a40007b410707993c55dee927d11aa84575bfb319f21d7"
+    "resulting_whole_model_hash": "sha256:c01ad0d765c1f0f4e0a40007b410707993c55dee927d11aa84575bfb319f21d7",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -445,7 +452,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:c01ad0d765c1f0f4e0a40007b410707993c55dee927d11aa84575bfb319f21d7",
@@ -496,7 +503,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:af0d956cfb9b840ba69b95ddba60c5e0d186a834ef42d269757cd913cae14046"
+    "resulting_whole_model_hash": "sha256:af0d956cfb9b840ba69b95ddba60c5e0d186a834ef42d269757cd913cae14046",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -516,7 +524,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:af0d956cfb9b840ba69b95ddba60c5e0d186a834ef42d269757cd913cae14046",
@@ -567,7 +575,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:61c1b11eeb38b2ff444580c8082db0d78c5f9f86a23e13449c32ab137340f739"
+    "resulting_whole_model_hash": "sha256:61c1b11eeb38b2ff444580c8082db0d78c5f9f86a23e13449c32ab137340f739",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -587,7 +596,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:61c1b11eeb38b2ff444580c8082db0d78c5f9f86a23e13449c32ab137340f739",
@@ -638,7 +647,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:bdf1f08f4e4d568ebf56149c44e5bd9754439ce785f30c476caa255bf5665c4d"
+    "resulting_whole_model_hash": "sha256:bdf1f08f4e4d568ebf56149c44e5bd9754439ce785f30c476caa255bf5665c4d",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -658,7 +668,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:bdf1f08f4e4d568ebf56149c44e5bd9754439ce785f30c476caa255bf5665c4d",
@@ -709,7 +719,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:257518b02c6867c57a37786496725260df699172e657ef68fd04e48f77ce62f4"
+    "resulting_whole_model_hash": "sha256:257518b02c6867c57a37786496725260df699172e657ef68fd04e48f77ce62f4",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -729,7 +740,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:257518b02c6867c57a37786496725260df699172e657ef68fd04e48f77ce62f4",
@@ -780,7 +791,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:30b449748cc06cf09a4435220fa5cd0a0281dcd1498609b75d121a7eaf1b55f4"
+    "resulting_whole_model_hash": "sha256:30b449748cc06cf09a4435220fa5cd0a0281dcd1498609b75d121a7eaf1b55f4",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -800,7 +812,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:30b449748cc06cf09a4435220fa5cd0a0281dcd1498609b75d121a7eaf1b55f4",
@@ -851,7 +863,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:1fa5ba3886cd38ce21b467dc6b54698a72fc15ae26967b74ab8e86bf3ee7b6f6"
+    "resulting_whole_model_hash": "sha256:1fa5ba3886cd38ce21b467dc6b54698a72fc15ae26967b74ab8e86bf3ee7b6f6",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -871,7 +884,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:1fa5ba3886cd38ce21b467dc6b54698a72fc15ae26967b74ab8e86bf3ee7b6f6",
@@ -922,7 +935,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c"
+    "resulting_whole_model_hash": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -942,7 +956,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c",
@@ -993,7 +1007,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "success",
@@ -1048,7 +1063,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:57bae8b3c19782f2bf6ac0e2c90309a81d59d562950262542c54a5de53217835"
+    "resulting_whole_model_hash": "sha256:57bae8b3c19782f2bf6ac0e2c90309a81d59d562950262542c54a5de53217835",
+    "corpus_review_status": "accepted 2026-06-12 (DEC-030); its regenerated claimed hash and binding-status expectation are pending their own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -1068,7 +1084,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "carried: the claimed whole-model hash",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:57bae8b3c19782f2bf6ac0e2c90309a81d59d562950262542c54a5de53217835",
@@ -1120,7 +1136,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1180,7 +1197,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1240,7 +1258,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1300,7 +1319,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1360,7 +1380,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1420,7 +1441,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1480,7 +1502,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_stale",
@@ -1544,7 +1567,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_stale",
@@ -1608,7 +1632,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1668,7 +1693,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1728,7 +1754,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1788,7 +1815,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1848,7 +1876,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1908,7 +1937,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -1968,7 +1998,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2028,7 +2059,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2088,7 +2120,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2148,7 +2181,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2208,7 +2242,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2268,7 +2303,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2328,7 +2364,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2388,7 +2425,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2450,7 +2488,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "error",
@@ -2511,7 +2550,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2571,7 +2611,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2631,7 +2672,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2691,7 +2733,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2751,7 +2794,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2811,7 +2855,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -2869,7 +2914,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:8afde9aea3b2d7aea3a1a85adfba8fdc8a798b575e333aca0095fb1bb3a97bb5"
+    "resulting_whole_model_hash": "sha256:8afde9aea3b2d7aea3a1a85adfba8fdc8a798b575e333aca0095fb1bb3a97bb5",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -2889,7 +2935,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:8afde9aea3b2d7aea3a1a85adfba8fdc8a798b575e333aca0095fb1bb3a97bb5",
@@ -2940,7 +2986,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:25ec61f18e95b1f581b94e954fcf3ec2b14572fb602d45269aa8e6922b094e11"
+    "resulting_whole_model_hash": "sha256:25ec61f18e95b1f581b94e954fcf3ec2b14572fb602d45269aa8e6922b094e11",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -2960,7 +3007,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:25ec61f18e95b1f581b94e954fcf3ec2b14572fb602d45269aa8e6922b094e11",
@@ -3011,7 +3058,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:3ddbfee0524ca05f050aa8a9532bc095180e41710e8320afe6ea0a7aa25031ad"
+    "resulting_whole_model_hash": "sha256:3ddbfee0524ca05f050aa8a9532bc095180e41710e8320afe6ea0a7aa25031ad",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3031,7 +3079,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:3ddbfee0524ca05f050aa8a9532bc095180e41710e8320afe6ea0a7aa25031ad",
@@ -3082,7 +3130,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:da6bc258a906f7693bd444285d4a3d24f1f34af9dc6527dce462ae96cca12359"
+    "resulting_whole_model_hash": "sha256:da6bc258a906f7693bd444285d4a3d24f1f34af9dc6527dce462ae96cca12359",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3102,7 +3151,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:da6bc258a906f7693bd444285d4a3d24f1f34af9dc6527dce462ae96cca12359",
@@ -3155,7 +3204,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -3213,7 +3263,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:6ded7e7f615e8f711490d3855509b73d64f72d53f52f09171bb837da8229c2c0"
+    "resulting_whole_model_hash": "sha256:6ded7e7f615e8f711490d3855509b73d64f72d53f52f09171bb837da8229c2c0",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3233,7 +3284,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:6ded7e7f615e8f711490d3855509b73d64f72d53f52f09171bb837da8229c2c0",
@@ -3284,7 +3335,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:92230604cebb6518148ce79b06aca1bcba2c5287193a1090613a0a3f45ba4af8"
+    "resulting_whole_model_hash": "sha256:92230604cebb6518148ce79b06aca1bcba2c5287193a1090613a0a3f45ba4af8",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3304,7 +3356,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:92230604cebb6518148ce79b06aca1bcba2c5287193a1090613a0a3f45ba4af8",
@@ -3355,7 +3407,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:d381fc6670990f94a0f44897b39acc4b43b32949537343b2042f8cf396cf069f"
+    "resulting_whole_model_hash": "sha256:d381fc6670990f94a0f44897b39acc4b43b32949537343b2042f8cf396cf069f",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3375,7 +3428,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:d381fc6670990f94a0f44897b39acc4b43b32949537343b2042f8cf396cf069f",
@@ -3428,7 +3481,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -3486,7 +3540,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:7bca9d29d4854db88ce86bfa30df96cd718b14b40d4e7cf9daa5339fe7fdf691"
+    "resulting_whole_model_hash": "sha256:7bca9d29d4854db88ce86bfa30df96cd718b14b40d4e7cf9daa5339fe7fdf691",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3506,7 +3561,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:7bca9d29d4854db88ce86bfa30df96cd718b14b40d4e7cf9daa5339fe7fdf691",
@@ -3559,7 +3614,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -3617,7 +3673,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:79fe48cb240a017c2625033cd3129537b2a26e1df62cc6b422c2f320127bc1ea"
+    "resulting_whole_model_hash": "sha256:79fe48cb240a017c2625033cd3129537b2a26e1df62cc6b422c2f320127bc1ea",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": null,
@@ -3637,7 +3694,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:79fe48cb240a017c2625033cd3129537b2a26e1df62cc6b422c2f320127bc1ea",
@@ -3690,7 +3747,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-030)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -3748,7 +3806,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:7c08e3e301912b72cd6b3fb7e22644157495ad44c078af79eb04014436da80c7"
+    "resulting_whole_model_hash": "sha256:7c08e3e301912b72cd6b3fb7e22644157495ad44c078af79eb04014436da80c7",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": null,
@@ -3768,7 +3827,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:7c08e3e301912b72cd6b3fb7e22644157495ad44c078af79eb04014436da80c7",
@@ -3819,7 +3878,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:6f8132b291571aec803913d81ca500b3baa344bd11ca22a48487613fb4226811"
+    "resulting_whole_model_hash": "sha256:6f8132b291571aec803913d81ca500b3baa344bd11ca22a48487613fb4226811",
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": null,
@@ -3839,7 +3899,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:6f8132b291571aec803913d81ca500b3baa344bd11ca22a48487613fb4226811",
@@ -3892,7 +3952,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -3952,7 +4013,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4012,7 +4074,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4072,7 +4135,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4132,7 +4196,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4192,7 +4257,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "human-reviewed and accepted 2026-06-12 (DEC-032)"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4250,7 +4316,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:1f4017b40445944de53395acf5871316d8fbd1c4858bcec1b8d4862fd8640e67"
+    "resulting_whole_model_hash": "sha256:1f4017b40445944de53395acf5871316d8fbd1c4858bcec1b8d4862fd8640e67",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4270,7 +4337,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:1f4017b40445944de53395acf5871316d8fbd1c4858bcec1b8d4862fd8640e67",
@@ -4321,7 +4388,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:fe1bcc76fa6914f0bfda46f320d91a47ccf55c8a59a9ba6ecf596e3ed5d4e8a6"
+    "resulting_whole_model_hash": "sha256:fe1bcc76fa6914f0bfda46f320d91a47ccf55c8a59a9ba6ecf596e3ed5d4e8a6",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4341,7 +4409,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:fe1bcc76fa6914f0bfda46f320d91a47ccf55c8a59a9ba6ecf596e3ed5d4e8a6",
@@ -4392,7 +4460,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:38761d951b1720a636cb750f6cdecb485e2eb1dab9eec86aa96d69de5f315e81"
+    "resulting_whole_model_hash": "sha256:38761d951b1720a636cb750f6cdecb485e2eb1dab9eec86aa96d69de5f315e81",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4412,7 +4481,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:38761d951b1720a636cb750f6cdecb485e2eb1dab9eec86aa96d69de5f315e81",
@@ -4463,7 +4532,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:b8e4a910505b640db2eb6a6ebf28f7803c0a35173d06ad805fa91eddd151a9e7"
+    "resulting_whole_model_hash": "sha256:b8e4a910505b640db2eb6a6ebf28f7803c0a35173d06ad805fa91eddd151a9e7",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4483,7 +4553,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:b8e4a910505b640db2eb6a6ebf28f7803c0a35173d06ad805fa91eddd151a9e7",
@@ -4534,7 +4604,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:c5ac46e12c541e71bbe42c07b1bba50c6c1928c6238efaba83beba7b3da3a4cd"
+    "resulting_whole_model_hash": "sha256:c5ac46e12c541e71bbe42c07b1bba50c6c1928c6238efaba83beba7b3da3a4cd",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4554,7 +4625,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:c5ac46e12c541e71bbe42c07b1bba50c6c1928c6238efaba83beba7b3da3a4cd",
@@ -4605,7 +4676,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:840947f48d26d989d947458b225e4b037497e23a60d79b915380824fa1e1637b"
+    "resulting_whole_model_hash": "sha256:840947f48d26d989d947458b225e4b037497e23a60d79b915380824fa1e1637b",
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4625,7 +4697,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:840947f48d26d989d947458b225e4b037497e23a60d79b915380824fa1e1637b",
@@ -4678,7 +4750,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4738,7 +4811,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4798,7 +4872,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4858,7 +4933,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "blessed from the Rust contract reference 2026-07-10; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -4916,7 +4992,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:4107bf10819bf23fb613f0791b12f642dd70b76e89c3766f4a1a22b02ddf7c80"
+    "resulting_whole_model_hash": "sha256:4107bf10819bf23fb613f0791b12f642dd70b76e89c3766f4a1a22b02ddf7c80",
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -4936,7 +5013,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:4107bf10819bf23fb613f0791b12f642dd70b76e89c3766f4a1a22b02ddf7c80",
@@ -4989,7 +5066,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -5049,7 +5127,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -5109,7 +5188,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_stale",
@@ -5170,7 +5250,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -5230,7 +5311,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",
@@ -5288,7 +5370,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 7,
-    "resulting_whole_model_hash": "sha256:c6253468c199ea01e790eed4b51cf2dda9f41fe8b4e766af53abd2fe8e412a81"
+    "resulting_whole_model_hash": "sha256:c6253468c199ea01e790eed4b51cf2dda9f41fe8b4e766af53abd2fe8e412a81",
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -5308,7 +5391,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "carried: the claimed whole-model hash",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:c6253468c199ea01e790eed4b51cf2dda9f41fe8b4e766af53abd2fe8e412a81",
@@ -5358,7 +5441,8 @@
      "persistence_status": "session_state_only_not_yet_saved"
     },
     "diff_rows": 1,
-    "resulting_whole_model_hash": "sha256:d61386e4c63d0a6f787e2cb51cb3bf5e3ef0af59150ecc4ff752928ff0dba0c1"
+    "resulting_whole_model_hash": "sha256:d61386e4c63d0a6f787e2cb51cb3bf5e3ef0af59150ecc4ff752928ff0dba0c1",
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": null,
@@ -5378,7 +5462,7 @@
       "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
      },
      "relied_on_basis": "carried: the claimed whole-model hash",
-     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at a host Apply recorded only as acceptance_basis 'user_initiated_apply_in_local_session' (no actor, act reference or time); P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant with an established grant, and neither holds",
      "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
      "resulting_revision": {
       "canonical_content_identity": "sha256:d61386e4c63d0a6f787e2cb51cb3bf5e3ef0af59150ecc4ff752928ff0dba0c1",
@@ -5430,7 +5514,8 @@
      "persistence_status": "not_applicable_no_application"
     },
     "diff_rows": 0,
-    "resulting_whole_model_hash": null
+    "resulting_whole_model_hash": null,
+    "corpus_review_status": "generated from the Rust contract reference; pending its own human review entry"
    },
    "app": {
     "contract_outcome": "refused_invalid",

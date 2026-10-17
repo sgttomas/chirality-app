@@ -621,7 +621,8 @@ deferred (DECISION-3). No SWBPIPE panel is assembled or selected (SQ-20).
   - `validation_rejected` at Apply is shown as *refused — invalid* at
     application, never as A10 "rejected by ‹person›".
 - PN-2 **Accept = apply (R8-5).** On SWBPIPE, acceptance and application are
-  one step (Apply), per batch, with no A10 record. The panel keeps the App's
+  one step (Apply), per batch, with no A10 record. That Apply carries no
+  attributable act, so the App records no A5 and no applied outcome for it (P §9.1, §9.2; 2026-10-17). The panel keeps the App's
   meanings (§3.3, §5) and records the missing counterparts:
   accepted-then-stale (R2-16), per-item A5/A10 and mixed items do not arise
   there. Session undo writes no receipt, so "reversed by ⟨receipt⟩" is *not
