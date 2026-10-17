@@ -6,6 +6,7 @@ tree identity and writes or checks a candidate identification record. It builds
 nothing, launches nothing, opens no examination and establishes no qualification.
 """
 import argparse
+import contextlib
 import ctypes
 import errno
 import hashlib
@@ -28,10 +29,12 @@ HEX = re.compile(r'[0-9a-f]{64}')
 LIMITS = [
     'Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.',
     'Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.',
-    'File times are outside the identity; ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.',
+    'File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.',
+    'ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.',
     'Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.',
     'The Codex supplier is not part of the bundle; each examination record binds its own supplier pin, distribution identity and configuration.',
     'No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.',
+    'App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state.',
 ]
 _AFTER_FILE_READ = None  # test hook: called with the entry path after its bytes are read
 
@@ -56,6 +59,8 @@ if sys.platform == 'darwin':  # bundle metadata is read through the macOS libc i
     _libc.acl_get_entry.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_void_p)]
     _libc.acl_get_entry.restype = ctypes.c_int
     _libc.acl_free.argtypes = [ctypes.c_void_p]
+    _libc.acl_valid.argtypes = [ctypes.c_void_p]
+    _libc.acl_valid.restype = ctypes.c_int
 
 
 def _require_macos():
@@ -86,7 +91,7 @@ def _xattrs(fd=None, path=None):
     if size < 0:
         raise _os_error('extended attributes unreadable')
     buf = ctypes.create_string_buffer(size)
-    if size and listing(buf, size) != size:
+    if listing(buf, size) != size:
         raise ValueError('extended attributes changed during identification')
     names = [n for n in buf.raw[:size].split(b'\0') if n]
     out = []
@@ -100,7 +105,7 @@ def _xattrs(fd=None, path=None):
         if length < 0:
             raise _os_error('extended attribute unreadable: ' + name)
         value = ctypes.create_string_buffer(length)
-        if length and getter(value, length) != length:
+        if getter(value, length) != length:
             raise ValueError('extended attribute changed during identification: ' + name)
         out.append({'name': name, 'size': length, 'sha256': sha(value.raw[:length])})
     return out
@@ -108,24 +113,35 @@ def _xattrs(fd=None, path=None):
 
 def _refuse_acl(fd=None, path=None, where='.'):
     _require_macos()
+    ctypes.set_errno(0)
     acl = _libc.acl_get_fd_np(fd, ACL_TYPE_EXTENDED) if fd is not None else \
         _libc.acl_get_link_np(os.fsencode(path), ACL_TYPE_EXTENDED)
     if not acl:
-        if ctypes.get_errno() in (errno.ENOENT, 0):
+        # Darwin uses ENOENT for an absent extended ACL even on an open fd.
+        # Path-based link reads are bracketed by lstat in the scanner.
+        if ctypes.get_errno() == errno.ENOENT:
             return
         raise _os_error('ACL unreadable: ' + where)
     try:
+        if _libc.acl_valid(acl) != 0:
+            raise _os_error('invalid ACL: ' + where)
         entry = ctypes.c_void_p()
-        if _libc.acl_get_entry(acl, ACL_FIRST_ENTRY, ctypes.byref(entry)) == 0:
+        ctypes.set_errno(0)
+        result = _libc.acl_get_entry(acl, ACL_FIRST_ENTRY, ctypes.byref(entry))
+        if result == 0:
             raise ValueError('ACL refused: ' + where)
+        # Darwin returns -1/EINVAL for the first entry of a valid empty ACL.
+        if result != -1 or ctypes.get_errno() != errno.EINVAL:
+            raise _os_error('ACL entries unreadable: ' + where)
     finally:
         _libc.acl_free(acl)
 
 
 def _metadata(info, where):
+    _require_macos()
     if info.st_mode & (stat.S_ISUID | stat.S_ISGID):
         raise ValueError('set-user-ID or set-group-ID bit refused: ' + where)
-    if getattr(info, 'st_flags', 0):
+    if info.st_flags:
         raise ValueError('non-zero file flags refused: ' + where)
     return {'mode': stat.S_IMODE(info.st_mode), 'uid': info.st_uid, 'gid': info.st_gid}
 
@@ -141,18 +157,87 @@ def _check_name(name):
         raise ValueError('bundle path cannot be represented: ' + repr(name))
 
 
-def _scan_once(root):
+def _stamp(info):
+    """Ignore atime (our reads change it); include mutable access metadata."""
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns,
+            getattr(info, 'st_flags', None))
+
+
+def _binding(info):
+    return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
+
+
+@contextlib.contextmanager
+def _open_directory(root, bundle=False):
+    """Open every ancestor relative to its held parent, without following links."""
     root = Path(os.path.abspath(root))
-    for parent in reversed((root, *root.parents)):
-        if parent.is_symlink():
-            raise ValueError(f'symlink in bundle root ancestry: {parent}')
-    if root.suffix != '.app':
+    if bundle and root.suffix != '.app':
         raise ValueError('bundle root must be a .app directory')
-    flags = os.O_RDONLY | os.O_NOFOLLOW
+    _check_name(root.name)
+    held = []
+    try:
+        fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
+        held.append(fd)
+        bindings = []
+        for part in root.parts[1:]:
+            info = os.stat(part, dir_fd=fd, follow_symlinks=False)
+            if stat.S_ISLNK(info.st_mode):
+                raise ValueError('symlink in bundle root ancestry: ' + part)
+            child = os.open(part, os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY, dir_fd=fd)
+            held.append(child)
+            if _stamp(info) != _stamp(os.fstat(child)):
+                raise ValueError('bundle ancestry changed during identification')
+            bindings.append((fd, part, child, info))
+            fd = child
+        yield fd
+        for parent, name, child, original in bindings:
+            bound = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            live = os.fstat(child)
+            if _binding(bound) != _binding(live) or _binding(original) != _binding(live):
+                raise ValueError('bundle ancestry replaced during identification')
+    finally:
+        for fd in reversed(held):
+            os.close(fd)
+
+
+def _observed_meta(info, where, **handle):
+    _refuse_acl(where=where, **handle)
+    return {**_metadata(info, where), 'xattrs': _xattrs(**handle)}
+
+
+def _read_regular(fd, info, relative, retain=False):
+    start = os.fstat(fd)
+    if not stat.S_ISREG(start.st_mode) or _stamp(info) != _stamp(start):
+        raise ValueError('file replaced during identification: ' + relative)
+    if start.st_nlink != 1:
+        raise ValueError('hard-linked file refused: ' + relative)
+    meta = _observed_meta(start, relative, fd=fd)
+    digest = hashlib.sha256()
+    chunks = []
+    size = 0
+    while chunk := os.read(fd, 1 << 20):
+        digest.update(chunk)
+        size += len(chunk)
+        if retain:
+            chunks.append(chunk)
+    if _AFTER_FILE_READ:
+        _AFTER_FILE_READ(relative)
+    end = os.fstat(fd)
+    if _observed_meta(end, relative, fd=fd) != meta or _stamp(start) != _stamp(os.fstat(fd)) or size != start.st_size:
+        raise ValueError('file changed during identification: ' + relative)
+    return {'path': relative, 'kind': 'file', **meta, 'size': size, 'sha256': digest.hexdigest()}, b''.join(chunks)
+
+
+def _scan_once(root):
+    _require_macos()
+    root = Path(os.path.abspath(root))
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
     entries = []
 
     def visit(fd, prefix):
         before = os.fstat(fd)
+        meta = _observed_meta(before, prefix or '.', fd=fd)
         with os.scandir(fd) as listing:
             names = sorted((e.name for e in listing), key=lambda n: n.encode('utf-8', 'surrogateescape'))
         for name in names:
@@ -160,56 +245,42 @@ def _scan_once(root):
             relative = prefix + name
             info = os.stat(name, dir_fd=fd, follow_symlinks=False)
             if stat.S_ISLNK(info.st_mode):
+                if info.st_nlink != 1:
+                    raise ValueError('hard-linked symlink refused: ' + relative)
                 full = str(root / relative)
-                _refuse_acl(path=full, where=relative)
-                entry = {'path': relative, 'kind': 'symlink', **_metadata(info, relative),
-                         'xattrs': _xattrs(path=full), 'target': os.readlink(name, dir_fd=fd)}
+                link_meta = _observed_meta(info, relative, path=full)
+                target = os.readlink(name, dir_fd=fd)
+                entry = {'path': relative, 'kind': 'symlink', **link_meta, 'target': target}
+                if _observed_meta(os.stat(name, dir_fd=fd, follow_symlinks=False), relative, path=full) != link_meta:
+                    raise ValueError('symlink metadata changed during identification: ' + relative)
                 entries.append(entry)
             elif stat.S_ISDIR(info.st_mode):
                 child = os.open(name, flags | os.O_DIRECTORY, dir_fd=fd)
                 try:
-                    if os.fstat(child).st_ino != info.st_ino:
+                    if _stamp(os.fstat(child)) != _stamp(info):
                         raise ValueError('directory replaced during identification: ' + relative)
-                    _refuse_acl(fd=child, where=relative)
-                    entries.append({'path': relative, 'kind': 'dir', **_metadata(info, relative),
-                                    'xattrs': _xattrs(fd=child)})
-                    visit(child, relative + '/')
+                    child_meta = visit(child, relative + '/')
+                    entries.append({'path': relative, 'kind': 'dir', **child_meta})
                 finally:
                     os.close(child)
             elif stat.S_ISREG(info.st_mode):
-                if info.st_nlink != 1:
-                    raise ValueError('hard-linked file refused: ' + relative)
-                child = os.open(name, flags | os.O_NONBLOCK, dir_fd=fd)
+                child = os.open(name, flags, dir_fd=fd)
                 try:
-                    start = os.fstat(child)
-                    if (start.st_dev, start.st_ino) != (info.st_dev, info.st_ino):
-                        raise ValueError('file replaced during identification: ' + relative)
-                    _refuse_acl(fd=child, where=relative)
-                    digest = hashlib.sha256()
-                    while chunk := os.read(child, 1 << 20):
-                        digest.update(chunk)
-                    if _AFTER_FILE_READ:
-                        _AFTER_FILE_READ(relative)
-                    end = os.fstat(child)
-                    if (start.st_size, start.st_mtime_ns, start.st_ctime_ns) != (end.st_size, end.st_mtime_ns, end.st_ctime_ns):
-                        raise ValueError('file changed during identification: ' + relative)
-                    entries.append({'path': relative, 'kind': 'file', **_metadata(end, relative),
-                                    'xattrs': _xattrs(fd=child), 'size': end.st_size, 'sha256': digest.hexdigest()})
+                    entry, _ = _read_regular(child, info, relative)
+                    entries.append(entry)
                 finally:
                     os.close(child)
             else:
                 raise ValueError('special file refused: ' + relative)
+            if _stamp(info) != _stamp(os.stat(name, dir_fd=fd, follow_symlinks=False)):
+                raise ValueError('entry changed during identification: ' + relative)
         after = os.fstat(fd)
-        if (before.st_mtime_ns, before.st_ctime_ns) != (after.st_mtime_ns, after.st_ctime_ns):
+        if _observed_meta(after, prefix or '.', fd=fd) != meta or _stamp(before) != _stamp(os.fstat(fd)):
             raise ValueError('directory changed during identification: ' + (prefix or '.'))
+        return meta
 
-    fd = os.open(root, flags | os.O_DIRECTORY)
-    try:
-        _refuse_acl(fd=fd, where='.')
-        top = {**_metadata(os.fstat(fd), '.'), 'xattrs': _xattrs(fd=fd)}
-        visit(fd, '')
-    finally:
-        os.close(fd)
+    with _open_directory(root, bundle=True) as fd:
+        top = visit(fd, '')
     entries.sort(key=lambda e: e['path'].encode('utf-8'))
     inv = {'format': INVENTORY_FORMAT, 'method': METHOD, 'root': top, 'entries': entries}
     return validate_inventory(inv)
@@ -287,10 +358,21 @@ def resolve_link(by_path, link):
                 raise ValueError('absolute or empty link target refused: ' + link)
             pending = target.split('/') + pending
             continue
-        if entry['kind'] == 'file' and any(p not in ('', '.') for p in pending):
+        if entry['kind'] == 'file' and pending:
             raise ValueError('link passes through a file: ' + link)
         current.append(part)
     return '/'.join(current)
+
+
+def _check_target(target):
+    if not isinstance(target, str):
+        raise ValueError('invalid link target')
+    try:
+        target.encode('utf-8', 'strict')
+    except UnicodeError as error:
+        raise ValueError('link target is not valid UTF-8') from error
+    if any(c in target for c in '\\\r\n\0'):
+        raise ValueError('link target cannot be represented')
 
 
 def validate_inventory(inv):
@@ -329,8 +411,8 @@ def validate_inventory(inv):
         _check_meta(e, path)
         if e['kind'] == 'file' and (not _int(e['size'], 0, 2**63) or not isinstance(e['sha256'], str) or not HEX.fullmatch(e['sha256'])):
             raise ValueError('invalid file entry: ' + path)
-        if e['kind'] == 'symlink' and not isinstance(e['target'], str):
-            raise ValueError('invalid link target: ' + path)
+        if e['kind'] == 'symlink':
+            _check_target(e['target'])
         by_path[path] = e
     for path, e in by_path.items():
         if e['kind'] == 'symlink':
@@ -372,57 +454,144 @@ def verify_export(repo, revision, prefix, export_root):
     tree = git(repo, 'rev-parse', f'{revision}:{prefix}').decode().strip()
     listing = git(repo, 'ls-tree', '-r', '-z', '--full-tree', revision, '--', prefix).split(b'\0')
     count = 0
-    for row in filter(None, listing):
-        meta, path = row.split(b'\t', 1)
-        mode, kind, blob = meta.decode().split()
-        if kind != 'blob':
-            raise ValueError('unsupported tracked entry: ' + path.decode())
-        target = Path(export_root) / path.decode()
-        if mode == '120000':
-            if not target.is_symlink():
-                raise ValueError('exported link is not a link: ' + path.decode())
-            data = os.fsencode(os.readlink(target))
-        else:
-            if target.is_symlink() or not target.is_file():
-                raise ValueError('exported file is not a regular file: ' + path.decode())
-            data = target.read_bytes()
-        if hashlib.sha1(b'blob %d\0' % len(data) + data).hexdigest() != blob:
-            raise ValueError('exported source differs from revision: ' + path.decode())
-        count += 1
+    with _open_directory(export_root) as base:
+        for row in filter(None, listing):
+            meta, path = row.split(b'\t', 1)
+            mode, kind, blob = meta.decode().split()
+            if kind != 'blob' or mode not in ('100644', '100755', '120000'):
+                raise ValueError('unsupported tracked entry: ' + path.decode())
+            parts = path.decode('utf-8', 'strict').split('/')
+            for part in parts:
+                _check_name(part)
+            held = []
+            fd = base
+            try:
+                for part in parts[:-1]:
+                    fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                    held.append(fd)
+                info = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False)
+                if mode == '120000':
+                    if not stat.S_ISLNK(info.st_mode):
+                        raise ValueError('exported link is not a link: ' + path.decode())
+                    data = os.fsencode(os.readlink(parts[-1], dir_fd=fd))
+                else:
+                    if not stat.S_ISREG(info.st_mode):
+                        raise ValueError('exported file is not a regular file: ' + path.decode())
+                    child = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
+                    held.append(child)
+                    if _stamp(info) != _stamp(os.fstat(child)):
+                        raise ValueError('exported file replaced during verification')
+                    chunks = []
+                    while chunk := os.read(child, 1 << 20):
+                        chunks.append(chunk)
+                    data = b''.join(chunks)
+                    if _stamp(info) != _stamp(os.fstat(child)):
+                        raise ValueError('exported file changed during verification')
+                    if bool(info.st_mode & stat.S_IXUSR) != (mode == '100755'):
+                        raise ValueError('exported executable mode differs from revision: ' + path.decode())
+                if _stamp(info) != _stamp(os.stat(parts[-1], dir_fd=fd, follow_symlinks=False)):
+                    raise ValueError('exported entry changed during verification')
+                if hashlib.sha1(b'blob %d\0' % len(data) + data).hexdigest() != blob:
+                    raise ValueError('exported source differs from revision: ' + path.decode())
+                count += 1
+            finally:
+                for child in reversed(held):
+                    os.close(child)
     return {'tree': tree, 'tracked_files_verified': count}
 
 
-APP_DATA_PLACES = ('Library/Application Support/{id}', 'Library/Caches/{id}', 'Library/WebKit/{id}',
-                   'Library/HTTPStorages/{id}', 'Library/Logs/{id}', 'Library/Preferences/{id}.plist',
-                   'Library/Saved Application State/{id}.savedState')
+APP_DATA_PLACES = ('Library/Application Support/{id}', 'Library/WebKit/{id}', 'Library/Caches/{id}')
+
+
+def _check_identifier(identifier):
+    if not isinstance(identifier, str) or not re.fullmatch(r'[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+', identifier):
+        raise ValueError('invalid bundle identifier')
+
+
+def app_data_declaration(identifier):
+    _check_identifier(identifier)
+    places = ['~/' + p.format(id=identifier) for p in APP_DATA_PLACES]
+    return {'directory': places[0], 'checked': places, 'present_at_identification': []}
 
 
 def app_data_state(identifier):
-    """Per-user places a Tauri/WKWebView App with this identifier creates; lstat sees dangling links too."""
-    present = []
-    for place in APP_DATA_PLACES:
-        relative = place.format(id=identifier)
-        try:
-            os.lstat(Path.home() / relative)
-            present.append('~/' + relative)
-        except FileNotFoundError:
-            pass
-    return {'directory': '~/Library/Application Support/' + identifier,
-            'checked': ['~/' + p.format(id=identifier) for p in APP_DATA_PLACES],
-            'present_at_identification': present}
+    """Observe only the declared Tauri data and WKWebView data/cache locations."""
+    result = app_data_declaration(identifier)
+    with _open_directory(Path.home()) as home:
+        for place in result['checked']:
+            parts = PurePosixPath(place[2:]).parts
+            fd = home
+            held = []
+            parents = [(home, os.fstat(home))]
+            bindings = []
+            try:
+                for index, part in enumerate(parts):
+                    try:
+                        info = os.stat(part, dir_fd=fd, follow_symlinks=False)
+                    except FileNotFoundError:
+                        break
+                    if index == len(parts) - 1:
+                        result['present_at_identification'].append(place)
+                    else:
+                        if not stat.S_ISDIR(info.st_mode):
+                            raise ValueError('App data ancestry is not a plain directory: ' + place)
+                        child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                        held.append(child)
+                        bindings.append((fd, part, info))
+                        if _stamp(info) != _stamp(os.fstat(child)):
+                            raise ValueError('App data ancestry changed during identification')
+                        fd = child
+                        parents.append((fd, info))
+                for handle, info in parents:
+                    if _stamp(info) != _stamp(os.fstat(handle)):
+                        raise ValueError('App data ancestry changed during identification')
+                for handle, part, info in bindings:
+                    if _stamp(info) != _stamp(os.stat(part, dir_fd=handle, follow_symlinks=False)):
+                        raise ValueError('App data ancestry replaced during identification')
+            finally:
+                for child in reversed(held):
+                    os.close(child)
+    return result
 
 
 def bundle_metadata(root, inv):
     entries = {e['path']: e for e in inv['entries']}
     plist_entry = entries.get('Contents/Info.plist', {})
-    data = (Path(root) / 'Contents/Info.plist').read_bytes()
-    if plist_entry.get('kind') != 'file' or sha(data) != plist_entry['sha256']:
-        raise ValueError('Info.plist differs from the inventory')
+    if plist_entry.get('kind') != 'file':
+        raise ValueError('Info.plist is not an inventoried regular file')
+    # Re-read only through held no-follow descriptors, including Contents.
+    with _open_directory(root, bundle=True) as fd:
+        directory = os.open('Contents', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        try:
+            child = os.open('Info.plist', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+            try:
+                observed, data = _read_regular(child, os.fstat(child), 'Contents/Info.plist', retain=True)
+            finally:
+                os.close(child)
+            if observed != plist_entry:
+                raise ValueError('Info.plist differs from the inventory')
+            for handle, expected, where in ((fd, inv['root'], '.'), (directory, entries['Contents'], 'Contents')):
+                if _observed_meta(os.fstat(handle), where, fd=handle) != {k: expected[k] for k in ('mode', 'uid', 'gid', 'xattrs')}:
+                    raise ValueError('bundle metadata changed during plist read: ' + where)
+        finally:
+            os.close(directory)
     plist = plistlib.loads(data)
-    executable = 'Contents/MacOS/' + plist['CFBundleExecutable']
+    if not isinstance(plist, dict):
+        raise ValueError('Info.plist is not a dictionary')
+    name = plist.get('CFBundleExecutable')
+    _check_name(name)
+    identifier = plist.get('CFBundleIdentifier')
+    _check_identifier(identifier)
+    for field in ('CFBundleShortVersionString', 'CFBundleVersion'):
+        if field in plist:
+            value = plist[field]
+            if not isinstance(value, str) or not value or any(ord(c) < 32 for c in value):
+                raise ValueError('invalid plist version field: ' + field)
+            value.encode('utf-8', 'strict')
+    executable = 'Contents/MacOS/' + name
     if entries.get(executable, {}).get('kind') != 'file':
         raise ValueError('bundle executable missing: ' + executable)
-    return {'name': Path(root).name, 'identifier': plist['CFBundleIdentifier'],
+    return {'name': Path(os.path.abspath(root)).name, 'identifier': identifier,
             'version': str(plist.get('CFBundleShortVersionString') or plist.get('CFBundleVersion') or ''),
             'executable': {'path': executable, 'sha256': entries[executable]['sha256']},
             'info_plist_sha256': plist_entry['sha256'],
@@ -467,7 +636,7 @@ def make_record(args):
 def validate_record(record):
     schema_path = Path(__file__).resolve().parents[3] / 'execution/PKG-09/DEL-09-01/Design/candidate-identity-v2/candidate-identification.schema.json'
     from jsonschema import Draft202012Validator
-    errors = sorted(Draft202012Validator(json.loads(schema_path.read_text())).iter_errors(record), key=lambda e: list(e.path))
+    errors = sorted(Draft202012Validator(json.loads(schema_path.read_text())).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:
         raise ValueError('record schema: ' + '; '.join(f"{'/'.join(map(str, e.path))}: {e.message}" for e in errors))
     build = record['app_candidate']['build_identity']
@@ -477,6 +646,8 @@ def validate_record(record):
         raise ValueError('source and candidate revisions differ')
     if record['app_data']['present_at_identification']:
         raise ValueError('App data already present; the candidate would not start fresh: ' + ', '.join(record['app_data']['present_at_identification']))
+    if record['app_data'] != app_data_declaration(record['bundle']['identifier']):
+        raise ValueError('App data checked-location declaration differs from the identifier-selected locations')
     return record
 
 
