@@ -4,7 +4,8 @@ struct RoleR3Store(PathBuf);
 impl RoleR3Store {
     fn new() -> Self {
         let path =
-            std::env::temp_dir().join(crate::util::opaque_id("role-r3-store-").unwrap());
+            std::env::temp_dir().canonicalize().unwrap()
+                .join(crate::util::opaque_id("role-r3-store-").unwrap());
         crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
             root: path.clone(),
             placement: crate::records_store::Placement::Test,
