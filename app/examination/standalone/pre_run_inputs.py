@@ -14,7 +14,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
-PINS_SHA256 = '6934b3b0df1acd7cf1d002d851d03e55b5904f675939c8a7b4d640798a751118'
+PINS_SHA256 = 'f0ca47cac5d88d31f38140aadcf055889f476a0ea052c9ace8768f1374165ca6'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',

@@ -1,22 +1,22 @@
 {
   "format": "standalone-pre-run-pins.v1",
-  "basis_revision": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab",
+  "basis_revision": "dd8d0fa1b88b34da4bfe53a9567a8ca58104ad34",
   "sources": {
     "projects/chirality-app-v4/app/examination/admission/admission_check.py": "c51f02c8f4f05361b0a299fb85dfce98228f419913bde967fa22447628a6c49a",
     "projects/chirality-app-v4/app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
     "projects/chirality-app-v4/app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
     "projects/chirality-app-v4/app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
     "projects/chirality-app-v4/app/examination/native_forms/native_form.py": "5ec10f1cb4b3b62047ac6b4248283df411fcf69b7cc14a235585d846162a7f2a",
-    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "545caa62308d50e8cc31dc4e5bf20c0bad2864b16bd7b300f12fb24876a2ae25",
+    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "e7670253b3e427ed389693ea78fe56aef6f6314b75029ac620da33c2bcc4495e",
     "projects/chirality-app-v4/app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "projects/chirality-app-v4/app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json": "2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24",
     "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356",
     "projects/chirality-app-v4/app/examination/standalone/prepare.py": "05e44be5850ae204da5d6876a10bd67348370330fe353541744126fe8d621b06",
-    "projects/chirality-app-v4/app/examination/standalone/sources.json": "4c50df1b57488fa1a2864b2fecc161963553ab58270b1355d9cfc487727d4a30",
+    "projects/chirality-app-v4/app/examination/standalone/sources.json": "ed58f9e69f53b9b516b37422a4e8590a0c0ee1b1d5ac2045698ca462d6c46df4",
     "projects/chirality-app-v4/app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
-    "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json": "0a94733cf1993927bc412551b3ec6ff89341adb8267fff2daf9b012b1ee5703c",
-    "projects/chirality-app-v4/app/examination/support_identity/canonical.py": "e9e92ca9d781f445c2d5a6aca4a88ea307ee3557358df1e75134df8b3c6edafc",
+    "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json": "2bbbd1db51a33711295a79703809455908b0bb9249b2d8d03dc634f37746717f",
+    "projects/chirality-app-v4/app/examination/support_identity/canonical.py": "c010494ab4e1eafc5d409543ab39cb3e9e3ef09ae3b0836dba972f36bdc4187b",
     "projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
     "projects/chirality-app-v4/app/examination/support_identity/support_identity.py": "9ee17f994a5ecd5073039cc3984155641452aef28def35030783f903caf924b7",
     "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": {
@@ -1233,7 +1233,7 @@
       ]
     },
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md": {
-      "sha256": "abfe800ba2e646341e69c0304249890400301ed6d6d32b6bf386e4e8e499b364",
+      "sha256": "226239e77527cdc4b651323818f4294b445a3a3349ca895a3ee43c4bb97477ec",
       "selectors": [
         {
           "heading": "## 3. Case definitions (OUT-001; the step map)"
@@ -1264,7 +1264,7 @@
     },
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
     "projects/chirality-app-v4/app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
-    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "1022a28780f39603f510fdb3f8f8e4262bfddea5c969cd36524b38478ac6837f",
+    "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "4d79a1278eaf1ade5b8ec5026217a8937d617ddbe0074e2f2e1a59eda3d727f5",
     "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md": {
       "sha256": "e73ba05a10bd8c1722e42404016b40bb6de6dd6de156baedba7603da06e5f77e",
       "selectors": [
