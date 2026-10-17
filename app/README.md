@@ -978,7 +978,27 @@ event's exact UTF-8 bytes and its project identity. Legacy packages without it
 have unknown retention history and cannot satisfy disposal prerequisites.
 New export folders and files are owner-only from creation (0700/0600),
 including staging and intermediate payload folders. Verification changes no
-existing package permissions. Package import remains unbuilt (RS §13.8).
+existing package permissions.
+
+**Import verified package** selects the incoming bag natively and confirms its
+project, destination, exact package identity and retained administrative state.
+The selected folder must already have a readable link naming that project;
+resolve a missing link explicitly before importing. This supports another
+store's original project identity and restoration of missing files, without
+overwriting unequal files, merging divergent logs or minting a new identity.
+Valid newer local administrative history, holds and closure survive. Disposed
+identities and conflicting or unknown history refuse import. Legacy bags with
+no administrative snapshot remain verification-only evidence.
+
+An interrupted import blocks ordinary project reads and recording. **Finish
+package import** continues its original durable intent and retained private
+package, including exact partial copies and association publications; it asks
+for no replacement source and performs no second import act. Conflicting
+recovery evidence stays held, and private stages remain available for recovery.
+Source packages and originals remain unchanged. Imported content is unsigned
+quoted evidence: native relationships, capture replay and capability authority
+are not restored. Later local Fleet recording remains usable, with origin
+checks keeping the imported prefix separate (RS §13.8).
 
 Records have no expiry. The records panel offers native **Close project** /
 **Reopen project** and **Set legal hold** / **Release legal hold** controls.

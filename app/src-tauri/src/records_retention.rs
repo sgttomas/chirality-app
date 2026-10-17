@@ -6,6 +6,13 @@ use std::io::Read;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
+#[path = "records_administration.rs"]
+mod administration;
+pub(crate) use administration::{
+    plan_package_restore, restore_package_history, resume_package_restore, validate_package_snapshot,
+    AdministrationRestore, PackageAdministration,
+};
+
 const FORMAT: &str = "chirality.records-administration";
 // A complete event visible after uncertain publication is still not a durable
 // receipt in this process. After a relaunch it either survived, or the original
@@ -196,7 +203,100 @@ fn ensure_history_marker(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+// Shared pure transition validation. Filesystem custody, first-event markers and
+// remembered local prefixes remain the responsibility of the caller.
+fn advance_event(key: &str, project_id: Option<&str>, name: &str, bytes: &[u8], out: &mut State) -> Result<(), String> {
+    let event: Value = crate::records_package::parse_json_unique(bytes)
+        .map_err(|e| format!("administrative history unreadable; no disposition: {e}"))?;
+    validate_event(&event)?;
+    let next = out
+        .sequence
+        .checked_add(1)
+        .ok_or("administrative sequence exhausted")?;
+    if Some(name) != Some(format!("{next:020}.json").as_str())
+        || event["format"] != FORMAT
+        || event["formatVersion"] != "0.1"
+        || event["sequence"].as_u64() != Some(next)
+        || event["previous"] != json!(out.head)
+        || event["projectKey"] != key
+        || event["projectId"].as_str().is_none_or(|id| {
+            storage::key(id) != key
+        })
+    {
+        return Err(
+            "administrative history identity/order is inconsistent; no disposition".into(),
+        );
+    }
+    if project_id.is_some_and(|id| event["projectId"] != id || event["scope"]["projectId"] != id) {
+        return Err("administrative event project identity disagrees with snapshot".into());
+    }
+    let native = || -> Result<(), String> {
+        if event["actorKind"] != "person"
+            || event["actor"]["identityVerified"] != false
+            || event["recorder"] != "App interface"
+            || !event["context"].is_object()
+        {
+            return Err(
+                "administrative act has no native person/context evidence; no disposition"
+                    .into(),
+            );
+        }
+        Ok(())
+    };
+    match event["action"].as_str() {
+        Some("close") if !out.closed && out.disposition.is_none() => {
+            native()?;
+            out.closed = true;
+        }
+        Some("reopen") if out.closed && out.disposition.is_none() => {
+            native()?;
+            out.closed = false;
+        }
+        Some("set-hold") if !out.hold && !out.completed => {
+            native()?;
+            out.hold = true;
+        }
+        Some("release-hold") if out.hold && !out.completed => {
+            native()?;
+            out.hold = false;
+        }
+        Some("dispose") if out.closed && !out.hold && out.disposition.is_none() => {
+            native()?;
+            if !event["export"]["folder"].is_string()
+                || !event["export"]["identity"].is_string()
+                || !event["payload"].is_object()
+            {
+                return Err(
+                    "disposal has no bound verified payload/export; no disposition".into(),
+                );
+            }
+            out.disposition = Some(event.clone());
+        }
+        Some("disposal-completed")
+            if out.disposition.is_some()
+                && !out.completed
+                && event["recorder"] == "App"
+                && event["originalAct"] == out.disposition.as_ref().unwrap()["sequence"] =>
+        {
+            out.completed = true
+        }
+        _ => return Err(
+            "administrative history has an unknown or conflicting transition; no disposition"
+                .into(),
+        ),
+    }
+    if event["stateAfter"]
+        != json!({"closed":out.closed,"legalHold":out.hold,"disposition":if out.completed {"disposed"} else if out.disposition.is_some() {"disposal incomplete"} else {"kept"}})
+    {
+        return Err("administrative state disagrees with its act; no disposition".into());
+    }
+    out.sequence = next;
+    out.head = Some(util::sha256_hex(bytes));
+    Ok(())
+}
+
 fn state(dir: &Path) -> Result<State, String> {
+    records_store::package::require_complete(dir)?;
     let folder = control(dir)?.join("events");
     storage::check_path(&folder)?;
     let first_head = marker_head(dir)?;
@@ -219,89 +319,9 @@ fn state(dir: &Path) -> Result<State, String> {
     for path in paths {
         storage::check_path(&path)?;
         let bytes = read_plain(&path)?;
-        let event: Value = serde_json::from_slice(&bytes)
-            .map_err(|e| format!("administrative history unreadable; no disposition: {e}"))?;
-        validate_event(&event)?;
-        let next = out
-            .sequence
-            .checked_add(1)
-            .ok_or("administrative sequence exhausted")?;
-        if path.file_name().and_then(|n| n.to_str()) != Some(format!("{next:020}.json").as_str())
-            || event["format"] != FORMAT
-            || event["formatVersion"] != "0.1"
-            || event["sequence"].as_u64() != Some(next)
-            || event["previous"] != json!(out.head)
-            || event["projectKey"] != dir.file_name().unwrap().to_string_lossy().as_ref()
-            || event["projectId"].as_str().is_none_or(|id| {
-                storage::key(id) != dir.file_name().unwrap().to_string_lossy().as_ref()
-            })
-        {
-            return Err(
-                "administrative history identity/order is inconsistent; no disposition".into(),
-            );
-        }
-        let native = || -> Result<(), String> {
-            if event["actorKind"] != "person"
-                || event["actor"]["identityVerified"] != false
-                || event["recorder"] != "App interface"
-                || !event["context"].is_object()
-            {
-                return Err(
-                    "administrative act has no native person/context evidence; no disposition"
-                        .into(),
-                );
-            }
-            Ok(())
-        };
-        match event["action"].as_str() {
-            Some("close") if !out.closed && out.disposition.is_none() => {
-                native()?;
-                out.closed = true;
-            }
-            Some("reopen") if out.closed && out.disposition.is_none() => {
-                native()?;
-                out.closed = false;
-            }
-            Some("set-hold") if !out.hold && !out.completed => {
-                native()?;
-                out.hold = true;
-            }
-            Some("release-hold") if out.hold && !out.completed => {
-                native()?;
-                out.hold = false;
-            }
-            Some("dispose") if out.closed && !out.hold && out.disposition.is_none() => {
-                native()?;
-                if !event["export"]["folder"].is_string()
-                    || !event["export"]["identity"].is_string()
-                    || !event["payload"].is_object()
-                {
-                    return Err(
-                        "disposal has no bound verified payload/export; no disposition".into(),
-                    );
-                }
-                out.disposition = Some(event.clone());
-            }
-            Some("disposal-completed")
-                if out.disposition.is_some()
-                    && !out.completed
-                    && event["recorder"] == "App"
-                    && event["originalAct"] == out.disposition.as_ref().unwrap()["sequence"] =>
-            {
-                out.completed = true
-            }
-            _ => return Err(
-                "administrative history has an unknown or conflicting transition; no disposition"
-                    .into(),
-            ),
-        }
-        if event["stateAfter"]
-            != json!({"closed":out.closed,"legalHold":out.hold,"disposition":if out.completed {"disposed"} else if out.disposition.is_some() {"disposal incomplete"} else {"kept"}})
-        {
-            return Err("administrative state disagrees with its act; no disposition".into());
-        }
-        out.sequence = next;
-        out.head = Some(util::sha256_hex(&bytes));
+        let name = path.file_name().and_then(|n| n.to_str()).ok_or("administrative event name is not UTF-8")?;
+        advance_event(dir.file_name().unwrap().to_string_lossy().as_ref(), None, name, &bytes, &mut out)?;
+        let next = out.sequence;
         if next == 1
             && first_head
                 .as_ref()
@@ -326,6 +346,7 @@ pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, Stri
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
+    if records_store::package::owns(&dir) { return Ok(None); }
     let guard = storage::lock_shared(&gate(&dir)?)?;
     state(&dir)?.writable()?;
     Ok(Some(guard))
@@ -334,6 +355,7 @@ pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, Strin
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
+    if records_store::package::owns(&dir) { return Ok(None); }
     let guard = storage::lock_shared(&gate(&dir)?)?;
     if state(&dir)?.disposition.is_some() {
         return Err(

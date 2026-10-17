@@ -410,3 +410,198 @@ fn fleet_reader_native_links_mixed_profile_keeps_legacy_quoted_and_mechanical_se
  let f=Fixture::new();let g=json!({"appSession":"invented-session","home":"invented-native-home","spawnCounter":1});let native=json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":"fl:app:invented-native-link","kind":"related_conversation","recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented observation","body":{"relation":"forked from","source":{"threadId":"same-source","generation":g},"thread":{"threadId":"same-fork","generation":g},"nativeHome":{"homeId":"invented-native-home","root":crate::attachments::native_path_identity(&f.project),"physical":{"device":1,"inode":1}},"rpc":{"method":"thread/fork","requestId":1,"requestRef":"invented:rpc-1"},"typesPin":crate::hosting::DECLARED_PIN}});let limit=json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":"fl:app:invented-copy-limit","kind":"recording_limit","recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented later observation","body":{"originalObservationId":native["observationId"],"phase":"project","statement":"Invented copy failure; native success unchanged"}});let line=|r:&Value|{let mut bytes=serde_json::to_vec(r).unwrap();bytes.push(b'\n');validate_line(&bytes).unwrap();bytes};f.pair(&[f.row("fl:quoted-old","old undertaking label"),line(&native),line(&limit)]);let before=inventory(&f.root);let view=f.read();assert_eq!(inventory(&f.root),before);assert_eq!(view["coordination"]["nativeRelationships"].as_array().unwrap().len(),1);assert_eq!(view["coordination"]["recordingEvents"].as_array().unwrap().len(),1);assert_eq!(view["coordination"]["nativeRelationships"][0]["record"],native);assert!(view["coordination"]["governingStoreRecords"][0]["standing"].as_str().unwrap().contains("undertaking/thread fields establish no native"));assert_eq!(observations(&view).len(),3);println!("NATIVE_LINK_MIXED_DTO:{}",serde_json::to_string(&view).unwrap());
  let conflict_fixture=Fixture::new();let mut other=native.clone();other["observationId"]=json!("fl:app:duplicate-native-receipt");other["body"]["thread"]["threadId"]=json!("conflicting-fork");conflict_fixture.pair(&[line(&native),line(&other)]);let view=conflict_fixture.read();assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());assert!(has_limit(&view,"duplicate/conflicting original native request identity"));assert_eq!(view["coordination"]["protectedLog"]["complete"],false);
 }
+
+#[test]
+fn fleet_log_offsets_include_every_source_byte_and_crossing_imported_lines_stay_quoted() {
+    let f = Fixture::new();
+    let mut first = f.row("fl:offset-first", "first");
+    first.pop();
+    first.extend_from_slice(b"\r\n");
+    let second = f.row("fl:offset-second", "second");
+    let invalid = b"not JSON\n";
+    let bytes = [first.as_slice(), invalid, second.as_slice()].concat();
+    f.put(&f.project_log(), &bytes);
+    let mut census = Census::default();
+    let mut limits = Vec::new();
+    let log = read_log(&mut census, &f.project_log(), &f.project, false, validator().unwrap(), &mut limits);
+    assert!(!log.complete);
+    assert_eq!(log.rows.len(), 2);
+    assert_eq!(log.rows[0].log_end, Some(first.len() as u64));
+    assert_eq!(log.rows[1].log_end, Some(bytes.len() as u64));
+    let second_start = (first.len() + invalid.len()) as u64;
+    assert!(!log.rows[0].follows_quoted_prefix(first.len() as u64));
+    assert!(log.rows[1].follows_quoted_prefix(second_start));
+    assert!(!log.rows[1].follows_quoted_prefix(second_start + 1));
+    assert!(!log.rows[1].follows_quoted_prefix(bytes.len() as u64 - 1),
+        "adding the newline to an imported unterminated row cannot make it a local observation");
+    assert!(log.rows[0].follows_quoted_prefix(0));
+}
+
+fn native_package_row(f: &Fixture, id: &str, request: u64) -> Vec<u8> {
+    let generation = json!({"appSession":"invented-package-session","home":"invented-package-home","spawnCounter":1});
+    let record = json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":id,
+        "kind":"related_conversation","recorder":{"kind":"App","identity":"app-writer:local"},
+        "observedAt":"invented package observation","body":{"relation":"forked from",
+            "source":{"threadId":"invented-source","generation":generation},
+            "thread":{"threadId":format!("invented-child-{request}"),"generation":generation},
+            "nativeHome":{"homeId":"invented-package-home","root":crate::attachments::native_path_identity(&f.project),"physical":{"device":1,"inode":1}},
+            "rpc":{"method":"thread/fork","requestId":request,"requestRef":format!("invented:package-rpc-{request}")},
+            "typesPin":crate::hosting::DECLARED_PIN}});
+    let mut bytes = serde_json::to_vec(&record).unwrap();
+    bytes.push(b'\n');
+    validate_line(&bytes).unwrap();
+    bytes
+}
+
+fn restore_fleet_package(f: &Fixture, log: &Path, remove: bool) -> Value {
+    let bag = f.root.join("invented-package");
+    crate::records_export::export(&f.project, &bag).unwrap();
+    if remove { std::fs::remove_file(log).unwrap(); }
+    let actor = crate::act_control::person(Some("Invented package fixture"), Some("fixture-os"));
+    let observed = json!({"fixture":"source-only package import stand-in; no live person's act"});
+    let plan = records_store::package::prepare(&f.project, &bag, &actor, &observed).unwrap();
+    records_store::package::apply(plan, &actor, &observed).unwrap()
+}
+
+#[test]
+fn imported_native_relationship_claims_stay_quoted_and_later_local_append_has_its_own_provenance() {
+    let f = Fixture::new();
+    let imported = native_package_row(&f, "fl:app:invented-imported-native", 1);
+    let legacy = f.row("fl:invented-imported-legacy", "imported claim");
+    let log = f.pair(&[imported.clone(), legacy.clone()]);
+    restore_fleet_package(&f, &log, true);
+    let before = inventory(&f.root);
+    let view = f.read();
+    assert_eq!(inventory(&f.root), before, "package-origin inspection is read-only");
+    assert!(observations(&view).is_empty());
+    assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());
+    let governing = view["coordination"]["governingStoreRecords"].as_array().unwrap();
+    assert_eq!(governing.len(), 2);
+    for (n, row) in governing.iter().enumerate() {
+        assert_eq!(row["storeOrder"], n + 1);
+        assert!(row["protectedOrder"].is_null());
+        assert!(row["standing"].as_str().unwrap().contains("imported package row"));
+        assert_eq!(row["projectCounterparts"].as_array().unwrap().len(), 1);
+        let counterpart = &view["coordination"]["projectRecords"][n];
+        assert_eq!(counterpart["storeOrder"], n + 1);
+        assert!(counterpart["protectedOrder"].is_null());
+        assert!(counterpart["reconciliation"].as_str().unwrap().contains("imported package counterpart"));
+    }
+    assert!(has_limit(&view, "imported package prefix is quoted evidence"));
+
+    // This direct fixture append stands for a later App-produced observation;
+    // the imported bytes remain an exact prefix and acquire no new authority.
+    let local = native_package_row(&f, "fl:app:invented-local-after-import", 2);
+    let bytes = [imported, legacy, local].concat();
+    f.put(&log, &bytes);
+    f.put(&f.project_log(), &bytes);
+    let view = f.read();
+    assert_eq!(observations(&view).len(), 1);
+    assert_eq!(observations(&view)[0]["record"]["observationId"], "fl:app:invented-local-after-import");
+    assert_eq!(observations(&view)[0]["protectedOrder"], 3);
+    assert_eq!(view["coordination"]["nativeRelationships"].as_array().unwrap().len(), 1);
+    assert!(view["coordination"]["projectRecords"][0]["protectedOrder"].is_null());
+    assert_eq!(view["coordination"]["projectRecords"][2]["protectedOrder"], 3);
+}
+
+#[test]
+fn exact_existing_local_fleet_log_keeps_provenance_during_idempotent_package_import() {
+    let f = Fixture::new();
+    let log = f.pair(&[native_package_row(&f, "fl:app:unchanged-local-package", 1)]);
+    assert_eq!(observations(&f.read()).len(), 1);
+    restore_fleet_package(&f, &log, false);
+    let view = f.read();
+    assert_eq!(observations(&view).len(), 1);
+    assert_eq!(view["coordination"]["nativeRelationships"].as_array().unwrap().len(), 1);
+    assert!(!has_limit(&view, "imported package prefix is quoted evidence"));
+}
+
+#[test]
+fn changed_imported_prefix_withholds_provenance_for_later_local_rows() {
+    let f = Fixture::new();
+    let original = native_package_row(&f, "fl:app:imported-prefix-before-change", 1);
+    let log = f.pair(&[original]);
+    restore_fleet_package(&f, &log, true);
+    let changed = native_package_row(&f, "fl:app:imported-prefix-was-changed", 8);
+    let local = native_package_row(&f, "fl:app:local-after-prefix-change", 2);
+    let bytes = [changed, local].concat();
+    f.put(&log, &bytes);
+    f.put(&f.project_log(), &bytes);
+    let view = f.read();
+    assert!(observations(&view).is_empty());
+    assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());
+    assert!(has_limit(&view, "imported observation prefix changed"));
+    assert_eq!(view["coordination"]["governingStoreRecords"].as_array().unwrap().len(), 2,
+        "current stable bytes remain quoted evidence even though origin proof fails");
+    assert!(view["coordination"]["projectRecords"].as_array().unwrap().iter().all(|row|row["protectedOrder"].is_null()));
+}
+
+#[test]
+fn changed_package_origin_receipt_during_fleet_read_withholds_all_app_provenance() {
+    let f = Fixture::new();
+    let imported = native_package_row(&f, "fl:app:receipt-race-imported", 1);
+    let log = f.pair(&[imported.clone()]);
+    restore_fleet_package(&f, &log, true);
+    let local = native_package_row(&f, "fl:app:receipt-race-local", 2);
+    let bytes = [imported, local].concat();
+    f.put(&log, &bytes);
+    f.put(&f.project_log(), &bytes);
+    let dir = log.parent().unwrap().parent().unwrap();
+    let receipt = std::fs::read_dir(dir.join("package-imports")).unwrap().next().unwrap().unwrap().path();
+    AFTER_READ.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        let mut bytes = std::fs::read(&receipt).unwrap();
+        bytes.push(b' ');
+        std::fs::write(&receipt, bytes).unwrap();
+    })));
+    let view = f.read();
+    assert!(observations(&view).is_empty());
+    assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());
+    assert!(has_limit(&view, "package provenance unavailable after reading"));
+    assert!(view["coordination"]["projectRecords"].as_array().unwrap().iter().all(|row|row["protectedOrder"].is_null()));
+}
+
+#[test]
+fn finishing_an_imported_unterminated_native_row_does_not_turn_it_into_a_local_observation() {
+    let f = Fixture::new();
+    let mut imported = native_package_row(&f, "fl:app:imported-without-line-ending", 1);
+    imported.pop();
+    let log = f.pair(&[imported.clone()]);
+    restore_fleet_package(&f, &log, true);
+    imported.push(b'\n');
+    let local = native_package_row(&f, "fl:app:local-after-finished-imported-line", 2);
+    let bytes = [imported, local].concat();
+    f.put(&log, &bytes);
+    f.put(&f.project_log(), &bytes);
+    let view = f.read();
+    assert_eq!(observations(&view).len(), 1);
+    assert_eq!(observations(&view)[0]["record"]["observationId"], "fl:app:local-after-finished-imported-line");
+    assert_eq!(view["coordination"]["nativeRelationships"].as_array().unwrap().len(), 1);
+    assert!(view["coordination"]["governingStoreRecords"][0]["protectedOrder"].is_null());
+    assert_eq!(view["coordination"]["governingStoreRecords"][1]["protectedOrder"], 2);
+}
+
+#[test]
+fn replacing_a_package_origin_receipt_with_identical_bytes_during_read_withholds_provenance() {
+    let f = Fixture::new();
+    let imported = native_package_row(&f, "fl:app:receipt-replacement-imported", 1);
+    let log = f.pair(&[imported.clone()]);
+    restore_fleet_package(&f, &log, true);
+    let local = native_package_row(&f, "fl:app:receipt-replacement-local", 2);
+    let bytes = [imported, local].concat();
+    f.put(&log, &bytes);
+    f.put(&f.project_log(), &bytes);
+    let dir = log.parent().unwrap().parent().unwrap();
+    let receipt = std::fs::read_dir(dir.join("package-imports")).unwrap().next().unwrap().unwrap().path();
+    let original = f.root.join("original-receipt-moved-during-read");
+    AFTER_READ.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        let bytes = std::fs::read(&receipt).unwrap();
+        std::fs::rename(&receipt, original).unwrap();
+        std::fs::write(&receipt, bytes).unwrap();
+    })));
+    let view = f.read();
+    assert!(observations(&view).is_empty());
+    assert!(view["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());
+    assert!(has_limit(&view, "package provenance changed while reading"));
+    assert_eq!(view["coordination"]["governingStoreRecords"].as_array().unwrap().len(), 2,
+        "stable Fleet bytes keep their quoted store order when only provenance sources change");
+}

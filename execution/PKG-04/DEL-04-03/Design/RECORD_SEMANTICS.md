@@ -1945,8 +1945,58 @@ relationships and recording outcomes; other Fleet producers remain unbuilt.
   including the chain-head tag's checksum; it does not interpret RS semantics.
   Both say the package is unsigned. Older exports without an administration
   snapshot remain byte-checkable, with retention history explicitly unknown;
-  they never satisfy disposal's current-package prerequisite. Package import
-  remains unbuilt.
+  they never satisfy disposal's current-package prerequisite.
+
+  **Import verified package** is a separate native operation from the §13.7
+  migration below. The selected physical project folder must already have a
+  readable link naming the package's project identity. Import can associate
+  that identity with this store, or restore missing members of its existing
+  subtree. It never mints a replacement identity. A different identity at this
+  folder, another live folder holding that identity, unequal existing files,
+  or record identities already held in other target members refuse the import.
+  The collision census includes entries inside group lines. Exact existing
+  members are idempotent; source-internal duplicate identities are reported,
+  and malformed/unchained records remain source evidence rather than repaired
+  history. This does not merge divergent live logs or infer originating store
+  identity from a package that contains no store registry.
+
+  The App takes a private 0700/0600 snapshot through held physical directories,
+  rejects links, special files, path aliases and active control members, and
+  verifies inventories, hashes, project identity and current administrative
+  coverage before asking a concrete native question. It rechecks source bytes,
+  destination custody, actor/home context, payload and administrative history
+  after the question. A current administration snapshot must validate every
+  exact event byte, chain link and transition. A valid newer local tail survives;
+  compatible missing events can be restored against surviving markers and
+  remembered prefixes. Import cannot clear a destination hold or closure, revive
+  disposal, or replace unknown/conflicting administrative evidence. Older bags
+  without this history remain verifiable evidence only.
+
+  A create-once intent under `administration/<project-key>/package-imports/`
+  freezes the native actor (identity not verified), original local context,
+  retained package identity, payload plan and exact roots-registry append.
+  Exclusive stable admission and activity/capture/writer ownership span
+  publication. An unfinished or uncertain intent fences ordinary reads and
+  writes, including attachment and export. **Finish package import** reconciles
+  that same intent and retained private package; it performs no second import
+  act and never rolls back original data. Missing target members are published
+  without replacement; interrupted copies resume only from an exact source
+  prefix. Control temporaries stay in private staging outside the journal and
+  payload. A torn roots append resumes only its frozen suffix, while compatible
+  later entries for unrelated projects survive. Conflicting recovery evidence
+  stays held for explicit resolution. Private recovery evidence is retained;
+  the source bag, source store and project originals are never rewritten or
+  removed.
+
+  The payload receives an immutable import-origin receipt, retained on
+  re-export. Local intent/completion evidence governs imported-prefix limits;
+  foreign receipts confer no local authority. Newly restored Fleet rows remain
+  quoted store evidence, without App-observation order or native relationships.
+  A later local append is eligible only beyond a verified unchanged imported
+  prefix; receipt/prefix changes withhold provenance. Existing exact local
+  members retain their original standing. Captures remain cold and import
+  restores no role, workflow, supplier or capability custody. Signing remains
+  dependent on App signing; byte verification supplies no source authenticity.
 - **Existing records** (implemented). The App discovers the §13.7 project logs and reads
   them in place. It then imports them explicitly (§13.7 discovery makes no
   implicit copy) into the store as byte-identical copies verified against

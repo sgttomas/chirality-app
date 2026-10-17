@@ -58,6 +58,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+use records_store::custody as records_package;
 pub mod records_retention;
 pub mod recovery;
 mod recovery_root_view;
@@ -308,6 +309,42 @@ fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Re
 fn records_store_verify_export(app: tauri::AppHandle) -> Result<Value, String> {
     let Some(folder) = workflow_native_folder(&app, "Choose a records export to verify")? else { return Ok(json!({"state":"verification cancelled"})); };
     records_export::verify(&folder)
+}
+/// Source selection and the concrete import question remain native. The
+/// renderer supplies only the offered operation, never a path or actor claim.
+#[tauri::command(async)]
+fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,action:String)->Result<Value,String>{
+    let project=state.workspace.as_deref().ok_or("no project is open")?;
+    let home=state.homes.lock().unwrap().active();
+    let observe=||->Result<(Value,Value),String>{
+        let active=state.homes.lock().unwrap().active();
+        if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
+        let (_,observed)=current_actor_context_for(&state,&home);
+        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
+        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
+        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
+    };
+    let (actor,observed)=observe()?;
+    let plan=match action.as_str(){
+        "import"=>{
+            let Some(folder)=workflow_native_folder(&app,"Choose the records package to import")? else{return Ok(json!({"state":"package import cancelled"}));};
+            records_store::package::prepare(project,&folder,&actor,&observed)?
+        },
+        "resume"=>records_store::package::prepare_resume(project,&actor,&observed)?,
+        _=>return Err("unknown package import action".into()),
+    };
+    let mut refused=None;
+    if !confirm_choice(&app,"Project records package",records_store::package::statement(&plan),"Leave records as they are",if action=="resume"{"Finish original import"}else{"Import package"},&mut refused){
+        return refused.map_or_else(||Ok(json!({"state":"cancelled; no package publication"})),Err);
+    }
+    let (actor,current)=observe()?;
+    let links=state.native_links.try_lock().map_err(|_|"Native relationship recording busy; retry later")?;
+    if links.has_pending(){return Err("Native relationship recording remains pending; retry it before package import".into());}
+    let workflows=state.workflows.try_lock().map_err(|_|"Workflow operation busy; retry later")?;
+    workflows.retention_ready()?;
+    let acts=state.act.try_lock().map_err(|_|"Act recording busy; retry later")?;
+    if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("Native act recording remains pending; retry it before package import".into());}
+    records_store::package::apply(plan,&actor,&current)
 }
 /// RS §13.8: administrative retention acts are captured only by this native
 /// question. The renderer supplies an offered action, never actor or evidence.
@@ -2023,7 +2060,7 @@ pub fn run() {
             recovery_retry,
             read_connector_routes,
             read_fleet_records,
-            records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export, records_store_retention,
+            records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export, records_store_import_package, records_store_retention,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,

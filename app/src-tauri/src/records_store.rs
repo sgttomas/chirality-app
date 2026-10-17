@@ -47,6 +47,11 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, RwLock};
 
+#[path = "records_package_import.rs"]
+pub(crate) mod package;
+#[path = "records_package.rs"]
+pub(crate) mod custody;
+
 /// The explicit store location for tests and development.
 pub const OVERRIDE_ENV: &str = "CHIRALITY_RECORDS_STORE";
 /// The project's link to its identity, inside the project.
@@ -683,6 +688,7 @@ fn imports(dir: &Path) -> Result<Imports, String> {
 /// the store already held the project's records when that import started
 /// (a late import): then the store is read, as before it started.
 fn store_holds(dir: &Path) -> bool {
+    if package::complete_exists(dir) { return true; }
     match imports(dir) {
         Ok(i) if i.completed => true,
         Ok(i) if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
@@ -1433,6 +1439,7 @@ pub fn status(project: Option<&Path>) -> Value {
         (Err(e), _) => json!({"state":"unavailable","error":e,"recording":"refused; no fallback"}),
     };
     if let Some(root) = project {
+        out["packageImport"] = package::status(root);
         out["project"] = match home(root) {
             Ok(home) => {
                 let census = legacy_census(&home.attachment.root).unwrap_or_default();

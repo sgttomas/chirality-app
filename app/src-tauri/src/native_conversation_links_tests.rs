@@ -78,6 +78,64 @@ impl Drop for Fixture {
     }
 }
 #[test]
+fn native_links_real_publication_after_package_restore_keeps_imported_prefix_quoted() {
+    for migrate in [false, true] {
+        let mut f = Fixture::new();
+        let mut initial = f.pending();
+        settle(&mut initial);
+        assert!(initial.store_done && initial.project_done);
+        drop(initial);
+        let (store, _) = f.logs();
+        let bag = f.root.join("export-package");
+        crate::records_export::export(&f.scope.project.path, &bag).unwrap();
+        if migrate {
+            crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+                root: f.root.join("destination-store"),
+                placement: crate::records_store::Placement::Test,
+                limits: vec![],
+            })));
+        } else {
+            std::fs::remove_file(&store).unwrap();
+        }
+        let actor = crate::act_control::person(Some("invented fixture"), Some("fixture-account"));
+        let observed = json!({"fixture":"native writer restoration test double"});
+        let plan =
+            crate::records_store::package::prepare(&f.scope.project.path, &bag, &actor, &observed)
+                .unwrap();
+        crate::records_store::package::apply(plan, &actor, &observed).unwrap();
+        f.scope = Scope::capture(&f.scope.project.path).unwrap();
+        let mut local = f.pending();
+        local.record["body"]["rpc"]["requestId"] = json!(2);
+        local.record["body"]["rpc"]["requestRef"] = json!("invented-rpc:2");
+        local.bytes = line(&local.record).unwrap();
+        settle(&mut local);
+        assert!(
+            local.store_done && local.project_done,
+            "local writer remains usable after import: failures={:?}, permanent={:?}",
+            local.first_failure,
+            local.permanent
+        );
+        let view = crate::fleet_records::read_for_workspace(Some(&f.scope.project.path)).unwrap();
+        let observations = view["coordination"]["appObservations"].as_array().unwrap();
+        assert_eq!(
+            observations.len(),
+            1,
+            "imported native-looking row stays quoted; actual later local publication is observed"
+        );
+        assert_eq!(
+            observations[0]["record"]["observationId"],
+            local.record["observationId"]
+        );
+        assert_eq!(
+            view["coordination"]["governingStoreRecords"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+    }
+}
+#[test]
 fn native_links_store_first_exact_copy_and_idempotence() {
     let f = Fixture::new();
     let mut p = f.pending();

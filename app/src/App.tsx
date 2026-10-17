@@ -423,16 +423,19 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
       : ` ${String(newer.offered)}.`}</p>;
 }
 
-/** RS §13.8: which records store the App writes, the project's identity in it,
- *  and the person's explicit import of the §13.7 records still in the project. */
+/** RS §13.8: the records store, project identity, package recovery and the
+ *  separate explicit import of §13.7 records still in the project. */
 export function RecordsStorePanel({ store, act }: { store: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
   if (!store) return null;
   const project = store.project;
   const attachment = project?.attachment;
   const retention = project?.retention;
+  const packageImport = store.packageImport;
+  const packageBlocked = packageImport?.state === "incomplete" || packageImport?.state === "unavailable";
   const kept = retention?.disposition === "kept";
-  const identityRepair = retention == null || kept;
+  const identityRepair = !packageBlocked && (retention == null || kept);
   const holdable = kept || retention?.disposition === "disposal incomplete";
+  const packageImportable = store.state === "available" && !packageBlocked && !["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
   return <section aria-label="Records store">
     <h3>Records store</h3>
     {store.state === "available"
@@ -443,18 +446,31 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
-      {attachment?.projectId && !attachment?.refusal && kept && project.reading === "records store" && <p>
+      {attachment?.projectId && !attachment?.refusal && kept && !packageBlocked && project.reading === "records store" && <p>
         <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
         <small>Creates a verified package in a folder you choose.</small>
       </p>}
-      {retention && <p role="note">{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}. {retention.limit && String(retention.limit)}</p>}
-      {attachment?.projectId && !attachment?.refusal && holdable && <p>
+      {packageImportable && <p>
+        <button onClick={() => act("records_store_import_package", { action: "import" })}>Import verified package</button>{" "}
+        <small>Choose a package for the identity already named by this folder’s project file. Exact bytes and the original identity are retained; conflicting files are refused. Unsigned package content stays quoted evidence.</small>
+      </p>}
+      {packageImport?.state === "incomplete" && <p role="alert">
+        Package import is interrupted. Project records remain unavailable until it is finished.{" "}
+        <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
+      </p>}
+      {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
+      {packageImport?.limit && <p role="note">Package import: {String(packageImport.limit)}</p>}
+      {(packageImport?.importId || packageImport?.packageIdentity) && <p>Package import: {String(packageImport.state)}. {packageImport.importId && <>Import reference: {String(packageImport.importId)}. </>}{packageImport.packageIdentity && <>Package identity: {String(packageImport.packageIdentity)}.</>}</p>}
+      {retention && <p role="note">{retention.disposition === "unavailable"
+        ? "Retention state unavailable. Project closure and legal hold are unknown."
+        : <>{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}.</>}{" "}{retention.limit && String(retention.limit)}</p>}
+      {attachment?.projectId && !attachment?.refusal && holdable && !packageBlocked && <p>
         {kept && <><button onClick={()=>act("records_store_retention",{action:retention.closed ? "reopen" : "close"})}>{retention.closed ? "Reopen project" : "Close project"}</button>{" "}</>}
         <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
         {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
       </p>}
-      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
-      {project.notImported > 0 && kept && !retention.closed && <p>
+      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : !packageBlocked && <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
+      {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}

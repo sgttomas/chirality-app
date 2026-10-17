@@ -143,12 +143,19 @@ struct Row {
     record: Value,
     bytes: Vec<u8>,
     source: Value,
+    /// End of this exact source line, including its line ending. File records
+    /// have no log offset. A line crossing an imported prefix stays quoted.
+    log_end: Option<u64>,
 }
 impl Row {
     fn id(&self) -> &str { self.record["observationId"].as_str().or_else(||self.record["recordId"].as_str()).unwrap() }
     fn kind(&self) -> &str { self.record["kind"].as_str().unwrap() }
     fn view(&self, standing: &str) -> Value {
         json!({"record":self.record,"source":self.source,"standing":standing})
+    }
+    fn follows_quoted_prefix(&self, prefix: u64) -> bool {
+        self.log_end.and_then(|end| end.checked_sub(self.bytes.len() as u64))
+            .is_some_and(|start| start >= prefix)
     }
 }
 fn source(path: &Path, root: &Path, protected: bool, line: Option<usize>) -> Value {
@@ -214,13 +221,15 @@ fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, vali
     let (status, mut complete, bytes) = match census.read(path) {
         Ok(Some(bytes)) => {
             let mut complete = true;
+            let mut end = 0u64;
             for (index, line) in bytes.split_inclusive(|b| *b == b'\n').enumerate() {
+                end += line.len() as u64;
                 let origin = source(path, root, protected, Some(index + 1));
                 let result = if !line.ends_with(b"\n") { Err("unclosed final line (not read)") }
                     else { valid(line, validation) };
                 match result {
                     Ok(record) if !["brief", "work_graph"].contains(&record["kind"].as_str().unwrap()) =>
-                        rows.push(Row { record, bytes: line.to_vec(), source: origin }),
+                        rows.push(Row { record, bytes: line.to_vec(), source: origin, log_end: Some(end) }),
                     Ok(_) => { complete = false; limits.push(issue(&origin, "brief/graph belongs in its own file (not used as a log entry)")); },
                     Err(reason) => { complete = false; limits.push(issue(&origin, reason)); },
                 }
@@ -271,7 +280,7 @@ fn read_record_file(census: &mut Census, root: &Path, path: &Path, kind: &str, v
     }
     match census.read(path) {
         Ok(Some(bytes)) => match valid(&bytes, validation) {
-            Ok(record) if record["kind"] == kind => rows.push(Row {record,bytes,source:origin}),
+            Ok(record) if record["kind"] == kind => rows.push(Row {record,bytes,source:origin,log_end:None}),
             Ok(_) => limits.push(issue(&origin, "record kind does not belong in this folder (not read)")),
             Err(reason) => limits.push(issue(&origin,reason)),
         },
@@ -280,7 +289,7 @@ fn read_record_file(census: &mut Census, root: &Path, path: &Path, kind: &str, v
     }
 }
 
-struct Protected { dir: PathBuf, store: PathBuf, history: HistorySource, retention: Value, provenance_protected: bool, view: Value, _admission: std::fs::File }
+struct Protected { dir: PathBuf, store: PathBuf, history: HistorySource, retention: Value, provenance_protected: bool, package_provenance: Result<Value,String>, view: Value, _admission: std::fs::File }
 /// Read-only identity inspection. It deliberately calls neither attach/opened
 /// nor a creating admission helper: absent identity/guard files stay absent.
 fn protected(census: &mut Census, root: &Path, limits: &mut Vec<Value>) -> Result<Protected, String> {
@@ -364,7 +373,10 @@ fn protected(census: &mut Census, root: &Path, limits: &mut Vec<Value>) -> Resul
     }
     let history = HistorySource {selected_project:root.to_owned(),store:store.clone(),
         store_id:identity["storeId"].as_str().unwrap().to_owned(),project_id:project.clone(),log:dir.join("fleet").join(LOG)};
-    Ok(Protected {dir,store:store.clone(),history,retention,provenance_protected,_admission:admission,
+    // Controls are observed before payload bytes and again after the packet.
+    // Missing/changed origin evidence never acquires authority from placement.
+    let package_provenance = records_store::package::provenance_context(&dir);
+    Ok(Protected {dir,store:store.clone(),history,retention,provenance_protected,package_provenance,_admission:admission,
         view:json!({"state":"attached","projectId":project,"storeId":identity["storeId"],"placement":configured.placement.label(),"placementLimits":configured.limits,"protectionLimits":protection_limits,"provenanceProtected":provenance_protected,"root":store.to_string_lossy(),"nativeRoot":crate::attachments::native_path_identity(&store),"standing":"configured store file observations; unsigned, no person or supplier origin authenticated"})})
 }
 
@@ -420,6 +432,29 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         }
     };
     let mut complete_copy = healthy && protected_log.as_ref().is_some_and(|log|log.complete);
+    let quoted_prefix = match (&attachment, &protected_log) {
+        (Ok(attached),Some(log)) => {
+            let origin = attached.package_provenance.as_ref().map_err(Clone::clone).and_then(|_| {
+                let bytes = log.bytes.as_deref().ok_or("protected log bytes unavailable for package-origin comparison")?;
+                let prefix = records_store::package::quoted_prefix(&attached.dir,&format!("fleet/{LOG}"),bytes)?;
+                if prefix > bytes.len() as u64 { return Err("imported prefix exceeds the protected log length".into()); }
+                Ok(prefix)
+            });
+            match origin {
+                Ok(prefix) => {
+                    if prefix > 0 { limits.push(issue(&source(&attached.history.log,&attached.dir,true,None),
+                        "imported package prefix is quoted evidence; its bytes establish no App observation or native relationship")); }
+                    Some(prefix)
+                },
+                Err(reason) => {
+                    limits.push(issue(&source(&attached.history.log,&attached.dir,true,None),
+                        &format!("package provenance unavailable; no protected App provenance: {reason}")));
+                    None
+                },
+            }
+        },
+        _ => None,
+    };
     for row in project_log.rows.iter().filter(|r|r.kind() == "current_graph") {
         if row.record["body"]["graphContent"]["method"] != crate::util::FILE_IDENTITY_METHOD {
             limits.push(issue(&row.source,"graph-content identity method is unselected/unsupported; selector is quoted and no graph is selected"));
@@ -448,6 +483,23 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
             log.rows.clear();
         }
     }
+    let provenance_stable = match &attachment {
+        Ok(attached) => match (&attached.package_provenance,records_store::package::provenance_context(&attached.dir)) {
+            (Ok(before),Ok(after)) if before == &after => true,
+            (Ok(_),Ok(_)) => {
+                limits.push(issue(&source(&attached.history.log,&attached.dir,true,None),
+                    "package provenance changed while reading; stable bytes/order remain quoted, with no protected App provenance"));
+                false
+            },
+            (_,Err(reason)) => {
+                limits.push(issue(&source(&attached.history.log,&attached.dir,true,None),
+                    &format!("package provenance unavailable after reading; no protected App provenance: {reason}")));
+                false
+            },
+            (Err(_),Ok(_)) => false,
+        },
+        Err(_) => false,
+    };
     if let (Ok(attached),Some(log)) = (&attachment,&mut protected_log) {
         if let Err(reason) = observe_prefix(&attached.history,log.bytes.as_deref(),complete_copy) {
             complete_copy = false;
@@ -457,7 +509,12 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
             limits.push(issue(&source(&attached.history.log,&attached.dir,true,None),&reason));
         }
     }
-    let trusted = complete_copy && attachment.as_ref().is_ok_and(|a|a.provenance_protected);
+    let trusted = complete_copy && provenance_stable && quoted_prefix.is_some()
+        && attachment.as_ref().is_ok_and(|a|a.provenance_protected);
+    let row_trusted = |row: &Row| trusted && quoted_prefix.is_some_and(|prefix|row.follows_quoted_prefix(prefix));
+    let row_imported = |row: &Row| quoted_prefix.is_some_and(|prefix|!row.follows_quoted_prefix(prefix));
+    let quoted_standing = "configured store bytes/order as quoted evidence; protected App provenance is not established";
+    let imported_standing = "imported package row; quoted evidence, with no local App observation or native relationship established";
     let mut observations = Vec::new();
     let mut governing_store = Vec::new();
     if complete_copy {
@@ -465,11 +522,11 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         for (order,row) in log.rows.iter().enumerate() {
             let matches: Vec<_> = project_log.rows.iter().filter(|p|p.bytes == row.bytes).map(|p|p.source.clone()).collect();
             if matches.is_empty() { limits.push(issue(&row.source,"store row has no exact project counterpart; store copy/order still governs")); }
-            let mut value = row.view(if row.record["formatVersion"]=="0.1" {"quoted 0.1 compatibility record; undertaking/thread fields establish no native conversation relationship"} else if trusted {"App observation from the attached protected copy; unsigned"} else {"configured store bytes/order as quoted evidence; placement does not establish App provenance"});
+            let mut value = row.view(if row_imported(row) {imported_standing} else if row.record["formatVersion"]=="0.1" {"quoted 0.1 compatibility record; undertaking/thread fields establish no native conversation relationship"} else if row_trusted(row) {"App observation from the attached protected copy; unsigned"} else {quoted_standing});
             value["storeOrder"] = json!(order + 1);
-            value["protectedOrder"] = json!(trusted.then_some(order + 1));
+            value["protectedOrder"] = json!(row_trusted(row).then_some(order + 1));
             value["projectCounterparts"] = json!(matches);
-            if trusted { observations.push(value.clone()); }
+            if row_trusted(row) { observations.push(value.clone()); }
             governing_store.push(value);
         }
     }
@@ -477,15 +534,17 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         let mut value = row.view("project-file claim; recorder as recorded");
         if OBSERVED.contains(&row.kind()) {
             let matched = complete_copy.then(|| protected_log.as_ref().unwrap().rows.iter().position(|p|p.bytes == row.bytes)).flatten();
+            let matched_trusted = matched.is_some_and(|n|row_trusted(&protected_log.as_ref().unwrap().rows[n]));
+            let matched_imported = matched.is_some_and(|n|row_imported(&protected_log.as_ref().unwrap().rows[n]));
             value["storeOrder"] = json!(matched.map(|n|n+1));
-            value["protectedOrder"] = json!(matched.filter(|_|trusted).map(|n|n+1));
-            value["reconciliation"] = json!(if matched.is_some() && trusted {"exact protected counterpart; protected order governs"} else if matched.is_some() {"exact configured store counterpart; store order governs, but placement cannot establish App provenance"} else {"no healthy exact protected counterpart; not an App observation"});
-            if matched.is_none() || !trusted { limits.push(issue(&row.source,"App-named project entry lacks a healthy exact protected counterpart; retained only as the recorder's claim")); }
+            value["protectedOrder"] = json!(matched.filter(|_|matched_trusted).map(|n|n+1));
+            value["reconciliation"] = json!(if matched_trusted {"exact protected counterpart; protected order governs"} else if matched_imported {"exact imported package counterpart; store order governs as quoted evidence, with no local App provenance"} else if matched.is_some() {"exact configured store counterpart; store order governs, but protected App provenance is not established"} else {"no healthy exact protected counterpart; not an App observation"});
+            if !matched_trusted { limits.push(issue(&row.source,"App-named project entry lacks a healthy exact protected counterpart; retained only as the recorder's claim")); }
             if project_duplicates.contains(row.id()) { value["projectReplayOrConflict"] = json!(true); }
         }
         value
     }).collect();
-    let protected_rows: Vec<_> = protected_log.as_ref().map(|log|log.rows.iter().map(|row|row.view(if trusted {"protected copy; see governing order"} else if complete_copy {"configured store quoted evidence; placement does not establish App provenance"} else {"configured-store claim; source incomplete/unavailable"})).collect()).unwrap_or_default();
+    let protected_rows: Vec<_> = protected_log.as_ref().map(|log|log.rows.iter().map(|row|row.view(if !complete_copy {"configured-store claim; source incomplete/unavailable"} else if row_imported(row) {imported_standing} else if row_trusted(row) {"protected copy; see governing order"} else {quoted_standing})).collect()).unwrap_or_default();
     let native_relationships:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]=="related_conversation").cloned().collect();
     let recording_events:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]!="related_conversation").cloned().collect();
     let workspace = views::derive(&briefs, &graphs, &project_log, &project_duplicates,
