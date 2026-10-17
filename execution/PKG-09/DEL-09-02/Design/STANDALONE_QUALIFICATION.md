@@ -522,12 +522,21 @@ Host source map, producer executable and captured packets retain their
 historical identities. This additive replay supplies no candidate-pin SQ result
 or production/native witness.
 
-**Candidate identification (I-13).** DEL-09-01 `Design/candidate-identity-v1/`
+**Candidate identification (I-13).** DEL-09-01 `Design/candidate-identity-v2/`
 defines the identity of an unpackaged development build
-(`chirality.app.bundle-tree.sha256/v1`) and its identification record, which
+(`chirality.app.bundle-tree.sha256/v2`) and its identification record, which
 supplies the EXP `app_candidate` values and the §5 candidate key. Development
-candidate C1 is identified at `Evidence/EXP/8212c765ec-87837d1ab888/`
-(revision `8212c765ec`, debug, unsigned, fresh App data directory, supplier not
-bundled). Identifying C1 opens no examination and selects no qualification
+candidate C1 is identified at `Evidence/EXP/8212c765ec-47bbbf31372b/`
+(revision `8212c765ec`, debug, unsigned, the three declared App data paths absent
+at identification, supplier not bundled). This re-identifies the existing
+bundle without rebuilding: its bytes, modes and structure match the earlier
+v1 inventory; v2 adds ownership and provenance metadata and refuses unsupported
+metadata and escaping links. The v1 identification is withdrawn; its original
+bytes remain in Git history. The new record's build phases distinguish npm
+preparation at 22:27:35Z, the Tauri command at 22:27:42Z and bundle completion
+at 22:28:43Z on 2026-10-17: 68 seconds overall, 61 seconds for Tauri, and
+Cargo's separately reported 56.38 seconds. The original markers and logs are
+bound by SHA-256 in that record and retained in local scratch pending the
+owner's private-evidence-store choice. Identifying C1 opens no examination and selects no qualification
 candidate: U-SQ-3 (development build or package) and the run inputs in §2
 remain as stated.
