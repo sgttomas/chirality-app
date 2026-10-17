@@ -7,13 +7,13 @@
     "projects/chirality-app-v4/app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
     "projects/chirality-app-v4/app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
     "projects/chirality-app-v4/app/examination/native_forms/native_form.py": "5ec10f1cb4b3b62047ac6b4248283df411fcf69b7cc14a235585d846162a7f2a",
-    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "122fd04ac23cea096e589cb7e5b732c388328cdecbbd9d4a5760aa5d4524d0f5",
+    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "6a069e4ea4dd7ea7db86a76171fb30aa2b36d5bcaa02004b779c57101e495b03",
     "projects/chirality-app-v4/app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "projects/chirality-app-v4/app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json": "2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24",
     "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356",
     "projects/chirality-app-v4/app/examination/standalone/prepare.py": "05e44be5850ae204da5d6876a10bd67348370330fe353541744126fe8d621b06",
-    "projects/chirality-app-v4/app/examination/standalone/sources.json": "10418d88a658ecaf30bdc539c9b6ee268542787c90a73384ef54da8be86529db",
+    "projects/chirality-app-v4/app/examination/standalone/sources.json": "7e5da78c4094ac27b96edd19557b879b90f6b5091e4aef239aa28f873f3d8869",
     "projects/chirality-app-v4/app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
     "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json": "fbcaae0a7766db58a467aad124a8e3febcfc3c5c99fa50bc352fbeba8cc72a6f",
     "projects/chirality-app-v4/app/examination/support_identity/canonical.py": "ab709ff1aefd8926a049d63377be93a8bc6fbaeec27ec3e5b7b89f9ca0decff9",
@@ -628,7 +628,7 @@
           "count": 1
         },
         {
-          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) \u2014 `pkg.terms-record.schema.json`"
+          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`"
         },
         {
           "heading": "## 8. Install/launch witness (OUT-003; REQ-003)"
@@ -868,7 +868,7 @@
           "heading": "### 4.3 Review binding and the registration act (K-8; R17-11)"
         },
         {
-          "heading": "### 4.4 Selection (WD C-1\u2026C-6; U-10)"
+          "heading": "### 4.4 Selection (WD C-1…C-6; U-10)"
         },
         {
           "heading": "### 4.5 Package hygiene at review (WD RV-2 and \"Whether registration refuses them is DEL-02-02's\")"
@@ -1066,16 +1066,16 @@
           "heading": "### 3.4 Evidence provenance, fixture standing and limits"
         },
         {
-          "heading": "### 3.5 The rule set (EXP-R1\u2026EXP-R9)"
+          "heading": "### 3.5 The rule set (EXP-R1…EXP-R9)"
         },
         {
-          "heading": "### 4.1 Result record \u2014 `exam.result-record.schema.json`"
+          "heading": "### 4.1 Result record — `exam.result-record.schema.json`"
         },
         {
-          "heading": "### 4.2 Review record \u2014 `exam.review-record.schema.json`"
+          "heading": "### 4.2 Review record — `exam.review-record.schema.json`"
         },
         {
-          "heading": "### 4.3 Change-impact record \u2014 `exam.change-impact.schema.json`"
+          "heading": "### 4.3 Change-impact record — `exam.change-impact.schema.json`"
         },
         {
           "heading": "### 4.4 Support revision"
@@ -1242,7 +1242,7 @@
           "heading": "## 4. Route, configuration and evidence"
         },
         {
-          "heading": "## 5. The dossier (OUT-002) \u2014 `sq.dossier.schema.json`"
+          "heading": "## 5. The dossier (OUT-002) — `sq.dossier.schema.json`"
         },
         {
           "heading": "## 6. States and sequence"

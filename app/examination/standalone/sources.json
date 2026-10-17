@@ -9,8 +9,8 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:35cd74cdba3dcc3f3d2842bfb83442102e15fda162283994e8cc3f736dcc1e1f",
-      "basis_file_sha256": "sha256:afc1ce8e201d5ec0af609f33a3f44536002a4f4925f089f4f9756bd4d7391b2c",
+      "sha256": "sha256:9438a9edce6e326a7df20d4717a549ea69d4f1870313cafe91b41673321f359a",
+      "basis_file_sha256": "sha256:65bee77615d7cd8b4107f281a1fb793d300dcea64be6ba6d2341f2bbe100c574",
       "selectors": [
         {
           "heading": "## 2. Interfaces"
@@ -698,16 +698,16 @@
           "heading": "### 3.4 Evidence provenance, fixture standing and limits"
         },
         {
-          "heading": "### 3.5 The rule set (EXP-R1\u2026EXP-R9)"
+          "heading": "### 3.5 The rule set (EXP-R1…EXP-R9)"
         },
         {
-          "heading": "### 4.1 Result record \u2014 `exam.result-record.schema.json`"
+          "heading": "### 4.1 Result record — `exam.result-record.schema.json`"
         },
         {
-          "heading": "### 4.2 Review record \u2014 `exam.review-record.schema.json`"
+          "heading": "### 4.2 Review record — `exam.review-record.schema.json`"
         },
         {
-          "heading": "### 4.3 Change-impact record \u2014 `exam.change-impact.schema.json`"
+          "heading": "### 4.3 Change-impact record — `exam.change-impact.schema.json`"
         },
         {
           "heading": "### 4.4 Support revision"
@@ -901,7 +901,7 @@
           "count": 1
         },
         {
-          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) \u2014 `pkg.terms-record.schema.json`"
+          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`"
         },
         {
           "heading": "## 8. Install/launch witness (OUT-003; REQ-003)"
@@ -985,7 +985,7 @@
           "heading": "## 4. Route, configuration and evidence"
         },
         {
-          "heading": "## 5. The dossier (OUT-002) \u2014 `sq.dossier.schema.json`"
+          "heading": "## 5. The dossier (OUT-002) — `sq.dossier.schema.json`"
         },
         {
           "heading": "## 6. States and sequence"
@@ -1445,7 +1445,7 @@
           "heading": "### 4.3 Review binding and the registration act (K-8; R17-11)"
         },
         {
-          "heading": "### 4.4 Selection (WD C-1\u2026C-6; U-10)"
+          "heading": "### 4.4 Selection (WD C-1…C-6; U-10)"
         },
         {
           "heading": "### 4.5 Package hygiene at review (WD RV-2 and \"Whether registration refuses them is DEL-02-02's\")"
