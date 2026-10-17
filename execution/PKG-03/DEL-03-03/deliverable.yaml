@@ -115,8 +115,10 @@ needs:
   evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
 - from: DEL-01-01
   condition: 'The receiving adapter consumes App DEL-01-01''s supplier MCP, dynamic-tool and command-execution
-    surfaces and channel-status facts at the definition pin 0.158.0 (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D4).
+    surfaces and channel-status facts at the current development/definition pin 0.160.0, the owner-authorized,
+    independently reviewed SUP1 advance of APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4''s initial 0.158.0
+    (DEL-01-01 REQ-006, TBD-002). Observations dated at 0.158.0 keep their original pin and limits; neither
+    pin is qualification.
 
 
     Notes: FACT: Positive consumption statement in revised CLM-002 (SCA-V4-001 edit E-0303-07, P2 grounding

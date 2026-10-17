@@ -77,7 +77,7 @@ Settled distinctions relied on (cited, not re-decided):
 | S-X5 | Runtime non-success results are C §4.1's; proposal/operation outcomes are P §9's; both adopted unchanged | R-7; C §4.1; P §9 |
 | S-X6 | Reserved to the person (D2, adopted): A4, A5 where autonomy requires a proposal, A6, A7, A12, **A13 enabling external access**. DERIVED: A10 wherever A5 is. INTEGRATION (R2-3): **disabling** external access is also A13 | D2; R-1; R2-3; ACT §2.1 |
 | S-X7 | App routine tool-permission and sandbox modes are the user's own Codex setting (A14); they govern tool execution only and never stand in for a reserved or professional act. INTEGRATION (R-2): no App rule answers A14 affirmatively; A14 is recorded only in R13 (R2-8) | D3; R-2; R2-8; HOSTING H9, R7–R9 |
-| S-X8 | Stock, unmodified Codex App Server, owned by the App process, full published protocol, native delivery, no veto of the user's Codex configuration, no pinning of approval or sandbox policy. Definition/generation pin 0.158.0, not a qualification | V4-ARC-01; HOSTING H1, H6, H9; D4; DEP-005 |
+| S-X8 | Stock, unmodified Codex App Server, owned by the App process, full published protocol, native delivery, no veto of the user's Codex configuration, no pinning of approval or sandbox policy. Current development/definition and generated-reference pin 0.160.0 (the reviewed SUP1 advance of D4's 0.158.0; DEL-01-01 TBD-002), not a qualification | V4-ARC-01; HOSTING H1, H6, H9; D4; SUP1; DEP-005 |
 | S-X9 | Success means it ran; queued ≠ applied; a receipt is not acceptance; one act never implies another | V4-HI-25; #d3; P S-P7/S-P8 |
 | S-X10 | Autonomy does not override a workflow's declared checkpoints: "whatever the autonomy setting, a checkpoint's required act is requested and recorded as done only when the person performs it" (V4-HI-42 as amended by SCA-V4-001). That request clause and record clause are in force in every phase; holding the run until the act is phased to the governance layer (V4-WF-05 as amended; R9-1). **Governance phase (retained; R8-1):** for a **governed** checkpoint, an A5 checkpoint forces *propose* for the operation in that run and is carried as a governing checkpoint constraint {workflow run, checkpoint name, required act A5, operation}. **Current phase (R8-11 item 2 as restated by R9-2, DERIVED; the R8-11 reading was confirmed by the owner at SCA-V4-001 OWNER_ITEMS O-25):** WD I-7 is plan guidance; the agent proposes as the plan expects, and the App carries no constraint; whether the run goes on before the act is for the person and the agents, and the host's own treatment of its operations decides what the host does. D2's "no autonomy grant widens past a reserved act" binds in both phases, enforced by the host through its operations | V4-HI-42; V4-WF-05; R-5; R2-12; ACT §4.4; R8-11; R9-1; R9-2 |
 | S-X11 | **Model destination (D5; R4-1; R5-4).** SETTLED by DECISION-2 D5: host content read by the App's Codex through the external channel may flow to the model the person selected for the App conversation, cloud included, and the App does not gate enablement, reads or submissions on the destination. **SETTLED (SoW REQ-002 as revised under SCA-V4-001; the DECISION-2 reading confirmed by the owner, SCA-V4-001 OWNER_ITEMS O-10; R9-4):** the App records the observed destination per turn and shows it in the channel status as information, not as a gate. **INTEGRATION (R4-1, R5-4), unchanged:** it is recorded where the supplier reports it (requested and effective kept separate, reroutes included, unobserved turns *unknown*), and the run-level value is the set observed. A host may restrict its own channel (DEP-001); SWBPIPE does not (SQ-16). V4-HOST-02, as amended by SCA-V4-001 (DEC-5: the text recorded in DECISION-5, R8-13), governs the host's embedded agent, not this channel (§3.4) | DECISION-2 D5; SoW REQ-002; OWNER_ITEMS O-10; R4-1; R5-4; HOSTING §8.3 |
@@ -123,7 +123,7 @@ act or production the SoW excludes, one for one, with its actual owner.
      │                              │ off ⇒ "channel not enabled" (host-reported)
      │ App-side access configuration│ on
      ▼  (person-directed; §3.2)      ▼
- App's Codex (stock App Server, pin 0.158.0; App process owns it; HOSTING)
+ App's Codex (stock App Server, pin 0.160.0; App process owns it; HOSTING)
      │ native tool use by the model: an MCP tool call, or a CLI command run
      │ through Codex command execution — one of the §9 realization families
      │    ├─ A14 tool permission (user's own Codex setting) — App-side, R13 only
@@ -354,7 +354,10 @@ facility", not *unconfirmed*.
 All facts below are `observed-in-generated-types` unless marked
 *Observed (OBS-1/OBS-1b)*, which are dated live observations at this pin
 (one local route, one model), not qualification. They are consumed from DEL-01-01 (SoW CLM-002 as revised
-under SCA-V4-001; DEP-03-03-013).
+under SCA-V4-001; DEP-03-03-013). At the current pin 0.160.0 (DEL-01-01 TBD-002), DEL-01-01's
+`VERSION_ADVANCE_0.160.0.md` §3 found these generated-type facts unchanged except one additive option,
+`mcpServerStatus/list` `serverName` (Δ2), which no rule here requires; the OBS-1 live MCP route was not
+re-checked at 0.160.0.
 
 | Supplier fact | Bearing on this contract |
 |---|---|
