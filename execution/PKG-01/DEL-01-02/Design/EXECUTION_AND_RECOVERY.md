@@ -161,7 +161,7 @@ stops. The definitions below are the ones other files cite.
 | # | Name | What it is | What it is not | Record it leaves |
 |---|---|---|---|---|
 | **DEF-1** | Observer loss | A window closes, hides or reloads, or the channel between the interface and the main process is lost (for example the web view process restarts) | Not a stop, not an observation loss for any record: the main process keeps observing the supplier. Hiding is not even a detach (OA-04) | None in any record; an operational log at most |
-| **DEF-2** | Connection loss | In the O-1 arrangement (R17-5) there are two connections. Interface ↔ main process: its loss is DEF-1. Main process ↔ supplier: a standard-input/output pipe whose life equals the child's, so its loss is the child's end (DEF-5b). No third connection exists. "Reconnect" in the ScopeOfWork therefore means DEF-1 re-attachment (§5 SQ-W) and recovery after DEF-5 (§5 SQ-X, SQ-R) | Not a stop | As DEF-1 or DEF-5b |
+| **DEF-2** | Connection loss | Under the owner's OI-008 Rust-host allocation (§4.1; `docs/ARCHITECTURE.md` §3) there are two connections. Interface ↔ main process: its loss is DEF-1. Main process ↔ supplier: a standard-input/output pipe whose life equals the child's, so its loss is the child's end (DEF-5b). No third connection exists. "Reconnect" in the ScopeOfWork therefore means DEF-1 re-attachment (§5 SQ-W) and recovery after DEF-5 (§5 SQ-X, SQ-R) | Not a stop | As DEF-1 or DEF-5b |
 | **DEF-3** | **Interrupt a turn** (R17-3 operation 1) | The person's act on one live turn of one conversation: the App sends `turn/interrupt` {threadId, turnId} (stable, empty result; `observed-in-generated-types`). The turn ends as the supplier reports it; the conversation, and any workflow run in it, continues | Not a run end (EXEC RE-4). Not a human act of R-1's list (A1–A15): no human-act record is written for it. Not an approval or a decline of any request | A stop request (§3.4), cause *person-interrupt*, actor the person marked *identity not verified* (K1-4). **Not DEF-3:** the person's `cancel` answer to a tool-permission request, after which Codex declines the item **and** interrupts the turn (`observed`, OBS-2 §5.1). That answer is A14 through DEL-01-04 → DEL-01-01; no stop request exists for it, and the turn's outcome carries the cause *cancel-answer* (§3.4; C-13) |
 | **DEF-4** | **End a run** (R17-3 operation 2) | The person ends a workflow run explicitly, through DEL-02-03's run end (EXEC AE-7, RE-6). DEL-01-02 neither performs nor records it. Runs follow one another in one conversation (R19-2: sequential, or on the agent's proposal confirmed by the person): ending run A and starting run B changes nothing in the conversation's custody; DEL-01-02 keeps each run's tag in order (§4.1) | Nothing in this file ends a run: not DEF-1, DEF-3, DEF-5, DEF-6 or DEF-7 (SETTLED by R17-3) | EXEC's `run_ended` (not this file's) |
 | **DEF-5** | **Stop the Codex process** (R17-3 operation 3), for one App-owned home's process | (a) *Deliberate*: the App stops the child (HOSTING §4.5) after a confirmed quit (DEF-6, every home) or the person's **Stop Codex** or **Restart Codex**, which DEL-01-04 offers and which ask first with live work, as quit does (C-12; every home unless DEL-01-04 offers one). Live turns are interrupted first (DEF-3 with cause *quit* or *codex-stop*), then the input is closed and the process tree ended (HOSTING §4.5 step 3). (b) *Unexpected*: the child ends with no App stop record (HOSTING §4.3); only that home's conversations are affected | Neither ends a run. Neither answers any request | HOSTING's stop record and lifecycle events; here an `observation_lost` custody event and, for every outstanding entry, `request_ended_unanswered` |
@@ -829,6 +829,27 @@ original tool offering; no historical App project is backfilled or transferred.
 The existing App-ledger error/reopen behavior applies: a commit may land before
 an error, and only a healthy fresh initialized observation can use those rows.
 
+**Workflow learning receiver (current implementation of §4.1 tag).**
+DEL-02-02 uses owner `DEL-02-02/native-text-boundary` for a version-1 JSON
+object with `version`, `run`, `conversation`, `run_text_ref`, `purpose`,
+`generation`, `turn` and `client_user_message_id`. Its producer retains only
+pointers from an actual Host-issued positive acknowledgment of the exact
+original published workflow text. No conversation content is stored. REC
+stores the opaque tag without interpretation; the receiver checks the original
+WR/RS correspondence and reads native history separately on the person's
+request. The pointer is neither a supply check nor current run/receipt/act
+authority. The index's historical project and `lastLoadedGeneration` remain
+unchanged; the pointer names its own original acknowledgment generation.
+
+A failed tag save preserves the native send outcome and names the unavailable
+historical source. Its typed pointer may be retried in that App process without
+resending: the same actual home/App session's current loaded-thread context
+can save the metadata after a native restart while the pointer keeps its
+original generation. Nothing reconstructs that producer from JSON after an
+App relaunch, and missing old coordinates are not filled from pasted text.
+The implementation is `workflow_learning_pointers.rs`; current readers are in
+`historical_run_learning.rs` and `trial_flows.rs`.
+
 **NIR context receiver (added to §4.1 tag caller contract).** Exact owner is
 `DEL-01-04`. Its value is compact UTF-8 JSON `[submissionRef, projectRef|null]`:
 fixed two-element array, no whitespace, JSON string escaping, no normalization;
@@ -1206,7 +1227,7 @@ qualified.
 | U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects an App-local SQLite pointer ledger under App-own user-data runtime (PRD R-STORE), importing the earlier JSON Lines ledger once; failure visible, no relocation. Retention/deletion U-R3 remains open; no product evidence claimed |
 | U-R8 *Closed 2026-10-10 (owner ruling on OI-008, `docs/ARCHITECTURE.md` §3):* the process division. The Rust host owns record writing, every request to Codex and the capture of a person's act; the web view presents and sends only what the person initiates (§0, §4.1 "Placement") | — | — | Requirements still stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
-| U-R13 Version advance (R19-5): every supplier statement here is about 0.158.0; a version-advance check (regenerate types, diff, rerun the OBS harnesses and this prototype's variants, list affected statements) is proposed as a later node, its scheduling open | Integrator / owner | Before relying on another version | Statements name 0.158.0 |
+| U-R13 Supplier basis (R19-5): the App development/definition basis is the owner-reviewed SUP1 Codex 0.160.0 adoption (HOSTING §7.0 and its maintained correspondence). Earlier OBS-2/OBS-3 and prototype observations at 0.158.0 remain evidence at that version only; they are not silently upgraded or required to be repeated merely because this text changed | App implementation owner / independent candidate examiner | Further supplier change or actual qualification | R23-22's integration-time/candidate-time affected-interface checks and the actual qualification pin/environment evidence remain required |
 | *Closed in v0.2:* U-R9 (C-12: DEL-01-04 offers Stop Codex and Restart Codex); U-R10 (C-03: closed generations are not re-read); U-R11 (C-19: owners keep their own App-kept logs) | — | — | — |
 
 ## Current implementation conditions
@@ -1242,10 +1263,10 @@ reject new shapes and must expose that reading limit. No historical row,
 ledger header or SQLite physical schema is rewritten. Source and embedded
 schemas are identical and bound by `runtime_core/MANIFEST.json`.
 
-**Open allocation correspondence — DEF-2.** The "O-1 arrangement" label in
-DEF-2 predates the owner's OI-008 Rust-host allocation (§0 and §4.1). Its pipe
-and observer-loss distinctions remain; the allocation wording has not yet been
-brought into correspondence with that ruling.
+**Allocation correspondence — DEF-2.** DEF-2 now names the owner's adopted
+OI-008 Rust-host allocation (§4.1; `docs/ARCHITECTURE.md` §3). Its pipe-life
+and observer-loss distinctions are unchanged; the earlier O-1 proposal is
+historical provenance, not an unresolved placement choice.
 
 **Recovery reads (CV-11…CV-15, CV-19, CV-22, SR-09; R-4, X-3…X-5).**
 Implemented in the Rust host (`hosting_recovery_reads.rs`,

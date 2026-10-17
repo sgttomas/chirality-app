@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -224,11 +225,28 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
   // pointers, transitions that did not conform to the WR schema).
   const limits: string[] = [...(pointerLimits ?? []), ...(data?.transitionLimits ?? [])].map(text);
   const authoring = list(conversations).find((c: Json) => conversationKey(c) === state.authoring) ?? null;
-  const runRefs: string[] = Array.from(new Set(list(runs).map((r: Json) => text(r?.reference ?? r?.run)).filter(Boolean)));
+  const runCandidates = new Map<string, Json>();
+  for (const run of list(runs)) {
+    const reference = text(run?.reference ?? run?.run);
+    if (!reference) continue;
+    const existing = runCandidates.get(reference);
+    // A live owner takes precedence over its read-only duplicate. Otherwise
+    // retain the host's current local source reading when one is available.
+    if (!existing || (isRecordedRun(existing) && (!isRecordedRun(run) || (!existing.learning && run.learning)))) runCandidates.set(reference, run);
+  }
   const anyTrials = drafts.some(d => list(d.trials).some((t: Json) => t?.reference));
   const sides = state.chosen;
+  const selectedRunLimits = sides.flatMap(side => {
+    try {
+      const reference = JSON.parse(side)?.run;
+      if (!reference) return [];
+      const run = runCandidates.get(reference);
+      const limit = run ? runLearningLimit(run, "compare") : "The selected run is no longer in the current reading.";
+      return limit ? [`Run ${reference}: ${limit}`] : [];
+    } catch { return ["A selected comparison side is not readable; choose the sides again."]; }
+  });
   const compare = () => {
-    if (sides.length !== 2) return;
+    if (sides.length !== 2 || selectedRunLimits.length) return;
     update({ compareError: "" });
     void Promise.resolve(act("workflow_trial_compare", { left: JSON.parse(sides[0]), right: JSON.parse(sides[1]) })).then(
       result => update(result === undefined ? { compared: null, compareError: "Compare did not complete; see the message below." } : { compared: result }),
@@ -251,11 +269,18 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
     {drafts.map(draft => <DraftRow key={text(draft.name)} draft={draft} authoring={authoring} conversations={conversations} pending={pending} busy={busy} act={act} state={state} update={update} />)}
     {(anyTrials || sides.length > 0) && <div aria-label="Compare trials">
       <h4>Compare</h4>
-      <p><small>Tick two trials, or one trial and a run, then Compare. It shows them side by side with the difference between their versions; it scores and judges nothing.</small></p>
-      {runRefs.length > 0 && <p>{runRefs.map(ref => { const side = runSide(ref); const ticked = sides.includes(side);
-        return <label key={ref}><input type="checkbox" checked={ticked} disabled={busy} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {ref} </label>; })}</p>}
-      <button disabled={busy || sides.length !== 2} onClick={compare}>Compare</button>
+      <p><small>Tick two trials, or one trial and a run of the same workflow slot, then Compare. It shows them side by side with the difference between their versions; it scores and judges nothing.</small></p>
+      {runCandidates.size > 0 && <ul aria-label="Run candidates for comparison">{[...runCandidates].map(([ref, run]) => {
+        const side = runSide(ref); const ticked = sides.includes(side); const limit = runLearningLimit(run, "compare");
+        const workflow = run.workflow;
+        return <li key={ref}><label><input type="checkbox" checked={ticked} disabled={busy || (!!limit && !ticked)} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {ref}{workflow ? ` · ${text(workflow.origin)}:${text(workflow.name)} · revision ${short(workflow.revision)}` : ""}{isRecordedRun(run) ? " · recorded evidence (unsigned)" : ""}</label>
+          {isRecordedRun(run) && run.learning?.standing && <p><small>{text(run.learning.standing)}</small></p>}
+          {run.learning?.compare?.activityLimit && <p role="note">Conversation history: {text(run.learning.compare.activityLimit)}</p>}
+          {limit && <p role="note">Compare is unavailable: {limit}</p>}</li>;
+      })}</ul>}
+      <button disabled={busy || sides.length !== 2 || selectedRunLimits.length > 0} onClick={compare}>Compare</button>
       {sides.length > 2 && <small> Tick exactly two.</small>}
+      {selectedRunLimits.length > 0 && <p role="note">{selectedRunLimits.join(" ")}</p>}
       {state.compareError && <p role="alert">{state.compareError}</p>}
       <CompareResult result={state.compared} />
     </div>}

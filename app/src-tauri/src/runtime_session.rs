@@ -4971,6 +4971,7 @@ impl WorkflowRootSession {
         let client_id = crate::util::opaque_id("workflow-message:")?;
         let retention_activity=crate::records_retention::activity(&project_root)?;
         let mut workflow_run = WorkflowRun {
+            learning_pointers: Default::default(),
             retention_activity,
             home,
             project: records,
@@ -5441,6 +5442,7 @@ impl WorkflowRootSession {
             &generation,
         )?;
         let end = ReopenedEnd {
+            learning_pointers: Default::default(),
             home,
             project: crate::workflow_workspace::publication::ProjectRecords::open(records.root())?,
             run: run.to_owned(),
@@ -5713,6 +5715,22 @@ impl WorkflowRootSession {
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
+        self.reopened = Some(view.clone());
+        Ok(view)
+    }
+    /// Person-directed learning readiness from current records and recovery
+    /// pointers. No native history is read and no live run is reconstructed.
+    pub(crate) fn reopen_for_learning(&mut self, project: &std::path::Path, restart_events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+        let mut view = self.reopen(project, restart_events)?;
+        let (rows, events) = trial_flows::recovery_facts(homes);
+        if let Some(runs) = view["runs"].as_array_mut() {
+            for row in runs {
+                if let Some(run) = row["run"].as_str().map(str::to_owned) {
+                    let conversation = row["conversation"].as_str().map(str::to_owned);
+                    row["learning"] = trial_flows::learning_status_with_facts(homes, Some(project), &run, conversation.as_deref(), &rows, &events);
+                }
+            }
+        }
         self.reopened = Some(view.clone());
         Ok(view)
     }
@@ -6014,6 +6032,8 @@ fn claim_prepared_notice(
     status: &mut Value,
     project: &crate::workflow_workspace::publication::ProjectRecords,
     generation: &Value,
+    home_class: Option<&str>,
+    held: &crate::workflow_learning_pointers::Held,
 ) -> Result<NoticeClaim, String> {
     let NoticeState::Prepared(publication) = &*notice else {
         return Err("No end notice is pending for this run; nothing sent".into());
@@ -6037,8 +6057,9 @@ fn claim_prepared_notice(
     let NoticeState::Prepared(publication) = std::mem::replace(notice, NoticeState::None) else {
         unreachable!()
     };
+    let original = published.run_text_record().reference().to_owned();
     *notice = NoticeState::Carrying { publication, published, client_id: client_id.clone() };
-    Ok(NoticeClaim { notice: text, client_id, generation: generation.clone() })
+    Ok(NoticeClaim { notice: text, client_id, generation: generation.clone(), original, home_class:home_class.map(str::to_owned), held:held.clone() })
 }
 /// Second half: `Sent` exactly when a frame carrying the notice was written
 /// (never resent, whatever the outcome); otherwise pending again, same record.
@@ -6079,6 +6100,7 @@ fn settle_claimed_notice(
 /// as a live end's notice. It lives in this process only: a further relaunch
 /// before that turn loses it.
 pub(crate) struct ReopenedEnd {
+    learning_pointers: crate::workflow_learning_pointers::Held,
     home: std::sync::Arc<HomeSession>,
     project: crate::workflow_workspace::publication::ProjectRecords,
     run: String,
@@ -6091,6 +6113,7 @@ pub(crate) struct ReopenedEnd {
 impl ReopenedEnd {
     pub(crate) fn view(&self) -> Value {
         json!({"run":self.run,"conversation":self.conversation,"state":"ended by the person after a relaunch","endNotice":self.notice.view(),
+            "learningPointers":crate::workflow_learning_pointers::view(&self.learning_pointers),
             "noticeRecordFailure":self.notice_record_failure,"status":self.status,
             "limit":"this end notice is held in this App process only; a further relaunch before the next turn in this conversation loses it"})
     }
@@ -6106,7 +6129,7 @@ impl ReopenedEnd {
             return Err("This end notice belongs to another conversation; nothing sent".into());
         }
         current_conversation(&self.home.host.snapshot(), generation, thread)?;
-        let claim = claim_prepared_notice(&mut self.notice, &mut self.notice_record_failure, &mut self.status, &self.project, generation);
+        let claim = claim_prepared_notice(&mut self.notice, &mut self.notice_record_failure, &mut self.status, &self.project, generation, crate::stop_records::home_class(self.home.class().as_str()), &self.learning_pointers);
         self.sync_notice_flag();
         claim
     }
@@ -6168,6 +6191,7 @@ impl ReopenedEnd {
     /// "Retry the end-notice record": publish the pending record (same identity
     /// and bytes) without sending.
     pub fn retry_notice_record(&mut self) -> Result<Value, String> {
+        self.status["learningBoundaryRetry"] = crate::workflow_learning_pointers::retry(&self.learning_pointers, &self.home.host);
         let NoticeState::Prepared(publication) = &self.notice else {
             return Ok(json!({"endNotice":self.notice.view()}));
         };
@@ -6193,6 +6217,9 @@ pub(crate) struct NoticeClaim {
     notice: crate::workflow_workspace::PreparedRunText,
     client_id: String,
     generation: Value,
+    original: String,
+    home_class: Option<String>,
+    held: crate::workflow_learning_pointers::Held,
 }
 impl NoticeClaim {
     /// (leading text element, clientUserMessageId) for the turn's frame.
@@ -6245,7 +6272,8 @@ fn carry_notice_text(
     match host.turn_start_prepared_finish_mode(&source, &claim.notice, person_text, &claim.client_id, mode, std::time::Duration::from_secs(20)) {
         Ok(native) => {
             turn = Some(native.turn_id().to_owned());
-            outcome = json!({"state":"native turn observed","observedStatus":native.observed_status()});
+            let boundary = crate::workflow_learning_pointers::retain(&claim.held, host, claim.home_class.as_deref(), &native, &claim.notice, &claim.original, &claim.client_id);
+            outcome = json!({"state":"native turn observed","observedStatus":native.observed_status(),"learningBoundary":boundary});
         }
         Err(e) => outcome = json!({"state":"native send failed/unknown after its frame was written; not resent","limit":e}),
     }
@@ -6447,6 +6475,7 @@ impl WorkflowCheckSlot {
     }
 }
 pub(crate) struct WorkflowRun {
+    learning_pointers: crate::workflow_learning_pointers::Held,
     retention_activity: Option<crate::storage::Ownership>,
     pub home: std::sync::Arc<HomeSession>,
     project: crate::workflow_workspace::publication::ProjectRecords,
@@ -6579,6 +6608,7 @@ impl WorkflowRun {
         };
         json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
             "source":self.source.as_ref().map(|s|s.evidence()),"turn":self.turn_id,"status":self.status,"supply":self.supply,
+            "learningPointers":crate::workflow_learning_pointers::view(&self.learning_pointers),
             "checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records(),
             "lifecycle":self.lifecycle_view(),"conversation":self.prepared().scope().conversation,
             "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
@@ -6934,6 +6964,7 @@ impl WorkflowRun {
             Ok(native) => {
                 self.turn_id = Some(native.turn_id().to_owned());
                 self.status = json!({"state":"native workflow-text turn observed; run opened","records":records,"replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"supplied":"not yet checked","adoption":"unknown","runStanding":"open until the person ends it; a failed or completed native turn does not end it"});
+                self.status["learningBoundary"] = crate::workflow_learning_pointers::retain(&self.learning_pointers, &self.home.host, crate::stop_records::home_class(self.home.class().as_str()), &native, &prepared, &text_ref, &self.client_id);
             }
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
@@ -7290,7 +7321,7 @@ impl WorkflowRun {
             )?;
             self.notice = NoticeState::Prepared(publication);
         }
-        let claim = claim_prepared_notice(&mut self.notice, &mut self.notice_record_failure, &mut self.status, &self.project, generation);
+        let claim = claim_prepared_notice(&mut self.notice, &mut self.notice_record_failure, &mut self.status, &self.project, generation, crate::stop_records::home_class(self.home.class().as_str()), &self.learning_pointers);
         self.sync_notice_flag();
         claim
     }
@@ -7350,6 +7381,17 @@ impl WorkflowRun {
     /// Retries only pending original records (WP-5): pre-send publication, check
     /// publication and R3 late writes. Never sends and never re-reads native data.
     pub fn retry_records(&mut self) -> Result<Value, String> {
+        // Only this actual positive-ack run owner can repair its original REC
+        // association. Metadata uses this same native home's current loaded
+        // context after a child restart; the run's original scope stays intact.
+        let scope = self.prepared().scope().clone();
+        let current = self.home.host.snapshot()["generation"].clone();
+        if self.turn_id.is_some() && current["home"] == scope.generation["home"]
+            && current["appSession"] == scope.generation["appSession"] {
+            self.run_tag = self.home.host.tag_conversation(&current, &scope.conversation,
+                crate::stop_records::home_class(self.home.class().as_str()), crate::run_restart::RUN_TAG_OWNER, &scope.run);
+        }
+        self.status["learningBoundaryRetry"] = crate::workflow_learning_pointers::retry(&self.learning_pointers, &self.home.host);
         if self.published.is_none() {
             self.publish_pre_send()?;
             if !self.attempted {
@@ -12142,6 +12184,7 @@ for line in sys.stdin:
     // WR TX-5 / SQ-END, (d), (j): restart residuals.
     include!("role_r3_run_tests.rs");
     include!("records_portable_reconstruction_tests.rs");
+    include!("historical_trial_flows_tests.rs");
     include!("records_access_role_tests.rs");
     include!("run_restart_tests.rs");
     include!("workflow_chat_selection_tests.rs");

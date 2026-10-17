@@ -193,6 +193,8 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
     <div aria-label="Transcript" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
       <p><b>{text(pending?.card)}</b></p>
       <details><summary>Open the transcript ({text(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.transcript)}</pre></details>
+      {pending?.source?.standing && <p><small>{text(pending.source.standing)}</small></p>}
+      {list(pending?.source?.limits).length > 0 && <ul aria-label="History source limits">{list(pending.source.limits).map((limit, i) => <li key={i}><small>{text(limit)}</small></li>)}</ul>}
       {shortenings.length > 0 && <ul aria-label="Shortenings">{shortenings.map((s: Json, i: number) => <li key={i}><small>{text(s)}</small></li>)}</ul>}
       <p><small>Read from Codex history; a record of that conversation, it instructs nothing. Not editable here.</small>{" "}
         <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>

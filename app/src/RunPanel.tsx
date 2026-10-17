@@ -418,7 +418,29 @@ export function RecordWriteNotice({ run }: { run: Json }) {
   return <p role="alert">{pending.length} run record entr{pending.length === 1 ? "y is" : "ies are"} not yet written ({pending.map((r: Json) => text(r?.kind)).join(", ")}){limits.length ? `: ${limits.join("; ")}` : ""}. They are kept in this App process only, in order, and are written to this run's record when writing works again, each followed by a “record write failed” limit. If the App quits first they are lost.</p>;
 }
 
+const unsavedRunAssociation = (run: Json): boolean => !!run?.turn && run?.runTag?.persistence === "memory-only";
+export const hasUnsavedHistoryReference = (run: Json): boolean => unsavedRunAssociation(run) || list(run?.learningPointers).some(pointer => pointer?.persistence === "memory-only");
+export function HistoryReferenceNotice({ pointers, run }: { pointers: Json; run?: Json }) {
+  const unsaved = list(pointers).filter(pointer => pointer?.persistence === "memory-only");
+  if (unsavedRunAssociation(run)) unsaved.push({ purpose: "run association" });
+  return <>{unsaved.map((pointer, i) => <p key={i} role="note">
+    History reference could not be saved{pointer.purpose ? ` (${text(pointer.purpose)})` : ""}.
+    {" "}It is kept in this App session only. Retry saving records; the message will not be sent again.
+  </p>)}</>;
+}
+
 export type RunBringBackAct = (command: string, args: Record<string, unknown>) => Promise<unknown>;
+
+/** Historical projections identify evidence, never a live run owner. */
+export const isRecordedRun = (run: Json): boolean => !!run?.run && !run?.reference;
+/** A local host source reading offers a request, not validated history. The
+ * host checks records and native history only when the person requests them. */
+export function runLearningLimit(run: Json, action: "bringBack" | "compare"): string | null {
+  const offer = run?.learning?.[action];
+  if (offer?.offered === false) return text(offer.reason) || "The recorded run's source is unavailable.";
+  if (isRecordedRun(run) && offer?.offered !== true) return "Reopen the recorded runs to establish whether this history source is available.";
+  return null;
+}
 
 /** WR TT-10, TT-11: "Bring a real run back to authoring", at the person's
  * press only. The host reads the run's turns and pre-fills the transcript,
@@ -427,10 +449,14 @@ export function RunBringBackView({ run, conversations, target, setTarget, includ
   run: Json; conversations: Json[]; target: string; setTarget: (key: string) => void; includeNative: boolean; setIncludeNative: (on: boolean) => void; busy: boolean; act: RunBringBackAct;
 }) {
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
+  const limit = runLearningLimit(run, "bringBack");
   return <div aria-label="Bring a real run back">
     <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={setTarget} disabled={busy} />{" "}
     <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => setIncludeNative(e.target.checked)} /> include native items</label>{" "}
-    <button disabled={busy || !chosen} onClick={() => { void act("workflow_run_bring_back", { runRef: run?.reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring a real run back to authoring</button>
+    <button disabled={busy || !chosen || !!limit} onClick={() => { void act("workflow_run_bring_back", { runRef: run?.reference ?? run?.run, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring a real run back to authoring</button>
+    {isRecordedRun(run) && <p><small>Recorded evidence (unsigned). {text(run?.learning?.standing) || "Current execution and original supply are not established here."}</small></p>}
+    {isRecordedRun(run) && !limit && <p><small>The recorded history is checked when you request the transcript.</small></p>}
+    {limit && <p role="note">Bring back is unavailable: {limit}</p>}
     <p><small>Pre-fills a transcript of this run, read from Codex history, in the chosen conversation's composer; nothing is sent until you send it there. For revising the workflow after real use.</small></p>
   </div>;
 }
@@ -461,6 +487,7 @@ export function RunPanel({ run, conversations, bringBackDefault = null, busy = f
     <p>Workflow {text(workflow.name)} ({text(workflow.origin)}), revision {text(workflow.revision).slice(0, 12)} · conversation {text(run?.conversation)} · run {text(run?.lifecycle?.state)}{run?.lifecycle?.follows ? ` · follows ${text(run.lifecycle.follows)}` : ""}{run?.lifecycle?.end ? ` · ended: ${text(run.lifecycle.end.cause)}` : ""}.</p>
     <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
     <RecordWriteNotice run={run} />
+    <HistoryReferenceNotice pointers={run?.learningPointers} run={run} />
     <h4>Declared part of {text(workflow.name) || "this workflow"}</h4>
     {declaration ? <DeclaredPart declaration={declaration} run={run} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     <h4>Compatibility (advisory)</h4>

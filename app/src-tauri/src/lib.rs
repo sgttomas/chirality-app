@@ -71,6 +71,8 @@ pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
 mod workflow_selection;
 pub(crate) mod workflow_trial_transcript;
+mod historical_run_learning;
+mod workflow_learning_pointers;
 pub(crate) mod host_tick;
 pub(crate) mod delegation_availability;
 pub(crate) mod execution_compatibility;
@@ -1432,10 +1434,6 @@ fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,refe
         ||start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None,None),
         |generation,thread|runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,generation,thread,&person_text))
 }
-/// WR TT-9, H-5: the Codex home holding `thread` now (the trial's own home).
-fn home_of_thread(state:&AppState,thread:&str)->Option<Arc<runtime_session::HomeSession>>{
-    runtime_session::trial_flows::home_holding(&state.homes.lock().unwrap().entries(),thread)
-}
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
     let entries=state.homes.lock().unwrap().entries();
     runtime_session::trial_flows::trial_home(&state.workflows,&entries,reference)
@@ -1459,13 +1457,15 @@ fn workflow_trial_read(state:State<'_,AppState>,reference:String)->Result<Value,
 #[tauri::command(async)]
 fn workflow_trial_bring_back(state:State<'_,AppState>,reference:String,generation:Value,thread_id:String,include_native:bool)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
-    runtime_session::trial_flows::bring_back(&state.workflows,&home,Some(&reference),None,&generation,&thread_id,include_native)
+    let homes=state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::bring_back_with_homes(&state.workflows,&homes,state.workspace.as_deref(),&home,Some(&reference),None,&generation,&thread_id,include_native)
 }
 /// WR TT-10 Bring a real run back to authoring: pre-filled, unsent.
 #[tauri::command(async)]
 fn workflow_run_bring_back(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,include_native:bool)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
-    runtime_session::trial_flows::bring_back(&state.workflows,&home,None,Some(&run_ref),&generation,&thread_id,include_native)
+    let homes=state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::bring_back_with_homes(&state.workflows,&homes,state.workspace.as_deref(),&home,None,Some(&run_ref),&generation,&thread_id,include_native)
 }
 #[tauri::command]
 fn workflow_bring_back_cancel(state:State<'_,AppState>,id:String)->Result<Value,String>{runtime_session::trial_flows::cancel_bring_back(&state.workflows,&id)}
@@ -1478,7 +1478,8 @@ fn workflow_bring_back_send(state:State<'_,AppState>,id:String,generation:Value,
 /// WR TT-11 Compare: side by side, with the version difference; records nothing.
 #[tauri::command(async)]
 fn workflow_trial_compare(state:State<'_,AppState>,left:Value,right:Value)->Result<Value,String>{
-    runtime_session::trial_flows::compare(&state.workflows,&|thread|home_of_thread(&state,thread),&left,&right)
+    let homes=state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::compare_with_homes(&state.workflows,&homes,state.workspace.as_deref(),&left,&right)
 }
 /// WR RB-1: review a draft chosen from the host's list, bound to the listed content.
 #[tauri::command(async)]
@@ -1637,7 +1638,8 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
     let mut events=restart_events(&recovery);
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
-    state.workflows.lock().unwrap().reopen(root,&events)
+    let homes=state.homes.lock().unwrap().entries();
+    state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]

@@ -301,6 +301,120 @@ test('Bring a real run back to authoring calls the host only on the press, with 
   assert.ok(!h(RunPanel,{run:run()}).includes('Bring a real run back'),'offered only where the host can be asked');
 });
 
+test('reopened run learning keeps its recorded standing and uses only the chosen current target on an explicit press',()=>{
+  const g={appSession:'current',home:'target-home',spawnCounter:2};
+  const conversations=[{generation:g,threadId:'target'}];
+  const recorded={run:'run:historical',conversation:'original-source',state:'ended',workflow:{origin:'project',name:'resolve-spacing',revision:'abcdef0123456789'},
+    learning:{bringBack:{offered:true},compare:{offered:true},standing:'Unsigned recorded evidence; source home resolved separately; no live run restored.'}};
+  const calls=[];
+  const props={run:recorded,conversations,target:JSON.stringify([g,'target']),setTarget:()=>{},includeNative:false,setIncludeNative:()=>{},busy:false,act:async(c,a)=>calls.push([c,a])};
+  const tree=RunBringBackView(props);
+  const buttons=node=>{if(Array.isArray(node))return node.flatMap(buttons);if(!node||typeof node!=='object')return [];return [...(node.type==='button'?[node]:[]),...buttons(node.props?.children)];};
+  assert.deepEqual(calls,[],'rendering performs no native history read or send');
+  assert.equal(buttons(tree)[0].props.disabled,false);
+  assert.match(renderToStaticMarkup(tree),/Unsigned recorded evidence/);
+  assert.match(renderToStaticMarkup(tree),/Recorded evidence \(unsigned\)/);
+  buttons(tree)[0].props.onClick();
+  assert.deepEqual(calls,[['workflow_run_bring_back',{runRef:'run:historical',generation:g,threadId:'target',includeNative:false}]],'the renderer supplies no historical source home or path');
+  const unavailable=RunBringBackView({...props,run:{...recorded,learning:{...recorded.learning,bringBack:{offered:false,reason:'Original recorded source home is not available in this App.'}}}});
+  assert.equal(buttons(unavailable)[0].props.disabled,true);
+  assert.match(renderToStaticMarkup(unavailable),/Bring back is unavailable: Original recorded source home/);
+  const unread=RunBringBackView({...props,run:{...recorded,learning:undefined}});
+  assert.equal(buttons(unread)[0].props.disabled,true);
+  assert.match(renderToStaticMarkup(unread),/Reopen the recorded runs/);
+});
+
+test('the reopened workspace offers learning without original-send or live-run controls, while a live sent run retains its controls',()=>{
+  const {WorkflowRootPanel}=load('App.tsx');
+  const g={appSession:'current',home:'h',spawnCounter:1};
+  const conversations=[{generation:g,threadId:'auth'}];
+  const calls=[];const act=async(c,a)=>calls.push([c,a]);
+  const historical={run:'run:old',conversation:'original',state:'ended',workflow:run().workflow,
+    learning:{bringBack:{offered:true},compare:{offered:true},standing:'Unsigned recorded run evidence; no live authority restored.'}};
+  const old=h(WorkflowRootPanel,{data:{runs:[],reopened:{runs:[historical],standing:'Recorded lifecycle only.'}},host:{state:'ready',generation:g,threads:conversations},act});
+  assert.match(old,/Bring a real run back to authoring/);
+  assert.match(old,/Unsigned recorded run evidence/);
+  assert.doesNotMatch(old,/Record, then send original prepared text once|Check original native supplied text pages|>End run<|End this run and start/);
+  const live=h(WorkflowRootPanel,{data:{runs:[run({source:{kind:'actual native turn source'},turn:'turn:live',endNotice:{state:'pending'},pendingRecords:true})]},host:{state:'ready',generation:g,threads:conversations},act});
+  assert.match(live,/Check original native supplied text pages/);
+  assert.match(live,/>End run<|>End run<\/button>/);
+  assert.match(live,/Retry pending records/);
+  assert.match(live,/The next message in this conversation/);
+  assert.doesNotMatch(live,/Reopen the recorded runs to establish/,'native source evidence does not make a live owner historical');
+  assert.deepEqual(calls,[]);
+});
+
+test('a native send with an unsaved history reference enables record-only retry without losing its live controls or resending',async()=>{
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();const {createRoot}=await import('react-dom/client');
+  const {WorkflowRootPanel}=load('App.tsx');
+  const g={appSession:'current',home:'h',spawnCounter:1};
+  const pointer={originalText:'wr-record:v1:original',purpose:'run start',persistence:'memory-only',limit:'fixture metadata save failure',standing:'acknowledgment pointer only'};
+  const live=run({source:{kind:'actual native turn source'},turn:'native:started',status:{state:'native response observed'},pendingRecords:false,learningPointers:[pointer]});
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {state:'records retried; native send unchanged'};};
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const button=name=>container.querySelectorAll(n=>n.localName==='button'&&n.textContent===name)[0];
+  const render=async value=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data:{runs:[value]},host:{state:'ready',generation:g,threads:[]},act})));
+  await render(live);
+  assert.deepEqual(calls,[]);
+  assert.match(container.textContent,/History reference could not be saved \(run start\)/);
+  assert.match(container.textContent,/Send: native response observed/);
+  assert.ok(button('End run'),'the persistence failure does not remove the live run controls');
+  assert.equal(props(button('Record, then send original prepared text once')).disabled,true,'the acknowledged native send cannot be resent');
+  assert.equal(props(button('Retry pending records (never sends)')).disabled,false,'a pointer-only failure is retryable even with no pending run records');
+  await React.act(async()=>{await props(button('Retry pending records (never sends)')).onClick();});
+  assert.deepEqual(calls,[['workflow_retry_records',{runRef:'run-1'}]],'retry asks only to save records, never to send');
+  await render({...live,learningPointers:[{...pointer,persistence:'durable App metadata',limit:null}]});
+  assert.equal(props(button('Retry pending records (never sends)')).disabled,true);
+  assert.doesNotMatch(container.textContent,/History reference could not be saved/);
+  await React.act(()=>root.unmount());
+});
+
+test('an acknowledged run with a durable history pointer can still retry its unsaved association, while an unacknowledged preparation cannot',async()=>{
+  const {installMiniDom}=await import('./support/mini-dom.mjs');const document=installMiniDom();const {createRoot}=await import('react-dom/client');
+  const {WorkflowRootPanel}=load('App.tsx');
+  const g={appSession:'current',home:'h',spawnCounter:1};
+  const live=run({source:{kind:'actual native turn source'},turn:'native:acknowledged',status:{state:'native response observed'},pendingRecords:false,
+    runTag:{persistence:'memory-only'},learningPointers:[{purpose:'run start',persistence:'durable App metadata'}]});
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {state:'association retried; native send unchanged'};};
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const button=name=>container.querySelectorAll(n=>n.localName==='button'&&n.textContent===name)[0];
+  const render=async value=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data:{runs:[value]},host:{state:'ready',generation:g,threads:[]},act})));
+  await render(live);
+  assert.match(container.textContent,/History reference could not be saved \(run association\)/);
+  assert.match(container.textContent,/Send: native response observed/);
+  assert.equal(props(button('Retry pending records (never sends)')).disabled,false);
+  await React.act(async()=>{await props(button('Retry pending records (never sends)')).onClick();});
+  assert.deepEqual(calls,[['workflow_retry_records',{runRef:'run-1'}]]);
+  assert.equal(props(button('Record, then send original prepared text once')).disabled,true);
+  await render({...live,runTag:{persistence:'durable App metadata'}});
+  assert.equal(props(button('Retry pending records (never sends)')).disabled,true);
+  assert.doesNotMatch(container.textContent,/History reference could not be saved/);
+  await render({...live,source:null,turn:null,status:{state:'prepared'},runTag:{persistence:'memory-only'}});
+  assert.equal(props(button('Retry pending records (never sends)')).disabled,true,'an unacknowledged prepared run does not qualify for association retry');
+  assert.doesNotMatch(container.textContent,/History reference could not be saved/);
+  await React.act(()=>root.unmount());
+});
+
+test('a sent reopened end notice can retry its unsaved history reference without offering to carry or send the notice again',async()=>{
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();const {createRoot}=await import('react-dom/client');const {WorkflowRootPanel}=load('App.tsx');
+  const end={run:'run:old',conversation:'original',endNotice:{state:'sent'},learningPointers:[{purpose:'run end notice',persistence:'memory-only',limit:'fixture metadata save failure'}]};
+  const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {endNotice:{state:'sent'}};};
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  await React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data:{endedAfterRelaunch:[end]},host:{state:'ready',generation:{},threads:[]},act})));
+  assert.deepEqual(calls,[]);
+  assert.match(container.textContent,/History reference could not be saved \(run end notice\)/);
+  assert.doesNotMatch(container.textContent,/The next message in conversation original carries this end notice/);
+  const retry=container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Retry saving records (never sends)')[0];assert.ok(retry);
+  const props=retry[Object.keys(retry).find(k=>k.startsWith('__reactProps$'))];assert.equal(props.disabled,false);
+  await React.act(async()=>{await props.onClick();});
+  assert.deepEqual(calls,[['workflow_reopened_notice',{runId:'run:old',action:'retry'}]]);
+  await React.act(()=>root.unmount());
+});
+
 test('Bring a real run back defaults to the host’s default conversation for that run, still changeable; none without one (I-8, TT-10)',async()=>{
   const g={appSession:'s',home:'h',spawnCounter:1};
   const conversations=[{generation:g,threadId:'auth'},{generation:g,threadId:'other'}];

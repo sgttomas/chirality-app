@@ -84,13 +84,14 @@ impl std::fmt::Display for SendRefusal {
 
 /// WR TT-9, H-5: the home among `homes` whose current generation holds `thread`.
 pub(crate) fn home_holding(homes: &[std::sync::Arc<HomeSession>], thread: &str) -> Option<std::sync::Arc<HomeSession>> {
-    homes
+    let mut matches = homes
         .iter()
-        .find(|home| {
+        .filter(|home| {
             let snapshot = home.host.snapshot();
-            snapshot["threads"].as_array().into_iter().flatten().any(|t| t["threadId"] == thread && t["generation"] == snapshot["generation"])
-        })
-        .cloned()
+            current_conversation(&snapshot, &snapshot["generation"], thread).is_ok()
+        });
+    let first = matches.next()?.clone();
+    matches.next().is_none().then_some(first)
 }
 /// WR TT-9, H-5: the home holding the trial's own conversation (a clean
 /// trial's conversation, a delegated trial's authoring conversation), where
@@ -233,6 +234,7 @@ struct PendingBringBack {
     include_native: bool,
     client: String,
     in_flight: bool,
+    source: Value,
 }
 
 /// Trial state the host keeps in process memory beside the trial link store.
@@ -715,7 +717,7 @@ impl WorkflowRootSession {
         root["pendingTrials"] = json!(self.trial_desk.pending.values().map(|p| self.pending_view(p)).collect::<Vec<_>>());
         root["pendingBringBacks"] = json!(self.trial_desk.bring_backs.iter().map(|(id, b)| json!({"id":id,"trial":b.trial,"run":b.run,
             "sequence":b.trial.as_deref().and_then(|t| self.trials.link(t)).map(|l| l["trial"]["sequence"].clone()),"draftName":b.trial.as_deref().map(|t| self.trial_draft_name(t)),
-            "target":{"generation":b.target.0,"threadId":b.target.1},"prompt":b.prompt,"transcript":b.transcript,"card":b.card,
+            "target":{"generation":b.target.0,"threadId":b.target.1},"source":b.source,"prompt":b.prompt,"transcript":b.transcript,"card":b.card,
             "textIdentity":crate::role_supply::content(b.transcript.as_bytes()),"bytes":b.transcript.len(),"shortenings":b.shortenings,"includeNative":b.include_native,
             "standing":"pre-filled, not sent: the transcript is read from Codex's history; once you send it, it is your message, not supply, a run text or evidence of a run"})).collect::<Vec<_>>());
         let links = self.trials.all_links();
@@ -956,11 +958,13 @@ fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value
     if let Some(error) = response.get("error") {
         return Err(format!("{method} answered with an error: {error}"));
     }
-    response
+    let result = response
         .get("result")
         .filter(|r| r.is_object())
         .cloned()
-        .ok_or_else(|| format!("{method} returned no result (outcome {})", evidence["outcome"]))
+        .ok_or_else(|| format!("{method} returned no result (outcome {})", evidence["outcome"]))?;
+    crate::native_history::validate_read_response(method, &result)?;
+    Ok(result)
 }
 /// All turns of `thread`, oldest first, and why the list is incomplete if it is.
 pub(crate) fn read_turns(home: &HomeSession, generation: &Value, thread: &str, by: &Value) -> (Vec<Value>, Option<String>) {
@@ -1355,65 +1359,221 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
     Ok(json!({"reference":reference,"recorded":results,"inputNotRead":unread,"inputNotCheckable":not_checkable_children}))
 }
 
-/// The source a bring-back or Compare reads: conversation and its turn range.
+/// A boundary is an original run/check correspondence, never marker text.
+#[derive(Clone)]
+struct ExactBoundary {
+    turn: String,
+    client: String,
+    text: Value,
+}
+impl From<&crate::historical_run_learning::Boundary> for ExactBoundary {
+    fn from(value: &crate::historical_run_learning::Boundary) -> Self {
+        Self {
+            turn: value.turn.clone(),
+            client: value.client_message.clone(),
+            text: value.text_identity.clone(),
+        }
+    }
+}
+/// The source a bring-back or Compare reads: conversation and exact turn range.
 struct HistorySource {
     thread: String,
-    /// First turn to include (a run's start turn), or all.
-    from_turn: Option<String>,
-    /// A run reference whose end notice or chain line ends the range.
-    run_end: Option<String>,
+    start: Option<ExactBoundary>,
+    stops: Vec<ExactBoundary>,
     label: TranscriptSource,
     trial_line: Option<TrialTextLine>,
 }
-fn read_source(home: &HomeSession, generation: &Value, source: &HistorySource) -> (Vec<TurnRead>, Option<String>) {
-    let (turns, mut limit) = read_turns(home, generation, &source.thread, &person_read());
-    let mut reads = vec![];
-    let mut started = source.from_turn.is_none();
-    for turn in turns {
-        let id = turn["id"].as_str().unwrap_or_default().to_owned();
-        if !started {
-            if Some(&id) != source.from_turn.as_ref() {
-                continue;
-            }
-            started = true;
+fn current_history_source(home: &HomeSession, generation: &Value) -> Result<(), String> {
+    crate::recovery::generation_ref(generation)?;
+    let snapshot = home.host.snapshot();
+    if snapshot["state"] != "ready" || snapshot["generation"] != *generation {
+        return Err("native history source generation is stale or unavailable".into());
+    }
+    Ok(())
+}
+fn source_live(home: &HomeSession, generation: &Value, thread: &str) -> bool {
+    let view = home.runtime.lock().unwrap().native_view();
+    view["generation"] == *generation && thread_live(&view, thread)
+}
+fn check_boundary(items: &[Value], boundary: &ExactBoundary) -> Result<(), String> {
+    let matching: Vec<_> = items
+        .iter()
+        .filter(|item| item["type"] == "userMessage" && item["clientId"] == boundary.client)
+        .collect();
+    let [message] = matching.as_slice() else {
+        return Err(
+            "the record-correlated native boundary has no unique exact client message".into(),
+        );
+    };
+    let text = message["content"]
+        .as_array()
+        .and_then(|content| content.first())
+        .filter(|element| element["type"] == "text")
+        .and_then(|element| element["text"].as_str())
+        .ok_or("the record-correlated boundary's first text element is unavailable")?;
+    if crate::role_supply::content(text.as_bytes()) != boundary.text {
+        return Err(
+            "the record-correlated boundary text differs or uses an unsupported identity method"
+                .into(),
+        );
+    }
+    Ok(())
+}
+fn read_source(
+    home: &HomeSession,
+    generation: &Value,
+    source: &HistorySource,
+) -> Result<(Vec<TurnRead>, Option<String>), String> {
+    current_history_source(home, generation)?;
+    let (turns, limit) = read_turns(home, generation, &source.thread, &person_read());
+    if let Some(reason) = &limit {
+        return Err(format!("source conversation's current turn list is incomplete; no inactive-source reading established: {reason}"));
+    }
+    if turns.iter().any(|turn| turn["status"] == "inProgress") {
+        return Err(
+            "A turn is live in that source conversation; Bring back waits until none is live"
+                .into(),
+        );
+    }
+    let reading: Vec<_> = turns
+        .iter()
+        .map(|turn| json!({"id":turn["id"],"status":turn["status"]}))
+        .collect();
+    let position = |boundary: &ExactBoundary| -> Result<usize, String> {
+        let found: Vec<_> = turns
+            .iter()
+            .enumerate()
+            .filter(|(_, turn)| turn["id"] == boundary.turn)
+            .map(|(i, _)| i)
+            .collect();
+        match found.as_slice() {
+            [position] => Ok(*position),
+            _ => Err(
+                "the original run boundary turn is missing or ambiguous in native history".into(),
+            ),
         }
-        let items = read_items(home, generation, &source.thread, &id, &person_read());
-        if let (Some(run), Ok(items)) = (&source.run_end, &items) {
-            let ends = items.iter().filter(|i| i["type"] == "userMessage").flat_map(|i| i["content"].as_array().cloned().unwrap_or_default()).any(|e| {
-                e["text"].as_str().is_some_and(|t| (t.starts_with("[Chirality] Workflow run ended:") || t.starts_with("[Chirality] Previous workflow run ended:")) && t.contains(&format!("(run {run}")))
-            });
-            if ends && !reads.is_empty() {
-                break;
+    };
+    let first = source
+        .start
+        .as_ref()
+        .map(&position)
+        .transpose()?
+        .unwrap_or(0);
+    let mut last = turns.len();
+    for stop in &source.stops {
+        let end = position(stop)?;
+        if end <= first {
+            return Err("the original end boundary does not follow this run's start".into());
+        }
+        let items = read_items(home, generation, &source.thread, &stop.turn, &person_read())?;
+        check_boundary(&items, stop)?;
+        last = last.min(end);
+    }
+    let mut reads = Vec::new();
+    for (position, turn) in turns.into_iter().enumerate().take(last).skip(first) {
+        let id = turn["id"]
+            .as_str()
+            .filter(|id| !id.is_empty())
+            .ok_or("native history returned an unnamed turn")?;
+        if turn["status"] == "inProgress" {
+            return Err(
+                "A turn is live in that source conversation; Bring back waits until none is live"
+                    .into(),
+            );
+        }
+        let items = read_items(home, generation, &source.thread, id, &person_read());
+        if position == first {
+            if let Some(start) = &source.start {
+                check_boundary(items.as_ref().map_err(Clone::clone)?, start)?;
             }
         }
         reads.push(TurnRead { turn, items });
     }
-    if !started {
-        limit = Some(limit.unwrap_or_else(|| "the run's start turn was not found in Codex's history".into()));
+    current_history_source(home, generation)?;
+    let (after, limit) = read_turns(home, generation, &source.thread, &person_read());
+    if limit.is_some()
+        || after
+            .iter()
+            .map(|turn| json!({"id":turn["id"],"status":turn["status"]}))
+            .collect::<Vec<_>>()
+            != reading
+    {
+        return Err("source conversation's turn range changed or became unreadable during history reading; read again".into());
     }
-    (reads, limit)
+    Ok((reads, limit))
 }
 impl WorkflowRootSession {
     fn trial_source(&self, reference: &str) -> Result<HistorySource, String> {
-        let link = self.trials.link(reference).cloned().ok_or_else(|| format!("No trial link {reference}"))?;
+        let link = self
+            .trials
+            .link(reference)
+            .cloned()
+            .ok_or_else(|| format!("No trial link {reference}"))?;
         let trial = &link["trial"];
         let clean = trial["kind"] == "clean";
         let thread = if clean {
-            trial["clean_conversation"].as_str().map(str::to_owned).ok_or("the clean trial names no conversation")?
+            trial["clean_conversation"]
+                .as_str()
+                .map(str::to_owned)
+                .ok_or("the clean trial names no conversation")?
         } else {
-            self.linked_child(reference).ok_or_else(|| format!("No sub-agent is linked to trial {}; link one first", trial["sequence"]))?
+            self.linked_child(reference).ok_or_else(|| {
+                format!(
+                    "No sub-agent is linked to trial {}; link one first",
+                    trial["sequence"]
+                )
+            })?
         };
         let line = self.trial_text(reference).ok().map(|text| {
-            let fidelity = self.trials.observations(reference).into_iter().rev().find(|o| o["observation"] == "fidelity").map(|o| o["fidelity"]["state"].as_str().unwrap_or("not checked").to_owned()).unwrap_or_else(|| "not checked".into());
-            TrialTextLine { run_text: text.run_text().to_owned(), line: format!("[trial text of trial {}: identity {}, {} bytes; fidelity {fidelity}]", trial["sequence"], rev12(text.identity()["value"].as_str().unwrap_or_default()), text.bytes()) }
+            let fidelity = self
+                .trials
+                .observations(reference)
+                .into_iter()
+                .rev()
+                .find(|o| o["observation"] == "fidelity")
+                .map(|o| {
+                    o["fidelity"]["state"]
+                        .as_str()
+                        .unwrap_or("not checked")
+                        .to_owned()
+                })
+                .unwrap_or_else(|| "not checked".into());
+            TrialTextLine {
+                run_text: text.run_text().to_owned(),
+                line: format!(
+                    "[trial text of trial {}: identity {}, {} bytes; fidelity {fidelity}]",
+                    trial["sequence"],
+                    rev12(text.identity()["value"].as_str().unwrap_or_default()),
+                    text.bytes()
+                ),
+            }
         });
         Ok(HistorySource {
             thread: thread.clone(),
-            from_turn: None,
-            run_end: None,
+            start: if clean {
+                Some(ExactBoundary {
+                    turn: trial["turn"]
+                        .as_str()
+                        .filter(|s| !s.is_empty())
+                        .ok_or("clean trial's original turn acknowledgment is unavailable")?
+                        .into(),
+                    client: trial["client_message"]
+                        .as_str()
+                        .filter(|s| !s.is_empty())
+                        .ok_or("clean trial's original client message is unavailable")?
+                        .into(),
+                    text: trial["text_identity"].clone(),
+                })
+            } else {
+                None
+            },
+            stops: Vec::new(),
             label: TranscriptSource::Trial {
                 sequence: trial["sequence"].as_u64().unwrap_or(0),
-                draft_name: link["draft"]["name"].as_str().unwrap_or_default().to_owned(),
+                draft_name: link["draft"]["name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned(),
                 rev12: rev12(link["content"]["value"].as_str().unwrap_or_default()).to_owned(),
                 clean,
                 thread,
@@ -1421,71 +1581,488 @@ impl WorkflowRootSession {
             trial_line: line,
         })
     }
-    fn run_source(&self, run_ref: &str) -> Result<(HistorySource, std::collections::BTreeMap<String, Vec<u8>>, String), String> {
-        let run = self.runs.get(run_ref).ok_or_else(|| format!("No run {run_ref} held in this App process; runs recorded by earlier App sessions cannot be brought back here"))?;
-        let run = run.try_lock().map_err(|_| "That run has an operation pending; try again")?;
-        let scope = run.prepared().scope().clone();
-        let workflow = run.prepared().workflow().clone();
-        let start = run.turn_id.clone().ok_or("The run's start turn was not acknowledged; nothing to bring back")?;
-        let files = run.selection.snapshot().files().clone();
-        Ok((
-            HistorySource {
-                thread: scope.conversation.clone(),
-                from_turn: Some(start),
-                run_end: Some(scope.run.clone()),
-                label: TranscriptSource::Run { run: scope.run.clone(), origin: workflow.origin.clone(), name: workflow.name.clone(), rev12: rev12(&workflow.revision).to_owned(), thread: scope.conversation.clone() },
-                trial_line: None,
-            },
-            files,
-            format!("{}:{}", workflow.origin, workflow.name),
-        ))
+}
+
+fn live_stop(
+    root: &WorkflowRootSession,
+    run: &super::WorkflowRun,
+) -> Result<Option<ExactBoundary>, String> {
+    if run.lifecycle == RunLifecycle::Open {
+        return Ok(None);
     }
+    if run.lifecycle != RunLifecycle::Ended {
+        return Err("The run start was not established; nothing to read".into());
+    }
+    if let super::NoticeState::Sent {
+        published,
+        client_id,
+        turn: Some(turn),
+        ..
+    } = &run.notice
+    {
+        return Ok(Some(ExactBoundary {
+            turn: turn.clone(),
+            client: client_id.clone(),
+            text: published.run_text_record().body()["text_identity"].clone(),
+        }));
+    }
+    let scope = run.prepared().scope();
+    let mut following = Vec::new();
+    for (reference, owner) in &root.runs {
+        if reference == &scope.run {
+            continue;
+        }
+        let Ok(other) = owner.try_lock() else {
+            continue;
+        };
+        let prepared = other.prepared();
+        if prepared.scope().home == scope.home
+            && prepared.scope().conversation == scope.conversation
+            && prepared.record()["chain"]["prior_run"] == scope.run
+        {
+            if let Some(turn) = &other.turn_id {
+                following.push(ExactBoundary {
+                    turn: turn.clone(),
+                    client: other.client_id.clone(),
+                    text: prepared.record()["text_identity"].clone(),
+                });
+            }
+        }
+    }
+    match following.len() {
+        1 => Ok(following.pop()),
+        _ => Err("the ended run has no unique original carried end notice or following-run boundary; later turns are not read as this run".into()),
+    }
+}
+fn slot(workflow: &Value, _holding: &str) -> Value {
+    json!({"origin":workflow["origin"],"sourceRoot":workflow["source_root"],"name":workflow["name"]})
+}
+pub(crate) fn recovery_facts(homes: &[std::sync::Arc<HomeSession>]) -> (Vec<Value>, Vec<Value>) {
+    fn events(value: &Value, out: &mut Vec<Value>) {
+        match value {
+            Value::Object(map) => {
+                if let Some(rows) = map.get("restartEvents").and_then(Value::as_array) {
+                    out.extend(rows.iter().cloned());
+                }
+                for (key, child) in map {
+                    if key != "restartEvents" {
+                        events(child, out);
+                    }
+                }
+            }
+            Value::Array(values) => {
+                for child in values {
+                    events(child, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    let (mut rows, mut restart) = (Vec::new(), Vec::new());
+    for home in homes {
+        rows.extend(home.host.recovery_entries());
+        events(&home.host.recovery_custody().snapshot(), &mut restart);
+    }
+    (rows, restart)
+}
+fn recorded_home(
+    homes: &[std::sync::Arc<HomeSession>],
+    class: &str,
+    thread: &str,
+) -> Result<std::sync::Arc<HomeSession>, String> {
+    let candidates: Vec<_> = homes
+        .iter()
+        .filter(|home| crate::stop_records::home_class(home.class().as_str()) == Some(class))
+        .collect();
+    let [home] = candidates.as_slice() else {
+        return Err(format!(
+            "native home {class} is missing or ambiguous; no active-home fallback"
+        ));
+    };
+    let snapshot = home.host.snapshot();
+    if thread.is_empty() {
+        return Err("native history source conversation unavailable".into());
+    }
+    current_history_source(home, &snapshot["generation"])?;
+    Ok((*home).clone())
+}
+fn live_context(root: &WorkflowRootSession, run: &super::WorkflowRun) -> Result<Value, String> {
+    let end = live_stop(root, run)?;
+    let scope = run.prepared().scope();
+    Ok(
+        json!({"prepared":run.prepared().record(),"scope":{"run":scope.run,"conversation":scope.conversation,"home":scope.home,"generation":scope.generation,"holdingLibrary":scope.holding_library},"client":run.client_id,"turn":run.turn_id,
+        "ended":run.lifecycle==RunLifecycle::Ended,"end":end.map(|e|json!({"turn":e.turn,"client":e.client,"text":e.text}))}),
+    )
+}
+enum LearningProof {
+    Trial {
+        reference: String,
+        link: Value,
+        home_thread: String,
+    },
+    Live {
+        reference: String,
+        owner: std::sync::Arc<Mutex<super::WorkflowRun>>,
+        context: Value,
+        binding: crate::workflow_workspace::publication::ProjectSourceBinding,
+    },
+    Historical {
+        records: crate::workflow_workspace::publication::ProjectRecords,
+        run: crate::historical_run_learning::HistoricalRun,
+        home: crate::historical_run_learning::SourceHome,
+    },
+}
+struct LearningSource {
+    history: HistorySource,
+    home: std::sync::Arc<HomeSession>,
+    generation: Value,
+    proof: LearningProof,
+    version: Value,
+    slot: Value,
+    files: Option<BTreeMap<String, Vec<u8>>>,
+    standing: String,
+}
+impl LearningSource {
+    fn recheck(
+        &self,
+        root: &Mutex<WorkflowRootSession>,
+        homes: &[std::sync::Arc<HomeSession>],
+    ) -> Result<(), String> {
+        current_history_source(&self.home, &self.generation)?;
+        if source_live(&self.home, &self.generation, &self.history.thread) {
+            return Err("A turn became live in the source conversation; nothing pre-filled".into());
+        }
+        match &self.proof {
+            LearningProof::Trial {
+                reference,
+                link,
+                home_thread,
+            } => {
+                let root = root.lock().unwrap();
+                if root.trials.link(reference) != Some(link)
+                    || root.trial_source(reference)?.thread != self.history.thread
+                {
+                    return Err("trial source changed during native history reading".into());
+                }
+                if root.trial_home_thread(reference).as_deref() != Some(home_thread) {
+                    return Err("trial's native home anchor changed".into());
+                }
+                let home = home_holding(homes, home_thread)
+                    .ok_or("trial native source became missing or ambiguous")?;
+                if !std::sync::Arc::ptr_eq(&home, &self.home) {
+                    return Err("trial native source home changed".into());
+                }
+            }
+            LearningProof::Live {
+                reference,
+                owner,
+                context,
+                binding,
+            } => {
+                let root = root.lock().unwrap();
+                if !root
+                    .runs
+                    .get(reference)
+                    .is_some_and(|now| std::sync::Arc::ptr_eq(now, owner))
+                {
+                    return Err("original run owner changed".into());
+                }
+                let run = owner
+                    .try_lock()
+                    .map_err(|_| "original run operation pending")?;
+                if live_context(&root, &run)? != *context
+                    || !binding.same_source(&run.project.source_binding()?)
+                {
+                    return Err(
+                        "original run/project records source changed during native history reading"
+                            .into(),
+                    );
+                }
+            }
+            LearningProof::Historical { records, run, home } => {
+                let (rows, events) = recovery_facts(homes);
+                run.recheck_with_recovery(records, &rows)?;
+                let now = run.source_home(&rows, &events)?;
+                if now.home_class != home.home_class
+                    || now.recorded_generations != home.recorded_generations
+                    || now.evidence != home.evidence
+                {
+                    return Err("historical REC source correspondence changed during native history reading".into());
+                }
+                let current = recorded_home(homes, &home.home_class, &run.conversation)?;
+                if !std::sync::Arc::ptr_eq(&current, &self.home) {
+                    return Err("historical native source home changed".into());
+                }
+            }
+        }
+        Ok(())
+    }
+    fn source_view(&self) -> Value {
+        let mut view = json!({"threadId":self.history.thread,"generation":self.generation,"modeHomeClass":self.home.class().as_str(),"standing":self.standing});
+        if let LearningProof::Historical { records, run, home } = &self.proof {
+            view["project"] = json!(records.root());
+            view["workflow"] = run.workflow.clone();
+            view["limits"] = json!(run.limits);
+            view["recordedNativeSource"] = json!({"homeClass":home.home_class,"generations":home.recorded_generations,"evidence":home.evidence,
+                "standing":"quoted original REC provenance, including recorded paths; no current path or native authority inferred"});
+        }
+        view
+    }
+}
+fn resolve_learning(
+    root: &Mutex<WorkflowRootSession>,
+    homes: &[std::sync::Arc<HomeSession>],
+    project: Option<&std::path::Path>,
+    trial: Option<&str>,
+    run: Option<&str>,
+) -> Result<LearningSource, String> {
+    if let (Some(reference), None) = (trial, run) {
+        let root = root.lock().unwrap();
+        let history = root.trial_source(reference)?;
+        let home_thread = root
+            .trial_home_thread(reference)
+            .ok_or("trial's native home anchor unavailable")?;
+        let home = home_holding(homes, &home_thread)
+            .ok_or("trial native history source is not loaded or is ambiguous across homes")?;
+        let generation = home.host.snapshot()["generation"].clone();
+        return Ok(LearningSource {
+            history,
+            home,
+            generation,
+            proof: LearningProof::Trial {
+                reference: reference.into(),
+                home_thread,
+                link: root
+                    .trials
+                    .link(reference)
+                    .cloned()
+                    .ok_or("trial link unavailable")?,
+            },
+            version: Value::Null,
+            slot: Value::Null,
+            files: None,
+            standing: "trial history reading; no workflow run or act inferred".into(),
+        });
+    }
+    let (None, Some(reference)) = (trial, run) else {
+        return Err("Bring back takes one trial or one run".into());
+    };
+    {
+        let root = root.lock().unwrap();
+        if let Some(owner) = root.runs.get(reference) {
+            let run = owner
+                .try_lock()
+                .map_err(|_| "original run operation pending")?;
+            if let Some(project) = project {
+                if run.project_root != project {
+                    return Err("run belongs to another opened project".into());
+                }
+            }
+            let prepared = run.prepared();
+            let scope = prepared.scope();
+            let workflow = prepared.workflow();
+            let history = HistorySource {
+                thread: scope.conversation.clone(),
+                start: Some(ExactBoundary {
+                    turn: run
+                        .turn_id
+                        .clone()
+                        .ok_or("original run start was not acknowledged")?,
+                    client: run.client_id.clone(),
+                    text: prepared.record()["text_identity"].clone(),
+                }),
+                stops: live_stop(&root, &run)?.into_iter().collect(),
+                label: TranscriptSource::Run {
+                    run: scope.run.clone(),
+                    origin: workflow.origin.clone(),
+                    name: workflow.name.clone(),
+                    rev12: rev12(&workflow.revision).into(),
+                    thread: scope.conversation.clone(),
+                },
+                trial_line: None,
+            };
+            let files = run.selection.snapshot().files().clone();
+            let home = run.home.clone();
+            if !homes
+                .iter()
+                .any(|candidate| std::sync::Arc::ptr_eq(candidate, &home))
+            {
+                return Err("original run native source home is not available".into());
+            }
+            let generation = home.host.snapshot()["generation"].clone();
+            current_history_source(&home, &generation)?;
+            let workflow =
+                serde_json::to_value(run.prepared().workflow()).map_err(|e| e.to_string())?;
+            return Ok(LearningSource {
+                history,
+                home,
+                generation,
+                proof: LearningProof::Live {
+                    reference: reference.into(),
+                    owner: owner.clone(),
+                    context: live_context(&root, &run)?,
+                    binding: run.project.source_binding()?,
+                },
+                version: json!({"method":workflow["revision_method"],"value":workflow["revision"]}),
+                slot: slot(&workflow, &run.prepared().scope().holding_library),
+                files: Some(files),
+                standing:
+                    "original run owner and exact native history correspondence; transcript only"
+                        .into(),
+            });
+        }
+    }
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(
+        project.ok_or("historical run reading requires the explicit opened project")?,
+    )?;
+    let (rows, events) = recovery_facts(homes);
+    let historical = crate::historical_run_learning::HistoricalRun::read_with_recovery(
+        &records, reference, &rows,
+    )?;
+    if historical.recorded_ended && historical.end_candidates.is_empty() {
+        return Err("closed historical run has no original native end boundary; later turns are not read as its activity".into());
+    }
+    let source_home = historical.source_home(&rows, &events)?;
+    let home = recorded_home(homes, &source_home.home_class, &historical.conversation)?;
+    let generation = home.host.snapshot()["generation"].clone();
+    let workflow = historical.workflow.clone();
+    let holding = historical.holding_library.clone();
+    let files = historical_files(root, &workflow, &holding);
+    let history = HistorySource {
+        thread: historical.conversation.clone(),
+        start: Some((&historical.start).into()),
+        stops: historical.end_candidates.iter().map(Into::into).collect(),
+        label: TranscriptSource::Run {
+            run: historical.run.clone(),
+            origin: workflow["origin"].as_str().unwrap_or_default().into(),
+            name: workflow["name"].as_str().unwrap_or_default().into(),
+            rev12: rev12(workflow["revision"].as_str().unwrap_or_default()).into(),
+            thread: historical.conversation.clone(),
+        },
+        trial_line: None,
+    };
+    Ok(LearningSource { history, home, generation, proof:LearningProof::Historical { records, run:historical, home:source_home },
+        version:json!({"method":workflow["revision_method"],"value":workflow["revision"]}), slot:slot(&workflow,&holding), files,
+        standing:"historical quoted record and native-history correspondence; unsigned evidence, no live run, supply, selection or act custody restored".into() })
+}
+fn historical_files(
+    root: &Mutex<WorkflowRootSession>,
+    workflow: &Value,
+    holding: &str,
+) -> Option<BTreeMap<String, Vec<u8>>> {
+    let identity: crate::workflow_workspace::WorkflowIdentity =
+        serde_json::from_value(workflow.clone()).ok()?;
+    let libraries: Vec<_> = root
+        .lock()
+        .ok()?
+        .libraries
+        .values()
+        .filter(|library| {
+            library.origin == identity.origin && library.source_root == identity.source_root
+        })
+        .cloned()
+        .collect();
+    let [library] = libraries.as_slice() else {
+        return None;
+    };
+    let owner = library.owner.try_lock().ok()?;
+    let stored = owner.store_copy(&identity);
+    if stored.parent()?.to_str() != Some(holding) {
+        return None;
+    }
+    let snapshot = Snapshot::capture(&stored).ok()?;
+    (identity.revision_method == crate::workflow_workspace::SNAPSHOT_METHOD
+        && snapshot.revision() == identity.revision)
+        .then(|| snapshot.files().clone())
+}
+/// Cheap availability only: strict record and native-history correspondence is
+/// read on the person's press, never N full project scans while rendering.
+pub(crate) fn learning_status(
+    homes: &[std::sync::Arc<HomeSession>],
+    project: Option<&std::path::Path>,
+    run: &str,
+    conversation: Option<&str>,
+) -> Value {
+    let (rows, events) = recovery_facts(homes);
+    learning_status_with_facts(homes, project, run, conversation, &rows, &events)
+}
+
+/// Reuse one REC snapshot for all reopened runs; no native-history reads.
+pub(crate) fn learning_status_with_facts(
+    homes: &[std::sync::Arc<HomeSession>],
+    project: Option<&std::path::Path>,
+    run: &str,
+    conversation: Option<&str>,
+    rows: &[Value],
+    events: &[Value],
+) -> Value {
+    let result = (|| -> Result<(), String> {
+        if project.is_none() {
+            return Err("explicit opened project unavailable".into());
+        }
+        let thread = conversation
+            .filter(|s| !s.is_empty())
+            .ok_or("recorded conversation unavailable")?;
+        let source =
+            crate::historical_run_learning::source_home_for_run(run, thread, rows, events)?;
+        recorded_home(homes, &source.home_class, thread)?;
+        Ok(())
+    })();
+    let offered = result.is_ok();
+    let reason = result.err();
+    let version_candidate = project.is_some() && !run.is_empty();
+    json!({"bringBack":{"offered":offered,"reason":reason},"compare":{"offered":version_candidate,"reason":if version_candidate {None}else{Some("explicit project and recorded run required")},"activityLimit":reason},
+        "standing":"historical records; exact record and native-history correspondence read on request; no live run, selection or act custody restored"})
 }
 
 /// SQ-BB BB-1…BB-4: read the trial's conversation (clean) or linked
 /// sub-agent (delegated), or a real run's turns from its start turn to its end
 /// mark, through Codex's history, and pre-fill the transcript in `thread`'s
 /// composer, unsent. Waits (refuses) while a turn is live in the source.
-pub(crate) fn bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSession, trial: Option<&str>, run: Option<&str>, generation: &Value, thread: &str, include_native: bool) -> Result<Value, String> {
-    current_conversation(&home.host.snapshot(), generation, thread).map_err(|e| format!("{e}; nothing pre-filled"))?;
-    let view = home.runtime.lock().unwrap().native_view();
-    let source = {
-        let root = root.lock().unwrap();
-        match (trial, run) {
-            (Some(reference), None) => root.trial_source(reference)?,
-            (None, Some(run_ref)) => root.run_source(run_ref)?.0,
-            _ => return Err("Bring back takes one trial or one run".into()),
-        }
-    };
-    if thread_live(&view, &source.thread) {
-        return Err("A turn is live in that conversation; Bring back waits until none is live".into());
+pub(crate) fn bring_back_with_homes(
+    root: &Mutex<WorkflowRootSession>,
+    homes: &[std::sync::Arc<HomeSession>],
+    project: Option<&std::path::Path>,
+    target_home: &HomeSession,
+    trial: Option<&str>,
+    run: Option<&str>,
+    generation: &Value,
+    thread: &str,
+    include_native: bool,
+) -> Result<Value, String> {
+    current_conversation(&target_home.host.snapshot(), generation, thread)
+        .map_err(|e| format!("{e}; nothing pre-filled"))?;
+    let source = resolve_learning(root, homes, project, trial, run)?;
+    if source_live(&source.home, &source.generation, &source.history.thread) {
+        return Err(
+            "A turn is live in that source conversation; Bring back waits until none is live"
+                .into(),
+        );
     }
-    let read_at = crate::util::now_rfc3339();
-    let (turns, turns_limit) = read_source(home, generation, &source);
+    let (turns, turns_limit) = read_source(&source.home, &source.generation, &source.history)?;
+    source.recheck(root, homes)?;
+    current_conversation(&target_home.host.snapshot(), generation, thread)
+        .map_err(|e| format!("{e}; target changed while reading; nothing pre-filled"))?;
     let composed = transcript::compose_transcript(&TranscriptInput {
-        source: source.label.clone(),
-        read_at,
+        source: source.history.label.clone(),
+        read_at: crate::util::now_rfc3339(),
         turns: &turns,
         turns_limit,
-        trial_text: source.trial_line.clone(),
+        trial_text: source.history.trial_line.clone(),
         include_native,
         bound: transcript::TRANSCRIPT_BOUND,
     });
-    let (card, prompt) = match &source.label {
-        TranscriptSource::Trial { sequence, draft_name, rev12, .. } => (
-            format!("transcript of trial {sequence} of draft {draft_name} @ {rev12}, read from Codex history"),
-            format!("Here is how trial {sequence} went. Please assess it against the draft: where the agent followed the workflow, where it departed or got stuck, and what you would change."),
-        ),
-        TranscriptSource::Run { run, origin, name, .. } => (
-            format!("transcript of run {run} of {origin}:{name}, read from Codex history"),
-            format!("Here is how a real run of {origin}:{name} went. Please assess it against the workflow: where the agent followed it, where it departed or got stuck, and what you would change in a new revision."),
-        ),
+    let (card,prompt)=match &source.history.label {
+        TranscriptSource::Trial { sequence,draft_name,rev12,.. }=>(format!("transcript of trial {sequence} of draft {draft_name} @ {rev12}, read from Codex history"),
+            format!("Here is how trial {sequence} went. Please assess it against the draft: where the agent followed the workflow, where it departed or got stuck, and what you would change.")),
+        TranscriptSource::Run {run,origin,name,..}=>(format!("transcript of run {run} of {origin}:{name}, read from Codex history; {}",source.standing),
+            format!("Here is how a real run of {origin}:{name} went. Please assess it against the workflow: where the agent followed it, where it departed or got stuck, and what you would change in a new revision.")),
     };
     let id = crate::util::opaque_id("bring-back:")?;
     let pending = PendingBringBack {
         trial: trial.map(str::to_owned),
         run: run.map(str::to_owned),
-        target: (generation.clone(), thread.to_owned()),
+        target: (generation.clone(), thread.into()),
         prompt,
         transcript: composed.text,
         card,
@@ -1493,15 +2070,51 @@ pub(crate) fn bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
         include_native,
         client: crate::util::opaque_id("bring-back-message:")?,
         in_flight: false,
+        source: source.source_view(),
     };
-    let view = json!({"id":id,"card":pending.card,"bytes":pending.transcript.len(),"shortenings":pending.shortenings,"state":"pre-filled; not sent"});
-    root.lock().unwrap().trial_desk.bring_backs.insert(id, pending);
+    let view = json!({"id":id,"card":pending.card,"source":pending.source,"bytes":pending.transcript.len(),"shortenings":pending.shortenings,"state":"pre-filled; not sent"});
+    // The source and target are checked again immediately before publication;
+    // none of this constructs a live run, selection, supply or act capability.
+    source.recheck(root, homes)?;
+    current_conversation(&target_home.host.snapshot(), generation, thread)?;
+    root.lock()
+        .unwrap()
+        .trial_desk
+        .bring_backs
+        .insert(id, pending);
     Ok(view)
 }
-pub(crate) fn cancel_bring_back(root: &Mutex<WorkflowRootSession>, id: &str) -> Result<Value, String> {
+#[cfg(test)]
+pub(crate) fn bring_back(
+    root: &Mutex<WorkflowRootSession>,
+    home: &std::sync::Arc<HomeSession>,
+    trial: Option<&str>,
+    run: Option<&str>,
+    generation: &Value,
+    thread: &str,
+    include_native: bool,
+) -> Result<Value, String> {
+    bring_back_with_homes(
+        root,
+        std::slice::from_ref(home),
+        None,
+        home,
+        trial,
+        run,
+        generation,
+        thread,
+        include_native,
+    )
+}
+pub(crate) fn cancel_bring_back(
+    root: &Mutex<WorkflowRootSession>,
+    id: &str,
+) -> Result<Value, String> {
     let mut root = root.lock().unwrap();
     match root.trial_desk.bring_backs.get(id) {
-        Some(b) if b.in_flight => Err("This transcript is being sent now; it can no longer be removed".into()),
+        Some(b) if b.in_flight => {
+            Err("This transcript is being sent now; it can no longer be removed".into())
+        }
         Some(_) => {
             root.trial_desk.bring_backs.remove(id);
             Ok(json!({"id":id,"state":"removed; nothing recorded"}))
@@ -1512,14 +2125,32 @@ pub(crate) fn cancel_bring_back(root: &Mutex<WorkflowRootSession>, id: &str) -> 
 /// SQ-BB BB-5: the person sends the prompt and the transcript; a trial's
 /// *brought back* observation is written on Codex's acknowledgment. A real
 /// run brought back has no trial link, so nothing is recorded for it.
-pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSession, id: &str, generation: &Value, thread: &str, person_text: &str) -> Result<Value, SendRefusal> {
-    let still = |root: &WorkflowRootSession| root.trial_desk.bring_backs.get(id).is_some_and(|b| !b.in_flight);
-    let refuse = |root: &WorkflowRootSession, message: String| SendRefusal { prefill_kept: still(root), message };
+pub(crate) fn send_bring_back(
+    root: &Mutex<WorkflowRootSession>,
+    home: &HomeSession,
+    id: &str,
+    generation: &Value,
+    thread: &str,
+    person_text: &str,
+) -> Result<Value, SendRefusal> {
+    let still = |root: &WorkflowRootSession| {
+        root.trial_desk
+            .bring_backs
+            .get(id)
+            .is_some_and(|b| !b.in_flight)
+    };
+    let refuse = |root: &WorkflowRootSession, message: String| SendRefusal {
+        prefill_kept: still(root),
+        message,
+    };
     if let Err(e) = current_conversation(&home.host.snapshot(), generation, thread) {
         return Err(refuse(&root.lock().unwrap(), format!("{e}; nothing sent")));
     }
     let Some(home_key) = generation["home"].as_str().map(str::to_owned) else {
-        return Err(refuse(&root.lock().unwrap(), "generation home required; nothing sent".into()));
+        return Err(refuse(
+            &root.lock().unwrap(),
+            "generation home required; nothing sent".into(),
+        ));
     };
     let (elements, client) = {
         let mut root = root.lock().unwrap();
@@ -1529,24 +2160,46 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
             Ok(None) => {}
         }
         let Some(b) = root.trial_desk.bring_backs.get_mut(id) else {
-            return Err(SendRefusal::not_kept(format!("No pre-filled transcript {id}")));
+            return Err(SendRefusal::not_kept(format!(
+                "No pre-filled transcript {id}"
+            )));
         };
         if b.in_flight {
-            return Err(SendRefusal::not_kept("This transcript is being sent now; nothing sent again"));
+            return Err(SendRefusal::not_kept(
+                "This transcript is being sent now; nothing sent again",
+            ));
         }
         b.in_flight = true;
         b.target = (generation.clone(), thread.to_owned());
-        ([person_text.to_owned(), b.transcript.clone()].into_iter().filter(|e| !e.is_empty()).collect::<Vec<_>>(), b.client.clone())
+        (
+            [person_text.to_owned(), b.transcript.clone()]
+                .into_iter()
+                .filter(|e| !e.is_empty())
+                .collect::<Vec<_>>(),
+            b.client.clone(),
+        )
     };
     let refs: Vec<&str> = elements.iter().map(String::as_str).collect();
-    let outcome = home.host.turn_start_texts(generation, thread, &refs, &client);
+    let outcome = home
+        .host
+        .turn_start_texts(generation, thread, &refs, &client);
     let mut root = root.lock().unwrap();
     match outcome {
         Ok(response) => {
-            let b = root.trial_desk.bring_backs.remove(id).ok_or_else(|| SendRefusal::not_kept("pre-filled transcript lost while sending"))?;
+            let b =
+                root.trial_desk.bring_backs.remove(id).ok_or_else(|| {
+                    SendRefusal::not_kept("pre-filled transcript lost while sending")
+                })?;
             let turn = response["result"]["turn"]["id"].clone();
             let recorded = match &b.trial {
-                Some(reference) => Some(root.trials.record_observation(reference, TrialObservation::BroughtBack { target_conversation: thread.to_owned(), transcript: b.transcript.clone(), shortenings: b.shortenings.clone() })),
+                Some(reference) => Some(root.trials.record_observation(
+                    reference,
+                    TrialObservation::BroughtBack {
+                        target_conversation: thread.to_owned(),
+                        transcript: b.transcript.clone(),
+                        shortenings: b.shortenings.clone(),
+                    },
+                )),
                 None => None,
             };
             match recorded {
@@ -1559,11 +2212,15 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
             if let Some(b) = root.trial_desk.bring_backs.get_mut(id) {
                 b.in_flight = false;
             }
-            Err(SendRefusal::kept(format!("{reason}. Nothing recorded; the transcript stays pre-filled")))
+            Err(SendRefusal::kept(format!(
+                "{reason}. Nothing recorded; the transcript stays pre-filled"
+            )))
         }
         Err(reason) => {
             root.trial_desk.bring_backs.remove(id);
-            Err(SendRefusal::not_kept(format!("{reason}. The send's outcome is not established; nothing is recorded or resent")))
+            Err(SendRefusal::not_kept(format!(
+                "{reason}. The send's outcome is not established; nothing is recorded or resent"
+            )))
         }
     }
 }
@@ -1572,90 +2229,229 @@ pub(crate) fn send_bring_back(root: &Mutex<WorkflowRootSession>, home: &HomeSess
 /// same slot, side by side with the difference between their versions (read
 /// from the trial snapshots and the revision store). Scores and judges nothing;
 /// records nothing.
-pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) -> Option<std::sync::Arc<HomeSession>>, left: &Value, right: &Value) -> Result<Value, String> {
+pub(crate) fn compare_with_homes(
+    root: &Mutex<WorkflowRootSession>,
+    homes: &[std::sync::Arc<HomeSession>],
+    project: Option<&std::path::Path>,
+    left: &Value,
+    right: &Value,
+) -> Result<Value, String> {
     struct Side {
-        /// The conversation whose Codex home this side is read from (H-5).
-        home_thread: Option<String>,
         label: String,
         kind: String,
         version: Value,
         conversation: Value,
         snapshot: Value,
-        files: Option<std::collections::BTreeMap<String, Vec<u8>>>,
-        slot: String,
-        source: Result<HistorySource, String>,
+        files: Option<BTreeMap<String, Vec<u8>>>,
+        slot: Value,
+        source: Result<LearningSource, String>,
+        version_proof: Option<(
+            crate::workflow_workspace::publication::ProjectRecords,
+            crate::historical_run_learning::HistoricalVersion,
+        )>,
     }
-    let side = |root: &WorkflowRootSession, spec: &Value| -> Result<Side, String> {
+    let side = |spec: &Value| -> Result<Side, String> {
         if let Some(reference) = spec["trial"].as_str() {
-            let (link, library) = root.link_and_library(reference)?;
-            let name = link["draft"]["name"].as_str().unwrap_or_default().to_owned();
-            let content = link["content"]["value"].as_str().unwrap_or_default().to_owned();
-            let folder = package_copy::content_folder(&library.root, TRIAL_AREA, &name, &content);
-            let standing = package_copy::copy_standing(&folder, &content);
-            let files = match standing {
-                CopyStanding::Current => Snapshot::capture(&folder).ok().map(|s| s.files().clone()),
-                _ => None,
+            let (label, kind, version, conversation, snapshot, files, slot) = {
+                let locked = root.lock().unwrap();
+                let (link, library) = locked.link_and_library(reference)?;
+                let name = link["draft"]["name"].as_str().unwrap_or_default();
+                let content = link["content"]["value"].as_str().unwrap_or_default();
+                let folder = package_copy::content_folder(&library.root, TRIAL_AREA, name, content);
+                let standing = package_copy::copy_standing(&folder, content);
+                let files = if matches!(standing, CopyStanding::Current) {
+                    Snapshot::capture(&folder)
+                        .ok()
+                        .filter(|snapshot| snapshot.revision() == content)
+                        .map(|snapshot| snapshot.files().clone())
+                } else {
+                    None
+                };
+                let trial = &link["trial"];
+                (
+                    format!("trial {} of draft {name}", trial["sequence"]),
+                    trial["kind"].as_str().unwrap_or_default().to_owned(),
+                    link["content"].clone(),
+                    transcript::trial_conversation(
+                        &trial["authoring_conversation"],
+                        &trial["clean_conversation"],
+                        locked.linked_child(reference).as_deref(),
+                    ),
+                    transcript::trial_snapshot(&standing),
+                    files,
+                    json!({"origin":library.origin,"sourceRoot":library.source_root,"name":name}),
+                )
             };
-            let trial = &link["trial"];
             return Ok(Side {
-                home_thread: root.trial_home_thread(reference),
-                label: format!("trial {} of draft {name}", trial["sequence"]),
-                kind: trial["kind"].as_str().unwrap_or_default().into(),
-                version: link["content"].clone(),
-                conversation: transcript::trial_conversation(&trial["authoring_conversation"], &trial["clean_conversation"], root.linked_child(reference).as_deref()),
-                snapshot: transcript::trial_snapshot(&standing),
+                label,
+                kind,
+                version,
+                conversation,
+                snapshot,
                 files,
-                slot: format!("{}:{name}", library.origin),
-                source: root.trial_source(reference),
+                slot,
+                source: resolve_learning(root, homes, project, Some(reference), None),
+                version_proof: None,
             });
         }
-        if let Some(run_ref) = spec["run"].as_str() {
-            let (source, files, slot) = root.run_source(run_ref)?;
-            let run = root.runs.get(run_ref).and_then(|r| r.try_lock().ok().map(|r| json!({"method":r.prepared().workflow().revision_method,"value":r.prepared().workflow().revision}))).unwrap_or(Value::Null);
-            return Ok(Side { home_thread: Some(source.thread.clone()), label: format!("run {run_ref} of {slot}"), kind: "registered run".into(), version: run, conversation: transcript::run_conversation(&source.thread), snapshot: transcript::run_snapshot(), files: Some(files), slot, source: Ok(source) });
+        if let Some(reference) = spec["run"].as_str() {
+            match resolve_learning(root, homes, project, None, Some(reference)) {
+                Ok(source) => {
+                    return Ok(Side {
+                        label: format!(
+                            "run {reference} of {}:{}",
+                            source.slot["origin"].as_str().unwrap_or_default(),
+                            source.slot["name"].as_str().unwrap_or_default()
+                        ),
+                        kind: "registered run".into(),
+                        version: source.version.clone(),
+                        conversation: transcript::run_conversation(&source.history.thread),
+                        snapshot: transcript::run_snapshot(),
+                        files: source.files.clone(),
+                        slot: source.slot.clone(),
+                        source: Ok(source),
+                        version_proof: None,
+                    })
+                }
+                Err(reason) => {
+                    if root.lock().unwrap().runs.contains_key(reference) {
+                        return Err(reason);
+                    }
+                    let records = crate::workflow_workspace::publication::ProjectRecords::open(
+                        project.ok_or("historical Compare requires the explicit opened project")?,
+                    )?;
+                    let version = crate::historical_run_learning::HistoricalVersion::read(
+                        &records, reference,
+                    )?;
+                    let files = historical_files(root, &version.workflow, &version.holding_library);
+                    let mut snapshot = transcript::run_snapshot();
+                    snapshot["reading"]=json!("historical recorded version only; native activity correspondence unavailable; no live run or selection restored");
+                    return Ok(Side {
+                        label: format!(
+                            "run {reference} of {}:{}",
+                            version.workflow["origin"].as_str().unwrap_or_default(),
+                            version.workflow["name"].as_str().unwrap_or_default()
+                        ),
+                        kind: "registered run".into(),
+                        version: json!({"method":version.workflow["revision_method"],"value":version.workflow["revision"]}),
+                        conversation: transcript::run_conversation(&version.conversation),
+                        snapshot,
+                        files,
+                        slot: slot(&version.workflow, &version.holding_library),
+                        source: Err(reason),
+                        version_proof: Some((records, version)),
+                    });
+                }
+            }
         }
         Err("Each side of Compare is a trial or a run".into())
     };
-    let (a, b) = {
-        let root = root.lock().unwrap();
-        (side(&root, left)?, side(&root, right)?)
-    };
-    let runs = [&a, &b].iter().filter(|s| s.kind == "registered run").count();
+    let (a, b) = (side(left)?, side(right)?);
+    let runs = [&a, &b]
+        .iter()
+        .filter(|side| side.kind == "registered run")
+        .count();
     if runs == 2 {
         return Err("Compare takes two trials, or a trial and a real run".into());
     }
     if runs == 1 && a.slot != b.slot {
-        return Err(format!("Compare takes a trial and a real run of a revision of the same slot ({} and {} differ)", a.slot, b.slot));
+        return Err("Compare takes a trial and a real run of a revision of the same full source-qualified slot".into());
     }
-    let summarize = |s: &Side| -> Value {
-        let home = s.home_thread.as_deref().and_then(resolve);
-        let source = match (&s.source, home) {
-            (Ok(source), Some(home)) => Ok((source, home)),
-            (Ok(_), None) => Err("this side's conversation is not loaded in a Codex home now; its activity was not read".to_owned()),
-            (Err(cause), _) => Err(cause.clone()),
-        };
-        match source {
-            Ok((source, home)) => {
-                let generation = home.host.snapshot()["generation"].clone();
-                let (turns, limit) = read_source(&home, &generation, source);
-                transcript::activity_summary(&turns, limit.as_deref())
+    let summarize = |side: &Side| -> Result<Value, String> {
+        let mut summary = match &side.source {
+            Ok(source) => {
+                let reading = read_source(&source.home, &source.generation, &source.history);
+                source.recheck(root, homes)?;
+                let mut summary = match reading {
+                    Ok((turns, limit)) => transcript::activity_summary(&turns, limit.as_deref()),
+                    Err(reason) => {
+                        json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],"finalAgentMessage":null,"limits":[reason]})
+                    }
+                };
+                if let Some(limits) = summary["limits"].as_array_mut() {
+                    limits.push(json!(source.standing));
+                }
+                if let LearningProof::Historical { run, .. } = &source.proof {
+                    if let Some(limits) = summary["limits"].as_array_mut() {
+                        limits.extend(run.limits.iter().map(|limit| json!(limit)));
+                    }
+                }
+                summary
             }
-            Err(cause) => json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],"finalAgentMessage":null,"limits":[cause]}),
+            Err(reason) => {
+                let mut limits = vec![json!(reason)];
+                if let Some((_, version)) = &side.version_proof {
+                    limits.extend(version.limits.iter().map(|limit| json!(limit)));
+                }
+                json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],"finalAgentMessage":null,"limits":limits})
+            }
+        };
+        if !summary.is_object() {
+            summary = json!({"limits":["activity summary unavailable"]});
         }
+        Ok(summary)
     };
-    // The one shape the web view renders, pinned by tests/fixtures/trial-compare.json.
-    let view = |s: &Side| transcript::CompareSide {
-        label: s.label.clone(),
-        kind: s.kind.clone(),
-        version: s.version.clone(),
-        conversation: s.conversation.clone(),
-        snapshot: s.snapshot.clone(),
-        summary: summarize(s),
+    let (a_summary, b_summary) = (summarize(&a)?, summarize(&b)?);
+    for side in [&a, &b] {
+        if let Ok(source) = &side.source {
+            source.recheck(root, homes)?;
+        }
+        if let Some((records, version)) = &side.version_proof {
+            version.recheck(records)?;
+        }
+    }
+    let view = |side: &Side, summary: Value| transcript::CompareSide {
+        label: side.label.clone(),
+        kind: side.kind.clone(),
+        version: side.version.clone(),
+        conversation: side.conversation.clone(),
+        snapshot: side.snapshot.clone(),
+        summary,
     };
     let difference = match (&a.files, &b.files) {
         (Some(x), Some(y)) => transcript::version_difference(x, y),
-        _ => json!({"limit":"version bytes not available for one side; no difference shown"}),
+        _ => {
+            json!({"limit":"exact source-qualified revision bytes are unavailable for one side; no version difference shown"})
+        }
     };
-    Ok(transcript::compare_result(&view(&a), &view(&b), difference))
+    Ok(transcript::compare_result(
+        &view(&a, a_summary),
+        &view(&b, b_summary),
+        difference,
+    ))
 }
-
+#[cfg(test)]
+pub(crate) fn compare(
+    root: &Mutex<WorkflowRootSession>,
+    resolve: &dyn Fn(&str) -> Option<std::sync::Arc<HomeSession>>,
+    left: &Value,
+    right: &Value,
+) -> Result<Value, String> {
+    let mut homes = Vec::new();
+    for spec in [left, right] {
+        let thread = {
+            let locked = root.lock().unwrap();
+            if let Some(reference) = spec["trial"].as_str() {
+                locked.trial_home_thread(reference)
+            } else {
+                spec["run"]
+                    .as_str()
+                    .and_then(|reference| locked.runs.get(reference))
+                    .and_then(|run| {
+                        run.try_lock()
+                            .ok()
+                            .map(|run| run.prepared().scope().conversation.clone())
+                    })
+            }
+        };
+        if let Some(home) = thread.as_deref().and_then(resolve) {
+            if !homes
+                .iter()
+                .any(|existing| std::sync::Arc::ptr_eq(existing, &home))
+            {
+                homes.push(home);
+            }
+        }
+    }
+    compare_with_homes(root, &homes, None, left, right)
+}

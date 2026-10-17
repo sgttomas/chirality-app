@@ -52,6 +52,8 @@ needs:
     workspace join, preserving missing capability, required checkpoint and unknown-outcome conditions;
     for each run DEL-02-03 starts, this workspace composes the run-start text (and the App-written run-end
     line), records its content identity and checks it against Codex''s history.
+    Historical learning consumes the original recorded opening/end and full workflow/conversation
+    tuple; readable records alone do not resume that run or establish its current native source.
 
 
     Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
@@ -95,6 +97,9 @@ needs:
   condition: 'Receive content-bound decision and compact run-record behavior from DEL-04-03, including
     the record kind for the registration act (A15) bound to the exact reviewed content, for truthful review/registration
     presentation binding actual actor, content, scope and purpose.
+    Historical real-run Bring back and Compare require same-project original WR/RS correspondence
+    and unchanged source bytes; conflicts or missing boundaries remain explicit read limits, not new
+    supply, registration or act authority (Design §17).
 
 
     Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
@@ -113,7 +118,10 @@ needs:
 - from: DEL-01-02
   condition: 'Consume DEL-01-02''s definitions of ending a run (distinct from interrupting a turn or stopping
     Codex) and its App-start reconciliation event for chained runs and interrupted registration attempts;
-    this workspace does not define them.
+    this workspace does not define them. Historical real-run learning also requires REC source-home
+    correspondence for the run-tagged conversation and original generation provenance, and current
+    native history from that source. Missing or ambiguous source identity is unavailable; recovery
+    pointers and quoted run records create no current operational authority (Design §17).
 
 
     Notes: FACT: new consumer row (ledger NR-04; D5 NR-1; R22-4; grounded by P1-03). The same sentence
@@ -242,6 +250,8 @@ code_paths:
 - app/src-tauri/src/host_tick.rs
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/trial_flows.rs
+- app/src-tauri/src/historical_run_learning.rs
+- app/src-tauri/src/workflow_learning_pointers.rs
 - app/src-tauri/src/workflow_drafts.rs
 - app/src-tauri/src/workflow_library.rs
 - app/src-tauri/src/workflow_package_copy.rs
@@ -249,9 +259,13 @@ code_paths:
 - app/src-tauri/src/workflow_trials.rs
 - app/src-tauri/src/workflow_workspace.rs
 - app/src/TrialComposer.tsx
+- app/src/RunPanel.tsx
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/historical_run_learning_tests.rs
+- app/src-tauri/src/historical_trial_flows_tests.rs
+- app/tests/run-panel.test.mjs
 - app/src-tauri/src/records_portable_reconstruction_tests.rs
 - app/src-tauri/src/workflow_chat_selection_tests.rs
 - app/tests/workflow-selection.test.mjs

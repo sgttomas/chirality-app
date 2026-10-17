@@ -127,6 +127,31 @@ test('the bring-back composer pre-fills the prompt and transcript card and sends
   assert.deepEqual(s.calls[1],['workflow_bring_back_send',{id:'bb-1',generation:g,threadId:'auth',personText:'assess please'}]);
 });
 
+test('a historical real-run transcript remains an unsent, removable card and sends the edited prompt only on Send',()=>{
+  const pending=bringBack({id:'bb:history',trial:null,run:'run:restored',prompt:'Assess this past run.',
+    transcript:'[Chirality] Run run:restored of project:load-check revision abcdef012345: transcript read from Codex history.\nUnsigned recorded run evidence; no original supply authority restored.',
+    card:'transcript of historical run run:restored',includeNative:true,
+    source:{threadId:'original-source',modeHomeClass:'H-acct',standing:'Historical source read on request; recorded evidence is unsigned.',limits:['A prior supply comparison differed; this transcript does not replace it.'],recordedNativeSource:{privatePath:'/private/REC-do-not-render',generation:{home:'raw-home-do-not-render'}}}});
+  const s=spy();const edits=[];
+  const tree=BringBackComposerView({pending,conversations,prompt:'Please refine the method using this evidence.',setPrompt:p=>edits.push(p),target:ckey(conversations[1]),setTarget:()=>{},outcome:unsent,setOutcome:()=>{},busy:false,ready:true,act:s.act});
+  const html=renderToStaticMarkup(tree);
+  assert.deepEqual(s.calls,[]);
+  assert.match(html,/pre-filled, not sent/);
+  assert.match(html,/Unsigned recorded run evidence; no original supply authority restored/);
+  assert.match(html,/Historical source read on request; recorded evidence is unsigned/);
+  assert.match(html,/A prior supply comparison differed; this transcript does not replace it/);
+  assert.doesNotMatch(html,/REC-do-not-render|raw-home-do-not-render/,'source standing is visible without dumping private native metadata');
+  assert.match(html,/native items included/);
+  assert.match(html,/Not editable here/);
+  assert.equal(find(tree,n=>n.type==='textarea').length,1,'only the person prompt is editable');
+  find(tree,n=>n.type==='textarea')[0].props.onChange({target:{value:'my revised question'}});
+  assert.deepEqual(edits,['my revised question']);
+  buttons(tree,'Send')[0].props.onClick();
+  assert.deepEqual(s.calls,[['workflow_bring_back_send',{id:'bb:history',generation:g,threadId:'other',personText:'Please refine the method using this evidence.'}]]);
+  buttons(tree,'Remove')[0].props.onClick();
+  assert.deepEqual(s.calls.at(-1),['workflow_bring_back_cancel',{id:'bb:history'}]);
+});
+
 // Trial witness 2026-10-10 (b): the title named the trial by its raw reference.
 test('the bring-back composer names the trial by its sequence and draft, never its reference (TT-10)',()=>{
   const titled=h(BringBackComposer,{pending:bringBack({sequence:2,draftName:'summarize-decisions'}),conversations,busy:false,ready:true,act:async()=>{}});
@@ -157,11 +182,11 @@ test('the workflow panel shows no raw or stale trial result after a trial press'
   await press('Try in a fresh conversation');
   assert.doesNotMatch(container.textContent,/\{"ok":true\}|pre-filled"/,'a trial press leaves no earlier result standing');
   await React.act(()=>root.unmount());
-  // Only pre-fill results are hidden (review of #1260 (3)): Read again's reasons and a real run brought back still show.
+  // A real-run bring-back now uses the same current composer instead of a
+  // stale raw prefill receipt; Read again's reasons still remain visible.
   const {workflowActionMessage}=loadSrc('App');
-  for(const c of ['workflow_trial_prepare','workflow_trial_again','workflow_trial_bring_back'])assert.equal(workflowActionMessage(c,prefilled),'',c);
+  for(const c of ['workflow_trial_prepare','workflow_trial_again','workflow_trial_bring_back','workflow_run_bring_back'])assert.equal(workflowActionMessage(c,prefilled),'',c);
   assert.match(workflowActionMessage('workflow_trial_read',{inputNotRead:[{thread:'child-1',limit:'fixture unreadable child'}]}),/fixture unreadable child/);
-  assert.match(workflowActionMessage('workflow_run_bring_back',{id:'bb-run'}),/bb-run/);
 });
 
 test('mounting and updating the composers sends nothing (no automatic send)',async()=>{

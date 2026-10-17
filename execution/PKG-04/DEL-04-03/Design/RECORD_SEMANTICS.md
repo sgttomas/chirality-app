@@ -1532,6 +1532,16 @@ an unchanged or moved root and after lost-link/startup-identity recovery. Its
 invented native peer establishes those bounded local cases; it does not supply
 DEL-09-11's separate later reconstruction witness or host adoption.
 
+DEL-02-02's historical learning reader (`historical_run_learning.rs`) consumes
+the same WR/RS originals as quoted evidence for Bring back and Compare. It
+checks the full run/workflow/conversation correspondence and original native
+boundaries without reconstructing any publication or supply capability. REC
+source-home evidence and a current read of that home's native history are
+separate required inputs; records recovery supplies neither missing native
+history nor a workflow library's revision bytes. Changed or conflicting
+originals refuse the affected learning read. These reads append no run, supply
+or act record; an explicitly sent transcript is an ordinary person message.
+
 - **Placement** (implemented). The App keeps its records in its own records
   store at `<App-own-user-data>/records/` (the Tauri App data folder),
   outside every Codex home and every project working tree. Each project has
