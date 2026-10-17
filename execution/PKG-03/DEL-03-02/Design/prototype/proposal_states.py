@@ -202,15 +202,26 @@ def request_kinds(run):
 
 
 def item_binding(doc):
-    """A comparable host-assigned change-content identity set, not an App hash."""
-    if not all(it.get("identity_method") for it in doc["items"]):
+    """Retain supplied identity evidence, including an unavailable method."""
+    return tuple((it["item_identity"], it["change_item_content_identity"], it.get("identity_method"))
+                 for it in doc["items"])
+
+
+def compare_items(left, right):
+    """True: complete equal reference sets; False: comparable conflict; None: unavailable/incomparable."""
+    a, b = {i: (c, m) for i, c, m in left}, {i: (c, m) for i, c, m in right}
+    if len(a) != len(left) or len(b) != len(right):
         return None
-    return frozenset((it["item_identity"], it["change_item_content_identity"], it["identity_method"])
-                     for it in doc["items"])
+    comparable = {i for i in a.keys() & b.keys() if a[i][1] and a[i][1] == b[i][1]}
+    if any(a[i][0] != b[i][0] for i in comparable):
+        return False
+    return True if a.keys() == b.keys() == comparable else None
 
 
 def handle_bindings(doc):
-    return {(h["handle_kind"], h["value"], h["scope"]) for h in doc.get("host_handles", [])}
+    # Scope states validity, not a different token. With no scope-end evidence,
+    # a later omission or changed scope label cannot erase a known association.
+    return {(h["handle_kind"], h["value"]) for h in doc.get("host_handles", [])}
 
 
 class SubmissionHistories:
@@ -218,12 +229,16 @@ class SubmissionHistories:
     def __init__(self):
         self.groups, self.references, self.established, self.unknown = {}, {}, set(), {}
 
+    def retain_scope(self, rec):
+        doc = rec["doc"]
+        if doc.get("dedup_scope") in ("durable", "host_session", "time_window"):
+            self.established.add((rec["run"], doc["proposal_identity"]))
+
     def associate(self, rec, kind):
         doc = rec["doc"]
         group = (rec["run"], doc["proposal_identity"])
         candidates = self.groups.setdefault(group, [])
-        if doc["dedup_scope"] != "not_stated":
-            self.established.add(group)  # No scope-end evidence is supplied by this run format.
+        self.retain_scope(rec)  # No scope-end evidence is supplied by this run format.
         fresh = kind == "submit" and not doc.get("answered_from_recorded_state")
         if not candidates or (fresh and group not in self.established):
             for old in candidates:
@@ -238,22 +253,25 @@ class SubmissionHistories:
             # only supplied, uniquely matching references; conflicting or
             # non-distinguishing references leave the observation unassociated.
             binding, handles = item_binding(doc), handle_bindings(doc)
-            matches = []
-            if binding is not None:
-                matches.append({k for k in candidates if binding in self.references[k]["items"]})
-            if handles:
-                known_handles = {k for k in candidates if handles & self.references[k]["handles"]}
-                if known_handles:  # A newly supplied receipt is not a contradiction of an older handle's absence.
-                    matches.append(known_handles)
-            selected = set.intersection(*matches) if matches else set(candidates)
-            if len(selected) != 1:
+            possible, affirmed = set(candidates), set()
+            for candidate in candidates:
+                comparisons = [compare_items(binding, prior) for prior in self.references[candidate]["items"]]
+                if False in comparisons:
+                    possible.discard(candidate)
+                elif True in comparisons:
+                    affirmed.add(candidate)
+            for handle in handles:
+                known_handles = {k for k in candidates if handle in self.references[k]["handles"]}
+                if known_handles:  # A new receipt is not a contradiction of an older absence.
+                    possible &= known_handles
+                    affirmed |= known_handles
+            if len(possible) != 1 or not possible <= affirmed:
                 for old in candidates:
                     self.unknown.setdefault(old, (rec["step"], "observation not associated with a unique submission"))
                 return None
-            key = selected.pop()
+            key = possible.pop()
         binding = item_binding(doc)
-        if binding is not None:
-            self.references[key]["items"].add(binding)
+        self.references[key]["items"].add(binding)
         self.references[key]["handles"].update(handle_bindings(doc))
         self.unknown.pop(key, None)
         return key
@@ -270,6 +288,7 @@ def check_run(run):
     for line in (Path(run) / "host_docs.jsonl").read_text().splitlines():
         rec = json.loads(line)
         doc = rec["doc"]
+        histories.retain_scope(rec)  # not_known_to_host also declares scope (PM-4).
         if doc.get("kind") != "recorded_state":
             continue
         n += 1
@@ -357,6 +376,46 @@ def repeat_scope_selftest():
     recorded_repeat = record("repeat", "submit", "queued")
     recorded_repeat["doc"]["answered_from_recorded_state"] = True
     cases.append(("answer from recorded state never resets history", [first, recorded_repeat], False, 0))
+    for scope in ("durable", "host_session", "time_window"):
+        coverage = record("coverage", "observe", "queued", scope)
+        coverage["doc"] = {"kind": "not_known_to_host", "proposal_identity": "same-proposal",
+                           "dedup_scope": scope, "observed_at": "coverage"}
+        cases.append((f"not_known_to_host retains {scope}", [coverage, first, repeat], False, 0))
+    def with_preview(rec, value):
+        rec["doc"].setdefault("host_handles", []).append({"handle_kind": "preview_reference", "value": value, "scope": "host_session"})
+        return rec
+    a = with_preview(record("first", "submit", "refused_invalid", handle="old"), "preview-old")
+    b = with_preview(record("repeat", "submit", "queued", content="new", handle="new"), "preview-new")
+    mixed = with_preview(record("observe", "observe", "queued", content="new", handle="new"), "preview-old")
+    cases.append(("every known handle must agree with content and other handles", [a, b, mixed], True, 1))
+    consistent = with_preview(record("observe", "observe", "drafted", content="new", handle="new"), "preview-new")
+    cases.append(("agreeing handles preserve illegal repeat transition", [a, b, consistent], False, 0))
+    def no_method(rec):
+        rec["doc"]["items"][0].pop("identity_method", None)
+        return rec
+    a = no_method(record("first", "submit", "refused_invalid", handle="old"))
+    b = no_method(record("repeat", "submit", "queued", content="new", handle="new"))
+    cases.append(("missing earlier methods do not defeat unique handle", [a, b,
+                  record("observe", "observe", "drafted", content="new", handle="new")], False, 0))
+    cases.append(("missing earlier methods allow valid unique-handle observation", [a, b,
+                  record("observe", "observe", "queued", content="new", handle="new")], True, 0))
+    cases.append(("missing earlier methods alone cannot establish unique content", [a, b,
+                  record("observe", "observe", "queued", content="new")], True, 1))
+    a = record("first", "submit", "refused_invalid", handle="old")
+    b = record("repeat", "submit", "queued", content="new", handle="new")
+    cases.append(("missing observed method does not defeat unique handle", [a, b,
+                  no_method(record("observe", "observe", "drafted", content="new", handle="new"))], False, 0))
+    changed_method = record("observe", "observe", "drafted", content="new", handle="new")
+    changed_method["doc"]["items"][0]["identity_method"] = "other-method"
+    cases.append(("incomparable method does not defeat unique handle", [a, b, changed_method], False, 0))
+    no_handle = record("observe", "observe", "queued", content="new")
+    no_handle["doc"]["items"][0]["identity_method"] = "other-method"
+    cases.append(("incomparable methods alone cannot establish unique content", [a, b, no_handle], True, 1))
+    changed_scope = record("observe", "observe", "drafted", content="new", handle="new")
+    changed_scope["doc"]["host_handles"][0]["scope"] = "not_stated"
+    cases.append(("handle scope omission does not erase known token", [a, b, changed_scope], False, 0))
+    cases.append(("unavailable candidate is not excluded by another content match", [no_method(record("first", "submit", "refused_invalid")),
+                  record("repeat", "submit", "queued", content="new"), record("observe", "observe", "queued", content="new")], True, 1))
     for name, records, want, unassociated in cases:
         with tempfile.TemporaryDirectory(prefix="proposal-repeat-") as folder:
             run = Path(folder)
