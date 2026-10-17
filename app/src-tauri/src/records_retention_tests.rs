@@ -68,6 +68,108 @@ impl Drop for Fixture {
     }
 }
 #[test]
+fn records_retention_imported_package_can_be_exported_disposed_and_remains_terminal() {
+    let f = Fixture::new();
+    let source = f.export("source-package");
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: f.output.join("destination-store"),
+        placement: Placement::Test,
+        limits: vec![],
+    })));
+    let imported =
+        records_store::package::prepare(&f.project, &source, &f.actor, &f.observed).unwrap();
+    records_store::package::apply(imported, &f.actor, &f.observed).unwrap();
+    let dir = f.dir();
+    assert!(dir.join("package-imports").is_dir());
+    let stale_plan =
+        records_store::package::prepare(&f.project, &source, &f.actor, &f.observed).unwrap();
+    f.act("close", None).unwrap();
+    let bag = f.export("closed-imported-package");
+    let result = f.act("dispose", Some(&bag)).unwrap();
+    assert_eq!(result["state"], "disposed");
+    assert!(!dir.exists());
+    assert_eq!(view(&dir)["disposition"], "disposed");
+    assert!(records_store::write_dir(&f.project).is_err());
+    assert!(records_store::home(&f.project).is_err());
+    for action in ["import", "restore", "resume"] {
+        let refused = match action {
+            "import" => records_store::package::prepare(&f.project, &source, &f.actor, &f.observed),
+            "restore" => {
+                records_store::package::prepare_restore(&f.project, &source, &f.actor, &f.observed)
+            }
+            _ => records_store::package::prepare_resume(&f.project, &f.actor, &f.observed),
+        };
+        assert!(refused.is_err(), "{action} must refuse disposed records");
+        assert!(
+            !dir.exists(),
+            "{action} must not recreate disposed payload for locks"
+        );
+    }
+    assert!(records_store::package::apply(stale_plan, &f.actor, &f.observed).is_err());
+    assert!(
+        !dir.exists(),
+        "a stale native plan cannot recreate disposed payload"
+    );
+    assert!(crate::records_export::verify(&source).is_ok());
+    assert!(crate::records_export::verify(&bag).is_ok());
+}
+#[test]
+fn records_store_completed_package_history_moves_with_the_store_without_rewriting_native_intent() {
+    let f = Fixture::new();
+    let source = f.export("source-before-store-move");
+    let destination = f.output.join("destination-store");
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: destination.clone(),
+        placement: Placement::Test,
+        limits: vec![],
+    })));
+    let plan = records_store::package::prepare(&f.project, &source, &f.actor, &f.observed).unwrap();
+    records_store::package::apply(plan, &f.actor, &f.observed).unwrap();
+    let dir = f.dir();
+    let key = dir.file_name().unwrap().to_owned();
+    let journal = destination
+        .join("administration")
+        .join(&key)
+        .join("package-imports");
+    let controls = std::fs::read_dir(&journal)
+        .unwrap()
+        .map(|entry| {
+            let path = entry.unwrap().path();
+            (
+                path.file_name().unwrap().to_owned(),
+                std::fs::read(path).unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let moved = f.output.join("moved-store");
+    std::fs::rename(&destination, &moved).unwrap();
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: moved.clone(),
+        placement: Placement::Test,
+        limits: vec![],
+    })));
+    let home = records_store::home(&f.project).unwrap();
+    assert!(home.store_mode);
+    assert!(crate::storage::sources(&f.project).is_ok());
+    f.record();
+    let exported = f.export("export-after-store-move");
+    assert!(crate::records_export::verify(&exported).is_ok());
+    for (name, bytes) in controls {
+        assert_eq!(
+            std::fs::read(
+                moved
+                    .join("administration")
+                    .join(&key)
+                    .join("package-imports")
+                    .join(name)
+            )
+            .unwrap(),
+            bytes,
+            "historical native intent and completion bytes remain unchanged"
+        );
+    }
+}
+#[test]
 fn records_retention_hold_close_export_dispose_and_tombstone_preserve_other_evidence() {
     let f = Fixture::new();
     let dir = f.dir();

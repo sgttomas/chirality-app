@@ -541,6 +541,7 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
         return Err(format!("project folder must be named by its physical path: {}", root.display()));
     }
     let _lock = if mint { Some(store_lock(&store)?) } else { None };
+    package::require_root(&canonical)?;
     let lines = roots(&store)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
@@ -789,6 +790,8 @@ pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
 /// incomplete, and no project records wait for one.
 fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     crate::records_retention::check_write(dir)?;
+    let current=attach(root,false)?;
+    if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
     let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
     if let Some(started) = state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
@@ -1299,6 +1302,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let lines = roots(&store)?;
     if !listed(&lines, &at).is_empty() {
@@ -1331,6 +1335,7 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let prior = listed(&roots(&store)?, &at);
     let mut _admissions=Vec::new();
@@ -1352,6 +1357,7 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let listed = listed(&roots(&store)?, &at);
     let [project] = listed.as_slice() else {

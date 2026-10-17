@@ -1948,7 +1948,7 @@ relationships and recording outcomes; other Fleet producers remain unbuilt.
   they never satisfy disposal's current-package prerequisite.
 
   **Import verified package** is a separate native operation from the §13.7
-  migration below. The selected physical project folder must already have a
+  migration below. For this ordinary import route, the selected physical project folder must already have a
   readable link naming the package's project identity. Import can associate
   that identity with this store, or restore missing members of its existing
   subtree. It never mints a replacement identity. A different identity at this
@@ -1997,6 +1997,83 @@ relationships and recording outcomes; other Fleet producers remain unbuilt.
   members retain their original standing. Captures remain cold and import
   restores no role, workflow, supplier or capability custody. Signing remains
   dependent on App signing; byte verification supplies no source authenticity.
+
+  **Restore project from package** supplies the package-first recovery route
+  after identity loss. The native question identifies the package's original
+  project P, the physical folder and destination store, and any unused startup
+  identity Q whose root association will be released. Q's subtree is retained
+  unchanged; its identity is never reused as P. Admission requires a complete
+  bootstrap-only payload, empty administrative/import history, one original
+  minted-root association and idle owners. Used, held, closed, disposed,
+  previously adopted or ambiguous Q identities refuse restoration. An unequal
+  existing identity record for P remains a conflict, including a synthetic P
+  record made by adopting into an empty store before choosing the package.
+  These cases do not authorize replacing record bytes.
+
+  One fixed active association directory per store contains the original native
+  intent. Hash-bound project and physical-root locators are derived discovery
+  aids, resolving that original in the active directory or its retained history.
+  The active original is durable before registry, link or secondary journal
+  publication, so startup and both P/Q admission paths remain fenced across
+  interruptions. A missing link or first locator does not make the operation
+  disappear or permit another minted identity. Native retry recovers the same
+  original intent and exact publications. Admission also rechecks a queued
+  writer's original project association; an old Q pathname grants no write into
+  P after restoration. Other ordinary projects can continue, while a second
+  association waits for the one active operation to settle. Project links are
+  published on the project's filesystem, allowing a store on another volume.
+  A completed association stops fencing an old path after a valid root release;
+  a new physical folder there can acquire its own identity. Unfinished
+  association recovery retains its original physical-folder fence.
+
+  **Repair package controls** uses a separate recovery reader when the original
+  native intent survives but derived journal references, completion evidence,
+  origin receipts or private staged package are missing. It never infers the
+  missing native act from a completion or foreign receipt. Unequal controls,
+  unknown members, incompatible history and changed original prefixes stay
+  held. If the private package must be replaced, a native folder selector takes
+  fresh private custody of a byte-identical original bag, including its exact
+  tagmanifest, payload and administrative snapshot; source permissions and
+  contents remain unchanged. A unique private candidate is fully verified
+  before exclusive atomic publication to the original staging name. Interrupted
+  copies leave that name available for exact reselection; unknown existing
+  stages are retained and refused. Later local JSONL appends and valid newer local
+  administrative history survive control recovery. Only exact proven missing
+  controls are recreated without replacement, and uncertain publication keeps
+  the original operation fenced for retry. When a missing earlier derivative
+  blocks a later unfinished import, the question can repair that independent
+  derivative first and explicitly names the deferred operation, which remains
+  fenced until its own original publications finish.
+
+  Surviving native roots prefixes also identify required original imports when
+  several secondary locators are lost together. Each identity still requires
+  its actual local native intent. An otherwise unaccounted payload origin
+  receipt keeps reads held unless a surviving native intent proves it copied
+  those exact receipt bytes as foreign package content; existing-target or
+  source-inventory membership alone supplies no such proof.
+
+  A completed import's derivative repair can follow a later explicit identity
+  round trip only through a surviving, exactly completed local native import
+  for the same project, physical folder and store. That later original must
+  retain the earlier complete roots prefix, and the current roots must retain
+  its complete prefix with no further related changes. Its original bytes,
+  completion and custody join the native review context. This proof authorizes
+  derivative repair only; it does not relax unfinished import publication or
+  infer association authority from package receipts.
+
+  Valid disposal administration is read independently of derivative payload
+  requirements. Disposal legitimately removes an origin receipt along with the
+  payload; that removal cannot block recording or retrying disposal completion,
+  and recovery never recreates a disposed payload. Missing or malformed original
+  intent evidence still refuses restoration. Control repair after disposal has
+  begun is refused; missing completion evidence remains held rather than
+  recreating removed payload. All package entry points check validated disposal
+  history under stable admission before creating payload lock files, including
+  execution of an older native plan. Completed history can follow a
+  moved store folder when its store identity and physical directory are the
+  same: operational paths rebind, while the original native intent bytes and
+  historical store/staging paths remain unchanged. An unfinished operation is
+  not transplanted to a different physical store by this rule.
 - **Existing records** (implemented). The App discovers the §13.7 project logs and reads
   them in place. It then imports them explicitly (§13.7 discovery makes no
   implicit copy) into the store as byte-identical copies verified against

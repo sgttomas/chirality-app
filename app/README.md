@@ -1000,6 +1000,23 @@ quoted evidence: native relationships, capture replay and capability authority
 are not restored. Later local Fleet recording remains usable, with origin
 checks keeping the imported prefix separate (RS §13.8).
 
+**Restore project from package** handles a missing project link or an unused
+startup identity after loss. Its native question names the original identity,
+physical folder, store and any unused identity released from that folder.
+Existing records and restrictions refuse displacement. The unused identity's
+subtree stays unchanged. Recovery remains discoverable if a link or locator is
+lost before publication finishes; queued writers retain their original identity
+and cannot follow the folder into a different project's records.
+
+**Repair package controls** is offered only when native evidence identifies a
+recoverable original operation. It reconstructs exact missing derivatives and,
+when needed, asks for the exact original bag to restore private custody. Valid
+later local appends and administrative history remain. Conflicting controls or
+a missing original native intent stay held. Disposal's legitimate removal of
+the payload receipt does not require recreating that receipt. Moving the same
+physical store folder preserves completed native history without rewriting its
+original recorded paths. See RS §13.8 for the proof and recovery limits.
+
 Records have no expiry. The records panel offers native **Close project** /
 **Reopen project** and **Set legal hold** / **Release legal hold** controls.
 Close only after supplier activity, hot workflow runs and pending native record

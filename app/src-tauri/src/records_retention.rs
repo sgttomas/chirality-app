@@ -297,6 +297,17 @@ fn advance_event(key: &str, project_id: Option<&str>, name: &str, bytes: &[u8], 
 
 fn state(dir: &Path) -> Result<State, String> {
     records_store::package::require_complete(dir)?;
+    history_state(dir)
+}
+
+/// Administration survives payload disposal. Package-control readers use only
+/// this validated ledger fact to distinguish lawful receipt removal from loss;
+/// it grants no payload read/write permission and bypasses no history checks.
+pub(crate) fn disposition_started(dir: &Path) -> Result<bool, String> {
+    Ok(history_state(dir)?.disposition.is_some())
+}
+
+fn history_state(dir: &Path) -> Result<State, String> {
     let folder = control(dir)?.join("events");
     storage::check_path(&folder)?;
     let first_head = marker_head(dir)?;
@@ -349,6 +360,7 @@ pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, Stri
     if records_store::package::owns(&dir) { return Ok(None); }
     let guard = storage::lock_shared(&gate(&dir)?)?;
     state(&dir)?.writable()?;
+    records_store::package::check_write_binding(&dir)?;
     Ok(Some(guard))
 }
 pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, String> {

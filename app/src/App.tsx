@@ -435,7 +435,9 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   const kept = retention?.disposition === "kept";
   const identityRepair = !packageBlocked && (retention == null || kept);
   const holdable = kept || retention?.disposition === "disposal incomplete";
-  const packageImportable = store.state === "available" && !packageBlocked && !["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
+  const terminalDisposition = ["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
+  const packageImportable = store.state === "available" && !packageBlocked && !terminalDisposition;
+  const packageRepairable = store.state === "available" && !terminalDisposition && packageImport?.canRepair === true;
   return <section aria-label="Records store">
     <h3>Records store</h3>
     {store.state === "available"
@@ -454,12 +456,23 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
         <button onClick={() => act("records_store_import_package", { action: "import" })}>Import verified package</button>{" "}
         <small>Choose a package for the identity already named by this folder’s project file. Exact bytes and the original identity are retained; conflicting files are refused. Unsigned package content stays quoted evidence.</small>
       </p>}
+      {packageImportable && <p>
+        <button onClick={() => act("records_store_import_package", { action: "restore" })}>Restore project from package</button>{" "}
+        <small>Recover the package’s original project identity. The App checks whether this folder has no identity or only an unused identity created at startup. It refuses to replace an identity with records, a legal hold, closure or disposal, and retains existing bytes.</small>
+      </p>}
       {packageImport?.state === "incomplete" && <p role="alert">
         Package import is interrupted. Project records remain unavailable until it is finished.{" "}
         <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
       </p>}
       {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
-      {packageImport?.limit && <p role="note">Package import: {String(packageImport.limit)}</p>}
+      {packageRepairable && <p>
+        <button onClick={() => act("records_store_import_package", { action: "repair" })}>Repair package controls</button>{" "}
+        <small>Uses the original native intent and retained evidence. Differing control bytes or a missing original act keep recovery held. Package claims stay quoted evidence and grant no authority to replay acts.</small>
+      </p>}
+      {packageImport?.reason && <p role="note">Package recovery: {String(packageImport.reason)}</p>}
+      {packageImport?.repairReason && packageImport.repairReason !== packageImport.reason && packageImport.repairReason !== packageImport.limit && <p role="note">Package repair: {String(packageImport.repairReason)}</p>}
+      {typeof packageImport?.needsPackage === "boolean" && <p role="note">Original package needed for repair: {packageImport.needsPackage ? "yes; the native selector will ask you to choose it again" : "no"}.</p>}
+      {packageImport?.limit && packageImport.limit !== packageImport.reason && <p role="note">Package import: {String(packageImport.limit)}</p>}
       {(packageImport?.importId || packageImport?.packageIdentity) && <p>Package import: {String(packageImport.state)}. {packageImport.importId && <>Import reference: {String(packageImport.importId)}. </>}{packageImport.packageIdentity && <>Package identity: {String(packageImport.packageIdentity)}.</>}</p>}
       {retention && <p role="note">{retention.disposition === "unavailable"
         ? "Retention state unavailable. Project closure and legal hold are unknown."

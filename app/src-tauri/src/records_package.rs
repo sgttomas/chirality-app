@@ -1428,5 +1428,9 @@ thread_local! {
     static DURING_READ: std::cell::RefCell<Option<Box<dyn FnOnce(&str)>>> = const { std::cell::RefCell::new(None) };
 }
 #[cfg(test)]
+pub(crate) fn after_census_for_test(hook: Option<Box<dyn FnOnce()>>) {
+    AFTER_CENSUS.with(|h| *h.borrow_mut() = hook);
+}
+#[cfg(test)]
 #[path = "records_package_tests.rs"]
 mod tests;

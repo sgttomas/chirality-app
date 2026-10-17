@@ -314,6 +314,10 @@ fn records_store_verify_export(app: tauri::AppHandle) -> Result<Value, String> {
 /// renderer supplies only the offered operation, never a path or actor claim.
 #[tauri::command(async)]
 fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,action:String)->Result<Value,String>{
+    enum NativePackagePlan {
+        Import(records_store::package::Plan),
+        Repair(records_store::package::control_recovery::ControlPlan),
+    }
     let project=state.workspace.as_deref().ok_or("no project is open")?;
     let home=state.homes.lock().unwrap().active();
     let observe=||->Result<(Value,Value),String>{
@@ -326,15 +330,29 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
     };
     let (actor,observed)=observe()?;
     let plan=match action.as_str(){
-        "import"=>{
+        "import"|"restore"=>{
             let Some(folder)=workflow_native_folder(&app,"Choose the records package to import")? else{return Ok(json!({"state":"package import cancelled"}));};
-            records_store::package::prepare(project,&folder,&actor,&observed)?
+            NativePackagePlan::Import(if action=="restore" {
+                records_store::package::prepare_restore(project,&folder,&actor,&observed)?
+            }else{records_store::package::prepare(project,&folder,&actor,&observed)?})
         },
-        "resume"=>records_store::package::prepare_resume(project,&actor,&observed)?,
+        "resume"=>NativePackagePlan::Import(records_store::package::prepare_resume(project,&actor,&observed)?),
+        "repair"=>{
+            let source=if records_store::package::control_recovery::needs_package(project)? {
+                let Some(folder)=workflow_native_folder(&app,"Locate the exact package named by the original import")? else{return Ok(json!({"state":"package control repair cancelled"}));};
+                Some(folder)
+            }else{None};
+            NativePackagePlan::Repair(records_store::package::control_recovery::prepare(project,source.as_deref(),&actor,&observed)?)
+        },
         _=>return Err("unknown package import action".into()),
     };
+    let statement=match &plan {
+        NativePackagePlan::Import(plan)=>records_store::package::statement(plan),
+        NativePackagePlan::Repair(plan)=>records_store::package::control_recovery::statement(plan),
+    };
+    let perform=match action.as_str(){"resume"=>"Finish original import","restore"=>"Restore project from package","repair"=>"Repair package controls",_=>"Import package"};
     let mut refused=None;
-    if !confirm_choice(&app,"Project records package",records_store::package::statement(&plan),"Leave records as they are",if action=="resume"{"Finish original import"}else{"Import package"},&mut refused){
+    if !confirm_choice(&app,"Project records package",statement,"Leave records as they are",perform,&mut refused){
         return refused.map_or_else(||Ok(json!({"state":"cancelled; no package publication"})),Err);
     }
     let (actor,current)=observe()?;
@@ -344,7 +362,10 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
     workflows.retention_ready()?;
     let acts=state.act.try_lock().map_err(|_|"Act recording busy; retry later")?;
     if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("Native act recording remains pending; retry it before package import".into());}
-    records_store::package::apply(plan,&actor,&current)
+    match plan {
+        NativePackagePlan::Import(plan)=>records_store::package::apply(plan,&actor,&current),
+        NativePackagePlan::Repair(plan)=>records_store::package::control_recovery::apply(plan,&actor,&current),
+    }
 }
 /// RS §13.8: administrative retention acts are captured only by this native
 /// question. The renderer supplies an offered action, never actor or evidence.
