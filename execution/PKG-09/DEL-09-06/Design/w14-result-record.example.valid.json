@@ -1,7 +1,7 @@
 {
   "record_kind": "w14_result",
   "format": "proposed-0.1",
-  "record_id": "W14-05/current/2026-10-02",
+  "record_id": "W14-05/current/2026-10-17",
   "case": "W14-05",
   "phase_reading": "current",
   "run_kind": "rehearsal",
@@ -20,7 +20,7 @@
       },
       {
         "path": "PKG-03/DEL-03-03/Design/prototype/observe_map.py",
-        "sha256": "df4cf59cbc3d132de93ff7a1fec0607c2c9e0b038f52ae7fb0c949ead85b9f37"
+        "sha256": "cf7ba7b4d4218d660d53dc89fe48b37c797041b5d6864e3f28adf342e5d193d6"
       },
       {
         "path": "PKG-02/DEL-02-03/Design/prototype/checkpoint_recorder.py",
@@ -28,7 +28,7 @@
       },
       {
         "path": "PKG-02/DEL-02-03/Design/prototype/run_all.py",
-        "sha256": "5f22b059324ead5cdeace994fd79a256bd88034fdccf2ed2a14d5b1c9f911120"
+        "sha256": "3514fd0a42277baa3d2a18d1ade1db5715bddfbdabde570824bbcfcac0fd22f4"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"
@@ -41,7 +41,7 @@
       "not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"
     }
   },
-  "date": "2026-10-02",
+  "date": "2026-10-17",
   "outcome": "inconclusive",
   "parts": [
     {
