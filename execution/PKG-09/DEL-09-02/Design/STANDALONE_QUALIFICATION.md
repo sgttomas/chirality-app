@@ -496,8 +496,8 @@ completed decision work or select a current supplier pin.
 | U-SQ-2 | Which local model and server for M12-3, and RUN-A's model (it must carry delegation for ST-4) | Implementer, recorded as configuration (R23-17 pattern) | Before the run; a download needs the owner's yes |
 | U-SQ-3 | Whether the native steps run on a package (I-6). On a development build, if DEL-01-04's SEAL-2 is implemented, J-6/J-8/J-9's act records read "capture not verifiable" (AAC §6.3: "available only to the signed App"); that limit is recorded on AC-003's evidence | Integration owner | Before the run |
 | U-SQ-4 | API-key protocol detail (OI-010) | App implementation owner | Before M12-2 |
-| U-SQ-5 | ST-4's replay recording (a parent completing before its child), if the chosen model route cannot delegate | DEL-01-03 / DEL-01-01 capture method | Before RUN-A |
-| U-SQ-6 | ST-5's capture: a recording in X-09's form that contains an answer written to a server request and the process ended before any acknowledgment arrives, at the candidate's pin, with X-10's recovery read | DEL-01-01 (HOSTING §9.1 capture method) with DEL-01-02 (RECOVERY RQ-05, the acknowledgment-not-observed record) | Before RUN-A; without it S11-6 is `blocked` (SF-8) |
+| U-SQ-5 | ST-4's replay recording (a parent completing before its child), if the chosen model route cannot delegate. **Recording settled (SQ owner, 2026-10-17):** a run of DEL-01-01's `prototype/st5/st5_harness.py` `nv04` scenario on stock Codex at the candidate's pin serves; the 0.160.0 capture is record `SQ-ST4-NV04-REH-0160-20261017` in `Evidence/EXP/8212c765ec-87837d1ab888/`. Its replay needs the U-SQ-6 replay peer. ST-4 stays native on a delegating route | DEL-01-03 / DEL-01-01 capture method | Before RUN-A, only if the route cannot delegate |
+| U-SQ-6 | ST-5's capture: a recording in X-09's form that contains an answer written to a server request and the process ended before any acknowledgment arrives, at the candidate's pin, with X-10's recovery read. **Settled (SQ owner, 2026-10-17).** Recording: a run of DEL-01-01's `prototype/st5/st5_harness.py` frozen `st5` scenario on stock Codex at the candidate's pin and distribution identity; the 0.160.0 capture (record `SQ-ST5-REH-0160-20261017`, `Evidence/EXP/8212c765ec-87837d1ab888/`) serves every candidate whose examination binds 0.160.0 with that identity. Replay: still required, by a replay peer that serves the recording's Codex frames, with the X-10 read, to the candidate's App seam (route `seam_replay`); HOSTING's supplier double replays only handshake transcripts, so the peer is to be built | DEL-01-01 (HOSTING §9.1 capture method; the replay peer) with DEL-01-02 (RECOVERY RQ-05, the acknowledgment-not-observed record) | Replay before RUN-A; without it S11-6's ST-5 part is not produced and S11-6 is `blocked` (SF-8) |
 | — | Placement (decided, as EXP §8.4): the dossier is `Evidence/EXP/<candidate key>/SQ-dossier.json` in DEL-09-02's folder, beside its records | — | — |
 
 ## Changes
@@ -527,15 +527,19 @@ historical.
 
 ## Current implementation conditions
 
-**Open recording and source correspondence conditions.** DEL-01-01's
-`CAPTURE_ST5_NV04_0.160.0.md` supplies development captures of ST-5 (X-09 with
-X-10 recovery read) and NV-04. Neither is at an App candidate's pin, so the
-`st5_recording` and `st4_route_or_recording` missing inputs remain. The ST-4
-"none exists yet" wording above and in the J-2 step-map counterpart predates
-those development captures; it has not been received as candidate evidence.
-Whether to cite them here and whether a candidate-pin rerun of
-`prototype/st5/st5_harness.py` fulfills U-SQ-6/ST-4 remain open with the SQ owner.
-No case criterion, stimulus count/order or qualification rule changes here.
+**Recording and source correspondence conditions.** DEL-01-01's
+`CAPTURE_ST5_NV04_0.160.0.md` records the first development captures of ST-5
+(X-09 with X-10 recovery read) and NV-04 (2026-10-10). On 2026-10-17 the same
+harness was rerun at 0.160.0, the pin an examination of candidate C1 binds,
+and recorded as EXP rehearsals `SQ-ST5-REH-0160-20261017` and
+`SQ-ST4-NV04-REH-0160-20261017` beside C1's identification. Both reproduce the
+2026-10-10 observations; both are `inconclusive` because their replay part is
+not run. U-SQ-5 and U-SQ-6 (§12) state what fulfils each counterpart. The ST-4
+"none exists yet" wording in §3.4 and the step map's J-2 counterpart predates
+these captures. The preparation's `st5_recording` and `st4_route_or_recording`
+missing-input entries keep their entry wording; neither capture exercises a
+candidate's App code. No case criterion, stimulus count/order or
+qualification rule changes here.
 
 Examination source/basis labels that name the revision first inspected rather
 than the currently bound bytes still need truthful correspondence. Historical

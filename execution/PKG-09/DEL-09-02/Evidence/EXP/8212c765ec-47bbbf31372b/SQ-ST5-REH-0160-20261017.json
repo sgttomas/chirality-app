@@ -1,0 +1,147 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "SQ-ST5-REH-0160-20261017",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+    "prototype_digest": "sha256:f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  },
+  "case": {
+    "case_id": "ST-5",
+    "owner_deliverable": "DEL-09-02",
+    "part": "replay counterpart capture at the candidate pin"
+  },
+  "criterion": {
+    "source": "DEL-09-02 Design/STANDALONE_QUALIFICATION.md §3.4 ST-5 row",
+    "identity": "sha256:37f66fa889ecc67e15c0f2e8660f71035d07585db2dfa0850ac39ae715cb1a01"
+  },
+  "activity": "verification",
+  "run_basis": "rehearsal",
+  "subject": {
+    "kind": "double",
+    "double": "DEL-01-01 HOSTING §9.1 capture harness (st5_harness.py App-side stand-in, stub_provider.py loopback model) against stock Codex 0.160.0",
+    "file_digests": [
+      "sha256:f43f06e8bcb488e9f46131c38a02f23dcfeedaca4f0b428ee3abf40c766abda1 execution/PKG-01/DEL-01-01/Design/prototype/st5/st5_harness.py",
+      "sha256:370cab7988a3092db02a4d2825e42e20ff754aa085b841159463e5f6c3efe9c0 execution/PKG-01/DEL-01-01/Design/prototype/st5/stub_provider.py",
+      "sha256:e2f5e6d599a61bb36528fc4fd1e6cd83069427d51630c4f9de3932346c7b303a execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json"
+    ],
+    "recording": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json"
+  },
+  "configuration": {
+    "codex_pin": "0.160.0",
+    "codex_distribution_identity": "npm platform package vendor/aarch64-apple-darwin, complete layout; bin/codex sha256:112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b (development assertion)",
+    "model": {
+      "requested": "st5-stub-model",
+      "reported": "st5-stub-model"
+    },
+    "model_server": {
+      "kind": "other",
+      "label": "loopback Responses stub st5_stub (stub_provider.py), scripted invented output"
+    },
+    "route": {
+      "kind": "seam_live",
+      "platform": {
+        "os": "macOS 26.6.2",
+        "arch": "arm64"
+      }
+    },
+    "settings_in_effect": "scratch stand-ins in a fresh mkdtemp Codex home: approval_policy on-request, sandbox read-only, plugins off, analytics off; no sign-in or credential; not a person's settings"
+  },
+  "date": {
+    "value": "2026-10-17",
+    "source": "observed_clock"
+  },
+  "outcome": "inconclusive",
+  "parts": [
+    {
+      "part": "condition captured (X-09 form)",
+      "expectation": "Generation 1: after item/commandExecution/requestApproval, the answer {\"decision\":\"accept\"} and a client request are written to Codex stdin with the process group frozen, then the group is killed while frozen; no serverRequest/resolved, response, item or turn completion follows; the marker folder is absent",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json#events",
+          "provenance": "live_observation",
+          "route": "seam_live",
+          "fixture_standing": "recorded-truncated"
+        }
+      ]
+    },
+    {
+      "part": "X-10 restart and recovery read",
+      "expectation": "Generation 2, same home: thread/read and thread/turns/list report the one turn interrupted holding only the user message; thread/resume reports idle; no request is re-raised in the wait; graceful exit",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json#frames(generation 2)",
+          "provenance": "live_observation",
+          "route": "seam_live",
+          "fixture_standing": "recorded-truncated"
+        }
+      ]
+    },
+    {
+      "part": "replayed on a supplier double with the X-10 recovery read",
+      "expectation": "SQ §3.4: the recording replayed on a supplier double, compared with the native observation at S11-6",
+      "outcome": "not-run",
+      "not_run_because": "No double can replay a hosting-capture.st5 recording: HOSTING's supplier double is seeded from 0.158.0 handshake transcripts only. The replay peer U-SQ-6 now names is not built."
+    }
+  ],
+  "evidence": [
+    {
+      "ref": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json",
+      "digest": "sha256:e2f5e6d599a61bb36528fc4fd1e6cd83069427d51630c4f9de3932346c7b303a",
+      "provenance": "live_observation",
+      "route": "seam_live",
+      "fixture_standing": "recorded-truncated",
+      "redaction_record": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/recordings/st5.recording.json#redaction_record"
+    },
+    {
+      "ref": "execution/PKG-01/DEL-01-01/Design/prototype/st5/st5_harness.py",
+      "digest": "sha256:f43f06e8bcb488e9f46131c38a02f23dcfeedaca4f0b428ee3abf40c766abda1",
+      "provenance": "test_definition"
+    },
+    {
+      "ref": "execution/PKG-01/DEL-01-01/Design/prototype/st5/stub_provider.py",
+      "digest": "sha256:370cab7988a3092db02a4d2825e42e20ff754aa085b841159463e5f6c3efe9c0",
+      "provenance": "test_definition"
+    },
+    {
+      "ref": "local scratch (not committed): st5.raw-frames.jsonl",
+      "digest": "sha256:a53c249ce7fc1da72533923ff923ebe3730c082c61dbf8a1d75bc39efea168f8",
+      "provenance": "live_observation",
+      "route": "seam_live",
+      "fixture_standing": "recorded-truncated"
+    },
+    {
+      "ref": "execution/PKG-09/DEL-09-02/Evidence/EXP/8212c765ec-87837d1ab888/candidate-identification.json",
+      "digest": "sha256:bd69b77db96ef959cd83c4677afa5cb693b88b38c7eaba26edee6413f17aa624",
+      "provenance": "static_inspection"
+    }
+  ],
+  "limits": [
+    {
+      "label": "App side is a capture stand-in",
+      "vocabulary": "EXP",
+      "detail": "st5_harness.py stands in for the App at the stdio boundary; no App candidate code ran. Codex 0.160.0 was live; its model provider was a loopback stub with scripted invented output."
+    },
+    {
+      "label": "candidate binding by supplier pin only",
+      "vocabulary": "EXP",
+      "detail": "Captured at Codex 0.160.0, the pin an examination of development candidate C1 (8212c765ec-87837d1ab888, chirality.app.bundle-tree.sha256/v1:87837d1ab8889ee9787db722395c18c828d206cc07e90f6cac79afe059a7b68a) binds under R23-22 (the newest version that has passed a version-advance check when C1 was built). It does not exercise C1 and is not a native or candidate witness."
+    },
+    {
+      "label": "distribution identity is a development assertion",
+      "vocabulary": "EXP",
+      "detail": "bin/codex SHA-256 matched the expected value; no qualified full distribution identity (HOSTING U-01)."
+    },
+    {
+      "label": "redacted recording",
+      "vocabulary": "EXP",
+      "detail": "Committed recordings replace personal paths, host name, serverName, installation identifier and the userAgent client identity; redacted frames claim no byte identity. Unredacted raw frames and stderr are retained only in local scratch; their durable private retention waits for owner choice D2."
+    }
+  ],
+  "currency": {
+    "state": "current"
+  }
+}
