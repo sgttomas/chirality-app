@@ -1168,7 +1168,10 @@ SWBPIPE's current state, not commitments; the fixture is unchanged).**
 - **T11:** the person's A5 is Apply: per batch, atomic, accepting and
   applying in one step, with no A10 record. Clear discards a batch without
   a record (SQ-01, SQ-09 (b), (f)). Per-item A5/A10 decisions and mixed
-  items have no counterpart.
+  items have no counterpart. SWBPIPE records the Apply with no attributable
+  act (no actor, act reference or time), so the App records no A5 from it
+  and the applied item has no contract outcome (P §9.1, §9.2; DEL-03-02
+  `SWBPIPE_CORPUS_RECEIVING.md`, read at `8212c765ec`).
 - **T12:** the outcome names target ids, per-field diffs and the new
   whole-model hash, with no post-application per-object identity (SQ-03
   (d)).
@@ -1229,9 +1232,9 @@ path.
 | **Command-line path** (N-CLI) | The same host core as a command: `catalog`, `events`, `call ‹operation› --json ‹arguments›`, `submit --json ‹proposal›`, `observe ‹proposal identity›`. It writes one host document as JSON on standard output. Exit status 0 means a host document was produced, whatever its outcome; a non-zero status with no document means the endpoint was not reached (ADAPTER-v0.6 §4.6 OM-4) |
 | Host documents | Follow the PROPOSED schemas: `catalog.schema.json`, `edition_change_event.schema.json`, `read_result.schema.json` (here) and `proposal_state.schema.json` (P). A change request follows `proposal.schema.json` (P) |
 | Person and host controls | Separate commands that no agent path reaches, standing for the host's own interface: A13 enable or disable (fixture acts by the scripted person Engineer A, recorded in the double's own facility with a capture reference), edit a subject, accept or reject an item (A5, A10), set a direct grant (A12, ⟨set-2⟩), publish edition e2, stop or start the endpoint; and the host's own step "apply accepted items" (P-v0.8 §3.5 PM-5). None is App act capture |
-| Profiles | *full* (every basis element supplied) and *no lineage* (the basis profile declares no workspace identity and no generation; reads mark both *host declares none*), for the case R13-1 rules (§5.2 rule 1) |
+| Profiles | *full* (every basis element supplied) and *no lineage* (the basis profile declares no workspace identity and no generation; reads mark both *host declares none*), for the case R13-1 rules (§5.2 rule 1). **swbpipe** (2026-10-17; `prototype/simhost_swbpipe.py`, which imports SH-1 and leaves its files unchanged, with driver `prototype/run_swbpipe_profile.py`): SH-1 in the form SWBPIPE's corpus and Apply sources show at `8212c765ec` (DEL-03-02 `SWBPIPE_CORPUS_RECEIVING.md` §5). It has one whole-model identity for every subject, *host declares none* for workspace identity and generation, and whole-model staleness. A submission is validated as a whole. There is no direct mode, no observation by identity (both *not exposed*), no de-duplication by identity, no enablement facility and no act-performing entries. The person's controls are **apply** (one atomic application recording only SWBPIPE's stated acceptance basis and a session receipt, in the double's own state, with no per-item act), **clear** (no record) and **restart** (session records lost). The change-item content identity and the model revision are supplied by the double; SWBPIPE supplies neither |
 | Implements | OP-C1 (with a requested historical read, §6.4), OP-C2, OP-C3, OP-C4, OP-C5, OP-C6…OP-C8 (reserved: *not permitted*, A8 offered), OP-C9 (e2 only), OP-C12; the proposal route with de-duplication by proposal identity before any basis check, per-item staleness on relied-on target identities, identity conflict, observation by identity, direct application under ⟨set-2⟩; host-reported *channel not enabled* while A13 is not in force |
-| Does not implement | OP-C10 undo, OP-C11, checkpoint declarations (checkpoint cases are exercised only as the observations ADAPTER passes on), restart of the double's own records, timing and concurrency. Also absent, as its consumers found (CA-v0.6 F-26; XT-v0.6 F-25; V18-4 m-10): an H or E surface (only X's two paths; exposure is declared per entry but no H or E request is served); a person control for A4; a whole-model identity and staleness profile (the SWBPIPE form, R8-3, R8-4); an origin mark on the applied association; a session-scoped (non-durable) de-duplication and receipt profile; host views and UI selection; OP-C9's precondition and label validation. Consumers record the parts that need these *not run*; adding them as profiles is a candidate for SH-1's next development, not done here |
+| Does not implement | OP-C10 undo, OP-C11, checkpoint declarations (checkpoint cases are exercised only as the observations ADAPTER passes on), restart of the double's own records, timing and concurrency. Also absent, as its consumers found (CA-v0.6 F-26; XT-v0.6 F-25; V18-4 m-10): an H or E surface (only X's two paths; exposure is declared per entry but no H or E request is served); a person control for A4; an origin mark on the applied association; host views and UI selection; OP-C9's precondition and label validation. Consumers record the parts that need these *not run*; adding them as profiles is a candidate for SH-1's next development, not done here. The whole-model identity and staleness form (R8-3, R8-4) and the session-scoped records are the *swbpipe* profile's (row above) |
 | Names | The tool names (fixture labels), command words, the `_meta` key `sh1/catalog` and the identity method ⟨m-sh1⟩ (a truncated sha256 over sorted JSON) are the double's own. They select no host wire field, transport or identity algorithm (TBD-003; ADAPTER TBD-007) |
 
 **Run of 2026-09-30 (node B3).** Command: `python3 run_fixture.py --out
@@ -1272,6 +1275,17 @@ host documents; all validated. The double's recorded states now carry the
 explicit item-left event on each item that left (P-v0.8 §4.3; the two PR-1
 items at T7) and the capture time of each host-captured A5 and A10
 (P-v0.8 §9). Full output in `WAVE_B/RP-2.md`. Evidence label *test-double*.
+
+**Profile swbpipe, run of 2026-10-17.** Commands, in `prototype/`:
+`python3 run_fixture.py --out "$D"`, then `python3 run_swbpipe_profile.py
+--out "$D"`, which appends its run to the same directory. Then
+`validate_all.py --run "$D"`, the ADAPTER mapper and the P state check were
+run on it. Result: 22 of 22 SH-1 checks and 16 of 16 profile checks passed.
+All 46 host documents and 13 change requests validated. The mapper and the P
+check passed over both runs. The profile's documents are committed as
+`swbpipe-profile-documents.json` beside this file, and the App's receiving
+tests (`app/src-tauri/tests/swbpipe_receiving.rs`) read them. Evidence label
+*test-double*: they establish nothing about SWBPIPE.
 
 ## Changes from v0.7
 

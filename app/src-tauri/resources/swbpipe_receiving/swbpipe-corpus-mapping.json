@@ -1,0 +1,5473 @@
+{
+ "mapping_kind": "swbpipe_corpus_receiving",
+ "format": "proposed-0.1",
+ "evidence_label": "illustrative",
+ "statement": "A mapping of SWBPIPE's committed contract corpus into App contract terms. It observes no SWBPIPE run, no App run and no person; no row establishes any human act.",
+ "contracts": {
+  "P": "DEL-03-02/P-v0.8 sections 2, 3.5, 4.1-4.3, 5, 9, 9.1, 10",
+  "C": "DEL-03-01/C-v0.8 sections 4.1, 5.1-5.4"
+ },
+ "sources": {
+  "pins": "swbpipe-corpus-pins.json",
+  "pins_sha256": "b4c234384d9147fb4ea89a3342742ccc395b5b51b139f978b41cc33e26340c52",
+  "commit": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab"
+ },
+ "no_row_establishes": [
+  "acceptance by a named person (A5)",
+  "a per-change act",
+  "rejection (A10)",
+  "withdrawal (A11)",
+  "checking (A4)",
+  "engineering approval (A6)",
+  "professional reliance (A7)"
+ ],
+ "findings": {
+  "swbpipe_would_need": {
+   "NR-01": "no attributable acceptance record per change (actor, act reference, capture time, capture evidence, bound content)",
+   "NR-02": "no rejection record (A10); Clear discards without a record",
+   "NR-03": "no per-change decision within a submission; agent proposals are applied as atomic batches",
+   "NR-04": "no host-assigned change-item content identity",
+   "NR-05": "no receipt reference on the outcome; the session receipt is UI state only and not durable",
+   "NR-06": "basis on outcomes is the whole-model hash only: no model revision",
+   "NR-07": "relied-on basis not carried: no claimed hash; per-field before-values are the only staleness guard",
+   "NR-08": "no proposal record keyed by identity: no de-duplication before the basis check, no submission count, no observation by identity, no time",
+   "NR-09": "no route for agent-originated proposals on main (offline file intake only; no live agent binding)",
+   "NR-10": "no capability catalog: operation identity/version, declared errors, preconditions, class, exposure, edition",
+   "NR-11": "an actor-dependent rule is a validation error on caller-asserted author_type, not a treatment on a verified actor"
+  },
+  "app_side": {
+   "A-01": "no App representation for an application at a person-initiated host Apply without an attributable act record",
+   "A-02": "resulting_object.relation has no 'removed' for a deletion",
+   "A-03": "no element for an application's persistence status (session only, not saved)"
+  }
+ },
+ "counts": {
+  "cases": 84,
+  "None": 34,
+  "error": 1,
+  "refused_invalid": 45,
+  "refused_stale": 3,
+  "success": 1
+ },
+ "cases": [
+  {
+   "case_id": "accept-set-field-material-elastic-modulus",
+   "file": "case_01_accept_set_field_material_elastic_modulus.json",
+   "sha256": "eb4cad4aa5451dedec0733f0d5f5014959373a9291b4d84170be835172d111a4",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:3e1d4dc36708da2f8ecdcf0b11d45126bb00d3620468b781c4089e4ff390cead"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:3e1d4dc36708da2f8ecdcf0b11d45126bb00d3620468b781c4089e4ff390cead",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "material:M-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-set-field-element-material-ref",
+   "file": "case_02_accept_set_field_element_material_ref.json",
+   "sha256": "81d6fedb06fde4cee9b8b3586b38f9783382532eb393d84b74a409fe66d0d8fc",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:94ce702c229ce6cb5dc9e3e164af5cc93335a8f4bd19e0ca143748b9e06a3856"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:94ce702c229ce6cb5dc9e3e164af5cc93335a8f4bd19e0ca143748b9e06a3856",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "pipe:P-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-status-text",
+   "file": "case_03_accept_update_load_status_text.json",
+   "sha256": "ec40e4e58a9ce90791b0c5cf125a514d982eb6cfa51640dcbba410fb5bee3c87",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:ec232c1ab3ea8ad3b2d086454e7553045bd514490ba880ded04ee922b1c695c5"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:ec232c1ab3ea8ad3b2d086454e7553045bd514490ba880ded04ee922b1c695c5",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-primitive-magnitude",
+   "file": "case_04_accept_update_load_primitive_magnitude.json",
+   "sha256": "1e285af11f76c087923a06a3b8bfabe6538bef6e46251df1273f6eecd9dd20ff",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:ed67ededfa52a811096d0c500a99df107196e4a64e732d26f74fce1760b7a7d6"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:ed67ededfa52a811096d0c500a99df107196e4a64e732d26f74fce1760b7a7d6",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-combination-term-factor",
+   "file": "case_05_accept_update_load_combination_term_factor.json",
+   "sha256": "91b36222b302b0013802108306ca0526395f1054ad26045ed0b0be1cf382ca83",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:93e302a7d2cf297d23dfc822f3b08b11aaf9b39ca309b2d9e8c153169018d0ae"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:01a13b139381a025a56a00ab3b315fa05ea1a2a76f5b8434f30cddf926cec61f",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:93e302a7d2cf297d23dfc822f3b08b11aaf9b39ca309b2d9e8c153169018d0ae",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-OP",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-support-restraints",
+   "file": "case_06_accept_update_support_restraints.json",
+   "sha256": "62d63f929dfa0a5d3b43a34f17f2af2c7c532576c04ff0b7441fa386e4625db8",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_support",
+    "operation_kind": "modify",
+    "target_ref": "support:S-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:c01ad0d765c1f0f4e0a40007b410707993c55dee927d11aa84575bfb319f21d7"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:c01ad0d765c1f0f4e0a40007b410707993c55dee927d11aa84575bfb319f21d7",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "support:S-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-node",
+   "file": "case_07_accept_create_node.json",
+   "sha256": "70c9bc816a27a9423137552262775369345e65628614db59e9eef12e8ae0ba2a",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_node",
+    "operation_kind": "create",
+    "target_ref": "node:N-3",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:af0d956cfb9b840ba69b95ddba60c5e0d186a834ef42d269757cd913cae14046"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:af0d956cfb9b840ba69b95ddba60c5e0d186a834ef42d269757cd913cae14046",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "node:N-3",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-connect-pipe-run",
+   "file": "case_08_accept_connect_pipe_run.json",
+   "sha256": "a3d587fb3240683aa3d7ba9a37c2b69f42b186f6854015bbe5293b9c45bb36c2",
+   "host": {
+    "mode": "apply",
+    "change_kind": "connect_pipe_run",
+    "operation_kind": "connect",
+    "target_ref": "pipe:P-2",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:61c1b11eeb38b2ff444580c8082db0d78c5f9f86a23e13449c32ab137340f739"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:61c1b11eeb38b2ff444580c8082db0d78c5f9f86a23e13449c32ab137340f739",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "pipe:P-2",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-load-case",
+   "file": "case_09_accept_create_load_case.json",
+   "sha256": "1de513e23caed4a8db9406731cddd9250540e442a10d18a5e9b8496649fef222",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_load_case",
+    "operation_kind": "create",
+    "target_ref": "load:L-2",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:bdf1f08f4e4d568ebf56149c44e5bd9754439ce785f30c476caa255bf5665c4d"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:bdf1f08f4e4d568ebf56149c44e5bd9754439ce785f30c476caa255bf5665c4d",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-2",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-primitive-load-concentrated-force",
+   "file": "case_10_accept_create_primitive_load_concentrated_force.json",
+   "sha256": "74101235b37df8cc5351eaf4701bf8b83df94d4a0864971208c3358e9e83829e",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_primitive_load",
+    "operation_kind": "create",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:257518b02c6867c57a37786496725260df699172e657ef68fd04e48f77ce62f4"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:257518b02c6867c57a37786496725260df699172e657ef68fd04e48f77ce62f4",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-combination",
+   "file": "case_11_accept_create_combination.json",
+   "sha256": "64acaf1e77b444201f7f42056c19d380f32e7e6db5a46305494f6f0ab12d7f36",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-NEW",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:30b449748cc06cf09a4435220fa5cd0a0281dcd1498609b75d121a7eaf1b55f4"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:30b449748cc06cf09a4435220fa5cd0a0281dcd1498609b75d121a7eaf1b55f4",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-NEW",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-combination-term",
+   "file": "case_12_accept_create_combination_term.json",
+   "sha256": "d468b2c8c9740ac155eca3cf5df8a117e4ff9868d0572a5a489ba826dd806f6a",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination_term",
+    "operation_kind": "create",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:1fa5ba3886cd38ce21b467dc6b54698a72fc15ae26967b74ab8e86bf3ee7b6f6"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:1fa5ba3886cd38ce21b467dc6b54698a72fc15ae26967b74ab8e86bf3ee7b6f6",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-OP",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-delete-combination-term",
+   "file": "case_13_accept_delete_combination_term.json",
+   "sha256": "d6beae276cc0f67b3bbeedfa68c19de0af186de911514e50b0bd5ae4669f5cf1",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_combination_term",
+    "operation_kind": "delete",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:a3b4d87b532bdda8312e092ae81668b4b714396503c7e6fb11afba4065474a9f",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-OP",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-validate-only-node-position",
+   "file": "case_14_accept_validate_only_node_position.json",
+   "sha256": "ca64bc70377e822214155bc0cc13fc17e705aff42994689db7d9443c64738c4e",
+   "host": {
+    "mode": "validate_only",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "node:N-2",
+    "author_type_asserted": "user",
+    "application_status": "not_applied",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "success",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "non-mutating host check ran (validate-only preview, DEL-16-02): diff preview with old/new values; nothing queued, applied or accepted",
+     "proposal_view_rows": 1
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-claimed-hash-echo",
+   "file": "case_15_accept_claimed_hash_echo.json",
+   "sha256": "62ab545f2f84d8f9bd689a6d6d29289c542f11f2d31565e9129de477f329eb4f",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "claimed_model_hash_matches_current_backend_model",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:57bae8b3c19782f2bf6ac0e2c90309a81d59d562950262542c54a5de53217835"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:57bae8b3c19782f2bf6ac0e2c90309a81d59d562950262542c54a5de53217835",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "material:M-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-duplicate-id-create-node",
+   "file": "case_16_block_duplicate_id_create_node.json",
+   "sha256": "583b6db0ba2dcb2592cd7a9503e4be8882a968656b816cd0ae87b6a5a2522231",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_node",
+    "operation_kind": "create",
+    "target_ref": "node:N-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-TARGET-ALREADY-EXISTS"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-TARGET-ALREADY-EXISTS"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-duplicate-id-create-combination",
+   "file": "case_17_block_duplicate_id_create_combination.json",
+   "sha256": "f75c13c22ab1d6d2a45034bc5ce004c6cd5d85609664b21e778505cbbf6a0f5d",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-TARGET-ALREADY-EXISTS"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-TARGET-ALREADY-EXISTS"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-missing-target-set-field",
+   "file": "case_18_block_missing_target_set_field.json",
+   "sha256": "1c9dffd67b3792ef0bb94f19c9cc59efe14ce8c89f5f2ba6713c014ae38fed2f",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:missing",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-TARGET-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-TARGET-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-missing-target-create-combination-term",
+   "file": "case_19_block_missing_target_create_combination_term.json",
+   "sha256": "bfb8591622e00804072f4cad86234fefd57726e6eb37bc5f448bb3a6c749e7e0",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination_term",
+    "operation_kind": "create",
+    "target_ref": "combination:missing",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-TARGET-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-TARGET-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unit-mismatch-set-field",
+   "file": "case_20_block_unit_mismatch_set_field.json",
+   "sha256": "3c9eef733e742855a44a4aa0a79a9d72d815dbf6a4817ae8885fabfcd1059375",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-UNIT-MISMATCH-CONVERSION-UNAVAILABLE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-UNIT-MISMATCH-CONVERSION-UNAVAILABLE"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-invalid-dimension-set-field",
+   "file": "case_21_block_invalid_dimension_set_field.json",
+   "sha256": "68c2ff5eef9dc16a4b5fea1aef75c55b0372ef790f31539e58655bce3552ccab",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-UNIT-DIMENSION-UNKNOWN"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-UNIT-DIMENSION-UNKNOWN"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-stale-before-set-field",
+   "file": "case_22_block_stale_before_set_field.json",
+   "sha256": "32590e3956633aca51e7a47eedb0345810fa97af45e63eaf6ca320ec878732e1",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-STALE-BEFORE-VALUE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_stale",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "staleness_scope": "host_stated_other: per-field before-value of the bound target",
+     "failing_targets": [
+      "material:M-1"
+     ],
+     "item_left_cause": "refused_stale",
+     "error_identities": [
+      "OP-STALE-BEFORE-VALUE"
+     ],
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-stale-before-delete-combination-term",
+   "file": "case_23_block_stale_before_delete_combination_term.json",
+   "sha256": "0649cb1d304bf0010eff6ef14313fe724fc4e0e1a4f1e57fb4c6072ad11525a9",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_combination_term",
+    "operation_kind": "delete",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-STALE-BEFORE-VALUE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_stale",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:a3b4d87b532bdda8312e092ae81668b4b714396503c7e6fb11afba4065474a9f",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "staleness_scope": "host_stated_other: per-field before-value of the bound target",
+     "failing_targets": [
+      "combination:C-OP"
+     ],
+     "item_left_cause": "refused_stale",
+     "error_identities": [
+      "OP-STALE-BEFORE-VALUE"
+     ],
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-deferred-component-kind",
+   "file": "case_24_block_deferred_component_kind.json",
+   "sha256": "9f5cdb5d77586ff8268f3c88b2a12e570716e1a881b0f4780948027567adc22f",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "component:C-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-FIELD-EDIT-DEFERRED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-FIELD-EDIT-DEFERRED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-deferred-combination-terms",
+   "file": "case_25_block_deferred_combination_terms.json",
+   "sha256": "20dbf33befbe5aba8cd9de883e532607244d41c52ecb8f045c27347945a8f95d",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-FIELD-EDIT-DEFERRED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:01a13b139381a025a56a00ab3b315fa05ea1a2a76f5b8434f30cddf926cec61f",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-FIELD-EDIT-DEFERRED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unsupported-field-path",
+   "file": "case_26_block_unsupported_field_path.json",
+   "sha256": "7a2b3dfbb63755f6623580ac0609e4cfc4e8385f6cbe29e86f12fa471d288b49",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "node:N-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-FIELD-PATH-UNSUPPORTED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-FIELD-PATH-UNSUPPORTED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unsupported-object-type",
+   "file": "case_27_block_unsupported_object_type.json",
+   "sha256": "b6c402514765fb39be189033f0208cd1da8bb2c372e89061ffb41bb3218328a3",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "diagnostic:D-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-OBJECT-TYPE-UNSUPPORTED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-OBJECT-TYPE-UNSUPPORTED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-non-finite-magnitude",
+   "file": "case_28_block_non_finite_magnitude.json",
+   "sha256": "8e743f5ebec615ac9d83a44a065f149256ce0978e6fc3e58faaf270510f3cccc",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-VALUE-NOT-NUMERIC"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-VALUE-NOT-NUMERIC"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-non-numeric-quantity",
+   "file": "case_29_block_non_numeric_quantity.json",
+   "sha256": "eaff5be87ca78691b33bea20909abc12ff2b87b386e3562a3ded3a98084bdb81",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-VALUE-NOT-NUMERIC"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-VALUE-NOT-NUMERIC"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-non-positive-quantity",
+   "file": "case_30_block_non_positive_quantity.json",
+   "sha256": "b3bb3551c2d01267b3e8da8311ea3250857b1bd17db7fd6238104b82cb40324b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-VALUE-NOT-POSITIVE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-VALUE-NOT-POSITIVE"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-empty-required-text",
+   "file": "case_31_block_empty_required_text.json",
+   "sha256": "5eaff67a0b9fdbe3fd505e042240e8ef75cccbfae8cd610ac51b00d0b8a3ab4c",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-VALUE-EMPTY"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-VALUE-EMPTY"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-term-factor-dimension-mismatch",
+   "file": "case_32_block_term_factor_dimension_mismatch.json",
+   "sha256": "08001b1af905b794c4f4df1939627ce434eb00a964d91304b106995b5abd94b0",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-UNIT-DIMENSION-MISMATCH"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:0050cf8ac108e211bd42cc35efaa9ac618b244363ffba4b66e8d788734e6fa6c",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-UNIT-DIMENSION-MISMATCH"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-reference-not-found",
+   "file": "case_33_block_reference_not_found.json",
+   "sha256": "5d8503f80ca98d1f467d221134d48142f9bfec4b7e480966c6e82b9cbb46c2fe",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-REFERENCE-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-REFERENCE-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-restraint-token-invalid",
+   "file": "case_34_block_restraint_token_invalid.json",
+   "sha256": "38a65de31d311bbd7612b69e654a6d5a253e77a9fc6aa262df4ac53f049f2bcd",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_support",
+    "operation_kind": "modify",
+    "target_ref": "support:S-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-RESTRAINT-TOKEN-INVALID"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-RESTRAINT-TOKEN-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-direct-mutation",
+   "file": "case_35_block_direct_mutation.json",
+   "sha256": "e65c456ef8a3d72b2ae05b35a7497bde9903b94cac90f320c8b2e90b4c9dee96",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-DIRECT-MUTATION-BLOCKED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-DIRECT-MUTATION-BLOCKED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-kind-mismatch",
+   "file": "case_36_block_kind_mismatch.json",
+   "sha256": "8fb77a0f657b93dd500529b485652b6177f4a6edbba83318720f0f9c72f61278",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_node",
+    "operation_kind": "modify",
+    "target_ref": "node:N-3",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CHANGE-KIND-MISMATCH"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-CHANGE-KIND-MISMATCH"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unsupported-change-kind",
+   "file": "case_37_block_unsupported_change_kind.json",
+   "sha256": "bfe5ba8324d75fd5295bcff2f98ba06bc6c02033e719501bd7064be1375ce0ae",
+   "host": {
+    "mode": "apply",
+    "change_kind": "explode_model",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-KIND-UNSUPPORTED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-KIND-UNSUPPORTED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-missing-intent-fields",
+   "file": "case_38_block_missing_intent_fields.json",
+   "sha256": "8b2c2898745f2c53717d19262ac20cbb8cf9d2f2982556aac1f805988be98cc8",
+   "host": {
+    "mode": "validate_only",
+    "change_kind": null,
+    "operation_kind": null,
+    "target_ref": "",
+    "author_type_asserted": null,
+    "application_status": "not_applied",
+    "diagnostic_codes": [
+     "OP-DIRECT-MUTATION-BLOCKED",
+     "OP-INTENT-FIELD-MISSING",
+     "OP-KIND-UNSUPPORTED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "error",
+    "contract_terms": {
+     "author_identity": "not supplied (intent incomplete)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "C section 4.1 error of a non-mutating host check (validate-only preview)",
+     "error_identities": [
+      "OP-DIRECT-MUTATION-BLOCKED",
+      "OP-INTENT-FIELD-MISSING",
+      "OP-KIND-UNSUPPORTED"
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unit-metadata-missing",
+   "file": "case_39_block_unit_metadata_missing.json",
+   "sha256": "96f59c3c5e8b14642f86130234e8d73c2e25970803f1806173b325897f06d6a3",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "node:N-2",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-UNIT-METADATA-MISSING"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:c9f9985ce45c2000493beef4e6765fa0c515056e6f015460d7471f8f147de327",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-UNIT-METADATA-MISSING"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-pipe-endpoint-not-found",
+   "file": "case_40_block_pipe_endpoint_not_found.json",
+   "sha256": "bbec3e03ab92dcc8276b4f05e2e05ddbfbc52d479e1169c91d14b0437c6bc845",
+   "host": {
+    "mode": "apply",
+    "change_kind": "connect_pipe_run",
+    "operation_kind": "connect",
+    "target_ref": "pipe:P-2",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-PIPE-ENDPOINT-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-PIPE-ENDPOINT-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-primitive-load-target-not-found",
+   "file": "case_41_block_primitive_load_target_not_found.json",
+   "sha256": "f76c3a9c782c07d01d168fb30bed813f8895b71e50997a6156afb3f9f5c13de1",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_primitive_load",
+    "operation_kind": "create",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-PRIMITIVE-LOAD-TARGET-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-PRIMITIVE-LOAD-TARGET-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-combination-term-duplicate",
+   "file": "case_42_block_combination_term_duplicate.json",
+   "sha256": "03b8e61aea603e272b14791d9c34d5d25ecf314847c435bed0acdf965e0daa9b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-NEW",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-TERM-DUPLICATE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-TERM-DUPLICATE"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-combination-term-load-not-found",
+   "file": "case_43_block_combination_term_load_not_found.json",
+   "sha256": "1f8cb0edc6214c77671fb0a57e4b17fcd9265d6f39e8a8d71f8c5096630cbf22",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination_term",
+    "operation_kind": "create",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-TERM-LOAD-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-TERM-LOAD-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-quantity-object-missing",
+   "file": "case_44_block_quantity_object_missing.json",
+   "sha256": "4bade043d5e969dd751c7160db20d825daf28521b924eb5e1418a5beb3796341",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-QUANTITY-OBJECT-MISSING"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:6d415837dcc5fc9d4d3d7b35f708ee592ad3c4f65e4a2e3869c27375112082f4",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-QUANTITY-OBJECT-MISSING"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-create-support",
+   "file": "case_45_accept_create_support.json",
+   "sha256": "eb2890e7fcd176a55a00e73205a217bc5d061f7e7fdfc7fe2555612027b39757",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_support",
+    "operation_kind": "create",
+    "target_ref": "support:S-2",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:8afde9aea3b2d7aea3a1a85adfba8fdc8a798b575e333aca0095fb1bb3a97bb5"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b9c06e017f7f883e90c9f07bdc5279336b18d65e82bea98b5936d9800b3312e2",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:8afde9aea3b2d7aea3a1a85adfba8fdc8a798b575e333aca0095fb1bb3a97bb5",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "support:S-2",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-material",
+   "file": "case_46_accept_create_material.json",
+   "sha256": "420c37b4d11fe391af75a52cbe191b36e27ec6da7c95039f95a70ef933794fe4",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_material",
+    "operation_kind": "create",
+    "target_ref": "material:user-alloy",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:25ec61f18e95b1f581b94e954fcf3ec2b14572fb602d45269aa8e6922b094e11"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:8e7deab3106d234e384c1b1cdcc1900bcf965c1afb83cca957df690da0b5ae05",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:25ec61f18e95b1f581b94e954fcf3ec2b14572fb602d45269aa8e6922b094e11",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "material:user-alloy",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-section",
+   "file": "case_47_accept_create_section.json",
+   "sha256": "e3905fc04ed0a9618aca4ac6356cbb8028b4df362c9eb3d9aeda94ea1ca9f329",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_section",
+    "operation_kind": "create",
+    "target_ref": "section:user-pipe",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:3ddbfee0524ca05f050aa8a9532bc095180e41710e8320afe6ea0a7aa25031ad"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:0057d213238bcaaaebe4695144d62601edc363d8c57cdfaa8ac99df76e67c924",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:3ddbfee0524ca05f050aa8a9532bc095180e41710e8320afe6ea0a7aa25031ad",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "section:user-pipe",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-delete-support",
+   "file": "case_48_accept_delete_support.json",
+   "sha256": "7447ca644950c29da9c921e58519053839105819c69523d986827ed282913d4b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_support",
+    "operation_kind": "delete",
+    "target_ref": "support:S-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:da6bc258a906f7693bd444285d4a3d24f1f34af9dc6527dce462ae96cca12359"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:e2ca210ef78ecfb94a4bbaa79a0f690aec791faf4a517bb2bcba9e6c735d63c4",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:da6bc258a906f7693bd444285d4a3d24f1f34af9dc6527dce462ae96cca12359",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "support:S-1",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-delete-support-referenced",
+   "file": "case_49_block_delete_support_referenced.json",
+   "sha256": "f1dbb926d694fe63159ac462d4631c4ab8634623104c5596adb2e60c52015c8b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_support",
+    "operation_kind": "delete",
+    "target_ref": "support:S-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-SUPPORT-DELETE-REFERENCED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:24e29bf3f86c364fa1a8a38e688ac9c77b6142cb2cb2cfef1d69ea0ed995649f",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-SUPPORT-DELETE-REFERENCED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-delete-primitive-load",
+   "file": "case_50_accept_delete_primitive_load.json",
+   "sha256": "ca7ed887dd9e8edbdee50758dabe01dc26cbc1b72109e37aaa2276ec89b8c121",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_primitive_load",
+    "operation_kind": "delete",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:6ded7e7f615e8f711490d3855509b73d64f72d53f52f09171bb837da8229c2c0"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:203da484af58d3c1a36d61fe50febdd911b3380b68df55ec57ccd2c501757d63",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:6ded7e7f615e8f711490d3855509b73d64f72d53f52f09171bb837da8229c2c0",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-delete-combination",
+   "file": "case_51_accept_delete_combination.json",
+   "sha256": "ee864ec37e8e4702f192d55ec33e7ebe13fcfa506d964485b22a71d5d0e6042e",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_combination",
+    "operation_kind": "delete",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:92230604cebb6518148ce79b06aca1bcba2c5287193a1090613a0a3f45ba4af8"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b86784bc556e2b8ce024c51e8d09b3c4e923ea24ef53044839a4d87600b030ac",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:92230604cebb6518148ce79b06aca1bcba2c5287193a1090613a0a3f45ba4af8",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-OP",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-delete-load-case",
+   "file": "case_52_accept_delete_load_case.json",
+   "sha256": "4ab042086c9a9d4ec1669f03a14f770a4f35116ba61e9e26e76fddd4a9687bd5",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_load_case",
+    "operation_kind": "delete",
+    "target_ref": "load:L-2",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:d381fc6670990f94a0f44897b39acc4b43b32949537343b2042f8cf396cf069f"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:3bc02378e4111a6d013465f62f56d7fda4805390b8fc208b897e1dec45227fd2",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:d381fc6670990f94a0f44897b39acc4b43b32949537343b2042f8cf396cf069f",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-2",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-delete-load-case-referenced",
+   "file": "case_53_block_delete_load_case_referenced.json",
+   "sha256": "cf276c26a8bf488a8be28df8740674ac50b120228355ad71a84e0ee3ac51e9e7",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_load_case",
+    "operation_kind": "delete",
+    "target_ref": "load:L-2",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-LOAD-CASE-DELETE-REFERENCED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:69f448569010be02ae3bcfa9b10b4a8043d531da6d9683b0895e317402239889",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-LOAD-CASE-DELETE-REFERENCED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-delete-pipe-run",
+   "file": "case_54_accept_delete_pipe_run.json",
+   "sha256": "e4b89abb23c5d7562c03d0bad967510d44c15d6532623f9bc0f8a20b10ff5ee7",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_pipe_run",
+    "operation_kind": "delete",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:7bca9d29d4854db88ce86bfa30df96cd718b14b40d4e7cf9daa5339fe7fdf691"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:677e4bb8f9ab1317c140af03a3207dc91e992c00a6d157bd0d22559a310da006",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:7bca9d29d4854db88ce86bfa30df96cd718b14b40d4e7cf9daa5339fe7fdf691",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "pipe:P-1",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-delete-pipe-run-referenced",
+   "file": "case_55_block_delete_pipe_run_referenced.json",
+   "sha256": "a82ca0c63b6cf3b081aff40e1c5849f6a7921b4f3985ee5ee7bcaf0f557aa674",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_pipe_run",
+    "operation_kind": "delete",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-PIPE-DELETE-REFERENCED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:edcc82cff64a5ace8ccb1b0030d34ae71b71419af0a9e91413d7d81d0b4dcd33",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-PIPE-DELETE-REFERENCED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-delete-node",
+   "file": "case_56_accept_delete_node.json",
+   "sha256": "9e8c2fbe256b972485b6e4020a761b5419a9dfadf3eb1fd1e7cc3c05730ce785",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_node",
+    "operation_kind": "delete",
+    "target_ref": "node:N-3",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:79fe48cb240a017c2625033cd3129537b2a26e1df62cc6b422c2f320127bc1ea"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:a6e2089a18b759d3c8972759bde8616a702ec422195ff78ed00a238f40257157",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:79fe48cb240a017c2625033cd3129537b2a26e1df62cc6b422c2f320127bc1ea",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "node:N-3",
+       "relation": "removed (no App relation)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-02",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-delete-node-referenced",
+   "file": "case_57_block_delete_node_referenced.json",
+   "sha256": "28b6fe7d86f4bbfd59870efe06d097771b20d8a2f55c99c3985b420ef9d14003",
+   "host": {
+    "mode": "apply",
+    "change_kind": "delete_node",
+    "operation_kind": "delete",
+    "target_ref": "node:N-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-NODE-DELETE-REFERENCED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:e5e704e4e770607ed4b55e4b74dd0aa0459e5f767f80831fd53d0d41bebc3f8c",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-NODE-DELETE-REFERENCED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-create-combination-subtraction",
+   "file": "case_58_accept_create_combination_subtraction.json",
+   "sha256": "e0da821d551fc08ad6fc33d8b8fd18eb078dbccf03b79f27ee439727dd03d955",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-DIFF",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:7c08e3e301912b72cd6b3fb7e22644157495ad44c078af79eb04014436da80c7"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:7c08e3e301912b72cd6b3fb7e22644157495ad44c078af79eb04014436da80c7",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-DIFF",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-create-combination-range-envelope",
+   "file": "case_59_accept_create_combination_range_envelope.json",
+   "sha256": "21067c9802dd431c23885ffbfc60dfa0091a6ea2c5e2546b602d91f1b81cfde3",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-ENV",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:6f8132b291571aec803913d81ca500b3baa344bd11ca22a48487613fb4226811"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:6f8132b291571aec803913d81ca500b3baa344bd11ca22a48487613fb4226811",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "combination:C-ENV",
+       "relation": "created",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-create-combination-subtraction-wrong-shape",
+   "file": "case_60_block_create_combination_subtraction_wrong_shape.json",
+   "sha256": "f21fcf28c1aad02bccf83e90af95af84a0a7433f96e5c716aa90422d8952ee7a",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-DIFF-TERMS",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CREATE-COMBINATION-PAYLOAD-INVALID"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-CREATE-COMBINATION-PAYLOAD-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-create-combination-range-wrong-shape",
+   "file": "case_61_block_create_combination_range_wrong_shape.json",
+   "sha256": "0ac8b6bfe3ad7971f5017308e928255696252d631733b15be08be7c98686adf4",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-ENV-SHAPE",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CREATE-COMBINATION-PAYLOAD-INVALID"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-CREATE-COMBINATION-PAYLOAD-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-create-combination-range-mode-unknown",
+   "file": "case_62_block_create_combination_range_mode_unknown.json",
+   "sha256": "1a9bb0d80ef59d93cf62d82c3d36a6aa51dfe3f89dee71e740720e43f726e79f",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-ENV-MODE",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-RANGE-MODE-UNKNOWN"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-RANGE-MODE-UNKNOWN"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-create-combination-missing-operand-ref",
+   "file": "case_63_block_create_combination_missing_operand_ref.json",
+   "sha256": "1f163dc4d74e3fb8fc497e962f5d0ba2cc7e82a5ecdebdf9b4aa68d33fc7c10f",
+   "host": {
+    "mode": "apply",
+    "change_kind": "create_combination",
+    "operation_kind": "create",
+    "target_ref": "combination:C-DIFF-MISSING",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-OPERAND-LOAD-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-OPERAND-LOAD-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-update-combination-basis-unsupported",
+   "file": "case_64_block_update_combination_basis_unsupported.json",
+   "sha256": "2fdf06fc42aa3ce2b39bf312f4f9e713f02d0f11404da8dc9f25445e7a67e43d",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-BASIS-UNSUPPORTED"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-BASIS-UNSUPPORTED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-update-combination-basis-shape-mismatch",
+   "file": "case_65_block_update_combination_basis_shape_mismatch.json",
+   "sha256": "3ead6bd9cc3cfcbe2076591149d6c1e10d434239f91030e73405f02b2803f2d1",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "combination:C-OP",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-COMBINATION-BASIS-SHAPE-MISMATCH"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:b1926ea69e0839d7f6b7097729ec148514fc64eedbcf31da0668699317eff95b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-COMBINATION-BASIS-SHAPE-MISMATCH"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-set-field-component-bend-radius-authoring",
+   "file": "case_66_accept_set_field_component_bend_radius_authoring.json",
+   "sha256": "bef1cccf02d5c10f961446cd514853b97619cb24c434e8584f1753bcd9b6d4c3",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "component:C-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:1f4017b40445944de53395acf5871316d8fbd1c4858bcec1b8d4862fd8640e67"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:1f4017b40445944de53395acf5871316d8fbd1c4858bcec1b8d4862fd8640e67",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "component:C-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-set-field-component-expansion-joint-stiffness",
+   "file": "case_67_accept_set_field_component_expansion_joint_stiffness.json",
+   "sha256": "5a5149b4bc7afb7a98d1baa3f70f35581ee84d608739219ec5afda090f0de06b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "component:C-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:fe1bcc76fa6914f0bfda46f320d91a47ccf55c8a59a9ba6ecf596e3ed5d4e8a6"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:236f85c711cec57795a0a3f06921d0d4e80ced9d96bd6fffd2d09230ac597b8b",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:fe1bcc76fa6914f0bfda46f320d91a47ccf55c8a59a9ba6ecf596e3ed5d4e8a6",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "component:C-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-set-field-element-mill-tolerance-zero",
+   "file": "case_68_accept_set_field_element_mill_tolerance_zero.json",
+   "sha256": "789db8800028cb6ea58ce26476d7d1d4b56a3f0427d096db7f801da1f4e31201",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:38761d951b1720a636cb750f6cdecb485e2eb1dab9eec86aa96d69de5f315e81"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:38761d951b1720a636cb750f6cdecb485e2eb1dab9eec86aa96d69de5f315e81",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "pipe:P-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-modulus-basis-ref",
+   "file": "case_69_accept_update_load_modulus_basis_ref.json",
+   "sha256": "d42776bad37021a7bb97129231330ef74a324edcd9fe10f4e443cbc6b51f4422",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:b8e4a910505b640db2eb6a6ebf28f7803c0a35173d06ad805fa91eddd151a9e7"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:b8e4a910505b640db2eb6a6ebf28f7803c0a35173d06ad805fa91eddd151a9e7",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-wind-exposed-pipe-refs",
+   "file": "case_70_accept_update_load_wind_exposed_pipe_refs.json",
+   "sha256": "fe226e3d5f317083c8ed02780b0ad351f684bcd81b7e2cd34e3d270a1c251185",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:c5ac46e12c541e71bbe42c07b1bba50c6c1928c6238efaba83beba7b3da3a4cd"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:c5ac46e12c541e71bbe42c07b1bba50c6c1928c6238efaba83beba7b3da3a4cd",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-update-load-seismic-gravity-authoring",
+   "file": "case_71_accept_update_load_seismic_gravity_authoring.json",
+   "sha256": "ebb9d196d0e1d1bdf7c3ce0bdd351843101ecf220273d4c917e760a932b2e37e",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:840947f48d26d989d947458b225e4b037497e23a60d79b915380824fa1e1637b"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:840947f48d26d989d947458b225e4b037497e23a60d79b915380824fa1e1637b",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "load:L-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-component-bend-pipe-ref-not-found",
+   "file": "case_72_block_component_bend_pipe_ref_not_found.json",
+   "sha256": "5a2afb9d7cf79ef99d165bddd672fa36b4e692d2be34f18fcc098788229b3983",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "component:C-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-REFERENCE-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-REFERENCE-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-element-mill-tolerance-negative",
+   "file": "case_73_block_element_mill_tolerance_negative.json",
+   "sha256": "edd0a48c6e04fa78019b9f200eefe1c86905d931d257942b31cdbbcd625846a6",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-VALUE-NEGATIVE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-VALUE-NEGATIVE"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-load-modulus-basis-ref-id-pattern",
+   "file": "case_74_block_load_modulus_basis_ref_id_pattern.json",
+   "sha256": "a87b6e4318ec4a4063de0b3cc3de7a833ada7043e67262c29f81e700e41f2213",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-ID-PATTERN-INVALID"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-ID-PATTERN-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-load-wind-direction-enum",
+   "file": "case_75_block_load_wind_direction_enum.json",
+   "sha256": "fa7a4c662f2fb974946400438eba17a9484ccaeee5ba44253d0795814c6ad35b",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-ENUM-TOKEN-INVALID"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-ENUM-TOKEN-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-set-field-material-temperature-point-shear-modulus",
+   "file": "case_76_accept_set_field_material_temperature_point_shear_modulus.json",
+   "sha256": "d3aae9cb867d7b34170c69718d01c6791f9d3facc13f4f460d14596e3efd157a",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:4107bf10819bf23fb613f0791b12f642dd70b76e89c3766f4a1a22b02ddf7c80"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:59127ed206f7bc86e87381d58e2cfa7fd8b0e7410d4c60fd7b7895b3efc2fd8e",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:4107bf10819bf23fb613f0791b12f642dd70b76e89c3766f4a1a22b02ddf7c80",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "material:M-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-set-field-material-temperature-point-shear-modulus-missing-point",
+   "file": "case_77_block_set_field_material_temperature_point_shear_modulus_missing_point.json",
+   "sha256": "503f6f0108f01cb9e98ead2e07321cd3427e4d23c6f5ead469f3a83f0970971e",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-MATERIAL-TEMPERATURE-POINT-NOT-FOUND"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:bfa4529fc3666cbe8f7ed65b9f027dd3ce244205926de932b71fcfc83906bd38",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-MATERIAL-TEMPERATURE-POINT-NOT-FOUND"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-set-field-material-temperature-point-shear-modulus-invalid",
+   "file": "case_78_block_set_field_material_temperature_point_shear_modulus_invalid.json",
+   "sha256": "1d2817ef4af11be92f6e994d170037e822c3b96cc65858cd2626c30b5a100495",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-UNIT-MISMATCH-CONVERSION-UNAVAILABLE"
+    ],
+    "binding_status": "no_claimed_hash_before_state_check_is_the_staleness_guard",
+    "claimed_model_hash": "absent",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:bfa4529fc3666cbe8f7ed65b9f027dd3ce244205926de932b71fcfc83906bd38",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "not carried: no claimed hash; per-field before-values guard staleness",
+     "error_identities": [
+      "OP-UNIT-MISMATCH-CONVERSION-UNAVAILABLE"
+     ],
+     "item_left_cause": "refused_invalid",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-07",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-stale-claimed-model-hash",
+   "file": "case_79_block_stale_claimed_model_hash.json",
+   "sha256": "9783f0887f15c65babfb8991a45c69d62c7b9f4a9948d46f8828100bb2448fd9",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "material:M-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CLAIMED-MODEL-HASH-MISMATCH"
+    ],
+    "binding_status": "claimed_model_hash_mismatch_current_backend_model",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_stale",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "staleness_scope": "whole_model",
+     "failing_targets": "not supplied (host scope: whole model)",
+     "item_left_cause": "refused_stale",
+     "error_identities": [
+      "OP-CLAIMED-MODEL-HASH-MISMATCH"
+     ],
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-malformed-claimed-model-hash",
+   "file": "case_80_block_malformed_claimed_model_hash.json",
+   "sha256": "4fab0bc26897bc9f01d51f8552c752c00205141a03374eb495459ec660233ef6",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "pipe:P-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CLAIMED-MODEL-HASH-METADATA-INVALID"
+    ],
+    "binding_status": "claimed_model_hash_metadata_invalid",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "error_identities": [
+      "OP-CLAIMED-MODEL-HASH-METADATA-INVALID"
+     ],
+     "item_left_cause": "refused_invalid",
+     "note": "the relied-on basis claim is malformed or of another method: incomparable (C section 5.2 rule 6), never stale",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "block-unsupported-claimed-model-hash",
+   "file": "case_81_block_unsupported_claimed_model_hash.json",
+   "sha256": "0357765eda7c7ac351498664da77f2617e715b47ae8fd88c7eddba1d323b7501",
+   "host": {
+    "mode": "apply",
+    "change_kind": "update_load",
+    "operation_kind": "modify",
+    "target_ref": "load:L-1",
+    "author_type_asserted": "user",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-CLAIMED-MODEL-HASH-METADATA-UNSUPPORTED"
+    ],
+    "binding_status": "claimed_model_hash_metadata_unsupported",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:403159191b04f7c12625c61662d5902f3e26edea3e8f9b423d4d86731b639174",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "error_identities": [
+      "OP-CLAIMED-MODEL-HASH-METADATA-UNSUPPORTED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "note": "the relied-on basis claim is malformed or of another method: incomparable (C section 5.2 rule 6), never stale",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": []
+   }
+  },
+  {
+   "case_id": "accept-insert-bend-at-corner",
+   "file": "case_82_accept_insert_bend_at_corner.json",
+   "sha256": "73e4ea65512793b7b0eb67b78b87bc0eeee11063aeb8fd28134d71547e34b137",
+   "host": {
+    "mode": "apply",
+    "change_kind": "insert_bend_at_corner",
+    "operation_kind": "modify",
+    "target_ref": "node:X",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "claimed_model_hash_matches_current_backend_model",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 7,
+    "resulting_whole_model_hash": "sha256:c6253468c199ea01e790eed4b51cf2dda9f41fe8b4e766af53abd2fe8e412a81"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:372a81fc9e7940493c09cbf9f2ac259d357cbe002ae58f1826864ee7ce53df62",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:c6253468c199ea01e790eed4b51cf2dda9f41fe8b4e766af53abd2fe8e412a81",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "node:X",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "accept-set-field-bend-realization",
+   "file": "case_83_accept_set_field_bend_realization.json",
+   "sha256": "6e7f456c0f76e89f1ada4b465e11420973b11603b8696ea9c6921fd01c3deed2",
+   "host": {
+    "mode": "apply",
+    "change_kind": "set_field",
+    "operation_kind": "modify",
+    "target_ref": "component:bend-1",
+    "author_type_asserted": "user",
+    "application_status": "applied_to_session_model",
+    "diagnostic_codes": [],
+    "binding_status": "claimed_model_hash_matches_current_backend_model",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "user_initiated_apply_in_local_session",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "session_state_only_not_yet_saved"
+    },
+    "diff_rows": 1,
+    "resulting_whole_model_hash": "sha256:d61386e4c63d0a6f787e2cb51cb3bf5e3ef0af59150ecc4ff752928ff0dba0c1"
+   },
+   "app": {
+    "contract_outcome": null,
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:24ceb4dcdb412f6fde3679cc18847c2099dde669fde4962b7f2ab98cc50f3077",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "outcome_statement": "no contract outcome: the host applied the change to its session model at the person's Apply, recording only acceptance basis 'user_initiated_apply_in_local_session'; P 'applied' needs branch after_acceptance with an A5 act record, or direct_under_grant, and neither holds",
+     "host_stated_acceptance_basis": "user_initiated_apply_in_local_session",
+     "resulting_revision": {
+      "canonical_content_identity": "sha256:d61386e4c63d0a6f787e2cb51cb3bf5e3ef0af59150ecc4ff752928ff0dba0c1",
+      "model_revision": "not supplied"
+     },
+     "resulting_objects": [
+      {
+       "object_identity": "component:bend-1",
+       "relation": "changed",
+       "subject_content_identity": "not supplied (R8-4)"
+      }
+     ]
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-01",
+     "NR-04",
+     "NR-05",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10"
+    ],
+    "app_gaps": [
+     "A-01",
+     "A-03"
+    ]
+   }
+  },
+  {
+   "case_id": "block-agent-bend-flexibility",
+   "file": "case_84_block_agent_bend_flexibility.json",
+   "sha256": "bc78dccac4c3e7a9519e26344448c688cff21376a15230efe0514b2039297f8d",
+   "host": {
+    "mode": "apply",
+    "change_kind": "insert_bend_at_corner",
+    "operation_kind": "modify",
+    "target_ref": "node:X",
+    "author_type_asserted": "agent",
+    "application_status": "blocked",
+    "diagnostic_codes": [
+     "OP-BEND-FLEXIBILITY-USER-ENTRY-REQUIRED"
+    ],
+    "binding_status": "claimed_model_hash_matches_current_backend_model",
+    "claimed_model_hash": "present",
+    "acceptance": {
+     "acceptance_basis": "none_validation_only",
+     "acceptance_is_professional_approval": false,
+     "persistence_status": "not_applicable_no_application"
+    },
+    "diff_rows": 0,
+    "resulting_whole_model_hash": null
+   },
+   "app": {
+    "contract_outcome": "refused_invalid",
+    "contract_terms": {
+     "author_identity": "unverified (author_type is caller-asserted; SQ-14; R4-15)",
+     "evaluated_basis": {
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      },
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "model_revision": {
+       "not_supplied": "omitted"
+      },
+      "canonical_content_identity": "sha256:372a81fc9e7940493c09cbf9f2ac259d357cbe002ae58f1826864ee7ce53df62",
+      "identity_method": "host: sha256 over rfc8785_jcs canonical JSON of model_payload"
+     },
+     "relied_on_basis": "carried: the claimed whole-model hash",
+     "error_identities": [
+      "OP-BEND-FLEXIBILITY-USER-ENTRY-REQUIRED"
+     ],
+     "item_left_cause": "refused_invalid",
+     "note": "an authority difference (agent may not write k) received as the host states it; P section 2 expects 'not permitted' naming the governing treatment, which the host does not supply",
+     "refusal_at": "the host's apply step (main validates again at Apply); nothing applied, no act recorded"
+    },
+    "app_record_formable": false,
+    "blocked_by": [
+     "NR-04",
+     "NR-06",
+     "NR-08",
+     "NR-09",
+     "NR-10",
+     "NR-11"
+    ],
+    "app_gaps": []
+   }
+  }
+ ]
+}

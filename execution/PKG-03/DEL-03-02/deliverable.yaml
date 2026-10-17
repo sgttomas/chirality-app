@@ -177,3 +177,9 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: false
   evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/proposal.rs
+checks:
+- execution/PKG-03/DEL-03-02/Design/prototype/swbpipe_corpus_map.py
+- execution/PKG-03/DEL-03-02/Design/prototype/proposal_states.py
+- app/src-tauri/tests/swbpipe_receiving.rs

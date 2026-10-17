@@ -152,3 +152,8 @@ needs:
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 checks:
 - execution/PKG-03/DEL-03-01/Design/prototype/validate_all.py
+- execution/PKG-03/DEL-03-01/Design/prototype/run_swbpipe_profile.py
+- app/src-tauri/tests/swbpipe_receiving.rs
+code_paths:
+- execution/PKG-03/DEL-03-01/Design/prototype/simhost.py
+- execution/PKG-03/DEL-03-01/Design/prototype/simhost_swbpipe.py

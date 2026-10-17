@@ -91,7 +91,7 @@ Settled distinctions relied on (cited, not re-decided):
 | S-P11 | A human act binds to content and lapses visibly when content changes | V4-HI-32 |
 | S-P12 | Domain truth and validation stay in the host; Chirality never presents agent output as the host's accepted result | V4-REC-01; V4-CST-05 |
 | S-P13 | Autonomy does not override a workflow's declared checkpoints: "whatever the autonomy setting, a checkpoint's required act is requested and recorded as done only when the person performs it" (V4-HI-42 as amended by SCA-V4-001). No grant widens past a reserved act or a declared checkpoint (D2). **Current phase (R8-11 item 2 as restated by R9-2, DERIVED; the R8-11 reading was confirmed by the owner at SCA-V4-001 OWNER_ITEMS O-25):** D2's "no autonomy grant widens past a reserved act" binds, and the host enforces it through its operations. For a declared checkpoint, V4-HI-42's request clause and record clause are in force whatever the autonomy setting; whether the run goes on before the act is for the person and the agents in the current phase, and the host's own treatment of its operations decides what the host does. A forced *propose* (§4.4) and a hold apply only to governed checkpoints in the governance phase | V4-HI-42; V4-WF-05; D2; R8-11; R9-2 |
-| S-P14 | **Adopted** (D2): A4 mark checked, A5 accept wherever the active autonomy requires a proposal, A6 approve, A7 rely, A12 changing the autonomy grant and A13 enabling external-agent access are reserved to the person. **DERIVED**: A10 reject is reserved wherever A5 is (R-1). **INTEGRATION**: disabling external access is also a person's A13 (R2-3). The host names and enforces its own list; SWBPIPE adoption is not evidenced. SWBPIPE (SQ-05): no named reserved list; every change waits for the person's Apply, which is A5 in the person's hands | D2; R-1; R2-3; V4-HI-30; DEP-001 |
+| S-P14 | **Adopted** (D2): A4 mark checked, A5 accept wherever the active autonomy requires a proposal, A6 approve, A7 rely, A12 changing the autonomy grant and A13 enabling external-agent access are reserved to the person. **DERIVED**: A10 reject is reserved wherever A5 is (R-1). **INTEGRATION**: disabling external access is also a person's A13 (R2-3). The host names and enforces its own list; SWBPIPE adoption is not evidenced. SWBPIPE (SQ-05): no named reserved list; every change waits for the person's Apply. The Apply is the person's acceptance, but SWBPIPE records it with no attributable act (no actor, act reference or capture time), so the App records no A5 from it (§9.2) | D2; R-1; R2-3; V4-HI-30; DEP-001 |
 | S-P15 | **Adopted** (D3): App routine tool-permission/sandbox modes (A14) remain the user's own Codex setting, govern tool execution only and never stand in for a reserved or professional act; hosts have no classifier permission mode; the SWB default proposal mode applies. A14 is recorded only in run record R13 (R2-8, INTEGRATION) | D3; R2-8; V4-HI-41 |
 
 ## 1. Host authority map (REQ-002, REQ-013; VER-003, VER-014)
@@ -415,9 +415,11 @@ Reporting rules:
 | Treatment narrowed while in flight | Already-queued proposal unaffected; a not-yet-applied operation is re-resolved at application (R-3 point 6) | INTEGRATION; host enforcement DEP-001 |
 | Treatment widened while in flight | Never converts a queued proposal into direct application or an acceptance (R-3 point 7) | INTEGRATION |
 
-**SWBPIPE (SQ-01, SQ-23; R8-5).** The host's A5 is Apply, which accepts and
-applies in one step, per batch, with no A10 record. A stale Apply is refused
-and records no acceptance, so *accepted — not applied: refused — stale* does
+**SWBPIPE (SQ-01, SQ-23; R8-5; §9.2).** The person's acceptance in SWBPIPE is
+Apply, which applies in one step, per batch, with no A10 record and no
+attributable act record, so the App records no A5 from it and the applied item
+has no contract outcome (§9.2). A stale Apply is refused and records no
+acceptance, so *accepted — not applied: refused — stale* does
 not arise on SWBPIPE. The App keeps that meaning (R2-16) and records that it
 has no SWBPIPE counterpart; V-S1 (C §10.4), DEL-03-03 XF-30 and XT XC-08
 remain App receiving cases.
@@ -883,17 +885,40 @@ deferred). Nothing here is a SWBPIPE commitment (DECISION-3).
 | `unsupported_method` / `unsupported_change` | host-reported **not exposed on this surface** | Never *not permitted*. R2-4 (a named rule) is recorded as not met by this host (R8-5) |
 | #885 `withdrawn` / `cleared_in_review` (the person cleared the queue) | **item left**, "cleared by the person, no decision record" (§4.2, §4.3) | Never A10, never A11 (R8-5) |
 | #885 `rejected: validation_rejected` at Apply | **refused — invalid** at application | Never A10 (R8-5) |
-| Apply (the person's review-and-apply) | **accepted** and **applied (receipt)** in one step, per batch | No separate *accepted* state and no A10 record; the missing counterparts are recorded (R8-5) |
+| Apply (the person's review-and-apply) | host-reported application at the person's Apply; **never** received as *accepted* (A5), and with **no contract outcome** (§9.2) | The host records only `acceptance_basis: user_initiated_apply_in_local_session`, per call or per atomic batch: no actor, act reference, capture time or bound item content. *Applied* needs an A5 (branch after acceptance) or a grant (direct), and neither exists. No separate *accepted* state and no A10 record. This corrects R8-5's "accepted and applied in one step" against SWBPIPE's corpus and Apply sources at `8212c765ec` (2026-10-17) |
 | Session undo | — | Writes no receipt; "reverses ⟨receipt⟩" is *not supplied* (R8-5; §4.5) |
 | `controller_unavailable`, or an attachment failure | *endpoint unavailable* (DEL-03-03), channel *disabled* | Never host-reported *channel not enabled*; SWBPIPE has no such code (R8-6) |
 | main `blocked`; #885 `invalid_request` | *refused — invalid* | Before queueing, nothing is queued (SQ-09 (d)) |
 | main `OP-STALE-BEFORE-VALUE`, `OP-CLAIMED-MODEL-HASH-MISMATCH`; #885 `stale_basis`, `expired` | *refused — stale* | Host scope: whole model (§5; R8-3) |
 | #885 `queued` | *queued* | Only after the controller observes publication |
-| main `applied_to_session_model`; #885 `committed` | *applied (receipt)* | Main's receipt is session-only; #885's is readable by `status` within one controller session (SQ-01, SQ-08 (c)) |
+| main `applied_to_session_model`; #885 `committed` | no contract outcome while the act is not attributable (Apply row; §9.2); *applied (receipt)* only with an A5 record the host supplies (§10) | Main's receipt is session-only, in UI state and reset on project create or open, and the engine outcome carries none; #885's is readable by `status` within one controller session (SQ-01, SQ-08 (c)) |
 | #885 `outcome_unknown` | *outcome unknown* | Reporter host; a later `status` read is reported separately |
 | #885 `idempotency_conflict` | *refused — identity conflict* (§3.5 PM-3) | PROPOSED at v0.8; the key is received as a proposer-minted identity (PM-2) |
 | #885 `status` by `ticket` | **observe proposal** by an associated handle (§3.5 PM-4) | Within one controller session (SQ-08 (d)); outside it, the result shows nothing about arrival (PM-4, PM-5) |
 | #885 `busy`, `capacity`, `not_ready`, `unauthorized`, `wrong_app`, `wrong_workspace`, `internal_error`, others | as the host states each (*unavailable*, *not permitted* or *error*) | `retryable` and `next_action` are recorded, never acted on as a treatment |
+
+### 9.2 SWBPIPE's operation corpus, received (2026-10-17; PROPOSED)
+
+`SWBPIPE_CORPUS_RECEIVING.md` (SWB-CORPUS-v0.1) maps every case of SWBPIPE's
+operation contract corpus, read at commit `8212c765ec` and byte-pinned in
+`swbpipe-corpus-pins.json`, into this file's terms. The rows are in
+`swbpipe-corpus-mapping.json`, generated and checked by
+`prototype/swbpipe_corpus_map.py`. The 84 cases land as follows:
+
+- 34 host applications: no contract outcome (the Apply row above);
+- 45 *refused — invalid* with the host's code;
+- 3 *refused — stale*;
+- 1 *success* of the non-mutating validate-only preview;
+- 1 *error* of that preview.
+
+No case is received as *accepted*, *rejected*, *withdrawn* or *applied*, and
+none carries an act. No App record can be formed for any case. Every case lacks
+a host-assigned change-item content identity (PM-6), a model revision and a
+proposal record under the proposer's identity (PM-3–PM-5). SWB-CORPUS §3 lists
+what SWBPIPE would need to add (NR-01…NR-11). Its §4 records the App-side gaps,
+of which A-01 (below, UNRESOLVED) is an open choice. DEL-03-01's SH-1 profile
+`swbpipe` (C-v0.8 §10.8) exercises the same forms on the route, and
+`app/src-tauri/tests/swbpipe_receiving.rs` runs the App receivers on both.
 
 ## 10. Execution versus human acts (REQ-010, REQ-012; SOW-177; #d3)
 
@@ -1021,7 +1046,7 @@ deliverable's register. A row names a contribution, not its delivery.
 | Expect from | DEL-04-01 (DEP-03-02-017) | A1–A15 names (A15, R12-5, not checkpoint-requirable); class records P-01…P-06 with revision identity; treatment → outcome map; act-declined event; residual `UNRESOLVED{OI-021}` additions |
 | Expect from | DEL-04-02 (supplier row DEP-04-02-021; no UPSTREAM row in this register) | Grant display states incl. *effective (policy default)*; grant value and scope per class; settings version identities |
 | Expect from | DEL-02-01 (DEP-03-02-027) | Workflow identity; checkpoint declarations (required act, subject class, reached-when); §4.3.7 item rule |
-| Expect from | Host owner (DEP-03-02-023) | Route, de-duplication, treatment resolution, constraint receipt (U-P10), validation outcomes, receipts, resulting objects, origin marks, undo route, views, captured acts with capture-evidence references, settings version at application, stale rule confirmation (U-C3), generation meaning (U-C2), one-effect evidence |
+| Expect from | Host owner (DEP-03-02-023) | Route, de-duplication, treatment resolution, constraint receipt (U-P10), validation outcomes, receipts, resulting objects, origin marks, undo route, views, captured acts with capture-evidence references, settings version at application, stale rule confirmation (U-C3), generation meaning (U-C2), one-effect evidence. What SWBPIPE lacks of these at `8212c765ec`: `SWBPIPE_CORPUS_RECEIVING.md` §3 (NR-01…NR-11) |
 | Provide to | DEL-04-02 (DEP-03-02-018) | Direct-branch entry condition and origin semantics (§4.4); standing per outcome (§9) incl. "applied, then reversed" and accepted-then-stale display |
 | Provide to | DEL-04-03 (DEP-03-02-019) | Canonical §9 taxonomy; per-submission recording and precedence (§5, §7); applied association with resulting objects; change-item content identity for A5/A10 lapse (L-1); origin and constraint (§3.3); act/evidence table (§10); undo relation *reverses ⟨receipt⟩* (§4.5); item-left events (§4.3). At v0.8: two §9 rows (*refused — identity conflict*; *not known to host*), the minting party and host handles (§3.5 PM-1, PM-2), the host-assigned change-item content identity (PM-6), the evidence limit "de-duplication scope exceeded" (PM-5). At the RP-2 repair: the item-left event as an explicit schema element (§4.3) and the host's capture time on A5/A10 (§9) |
 | Provide to | DEL-03-03 (DEP-03-02-020) | This contract unchanged for the external channel; constraint carriage assurance (§3.3, governance phase; only host-held satisfies R2-12; App-assured not available in this increment); *unverified* author identity; *channel not enabled* (App or host reporter), relayed *not exposed*, *not permitted*; the received SWBPIPE vocabulary (§9.1). At v0.8: identity minting and host handles (§3.5 PM-1, PM-2), observation by identity and *not known to host* (PM-4), the de-duplication scope (PM-5), *refused — identity conflict* (PM-3), the per-item table (§4.6) and SQ-P6; the two schemas |
@@ -1242,6 +1267,7 @@ v0.2 = P-v0.2 (sha256 942c1a3a…8c89, 575 lines, committed at `c387730fb`).
 | U-P8 Undo mechanism and availability (OP-C10). Treatment is settled: governed by the policy record of the operation whose receipt it reverses (R3-4, INTEGRATION) | Host owner | Before undo implementation | §4.5 semantics; treatment per R3-4. SWBPIPE: session snapshot undo, not through the route, no receipt, not policy-governed; "reverses ⟨receipt⟩" *not supplied*; acts bound to content it changes still lapse, observed from the model identity (SQ-10; R8-5) |
 | U-P9 Sibling-draft grouping mechanics (= LOOP T-OPEN-1). **Narrowed at RP-2:** the malformed-sibling part is ruled by R12-7 (LOOP adopts §3.1 rule 5: valid calls handled on their own, the malformed one refused on its own) | DEL-05-01 with DEL-03-02 and host owner | Before the loop's fixture basis is observed (LOOP MC-8) | §3.1 rule 5 PROPOSED; the R12-7 part INTEGRATION, PROPOSED until observed |
 | U-P10 Host receipt of the governing checkpoint constraint, or host evaluation of its own declaration copy (relay, R2-12; SWBPIPE SQ-02); which carriage assurances a host can distinguish (R4-14); only host-held satisfies R2-12 (R5-2) — governance phase (R8-1) | Host owner with DEL-03-02, DEL-05-01, DEL-03-03 (DEP-001). SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned; planning one is a SWBPIPE owner decision (ANS §2). D6 is closed for Phase 1 and re-opens with the governance phase (R8-2) | Before the governance-phase V-CP1 / LOOP FX-C9 / PANEL PC-24 / WD VC-11 execution | Phase 1: none; the App carries no constraint (R8-10). Governance phase: those fixtures AWAITING INPUT — SQ-02 answered: no receipt, no host copy (not offered); host joins deferred (DECISION-3); omitted constraint indistinguishable from none |
+| SWB-CORPUS A-01: an application made at a person-initiated host Apply that records no attributable act has no form here. *Applied* requires branch `after_acceptance` with an A5, or `direct_under_grant` | App coordinator (interface received by DEL-04-03, DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02 and DEL-03-03) | Before a SWBPIPE application must be recorded (V4-EXM-20; DEL-11-03 AC-002) | Kept unrepresentable (§9.1, §9.2). The alternatives: SWBPIPE supplies per-change act records (SWB-CORPUS NR-01), or the App adds a weaker form, "applied at the host's Apply; no attributable act recorded", which would never count as an A5 |
 | ~~Mixed item decisions → checkpoint disposition~~ **Closed**: WD §4.3.7 confirmed by DEL-02-03 (R4-7; R5-9) | — | — | P supplies item data and item-left events |
 | U-C2 / U-C3 / U-C4 / U-C12 (shared with DEL-03-01) generation; host confirmation of the per-item stale rule and subject-identity scope; multi-read reliance; per-subject identity not met by SWBPIPE | Host owner with DEL-03-01/DEL-03-02; U-C12 SWBPIPE owner (PB-TBD-002 / DEL-16-03) | Before stale implementation | Contract rule fixed as INTEGRATION (R2-13 as amended by R8-3: the host's stated scope where no subject identities are supplied). SWBPIPE: whole-model identity and staleness only (SQ-03, SQ-07 (d)); new generation per published-project change (SQ-07 (b)); no multi-read reliance concept (SQ-07 (g)) |
 | Register (restated at v0.7 against the registers as read 2026-09-30). Now registered: DEP-03-02-027 here (UPSTREAM, DEL-02-01 workflow identity and checkpoint declarations; SCA-V4-001); DEL-02-01's and DEL-02-03's consumption of this contract as DEP-02-01-029 (arc N-18) and DEP-02-03-025 (arc N-21) (SCA-V4-002). Still absent: the DOWNSTREAM mirror of DEP-03-01-026; DOWNSTREAM mirrors to DEL-05-01, DEL-05-02, DEL-02-01, DEL-02-03, DEL-09-06 and DEL-10-03; an UPSTREAM row for DEL-04-02's visible autonomy state (supplier row DEP-04-02-021 only; DAG-003 HANDOFF, V12 F6: advice). SatisfactionStatus is TBD on this register's execution rows where other registers use PENDING (V1-B RF-06/08/09; V1-C RF-2; C1-B M-02-1…M-02-4) | Register owners, through `dependency-extract` (DAG-003 HANDOFF open matters) | At the next register refresh; no arc waits on it | None on content. No register is written in Wave A (R9-10) |
