@@ -1,12 +1,12 @@
 # Decision view (decision packages)
 
-- Contribution: DEL-06-02/DV-v0.1 (new). Covers the decision-package part of
+- Contribution: DEL-06-02/DV-v0.1. Covers the decision-package part of
   OUT-002 and its fixtures (OUT-003). The return-review queue and waiting
-  views (OUT-001) are a later file.
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
-  accepted. The prototype that exercises it is in the run folder
-  (`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/E/`), not here; it is
-  not product code and no App candidate exists.
+  views (OUT-001) are described in [FLEET_VIEWS.md](FLEET_VIEWS.md).
+- Original design: DV-v0.1; the historical prototype is not product evidence.
+  The current App reader and separate native control entry are implemented as
+  described below. This does not establish verified cold capture origin, the
+  joined fleet witness or owner acceptance.
 - Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-A (Type 2 TASK,
   Claude Opus 5.5, high effort), early path E; written 2026-10-03.
 - Basis (sha256): this deliverable's `ScopeOfWork.md`
@@ -84,6 +84,9 @@ answers to supplier questions; PEC projections.
   supersedes the earlier one for current standing, as a later established
   A12 does (RS §7 L-0; ACT §2.1 A16 row). The view shows the latest and lists
   each earlier act as "superseded by ‹act›" with its chosen alternative.
+  The current reader establishes that relation only from warranted recorded
+  evidence; file order, timestamps and UUIDs do not establish which human act
+  was later. Incomparable contenders remain ambiguous (RS §14.2a).
   Nothing is erased. A correction (RS OF-5: a new entry with `corrects`) is
   not a new decision: the corrected entry is listed "corrected by ‹entry›"
   and the correcting entry stands in its place. Prototype cases: RV-8 and
@@ -98,11 +101,11 @@ answers to supplier questions; PEC projections.
 - **DV-9 Derived only.** Rendering or rebuilding writes no file and no record;
   the input files' hashes are the same before and after (VER-005).
 
-**Open receiving condition — record order.** RS §14.2a's warranted-order
+**Current receiving condition — record order.** RS §14.2a's warranted-order
 reader and bounded App request/control receiving remove path/UUID/time precedence,
 retain competing identities and lapse history, and keep incomparable branches
-explicit. Full decision-view adoption and native reader/control journeys remain
-open; partial readable-entry rendering is not a total-order claim. Public reads
+explicit. Candidate reader/control checks exercise this receiving path; partial
+readable-entry rendering is not a total-order claim. Public reads
 are pure. Confirmation rechecks the bound immutable request without treating
 unrelated incomplete logs as a veto; AAC §5.2a cold native-origin custody remains
 separate and unsupplied.
@@ -168,5 +171,38 @@ person's confirmation, AAC AK-c captures nothing.
 | Matter | Owner | Point of need |
 |---|---|---|
 | ~~CE-4, CE-10 and AAC schema rows (PR-1…PR-13)~~ | Closed: applied under R23-18 (EXEC schema 0.7, AAC-v0.3); the package file's shape and its mapping to the request record follow R23-24 (`$defs/decisionPackageFile`; RS §13.6); R23-18 item 3 is superseded | — |
-| Content-identity method (RS U-04): the prototype uses sha-256 of the file bytes as a TEST VALUE | Owner with DEL-04-03 (carried) | Before lapse is relied on |
-| The return-review queue and waiting views (OUT-001), and decision packages in waiting causes | O-A, next unit | — |
+| Content-identity method | The App reader uses RS §6.2a's `chirality.app.exact-bytes.sha256/v1` for current package bytes; unsupported historical TEST VALUE methods remain incomparable. Host/global methods stay with their owners | Before relying on the corresponding host/global comparison |
+| Decision packages in Fleet waiting causes | DEL-06-02; owning record/control interfaces supply current human-act admission | Current Fleet decision needs remain unknown; a decision-reader projection alone cannot satisfy them |
+
+## Current App implementation
+
+`decision_view::derive` reads the owning RS logs and the contained package files
+they cite. `runtime_session::read_decision_packages`, used by the native
+`decision_view` command and `DecisionPackagesPanel`, is a pure public read:
+refresh neither records new requests nor replays captures or repairs backlinks.
+The separate writer continuation runs at startup or on the person's explicit
+command. The person's control entry requests the native act surface; the view
+does not confirm an act.
+
+The reader presents exact requested acts, alternatives and consequences, retains
+actor versus recorder and content/scope/purpose binding, and shows correction,
+supersession and lapse claims with their source limitations. It resolves only
+warranted recorded relations. Conflicting request identities, incompatible
+captures, cycles and incomparable branches stay explicit; file order, record
+timestamps and UUIDs do not choose a human performance chronology. A rendered
+`decided` row remains a recorded claim with native capture origin unverified by
+this unsealed reader.
+
+RS §13.8 records-store and verified-package recovery feed the same reader. Cold
+portable-reconstruction fixtures exercise an imported decision's original record
+identity and content binding, then a changed package's visible lapse. Missing
+receipt references remain unavailable. Package import, project-identity restore
+and control repair confer no native capture authority and do not perform or
+repeat the person's act. Current human-act standing for Fleet decision needs and
+DEL-09-05's joined longer-work recovery witness remain separate unfinished work.
+
+Maintained candidate checks include `app/src-tauri/tests/decision_reader.rs`,
+`decision_standing.rs` and `reader_integration.rs`, plus
+`app/src-tauri/src/records_portable_reconstruction_tests.rs`. They use invented
+scratch records and native confirmation stand-ins; their local behavior is not
+an actual human-performance or longer-work experience witness.

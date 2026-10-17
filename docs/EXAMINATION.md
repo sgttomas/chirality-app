@@ -141,8 +141,9 @@ model, then asks the agent to check it. The agent's findings attach to rows
 and results by reference without changing the tables.
 *Verifies* V4-HI-10…12, V4-AUT-03's settled anti-impersonation distinction and
 V4-AUT-05. Findings are not a recorded human Checked/approval act. Any
-operation requiring the exact unresolved human-act policy waits for its
-OQ-02 disposition rather than treating the old draft default as ruled.
+additional operation requiring an unruled human-act policy waits for its
+OQ-02/OI-021 disposition. First-increment D2/D3 apply as carried by DEL-04-01;
+neither agent findings nor a routine permission setting establish a human act.
 
 **V4-EXM-22 Graduated autonomy.** The engineer allows direct application for
 one class of low-consequence operation and keeps proposals for model

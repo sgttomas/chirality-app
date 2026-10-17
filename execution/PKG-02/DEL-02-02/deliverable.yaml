@@ -234,6 +234,9 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/workflow_record_store.rs
+- app/src-tauri/src/record_supply.rs
+- app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/workflow_selection.rs
 - app/src/workflowSelection.ts
 - app/src-tauri/src/host_tick.rs
@@ -249,6 +252,7 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/records_portable_reconstruction_tests.rs
 - app/src-tauri/src/workflow_chat_selection_tests.rs
 - app/tests/workflow-selection.test.mjs
 - app/src-tauri/src/run_offers.rs

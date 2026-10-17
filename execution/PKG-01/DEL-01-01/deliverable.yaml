@@ -19,12 +19,17 @@ needs:
     beyond fixed main-process invariants; TargetRefID: chirality-app-v4:OI-008; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-008'
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 - from: external:chirality-app-v4:OI-012
-  condition: 'The App implementation owner must supply the remaining OI-012 decisions: re-examination
-    of the 0.158.0 definition/generation pin (selected by APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4)
-    before implementation, and the pin used for qualification on an identified App candidate.
+  condition: 'The current development/definition and generated-reference pin is 0.160.0 under the
+    owner-authorized, independently reviewed SUP1 advance (ScopeOfWork [S], CLM-003, REQ-006 and TBD-002;
+    HOSTING §7.0/U-01). D4''s initial 0.158.0 declaration is historical. The App implementation owner must
+    bind the qualification pin to the identified candidate under R23-22: the newest version that has
+    passed a version-advance check when that candidate is built; changed relied-on behaviour returns
+    the decision to the owner. Expected qualified distribution identity and product qualification are
+    still absent; pin selection and generation do not supply them or App signing/release evidence.
 
 
-    Notes: FACT: refreshed in place (same target OI-012) after SCA-V4-001 revised CLM-003, REQ-006 and
+    Historical extraction provenance (superseded current pin condition above): FACT: refreshed in place
+    (same target OI-012) after SCA-V4-001 revised CLM-003, REQ-006 and
     TBD-002: the definition/generation pin 0.158.0 was selected by owner decision DECISION-1 D4 and establishes
     no qualification; the prior quote ("OI-012 is OPEN ... before protocol generation and qualification")
     no longer appears. Internal-project owner decision, external to this bounded unit only. RequiredMaturity=TBD;
@@ -38,17 +43,20 @@ needs:
     unchanged.
 
 
-    Target description — TargetName: App v4 implementation owner — OI-012 remaining pin decisions (re-examination
-    before implementation; qualification pin); TargetRefID: chirality-app-v4:OI-012; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-012'
+    Target description — TargetName: App v4 implementation owner — OI-012 candidate-bound qualification pin
+    and evidence; TargetRefID: chirality-app-v4:OI-012; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-012'
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 - from: external:chirality-app-v4:DEP-005
   condition: 'The respective implementation/qualification witnesses require published stock supplier interfaces
     on an identified version/environment; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
-    witnesses. The 0.158.0 definition/generation pin (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4) establishes
-    no qualification or endpoint capability.
+    witnesses. The owner-authorized, reviewed SUP1 0.160.0 development/definition and generated-reference
+    basis (ScopeOfWork [S], CLM-003 and TBD-002; HOSTING §7.0/U-01) establishes no qualified distribution/App
+    candidate, endpoint capability or App signing/release evidence. D4''s initial 0.158.0 selection and its
+    observations retain their historical meaning and limits.
 
 
-    Notes: FACT: External supplier contribution, not an App Deliverable. Statement refreshed in place
+    Historical extraction provenance (superseded current pin condition above): FACT: External supplier
+    contribution, not an App Deliverable. Statement refreshed in place
     after SCA-V4-001 revised CLM-003/TBD-002 (definition/generation pin selected; DEP-005 still to define
     for qualification witnesses); the quoted CLM-003 sentence is unchanged. RequiredMaturity=TBD; SatisfactionStatus
     unchanged. Actual interface availability and candidate qualification require separate evidence; no

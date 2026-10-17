@@ -40,7 +40,7 @@ The accepted Group3 decision changes the standing of the frozen decomposition de
 - **OUT-003** — TEST: local creation/revision/registration/reuse and collision fixtures, with candidate-bound results for the complete workflow-making join and truthful review/registration presentation. Covers SOW-002, SOW-046, SOW-047, SOW-048, SOW-049, SOW-050 and SOW-127; supports OBJ-001, OBJ-002 and OBJ-003. This evidence is supplied to the independent examiner under CLM-005. [B2; E1 V4-EXM-10]
 - **OUT-004** — DOC: native interaction receiving and optional catalog-reuse decisions, naming the actual supplying/receiving owners, content and execution identity boundaries, open means, and local evidence required at their joins. Covers SOW-002 and SOW-127; supports OBJ-001 and OBJ-002. Preserve required behavior whether prior code is reused, adapted or replaced. [CLM-001; CLM-002; CLM-003; A1 §3; C1]
 
-The outputs specify future implementation and evidence, not work completed by this INIT contract. No current production readiness follows from the presence of this file.
+The outputs state the deliverable's commitments, not completion claims. Current implementation and receiving limits are described in [Design/WORKSPACE_AND_REGISTRATION.md](Design/WORKSPACE_AND_REGISTRATION.md), especially §§3, 4.2, 12, 16.8 and Current implementation conditions. Neither this contract's presence nor its local checks establish joined candidate qualification.
 
 ## Completion and Reliance Basis — Epistemology
 
@@ -91,19 +91,19 @@ Use the accepted portable declaration and native supplier contracts to define th
 
 Source keys below are repository-local evidence locators. The author return records the actual read hashes. Later current-register PEC receiving metadata does not amend these assigned scope rows or establish a new dependency for this standalone workspace.
 
-[B1]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
-[B2]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv
-[B3]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv
-[B4]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv
-[L1]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv
-[I1]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv
-[X1]: ../../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv
-[P1]: ../../../../docs/PRD.md
-[A1]: ../../../../docs/ARCHITECTURE.md
-[H1]: ../../../../docs/HOST_INTEGRATION.md
-[E1]: ../../../../docs/EXAMINATION.md
-[O1]: ../../../../docs/OPERATING_METHOD.md
-[D1]: ../../../_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
+[B1]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
+[B2]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv
+[B3]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv
+[B4]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv
+[L1]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv
+[I1]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv
+[X1]: ../../_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv
+[P1]: ../../../docs/PRD.md
+[A1]: ../../../docs/ARCHITECTURE.md
+[H1]: ../../../docs/HOST_INTEGRATION.md
+[E1]: ../../../docs/EXAMINATION.md
+[O1]: ../../../docs/OPERATING_METHOD.md
+[D1]: ../../_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
 [D2]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
 [C1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
 [Q1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md

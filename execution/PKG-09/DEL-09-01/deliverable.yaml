@@ -71,11 +71,16 @@ needs:
     Target description — TargetName: Evidence of an actually performed human act'
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 - from: DEL-01-01
-  condition: 'The selected Codex version pin is needed before protocol generation and qualification; historical
-    version examples do not select the replay/qualification pin.
+  condition: 'Receive the selected supplier basis from DEL-01-01: current development/definition and generated
+    reference 0.160.0 under owner-authorized, reviewed SUP1 (its ScopeOfWork [S], CLM-003, REQ-006 and TBD-002).
+    Bind the qualification pin when the candidate is built under R23-22: newest version that has passed a
+    version-advance check by then; changed relied-on behaviour returns to the owner. Expected qualified
+    distribution identity and App qualification remain owed. Historical exchanges/fixtures retain their
+    actual source pin; generation alone supplies no candidate qualification or signing/release evidence.
 
 
-    Notes: FACT: App DEL-01-01 is the selected-pin producer under accepted G3 SOW-135 and its OUT-002/REQ-006.
+    Historical extraction provenance (superseded current pin condition above): FACT: App DEL-01-01 is the
+    selected-pin producer under accepted G3 SOW-135 and its OUT-002/REQ-006.
     The actual version, decision artifact and qualification remain unresolved under OI-012 before protocol
     generation and qualification. Target identity does not select a historical version or hold independent
     examination-support definition.'

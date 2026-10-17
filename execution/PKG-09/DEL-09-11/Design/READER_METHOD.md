@@ -1,11 +1,11 @@
 # Reconstruction reader method
 
 - Contribution: DEL-09-11/RRM-v0.1 (first Design file of this deliverable; unit EP-11 of the early path)
-- Status: DRAFT DEFINITION — proposed, not run on any candidate or host journey. An isolated reader has run once, on the early-path fixture (RR-E, §8); its account exposed two checker defects, repaired here.
+- Status: Witness method with isolated-reader fixture exercises (RR-E, §8); the actual week-later host-journey witness remains unestablished. Dated versions and hashes below retain their prototype meaning.
 - Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-C, 2026-10-03.
 - Serves: OUT-001 (how the week-later witness is performed), OUT-002 (the account format); REQ-001…REQ-005; AC-001…AC-005; VER-001…VER-005; VER-006's input and responsibility account (§9).
 - **Pin basis.** Pin-independent (R23-3).
-- **ScopeOfWork** `ScopeOfWork.md` sha256 e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae (INIT contract; no amendment changed any of its blocks). Read with R23-7. Its TBD-002 lists OI-001/002 as open; they are followed as D2/D3 rule them. REQ-002 predates the amended V4-HI-70, which adds "each network destination contacted"; this method traces destinations because V4-EXM-31 verifies V4-HI-70 as amended (§7). The wording goes to the next amendment (R23-11).
+- **Historical prototype ScopeOfWork basis:** sha256 e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae, the INIT version used by the fixture. R23-7 qualified its then-open OI-001/002 wording with D2/D3; the current Scope of Work now carries those rulings. That prototype REQ-002 predates amended V4-HI-70's network-destination clause; §7 traces those destinations against the amended source. The historical hash is not the current contract identity.
 - **Rulings, cited by ID (R23-21):**
   - R23-10: the reader is any named reader separate from the run's author, person or agent; the record names the reader and the input set supplied; for an agent, its recorded supplied context shows the separation.
   - R23-6 as revised: "a week after" is kept as the basis writes it, with no calendar arithmetic. Its purpose is that the run's sessions and its author's working context are gone, so the test is whether the files and host receipts stand on their own.
@@ -18,6 +18,18 @@
   - DEL-09-01 EXP records.
   - For the early path, the A16 rows (R23-18), adopted as O-A refroze them under R23-24 and R23-25 (R23-21 item 3): RS-v0.10 `RECORD_SEMANTICS.md` 2e7afb1bb8b872c0ba30a514a034b1aa7174e63ee782505438c95d7cd78430ff (with §7 L-0's A16 supersession, R23-25); ACT-POLICY-v0.11 `ACT_AND_POLICY_CONTRACT.md` 597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2 (R23-25: a later A16 supersedes for current standing; a correction is not a decision. Re-pinned at the tranche-2 closeout under R23-21 item 4 from v0.10 `1bf0ce8e…`. v0.10→v0.11 changes only the label, the change note and the §10.3 DEL-10-03 row, so the A16 rows are byte-identical); AAC-v0.3 `APP_ACT_CONTROL.md` de39976e93500c9455c000b78363ad192fe56fd8aa87c680284f78db939acf65 (§5.1 names the offer digest's serialization, `aac-offer-digest/0.1`, now with its escape and number rules).
 - **Fixture:** FX-DP1 (O-A). The RR-E reader was given its first freeze (`MANIFEST.sha256` e3c8c5ea…3b6f, superseded on disk at E-1; the supplied files themselves are verified below). Those nine supplied files are kept byte-identical in `prototype/fixtures/RR-E-input/`, verified against RR-E's `SUPPLIED.sha256`, and the RR-E evidence and the standing check run on them (R23-21 item 3). At E-1 O-A refroze FX-DP1 (`MANIFEST.sha256` 346191ff…28be9, superseded on disk under R23-24); only the offer and capture evidence changed, in `offerDigest` and key order. Against the refrozen files, the first input set's RC-1 correctly fails. For a future reader on the refrozen fixture there is a new input set, `IS-FX-DP1-2` (`prototype/fixtures/IS-FX-DP1-2.input-set.json`, sha256 e615aeeeaa1d5db3eaddab50179acae93714d56f40b126e08525a5bcd474156f; R23-23 item 4: RR-E's account stays valid evidence for `IS-FX-DP1-1`). It lists the new hashes and **carries the digest rule** as a `definition` item: `prototype/fixtures/definitions/aac-offer-digest-0.1.md`, a verbatim excerpt of AAC-v0.3 §5.1 that names its source and hash. Decision and reason: the RR-E reader could not reproduce `offerDigest` because no serialization was given. With the rule supplied, a reader can check the offer's integrity from the files alone, which is what the method tests. O-C confirmed that the rule recomputes the refrozen offer's digest (`c346f3ca…`) from the offer file alone. The assembler copies the fixture files and the definition into one folder for the reader. Under R23-24 O-A refroze FX-DP1 again (`MANIFEST.sha256` 9501ef81b94c24b71a00c3611cbfa5b8eed2214eb575208283be4c3b46f034c5): all five content files changed (the package files gained their own shape with `reservedBy` and a namespaced `packageId`), the agent message did not. Its input set is **`IS-FX-DP1-3`** (`prototype/fixtures/IS-FX-DP1-3.input-set.json`, sha256 18b9e49b61398d814e9d4371198d117b76155c46f434901385b22acb6978c17f), assembled for a reader in `prototype/fixtures/IS-FX-DP1-3-input/` (the six fixture files and the definition, each hash-checked against the manifest). Its `definition` item is a fresh verbatim excerpt of AAC-v0.3 §5.1 lines 240–273 (sha256 ad6a148d5971f37646880f784d28dc9e2967602b479d135cca2a23d15f44889f); the rule recomputes the refrozen offer's digest from the offer file alone (checked). `IS-FX-DP1-2` stays as a record of the E-1 state; RR-E's account stays evidence for `IS-FX-DP1-1` (R23-23 item 4).
+
+## Current receiving conditions
+
+Read the current DEL-04-03 records contract, including RS §13.8. App records
+live in the project-linked App-managed store; workflow definitions remain
+project or library files. `records_portable_reconstruction_tests.rs` exercises
+actual cold record, role, workflow and decision readers after package import,
+including folder-move and startup-identity recovery scenarios. Those invented
+native-peer cases establish bounded reader behavior and retain quoted claims;
+they supply neither an actual V4-EXM-20 journey and host receipts nor this
+witness's separate reader and week-later dates. The actual source journey,
+identified records and receipts still enter through DEL-09-07/DEL-04-03.
 
 ## 1. What V4-EXM-31 asks
 

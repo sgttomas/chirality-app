@@ -109,15 +109,20 @@ reliance.
 - **OI-009 is decided** at choice level (`Open_Issues.csv`
   RESOLVED_BY_OWNER_DECISION; DECISION-K3 K-1 with L-7): the App's Codex
   shares the person's settings, providers and MCP servers and signs in
-  separately in App-owned homes. ScopeOfWork TBD-002 and DEP-09-02-027 still
-  say "remains OPEN"; that wording is carried to the next amendment by the
-  owner's "1 yes". This file reads OI-009 from the decision record.
-- **OI-001/OI-002** are ruled for the first increment by D2/D3 (TBD-001
-  reads them as open).
-- **OI-012 (R23-22):** 0.158.0 stays the definition and generation pin
-  (D4); 0.160.0 is checked and design-compatible; the qualification pin is
-  the newest version that has passed a version-advance check when the
-  candidate is built.
+  separately in App-owned homes. ScopeOfWork TBD-002 carries the recorded
+  choice; actual credential-separation qualification still requires its
+  own witness.
+- **OI-001/OI-002** are ruled for the first increment by D2/D3, now carried
+  by ScopeOfWork TBD-001 and the adopted-policy input from DEL-04-01. Only
+  operation-specific additions remain under OI-021; no new classifier
+  selection is pending for this increment.
+- **OI-012:** owner-authorized, reviewed SUP1 advances development/definition
+  and the generated reference to 0.160.0, superseding D4's initial 0.158.0
+  declaration (DEL-01-01 ScopeOfWork [S]/REQ-006/TBD-002). R23-22 still binds
+  the qualification pin to the newest version that has passed a version-advance
+  check when the candidate is built; changed relied-on behaviour returns to
+  the owner. Expected qualified distribution identity and App qualification
+  remain owed; historical exchanges/fixtures retain their actual source pin.
 - **The App act control is DEL-01-04's** (SCA-V4-003 Q-5; AAC). Registration
   (J-6, J-8, J-9) is captured there.
 - **K-7:** only registered revisions run; a draft is tried by a trial that
@@ -432,7 +437,11 @@ the scenario still passing; one with ST-4 not produced and S11-6 `blocked`);
 are each caught (SQ-R1…SQ-R9, SQ-R4 and SQ-R9 three times in all; RV2 Q1,
 Q2, Q4 and SQ-R-L's P-a, P-b among them).
 
-## 11. For the next amendment (R23-11; nothing edited here)
+## 11. Historical next-amendment list (R23-11)
+
+This records the list at SQ-v0.2; current decisions and their reconciled
+ScopeOfWork/needs correspondence are stated above. It does not reissue
+completed decision work or select a current supplier pin.
 
 - TBD-002 and DEP-09-02-027: OI-009 decided (carried by the owner's
   "1 yes").
@@ -450,7 +459,7 @@ Q2, Q4 and SQ-R-L's P-a, P-b among them).
 
 | ID | Item | Owner | Point of need |
 |---|---|---|---|
-| U-SQ-1 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when the candidate is built | When the candidate is built |
+| U-SQ-1 | Qualification pin | **Decided by rule; current supplier basis reconciled:** owner-authorized, reviewed SUP1 advances development/definition and the generated reference to 0.160.0 (DEL-01-01 ScopeOfWork [S]/REQ-006/TBD-002; HOSTING §7.0/U-01), superseding R23-22's historical D4 definition-pin declaration. R23-22's qualification rule remains: newest version that has passed a version-advance check when the candidate is built; changed relied-on behaviour returns to the owner. Expected qualified distribution identity and App qualification remain owed; this supplies no signing/release evidence and does not relabel historical fixtures | When the candidate is built |
 | U-SQ-2 | Which local model and server for M12-3, and RUN-A's model (it must carry delegation for ST-4) | Implementer, recorded as configuration (R23-17 pattern) | Before the run; a download needs the owner's yes |
 | U-SQ-3 | Whether the native steps run on a package (I-6). On a development build, if DEL-01-04's SEAL-2 is implemented, J-6/J-8/J-9's act records read "capture not verifiable" (AAC §6.3: "available only to the signed App"); that limit is recorded on AC-003's evidence | Integration owner | Before the run |
 | U-SQ-4 | API-key protocol detail (OI-010) | App implementation owner | Before M12-2 |

@@ -1213,7 +1213,7 @@ DEL-03-03's definition (U-24).
 
 ## 7. Supplier version identity and verification
 
-### 7.0 Current maintained supplier identity (SUP1; proposed adoption)
+### 7.0 Current maintained supplier identity (SUP1; development/definition adoption)
 
 Owner direction in `APP-V4-GROUP-A-20261004/OWNER_DECISIONS.md` advances the
 development/definition pin to **0.160.0**. This supersedes the active D4

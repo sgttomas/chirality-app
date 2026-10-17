@@ -1,7 +1,7 @@
 # Fleet views: return-review queue and waiting causes
 
-- Contribution: DEL-06-02/FV-v0.1 (new). Covers OUT-001 (queue and waiting
-  views), OUT-003 (their fixtures; prototype only) and the OUT-004 derivation
+- Contribution: DEL-06-02/FV-v0.1. Covers OUT-001 (queue and waiting
+  views), OUT-003 (their fixtures) and the OUT-004 derivation
   boundary for these views. The decision-package view is
   [DECISION_VIEW.md](DECISION_VIEW.md) (DV-v0.1); the two files together are
   DEL-06-02's design.
@@ -261,6 +261,19 @@ The manual Fleet refresh supplies a read-only workspace through the Rust host's
 states the exact-byte selector adoption, whole-packet snapshot checks, quoted
 source boundaries and current implementation limits. Inputs and consumers keep
 their responsibilities above.
+
+The selected-workspace native adapter chooses the project; the renderer supplies
+no source path. Briefs, graph revisions and project coordination records are
+quoted file inputs. Where the attached store holds the owning Fleet log, its
+order and exact project counterparts remain visible. Locally admitted 0.2
+Fork/Continue-as relationships are presented separately from the undertaking
+graph; they establish no brief/dispatch/child association. An imported package's
+Fleet prefix remains quoted store evidence and supplies neither protected App
+observation order nor a native conversation relationship. Only later local
+appends beyond a verified unchanged imported prefix can be eligible for local
+provenance; missing or changed package controls withhold it. Restoring a project
+identity or repairing derived package controls does not upgrade the imported
+rows' standing.
 
 FV-1 membership is per return, including multiple unintegrated returns on one
 item. A row keeps the preparer of the named brief as its examination owner;

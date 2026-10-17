@@ -125,8 +125,9 @@ needs:
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-04-01
   condition: 'Receive adopted operation-policy representation and scoped feature evidence from DEL-04-01
-    before the affected policy examination; only dependent unruled criteria defer for OI-001/OI-002, while
-    settled false-attribution and explicit-registration criteria apply.
+    before the affected policy examination. Carry the adopted first-increment D2/D3 reserved-act and
+    routine-permission rulings (ScopeOfWork TBD-001); only dependent unruled operation-specific additions
+    defer under OI-021. Actual-human-act, false-attribution and explicit-registration criteria apply.
 
 
     Notes: FACT: Positive receiving-input statement resolves the named CLM owner; not an owner/exclusion-only
@@ -190,32 +191,20 @@ needs:
 
     Target description — TargetName: Person performing the observed human act'
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-001
-  condition: 'Consume the actual reserved-act decision by Owner with App/SWB contract owners at the affected
-    operation-policy/examination criterion; defer only the dependent unruled criterion.
+- from: external:OI-021
+  condition: 'Obtain an actual decision only for operation-specific additions to the adopted first-increment
+    D2/D3 policy, from the owner via the outside SWB session and App/shared owner before the connected-activity
+    SoW and its affected additional operation/permission contracts or examination criteria. Defer only
+    the dependent unruled additional criterion; do not reopen OI-001/OI-002 first-increment choices.
 
 
-    Notes: FACT: Accepted issue remains OPEN in the source. Its stated point of need is retained; no whole-project
-    hold, new human checkpoint, invented decision or present satisfaction. For OI-008/OI-009 the cited
-    consumption sentence refers to both preceding named issues.
+    Notes: The first-increment rulings are already supplied through DEL-04-01 and ScopeOfWork TBD-001;
+    this remaining decision input neither supplies host implementation evidence nor substitutes for a
+    person actually performing an act. OI-021 remains open at its own point of need; no blanket project hold.
 
 
-    Target description — TargetName: Owner with App/SWB contract owners — Reserved human acts; TargetRefID:
-    OI-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-001'
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-002
-  condition: 'Consume the actual routine-classifier treatment decision by Owner with App/SWB contract
-    owners at the affected permission-policy/examination criterion; preserve settled false-attribution
-    rules now.
-
-
-    Notes: FACT: Accepted issue remains OPEN in the source. Its stated point of need is retained; no whole-project
-    hold, new human checkpoint, invented decision or present satisfaction. For OI-008/OI-009 the cited
-    consumption sentence refers to both preceding named issues.
-
-
-    Target description — TargetName: Owner with App/SWB contract owners — Classifier routine permissions;
-    TargetRefID: OI-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-002'
+    Target description — TargetName: Owner via outside SWB session and App/shared owner — Operation-specific
+    policy additions; TargetRefID: OI-021; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-021'
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-008
   condition: 'Met 2026-10-10: the App implementation owner (the owner) gave the Rust/TypeScript allocation
@@ -274,11 +263,17 @@ needs:
     TargetRefID: OI-011; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-011'
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-012
-  condition: 'Obtain the App implementation owner''s identified supported Codex pin before dependent protocol
-    qualification; historical examples do not supply an adopted actual version.
+  condition: 'Receive the current development/definition and generated-reference basis 0.160.0 from
+    DEL-01-01 under owner-authorized, reviewed SUP1 (its ScopeOfWork [S], CLM-003, REQ-006 and TBD-002;
+    local ScopeOfWork TBD-003). Bind the qualification pin to the actual candidate under R23-22: newest
+    version that has passed a version-advance check when the candidate is built; changed relied-on
+    behaviour returns to the owner. Expected qualified distribution identity and App qualification
+    remain owed; generation supplies no signing/release evidence and historical observations keep their
+    actual pin.
 
 
-    Notes: FACT: Accepted issue remains OPEN in the source. Its stated point of need is retained; no whole-project
+    Historical extraction provenance (superseded current pin condition above): FACT: Accepted issue remains
+    OPEN in the source. Its stated point of need is retained; no whole-project
     hold, new human checkpoint, invented decision or present satisfaction. For OI-008/OI-009 the cited
     consumption sentence refers to both preceding named issues.
 

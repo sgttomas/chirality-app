@@ -1,7 +1,7 @@
 # Workflow-making workspace and registration
 
 - **Contribution:** DEL-02-02/WR-v0.2 (supersedes DEL-02-02/WR-v0.1, committed at `63a6e0fa47`, file sha256 `0b51ee6c7ea9c57120b5a7654d2888266bf409b8914f02cb32c2a1dcd25dfb27`).
-- **Status:** DRAFT DEFINITION — proposed, not implemented, not accepted. Nothing here is built, qualified or owner-reviewed.
+- **Standing:** current App design with implemented Rust workspace, registration, trial and supplier-record consumers. The ScopeOfWork governs commitments; proposed details and unresolved conditions keep their stated standing. Implementation and focused fixtures do not establish joined candidate qualification or owner acceptance (§12).
 - **Run / node:** `APP-V4-DESIGN-PASS-3-20261001`, node D5. v0.1: round 1 (BRIEFS.md "D — design nodes, round 1", row D5), 2026-10-01 at HEAD `dc031b5bec`. **v0.2: "D round 2"**, 2026-10-02 at HEAD `037063ce09` (branch `claude/chirality-app-v4-60-percent-a41fd5`). Type 2 TASK executor, harness-native descendant of the HELP_HUMAN session; no delegation.
 - **v0.2 inputs (binding additions; sha256 by `shasum -a 256` at `037063ce09`):** `R18_RESOLUTIONS.md` `abf5eee6324647ff…` (R18-1: C-01, C-02, C-14, C-21, C-22); `R19_RESOLUTIONS.md` `16930ecdcead7511…` (R19-1, R19-2, R19-4 L-4, R19-5, R19-7); `OWNER_DECISIONS.md` `ea96c55710af41c9…` (DECISION-L: L-2 as the owner chose it, L-4 A as clarified); `DECISIONS_PENDING_2.md` `0ecbf87aae8d4350…` (L-4 text as clarified); `BRIEFS.md` `316ea29325a0d450…` ("D round 2"); `R20_RESOLUTIONS.md` `9ab9af81d37f0711…` (R20-1 run end only by the person or the run owner; R20-3 the run-end line; sent by HELP_HUMAN during round 2); `F/F0_JOINS.md` `e93608be1c6e3eb0…` (§2 C-01, C-02, C-14, C-21, C-22; §6 "Not F's"; §7.5); `DEL-01-01/Design/OBS_3_0.158.0.md` `554ac4451d112824…` (W-1…W-6, §11) and `OBS_2_0.158.0.md` `61cc34ffb811eb27…` (no WR cell depended on it; F0 §7.5); the generated 0.158.0 bundle `generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json` `34f28a486d00fbd2…` (`TurnStartParams`, `Turn`, `ThreadItem`, `UserInput`) and the session's stable TypeScript output (`v2/TurnStartParams.ts`, `v2/ThreadItem.ts`), read only.
 
@@ -28,11 +28,11 @@
 | C0 (closeout; in place, no version step) | **R21-5 (V21b-A N-2):** TT-3's pre-fill now attaches the draft's `WORKFLOW.md` as a text element, following NIR-v0.2 §6 AT-8 (other text files AT-9, other files named AT-10); once sent it is the person's own attachment: no run, no workflow supply, no run-start text. The earlier "a message naming the draft's path and content identity" is withdrawn. Prototype rerun 2026-10-02 (no change needed: it models the trial pointer, TT-4, not the pre-fill): `wrproto.py` 99 checks, 99 passed (`closeout/C0.md`) | §4.2 TT-3 |
 | CC-WR-RECONFIRM (named change; in place, no version step; owner decision "A15 re-confirmation now (Recommended)", 2026-10-07, run `APP-V4-GROUP-A-20261004` `OWNER_DECISIONS.md`; change record `changes/CC-WR-RECONFIRM.md` of that run, revision 2 after review V13) | After the App process that held a revision's registration result is gone (for example after a relaunch), a new genuine A15 may **re-confirm** a draft whose reviewed bytes equal registered revision ‹k› with LS-1 standing: new disposition DS-8; no new revision, sequence or identity; ledger outcome *re-confirmed* citing the new A15 and ‹k›'s registered line; the result is selectable in that process only. DS-4 stands while ‹k› is selectable in this process or is not LS-1; K-6 (SP-3, DS-3) is decided first, unchanged (SP-4a). Refine of an LS-1 revision needs no selection (RF-1), so a draft for DS-8 can be made after a relaunch. Trust rests on the new act, never on a replay of the earlier act or receipt; SEAL-2 stays deferred; AAC §5.2a cold provenance remains open. Re-confirmation route in §4.8 | §4.1 SP-4 (DS-4, DS-8), SP-4a; §4.3 RB-3, RB-4, RB-8; §4.6 LS-1 row, note, RF-1; new §4.8 RC-1…RC-10; §5.1–§5.4; §6 SQ-R R-3, SQ-G, SQ-X X-2, X-4; §7; §8; §9; §12 WR-VC-16…WR-VC-20; §15 U-WR-21…U-WR-23; schema (`reconfirmed_revision`; `registration_disposition`, `draft_transition`, `a15_descriptor` including its `freshness` description, `library_entry`) |
 | CC-WR-TRIALS (owner direction on U-WR-24, 2026-10-10; in place, no version step) | Trials are rewritten from the person's side. A trial **mirrors a real run**: the App composes the draft's exact content as a registered run of that content would receive it, under a visible trial header (TT-3). While iterating, the person asks the authoring agent to run it through one sub-agent and report (**delegated trial**, TT-3a); at the person's choice, a **clean trial** runs in a fresh conversation (TT-3b), and its transcript can be brought back to the authoring conversation (TT-10). Trial links tie each trial to the draft version and both conversations (TT-4); fidelity is shown, not enforced (TT-9); the person's help actions are listed in TT-11; the registration review shows the last clean trial as information only (TT-13). A trial is still never a run, registration, checking or acceptance (TT-2). The App's attachment pre-fill and AT-10 naming for drafts are withdrawn: supporting files reach a trial as they reach a registered run (TT-8). U-WR-24 resolved. ScopeOfWork REQ-001 revised, REQ-009, AC-009 and VER-007 added | §1 K-7; §2.1; §3; §4.2 (rewritten); §4.3 RB-2; new §5.5; §6 SQ-J J-4, new SQ-DT, SQ-FT, SQ-BB; §7; §8; §9; §12 WR-VC-09, new WR-VC-21…WR-VC-25; §15 U-WR-24…U-WR-27; §16.2 line 4, TX-1, new TX-7 (folder of other files for every holding copy, WR TX-7); new §17 (implementation plan) |
-- **Serves:** OUT-001, OUT-002 (design of the CODE), OUT-003 (fixture design and a design prototype), OUT-004 (receiving and reuse account, §7, §10); REQ-001…REQ-009; AC-001…AC-009 by designed verification (§12); VER-001…VER-007 (cases designed; library-side parts run on the prototype only).
+- **Serves:** OUT-001, OUT-002 (workspace and registration design and implementation), OUT-003 (focused App fixtures and the historical design prototype), OUT-004 (receiving and reuse account, §7, §10); REQ-001…REQ-009 and AC-001…AC-009 through the verification cases in §12. The table distinguishes historical prototype checks, focused App fixtures, exploratory native observations and the separately required candidate examination.
 - **Labels** (as R9 and R17): **SETTLED** (an accepted text or owner decision says it), **DERIVED** (follows from those), **INTEGRATION** (an integrator ruling, open to the owner), **PROPOSED** (a design structure of this file, decided by no one). Supplier facts carry `observed`, `observed-in-generated-types` or `inference` (R17-13).
 - **Basis (binding):** the accepted basis as amended by SCA-V4-001 and SCA-V4-002; DAG-003 (`_DAG/DAG-003/HANDOFF_STATE.md` sha256 `56d849b6d078d8d5…`; held arcs non-gating); DECISION-K3 as revised (`OWNER_DECISIONS.md` sha256 `9d18c40dd7d894dc…`): K-6, K-7 (owner's alternative), K-8 bind this file; DECISION-K1 K1-1…K1-4; R1–R16; R17-1…R17-16 (`R17_RESOLUTIONS.md` sha256 `b0af81bcbad9bc52…`); DECISION-3 (host joins deferred).
 - **Consumed inputs** (sha256 by `shasum -a 256` in the working tree at `dc031b5bec`; full values in the return file `D/D5.md`): `BRIEFS.md` `b261394112d7264e…`; `DECISIONS_PENDING.md` `431ec4eb22a0b913…`; `SURVEY/S1-C.md` `06a8a6667ca7c64d…` (Part A whole; Part C); this deliverable's `ScopeOfWork.md` `fe9f9bd923f94ed3…` (SCA-V4-003 revision; re-pinned at pass-4 closeout C1 under R23-5, was `58141169…924a`; SCA-V4-003 blocks read: G-0202-01…09, none requiring a change to this file's design text) and `Dependencies.csv` `be14a079c872695e…`; WD-v0.8 `WORKFLOW_DECLARATION.md` `517821d18fc95830…` (§3.5–§3.9, §6, §7, §8, §9, §12, §13.1); WD-EX-v0.8 `EXAMPLES.md` `275ea54d32cd8f48…` (E1 intro, E3, E4, E5); EXEC-v0.6 `EXECUTION_COMPATIBILITY.md` `64e732d502d0b91d…` (§2.6, §2.7, §3.1, §5, §6, §7.3, §9, §10, U-E19); ACT-POLICY-v0.8 `ACT_AND_POLICY_CONTRACT.md` `6fb6b9e883fa8d20…` (§2.1 A15, §2.4, §2.5, §2.6, §2.8, §4.7, §10.3, FX-56); RS-v0.8 `RECORD_SEMANTICS.md` `b25cc90e9e252f50…` (§4 R2, §6.1, §6.2 HA-10, §10, U-05) and `RS_RECORD.schema.json` `b63a7e421b885854…`; CA-v0.6 `CONNECTED_ACTIVITY_CONTRACT.md` `58167f7accaf356e…` (§2.1 parties, §3, §4, §6, §8.2); HOSTING-BOUNDARY-v0.8 `HOSTING_BOUNDARY.md` `3cf0381c42358fec…` (§8 seams S-6, §8.2, §11, §12); `loop/LOOP_INIT.md` `3790159b4f60bb4f…` ("Develop the detail appropriate to the phase"); DAG-003 `DependencyEdges.csv` `4716ca287d23835c…` and `CandidateEdges.csv` `07b969209e273310…` (arcs naming DEL-02-02, by script). Read in progress, not pinned as a basis: DEL-01-04's node-D3 schemas `aac.offer.schema.json` (`4f1be0814168cf58…`) and `nir.draft-transition.schema.json` (`da2f57c1122d3578…`) and DEL-01-04 `ScopeOfWork.md` `0cdb44e297010b70…` (OUT-004, REQ-003, REQ-004). Historical exemplar (evidence only, never a v4 commitment): App v3 `projects/chirality-app-dev/frontend/src/app/api/working-root/workflow-drafts/workflow-draft-store.ts` `185532db8cddcb39…`, `route.ts` `567789715473356c…`, `components/woven-dialogue/workflow-draft-review.tsx` `b5f4bcfad3429a78…`; Root `AGENTS.md` and `workflows/create-workflow/WORKFLOW.md` as current Root practice (read via the survey, S1-C §A.5).
-- **ScopeOfWork reading (R17-15).** The ScopeOfWork lags the owner's answers in four places. This file reads it as follows; precise SCA-V4-003 proposals are in the return file.
+- **ScopeOfWork alignment (R17-15, historical).** These four interpretations were incorporated into the current ScopeOfWork. The quoted gaps below describe the earlier wording, not current contradictions; the original SCA-V4-003 proposals remain historical provenance.
   1. REQ-001, OUT-001, AC-001, VER-001 "trial through real native Codex tool execution": read per **K-7** as a trial with real tools that is not a run of any workflow identity; only registered revisions run. Since CC-WR-TRIALS the ScopeOfWork states the trial itself (REQ-009, AC-009, VER-007; §4.2).
   2. REQ-003 "this contract does not select a new overwrite policy": **K-6** has since chosen one (a revision series per library slot; nothing overwritten), which §4.1 designs.
   3. REQ-002, REQ-006, AC-006, CLM-004, REQ-008: registration (A15) is captured by **DEL-01-04's App act control** (K-8; R17-6), bound to the exact reviewed bytes; this deliverable supplies what the control presents (§4.3) and performs the registration that follows.
@@ -45,7 +45,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 
 ## 0. Reading this file
 
-- The ScopeOfWork states the obligations; this file says how the deliverable meets them at the 60% description of `loop/LOOP_INIT.md`: interfaces, states, data, sequences with failure behaviour, and verification.
+- The ScopeOfWork states the obligations; this file supplies interfaces, states, data, sequences with failure behaviour, verification and current implementation conditions. The active entry is `loop/LOOP_INIT.md`; the original phase description is not a new completion or acceptance claim.
 - First-increment files have already designed most of this deliverable's interfaces from the consumer side (S1-C §A.2.2): the identity tuple (WD §6.1), the trace links (EXEC §6.1), host → App refinement (EXEC §6.5), the A15 act (ACT §2.1) and its record (RS HA-10). They are **consumed unchanged** and cited by section. What this file adds is the library and draft model itself: slot and revision policy, draft identity and storage, review binding, the registration sequence, collision dispositions, package hygiene, selection, and the joins with DEL-01-03 and DEL-01-04. Edits that the other side now needs are returned as a join list, never made here (R17-14).
 - **Not in this file** (and why): visual components and the native draft view (DEL-01-04 OUT-002/OUT-004); plan revision identity (DEL-01-03); the revision digest algorithm (WD U-03, with DEL-04-03); construction of the act control (DEL-01-04; its placement follows the owner's OI-008 ruling, §11); shared-type placement (OI-014); host libraries and host precedence evidence (DECISION-3); a checkpoint that requires A15 (ACT §4.1, a possible later extension); the joined V4-EXM-10 witness (DEL-09-02).
 
@@ -105,7 +105,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 - **ID-3 (PROPOSED; used by C-01).** A draft is referred to as `draft:<location>:<name>@<content identity>` wherever a string is needed. A library entry reviewed in place without a draft (§4.7) is `entry:<location>:<name>@<content identity>`. This string is `relations.reviewedDraft.draft` in the persisted A15 form RS defines (R18-1 C-01; F row FR-06). A reference without a content identity names a folder, not content.
 - **ID-4 (DERIVED, EXEC §6.6).** Lineage is followed through derived-from links; a link that cannot be resolved is shown as "lineage incomplete at ‹tuple›", never guessed.
 
-## 3. Layout and data placement (PROPOSED; RS U-05 stays open; process placement decided by the owner, OI-008, §11)
+## 3. Layout and data placement (RS §13.8; process placement decided by the owner, OI-008, §11)
 
 | Item | Where (project library; the user library has the same layout under `~/.chirality/`) | Written by | Standing |
 |---|---|---|---|
@@ -115,7 +115,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | Registration liveness file | `<project>/.chirality/workflow-registration.live.lock` | The App | Empty lock file, not a record: each open review holds it shared until its attempt is closed, and SQ-X X-2 runs only when it can hold it exclusively (§6 SQ-X). There is no attempt journal |
 | Revision store | `<project>/.chirality/workflow-revisions/<name>/<revision key>/<name>/` | The App's registration writer | Immutable once committed; the source of every resolution (SL-4) |
 | Registration ledger | `<project>/.chirality/workflow-registry.jsonl` | The App's registration writer | App-written record of outcomes; "registered" standing needs it **and** the A15 record **and** bytes that recompute (LS-1) |
-| A15 records | The library's act log, `<project>/.chirality/records/acts.jsonl` in the prototype; the location is RS U-05's | DEL-01-04's act control through the RS writer | Human-act record (RS §6.1) |
+| A15 records | The library's act log, `<library>/.chirality/records/acts.jsonl`, retained with that library under U-STORE-2 (RS §13.8, *Workflow libraries*) | DEL-01-04's act control through the RS writer | Human-act evidence read with the ledger and bytes; earlier registration does not confer in-session selectability (§4.8) |
 | Published copy | `<project>/.chirality/workflows/<name>/` (Root convention) | The App, after commit | Derived convenience for portability and Root-compatible readers; never authority; differences are reported (LS-3) |
 | Kept-aside unrecorded content | `<project>/.chirality/workflow-unrecorded/<name>/<content key>/` | The App, when publishing would otherwise replace unrecorded content | Preserved, never deleted by the App (REQ-003) |
 | Selection records | Handed to DEL-02-03 and DEL-04-03 at run start (RS R2 *selected*); the App keeps the current selection per conversation as a pointer | The App | RS's record once written |
@@ -618,7 +618,16 @@ Requirements, stated apart from placement: (a) no agent tool, MCP operation, App
 
 Placement under the ruling (R17-5's O-1 proposal agrees with it): the Rust host owns the library writer (store, ledger, published copy, kept-aside content), content-identity computation, hygiene, the freshness watch and SQ-X; DEL-01-04's act control capture is produced in the host from a native interface event; the Rust host composes the draft list, and the TypeScript interface presents it, the review package and the selection. Because D3 leaves the sandbox to the user, an agent with full file access could still write a forged ledger line and act record together; the App reports standing from what it can check (LS-1, LS-4) and claims no prevention.
 
-## 12. Verification (designed; the library side runs on the prototype only)
+## 12. Verification cases and evidence limits
+
+The original prototype results below remain historical evidence. Current App
+workspace, registration and trial fixtures are identified in
+`deliverable.yaml`; they are not a candidate qualification register. The
+[native walkthrough](NATIVE_WALKTHROUGH_2026-10-14.md) records actual exploratory
+use and HELP_HUMAN's assessment, with the owner's registration acts and its
+unadmitted automation, changing debug builds and missing access-mode evidence
+kept explicit. It does not mark a VER item, stage or packaged qualification
+complete. The joined examination remains DEL-09-02's responsibility.
 
 | Case | VER (AC) | What it exercises | Needs | State |
 |---|---|---|---|---|
@@ -626,7 +635,7 @@ Placement under the ruling (R17-5's O-1 proposal agrees with it): the Rust host 
 | WR-VC-02 New and changed definitions | VER-002 (AC-002) | Review absent; registration absent; both; a changed definition needing its own A15; no carried act | Library double and act-control double (prototype); for the positive case on a candidate, the person | Library side **ran** (P-08, P-09, P-10, P-13, P-15, P-16) |
 | WR-VC-03 Collisions and four origins | VER-003 (AC-003, AC-004) | DS-3, DS-4; same-name additions after selection; discovery across project, user, bundled, host; unqualified names; no overwrite and no rebinding checked separately | Library, bundle and host-listing doubles; host listing on a real host waits (DECISION-3) | **Ran** on doubles (P-17, P-18, P-22…P-27, P-33, P-34) |
 | WR-VC-04 Receiving conditions | VER-004 (AC-005) | Missing capability, a declared checkpoint, unknown outcome shown truthfully beside a selection; registration never offered as compatibility | EXEC's checker and recorder doubles; WD reader | DESIGNED (the review shows the WD reading; the report comes from DEL-02-03) |
-| WR-VC-05 Faithful act and negatives | VER-005 (AC-006) | Positive A15 with actor and recorder separate; negatives: no act, an act on other content, a stale review, a trial, an agent's claim, a forged ledger line | Act-control double; on a candidate, the person at DEL-01-04's control | Negatives and the record shape **ran** (P-08, P-09, P-11, P-15, P-35, P-38); the positive case on a candidate is AWAITING INPUT (DEL-01-04 not built) |
+| WR-VC-05 Faithful act and negatives | VER-005 (AC-006) | Positive A15 with actor and recorder separate; negatives: no act, an act on other content, a stale review, a trial, an agent's claim, a forged ledger line | Act-control double; on a candidate, the person at DEL-01-04's control | Negatives and the record shape **ran** (P-08, P-09, P-11, P-15, P-35, P-38); the positive case on an identified qualification candidate remains AWAITING INPUT; the native control is implemented, and the exploratory owner-performed acts are recorded in `NATIVE_WALKTHROUGH_2026-10-14.md` |
 | WR-VC-06 Receiving and reuse account | VER-006 (AC-007, AC-008) | §7 and §10 against the row, sources and owners | Inspection | DESIGNED |
 | WR-VC-07 Interruption | REQ-001 (OBJ-001 "recoverable") | Slot moved on between capture and publication; process loss after the store copy; reconciliation with the same act. Without an attempt journal (SQ-X, owner ruling 2026-10-10): lost after the store copy with the slot unchanged completes citing the same A15; slot moved on, no store folder, or a store folder that does not recompute is *not completed*; a line already citing the act writes nothing; a live attempt in another process is not closed | Library double with fault injection | **Ran** (P-20, P-21) |
 | WR-VC-08 Hygiene | REQ-003, REQ-004 | HY-1…HY-7: refusals, and HY-6 not refusing | Library double | HY-2, HY-3, HY-4 and the refused review **ran** (P-02…P-04); HY-6 runs in every review (the declared-part note); HY-1, HY-5, HY-7 DESIGNED on the prototype. App draft listing: HY-1…HY-5 and HY-7 **ran** in `app/src-tauri/src/workflow_drafts_tests.rs` |
@@ -837,7 +846,10 @@ store.
 
 **WP-1 Location and identity.** The Rust WR publisher writes one immutable UTF-8
 JSON envelope per selection_record, run_text or supply_check at the explicitly
-opened owning project's `.chirality/records/workflow/<record-key>.json`.
+opened owning project's records-store subtree,
+`<store>/projects/<safe-project-key>/workflow/<record-key>.json`. The old
+`.chirality/records/workflow/` location is a read-only legacy input under the
+import condition above.
 `record-key` is a newly minted lowercase UUID; the reference is exactly
 `wr-record:v1:<record-key>`. It is a supplier record identity, separate from
 body selection/check/run identities and every native identifier. The filename
@@ -919,10 +931,12 @@ back-fill them or reconstruct them from guesses. Restart may resolve existing
 objects and original pending custody only; it does not infer delivery, run end,
 adoption or permission to resend.
 
-**WP-6 Lifetime and handoff.** WR records live with the owning project and are
-not garbage-collected or rewritten by this allocation. Moving the whole project
-preserves references through the explicit new project handle; copying a record
-alone establishes no new provenance. Revision-store/source reference loss is
+**WP-6 Lifetime and handoff.** WR records remain linked to the owning project's
+stable identity in the App's records store. This publisher neither rewrites nor
+disposes of them; retention, verified export/import and recovery belong to RS
+§13.8. A moved working folder must retain or explicitly restore its association
+with that project identity before this reader can use the original store
+subtree. Copying a record alone establishes no new provenance. Revision-store/source reference loss is
 reported separately and never repaired by native transcript mirroring. The WR
 publisher returns the durable reference and resolution status to EXEC/Root and
 RS; RS R3 uses supplyRecord for run_text and supplyCheckRecord for the immutable
@@ -967,7 +981,7 @@ witness (TT-1/TX-1).
 
 ## 17. Implementation plan for trials (CC-WR-TRIALS)
 
-For the later implementation batch. Paths are under `projects/chirality-app-v4/app/`. Following the owner's OI-008 ruling (§11), trial composition, snapshots, links and transcripts run in the Rust host, as the trial pointer already does, and the TypeScript interface lists and presents. Trial links and snapshots are persistence, so Root's rule asks for targeted regression checks and independent review.
+The original implementation allocation below locates the trial contributions and their checks; the implementation paragraph below and Current implementation conditions describe the supplied behavior and its limits. Paths are under `projects/chirality-app-v4/app/`. Following the owner's OI-008 ruling (§11), trial composition, snapshots, links and transcripts run in the Rust host, and the TypeScript interface lists and presents. Trial links and snapshots are persistence, so Root's rule asks for targeted regression checks and independent review.
 
 | Step | Component and files | What it does | Tests |
 |---|---|---|---|
@@ -986,6 +1000,38 @@ For the later implementation batch. Paths are under `projects/chirality-app-v4/a
 **Order.** 1 → 2 (TX-7) → 3 → 4 → 5 → 6 → 7 → 8 → 9. Step 5 comes before step 6 because a clean trial needs no delegation and reuses the existing new-conversation draft; step 6 then adds descendant linking. The attachment pre-fill (`workflow_try_draft`) is removed in step 8, once both trial kinds work. Checks for each step: from `app/`, `npm run build`, `npm test` and the Rust tests named above (with `CHIRALITY_SKIP_CODEX=1` where no supplier is present). A native witness of a delegated and a clean trial at the qualification pin settles U-WR-25 and is DEL-09-02's input.
 
 ## Current implementation conditions
+
+**Records-store and recovery consumption.** `workflow_record_store.rs`
+resolves the explicitly opened project's stable association to the records
+store and pins the physical source while reading or publishing. Pending
+import/recovery, unavailable controls and disposed or incomplete-disposal
+payloads retain the owning store's refusal; the workspace does not fall back
+to another project, the working tree or a harness session store. Retained
+closed records remain readable. Verified package restoration preserves the
+original WR references and bytes; a current read revalidates their original
+same-project basis and reports missing, changed or unsupported records.
+
+`record_supply.rs::read_project_supply` reconstructs historical WR/RS
+correspondence, and `read_project_runs` supplies the recorded lifecycle used by
+`WorkflowRootSession::reopen`. These readers create no live run, native receipt,
+supplied-guidance append, model-adoption claim or in-session registration
+authority. `records_portable_reconstruction_tests.rs` exercises these consumers
+after import in the original folder, a moved folder, and a moved folder with
+lost-link identity restoration. Those bounded fake-native fixtures do not
+establish the complete workflow-making or host reconstruction witness.
+Library definitions, revision stores, ledgers and A15 evidence still follow
+§3 and §4.8; a records package is not a workflow-library backup or permission
+to reuse a prior act.
+
+**Current real-run Bring back and Compare boundary (TT-10, TT-11).**
+`trial_flows.rs::run_source` requires the actual run owner held by this App
+process. The durable reopen above does not populate those owners. Bring back
+of a real run recorded only by an earlier process is unavailable, and Compare
+with that historical run is also unavailable, even when the reopened run is
+listed. Trials use their persisted links and snapshots, subject to the
+existing native-history limits. Extending real-run learning across restart or
+records recovery has not been implemented. Every existing bring-back remains
+an unsent prefill; the person chooses and sends it (§4.2).
 
 **Open freshness interpretation — RB-3.** In addition to the live draft and
 latest registered revision, the App freezes its App-kept base observation at

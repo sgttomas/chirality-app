@@ -5,6 +5,10 @@ needs:
   condition: 'Consume App DEL-04-03 identified compact run/decision records and relevant reference/lapse
     fixtures for the actual reconstruction and supporting checks.
 
+    Current receiving basis: the project-linked App-managed store and package recovery are implemented,
+    with bounded cold record/role/workflow/decision-reader checks. Their invented native-peer scenarios
+    do not supply the actual host journey, separate reconstructing reader or week-later observation.
+
 
     Notes: FACT: CLM-001 names App DEL-04-03 and explicitly consumes its records/fixtures. INITIALIZED
     is checked contract maturity only; actual identified records must be supplied. Supporting fixtures
@@ -57,19 +61,24 @@ needs:
 
     Target description — TargetName: Separate named reconstructing reader — actual week-later account'
   evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: external:Owner with App/SWB contract owners — applicable operation and permission policy
-  condition: 'Use the identified applicable operation/permission policy from the OI-001 and OI-002 owners
-    when needed to settle an affected reconstruction examination criterion.
+- from: DEL-04-01
+  condition: 'Use the adopted first-increment D2/D3 human-act and routine-permission policy carried by
+    DEL-04-01 for the source journey; no new policy is selected by the reconstruction witness.'
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: external:Owner with App/SWB contract owners — operation-specific policy additions
+  condition: 'Receive any additional operation-specific policy under OI-021 when needed to settle an
+    affected reconstruction examination criterion beyond the adopted first-increment D2/D3 rulings.
 
 
     Notes: FACT: source requires resulting applicable policy at its actual point of need, beyond naming
-    owners. OI-001/OI-002 and PRD OQ-02 retain Owner with App/SWB contract owners. This is a conditional
+    owners. DEL-04-01 carries the ruled OI-001/OI-002 first-increment policy. OI-021 and PRD OQ-02 retain
+    additional affected operations with Owner and App/SWB contract owners. This is a conditional
     criterion input, not blanket approval for witness definition or a guessed reserved-act/default permission
-    policy. Actual choice and application remain unestablished.
+    policy. Additional operation-specific choice and application remain unestablished.
 
 
-    Target description — TargetName: Owner with App/SWB contract owners — applicable operation and permission
-    policy; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv'
+    Target description — TargetName: Owner with App/SWB contract owners — operation-specific policy
+    additions; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv'
   evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
 - from: external:Owner via outside SWB session and App/shared owner — connected activity and affected
     criterion

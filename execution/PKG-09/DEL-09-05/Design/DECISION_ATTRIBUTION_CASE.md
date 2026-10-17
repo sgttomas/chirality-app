@@ -1,11 +1,11 @@
 # Decision attribution case FW-04 (VER-004)
 
 - Contribution: DEL-09-05/DAC-v0.1 (first Design file of this deliverable; unit EP-05 of the early path)
-- Status: DRAFT DEFINITION — proposed, unsupplied, not run on any candidate. The rehearsal in §6 ran on an invented fixture only. Adopts O-A's E-1 versions (R23-21 item 3).
+- Status: Witness method with an invented-fixture rehearsal (§6); the actual joined candidate examination remains unestablished. Dated versions and hashes below preserve that prototype's evidence basis.
 - Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-C (Type 2 TASK, Claude Opus 5.5, high effort), 2026-10-03.
-- Serves: the decision part of OUT-001 and OUT-002; REQ-001 (one exact-act decision package), REQ-004, CLM-002; AC-004 (and AC-001's decision clause); VER-004. Every other part of DEL-09-05 (the two delegations, the graph, the queue, the interruption and recovery witness) is a later unit and waits for the early path (work graph, "Coordination").
+- Serves: the decision part of OUT-001 and OUT-002; REQ-001 (one exact-act decision package), REQ-004, CLM-002; AC-004 (and AC-001's decision clause); VER-004. Graph/view and record-reader implementations are now available as bounded receiving inputs; actual native brief/worker association and the joined two-delegation, human-decision and interruption witness remain separate conditions.
 - **Pin basis.** Pin-independent: nothing here depends on a Codex fact (R23-3). The joined witness's App candidate records its actual Codex version.
-- **ScopeOfWork** `ScopeOfWork.md` sha256 35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063 (INIT contract; no amendment changed any of its blocks, so R23-5 has nothing to re-read). It is read with R23-7: its TBD-002 (OI-001/002 "remain OPEN") and TBD-003 ("no supplier version is selected") are followed as the later decisions D2/D3/D4 state them; the wording goes to the next amendment (R23-11).
+- **Historical prototype ScopeOfWork basis:** sha256 35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063, the INIT version used by this rehearsal. Its then-open OI-001/002 and supplier wording was qualified by R23-7/D2/D3/D4. The current `ScopeOfWork.md` now carries the first-increment policy rulings and subsequent SUP1 development/definition pin; the historical hash is not its present identity.
 - **Rulings, cited by ID (R23-21):** R23-2 (the package reaches the act control as a runtime value), R23-8 (package = A8 recorded as RS R16 `act_request` with alternatives and consequences; the decision is the act the package names; A16 *decide* for a reserved coordination decision, captured by DEL-01-04's App act control, recorded under RS HA-1; which decisions are reserved is set by the governing instrument the package cites), R23-18 (O-A adds the A16 rows), R23-19, R23-20, R23-21; DECISION-K1 K1-1 (the agent asks; nothing reacts in its place) and K1-4 ("identity not verified").
 - **Basis:** `docs/PRD.md` V4-PM-01…06, V4-EXE-02/03, V4-AUT-03…05, V4-REC-03/05; `docs/EXAMINATION.md` §§1–2, V4-EXM-13.
 - **Suppliers: the A16-carrying versions, adopted (R23-21 item 3), as O-A refroze them under R23-24 and R23-25 (`OWNERS/O-A.md`).** This file relies on the A16 rows, so it pins those versions (sha256 recomputed at this node):
@@ -16,6 +16,17 @@
   - DEL-06-02/DV-v0.1 `DECISION_VIEW.md` b944b0be081a56a4796d85e9175dcfb202b50f6fa717e0e6211f8f8b5b4a206d (§3 DV-1…DV-9; DV-6 under R23-25).
 - **Fixture:** FX-DP1 at `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/E/fixtures/FX-DP1/`, as refrozen under R23-24: `MANIFEST.sha256` sha256 9501ef81b94c24b71a00c3611cbfa5b8eed2214eb575208283be4c3b46f034c5, all six files verified with `shasum -a 256 -c`. All five content files changed against the E-1 freeze (`346191ff…`); `conversation/agent-message.txt` did not. The package files now have their own shape (R23-24 item 1), with `reservedBy`; record ids, PKG-1's decision (ALT-2) and PKG-2's pending state are unchanged.
 - **Examination records:** DEL-09-01 EXP-v0.2, refrozen and confirmed READY (`reviews/RV-EXP-U1.md`): `EXAMINATION_PROTOCOL.md` fc5b8230ec2ab81a9307bd58a573752194a859afbc28eda6bce1a12ee332a20d (the bytes relied on, committed at `09ca67d094`; O-B has since closed U-EXP-1 in place, which nothing here relies on); `exam.result-record.schema.json` f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081. The check reads `format` from the schema it is given.
+
+## Current receiving conditions
+
+Use the current DEL-06-01 `FLEET_RECORDS.md`, DEL-06-02 `FLEET_VIEWS.md` and
+`DECISION_VIEW.md`, DEL-04-03 `RECORD_SEMANTICS.md` §13.8, and DEL-01-01 supplier
+basis for the candidate. File graph/return/waiting reconstruction, protected
+Fork/Continue-as observations and decision readers have focused implementation
+checks. Imported rows retain their quoted standing. These inputs do not supply
+full brief/dispatch/child association, an actual person's decision or the joined
+changed-basis/interruption evidence required by the Scope of Work. Current
+Codex 0.160.0 development/definition adoption supplies no product qualification.
 
 ## 1. What VER-004 asks, and the shape it is examined on
 

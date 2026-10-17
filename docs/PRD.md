@@ -38,6 +38,7 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | OD-nn / D-nn | Original scoped directions/choices in `../conceptual/DECISIONS.md`, including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |
 | R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index and the App's recovery ledger in SQLite. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
+| DEC-1 D2/D3 | Existing first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, carried by [DEL-04-01's current policy contract](../execution/PKG-04/DEL-04-01/ScopeOfWork.md#governing-values-and-decisions--axiology). D2 names the reserved act kinds and D3 settles App/host routine classifier treatment for that increment; operation-specific additions remain with OI-021. |
 | DEC-4 / DEC-5 | [Owner decisions][B-DEC45] `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
 The original handoff's pending-answer list and `SEED_SET_PLAN.md` §3 remain
@@ -338,15 +339,18 @@ Shared access does not transfer decision rights (OD-05).
 - **V4-AUT-03** Agents may prepare checking, acceptance and reliance decisions;
   they must not represent an actual human act as performed when it was not.
   Applying a change, accepting an edit, marking work checked and professional
-  reliance remain distinct. **[open detail — OQ-02]** The exact always-reserved
-  list and operation-level allocation remain to be resolved; acceptance of
-  graduated autonomy does not answer every item (B-HTML 03).
-- **V4-AUT-04** **[open detail — OQ-02]** The treatment of classifier-based
-  routine permission modes remains unresolved. The prior drafting default
-  was a user setting in the App and no such mode in hosts; that default is
-  retained as an option, not an adopted policy. Resolve the affected
-  permission contract before implementing it; routine tool permission must
-  not be confused with an attributable human or professional act.
+  reliance remain distinct. First-increment ruling DEC-1 D2 reserves marking
+  checked, accepting a proposal where autonomy requires it, engineering approval,
+  professional reliance, and changing the grant or enabling external access.
+  The host names and enforces its own list. **[open detail — OQ-02/OI-021]**
+  Operation-specific additions and affected allocations still need their own
+  ruling; graduated autonomy does not settle them.
+- **V4-AUT-04** First-increment ruling DEC-1 D3 leaves routine tool-permission
+  and sandbox modes, including classifier-based modes, as the person's own
+  Codex setting in the App. Hosts have no classifier permission mode in that
+  increment. These settings never stand in for an attributable human or
+  professional act. Further operation-specific policy remains with the owners
+  at OQ-02/OI-021's point of need.
 - **V4-AUT-05** Nothing the agent produces is presented as certified, sealed,
   approved or code-compliant; such statements belong to the accountable
   professional (X-09; SWBPIPE `docs/PROFESSIONAL_BOUNDARY.md`).
@@ -482,7 +486,7 @@ Summarised here; specified in the companion documents.
 | ID | Question | Consequence if unresolved | Owner | Needed by |
 |---|---|---|---|---|
 | OQ-01 | Purpose/working statement | **Settled for decomposition** by the accepted composite and embedded-primary/App-exemplar direction; later material changes follow their own decision | Owner | No repeat acceptance needed |
-| OQ-02 | Exact always-reserved human acts and classifier-permission policy | Carry the known distinctions; do not implement an unruled policy as accepted | Owner with affected App/host design owners | Before the affected operation/permission contract and examination criterion are fixed |
+| OQ-02 | Operation-specific additions to the adopted first-increment human-act policy | Apply DEC-1 D2/D3; retain OI-021 additions and affected allocations without inventing further policy | Owner with affected App/host design owners | Before the affected additional operation/permission contract and examination criterion are fixed |
 | OQ-03 | Domains provider owner, query/tool contract, source admission, deployment and freshness | Purpose is **settled** by U1/U3; these integration details remain open. Existing host-agent data constraints (V4-HOST-02) are not relaxed by the new capability: a Domains service is contacted only as a destination the person has allowed | Provider owner TBD; App and external host receiving owners; human coordination | Allocate during project definition; resolve each interface before dependent implementation and research-context reliance |
 | OQ-04 | Any additional essential host | Initial App/SWBPIPE direction stands; additional scope is not invented | Owner | Before adding host scope or its delivery commitment |
 | OQ-05 | Working method's concrete applicability and entry arrangement | Manuals/selected-method direction is **settled**; record exact editions, selected methods and any necessary local entry without automatically retaining the old precedence | Project-definition manager within authority; owner for consequential departures | Project definition and entry to affected work |
@@ -509,7 +513,7 @@ to repeat already settled direction.
 | Capability catalog | A host's single description of every operation a person can perform |
 | Semantic parity | Meaningful reads, operations, validation, results and recovery across human, embedded and external agency; shared semantics does not transfer human decision rights |
 | Proposal | A change an agent submits for a person's acceptance |
-| Human act | An attributable act actually performed by a person; exact always-reserved operation classes remain in OQ-02, with professional reliance distinct from execution |
+| Human act | An attributable act actually performed by a person; first-increment reserved kinds follow DEC-1 D2/D3 and operation-specific additions remain in OQ-02/OI-021, with professional reliance distinct from execution |
 | Receipt | The host's record that an operation was applied, with its identities and hashes |
 | Connector | A separately identified capability consumed through a receiving contract: Domains or an optional adopted provider; PEC is retained compatibility only |
 | SWB Piping Designer agent | The SWBPIPE agent using domain-database research context to create a design candidate for human approval; an application expression, not a new standing role |

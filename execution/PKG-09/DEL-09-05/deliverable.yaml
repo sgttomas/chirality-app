@@ -5,6 +5,10 @@ needs:
   condition: 'The joined witness consumes actual bounded briefs, current file graph and native-delegation
     associations, with focused checks and actual ownership/return observations on the identified candidate.
 
+    Current receiving basis: DEL-06-01 supplies the implemented file graph/return/waiting reader and
+    protected Fork/Continue-as observations. Full native brief/dispatch/child association and actual
+    joined worker evidence remain separate inputs; see Design/DECISION_ATTRIBUTION_CASE.md.
+
 
     Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
     and observed evidence remain unclaimed. CLM-001 explicitly identifies DEL-06-01 among the consumed
@@ -19,6 +23,9 @@ needs:
   condition: 'The joined witness consumes the supplied return/waiting/decision views and their focused
     checks to exercise pending review, waiting causes and recoverable file-derived cross-session state
     on the candidate.
+
+    Current receiving basis: DEL-06-02 supplies the Fleet and decision-reader implementations. Their
+    bounded fixtures preserve recorded/quoted standing and do not complete this joined witness.
 
 
     Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
@@ -49,6 +56,9 @@ needs:
     operation; unresolved reserved-act or permission classes remain with their real owners at their points
     of need.
 
+    Apply DEL-04-01 first-increment D2/D3. Only additional operation-specific policy remains for the
+    OI-021 owners at its affected point of need.
+
 
     Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
     and observed evidence remain unclaimed. CLM-002 resolves the adopted-policy contribution to App DEL-04-01.
@@ -63,6 +73,9 @@ needs:
   condition: 'The joined witness consumes supplied content-bound decision/run formats and App recording,
     comparing the bound subject and recorded actor against the actual human decision and retaining separate
     acts and standing.
+
+    Current receiving basis: RS §13.8 supplies the project-linked App store, package recovery
+    and bounded cold-reader checks. These do not supply the actual human decision or host receipts.
 
 
     Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
@@ -103,15 +116,15 @@ needs:
     ScopeOfWork.md#Production and Verification Method — Praxeology / VER-004'
   evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
 - from: external:projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005
-  condition: 'Before the respective product qualification witness, supply the identified supported Codex
-    pin and relevant supplier/environment qualification; neither version nor endpoint capability is established
-    by the definition.
+  condition: 'Use DEL-01-01''s existing SUP1 Codex 0.160.0 development/definition basis. Before the
+    respective product qualification witness, supply the actual App candidate and relevant supplier/environment
+    qualification; development adoption does not establish a qualified distribution or endpoint capability.
 
 
     Notes: FACT: External source identity is accepted External_Dependencies.csv#DEP-005, not an App Deliverable
-    or the local DEP-09-05 row namespace. OI-012 remains with App implementation owner before protocol
-    generation and qualification. No supplier, endpoint or additional host construction is selected; actual
-    input condition stays at qualification.
+    or the local DEP-09-05 row namespace. The original extraction did not select a supplier. The current
+    maintained basis is carried by DEL-01-01; OI-012/DEP-005 qualification remains with the App implementation
+    owner. This witness selects no new supplier, endpoint or additional host construction.
 
 
     Target description — TargetName: Pinned Codex/Tauri/local-server suppliers; TargetRefID: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005;

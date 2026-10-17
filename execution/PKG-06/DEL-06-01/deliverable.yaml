@@ -9,6 +9,9 @@ code_paths:
 - app/src-tauri/src/records_store.rs
 - app/src-tauri/src/records_index.rs
 - app/src-tauri/src/records_export.rs
+- app/src-tauri/src/records_package_import.rs
+- app/src-tauri/src/records_package_identity.rs
+- app/src-tauri/src/records_package_controls.rs
 - app/src-tauri/schemas/fleet.record.schema.json
 - app/src-tauri/schemas/fleet.native-links.schema.json
 - app/src/FleetRecordsPanel.tsx
@@ -17,6 +20,8 @@ checks:
 - app/src-tauri/src/native_conversation_links_tests.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/src/fleet_records_tests.rs
+- app/src-tauri/src/records_package_identity_tests.rs
+- app/src-tauri/src/records_package_controls_tests.rs
 - app/tests/fleet-records.test.mjs
 - app/src-tauri/schemas/sync.py
 needs:
@@ -54,13 +59,13 @@ needs:
   gating: false
   evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: external:DEP-002
-  condition: 'At reliance on covered PEC consumer claims, check the actual externally owned PEC contribution
-    and receiving records, including affected findings and actual disposition; the provider envelope,
-    release and consumer adoption remain separately evidenced.
+  condition: 'Retained PEC source/compatibility evidence only. Current DEL-07-01 and PRD
+    V4-CON-02 retire provider delivery, qualification and receiving adoption as App
+    prerequisites; retaining these references does not reactivate PEC.
 
 
     Notes: FACT: DEP-002 is the App external-dependency register identifier for the PEC owning project,
-    not an App deliverable. No TargetDeliverableID is assigned. Conditional external input; D108 accepted
+    not an App deliverable. No TargetDeliverableID is assigned. Historical conditional input; D108 accepted
     exact D1 bytes/findings as-is with retained MAJOR limitation and a partly met criterion, not repair,
     qualified release or receiving adoption. Source-only extraction does not recheck present PEC readiness
     or gate file-native work.
@@ -68,18 +73,21 @@ needs:
 
     Target description — TargetName: PEC owning project — covered PEC consumer contribution; TargetRefID:
     DEP-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-002'
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-01-01
-  condition: 'Before protocol generation and native-association qualification, the App implementation
-    owner must supply the actual selected supported Codex supplier pin/input; historical examples do not
-    choose it.
+  condition: 'Use the DEL-01-01 selected development/definition supplier pin 0.160.0 and its
+    supplied protocol basis for current implementation. Before native-association qualification,
+    consume the actual candidate/supplier/environment evidence; a selected pin does not qualify it.
 
 
     Notes: FACT: The selected supplier-pin producing obligation is allocated to App DEL-01-01 by accepted
     G3 ScopeLedger SOW-135 and Deliverables.csv, and identified by that local ScopeOfWork OUT-002/REQ-006.
-    OI-012 remains open: the actual pin and qualification are not supplied. Required point of need is
-    protocol generation and native-association qualification; independent definition and file-route work
-    continue.'
+    The owner-authorized development/definition pin is 0.160.0, supplied by DEL-01-01
+    Design/HOSTING_BOUNDARY.md current supplier basis and implemented hosting.rs DECLARED_PIN.
+    Native-association qualification still requires actual candidate/supplier/environment evidence.
+    Recorded stock 0.160.0 witnesses do not expose the readable spawn prompt needed for full
+    brief-to-child association; file reconstruction and protected Fork/Continue-as recording continue.'
   gating: true
   evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
 - from: DEL-01-01

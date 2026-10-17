@@ -79,10 +79,19 @@ All deliverable identifiers in these claims belong to the App v4 project.
 - **AC-007** — The derivation/boundary documentation and local evidence identify each consumed file/record interface, actual review/integration responsibility, human actor versus recorder, unresolved decisions and points of need; they provide the local fixture results to DEL-09-05 without asserting a joined fleet pass or taking over the acts enumerated in REQ-007. Verified by VER-007. Sources: REQ-007; SOW-085, SOW-086, SOW-087, SOW-088, SOW-089; Allocation DEL-06-02 and DEL-09-05.
 
 Completion is candidate-bound production and evidence satisfying these criteria;
-this initial contract supplies neither code nor a product qualification. The
+the contract alone supplies neither code nor a product qualification. The
 local evidence is an input to the whole-journey owner. Schema validity, an
 INITIALIZED contract, a successful test or a rendered view cannot establish an
 unperformed human act or professional reliance.
+
+The current App implements the manual, read-only Fleet return/waiting workspace
+and the separate decision-package reader/control entry. Their derivation,
+source boundaries and remaining inputs are described in
+`Design/FLEET_VIEWS.md` and `Design/DECISION_VIEW.md`. File-derived ownership,
+returns, review and integration can be reconstructed from sufficient records;
+current native child execution and current human-act validity are not inferred
+from them. These local implementations and portable-recovery fixtures do not
+establish DEL-09-05's joined longer-work witness or owner acceptance.
 
 ## Production and Verification Method — Praxeology
 
@@ -95,7 +104,7 @@ unperformed human act or professional reliance.
    inventing a wire schema or additional feature commitment here.
 3. Build the local fixtures below against the identified candidate and file
    basis. Verify both faithful evidence presentation and resistance to false
-   promotion. These are future production checks, not tests executed by INIT.
+   promotion. Contract initialization alone supplies no check results.
 4. Record candidate identity, relevant file/record inputs, observed outcomes
    and limitations with the fixture evidence. Supply that evidence and the
    derivation boundary to the App fleet integration owner for DEL-09-05's
@@ -112,14 +121,14 @@ unperformed human act or professional reliance.
 ## Governing Values and Decisions — Axiology
 
 - **AX-001** — Ordinary files retain coordination/decision authority; displays and notifications expose their evidence and limitations. The product serves the coordinator without making a projection an actor. Sources: PRD V4-PM-05/06; Host V4-HI-61/62/63.
-- **AX-002** — Preserve the accepted composite precedence and graduated autonomy: no blanket reserved-act list, classifier default, inferred acceptance prerequisite or transferred human/professional responsibility is adopted here. Policy definition and actual policy choice remain separate. Sources: Composite decision 03; PRD V4-AUT-03/04; CLM-002.
-- **AX-003** — Keep records useful for recovery, decision and examination, and retain candid enforcement/observability limits. This contract authoring changes no lifecycle; under approved setup the manager may separately record INITIALIZED only after a valid contract and affected independent check pass. Sources: Practice; `_COORDINATION.md`.
-- **AX-004** — App v4 file-native work proceeds without PEC. Later PEC receiving metadata, including D108's accepted-as-is limitation, does not establish a repaired criterion, qualified release or App adoption; receiving currency is rechecked at its actual reliance point. Sources: current Open matters OI-022/DEP-002; Composite decision 06. No separate PEC capability or wire protocol is selected here.
-- **AX-005** — Revised 2026-10-12 by the owner's records-storage direction (PRD source R-STORE): "We can't rely on Git for records management, that's not what it's meant for." The person's decisions and accepted records are directed to the App's records store, so the purpose, REQ-005 and VER-005 read them there beside the project's coordination files. Until RS §13.8 is implemented, the App writes the RS §13.7 project paths.
-- **TBD-001** — OI-001, reserved human acts: **Owner with App/SWB contract owners** must choose always-reserved acts by operation and consequence **before operation-policy production contracts**. A concrete unruled operation waits for its applicable ruling; truthful view definition and independently supported work continue. Source: accepted/current Open_Issues.csv OI-001; CLM-002.
-- **TBD-002** — OI-002, classifier routine permissions: **Owner with App/SWB contract owners** resolves App/host treatment and distinguishes routine tool permissions from professional acts **before permission-policy implementation**. No classifier behavior is selected by these views. Source: accepted/current Open_Issues.csv OI-002.
+- **AX-002** — Preserve the accepted composite precedence and graduated autonomy. Carry the adopted first-increment reserved-act and classifier rulings from DEL-04-01; this view selects no additional reserved-act list or classifier default and introduces no inferred acceptance prerequisite or transferred human/professional responsibility. Policy definition and actual policy choice remain separate. Sources: Composite decision 03; PRD V4-AUT-03/04; CLM-002; DEL-04-01 CLM-004 and TBD-001/002.
+- **AX-003** — Keep records useful for recovery, decision and examination, and retain candid enforcement/observability limits. The original INITIAL setup separated contract preparation from implementation and qualification; that historical lifecycle procedure creates no present status-file duty. Current work maintains ScopeOfWork, Design and dependency conditions under Root's working cycle without hand-maintained lifecycle state. Sources: Practice; historical `_COORDINATION.md`; current Root `AGENTS.md`.
+- **AX-004** — App v4 file-native work proceeds without PEC. PEC's provider and receiving programme is retired under PRD V4-CON-02; OI-022/DEP-002 and D108's accepted-as-is limitation are historical compatibility context, not outstanding delivery or adoption conditions. Any deliberately adopted optional connector retains its own actual receiving contract and limitations. No replacement provider commitment or wire protocol is selected here.
+- **AX-005** — Revised 2026-10-12 by the owner's records-storage direction (PRD source R-STORE): "We can't rely on Git for records management, that's not what it's meant for." The person's decisions and accepted records are directed to the App's records store, so the purpose, REQ-005 and VER-005 read them there beside the project's coordination files. RS §13.8 now supplies the owning records-store route and explicit legacy-project import. Verified portable packages and project-identity recovery preserve recorded content and its limits; they do not turn imported claims into current App observations, native child associations or verified human acts.
+- **TBD-001** — OI-001 was ruled for first-increment App/shared contracts by `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2, carried by DEL-04-01 CLM-004/TBD-001: marking checked; accepting a proposal where autonomy requires one; engineering approval; professional reliance; changing the grant or enabling external access. Hosts name and enforce their own lists. Operation-specific additions remain with **OI-021's owner via the outside SWB session and App/shared owner**, before the connected-activity ScopeOfWork. Only a concrete unruled operation waits for that applicable ruling; independent view work continues. The frozen OI-001 source is the historical question, not a renewed first-increment hold.
+- **TBD-002** — OI-002 was ruled by the same decision D3, carried by DEL-04-01 CLM-004/TBD-002: routine App tool-permission and sandbox modes, including classifier-based modes, remain the user's Codex settings and never stand in for reserved or professional acts; hosts have no classifier permission mode in the first increment. No first-increment decision remains open. These views select no additional classifier behavior.
 - **TBD-003** — OI-006, further fleet management scope: **Owner** defines any additional outcome beyond accepted option B **during FEED before corresponding production contracts**. No additional scheduling, staffing or whole-manual product feature follows from this slice. Source: accepted/current Open_Issues.csv OI-006; PRD §4.6 and OQ-06.
-- **TBD-004** — OI-022, first PEC receiving envelope: **App consumer owner and PEC owner** define first consumer questions, exact response/tool contract, coverage/freshness/limits, no-response fallback and release/adoption evidence **before operational consumer reliance**. DEP-002's supplier is the **PEC owning project**, needed **before reliance on covered PEC consumer claims; not before v4 preparation or initial work**. PKG-07 owns the receiving work; no all-PEC-cleanup prerequisite is introduced. Source: accepted/current Open matters OI-022/DEP-002; CLM-004.
+- **TBD-004** — OI-022/DEP-002's first PEC receiving envelope and provider handoff are retired by PRD V4-CON-02 and the owner's 2026-10-09 direction. Their accepted-source history supplies compatibility context only; no PEC receiving witness, qualification, release or adoption remains due from this view or its suppliers. A future deliberately adopted optional connector requires its own identified receiving contract at actual reliance.
 
 There is no identified contradiction among the assigned accepted scope and the
 cited current clauses. Layout, implementation decomposition and exact fixtures

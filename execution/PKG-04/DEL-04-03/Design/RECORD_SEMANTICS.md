@@ -161,11 +161,12 @@ The v0.3 → v0.4 change table is preserved in RS-v0.4 at commit `cc58211c5`.
 ## 0. Reading this definition
 
 - Element names in §1–§12 are **semantic names, not wire names**. §13
-  PROPOSES a serialization, element spellings and types for review (R12-1;
-  U-04); it is not accepted. No file path, persistence location, transport,
-  hash or canonicalization algorithm, process placement or shared-component
-  placement is selected (SoW TBD-002; OI-013; OI-014; DEL-03-01 TBD-003;
-  R12-2), and no wire field of a host or supplier is selected.
+  proposes a shared serialization and types for review (R12-1; U-04).
+  The bounded App profiles in §13.7/§13.8 implement concrete fields, record
+  identity, storage placement and native read/write paths. Those implementation
+  choices do not select host/global content or revision algorithms, transport,
+  shared-component placement or a host/supplier wire field (SoW TBD-002;
+  OI-013; OI-014; DEL-03-01 TBD-003; R12-2).
 - `⟨…⟩` is an opaque identity token. Equal tokens stand for "the designated
   identity method reports the same identity".
 - **Act names (DEL-04-01 §2.1):** A1 propose · A2 apply · A3 examine · A4 mark
@@ -1510,11 +1511,26 @@ the App's role-supply observations and exact retained App guidance bytes
 (DEL-02-04, ROLE §6.1a, `role_observations.rs`); Units
 written together and the chain of Tamper-evidence (App `record_lines.rs`,
 `records.rs`, `records_index.rs`) for every RS log the App writes. The
-derived SQLite index, BagIt export and recorded retention controls below
-are also implemented; the other mechanisms await their slices. DEL-06-01's
+derived SQLite index, BagIt export, verified package import and recovery, and
+recorded retention controls below are also implemented. Signed checkpoints and
+manifests still wait for App signing. DEL-06-01's
 manual source reader compares the co-written fleet log with the store's copy
 as described below. Its App writer records source-qualified Fork/Continue-as
 relationships and recording outcomes; other Fleet producers remain unbuilt.
+
+The native entry points are in App `lib.rs`; `records_store_import_package`
+accepts an action, while the native host selects the package, observes the
+actor/home, prepares the concrete question and rechecks its frozen context.
+The records-store panel in `App.tsx` supplies the action only. Package admission
+and retry are in `records_package_import.rs`, package-first association and
+original-intent discovery in `records_package_identity.rs`, derived-control
+recovery in `records_package_controls.rs`, and administrative history validation
+in `records_administration.rs`. Their focused regression sources are linked in
+`deliverable.yaml`. `records_portable_reconstruction_tests.rs` exercises the
+actual role, workflow, decision and records-capability readers after import at
+an unchanged or moved root and after lost-link/startup-identity recovery. Its
+invented native peer establishes those bounded local cases; it does not supply
+DEL-09-11's separate later reconstruction witness or host adoption.
 
 - **Placement** (implemented). The App keeps its records in its own records
   store at `<App-own-user-data>/records/` (the Tauri App data folder),
@@ -1617,9 +1633,12 @@ relationships and recording outcomes; other Fleet producers remain unbuilt.
   the current reference authenticates neither the installation nor the act.
   Selection still requires a registration/re-confirmation result held from
   this process's own native A15; quoted history never enters that route. The
-  existing two-or-more-entry in-place route is supported after a move; AAC
-  still refuses a single `entry:` descriptor (its current implementation
-  conditions), so this slice does not establish that route.
+  in-place route supports one existing entry or several reviewed entries after
+  a move, subject to that fresh native A15. The owner selected "Allow direct
+  single-entry registration (Recommended)" on 2026-10-13 (DEL-01-04 REQ-008).
+  App `act_control_a15.rs` and `workflow_library_tests.rs` exercise singular
+  capture and portable quoted history without treating cold records as a new
+  registration.
 - **Split by who writes** (owner, 2026-10-12: "Split by who writes (Recommended)"). Records the App writes join the
   store: connector route accounts (DEL-07-02) and the App's own fleet
   coordination observations. Working files that the person and agents edit
@@ -3035,8 +3054,8 @@ validator it also compares their outcomes. These remain Design rehearsals.
 |---|---|---|---|
 | U-01 Operation-specific reserved additions `OI-021` | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and execution | Class may be *no policy basis (pending OI-021)*; fixtures held |
 | U-02 Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment in DEL-03-01 | Scope dimension "consequence" is a slot; OP-C5 on S-4 under ⟨set-2⟩ held |
-| U-04 Serialization, field names, identity algorithms, record-identity form, carriage-manifest representation | DEL-04-03 with DEL-03-01 (TBD-003) and DEL-02-01 | Before OUT-001 CONFIG and writer implementation | **v0.8:** serialization, element spellings, unit of storage, record-identity form (opaque token) and version rule PROPOSED in §13, for review; **CC-ID** selects only new App record-entry minting (§13.2), with product adoption pending independent review. **CC-CONTENT-RX** adopts the reviewed bounded App exact-byte/package methods (§6.2a); host/global content/revision algorithms and the carriage-manifest representation stay open. L-2 depends on method designations and same subject/scope only |
-| U-05 App record location — bounded choice selected | DEL-04-03 with App consumers | Implementation/consumer review | CC-P-R §13.7 selects project run/writer and outside-run-only logs, portable A15 library logs/captures and registered legacy discovery. RS §13.8 (PRD R-STORE) directs App records to the App's records store; not yet implemented. Global OI-014 remains open |
+| U-04 Shared serialization, host/global identity algorithms and carriage-manifest representation | DEL-04-03 with DEL-03-01 (TBD-003) and DEL-02-01 | Before the remaining shared/host implementation or adoption that depends on those choices | The App profiles implement record-entry minting, concrete format/version handling and read/write paths (§13.2, §13.7/§13.8), with focused checks and independent implementation review. This is bounded App implementation evidence, not owner product acceptance or global format adoption. **CC-CONTENT-RX** supplies reviewed bounded App exact-byte/package methods (§6.2a); host/global content/revision algorithms and the carriage-manifest representation stay open. L-2 depends on method designations and same subject/scope only |
+| U-05 App record location — bounded choice selected | DEL-04-03 with App consumers | Remaining shared allocation point of need | RS §13.8 (PRD R-STORE) implements the App records store and explicit legacy/package import. CC-P-R §13.7 remains the legacy discovery basis and keeps A15 library acts/captures with the library. Global OI-014 and external host placement remain open; this bounded App implementation settles neither |
 | U-06 Host persistence/placement `OI-013` | Shared contract owner with SWB implementation owner | Before shared/host implementation boundary contracts | Host recording follows meaning only |
 | U-07 *Closed (DECISION-K1 K1-3, 2026-09-30).* Purpose of a multi-row A4 after partial lapse | The owner (decided) | — | **Settled:** the act keeps its purpose for unchanged rows; a new act on the changed rows alone answers together with it (L-7; EXEC §4.7 JA-1) |
 | U-08 *Closed (R12-5, 2026-09-30).* Workflow review/registration as act kind | The integrator (R12-5); the A15 is captured by DEL-01-04's App act control (AAC-v0.2; K-8), registration is DEL-02-02's (WR-v0.2) | — | **A15 register workflow revision** is a human-act record kind (§6.1, HA-10); a checkpoint cannot require it in this increment |
@@ -3051,14 +3070,14 @@ validator it also compares their outcomes. These remain Design rehearsals.
 | U-STORE-3 *Decided 2026-10-12:* tamper-evidence strength (owner: "Chain + signed checkpoints") | — | — | Per-log hash chain; signed checkpoints after App signing, key in the OS keychain; no external anchoring (§13.8; OI-011) |
 | U-STORE-4 *Decided 2026-10-12:* agent reads through an App-provided, project-scoped, read-only records capability (owner: "I choose option B") | — | — | Direct file reads cannot be prevented under Codex 0.160.0; the limit is stated (§13.8). The capability is §13.9 |
 | U-STORE-5 *Decided 2026-10-12:* backup and export package format (owner: "BagIt + signed manifest") | — | — | BagIt (RFC 8493) package, SHA-256 manifest with chain heads, signed after App signing (§13.8) |
-| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"); *refined 2026-10-12* for the coordination log (owner: "Write to both (Recommended)") | — | — | Connector accounts and the agents' read log join the store (implemented); briefs and graphs stay in the project. The decision first called the coordination log App-written; it is co-written, so it stays one file in the project with every entry, and the App also records its own observations in the store, whose copy governs inside the App (§13.8; manual reader implemented in FR §6.1, App observation writer remains Design) |
+| U-STORE-6 *Decided 2026-10-12:* fleet and connector files split by who writes (owner, 2026-10-12: "Split by who writes (Recommended)"); *refined 2026-10-12* for the coordination log (owner: "Write to both (Recommended)") | — | — | Connector accounts and the agents' read log join the store (implemented); briefs and graphs stay in the project. The coordination log stays co-written in the project, and the App records its own observations in the store, whose copy governs inside the App (§13.8). FR §6.1 implements the manual reader and §6.2 the native Fork/Continue-as relationship writer and recording outcomes; other dispatch/child/observation-ended producers remain unbuilt. Imported rows remain quoted evidence without local native authority |
 | U-19 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: none (route (iv)); planning a route is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint recorded as carried. In either phase, "constraint not carriable on this host" is recorded where the host schema has no element (R8-10): in the current phase it says that the expected constraint could not be carried and was recorded only (ADAPTER GC-4, P §3.3); it bears on a hold-support value only in the governance phase (R10-2). Governance phase: only host-held satisfies R2-12; App-assured unavailable (R5-2); model-supplied or absent is an R11 limit |
 | U-20 *Closed (v0.9; RECOVERY-v0.2 §8.2).* R13 feed beyond DEL-01-01 observed facts | DEL-01-02 (decided by its design) | — | Exactly two DEL-01-02 facts: `request_ended_unanswered` → R13 *ended unanswered (process exit)*; `acknowledgment_not_observed` → R11 "lost acknowledgement" (with `app_restart_interruption` → R11 "App-restart interruption") |
 | U-21 Host-loop per-turn guidance identities | Host owner (relay) | Before connected integration | R3 *unknown* where absent |
 | U-25 App-side run holds `UNRESOLVED{D6}`. **Closed for Phase 1** by DECISION-4 D4-1 (R8-2); **re-opens only when the governance phase is taken up**. SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned | The owner (DECISION-4; D6 re-opens with the governance phase) | When the governance phase is taken up for a workflow that needs it; before App-side hold fixtures | Phase 1: no hold or hold-support value recorded (§1). Governance phase: R8 hold support (R5-1 values) and R11 action during hold recorded; HS-3 checkpoints *not enforceable* against SWBPIPE, HS-5 *not enforceable*; no unenforced hold recorded as held |
 | U-26 *Closed (DECISION-K1 K1-2, 2026-09-30).* SP-6 versus counting a prior act on current content (EXEC U-E4) | The owner (decided) | — | **Settled for the current phase:** L-13 counts an earlier act on current content and cites it; capture after arrival is the governance-phase option (EXEC SP-6F) |
 | U-27 Caller identity verification over the external channel (ADAPTER OC-6) | App owner with host owner | Before origin conformance | Author identity *unverified*; R11 limit |
-| U-28 *Closed (DECISION-K1 K1-4, 2026-09-30).* App person identity scheme and App act control (EXEC U-E8) | The owner (decided); the control is designed in DEL-01-04's AAC-v0.2 (PROPOSED until SCA-V4-003) | — | **Identity settled** (§6.1 *Decision actor*): the name set in the App, the operating-system account and the Codex account when reported, marked *identity not verified*; a verified identity is governance phase. **Control:** stays with DEL-01-04; its obligation is proposed for DEL-01-04's contract at the next amendment (DECISION-K1 K1-4) |
+| U-28 *Closed (DECISION-K1 K1-4, 2026-09-30).* App person identity scheme and App act control (EXEC U-E8) | The owner (decided); DEL-01-04 owns the App act control under its current OUT-005 and REQ-008 | — | **Identity settled** (§6.1 *Decision actor*): the name set in the App, the operating-system account and the Codex account when reported, marked *identity not verified*; a verified identity is governance phase. **Control:** stays with DEL-01-04; SCA-V4-003 carries the adopted K1-4 obligation (local AX-005). Native capture, evidence recording and a real person's witnessed act remain distinct |
 | U-29 Per-subject content identity (V4-HI-32) not met by SWBPIPE, which supplies only a whole-model identity (SQ-03; R8-4; EXEC U-E25) | SWBPIPE (PB-TBD-002 / DEL-16-03); owner notice | Before host act-binding integration | L-1 receives the whole-model identity for every covered subject: over-lapse, never under-lapse; resulting objects beyond target ids *not supplied* |
 | U-30 DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands) (closed for those points) (the person-only grant; the reading of "MCP V2"); the host's native destination report (DEP-001) (R8-13) | The owner; host owner (DEP-001) | Before R15 writer implementation; before host-loop destination cases execute | R15 defined as recorded; without a native report, "destinations not observed" (R11) |
 

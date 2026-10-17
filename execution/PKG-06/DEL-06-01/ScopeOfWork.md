@@ -19,6 +19,8 @@ current DEL-07-01 scope and PRD V4-CON-02.
 
 Define the App's file-based product records for bounded delegation and one current undertaking work graph. The App fleet-record owner is responsible for this DATA_MODEL_CHANGE contribution. It supplies recoverable source records and native child/evidence associations to adjacent product consumers; it does not establish that the future product already exists.
 
+The current implementation reads brief/graph/log files, reconstructs selected work, returns and waiting causes, and records actual native Fork/Continue-as relationships under the protected-copy contract in `Design/FLEET_RECORDS.md` §6.1–§6.2. Imported Fleet prefixes remain quoted evidence. These contributions do not supply the stock native spawn prompt needed for full brief-to-child association, an actual positive human-act witness or DEL-09-05's joined examination. The selected development/definition supplier is Codex 0.160.0 (`DEL-01-01/Design/HOSTING_BOUNDARY.md` current supplier basis; `app/src-tauri/src/hosting.rs` `DECLARED_PIN`); selecting that pin does not establish supplier qualification.
+
 | Accepted scope | Local contribution | Objective contribution |
 | --- | --- | --- |
 | SOW-083 | Bounded briefs carry purpose, basis, context, authority, tools, write scope and expected return. | OBJ-006: recoverable bounded work. |
@@ -99,15 +101,20 @@ Verification results must identify the candidate and material input basis actual
 - **AX-003** — Executing work, returning an artifact, examining it, integrating it and performing a human act retain their actors and evidence. Applying one label never manufactures another act. The role's bounded delegation restriction remains visible where a harness cannot enforce it; this contract does not claim an enforcement mechanism selected only in prose.
 - **AX-004** — Open details below retain their owners and points of need. This deliverable can carry an adopted operation policy but is not the actor deciding an unresolved policy. No blanket reserved-act list, classifier behavior, PEC wire field or further fleet feature is chosen here.
 
+The first-increment OI-001/OI-002 rulings are already carried by DEL-04-01
+(`APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2/D3): reserved human acts remain
+distinct from routine Codex permission settings, and hosts have no classifier
+permission mode in that increment. This contribution applies those rulings;
+only additional operation-specific policy remains open below.
+
 | Open matter | Actual owner | Exact accepted point of need | Local consequence |
 | --- | --- | --- | --- |
-| OI-001: always-reserved human acts | Owner with App/SWB contract owners | Before operation-policy production contracts | Carry truthful act/actor distinctions; do not decide the unresolved operation policy. |
-| OI-002: classifier routine permissions | Owner with App/SWB contract owners | Before permission-policy implementation | Report actual enforcement and preserve the separate policy choice. |
+| OI-021: additional operation-specific policy | Owner with affected App/SWB contract owners | Before the affected additional operation/permission contract or examination criterion | Apply D2/D3 for the first increment; do not invent further reserved classes or classifier policy. |
 | OI-006: further fleet management scope | Owner | During FEED before corresponding production contracts | Keep this contribution within accepted option B; do not add fleet features from the manuals. |
-| OI-012: Codex version pin | App implementation owner | Before protocol generation and qualification | Native association qualification uses the actual selected supplier input; no historical pin is adopted here. |
-| OI-022: PEC first receiving envelope | App consumer owner and PEC owner | Before operational consumer reliance | Coordinate format/coverage consequences with DEL-07-01; leave exact response/tool, coverage/freshness/limits, release and adoption details to the receiving contract. |
+| OI-012: Codex version pin and qualification | App implementation owner | Before protocol generation and qualification | The owner-authorized development/definition pin is 0.160.0, received from DEL-01-01. Native-association qualification still needs its actual candidate, supplier/environment and observable association evidence; the pin alone does not supply it. |
+| OI-022: PEC first receiving envelope (retained compatibility) | App consumer owner and PEC owner | No current delivery or adoption obligation | Retain the historical format/coverage account; current DEL-07-01 and PRD V4-CON-02 retire the provider/receiving requirement. |
 
-DEP-002's PEC contribution is required before reliance on covered PEC consumer claims, not before v4 preparation or initial work. The current OPEN records add the D108 observation to the frozen acceptance: exact PEC D1 bytes/findings were accepted as-is, with the retained MAJOR limitation and a partly met criterion; no repair, qualified release, receiving adoption or lifecycle advance is inferred. Those receiving records must be checked at actual reliance. They do not enlarge this record-format scope or gate current file-native work.
+DEP-002 and D108 remain historical compatibility evidence: exact PEC D1 bytes/findings were accepted as-is, with the retained MAJOR limitation and a partly met criterion; no repair, qualified release or receiving adoption is inferred. Under current DEL-07-01 and PRD V4-CON-02 they create no App delivery, qualification, adoption or file-native work prerequisite. Retaining their source account does not reactivate PEC.
 
 ## Output and Evaluation Matrix
 

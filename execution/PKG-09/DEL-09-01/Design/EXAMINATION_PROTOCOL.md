@@ -98,13 +98,16 @@ carried, not made); no CI configuration (LOOP_INIT: no v4
 says so), DERIVED (follows from accepted text), INTEGRATION (an integrator
 ruling), PROPOSED (this file's design choice).
 
-**Overtaken wording followed (R23-7, R23-11).** The ScopeOfWork's TBD-001
-reads OI-001/OI-002 as unruled and OI-012 as having no pin. This file
-follows the current decisions: D2/D3 rule OI-001/OI-002 for the first
-increment; D4 selected 0.158.0 as the definition and generation pin, while
-the qualification pin is still open (OI-012). CLM-004/REQ-006's reviewer
-rule is applied as R23-12 reads V4-OPS-34. The wording is listed for the
-next amendment (R23-11), not edited here.
+**Current decision correspondence (R23-7, R23-11).** ScopeOfWork TBD-001
+now carries the existing D2/D3 first-increment OI-001/OI-002 rulings and
+retains only operation-specific additions under OI-021. Its SUP source
+and U-EXP-1 carry the owner-authorized, reviewed SUP1 development/definition
+and generated-reference pin 0.160.0 and R23-22's candidate-time
+qualification-pin rule. D4's initial 0.158.0 declaration and dated
+exchanges keep their historical meaning. This applies already-recorded
+decisions, without claiming a qualified distribution/App candidate or
+signing/release evidence. CLM-004/REQ-006's reviewer rule is applied as
+R23-12 reads V4-OPS-34.
 
 ## 1. Owner and act boundary (REQ-008; CLM-001, CLM-005, CLM-006)
 
@@ -657,7 +660,7 @@ written; it says nothing about a candidate.
 
 | ID | Item | Owner | Point of need | Effect here |
 |---|---|---|---|---|
-| U-EXP-1 | Qualification Codex pin (OI-012) | **Closed by rule (R23-22):** 0.158.0 stays the definition and generation pin (D4); 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. No owner decision is needed unless a check finds a changed relied-on behaviour | When a candidate is built | Records carry the pin; a pin change is a change of kind `codex_pin` (§6.2) |
+| U-EXP-1 | Qualification Codex pin (OI-012) | **Decided by rule; current supplier basis reconciled:** owner-authorized, reviewed SUP1 advances development/definition and the generated reference to 0.160.0 (DEL-01-01 ScopeOfWork [S]/REQ-006/TBD-002; HOSTING §7.0/U-01), superseding R23-22's historical D4 definition-pin declaration. R23-22's qualification rule remains: newest version that has passed a version-advance check when a candidate is built; no new owner decision unless a check finds changed relied-on behaviour. This supplies no expected qualified distribution identity, App qualification or signing/release evidence | When a candidate is built | Records carry the actual pin; a pin change is a change of kind `codex_pin` (§6.2). Historical exchange/fixture pins remain their observed basis |
 | U-EXP-2 | Interface runner and N-2 tool names and versions | The implementer chooses them against §8.3's definition checks; recorded as facts of the result (R23-17 item 3) | Before the first interface or N-2 run | Not a design gap: the admission criterion is §8.3 |
 | U-EXP-5 | M2 package and DEL-01-06's signing arrangement | DEL-01-06 (R23-13) | Before native packaged smoke | `native_packaged` cases `not-run` (AWAITING INPUT) until then |
 | U-EXP-6 | OI-016 validation period and activities | Owner | Before validation in use | `validation` records only on actual use |

@@ -1,16 +1,19 @@
 # Fleet records: bounded briefs, the current work graph and coordination events
 
-- Contribution: DEL-06-01/FR-v0.1 (new). Serves OUT-001 (record definitions:
-  §3, `fleet.record.schema.json`), OUT-002 (writer, reader and native
-  association behaviour: §4–§7, designed; the prototype is not product code),
-  OUT-003 (fixtures: §9, `prototype/fixtures/FX-FL1/`) and OUT-004
+- Contribution: DEL-06-01/FR-v0.1 and native-links 0.2. Serves OUT-001
+  (record definitions: §3 and the two Fleet schemas), OUT-002 (current App
+  reader/derived workspace and native-link writer: §6.1–§6.2; full native
+  dispatch/brief association remains designed), OUT-003 (local App regression
+  coverage and historical prototype fixtures: §9) and OUT-004
   (compatibility account: §8).
-- Current App contribution: the manual read-only source slice in §6.1.
-  The native fleet writer and association remain unbuilt. Historical
-  prototype results below establish no App candidate VER result or acceptance.
-- Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-A (Type 2 TASK,
+- Current App contribution: manual source inspection, reconstructed
+  graph/return/waiting views, and protected native Fork/Continue-as records.
+  The recorded stock 0.160.0 witnesses do not expose the spawn prompt needed for §4's
+  full brief-to-child association. Local regressions and historical prototype
+  results establish neither the joined supplier/human witness nor acceptance.
+- Original design run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-A (Type 2 TASK,
   Claude Opus 5.5, high effort), unit E-2; written 2026-10-03.
-- Basis (sha256): this deliverable's `ScopeOfWork.md`
+- Original design basis (sha256): this deliverable's `ScopeOfWork.md`
   50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9 (INIT contract; no SCA-V4-001/002/003
   block changed it, so R23-5's re-pin has no block to read). `docs/PRD.md`
   bb6e786f… (V4-PM-01/02/05, V4-ROLE-03, V4-AUT-03, V4-REC-02…05, V4-EXE-03);
@@ -19,7 +22,7 @@
   471798bc… (V4-EXM-13); `docs/OPERATING_METHOD.md` 98836b52… (V4-OPS-02,
   12, 14, 30). Rulings by ID (R23-21): R23-2, R23-3, R23-4, R23-7, R23-8,
   R23-9.
-- Suppliers read, by label and section: DEL-01-03/NPTD-v0.2 §7 (identity
+- Original design suppliers read, by label and section: DEL-01-03/NPTD-v0.2 §7 (identity
   model, display rules, export §7.7, `npt.delegation-export` v0.2);
   DEL-04-03/RS-v0.10 §2, §3, §6, §13.6 (act requests and A16);
   DEL-02-04/ROLE-v0.2 §3.3 (Continue as, fork), §5.3, §6.2 (limit account),
@@ -27,9 +30,13 @@
   indexed); DEL-01-01/OBS_2 §6 (delegation, through an adapter); the
   committed 0.158.0 JSON Schema bundle (`Thread`, `collabAgentToolCall`,
   `CollabAgentStatus`, `SubAgentSource`, `ThreadMetadataUpdateParams`).
-- Pin (R23-3): written for 0.158.0 and 0.160.0. VC (VERSION_ADVANCE F16)
-  reports the delegation types and features unchanged at 0.160.0; the adapter
-  run was not repeated there. Every supplier fact below carries its standing.
+- Current supplier basis: owner-authorized development/definition pin
+  0.160.0, received from DEL-01-01 `Design/HOSTING_BOUNDARY.md` and named by
+  `hosting.rs` `DECLARED_PIN`; supplier qualification remains separate.
+  Historical design observations were written for 0.158.0 and 0.160.0
+  (R23-3). VC (VERSION_ADVANCE F16) reports unchanged delegation types at
+  0.160.0; it did not repeat the adapter run. Every observation below retains
+  its actual pin and standing, including the stock-route limits in §4.
 - Labels: **SETTLED**, **DERIVED**, **INTEGRATION**, **PROPOSED** as R9.
 - **Repairs after RV-E2 (in place, same label FR-v0.1, before acceptance).**
   - E2-R1: RF-10 and RF-12 report unread log lines and orphaned observations.
@@ -87,7 +94,7 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   both (Recommended)"; RS §13.8). The coordination log stays one co-written
   file in the project (FR-D2, FR-D3): the App writes its observations
   (`dispatch_observed`, `child_observed`, `observation_ended`,
-  `related_conversation`) there once DEL-06-01's writer exists, so agents and file-native readers
+  `related_conversation`) there when that producer exists, so agents and file-native readers
   keep every entry, PEC, DEL-10-02's route "with or without the App" and
   FR-D4's child index included. The App also writes each of its
   observations to its records store, in the project's subtree at
@@ -320,7 +327,7 @@ travels in the spawn:
 DEL-06-02 derives queues and waiting causes from these facts. This file
 derives the facts only.
 
-## 6. Writer and reader (OUT-002; PROPOSED; `prototype/fleet_store.py`)
+## 6. Writer and reader (OUT-002; implemented App slices and retained prototype design)
 
 ### 6.1 Current manual App source reader
 
@@ -369,6 +376,20 @@ inventories are rechecked across the whole read. A changed protected snapshot
 withholds protected row contents and authority. Configured project/store aliases
 are resolved to their physical sources, and a changed physical project refuses
 the whole result.
+
+BagIt import records exact imported member-prefix lengths and digests through
+`records_package_import.rs` (RS §13.8). Imported Fleet rows, including exact
+App-named project/store counterparts, are quoted package claims; they establish
+no local App observation, native relationship or protected order. A later local
+append can have its own protected provenance only after the complete imported
+prefix and its surviving original native import/control evidence are verified.
+A line crossing that prefix boundary stays imported, including an originally
+unterminated row completed by a later newline. Missing, changed or concurrently
+replaced package-origin controls withhold all App provenance while stable
+readable bytes/order remain quoted. Derivative control repair and recovery of a
+missing link are separate explicit native operations; the Fleet reader neither
+repairs controls nor mints an identity. A package signature, role/CCE authority
+and native receipt are never inferred from imported file placement.
 
 The source-schema copy is embedded and checked by `schemas/sync.py`.
 Protected fleet bytes are export payload, while both fleet logs remain outside
@@ -493,7 +514,9 @@ recovery basis, and completed copies retain compact status rather than a second
 full history. Placement limits continue to qualify file provenance, including
 agent-writable development stores.
 
-Both Fleet versions remain outside the RS parser/index/capability/import census.
+Both Fleet versions remain outside the RS parser, index, capability and legacy
+file-migration census (RS §13.7). Verified BagIt import/export includes their
+whole payload bytes (RS §13.8), with the quoted-prefix limits in §6.1.
 Fleet records are currently **unchained and unsigned**: per-process exact-prefix
 proof catches known shrink/rewrite, but cold restart cannot authenticate a prior
 valid prefix or detect a tail removed before its first read. BagIt includes the
@@ -501,11 +524,16 @@ whole Fleet payload bytes without claiming a Fleet chain head or signature. The
 manual panel retains complete source records/order/limits, shows 0.2 relationships
 and mechanical outcomes separately. The derived file workspace (§6.1a)
 establishes no current native dispatch, child state or conversation relationship.
-This implements the native-link contribution only; it does not claim DEL-06-01's
-full brief/graph/dispatch implementation or a native supplier witness.
+This implements the native-link contribution alongside the file workspace in
+§6.1a. It does not supply the full native brief-to-child association or dispatch
+producer in §4, an actual positive human-act witness or DEL-09-05's joined
+native supplier examination.
 
-The following writer/derived-reader rules continue to describe the Design and
-prototype beyond this source slice.
+The following rules retain the original writer/derived-reader specification
+and prototype account. Current App consumption is bounded by §6.1–§6.1a; in
+particular decision needs stay unknown, and file claims are not current native
+execution. The ordinary-file brief/graph writer and native dispatch producer
+are not supplied by these reader slices.
 
 - **W-1** Every record is validated before it is written; an invalid one is
   refused and nothing is written.
@@ -617,8 +645,8 @@ prototype beyond this source slice.
 |---|---|---|---|---|
 | Consumed (DEP-06-01-007, admitted) | DEL-01-03 | The delegation export (§7.7) and spawn items, as the App writer's input for `dispatch_observed`/`child_observed` | A completed spawn | No export → no dispatch recorded; never inferred |
 | Consumed (DEP-06-01-008, admitted) | DEL-04-03 | RS `act_request` and `human_act` records for decision needs and act references | Records supplied to the reader | *unknown* |
-| Consumed (DEP-06-01-013, admitted) | DEL-01-01 | The pin the observations name | — | The observation's pin says which |
-| Consumed (DEP-06-01-011, admitted) | DEL-07-01 | Coverage and adoption account before relying on a changed PEC consumer path | Only at a format change PEC consumes | §8 holds the change |
+| Consumed (DEP-06-01-013, admitted) | DEL-01-01 | Selected development/definition pin 0.160.0 and its supplied protocol basis | Current supplier identity from HOSTING; actual observations retain their own pin | Qualification and full spawn-prompt association remain separately evidenced |
+| Retained compatibility (DEP-06-01-011) | DEL-07-01 | Historical PEC format/coverage account | No current delivery, qualification or adoption prerequisite (PRD V4-CON-02) | Preserve quoted limitations; no reactivation |
 | Runtime value (no row) | DEL-02-04 | The limit account standings, carried as handed | When a brief or dispatch is recorded | `unknown` |
 | Runtime value (no row) | DEL-01-02 | Relaunch and quit facts for `observation_ended` | — | "cause not observed" |
 | Offered (DEP-06-02-008) | DEL-06-02 | The records and the reader's facts (§5) | — | — |
@@ -632,15 +660,28 @@ and every one is already admitted. DEL-01-03 must not consume these records
 
 | Format | Version | Writers | Consumers | Change rule |
 |---|---|---|---|---|
-| `chirality.fleet.record` | 0.1 (quoted compatibility; schema unchanged) | Agents and the person (FR-D1); the App writer for observed kinds | DEL-06-02 (views), DEL-09-05 (witness), DEL-09-11 (reconstruction, through its input set); **PEC: none adopted** (OI-022; DEP-002 unestablished) | A minor version adds optional elements or kinds; a reader that does not know them reads the rest and lists them as unread. A major version changes meaning. Before any consumer path relies on a change, the change is listed here with its consumers; for PEC, DEL-07-01 supplies the affected coverage and adoption account (DEP-06-01-011). A projection never governs this writer (V4-HI-63) |
-| `chirality.fleet.record` native-links profile | 0.2 | Actual Rust App observer for source-issued Fork/Continue-as facts and mechanical recording outcomes; exact project copies | Rust Fleet reader/manual panel consume 0.1 and 0.2 separately. RS readers/index/capability and chain heads exclude both; BagIt includes their complete bytes. DEL-06-02/09-05/09-11 receive quoted files only until their own consumer adopts this profile. PEC has no adopted Fleet coverage; no receiving adoption is inferred | New narrowly versioned profile, no retrospective rewrite of 0.1. Old readers may list these rows unread. Source-qualified native conversation IDs replace undertaking identity only for the new native profile under the quoted owner direction in §4; no graph or work-state derivation is added |
+| `chirality.fleet.record` | 0.1 (quoted compatibility; schema unchanged) | Agents and the person (FR-D1); the App writer for observed kinds | DEL-06-02 (views), DEL-09-05 (witness), DEL-09-11 (reconstruction, through its input set); **PEC: retained compatibility only**, no adopted Fleet coverage | A minor version adds optional elements or kinds; a reader that does not know them reads the rest and lists them as unread. A major version changes meaning. Before any consumer path relies on a change, the change is listed here with its consumers; PEC's retained compatibility account remains with DEL-07-01 (DEP-06-01-011) and creates no current delivery/adoption gate. A projection never governs this writer (V4-HI-63) |
+| `chirality.fleet.record` native-links profile | 0.2 | Actual Rust App observer for source-issued Fork/Continue-as facts and mechanical recording outcomes; exact project copies | Rust Fleet reader/manual panel consume 0.1 and 0.2 separately: DEL-06-02 presents locally admitted native relationships and mechanical outcomes outside the graph-derived workspace. Imported 0.2 rows remain quoted, never native relationships. RS readers/index/capability and chain heads exclude both; BagIt import/export includes their complete bytes. DEL-09-05/09-11 consume their own identified evidence, without automatic qualification or native authority. PEC has no adopted Fleet coverage; no receiving adoption is inferred | New narrowly versioned profile, no retrospective rewrite of 0.1. Old readers may list these rows unread. Source-qualified native conversation IDs replace undertaking identity only for the new native profile under the quoted owner direction in §4; no graph or work-state derivation is added |
 
 Example change (bounded): adding a `priority` element to work items is minor.
 DEL-06-02 ignores it until it adopts the change. If PEC later consumes items,
 DEL-07-01 states whether its coverage includes the element before anyone
 relies on it.
 
-## 9. Fixtures and verification (OUT-003; designed; prototype results are not candidate evidence)
+## 9. Fixtures and verification (OUT-003; App regressions and historical prototype evidence)
+
+Current product regression sources are `fleet_records_tests.rs` (native reader,
+exact counterparts, protected prefix, import provenance and source changes),
+`fleet_views_tests.rs` (graph/return/review/integration/input reconstruction),
+`native_conversation_links_tests.rs` (source-issued native relationships and
+recording recovery), and `app/tests/fleet-records.test.mjs` (presentation).
+`records_package_identity_tests.rs` and `records_package_controls_tests.rs`
+exercise recovery of the original import identity/control evidence that bounds
+Fleet provenance, including missing prior derivatives and same-byte replacement
+of an authoritative original. These use invented files and native peers; they
+do not substitute for an actual supplier-qualified native association or the
+joined two-delegation/human examination. The following prototype results retain
+their original date, basis and limited standing.
 
 `prototype/run_fleet.py` builds **FX-FL1** through the writer. FX-FL1 is
 undertaking FX-U1 (invented), with:
@@ -710,7 +751,7 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 | Matter | Owner | Point of need |
 |---|---|---|
 | AS-1 is guidance, not enforcement: a manager may spawn without the reference | O-A, with DEL-02-04 (guidance text) | Before the App's guidance is written |
-| PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
+| PEC envelope (OI-022), retained compatibility only | App consumer owner and PEC owner | No current PEC delivery/adoption requirement; current DEL-07-01 and PRD V4-CON-02 govern |
 | Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3), now under the general OI-008 ruling:* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
 | Current graph file identity | App Fleet consumer adopts `chirality.app.exact-bytes.sha256/v1` in §6.1a, receiving the reviewed App definition from RS §6.2a; historical TEST VALUE selectors remain unsupported. Host/global algorithms stay open | Implemented consumer; independent implementation review applies |
 | Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. The child-thread read does not supply it either: the trial witness found the spawn task delivered to the child as an inter-agent `agent_message` whose payload is `encrypted_content`, with no user message (§4; WR U-WR-25). So at 0.160.0 AS-2's prompt identity cannot be computed from Codex. Whether a later pin exposes a spawn item or the child's readable input is open | A later observation | Before VER-003 on a candidate |

@@ -108,18 +108,19 @@ of need before relying on it.
 
 ## 5. Human acts
 
-- **V4-HI-30** A host names its human-act and operation classes. **[open
-  detail — PRD OQ-02]** The exact always-reserved list remains to be settled
-  for affected operations. The original draft listed acceptance where
-  autonomy requires it, marking checked, approval and professional reliance;
-  those different subjects must not be collapsed or that whole list
-  silently declared ruled. Professional reliance remains with the human.
+- **V4-HI-30** A host names and enforces its human-act and operation classes.
+  The first-increment DEC-1 D2 ruling carried by PRD V4-AUT-03 and DEL-04-01
+  reserves marking checked, accepting a proposal where autonomy requires it,
+  engineering approval, professional reliance, and changing the grant or
+  enabling external access. These subjects remain distinct. **[open detail —
+  PRD OQ-02/OI-021]** Added operation-specific classes and affected allocations
+  require their applicable ruling. Professional reliance remains with the human.
 - **V4-HI-31** Agents may prepare the person's decisions and ask for an act;
   they do not record an actual human act as performed when it was not.
   Direct operation under granted autonomy is distinct from impersonating
-  checking, acceptance or reliance. Finalize the affected reserved-act and
-  routine-classifier policy before implementing that operation (V4-AUT-03,
-  -04; B-HTML 03).
+  checking, acceptance or reliance. Apply first-increment D2/D3 and settle any
+  additional operation-specific policy at its point of need (V4-AUT-03/04;
+  OQ-02/OI-021); routine permission is not a human act.
 - **V4-HI-32** A human act binds to the content it concerns (for example a
   row's content hash) and lapses visibly when that content changes (X-20;
   SWBPIPE DEC-104's checked tag).
