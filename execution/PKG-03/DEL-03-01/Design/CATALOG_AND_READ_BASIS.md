@@ -155,7 +155,8 @@ Catalog invariants:
    TL-5).
 
 **SWBPIPE's current state (R8-10; record only).** SWBPIPE has no capability
-catalog in this sense. It has one engine route with 27 change kinds, no
+catalog in this sense. It has one engine route with 28 change kinds at the
+corpus pin (SWB-CORPUS NR-10), no
 per-operation identity or version (operation intents carry no operation
 version; there is one engine crate version), no catalog editions and no
 edition-addition event, and no per-surface exposure element. Its external
