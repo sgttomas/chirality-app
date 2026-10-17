@@ -7,7 +7,7 @@
   {
     "file": "xt-result-record.example.valid.json",
     "source": "projects/chirality-app-v4/execution/PKG-09/DEL-09-09/Design/xt-result-record.example.valid.json",
-    "sha256": "2dc8b1a0802c038388622e4819b502d4dd4942f782939f5b8d98e594f43abc70"
+    "sha256": "472f18f2e2dcb39095141f6071c4f65ad8434091367db28f1cdf9f2388a16378"
   },
   {
     "file": "xt-work-account.example.valid.json",
@@ -22,7 +22,7 @@
   {
     "file": "xt-result-record.example.invalid.json",
     "source": "projects/chirality-app-v4/execution/PKG-09/DEL-09-09/Design/xt-result-record.example.invalid.json",
-    "sha256": "e42e9aa1ec4e7a26ca5639eb25fba1ffe19c8aa9dc1bb9fbcbb6b596631ca1ad"
+    "sha256": "a211e3d255c8de39dc319e21f4d0becffadd4f68c005aa7f171a039fa8c0deff"
   },
   {
     "file": "xt-result-record.schema.json",
