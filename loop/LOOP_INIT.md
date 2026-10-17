@@ -21,6 +21,12 @@ reproducible migration baseline; it does not imply separate owner acceptance of
 the generated YAML. Update needs only when their conditions change. An interface
 change identifies and updates its affected consumers in the same change.
 
+Each implementation return must reconcile its affected `ScopeOfWork.md`,
+`Design/` and dependency conditions in `deliverable.yaml` against the implemented
+behaviour and verification evidence before integration. Update changed meaning
+in the same change; leave unchanged declarations alone. The return identifies
+the reconciliation and any remaining conditions or reserved choices.
+
 Build/test entry points and scratch Codex configuration are in `app/README.md`.
 Choose checks for the changed behaviour under Root's verification rule; CI
 selection is in Root `docs/CI_SELECTION.md`.
