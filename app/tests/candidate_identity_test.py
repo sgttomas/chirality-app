@@ -612,6 +612,41 @@ class CandidateRecord(GitScratch):
         (self.export / 'proj/app/main.rs').write_text('changed')
         code, _, err = self.record('changed'); self.assertEqual(code, 2); self.assertIn('differs from revision', err)
 
+    def test_malformed_xml_plist_refuses_without_traceback_or_record(self):
+        (self.app / 'Contents/Info.plist').write_bytes(b'<?xml version="1.0"?><plist><dict>')
+        code, _, err = self.record()
+        self.assertEqual(code, 2, err)
+        self.assertIn('error', json.loads(err))
+        self.assertNotIn('Traceback', err)
+        self.assertFalse((self.tmp / 'rec').exists())
+
+    def test_record_timestamps_require_calendar_dates_and_explicit_timezones(self):
+        self.assertEqual(self.record()[0], 0)
+        path = self.tmp / 'rec/candidate-identification.json'
+        original = json.loads(path.read_bytes())
+        fields = (('identified_at',), ('build', 'started_at'), ('build', 'finished_at'))
+        invalid = ('not-a-date', '2000-02-30T00:00:00Z', '2000-01-01T25:00:00Z',
+                   '2000-01-01T00:00:00', '2000-01-01 00:00:00Z',
+                   '2000-01-01T00:00:00+24:00', '2000-01-01T00:00:60Z')
+        valid = (WHEN, '2000-02-29T12:34:56.123456789Z', '2000-01-01t00:00:00z',
+                 '2000-01-01T00:00:00+05:30', '2000-01-01T00:00:00-00:00')
+        for field in fields:
+            for timestamp in (*invalid, *valid):
+                record = copy.deepcopy(original)
+                target = record if len(field) == 1 else record[field[0]]
+                target[field[-1]] = timestamp
+                path.write_text(json.dumps(record))
+                with self.subTest(field=field, timestamp=timestamp):
+                    code, out, err = self.check()
+                    self.assertEqual(code, 2 if timestamp in invalid else 0, out + err)
+                    self.assertNotIn('Traceback', err)
+        facts = json.loads(self.facts.read_bytes())
+        facts['started_at'] = 'not-a-date'
+        self.facts.write_text(json.dumps(facts))
+        code, _, err = self.record('invalid-time')
+        self.assertEqual(code, 2, err)
+        self.assertFalse((self.tmp / 'invalid-time').exists())
+
     def test_record_refuses_each_existing_app_data_location_including_dangling_links(self):
         for index, place in enumerate(identify.app_data_declaration(IDENTIFIER)['checked']):
             path = self.home / place[2:]; path.parent.mkdir(parents=True, exist_ok=True)

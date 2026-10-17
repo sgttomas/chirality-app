@@ -157,6 +157,14 @@ builds, launches and executes nothing from the bundle. The regression entry
 is `app/tests/candidate_identity_test.py`, using the prepared local Python
 `jsonschema` environment without supplier invocation or downloads.
 
+`identified_at`, `build.started_at` and `build.finished_at` require calendar
+date-times with an explicit RFC3339 timezone (`Z` or an offset); fractional
+seconds and lowercase `t`/`z` are accepted. Seconds are limited to 00–59;
+leap-second timestamps are unsupported and refuse. The tool checks calendar
+validity with the standard library even when jsonschema's optional date-time
+checker is unavailable in the offline environment. Malformed XML plists also
+produce the structured refusal and exit 2, with no record publication.
+
 ## Development build route and v1 boundary
 
 Follow `app/packaging/unsigned/README.md` from an exact-revision `git archive`

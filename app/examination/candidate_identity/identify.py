@@ -8,6 +8,7 @@ nothing, launches nothing, opens no examination and establishes no qualification
 import argparse
 import contextlib
 import ctypes
+from datetime import datetime
 import errno
 import hashlib
 import json
@@ -18,6 +19,7 @@ import re
 import stat
 import subprocess
 import sys
+from xml.parsers.expat import ExpatError
 
 METHOD = 'chirality.app.bundle-tree.sha256/v2'
 FORMAT = 'chirality.app-v4.candidate-identification/v2'
@@ -26,6 +28,8 @@ XATTR_ALLOWLIST = ('com.apple.provenance',)
 KINDS = ('dir', 'file', 'symlink')
 MAX_LINK_HOPS = 32
 HEX = re.compile(r'[0-9a-f]{64}')
+TIMESTAMP = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-5][0-9]'
+                       r'(?:\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])')
 LIMITS = [
     'Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.',
     'Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.',
@@ -639,6 +643,17 @@ def validate_record(record):
     errors = sorted(Draft202012Validator(json.loads(schema_path.read_text())).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:
         raise ValueError('record schema: ' + '; '.join(f"{'/'.join(map(str, e.path))}: {e.message}" for e in errors))
+    # jsonschema's optional RFC3339 checker is absent in the prepared offline
+    # environment. Enforce these fields with stdlib calendar validation too.
+    for where, value in (('identified_at', record['identified_at']),
+                         ('build.started_at', record['build']['started_at']),
+                         ('build.finished_at', record['build']['finished_at'])):
+        try:
+            if not TIMESTAMP.fullmatch(value):
+                raise ValueError('timestamp requires a date, time and explicit timezone')
+            datetime.fromisoformat(value.upper())
+        except ValueError as error:
+            raise ValueError('invalid timestamp: ' + where) from error
     build = record['app_candidate']['build_identity']
     if record['candidate_key'] != record['app_candidate']['revision'][:10] + '-' + build.rsplit(':', 1)[1][:12]:
         raise ValueError('candidate key does not derive from revision and build identity')
@@ -701,7 +716,8 @@ def main(argv=None):
         print(json.dumps(result, indent=2))
         ok = result['equal'] and result['build_identity'] == result['recorded_build_identity'] and not result.get('record_fields_mismatched')
         return 0 if ok else 1
-    except (ValueError, TypeError, KeyError, AttributeError, OSError, subprocess.CalledProcessError, json.JSONDecodeError, plistlib.InvalidFileException) as error:
+    except (ValueError, TypeError, KeyError, AttributeError, OSError, subprocess.CalledProcessError,
+            json.JSONDecodeError, plistlib.InvalidFileException, ExpatError) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
 

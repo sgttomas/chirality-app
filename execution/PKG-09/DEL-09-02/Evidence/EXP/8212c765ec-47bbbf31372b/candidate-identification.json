@@ -154,10 +154,10 @@
   },
   "identified_by": {
     "tool": "projects/chirality-app-v4/app/examination/candidate_identity/identify.py",
-    "tool_sha256": "48199480e5c03439740f98e9173319578aa838c6971f9623fe37e39a4d2265c7",
+    "tool_sha256": "fa55cd85b8a1762860b3e3699710eaceb71e2c81f169a5c691b439562ce23f84",
     "method": "chirality.app.bundle-tree.sha256/v2"
   },
-  "identified_at": "2026-10-17T23:13:55Z",
+  "identified_at": "2026-10-17T23:22:27Z",
   "limits": [
     "Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.",
     "Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.",
