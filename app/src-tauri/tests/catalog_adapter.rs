@@ -83,12 +83,13 @@ fn maintained_resources_match_identified_source_bytes() {
 mod proposal;
 #[path = "../src/external_adapter.rs"]
 mod external_adapter;
-fn bound_proposal() -> proposal::BoundProposal {
+fn bound_proposal() -> proposal::BoundProposal { bound_proposal_with(|_| {}) }
+fn bound_proposal_with(edit: impl FnOnce(&mut Value)) -> proposal::BoundProposal {
     let cat = Catalog::receive(&fixture("catalog.example-valid.json")).unwrap();
     let ReadObservation::Success(read) = cat.receive_read(&fixture("read_result.example-valid.json")).unwrap() else { panic!() };
     // Invented App binding test. Use host-supplied identities from the maintained
     // original read; these are not new SH-1 or real host output observations.
-    let mut p = value("proposal.example-valid.json"); p["relied_on_basis"] = serde_json::json!([read.basis()]);
+    let mut p = value("proposal.example-valid.json"); p["relied_on_basis"] = serde_json::json!([read.basis()]); edit(&mut p);
     for item in p["items"].as_array_mut().unwrap() {
         for target in item["relied_on_targets"].as_array_mut().unwrap() {
             for view in read.document()["views"].as_array().unwrap() {
@@ -259,7 +260,60 @@ fn state_act_coherence_and_after_acceptance_predecessor() {
  contracts().unwrap().validate(proposal::STATE,&doc).unwrap();
  assert!(p.receive_state(&serde_json::to_vec(&doc).unwrap()).unwrap_err().contains("after_acceptance"));
  doc["items"][0]["applied"]["branch"]="direct_under_grant".into();
- assert!(p.receive_state(&serde_json::to_vec(&doc).unwrap()).is_ok());
+ // P §4.4: a direct application is received only against a bound direct request drafted under an
+ // effective direct grant that names its settings reference (P §3.3). A state alone establishes no grant.
+ let bytes=serde_json::to_vec(&doc).unwrap();
+ assert!(p.receive_state(&bytes).unwrap_err().contains("established direct grant"));
+ assert!(proposal::validate_host_state(&doc).unwrap_err().contains("established direct grant"));
+ let grant=serde_json::json!({"display_state":"effective_person_set","grant_value":"direct","scope":"test-placeholder:scope","settings_reference":"test-placeholder:settings"});
+ let direct=|standing:Value,mode:&str| { let mode=mode.to_string(); bound_proposal_with(move |p| { p["requested_mode"]=mode.into(); p["origin"]["standing_at_drafting"]=standing; }) };
+ direct(grant.clone(),"apply_directly").receive_state(&bytes).unwrap();
+ for (field,bad) in [("display_state",serde_json::json!("requested_by_agent")),("grant_value",serde_json::json!("propose")),("settings_reference",Value::Null)] {
+  let mut standing=grant.clone(); if bad.is_null() { standing.as_object_mut().unwrap().remove(field); } else { standing[field]=bad; }
+  assert!(direct(standing,"apply_directly").receive_state(&bytes).unwrap_err().contains("established direct grant"),"{field}");
+ }
+ assert!(direct(grant.clone(),"propose").receive_state(&bytes).unwrap_err().contains("established direct grant"));
+ let mut acted=doc.clone(); acted["items"][0]["decision"]=serde_json::json!({"act_kind":"A5","actor":"person:test","act_reference":"ACT-test"});
+ acted["derived_state"]["all_items_decided"]=true.into();
+ assert!(direct(grant,"apply_directly").receive_state(&serde_json::to_vec(&acted).unwrap()).unwrap_err().contains("never implies acceptance"));
+}
+#[test]
+fn retained_direct_dispatch_requires_the_original_bound_proposal() {
+ use external_adapter::DispatchAccount;
+ let p=bound_proposal_with(|p| {
+  p["requested_mode"]="apply_directly".into();
+  p["origin"]["standing_at_drafting"]=serde_json::json!({"display_state":"effective_person_set","grant_value":"direct","scope":"test-placeholder:scope","settings_reference":"test-placeholder:settings"});
+ });
+ let mut state=value("proposal_state.example-valid.json");
+ let template=state["items"][0].clone();
+ for item in state["items"].as_array_mut().unwrap() {
+  let id=item["item_identity"].clone();let content=item["change_item_content_identity"].clone();
+  *item=template.clone();item["item_identity"]=id.clone();item["change_item_content_identity"]=content;
+  item.as_object_mut().unwrap().remove("decision");
+  item["applied"]["branch"]="direct_under_grant".into();
+  item["applied"]["receipt_reference"]=format!("test-placeholder:receipt-{id}").into();
+  item["applied"]["relied_on_basis"]=p.document()["relied_on_basis"][0].clone();
+ }
+ state["derived_state"]=serde_json::json!({"summary":"applied","counts":{"applied":2},"open":false,"all_items_decided":false});
+ p.receive_state(&serde_json::to_vec(&state).unwrap()).unwrap();
+ let mut account=value("external_dispatch_record.example-valid.json");
+ account["requested_mode"]="apply_directly".into();account["host_result"]=state;account["outcome"]["value"]="applied".into();
+ contracts().unwrap().validate(external_adapter::DISPATCH,&account).unwrap();
+ let raw=serde_json::to_vec(&account).unwrap();
+ assert!(DispatchAccount::receive(&raw).unwrap_err().contains("established direct grant"));
+ assert_eq!(DispatchAccount::receive_for_proposal(&raw,&p).unwrap().original_bytes(),raw);
+ let no_grant=bound_proposal_with(|p| p["requested_mode"]="apply_directly".into());
+ assert!(DispatchAccount::receive_for_proposal(&raw,&no_grant).unwrap_err().contains("established direct grant"));
+ let mut wrong=account.clone();wrong["requested_mode"]="propose".into();
+ assert!(DispatchAccount::receive_for_proposal(&serde_json::to_vec(&wrong).unwrap(),&p).unwrap_err().contains("requested mode mismatch"));
+ wrong=account.clone();wrong["proposal_identity"]="another-proposal".into();
+ assert!(DispatchAccount::receive_for_proposal(&serde_json::to_vec(&wrong).unwrap(),&p).unwrap_err().contains("bound proposal identity mismatch"));
+ wrong=account.clone();wrong["host_result"]["proposal_identity"]="another-proposal".into();
+ assert!(DispatchAccount::receive_for_proposal(&serde_json::to_vec(&wrong).unwrap(),&p).unwrap_err().contains("proposal identity mismatch"));
+ wrong=account.clone();wrong["host_result"]["items"][0]["applied"]["relied_on_basis"]["model_revision"]="another-revision".into();
+ assert!(DispatchAccount::receive_for_proposal(&serde_json::to_vec(&wrong).unwrap(),&p).unwrap_err().contains("retargeted original relied-on basis"));
+ account.as_object_mut().unwrap().remove("requested_mode");
+ assert!(DispatchAccount::receive_for_proposal(&serde_json::to_vec(&account).unwrap(),&p).unwrap().missing.contains(&"requested_mode"));
 }
 #[test]
 fn dispatch_wrong_family_absent_result_and_truthful_controls() {

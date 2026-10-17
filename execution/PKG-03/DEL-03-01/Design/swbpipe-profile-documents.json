@@ -1,0 +1,1698 @@
+{
+ "catalog": {
+  "basis_profile": {
+   "canonical_content_identity": "supplied",
+   "generation": "not_supplied",
+   "model_revision": "supplied",
+   "staleness_scope": "whole_model",
+   "subject_content_identity": "whole_model_only",
+   "workspace_identity": "not_supplied"
+  },
+  "completeness": "complete",
+  "edition": "e2",
+  "entries": [
+   {
+    "availability": [
+     {
+      "meaning": "the run exists in the workspace",
+      "precondition_identity": "run-exists",
+      "reason_identity": "R-run-not-found",
+      "reason_statement": "Run not found in this workspace"
+     }
+    ],
+    "class": {
+     "class_value": "none",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "fixture-read",
+     "value_standing": "INTEGRATION"
+    },
+    "effects": {
+     "kind": "none"
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-invalid-run",
+      "meaning": "the run argument is malformed",
+      "raised_at": "evaluation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": true,
+     "arguments": [
+      {
+       "argument_name": "run",
+       "identifies_target": true,
+       "meaning": "the run whose supports are listed",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "requested_basis",
+       "identifies_target": false,
+       "meaning": "an earlier basis to read at (historical read)",
+       "required": false,
+       "unit": null,
+       "value_kind": "basis_descriptor"
+      }
+     ]
+    },
+    "operation_identity": "OP-C1",
+    "operation_version": "v1",
+    "purpose": "Lists supports on a run with type, location, stiffness and label",
+    "result": {
+     "content_kinds": [
+      "table",
+      "host_check"
+     ],
+     "named_host_checks": [
+      "equilibrium",
+      "unit-consistency"
+     ]
+    }
+   },
+   {
+    "availability": [
+     {
+      "meaning": "the run exists in the workspace",
+      "precondition_identity": "run-exists",
+      "reason_identity": "R-run-not-found",
+      "reason_statement": "Run not found in this workspace"
+     },
+     {
+      "meaning": "a solve exists at the present revision for the load case",
+      "precondition_identity": "current-solve-exists",
+      "reason_identity": "R-no-current-solve",
+      "reason_statement": "No current solve for LC-1 at this revision",
+      "remedy": "the load case must be solved at the present revision"
+     }
+    ],
+    "class": {
+     "class_value": "none",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "fixture-read",
+     "value_standing": "INTEGRATION"
+    },
+    "effects": {
+     "kind": "none"
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-unknown-load-case",
+      "meaning": "no such load case",
+      "raised_at": "evaluation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "run",
+       "identifies_target": true,
+       "meaning": "the run",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "load_case",
+       "identifies_target": false,
+       "meaning": "the load case",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      }
+     ]
+    },
+    "operation_identity": "OP-C2",
+    "operation_version": "v1",
+    "purpose": "Stresses and support loads for a load case",
+    "result": {
+     "content_kinds": [
+      "result_value",
+      "host_check"
+     ],
+     "named_host_checks": [
+      "equilibrium",
+      "unit-consistency"
+     ]
+    }
+   },
+   {
+    "availability": [
+     {
+      "meaning": "the run exists in the workspace",
+      "precondition_identity": "run-exists",
+      "reason_identity": "R-run-not-found",
+      "reason_statement": "Run not found in this workspace"
+     }
+    ],
+    "class": {
+     "class_value": "none",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "fixture-read",
+     "value_standing": "INTEGRATION"
+    },
+    "effects": {
+     "kind": "none"
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-invalid-limit",
+      "meaning": "limit not positive",
+      "raised_at": "evaluation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "run",
+       "identifies_target": true,
+       "meaning": "the run",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "spacing_limit_m",
+       "identifies_target": false,
+       "meaning": "the requester's limit",
+       "required": true,
+       "unit": "m",
+       "value_kind": "number"
+      }
+     ]
+    },
+    "operation_identity": "OP-C3",
+    "operation_version": "v1",
+    "purpose": "Lists spans exceeding a requester-stated limit, as the requester's findings",
+    "result": {
+     "content_kinds": [
+      "finding"
+     ],
+     "named_host_checks": []
+    }
+   },
+   {
+    "availability": [
+     {
+      "meaning": "the run exists in the workspace",
+      "precondition_identity": "run-exists",
+      "reason_identity": "R-run-not-found",
+      "reason_statement": "Run not found in this workspace"
+     }
+    ],
+    "class": {
+     "class_value": "may_apply_within_granted_autonomy",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "P-03",
+     "value_standing": "DERIVED"
+    },
+    "effects": {
+     "affected_object_kinds": [
+      "support",
+      "run"
+     ],
+     "kind": "change",
+     "old_new_reporting": [
+      "location_m",
+      "type",
+      "stiffness",
+      "label"
+     ],
+     "resulting_objects_reported": true
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-location-occupied",
+      "meaning": "a support already stands there",
+      "raised_at": "validation"
+     },
+     {
+      "effect": "unknown",
+      "error_identity": "E-apply-interrupted",
+      "meaning": "application interrupted",
+      "raised_at": "application"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "run",
+       "identifies_target": true,
+       "meaning": "the run",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "location_m",
+       "identifies_target": false,
+       "meaning": "location along the run",
+       "required": true,
+       "unit": "m",
+       "value_kind": "number"
+      },
+      {
+       "argument_name": "type",
+       "identifies_target": false,
+       "meaning": "support type",
+       "required": true,
+       "unit": null,
+       "value_kind": "enumeration"
+      }
+     ]
+    },
+    "operation_identity": "OP-C4",
+    "operation_version": "v1",
+    "purpose": "Adds a support at a location on a run",
+    "result": {
+     "content_kinds": [
+      "applied_association",
+      "proposal_state"
+     ],
+     "named_host_checks": []
+    }
+   },
+   {
+    "availability": [],
+    "class": {
+     "class_value": "may_apply_within_granted_autonomy",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "P-03",
+     "value_standing": "DERIVED"
+    },
+    "effects": {
+     "affected_object_kinds": [
+      "support",
+      "run"
+     ],
+     "kind": "change",
+     "old_new_reporting": [
+      "location_m",
+      "type",
+      "stiffness",
+      "label"
+     ],
+     "resulting_objects_reported": true
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-invalid-stiffness",
+      "meaning": "stiffness not valid",
+      "raised_at": "validation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "support",
+       "identifies_target": true,
+       "meaning": "the support",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "stiffness",
+       "identifies_target": false,
+       "meaning": "new stiffness",
+       "required": true,
+       "unit": "N/m",
+       "value_kind": "text"
+      }
+     ]
+    },
+    "operation_identity": "OP-C5",
+    "operation_version": "v1",
+    "purpose": "Changes a support's stiffness",
+    "result": {
+     "content_kinds": [
+      "applied_association",
+      "proposal_state"
+     ],
+     "named_host_checks": []
+    }
+   },
+   {
+    "availability": [],
+    "class": {
+     "class_value": "may_apply_within_granted_autonomy",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "P-03",
+     "value_standing": "DERIVED"
+    },
+    "effects": {
+     "affected_object_kinds": [
+      "support",
+      "run"
+     ],
+     "kind": "change",
+     "old_new_reporting": [
+      "location_m",
+      "type",
+      "stiffness",
+      "label"
+     ],
+     "resulting_objects_reported": true
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-label-too-long",
+      "meaning": "label too long",
+      "raised_at": "validation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "support",
+       "identifies_target": true,
+       "meaning": "the support",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      },
+      {
+       "argument_name": "label",
+       "identifies_target": false,
+       "meaning": "new label",
+       "required": true,
+       "unit": null,
+       "value_kind": "text"
+      }
+     ]
+    },
+    "operation_identity": "OP-C9",
+    "operation_version": "v1",
+    "purpose": "Changes a support's display label",
+    "result": {
+     "content_kinds": [
+      "applied_association",
+      "proposal_state"
+     ],
+     "named_host_checks": []
+    }
+   },
+   {
+    "availability": [],
+    "class": {
+     "class_value": "none",
+     "consequence_statement": null,
+     "host_adoption": "not_evidenced",
+     "policy_record_reference": "fixture-read",
+     "value_standing": "INTEGRATION"
+    },
+    "effects": {
+     "kind": "none"
+    },
+    "errors": [
+     {
+      "effect": "none",
+      "error_identity": "E-check-unavailable",
+      "meaning": "check cannot run",
+      "raised_at": "evaluation"
+     }
+    ],
+    "exposure": {
+     "E": "exposed",
+     "H": "exposed",
+     "X": "exposed"
+    },
+    "input": {
+     "accepts_requested_basis": false,
+     "arguments": [
+      {
+       "argument_name": "run",
+       "identifies_target": true,
+       "meaning": "the run",
+       "required": true,
+       "unit": null,
+       "value_kind": "identity"
+      }
+     ]
+    },
+    "operation_identity": "OP-C12",
+    "operation_version": "v1",
+    "purpose": "Runs the host's named check 'support spacing' with host-defined limits",
+    "result": {
+     "content_kinds": [
+      "host_check"
+     ],
+     "named_host_checks": [
+      "support-spacing"
+     ]
+    }
+   }
+  ],
+  "host_identity": "SH-1"
+ },
+ "document_kind": "sh1_swbpipe_profile_documents",
+ "evidence_label": "test-double",
+ "generator": "DEL-03-01 Design/prototype/run_swbpipe_profile.py --write-examples",
+ "observation_not_exposed": {
+  "operation": {
+   "operation_identity": "observe-proposal",
+   "operation_version": "unknown"
+  },
+  "outcome": "not_exposed_on_this_surface",
+  "reporter": "host",
+  "surface": "X"
+ },
+ "read_after_apply": {
+  "basis": {
+   "canonical_content_identity": "sh1:a5734cdea47e14e4",
+   "generation": {
+    "not_supplied": "host_declares_none"
+   },
+   "identity_method": "m-sh1-wm",
+   "model_revision": "r13",
+   "workspace_identity": {
+    "not_supplied": "host_declares_none"
+   }
+  },
+  "edition": "e2",
+  "operation": {
+   "operation_identity": "OP-C1",
+   "operation_version": "v1"
+  },
+  "outcome": "success",
+  "standing": {
+   "currency": "current",
+   "host_checks": [
+    {
+     "check_name": "equilibrium",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    },
+    {
+     "check_name": "unit-consistency",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    }
+   ],
+   "human_act_evidence": [],
+   "known_limitations": [
+    "linear supports assumed"
+   ]
+  },
+  "surface": "X",
+  "views": [
+   {
+    "diagnostics": [],
+    "results": [],
+    "tables": [
+     {
+      "columns": [
+       {
+        "column_identity": "location_m",
+        "meaning": "location along the run",
+        "unit": "m",
+        "value_kind": "number"
+       },
+       {
+        "column_identity": "type",
+        "meaning": "support type",
+        "unit": null,
+        "value_kind": "enumeration"
+       },
+       {
+        "column_identity": "stiffness",
+        "meaning": "stiffness",
+        "unit": "N/m",
+        "value_kind": "text"
+       },
+       {
+        "column_identity": "label",
+        "meaning": "display label",
+        "unit": null,
+        "value_kind": "text"
+       }
+      ],
+      "meaning": "supports on R-100",
+      "rows": [
+       {
+        "cells": {
+         "label": "G-1",
+         "location_m": 0.5,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-1"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-2",
+         "location_m": 2.0,
+         "stiffness": "rigid",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-2"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-3",
+         "location_m": 8.4,
+         "stiffness": "1.8e6",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-3"
+        }
+       },
+       {
+        "cells": {
+         "label": "G-4b",
+         "location_m": 11.0,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-4"
+        }
+       }
+      ],
+      "table_identity": "supports-R-100"
+     },
+     {
+      "columns": [
+       {
+        "column_identity": "from",
+        "meaning": "start node",
+        "unit": null,
+        "value_kind": "identity"
+       },
+       {
+        "column_identity": "to",
+        "meaning": "end node",
+        "unit": null,
+        "value_kind": "identity"
+       }
+      ],
+      "meaning": "geometry of R-100",
+      "rows": [
+       {
+        "cells": {
+         "from": "N-1",
+         "to": "N-2"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "R-100"
+        }
+       }
+      ],
+      "table_identity": "run-R-100"
+     }
+    ],
+    "view_identity": "main"
+   }
+  ]
+ },
+ "read_before_apply": {
+  "basis": {
+   "canonical_content_identity": "sh1:c0b954079d7230c6",
+   "generation": {
+    "not_supplied": "host_declares_none"
+   },
+   "identity_method": "m-sh1-wm",
+   "model_revision": "r12",
+   "workspace_identity": {
+    "not_supplied": "host_declares_none"
+   }
+  },
+  "edition": "e2",
+  "operation": {
+   "operation_identity": "OP-C1",
+   "operation_version": "v1"
+  },
+  "outcome": "success",
+  "standing": {
+   "currency": "current",
+   "host_checks": [
+    {
+     "check_name": "equilibrium",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    },
+    {
+     "check_name": "unit-consistency",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    }
+   ],
+   "human_act_evidence": [],
+   "known_limitations": [
+    "linear supports assumed"
+   ]
+  },
+  "surface": "X",
+  "views": [
+   {
+    "diagnostics": [],
+    "results": [],
+    "tables": [
+     {
+      "columns": [
+       {
+        "column_identity": "location_m",
+        "meaning": "location along the run",
+        "unit": "m",
+        "value_kind": "number"
+       },
+       {
+        "column_identity": "type",
+        "meaning": "support type",
+        "unit": null,
+        "value_kind": "enumeration"
+       },
+       {
+        "column_identity": "stiffness",
+        "meaning": "stiffness",
+        "unit": "N/m",
+        "value_kind": "text"
+       },
+       {
+        "column_identity": "label",
+        "meaning": "display label",
+        "unit": null,
+        "value_kind": "text"
+       }
+      ],
+      "meaning": "supports on R-100",
+      "rows": [
+       {
+        "cells": {
+         "label": "G-1",
+         "location_m": 0.5,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:c0b954079d7230c6",
+         "subject_identity": "S-1"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-2",
+         "location_m": 2.0,
+         "stiffness": "rigid",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:c0b954079d7230c6",
+         "subject_identity": "S-2"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-3",
+         "location_m": 8.4,
+         "stiffness": "rigid",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:c0b954079d7230c6",
+         "subject_identity": "S-3"
+        }
+       },
+       {
+        "cells": {
+         "label": "G-4a",
+         "location_m": 11.0,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:c0b954079d7230c6",
+         "subject_identity": "S-4"
+        }
+       }
+      ],
+      "table_identity": "supports-R-100"
+     },
+     {
+      "columns": [
+       {
+        "column_identity": "from",
+        "meaning": "start node",
+        "unit": null,
+        "value_kind": "identity"
+       },
+       {
+        "column_identity": "to",
+        "meaning": "end node",
+        "unit": null,
+        "value_kind": "identity"
+       }
+      ],
+      "meaning": "geometry of R-100",
+      "rows": [
+       {
+        "cells": {
+         "from": "N-1",
+         "to": "N-2"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:c0b954079d7230c6",
+         "subject_identity": "R-100"
+        }
+       }
+      ],
+      "table_identity": "run-R-100"
+     }
+    ],
+    "view_identity": "main"
+   }
+  ]
+ },
+ "read_before_revision_regression": {
+  "basis": {
+   "canonical_content_identity": "sh1:a5734cdea47e14e4",
+   "generation": {
+    "not_supplied": "host_declares_none"
+   },
+   "identity_method": "m-sh1-wm",
+   "model_revision": "r13",
+   "workspace_identity": {
+    "not_supplied": "host_declares_none"
+   }
+  },
+  "edition": "e2",
+  "operation": {
+   "operation_identity": "OP-C1",
+   "operation_version": "v1"
+  },
+  "outcome": "success",
+  "standing": {
+   "currency": "current",
+   "host_checks": [
+    {
+     "check_name": "equilibrium",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    },
+    {
+     "check_name": "unit-consistency",
+     "evaluated_basis": {
+      "canonical_content_identity": "sh1:c0b954079d7230c6",
+      "generation": {
+       "not_supplied": "host_declares_none"
+      },
+      "identity_method": "m-sh1-wm",
+      "model_revision": "r12",
+      "workspace_identity": {
+       "not_supplied": "host_declares_none"
+      }
+     },
+     "verdict": "passed"
+    }
+   ],
+   "human_act_evidence": [],
+   "known_limitations": [
+    "linear supports assumed"
+   ]
+  },
+  "surface": "X",
+  "views": [
+   {
+    "diagnostics": [],
+    "results": [],
+    "tables": [
+     {
+      "columns": [
+       {
+        "column_identity": "location_m",
+        "meaning": "location along the run",
+        "unit": "m",
+        "value_kind": "number"
+       },
+       {
+        "column_identity": "type",
+        "meaning": "support type",
+        "unit": null,
+        "value_kind": "enumeration"
+       },
+       {
+        "column_identity": "stiffness",
+        "meaning": "stiffness",
+        "unit": "N/m",
+        "value_kind": "text"
+       },
+       {
+        "column_identity": "label",
+        "meaning": "display label",
+        "unit": null,
+        "value_kind": "text"
+       }
+      ],
+      "meaning": "supports on R-100",
+      "rows": [
+       {
+        "cells": {
+         "label": "G-1",
+         "location_m": 0.5,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-1"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-2",
+         "location_m": 2.0,
+         "stiffness": "rigid",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-2"
+        }
+       },
+       {
+        "cells": {
+         "label": "R-3",
+         "location_m": 8.4,
+         "stiffness": "1.8e6",
+         "type": "rigid"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-3"
+        }
+       },
+       {
+        "cells": {
+         "label": "G-4b",
+         "location_m": 11.0,
+         "stiffness": "2.0e6",
+         "type": "guide"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "S-4"
+        }
+       }
+      ],
+      "table_identity": "supports-R-100"
+     },
+     {
+      "columns": [
+       {
+        "column_identity": "from",
+        "meaning": "start node",
+        "unit": null,
+        "value_kind": "identity"
+       },
+       {
+        "column_identity": "to",
+        "meaning": "end node",
+        "unit": null,
+        "value_kind": "identity"
+       }
+      ],
+      "meaning": "geometry of R-100",
+      "rows": [
+       {
+        "cells": {
+         "from": "N-1",
+         "to": "N-2"
+        },
+        "subject": {
+         "identity_method": "m-sh1-wm",
+         "identity_scope": "whole_model",
+         "subject_content_identity": "sh1:a5734cdea47e14e4",
+         "subject_identity": "R-100"
+        }
+       }
+      ],
+      "table_identity": "run-R-100"
+     }
+    ],
+    "view_identity": "main"
+   }
+  ]
+ },
+ "requests": {
+  "PR-W1": {
+   "items": [
+    {
+     "affected_object": {
+      "object_identity": "S-3"
+     },
+     "attribute": "stiffness",
+     "item_identity": "1",
+     "new_value": "1.8e6",
+     "old_value": "rigid",
+     "operation_identity": "OP-C5",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:c0b954079d7230c6",
+       "subject_identity": "S-3"
+      }
+     ]
+    },
+    {
+     "affected_object": {
+      "object_identity": "S-4"
+     },
+     "attribute": "label",
+     "item_identity": "2",
+     "new_value": "G-4b",
+     "old_value": "G-4a",
+     "operation_identity": "OP-C9",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:c0b954079d7230c6",
+       "subject_identity": "S-4"
+      }
+     ]
+    }
+   ],
+   "origin": {
+    "author_identity": "unverified",
+    "author_type": "agent",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "reason": "Relax S-3; relabel S-4",
+    "seat_role_meaning": "external agent (App Codex)",
+    "workflow_identity": {
+     "kind": "workflow",
+     "name": "supports-adjust",
+     "origin": "host",
+     "revision": "rev-3",
+     "source_root": "fx-root"
+    },
+    "workflow_run": "12"
+   },
+   "proposal_identity": {
+    "minted_by": "proposer",
+    "value": "PR-W1"
+   },
+   "relied_on_basis": [
+    {
+     "canonical_content_identity": "sh1:c0b954079d7230c6",
+     "generation": {
+      "not_supplied": "host_declares_none"
+     },
+     "identity_method": "m-sh1-wm",
+     "model_revision": "r12",
+     "workspace_identity": {
+      "not_supplied": "host_declares_none"
+     }
+    }
+   ],
+   "requested_mode": "propose"
+  },
+  "PR-W4": {
+   "items": [
+    {
+     "affected_object": {
+      "object_identity": "S-1"
+     },
+     "attribute": "stiffness",
+     "item_identity": "1",
+     "new_value": "2.5e6",
+     "old_value": "2.0e6",
+     "operation_identity": "OP-C5",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:c0b954079d7230c6",
+       "subject_identity": "S-1"
+      }
+     ]
+    }
+   ],
+   "origin": {
+    "author_identity": "unverified",
+    "author_type": "agent",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "reason": "Stiffen S-1 (stale basis)",
+    "seat_role_meaning": "external agent (App Codex)",
+    "workflow_identity": {
+     "kind": "workflow",
+     "name": "supports-adjust",
+     "origin": "host",
+     "revision": "rev-3",
+     "source_root": "fx-root"
+    },
+    "workflow_run": "12"
+   },
+   "proposal_identity": {
+    "minted_by": "proposer",
+    "value": "PR-W4"
+   },
+   "relied_on_basis": [
+    {
+     "canonical_content_identity": "sh1:c0b954079d7230c6",
+     "generation": {
+      "not_supplied": "host_declares_none"
+     },
+     "identity_method": "m-sh1-wm",
+     "model_revision": "r12",
+     "workspace_identity": {
+      "not_supplied": "host_declares_none"
+     }
+    }
+   ],
+   "requested_mode": "propose"
+  },
+  "PR-W6": {
+   "items": [
+    {
+     "affected_object": {
+      "object_identity": "S-2"
+     },
+     "attribute": "stiffness",
+     "item_identity": "1",
+     "new_value": "3.0e6",
+     "old_value": "rigid",
+     "operation_identity": "OP-C5",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:a5734cdea47e14e4",
+       "subject_identity": "S-2"
+      }
+     ]
+    }
+   ],
+   "origin": {
+    "author_identity": "unverified",
+    "author_type": "agent",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "reason": "Stiffen S-2",
+    "seat_role_meaning": "external agent (App Codex)",
+    "workflow_identity": {
+     "kind": "workflow",
+     "name": "supports-adjust",
+     "origin": "host",
+     "revision": "rev-3",
+     "source_root": "fx-root"
+    },
+    "workflow_run": "12"
+   },
+   "proposal_identity": {
+    "minted_by": "proposer",
+    "value": "PR-W6"
+   },
+   "relied_on_basis": [
+    {
+     "canonical_content_identity": "sh1:a5734cdea47e14e4",
+     "generation": {
+      "not_supplied": "host_declares_none"
+     },
+     "identity_method": "m-sh1-wm",
+     "model_revision": "r13",
+     "workspace_identity": {
+      "not_supplied": "host_declares_none"
+     }
+    }
+   ],
+   "requested_mode": "propose"
+  },
+  "PR-W8": {
+   "items": [
+    {
+     "affected_object": {
+      "object_identity": "S-1"
+     },
+     "attribute": "stiffness",
+     "item_identity": "1",
+     "new_value": "2.5e6",
+     "old_value": "2.0e6",
+     "operation_identity": "OP-C5",
+     "operation_version": "v1",
+     "relied_on_targets": [
+      {
+       "identity_method": "m-sh1-wm",
+       "subject_content_identity": "sh1:a5734cdea47e14e4",
+       "subject_identity": "S-1"
+      }
+     ]
+    }
+   ],
+   "origin": {
+    "author_identity": "unverified",
+    "author_type": "agent",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "reason": "Stiffen S-1 (queued before an edit that is then undone)",
+    "seat_role_meaning": "external agent (App Codex)",
+    "workflow_identity": {
+     "kind": "workflow",
+     "name": "supports-adjust",
+     "origin": "host",
+     "revision": "rev-3",
+     "source_root": "fx-root"
+    },
+    "workflow_run": "12"
+   },
+   "proposal_identity": {
+    "minted_by": "proposer",
+    "value": "PR-W8"
+   },
+   "relied_on_basis": [
+    {
+     "canonical_content_identity": "sh1:a5734cdea47e14e4",
+     "generation": {
+      "not_supplied": "host_declares_none"
+     },
+     "identity_method": "m-sh1-wm",
+     "model_revision": "r13",
+     "workspace_identity": {
+      "not_supplied": "host_declares_none"
+     }
+    }
+   ],
+   "requested_mode": "propose"
+  }
+ },
+ "statement": "Host documents of SH-1 profile swbpipe (C-v0.8 section 10.8), in the App's PROPOSED schemas. A test double: they establish nothing about SWBPIPE. Change-item content identities and model revisions are supplied by the double (SWBPIPE NR-04, NR-06).",
+ "states": {
+  "PR-W1 queued": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:c0b954079d7230c6",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r12",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": false,
+    "counts": {
+     "queued": 2
+    },
+    "open": true,
+    "summary": "queued"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:9609a5a5395f7812",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "state": "queued"
+    },
+    {
+     "change_item_content_identity": "sh1:8249f9280eea9826",
+     "identity_method": "m-sh1",
+     "item_identity": "2",
+     "state": "queued"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0001",
+   "proposal_identity": "PR-W1",
+   "submissions_recorded": 1
+  },
+  "PR-W1 resubmitted after Apply": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:a5734cdea47e14e4",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r13",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": true,
+    "counts": {
+     "refused_stale": 2
+    },
+    "open": false,
+    "summary": "refused_stale"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:9609a5a5395f7812",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "item_left": {
+      "cause": "refused_stale",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "time": "t0008"
+     },
+     "refusal": {
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "failing_targets_not_supplied": true,
+      "reason": "the model changed since the relied-on basis (host scope: whole model)",
+      "relied_on_basis": {
+       "canonical_content_identity": "sh1:c0b954079d7230c6",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r12",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "staleness_scope": "whole_model"
+     },
+     "state": "refused_stale"
+    },
+    {
+     "change_item_content_identity": "sh1:8249f9280eea9826",
+     "identity_method": "m-sh1",
+     "item_identity": "2",
+     "item_left": {
+      "cause": "refused_stale",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "time": "t0008"
+     },
+     "refusal": {
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "failing_targets_not_supplied": true,
+      "reason": "the model changed since the relied-on basis (host scope: whole model)",
+      "relied_on_basis": {
+       "canonical_content_identity": "sh1:c0b954079d7230c6",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r12",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "staleness_scope": "whole_model"
+     },
+     "state": "refused_stale"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0009",
+   "proposal_identity": "PR-W1",
+   "submissions_recorded": 1
+  },
+  "PR-W4 refused stale": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:a5734cdea47e14e4",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r13",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": true,
+    "counts": {
+     "refused_stale": 1
+    },
+    "open": false,
+    "summary": "refused_stale"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:668ffd6932a7cf4a",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "item_left": {
+      "cause": "refused_stale",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "time": "t0004"
+     },
+     "refusal": {
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "failing_targets_not_supplied": true,
+      "reason": "the model changed since the relied-on basis (host scope: whole model)",
+      "relied_on_basis": {
+       "canonical_content_identity": "sh1:c0b954079d7230c6",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r12",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "staleness_scope": "whole_model"
+     },
+     "state": "refused_stale"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0005",
+   "proposal_identity": "PR-W4",
+   "submissions_recorded": 1
+  },
+  "PR-W5 refused invalid": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:a5734cdea47e14e4",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r13",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": true,
+    "counts": {
+     "refused_invalid": 2
+    },
+    "open": false,
+    "summary": "refused_invalid"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:27f67dcc6de6613f",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "item_left": {
+      "cause": "refused_invalid",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "time": "t0005"
+     },
+     "refusal": {
+      "error_identity": "E-location-occupied",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "reason": "submission refused as a whole: item 2: a support already stands there"
+     },
+     "state": "refused_invalid"
+    },
+    {
+     "change_item_content_identity": "sh1:09fbbfd8452db806",
+     "identity_method": "m-sh1",
+     "item_identity": "2",
+     "item_left": {
+      "cause": "refused_invalid",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "time": "t0005"
+     },
+     "refusal": {
+      "error_identity": "E-location-occupied",
+      "evaluated_basis": {
+       "canonical_content_identity": "sh1:a5734cdea47e14e4",
+       "generation": {
+        "not_supplied": "host_declares_none"
+       },
+       "identity_method": "m-sh1-wm",
+       "model_revision": "r13",
+       "workspace_identity": {
+        "not_supplied": "host_declares_none"
+       }
+      },
+      "reason": "submission refused as a whole: item 2: a support already stands there"
+     },
+     "state": "refused_invalid"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0006",
+   "proposal_identity": "PR-W5",
+   "submissions_recorded": 1
+  },
+  "PR-W8 queued before edit and restore": {
+   "answered_from_recorded_state": false,
+   "current_basis": {
+    "canonical_content_identity": "sh1:a5734cdea47e14e4",
+    "generation": {
+     "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1-wm",
+    "model_revision": "r13",
+    "workspace_identity": {
+     "not_supplied": "host_declares_none"
+    }
+   },
+   "dedup_scope": "not_stated",
+   "derived_state": {
+    "all_items_decided": false,
+    "counts": {
+     "queued": 1
+    },
+    "open": true,
+    "summary": "queued"
+   },
+   "items": [
+    {
+     "change_item_content_identity": "sh1:be1dcf16ff4e6d53",
+     "identity_method": "m-sh1",
+     "item_identity": "1",
+     "state": "queued"
+    }
+   ],
+   "kind": "recorded_state",
+   "observed_at": "t0011",
+   "proposal_identity": "PR-W8",
+   "submissions_recorded": 1
+  }
+ }
+}

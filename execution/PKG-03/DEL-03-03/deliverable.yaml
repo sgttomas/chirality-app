@@ -322,3 +322,6 @@ needs:
   evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 checks:
 - execution/PKG-03/DEL-03-03/Design/checkpoint_observation.schema.json
+- app/src-tauri/tests/catalog_adapter.rs
+code_paths:
+- app/src-tauri/src/external_adapter.rs
