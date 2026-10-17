@@ -19,6 +19,10 @@ transitions of the earlier submission's items. The earlier submission's
 state is reported unknown from that
 point (SWB-CORPUS A-04). Whether a document answers a submission or an
 observation is read from the run's native items (the call the App made).
+An established scope is retained when a later answer omits it. After separate
+submissions exist, a later observation is associated only by a unique supplied
+host handle or complete item-content identity set. Otherwise it stays
+unassociated, with the candidate submissions' current states unknown.
 
 Nothing here is host behaviour. The table is PROPOSED; the host decides what
 it does, and the App receives it (P §4.6).
@@ -197,29 +201,83 @@ def request_kinds(run):
     return kinds
 
 
+def item_binding(doc):
+    """A comparable host-assigned change-content identity set, not an App hash."""
+    if not all(it.get("identity_method") for it in doc["items"]):
+        return None
+    return frozenset((it["item_identity"], it["change_item_content_identity"], it["identity_method"])
+                     for it in doc["items"])
+
+
+def handle_bindings(doc):
+    return {(h["handle_kind"], h["value"], h["scope"]) for h in doc.get("host_handles", [])}
+
+
+class SubmissionHistories:
+    """Keep evidence of association separate from the proposal's reused identity."""
+    def __init__(self):
+        self.groups, self.references, self.established, self.unknown = {}, {}, set(), {}
+
+    def associate(self, rec, kind):
+        doc = rec["doc"]
+        group = (rec["run"], doc["proposal_identity"])
+        candidates = self.groups.setdefault(group, [])
+        if doc["dedup_scope"] != "not_stated":
+            self.established.add(group)  # No scope-end evidence is supplied by this run format.
+        fresh = kind == "submit" and not doc.get("answered_from_recorded_state")
+        if not candidates or (fresh and group not in self.established):
+            for old in candidates:
+                self.unknown.setdefault(old, (rec["step"], "repeat answered as a first receipt; scope not stated"))
+            key = group if not candidates else (group[0], f"{group[1]} (submission {len(candidates) + 1}, {rec['step']})")
+            candidates.append(key)
+            self.references[key] = {"items": set(), "handles": set()}
+        elif len(candidates) == 1:
+            key = candidates[0]
+        else:
+            # Identity alone cannot select one of several submissions. Use
+            # only supplied, uniquely matching references; conflicting or
+            # non-distinguishing references leave the observation unassociated.
+            binding, handles = item_binding(doc), handle_bindings(doc)
+            matches = []
+            if binding is not None:
+                matches.append({k for k in candidates if binding in self.references[k]["items"]})
+            if handles:
+                known_handles = {k for k in candidates if handles & self.references[k]["handles"]}
+                if known_handles:  # A newly supplied receipt is not a contradiction of an older handle's absence.
+                    matches.append(known_handles)
+            selected = set.intersection(*matches) if matches else set(candidates)
+            if len(selected) != 1:
+                for old in candidates:
+                    self.unknown.setdefault(old, (rec["step"], "observation not associated with a unique submission"))
+                return None
+            key = selected.pop()
+        binding = item_binding(doc)
+        if binding is not None:
+            self.references[key]["items"].add(binding)
+        self.references[key]["handles"].update(handle_bindings(doc))
+        self.unknown.pop(key, None)
+        return key
+
+
 def check_run(run):
     ok = True
     last = {}
     n = 0
     nl = 0
+    unassociated = 0
     kinds = request_kinds(run)
-    submissions = {}          # (run, identity) -> submissions answered as first receipts
-    unknown = {}              # (run, identity) -> the step from which the first submission's state is unknown
+    histories = SubmissionHistories()
     for line in (Path(run) / "host_docs.jsonl").read_text().splitlines():
         rec = json.loads(line)
         doc = rec["doc"]
         if doc.get("kind") != "recorded_state":
             continue
         n += 1
-        key = (rec["run"], doc["proposal_identity"])
-        if kinds.get((rec["run"], rec["step"], rec["path"])) == "submit" and not doc.get("answered_from_recorded_state"):
-            submissions[key] = submissions.get(key, 0) + 1
-            if submissions[key] > 1 and doc["dedup_scope"] == "not_stated":
-                # No stated scope: do not turn the repeat into a transition
-                # of the original. A stated scope is kept unless its end is
-                # evidenced; this run format supplies no scope-end event.
-                unknown.setdefault(key, rec["step"])
-                key = (key[0], f"{key[1]} (submission {submissions[key]}, {rec['step']})")
+        key = histories.associate(rec, kinds.get((rec["run"], rec["step"], rec["path"])))
+        if key is None:
+            unassociated += 1
+            print(f"UNKNOWN {rec['run']}/{doc['proposal_identity']} at {rec['step']}: "
+                  "observation not associated with a unique submission; no history transition asserted")
         if derive(doc["items"]) != doc["derived_state"]:
             ok = False
             print(f"FAIL derived state {key} at {rec['step']}")
@@ -228,17 +286,19 @@ def check_run(run):
                 ok = False
                 print(f"FAIL {key} item {it['item_identity']} ({it['state']}): item-left event missing, misplaced or wrong cause")
             nl += 1 if "item_left" in it else 0
-            prev = last.get(key + (it["item_identity"],), "drafted")
+            prev = last.get(key + (it["item_identity"],), "drafted") if key is not None else "drafted"
             if not reachable(prev, it["state"]):
                 ok = False
                 print(f"FAIL {key} item {it['item_identity']}: {prev} -> {it['state']} not reachable")
-            last[key + (it["item_identity"],)] = it["state"]
-    print(f"{'PASS' if ok else 'FAIL'} {n} recorded-state documents: every item-state change reachable in the table; "
+            if key is not None:
+                last[key + (it["item_identity"],)] = it["state"]
+    print(f"{'PASS' if ok else 'FAIL'} {n} recorded-state documents: every associated item-state change reachable in the table; "
           f"every derived state equals DS-1..DS-4; every item that left carries its item-left event "
-          f"({nl} item-left events, each with cause and time) and no other item carries one")
+          f"({nl} item-left events, each with cause and time) and no other item carries one; "
+          f"{unassociated} unassociated observations (submission states unknown)")
     for k, v in sorted(last.items()):
-        note = (f" (last observed); unknown from {unknown[k[:2]]}: a repeat was answered as a first receipt and the "
-                f"host states no de-duplication scope (PM-5)") if k[:2] in unknown else ""
+        unknown = histories.unknown.get(k[:2])
+        note = f" (last observed); unknown from {unknown[0]}: {unknown[1]} (PM-5)" if unknown else ""
         print(f"      final {k[0]}/{k[1]} item {k[2]}: {v}{note}")
     return ok
 
@@ -251,36 +311,68 @@ def repeat_scope_selftest():
     registry, schemas = load_registry(sorted(pkg.glob("DEL-03-0[123]/Design/*.schema.json")))
     schema = schemas[str(pkg / "DEL-03-02/Design/proposal_state.schema.json")]
     ok = True
-    with tempfile.TemporaryDirectory(prefix="proposal-repeat-") as folder:
-        run = Path(folder)
-        native = [{"run": "repeat", "step": step, "path": "N-MCP",
-                   "item": {"type": "mcpToolCall", "tool": "submit-proposal"}}
-                  for step in ("first", "repeat")]
-        (run / "native_items.jsonl").write_text("".join(json.dumps(r) + "\n" for r in native))
-        for scope in ("durable", "host_session", "time_window", "not_stated"):
-            docs = []
-            for n, state in enumerate(("refused_invalid", "queued"), 1):
-                item = {"item_identity": "1", "change_item_content_identity": "unchanged", "state": state}
-                if state == "refused_invalid":
-                    item["item_left"] = {"cause": state, "time": "t1"}
-                    item["refusal"] = {"reason": "fixture refusal", "evaluated_basis": {
-                        "workspace_identity": "fixture", "generation": "g1", "model_revision": "r1",
-                        "canonical_content_identity": "unchanged", "identity_method": "fixture"}}
-                doc = {"kind": "recorded_state", "proposal_identity": "same-proposal", "dedup_scope": scope,
-                       "submissions_recorded": n, "answered_from_recorded_state": False, "items": [item],
-                       "derived_state": derive([item]), "observed_at": f"t{n}"}
-                errors = validate(doc, schema, registry)
+    def record(step_name, kind, state, scope="not_stated", content="unchanged", handle=None):
+        item = {"item_identity": "1", "change_item_content_identity": content,
+                "identity_method": "fixture", "state": state}
+        if state == "refused_invalid":
+            item["item_left"] = {"cause": state, "time": step_name}
+            item["refusal"] = {"reason": "fixture refusal", "evaluated_basis": {
+                "workspace_identity": "fixture", "generation": "g1", "model_revision": "r1",
+                "canonical_content_identity": "unchanged", "identity_method": "fixture"}}
+        doc = {"kind": "recorded_state", "proposal_identity": "same-proposal", "dedup_scope": scope,
+               "submissions_recorded": 1, "answered_from_recorded_state": kind == "observe", "items": [item],
+               "derived_state": derive([item]), "observed_at": step_name}
+        if handle:
+            doc["host_handles"] = [{"handle_kind": "ticket", "value": handle, "scope": "host_session"}]
+        return {"run": "repeat", "step": step_name, "path": "N-MCP", "doc": doc,
+                "item": {"type": "mcpToolCall", "tool": "submit-proposal" if kind == "submit" else "observe-proposal"}}
+
+    cases = []
+    for scope in ("durable", "host_session", "time_window", "not_stated"):
+        cases.append((f"constant scope {scope}", [record("first", "submit", "refused_invalid", scope),
+                      record("repeat", "submit", "queued", scope)], scope == "not_stated", 0))
+        if scope != "not_stated":
+            cases.append((f"established {scope} survives not_stated", [record("first", "submit", "refused_invalid", scope),
+                          record("repeat", "submit", "queued")], False, 0))
+    first = record("first", "submit", "refused_invalid")
+    repeat = record("repeat", "submit", "queued")
+    observe = record("observe", "observe", "queued")
+    cases.append(("observation after indistinguishable repeat stays unassociated", [first, repeat, observe], True, 1))
+    cases.append(("unique content binds observation to repeat", [first, record("repeat", "submit", "queued", content="new"),
+                  record("observe", "observe", "queued", content="new")], True, 0))
+    cases.append(("unique content preserves original terminal history", [first, record("repeat", "submit", "queued", content="new"),
+                  observe], False, 0))
+    cases.append(("unique content preserves repeat history", [first, record("repeat", "submit", "queued", content="new"),
+                  record("observe", "observe", "drafted", content="new")], False, 0))
+    cases.append(("unique handle binds otherwise identical content", [record("first", "submit", "refused_invalid", handle="old"),
+                  record("repeat", "submit", "queued", handle="new"), record("observe", "observe", "queued", handle="new")], True, 0))
+    cases.append(("unique content tolerates newly supplied handle", [first, record("repeat", "submit", "queued", content="new"),
+                  record("observe", "observe", "queued", content="new", handle="new")], True, 0))
+    conflict = record("observe", "observe", "queued", content="new", handle="old")
+    cases.append(("conflicting content and handle stay unassociated", [record("first", "submit", "refused_invalid", handle="old"),
+                  record("repeat", "submit", "queued", content="new", handle="new"), conflict], True, 1))
+    invalid_derived = record("observe", "observe", "queued")
+    invalid_derived["doc"]["derived_state"]["counts"] = {"queued": 2}
+    cases.append(("unassociated observation still checks derived state", [first, repeat, invalid_derived], False, 1))
+    recorded_repeat = record("repeat", "submit", "queued")
+    recorded_repeat["doc"]["answered_from_recorded_state"] = True
+    cases.append(("answer from recorded state never resets history", [first, recorded_repeat], False, 0))
+    for name, records, want, unassociated in cases:
+        with tempfile.TemporaryDirectory(prefix="proposal-repeat-") as folder:
+            run = Path(folder)
+            for rec in records:
+                errors = validate(rec["doc"], schema, registry)
                 assert not errors, f"scope regression fixture must be schema-valid: {errors}"
-                docs.append(dict(native[n - 1], doc=doc))
-            (run / "host_docs.jsonl").write_text("".join(json.dumps(r) + "\n" for r in docs))
+            (run / "native_items.jsonl").write_text("".join(json.dumps({k: v for k, v in r.items() if k != "doc"}) + "\n" for r in records))
+            (run / "host_docs.jsonl").write_text("".join(json.dumps({k: v for k, v in r.items() if k != "item"}) + "\n" for r in records))
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 received = check_run(run)
-            separate = scope == "not_stated"
-            good = received == separate and ("unknown from repeat" in output.getvalue()) == separate
+            good = received == want and f"{unassociated} unassociated observations" in output.getvalue()
+            if name == "constant scope not_stated":
+                good &= "unknown from repeat" in output.getvalue()
             ok &= good
-            print(f"{'PASS' if good else 'FAIL'} repeat scope {scope}: "
-                  + ("separate submission, original unknown" if separate else "illegal original transition refused"))
+            print(f"{'PASS' if good else 'FAIL'} repeat regression {name}")
             if not good:
                 print(output.getvalue())
     return ok
