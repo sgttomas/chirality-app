@@ -1,5 +1,5 @@
 {
-  "source_basis_revision": "dd8d0fa1b88b34da4bfe53a9567a8ca58104ad34",
+  "source_basis_revision": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab",
   "sources": [
     {
       "role": "step_map",
@@ -9,8 +9,8 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:a30d90187c675bbcf442c6a5d293479ec7fc87d00dcb2c0f1e0ba0991fa924f7",
-      "basis_file_sha256": "sha256:3a923d8f1e44d8ba3ce962a1fce7c759519686f319353c4222beaf9f41c9d920",
+      "sha256": "sha256:a39c3d17fe614c13d3afcedae14e1bed665b3b5d94c55b0f7203d69409fa20d1",
+      "basis_file_sha256": "sha256:edb0f79b1476c99651a854d18d0dfc5832aae54ecb7b92c11385ea35e0d3b2bf",
       "selectors": [
         {
           "heading": "## 2. Interfaces"
@@ -1004,7 +1004,7 @@
           "count": 1
         }
       ],
-      "sha256": "sha256:226239e77527cdc4b651323818f4294b445a3a3349ca895a3ee43c4bb97477ec"
+      "sha256": "sha256:02f6d8ed0e184b9c283b618c44660543fcd9e5f17e6c2b1114bd82bbdcc297f4"
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
@@ -2179,7 +2179,7 @@
     {
       "role": "condition_manifest",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
-      "sha256": "sha256:4d79a1278eaf1ade5b8ec5026217a8937d617ddbe0074e2f2e1a59eda3d727f5"
+      "sha256": "sha256:aa97e5a6439dee1cf78b65a1614c43840515471eb2905f33dcabf77b27bfd186"
     }
   ],
   "historical_provenance": [
