@@ -302,7 +302,8 @@ needs:
 
 
     Target description — TargetName: Owner — resumption of SWBPIPE UI-SUCCESSOR (host joins deferred);
-    TargetRefID: APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3; TargetLocation: projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md'
+    TargetRefID: APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3; TargetLocation: projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md
+    at tag archive/pre-efficiency-cleanup-2026-10-09 (retired from the working tree in 11718e61a2)'
   evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
 - from: DEL-09-01
   condition: 'The joined witness consumes App DEL-09-01 reusable candidate-examination support and the
