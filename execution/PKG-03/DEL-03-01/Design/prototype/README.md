@@ -35,11 +35,12 @@ python3 ../../../DEL-03-02/Design/prototype/proposal_states.py --check "$TMPDIR/
 ```
 
 The observed output of the run of 2026-09-30 was recorded in
-`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B3.md`, and that of
-the RP-2 repair rerun (same date; 22 checks, R13-1 replacing the R12-9
-options, explicit item-left events and capture times on the double's
-recorded states) in `WAVE_B/RP-2.md`. Both records were retired in commit
-11718e61a2 and remain in Git history before it.
+`projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B3.md`,
+and that of the RP-2 repair rerun (same date; 22 checks, R13-1 replacing the
+R12-9 options, explicit item-left events and capture times on the double's
+recorded states) in `WAVE_B/RP-2.md` beside it. Both records were retired in
+commit 11718e61a2; from the repository root, read them with
+`git show 11718e61a2^:<path>` using the full path above.
 
 ## Limits
 
