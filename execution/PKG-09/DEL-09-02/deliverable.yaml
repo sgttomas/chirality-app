@@ -434,7 +434,18 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+code_paths:
+- app/examination/standalone/prepare.py
+- app/examination/standalone/pre_run_inputs.py
+- app/examination/native_forms/native_form.py
+- app/examination/native_forms/pre_run_form.py
+- app/examination/sq_receiving/receive.py
+- app/examination/sq_receiving/worker.py
 checks:
 - execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py
+- app/tests/group_b_standalone_test.py
+- app/tests/group_b_pre_run_inputs_test.py
+- app/tests/group_b_native_forms_test.py
+- app/tests/group_b_sq_receiving_test.py
 - app/tests/group_b_distribution_receiving_test.py
 - app/tests/group_b_terminal_receiving_test.py

@@ -39,7 +39,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = '64fcfe4c61e64bc5441749315485a811089012afb3870b7aefca53226ac6d045'
+HELPER_SHA256 = '92eeb556e90c694fb32f995a1bebb53d3c9587a61e69d51ba6f538e4559fe48a'
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')

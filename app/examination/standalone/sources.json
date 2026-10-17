@@ -1,5 +1,5 @@
 {
-  "source_basis_revision": "d6bcee8ce6c42f132bfb36fdd32fe65f2a4ba7dc",
+  "source_basis_revision": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab",
   "sources": [
     {
       "role": "step_map",
@@ -9,8 +9,8 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:17b622abee4ba9fa9049885e38999cdb7360177bd0e2a8bf774073af40a4191c",
-      "basis_file_sha256": "sha256:ad1db79bb586ea1168223a187d771617cec05ecd1ced984f679282312f266ef0",
+      "sha256": "sha256:4f94195e8c0de61b62f232a4c65663e80863675d1cc4cc736214da91c1cbbe7f",
+      "basis_file_sha256": "sha256:8491a8a42643b6997bd0bac1903bd9c146d6ff6c2da4e7f08a562c6ef08e5ebc",
       "selectors": [
         {
           "heading": "## 2. Interfaces"
@@ -96,8 +96,8 @@
     {
       "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
       "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
-      "sha256": "sha256:bc68866ed9905d56beb83dbb7acaf910a30407af9114d99b70007ed1e1f68c0a",
-      "basis_file_sha256": "sha256:9e5e6ea1145bcf8752032d1a7a8b84e62170213a2afd232de500d2cb700af322",
+      "sha256": "sha256:7e32ea660a80792ef2f5e5a3aa24dbdc88a400670764b2af6f2f6139bdd8cbe4",
+      "basis_file_sha256": "sha256:0bfa9a7a73fcb98efc237131e92b9be3c78655acc8c01d809b12af0481f16254",
       "selectors": [
         {
           "case": "WR-VC-01",
@@ -1299,7 +1299,7 @@
           "heading": "### 7.5 States"
         }
       ],
-      "sha256": "sha256:67fe33e1d36d3ce215c6a069cebbdfb3244ca535e5b3b81f55cd4ddcedeb9825"
+      "sha256": "sha256:6f33bf9b50e2ddb5844bd8ed26ffb0e30d1799e90af14d9a3783e3dccf2a5c0c"
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
@@ -1501,7 +1501,7 @@
           ]
         }
       ],
-      "sha256": "sha256:62175dfeeeee7b4a6f3ddb65af75c80b628181d3d628eb4d724d75a88bee9e9e"
+      "sha256": "sha256:5a1b3edbf7c65ee37592312acbba14d24a486a1ae3fbc663c28d029027677230"
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
@@ -1651,7 +1651,7 @@
           "count": 1
         }
       ],
-      "sha256": "sha256:6e36cb9f846670f24bc2985ebddb2db5162e9fdce325a8b49350c953adf5582f"
+      "sha256": "sha256:5180cef50036d17dad9c69dfac35cdcebb78005fe9259d549eb0ece827b42bce"
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
@@ -1784,7 +1784,7 @@
           ]
         }
       ],
-      "sha256": "sha256:bc7e9e2be3857db827042d26c6983cb93ed6111a7c2cd24873126519a2f50d20"
+      "sha256": "sha256:430d4500d32ce4261a38c64d8ecd07c71885cf2c64e8d3cf4bab28096a2d7cc1"
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
@@ -1870,7 +1870,7 @@
           ]
         },
         {
-          "heading": "### 4.2 Registration of a reviewed draft, A15 (K-8)"
+          "heading": "### 4.2 Registration of reviewed content, A15 (K-8)"
         },
         {
           "case": "NA-1",
@@ -1899,7 +1899,7 @@
           "count": 1
         }
       ],
-      "sha256": "sha256:f820a5b20c7664d4bafa50f8135ba1201e1eae9c04c3233f2848a10fa6553810"
+      "sha256": "sha256:786440eb120fca9acd6e4d1bedaa6d1845aa257a568fa01ab38d6ed218fb267c"
     },
     {
       "role": "governing/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
@@ -1966,7 +1966,7 @@
           "heading": "### 14.2 Reader"
         }
       ],
-      "sha256": "sha256:463c23b34680e509a98aa77ac8c733a09c2987ac64a02b5b40ccf2a7f82d71a3"
+      "sha256": "sha256:697b88d54d8019b6eafad7ba92ec14c3f33e1c99f642a8111538cd45537c502b"
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
@@ -2146,7 +2146,7 @@
           "heading": "### 5.4 Conversation selection (K-3; one per App conversation)"
         }
       ],
-      "sha256": "sha256:92a45dff7be6e0937be9996ed3462205be9d57759cb78569b2ba259e73bc3f36"
+      "sha256": "sha256:348c253010c3add0386315482e3a94a4273561ebfefa60a4a4a86dd6aa85d526"
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
@@ -2179,7 +2179,7 @@
     {
       "role": "condition_manifest",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
-      "sha256": "sha256:1ab01131468a27f3a4381dc81972e99a016662c95c769b619c5769883e76d9ba"
+      "sha256": "sha256:1022a28780f39603f510fdb3f8f8e4262bfddea5c969cd36524b38478ac6837f"
     }
   ],
   "historical_provenance": [

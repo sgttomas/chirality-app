@@ -15,7 +15,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'e1ff480dfac752d33150d6b748c1749dde060351e6bf123a175509b1fc118199'
+PINS_SHA256 = '0a94733cf1993927bc412551b3ec6ff89341adb8267fff2daf9b012b1ee5703c'
 METHOD = 'EXP-SUPPORT-BINDING-v1'
 PURPOSES = ('current_producer_declaration', 'historical_correspondence')
 LIMITS = [
