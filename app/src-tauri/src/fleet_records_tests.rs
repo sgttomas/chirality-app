@@ -41,7 +41,7 @@ impl Drop for Fixture {
         let _ = std::fs::remove_dir_all(&self.root);
     }
 }
-fn inventory(root: &Path) -> BTreeMap<PathBuf,Value> {
+pub(super) fn inventory(root: &Path) -> BTreeMap<PathBuf,Value> {
     fn walk(root: &Path, path: &Path, out: &mut BTreeMap<PathBuf,Value>) {
         let meta = match std::fs::symlink_metadata(path) {Ok(m)=>m,Err(_)=>return};
         let body = if meta.is_file() {json!(crate::util::sha256_hex(&std::fs::read(path).unwrap()))}

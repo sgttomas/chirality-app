@@ -15,7 +15,10 @@ const FOLDER: &str = ".chirality/fleet";
 const LOG: &str = "coordination.fleet.jsonl";
 const SCHEMA_ID: &str = "urn:chirality:app-v4:del-06-01:fleet-record:0.1";
 const OBSERVED: &[&str] = &["dispatch_observed", "child_observed", "observation_ended", "related_conversation", "recording_limit", "recording_recovered"];
-const STANDING: &str = "Read-only file observations. Records say what was recorded, not that it happened. Records retain their claimed recorder; references are quoted, not followed. Prepared work, supplier observations, returns, review, integration and human acts remain separate. No work state or current graph is derived.";
+const STANDING: &str = "Read-only file observations. Records say what was recorded, not that it happened. Records retain their claimed recorder. Prepared work, supplier observations, returns, review, integration and human acts remain separate. The workspace derives file-based claims only; it establishes no current native execution or human act.";
+
+#[path = "fleet_views.rs"]
+mod views;
 
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALUE: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -77,7 +80,11 @@ impl Census {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
             Err(e) => return Err(format!("source metadata unavailable: {e}")),
         };
-        self.stamps.insert(path.to_owned(), meta.as_ref().map(Stamp::of));
+        let stamp = meta.as_ref().map(Stamp::of);
+        if self.stamps.get(path).is_some_and(|first| *first != stamp) {
+            return Err("source changed between reads in the same packet".into());
+        }
+        self.stamps.insert(path.to_owned(), stamp);
         Ok(meta)
     }
     fn directory(&mut self, path: &Path) -> Result<Vec<PathBuf>, String> {
@@ -87,6 +94,9 @@ impl Census {
         if Stamp::of(&file.metadata().map_err(|e|e.to_string())?) != Stamp::of(&meta) { return Err("source directory changed while opening".into()); }
         let paths = directory_names(&file)?.into_iter().map(|name|path.join(name)).collect::<Vec<_>>();
         if Stamp::of(&file.metadata().map_err(|e|e.to_string())?) != Stamp::of(&meta) { return Err("source directory changed while enumerating".into()); }
+        if self.directories.get(path).is_some_and(|first| *first != paths) {
+            return Err("source directory inventory changed between reads".into());
+        }
         self.directories.insert(path.to_owned(), paths.clone());
         Ok(paths)
     }
@@ -411,8 +421,11 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     };
     let mut complete_copy = healthy && protected_log.as_ref().is_some_and(|log|log.complete);
     for row in project_log.rows.iter().filter(|r|r.kind() == "current_graph") {
-        limits.push(issue(&row.source,"graph-content identity method is unselected/unsupported; selector is quoted and no graph is selected"));
+        if row.record["body"]["graphContent"]["method"] != crate::util::FILE_IDENTITY_METHOD {
+            limits.push(issue(&row.source,"graph-content identity method is unselected/unsupported; selector is quoted and no graph is selected"));
+        }
     }
+    let view_inputs = views::read_inputs(&mut census, &root, &graphs);
     #[cfg(test)] AFTER_READ.with(|h| { if let Some(hook) = h.borrow_mut().take() { hook(); } });
     let final_physical = configured.canonicalize().ok().filter(|p|p == &root).and_then(|p|std::fs::metadata(p).ok());
     if final_physical.as_ref().is_none_or(|m|m.dev()!=before.dev() || m.ino()!=before.ino()) {
@@ -425,6 +438,7 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
             Err("protected project administration changed while reading".into()),
         _ => Ok(()),
     });
+    let snapshot_stable = final_check.is_ok();
     if let Err(reason) = final_check {
         complete_copy = false;
         protected_view["state"] = json!("source changed while reading");
@@ -474,14 +488,17 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     let protected_rows: Vec<_> = protected_log.as_ref().map(|log|log.rows.iter().map(|row|row.view(if trusted {"protected copy; see governing order"} else if complete_copy {"configured store quoted evidence; placement does not establish App provenance"} else {"configured-store claim; source incomplete/unavailable"})).collect()).unwrap_or_default();
     let native_relationships:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]=="related_conversation").cloned().collect();
     let recording_events:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]!="related_conversation").cloned().collect();
+    let workspace = views::derive(&briefs, &graphs, &project_log, &project_duplicates,
+        &observations, &view_inputs, snapshot_stable);
     Ok(json!({"format":"chirality.fleet.read","formatVersion":"0.2","standing":STANDING,
         "project":{"configuredRoot":configured.to_string_lossy(),"canonicalRoot":root.to_string_lossy(),"nativeRoot":crate::attachments::native_path_identity(&root),"physical":{"device":before.dev(),"inode":before.ino()}},
         "schema":{"format":"chirality.fleet.record","versions":["0.1 quoted compatibility","0.2 native-links"]},
         "briefs":briefs.iter().map(|r|r.view("prepared brief; quoted file, no dispatch inferred")).collect::<Vec<_>>(),
-        "graphs":graphs.iter().map(|r|r.view("graph revision; quoted file, no current graph or work state derived")).collect::<Vec<_>>(),
+        "graphs":graphs.iter().map(|r|r.view("graph revision; quoted file; see workspace for verified selector and derived file claims")).collect::<Vec<_>>(),
         "coordination":{"project":project_log.view,"projectRecords":project_rows,"protected":protected_view,
             "protectedLog":protected_log.as_ref().map(|log|&log.view),"protectedRecords":protected_rows,"governingStoreRecords":governing_store,"appObservations":observations,"nativeRelationships":native_relationships,"recordingEvents":recording_events},
-        "limits":limits,"nativeRecording":"Only actual App Fork/Continue-as source-issued request/result observations produce 0.2 relationships. Source files are quoted on read, never native authority; 0.1 undertaking fields establish no native join. Completed spawn prompt remains unavailable; no dispatch/child/work state is derived."}))
+        "workspace":workspace,
+        "limits":limits,"nativeRecording":"Only actual App Fork/Continue-as source-issued request/result observations produce 0.2 relationships. Source files are quoted on read, never native authority; 0.1 undertaking fields establish no native join. Completed spawn prompt remains unavailable; no current native dispatch or child state is inferred from the derived file workspace."}))
 }
 
 #[cfg(test)]

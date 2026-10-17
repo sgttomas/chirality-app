@@ -123,4 +123,10 @@ needs:
   gating: true
   evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/fleet_records.rs
+- app/src-tauri/src/fleet_views.rs
+- app/src/FleetRecordsPanel.tsx
 - app/src-tauri/src/decision_view.rs
+checks:
+- app/src-tauri/src/fleet_views_tests.rs
+- app/tests/fleet-records.test.mjs

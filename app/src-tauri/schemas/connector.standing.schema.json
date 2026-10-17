@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-02:connector-standing:0.1",
+  "title": "Connector standing vocabulary (DEL-07-02 CFB-v0.2 §2; PROPOSED; R23-34 item 1, R23-37 item 3, R23-40)",
+  "description": "The one standing vocabulary for optional connectors (PEC and Domains). Three facets: envelope, condition and claim tier. Only envelope 'adopted' + condition 'current' + the connector's reliable tier (PEC 'record'; Domains 'admitted') supports reliance (rule CS-R1, per connector; RV2 EUD1-R2). A relied record-tier claim reports only what its cited record states at its pin (CS-R2 ii; R23-40). Connector-specific derivation rules belong to DEL-07-01 (PEC) and DEL-08-01 (Domains). Names are Chirality semantic labels; no provider wire field is selected.",
+  "$defs": {
+    "connector": {
+      "enum": [
+        "pec",
+        "domains"
+      ]
+    },
+    "envelope": {
+      "enum": [
+        "adopted",
+        "not_adopted",
+        "outside_coverage",
+        "unknown"
+      ],
+      "description": "Has the receiving owner established the basis for relying on this connector's material? adopted: PEC, qualified, released and deliberately adopted coverage (DEL-07-01 OUT-004); Domains, an identified query contract and admission basis established by the receiving decisions (DEL-08-01 OUT-004). not_adopted: material exists but that basis is not established. outside_coverage: the subject is outside the adopted coverage. unknown: no material, or the basis cannot be determined."
+    },
+    "condition": {
+      "enum": [
+        "current",
+        "stale",
+        "partial",
+        "failing",
+        "absent",
+        "unknown"
+      ],
+      "description": "State of the supplied material against its sources. Precedence when several hold (the shown value): absent, failing, partial, stale, unknown, current. Every holding condition is listed in reasons."
+    },
+    "claim_tier": {
+      "enum": [
+        "record",
+        "presence_advisory",
+        "admitted",
+        "located_not_admitted",
+        "unknown"
+      ],
+      "description": "record: PEC record tier; presence_advisory: PEC presence fact, advisory at its stated heartbeat age; admitted: Domains source admitted for the intended use; located_not_admitted: Domains search hit without admission; unknown: tier not stated (never treated as record or admitted)."
+    },
+    "prohibited_conclusion": {
+      "enum": [
+        "no_work",
+        "ready",
+        "permitted",
+        "correct_by_presence"
+      ],
+      "description": "The record values of CS-R2 (R23-40): no connector absence or limitation implies empty work (no_work), readiness to start (ready) or permission (permitted), and presence never establishes correctness (correct_by_presence). 'Completion'/'done' is not a value (R23-40 item 2): CFB §3 states it with CS-R5."
+    },
+    "reason": {
+      "type": "object",
+      "required": [
+        "facet",
+        "value",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "facet": {
+          "enum": [
+            "envelope",
+            "condition",
+            "claim_tier"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "standing": {
+      "type": "object",
+      "required": [
+        "connector",
+        "envelope",
+        "condition",
+        "supports_reliance",
+        "reasons"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "connector": {
+          "$ref": "#/$defs/connector"
+        },
+        "envelope": {
+          "$ref": "#/$defs/envelope"
+        },
+        "condition": {
+          "$ref": "#/$defs/condition"
+        },
+        "claim_tier": {
+          "$ref": "#/$defs/claim_tier"
+        },
+        "supports_reliance": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/reason"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "connector": {
+                "const": "pec"
+              }
+            },
+            "required": [
+              "connector"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_tier": {
+                "enum": [
+                  "record",
+                  "presence_advisory",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "connector": {
+                "const": "domains"
+              }
+            },
+            "required": [
+              "connector"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_tier": {
+                "enum": [
+                  "admitted",
+                  "located_not_admitted",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_reliance": {
+                "const": true
+              }
+            },
+            "required": [
+              "supports_reliance"
+            ]
+          },
+          "then": {
+            "required": [
+              "claim_tier"
+            ],
+            "properties": {
+              "envelope": {
+                "const": "adopted"
+              },
+              "condition": {
+                "const": "current"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_reliance": {
+                "const": true
+              },
+              "connector": {
+                "const": "pec"
+              }
+            },
+            "required": [
+              "supports_reliance",
+              "connector"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_tier": {
+                "const": "record"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_reliance": {
+                "const": true
+              },
+              "connector": {
+                "const": "domains"
+              }
+            },
+            "required": [
+              "supports_reliance",
+              "connector"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_tier": {
+                "const": "admitted"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "condition": {
+                "const": "absent"
+              }
+            },
+            "required": [
+              "condition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "envelope": {
+                "const": "unknown"
+              },
+              "supports_reliance": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "unsupported": {
+      "type": "object",
+      "required": [
+        "conclusion",
+        "why"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "conclusion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "conclusions": {
+      "type": "object",
+      "required": [
+        "supported",
+        "unsupported",
+        "prohibited"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "supported": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "statement",
+              "basis"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "basis": {
+                "enum": [
+                  "connector_reliance",
+                  "source_route"
+                ]
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "unsupported": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unsupported"
+          }
+        },
+        "prohibited": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/prohibited_conclusion"
+          },
+          "description": "Always lists all four (CS-R2); stated on every record so a consumer never has to infer it."
+        }
+      }
+    }
+  }
+}

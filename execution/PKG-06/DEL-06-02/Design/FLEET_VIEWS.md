@@ -5,9 +5,9 @@
   boundary for these views. The decision-package view is
   [DECISION_VIEW.md](DECISION_VIEW.md) (DV-v0.1); the two files together are
   DEL-06-02's design.
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
-  accepted. The prototype in `prototype/` is not product code; no App
-  candidate exists.
+- Original design: FV-v0.1; its prototype is not product evidence.
+  The App-local file workspace is now implemented as described below. This
+  does not establish the joined fleet witness or owner acceptance.
 - Run and owner: `APP-V4-DESIGN-PASS-4-20261003`, owner O-A, unit E-2;
   written 2026-10-03.
 - Basis (sha256): this deliverable's `ScopeOfWork.md`
@@ -252,4 +252,37 @@ Result on 2026-10-04, after FV10-R7: 36/36 (34 before; +C13, C14).
 | ~~Connector limitation states in waiting causes~~ | Closed by FV-10 (2026-10-04) | — |
 | ~~DEL-06-01's RF-5 read a connector record as a present input~~ | Closed by DEL-06-01 RF-5a (R23-39, 2026-10-04) | — |
 | Layout and notification are not designed here: no notification exists (AAC AK-b; OI-006) | — | — |
-| Content-identity method (TEST VALUE, RS U-04) | Owner with DEL-04-03 | Before reliance |
+| Current graph identity | Scoped exact-byte App adoption in FR §6.1a; historical TEST VALUE identities remain unsupported. Host/global methods stay open with their owning contracts | Implemented consumer; independent review applies |
+
+## Current App implementation
+
+The manual Fleet refresh supplies a read-only workspace through the Rust host's
+`fleet_records::views` module and the existing `FleetRecordsPanel`. FR §6.1a
+states the exact-byte selector adoption, whole-packet snapshot checks, quoted
+source boundaries and current implementation limits. Inputs and consumers keep
+their responsibilities above.
+
+FV-1 membership is per return, including multiple unintegrated returns on one
+item. A row keeps the preparer of the named brief as its examination owner;
+there is no executor fallback. Review and integration remain separate. Item
+needs use the current return's integration or an external-result record. Input
+and connector needs retain their observed content identity and source. Unknown
+need states take precedence over waiting, so an unresolved cause is not hidden
+behind another outstanding need. A ready label describes only the file-based
+prerequisites; it grants no permission. Ready rows with unavailable child
+associations carry their qualification in both the category and first cause.
+
+Two parts of the designed RF/FV facts are deliberately unestablished by this
+consumer: current native dispatch/execution, and current performed human-act
+validity for decision needs. Their source evidence is unavailable; legacy
+statuses and an unsealed `decided` projection cannot substitute. The reader
+shows the gap, without changing the commitments or the separate decision view.
+The native dispatch producer, full decision-need admission and V4-EXM-13 remain
+unfinished. No owner experience finding is resolved by these local checks.
+
+Maintained checks are `app/src-tauri/src/fleet_views_tests.rs` through the real
+selected-workspace adapter and `app/tests/fleet-records.test.mjs` through the
+rendered panel. They exercise source-bound selectors, queues and integration,
+changed/torn/ambiguous sources, corrections, contained input reads, connector
+gaps, provenance negatives and deterministic rebuilding in separate processes.
+They establish their local behavior, not the joined fleet qualification.

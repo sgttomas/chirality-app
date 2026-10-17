@@ -331,9 +331,9 @@ schema-valid 0.1 brief files, graph revision files and coordination rows, plus
 0.2 native-link and mechanical recording-outcome rows, with
 their complete record, source path/line, claimed recorder and source limits.
 Unknown formats/kinds, malformed files, unreadable members and an unclosed
-final log line remain explicit limits. References are quoted without following
-their target paths. The panel presents the complete result and selects no graph
-or work state; the RF-derived views below remain the prototype's design.
+final log line remain explicit limits. Return/evidence references remain quoted. The Fleet workspace now derives
+current-graph, return and waiting claims as described below; ordinary input and
+declared connector references are read only inside the fixed Fleet folder.
 
 FR-D1's protected copy governs App observations in its own written order.
 Matching compares exact line bytes, including whitespace, key order and line
@@ -379,8 +379,58 @@ capture folder or its exact ownership-control file establishes no ordinary RS
 home, including when export created the control. The completed spawn prompt
 is still unavailable from the current native snapshot (§4); no native dispatch
 or child-state producer is added. The prototype's graph
-content-identity method remains a TEST VALUE (§11); selectors are quoted with an
-unsupported-method limit, and no current graph is chosen.
+content-identity method remains a TEST VALUE (§11). New selectors use the
+explicit App method below; historical selectors retain their unsupported-method
+limit and are never rebound.
+
+### 6.1a Derived file workspace (App-local implementation)
+
+`fleet_views.rs` consumes the once-read packet and returns `workspace` through
+that same path-free native command. `FleetRecordsPanel.tsx` presents each
+undertaking's graph, return-review queue, selected work, owners, continuation,
+needs, causes and source records. These are file-based recorded claims; they
+neither dispatch nor activate a native conversation or perform a human act.
+
+For new `current_graph` selectors this consumer adopts the already reviewed
+App method `chirality.app.exact-bytes.sha256/v1` (C §5.5; RS §6.2a): lowercase
+64-hex SHA-256 of the exact graph file, including whitespace and its final line
+ending. The selector names that file's record identity and undertaking. The
+latest selector in written order is checked against the original coherent
+buffer. A missing, duplicate, changed or unsupported latest target never falls
+back to an older selector. The schema remains open to other designations; a
+reader supports only its explicitly adopted method. No prototype, host or
+historical identity is relabelled. This is a bounded consumer technical choice,
+not a host/global algorithm or an acceptance-criterion change.
+
+Each return remains queued until an integration record names that return.
+Reviews and integrations are matched by undertaking, item and return identity.
+An integration of an earlier return does not satisfy a dependency on an item's
+newer return. Corrections require a prior same-kind target and a reason;
+unresolved targets or competing corrections qualify the projection. Duplicate
+briefs/items/record identities never select an arbitrary owner or state.
+
+Input references are relative to `.chirality/fleet/`, without absolute paths,
+parent traversal, symlinks, hardlinks or special files. Their bytes, ancestor
+identities and absent leaves join the packet's first-observation census. A
+source changed between reads cannot reset that census. A failed final census
+withholds the entire derived workspace. Presence of an ordinary readable input
+establishes only the recorded file prerequisite, not truth or permission.
+Declared connector records use DEL-07-02's source-mapped standing schema;
+record/claim gaps, other-connector claims, advisory tiers and required routes
+remain visible. This interprets quoted receiving files, not operational PEC
+adoption or source truth. Decision needs remain unknown: the available decision
+projection does not admit current native human-act validity, so `decided` alone
+cannot satisfy a need. The existing decision workspace remains available.
+
+The protected projection remains the sole source of App-named observations.
+Legacy 0.1 statuses are shown only as historical recorded statements and do not
+establish current native execution. Unsupported project-only observations
+qualify readiness or make the associated item's state unknown. With unread or
+conflicting coordination history, readable graph rows are labelled as a last
+readable selection with unknown currentness, non-done rows are unknown and the
+queue is incomplete. A known integration or external-result claim stays shown.
+The current native dispatch producer and the independently joined fleet witness
+remain separate, unsupplied obligations.
 
 ### 6.2 Native conversation-link recording
 
@@ -449,7 +499,8 @@ proof catches known shrink/rewrite, but cold restart cannot authenticate a prior
 valid prefix or detect a tail removed before its first read. BagIt includes the
 whole Fleet payload bytes without claiming a Fleet chain head or signature. The
 manual panel retains complete source records/order/limits, shows 0.2 relationships
-and mechanical outcomes separately, and derives no dispatch/child/graph/work state.
+and mechanical outcomes separately. The derived file workspace (§6.1a)
+establishes no current native dispatch, child state or conversation relationship.
 This implements the native-link contribution only; it does not claim DEL-06-01's
 full brief/graph/dispatch implementation or a native supplier witness.
 
@@ -661,5 +712,5 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 | AS-1 is guidance, not enforcement: a manager may spawn without the reference | O-A, with DEL-02-04 (guidance text) | Before the App's guidance is written |
 | PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
 | Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3), now under the general OI-008 ruling:* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
-| Content-identity method: the prototype uses sha-256 of file bytes as a TEST VALUE (RS U-04) | Owner with DEL-04-03 | Before reliance |
+| Current graph file identity | App Fleet consumer adopts `chirality.app.exact-bytes.sha256/v1` in §6.1a, receiving the reviewed App definition from RS §6.2a; historical TEST VALUE selectors remain unsupported. Host/global algorithms stay open | Implemented consumer; independent implementation review applies |
 | Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. The child-thread read does not supply it either: the trial witness found the spawn task delivered to the child as an inter-agent `agent_message` whose payload is `encrypted_content`, with no user message (§4; WR U-WR-25). So at 0.160.0 AS-2's prompt identity cannot be computed from Codex. Whether a later pin exposes a spawn item or the child's readable input is open | A later observation | Before VER-003 on a candidate |

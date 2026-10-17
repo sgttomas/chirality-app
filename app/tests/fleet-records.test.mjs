@@ -22,7 +22,8 @@ test('native selected-workspace adapter response is presented in full with prove
   for(const row of [...packet.briefs,...packet.graphs,...packet.coordination.projectRecords,...packet.coordination.appObservations]){
     assert.ok(html.includes(row.record.recordId),'no returned record is hidden by a state projection');
   }
-  assert.match(html,/No work state or current graph is selected here/);
+  assert.match(html,/No current graph established/);
+  assert.equal(packet.workspace.undertakings.every(v=>v.graph===null),true,'historical unsupported selectors remain unselected');
   assert.doesNotMatch(html,/<button[^>]*>.*(?:Dispatch|Select graph|Write record|Register)/);
 });
 test('only an explicit refresh invokes the path-free native read command',async()=>{
@@ -71,4 +72,33 @@ test('actual mixed-profile packet keeps mechanical outcomes separate from its so
   assert.equal(actual.coordination.nativeRelationships.length,1);assert.equal(actual.coordination.recordingEvents.length,1);
   assert.match(html,/Native link recording outcomes/);assert.match(html,/recording_limit/);assert.match(html,/Invented copy failure; native success unchanged/);
   assert.match(html,/quoted 0.1 compatibility record/);assert.match(html,/undertaking\/thread fields establish no native conversation relationship/);
+});
+
+
+test('actual native workspace reconstructs returns and waiting identically in separate processes',()=>{
+  const read=()=>{
+    const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','fleet_records::views::tests::fleet_views_native_adapter_preserves_return_review_integration_and_rebuild','--','--exact','--nocapture','--test-threads=1'],{
+      cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'},
+    });
+    assert.equal(proc.status,0,proc.stderr+proc.stdout);
+    const line=proc.stdout.split('\n').find(line=>line.includes('FLEET_WORKSPACE_DTO:'));assert.ok(line);
+    return JSON.parse(line.slice(line.indexOf('FLEET_WORKSPACE_DTO:')+'FLEET_WORKSPACE_DTO:'.length));
+  };
+  const first=read(),second=read();assert.deepEqual(first,second,'process state is not coordination authority');
+  const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:{...packet,workspace:first},error:'',busy:false,refresh:()=>{}}));
+  assert.match(html,/Fleet coordination workspace/);assert.match(html,/Current graph/);assert.match(html,/fl:graph/);
+  assert.match(html,/Return-review queue/);assert.match(html,/Selected work and waiting causes/);
+  assert.match(html,/integration recorded/);assert.match(html,/Owner: executor/);assert.match(html,/current human-act standing/);
+  assert.match(html,/Reconstruction limits/);assert.match(html,/no dispatch observed/);
+});
+
+test('qualified readiness and incomplete queues stay qualified in the rendered category and cause',()=>{
+  const workspace={standing:'quoted fixture',graphIdentityMethod:'fixture',limits:[],undertakings:[{
+    undertaking:'invented',graph:'fl:graph',revision:1,currentGraphEstablished:false,queueComplete:false,queue:[],notes:['incomplete source'],
+    waiting:[{item:'W1',outcome:'invented result',owner:'recorded owner',category:'ready (qualified)',readinessQualified:true,causes:['dispatch may be unrecorded'],needs:[],sources:{}}],
+  }]};
+  const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:{...packet,workspace},error:'',busy:false,refresh:()=>{}}));
+  assert.match(html,/Last readable graph; currentness unknown/);assert.match(html,/Return-review queue \(incomplete\)/);
+  assert.match(html,/<strong>ready \(qualified\)<\/strong>/);assert.match(html,/dispatch may be unrecorded/);
+  assert.doesNotMatch(html,/No recorded returns await/);
 });

@@ -59,6 +59,12 @@
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/lifecycle-event.s1.v0.10.schema.json",
       "sha256": "1f6d41636f9f0b4b2c79b5aca413b3028a4730a110dbe3ca99b024c6223bad35",
       "id": "urn:chirality:distribution-successor:lifecycle-event.s1.v0.10"
+    },
+    {
+      "file": "connector.standing.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-07/DEL-07-02/Design/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+      "id": "urn:chirality:app-v4:del-07-02:connector-standing:0.1"
     }
   ],
   "fixture": {

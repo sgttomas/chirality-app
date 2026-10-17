@@ -705,6 +705,23 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
+27. **Refresh fleet records** rebuilds the file-based coordination workspace
+    for each undertaking: the selected graph, outstanding returns and review
+    ownership, recorded integration, selected work and waiting causes. It reads
+    the fixed `.chirality/fleet/` folder and writes nothing. Agents and the
+    person continue to author the source records with their file tools.
+    New `current_graph` selectors use `graphContent.method` =
+    `chirality.app.exact-bytes.sha256/v1` and `graphContent.value` = the
+    lowercase SHA-256 hex digest of the exact graph file bytes; no prefix or
+    JSON normalization. Prototype TEST VALUE selectors remain unsupported.
+    Missing, changed or duplicate selections never fall back to an older graph.
+    Inputs are contained Fleet-relative files; connector needs are interpreted
+    from their declared receiving records with claim/route gaps shown. Decision
+    needs and current native execution remain unknown without their required
+    evidence. An incomplete source packet cannot produce unqualified readiness
+    or an apparently complete empty queue. The complete source packet remains
+    available beside the derived views.
+
 ## Modules
 
 | Module | Contribution |
@@ -998,8 +1015,7 @@ Missing history must be restored from verified evidence. Unsigned evidence canno
 detect cold removal of a valid nonempty tail or the whole administrative control
 including its marker, and cannot verify actor identity or outside time.
 
-The fleet coordination log has no App writer yet (DEL-06-01). When it is
-built, the log stays one co-written file in the project,
+The fleet coordination log (DEL-06-01) is one co-written file in the project,
 `.chirality/fleet/coordination.fleet.jsonl`, with every entry, and the App
 also records its own observations in the store (`fleet/coordination.fleet.jsonl`),
 whose copy governs inside the App (owner: "Write to both (Recommended)";
