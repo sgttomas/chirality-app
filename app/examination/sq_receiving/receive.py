@@ -12,7 +12,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'c2e2f6f90634d4f33beeb1441a21767cf3eced14d4c63d0a3223acc334e30068'
+PINS_SHA256 = 'fba7abd92075470692fee40b2ec9b17e39d7507609bb781b24d3ee6ec42adc3f'
 
 
 def sha(data):

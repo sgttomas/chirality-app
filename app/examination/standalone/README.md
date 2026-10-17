@@ -16,7 +16,13 @@ V4-EXM-10 and V4-EXM-11; RUN-B has the same still-unfilled candidate slot.
 The invented inventory rows are input material for future substantive tool
 work and new-input reuse; no workflow is authored or registered by this tool.
 
-`source_basis_revision` identifies inspected source only. A build identity,
+`source_basis_revision` (and `basis_revision` in `pre_run_inputs.pins.json`)
+names the main revision on which the pinned sources were last inspected for a
+re-pin. It labels inspected source only; it is not a locator for the bound
+bytes, which the pinned hashes identify. The pin files are themselves bound,
+so no single revision can hold them and their own label; bytes changed by the
+re-pinning change (for example the SQ's case dispositions) are held by that
+change, not by the named revision. A build identity,
 qualification pin, runtime configuration, person-operated native journey and
 candidate-applicable supplier evidence remain unsupplied. The missing-input
 list describes this preparation's entry, not a live discovery of external
