@@ -13,10 +13,10 @@ that left the queue carries its explicit item-left event (P §4.3) with the
 matching cause and a time, and that no other item carries one.
 
 A repeated submission under an identity already seen, answered as a first
-receipt (not from recorded state), is checked as its own submission, from
-*drafted*: its states are never transitions of the earlier submission's items.
-Where the host does not state its de-duplication scope (P §3.5 PM-5, scope
-*not stated*), the earlier submission's state is reported unknown from that
+receipt (not from recorded state) with de-duplication scope *not stated*, is
+checked as its own submission, from *drafted*: its states are never
+transitions of the earlier submission's items. The earlier submission's
+state is reported unknown from that
 point (SWB-CORPUS A-04). Whether a document answers a submission or an
 observation is read from the run's native items (the call the App made).
 
@@ -25,8 +25,11 @@ it does, and the App receives it (P §4.6).
 """
 
 import argparse
+import contextlib
+import io
 import json
 import sys
+import tempfile
 from collections import deque
 from pathlib import Path
 
@@ -211,9 +214,11 @@ def check_run(run):
         key = (rec["run"], doc["proposal_identity"])
         if kinds.get((rec["run"], rec["step"], rec["path"])) == "submit" and not doc.get("answered_from_recorded_state"):
             submissions[key] = submissions.get(key, 0) + 1
-            if submissions[key] > 1:                  # a repeat answered as a first receipt: its own submission
-                if doc["dedup_scope"] == "not_stated":
-                    unknown.setdefault(key, rec["step"])
+            if submissions[key] > 1 and doc["dedup_scope"] == "not_stated":
+                # No stated scope: do not turn the repeat into a transition
+                # of the original. A stated scope is kept unless its end is
+                # evidenced; this run format supplies no scope-end event.
+                unknown.setdefault(key, rec["step"])
                 key = (key[0], f"{key[1]} (submission {submissions[key]}, {rec['step']})")
         if derive(doc["items"]) != doc["derived_state"]:
             ok = False
@@ -238,11 +243,55 @@ def check_run(run):
     return ok
 
 
+def repeat_scope_selftest():
+    """A first-receipt answer must not erase a stated scope's item history."""
+    pkg = Path(__file__).resolve().parents[3]
+    sys.path.insert(0, str(pkg / "DEL-03-01/Design/prototype"))
+    from schema_subset import load_registry, validate
+    registry, schemas = load_registry(sorted(pkg.glob("DEL-03-0[123]/Design/*.schema.json")))
+    schema = schemas[str(pkg / "DEL-03-02/Design/proposal_state.schema.json")]
+    ok = True
+    with tempfile.TemporaryDirectory(prefix="proposal-repeat-") as folder:
+        run = Path(folder)
+        native = [{"run": "repeat", "step": step, "path": "N-MCP",
+                   "item": {"type": "mcpToolCall", "tool": "submit-proposal"}}
+                  for step in ("first", "repeat")]
+        (run / "native_items.jsonl").write_text("".join(json.dumps(r) + "\n" for r in native))
+        for scope in ("durable", "host_session", "time_window", "not_stated"):
+            docs = []
+            for n, state in enumerate(("refused_invalid", "queued"), 1):
+                item = {"item_identity": "1", "change_item_content_identity": "unchanged", "state": state}
+                if state == "refused_invalid":
+                    item["item_left"] = {"cause": state, "time": "t1"}
+                    item["refusal"] = {"reason": "fixture refusal", "evaluated_basis": {
+                        "workspace_identity": "fixture", "generation": "g1", "model_revision": "r1",
+                        "canonical_content_identity": "unchanged", "identity_method": "fixture"}}
+                doc = {"kind": "recorded_state", "proposal_identity": "same-proposal", "dedup_scope": scope,
+                       "submissions_recorded": n, "answered_from_recorded_state": False, "items": [item],
+                       "derived_state": derive([item]), "observed_at": f"t{n}"}
+                errors = validate(doc, schema, registry)
+                assert not errors, f"scope regression fixture must be schema-valid: {errors}"
+                docs.append(dict(native[n - 1], doc=doc))
+            (run / "host_docs.jsonl").write_text("".join(json.dumps(r) + "\n" for r in docs))
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                received = check_run(run)
+            separate = scope == "not_stated"
+            good = received == separate and ("unknown from repeat" in output.getvalue()) == separate
+            ok &= good
+            print(f"{'PASS' if good else 'FAIL'} repeat scope {scope}: "
+                  + ("separate submission, original unknown" if separate else "illegal original transition refused"))
+            if not good:
+                print(output.getvalue())
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check")
     a = ap.parse_args()
     ok = selftest()
+    ok &= repeat_scope_selftest()
     if a.check:
         ok &= check_run(a.check)
     print("RESULT:", "all checks passed" if ok else "failures")
