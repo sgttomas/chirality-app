@@ -521,3 +521,13 @@ Current executable helpers and schemas are operational inputs; the original
 Host source map, producer executable and captured packets retain their
 historical identities. This additive replay supplies no candidate-pin SQ result
 or production/native witness.
+
+**Candidate identification (I-13).** DEL-09-01 `Design/candidate-identity-v1/`
+defines the identity of an unpackaged development build
+(`chirality.app.bundle-tree.sha256/v1`) and its identification record, which
+supplies the EXP `app_candidate` values and the §5 candidate key. Development
+candidate C1 is identified at `Evidence/EXP/8212c765ec-87837d1ab888/`
+(revision `8212c765ec`, debug, unsigned, fresh App data directory, supplier not
+bundled). Identifying C1 opens no examination and selects no qualification
+candidate: U-SQ-3 (development build or package) and the run inputs in §2
+remain as stated.
