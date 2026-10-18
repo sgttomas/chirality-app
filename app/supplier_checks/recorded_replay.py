@@ -19,6 +19,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -63,19 +64,46 @@ def unique_object(pairs):
     return value
 
 
+def require_unicode_scalar_text(value):
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ReplayError("invalid-json-unicode") from None
+
+
 def decode(data):
     def reject_constant(unused):
         raise ReplayError("nonfinite-json")
 
+    def finite_float(token):
+        number = float(token)
+        require(math.isfinite(number), "nonfinite-json")
+        return number
+
     try:
-        return json.loads(data, object_pairs_hook=unique_object,
-                          parse_constant=reject_constant)
+        value = json.loads(data, object_pairs_hook=unique_object,
+                           parse_constant=reject_constant, parse_float=finite_float)
+        # Escaped lone UTF-16 surrogates are accepted by Python's JSON parser,
+        # but cannot be written as UTF-8 protocol/audit data. Check keys too.
+        pending = [value]
+        while pending:
+            item = pending.pop()
+            if isinstance(item, str):
+                require_unicode_scalar_text(item)
+            elif isinstance(item, dict):
+                pending.extend(item.keys())
+                pending.extend(item.values())
+            elif isinstance(item, list):
+                pending.extend(item)
+        return value
     except (ValueError, UnicodeError, RecursionError):
         raise ReplayError("invalid-json") from None
 
 
 def rpc_id(value):
     require(type(value) in (int, str), "invalid-rpc-id")
+    if isinstance(value, str):
+        require_unicode_scalar_text(value)
     return type(value).__name__, value
 
 
@@ -388,11 +416,14 @@ class Replay:
                             consumed_frame_indices=self.consumed, remaining_frame_indices=[],
                             outside_segment_frame_indices=self.outside_segment,
                             acknowledgment="not-inferred-from-answer-write")
-        except ReplayError as error:
-            self.audit.emit("error", code=str(error), frame_index=self.current_index,
+        except (ReplayError, OSError, ValueError, RecursionError) as error:
+            code = str(error) if isinstance(error, ReplayError) else "peer-io-or-value-error"
+            self.audit.emit("error", code=code, frame_index=self.current_index,
                             consumed_frame_indices=self.consumed, remaining_frame_indices=self.remaining(),
                             outside_segment_frame_indices=self.outside_segment)
-            raise
+            if isinstance(error, ReplayError):
+                raise
+            raise ReplayError(code) from None
 
 
 class SafeParser(argparse.ArgumentParser):
@@ -428,25 +459,32 @@ def main(argv=None):
         with stream:
             audit = Audit(stream)
             audit.emit("start", synthetic_standing=SYNTHETIC_STANDING)
+            replay = None
             try:
                 recording = load_recording(config.recording, config.sha256)
                 replay = Replay(recording, config.generation, config.profile, audit, sha256=config.sha256.lower(),
                                 pause_after_frame=config.pause_after_frame, release=config.release)
                 replay.run(JsonLineInput(sys.stdin.buffer), sys.stdout)
-            except ReplayError as error:
-                audit.emit("exit", outcome="error", code=str(error))
-                raise
+            except (ReplayError, OSError, ValueError, RecursionError) as error:
+                code = str(error) if isinstance(error, ReplayError) else "peer-io-or-value-error"
+                # Replay.run records its own remaining indices. Construction,
+                # loading and input setup can also fail before run is entered.
+                if replay is None or not isinstance(error, ReplayError):
+                    audit.emit("error", code=code,
+                               frame_index=replay.current_index if replay is not None else None,
+                               consumed_frame_indices=replay.consumed if replay is not None else [],
+                               remaining_frame_indices=replay.remaining() if replay is not None else None,
+                               outside_segment_frame_indices=replay.outside_segment if replay is not None else [])
+                audit.emit("exit", outcome="error", code=code)
+                if isinstance(error, ReplayError):
+                    raise
+                raise ReplayError(code) from None
             audit.emit("exit", outcome="success")
         return 0
     except ReplayError as error:
         print("recorded-replay: " + str(error), file=sys.stderr)
     except (OSError, ValueError, RecursionError):
         # Paths, protocol payloads and OS exception text can contain private input.
-        if audit is not None:
-            try:
-                audit.emit("exit", outcome="error", code="peer-io-or-value-error")
-            except (OSError, ValueError):
-                pass
         print("recorded-replay: peer-io-or-value-error", file=sys.stderr)
     return 2
 

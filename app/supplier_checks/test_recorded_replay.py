@@ -69,6 +69,20 @@ def run_memory(recording, generation=1, profile="strict", supplied=None, **kwarg
 
 
 class RecordingValidation(unittest.TestCase):
+    def test_decode_refuses_overflow_and_unpaired_surrogates_without_changing_valid_values(self):
+        for data, code in ((b'{"value":1e999}', "nonfinite-json"),
+                           (b'{"value":-1e999}', "nonfinite-json"),
+                           (b'{"value":"\\ud800"}', "invalid-json-unicode"),
+                           (b'{"\\udc00":0}', "invalid-json-unicode")):
+            with self.subTest(data=data):
+                with self.assertRaisesRegex(peer.ReplayError, code):
+                    peer.decode(data)
+        valid = b'{"float":1.5,"integer":1,"text":"\\ud83d\\ude00","nested":[null,true]}'
+        self.assertEqual(peer.decode(valid), json.loads(valid))
+        self.assertIs(type(peer.decode(valid)["float"]), float)
+        with self.assertRaisesRegex(peer.ReplayError, "invalid-json-unicode"):
+            peer.rpc_id("\ud800")
+
     def test_all_real_recordings_bind_and_progress_through_each_generation(self):
         for scenario in ("st5", "st5-race", "nv04"):
             _, _, recording = capture(scenario)
@@ -294,6 +308,119 @@ class SubprocessReplay(unittest.TestCase):
                                "--profile", profile, *extra],
                               input=b"".join(json.dumps(frame).encode() + b"\n" for frame in supplied),
                               capture_output=True, timeout=2)
+
+    def test_malformed_actual_numbers_unicode_and_rpc_ids_have_complete_failure_audits(self):
+        path, digest, recording = capture()
+        first = json.dumps(inputs(recording, 1)[0]).encode()
+        cases = [
+            (first.replace(b'"experimentalApi": true', b'"experimentalApi": 1e999'), "nonfinite-json"),
+            (first.replace(b'"experimentalApi": true', b'"experimentalApi": -1e999'), "nonfinite-json"),
+            (first.replace(b'"id": 1', b'"id": "\\ud800"'), "invalid-json-unicode"),
+            (first.replace(b'"id": 1', b'"id": "\\udfff"'), "invalid-json-unicode"),
+            (first.replace(b'"clientInfo": {', b'"clientInfo": {"\\ud800": "private-canary",'), "invalid-json-unicode"),
+        ]
+        for index, (supplied, code) in enumerate(cases):
+            with self.subTest(case=index):
+                audit = Path(self.root.name) / f"actual-malformed-{index}.jsonl"
+                result = subprocess.run([sys.executable, str(HERE / "recorded_replay.py"),
+                                         "--recording", str(path), "--sha256", digest,
+                                         "--generation", "1", "--audit", str(audit)],
+                                        input=supplied + b"\n", capture_output=True, timeout=2)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertEqual(result.stderr, ("recorded-replay: " + code + "\n").encode())
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(rows[-2]["frame_index"], 0)
+                self.assertEqual(rows[-2]["consumed_frame_indices"], [])
+                self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(19)))
+                self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": code})
+                self.assertNotIn("private-canary", audit.read_text())
+
+    def test_sha_bound_malformed_values_are_refused_without_changing_source(self):
+        _, _, recording = capture()
+        original = json.dumps(recording).encode()
+        for index, (replacement, code) in enumerate(((b'1e999', "nonfinite-json"),
+                                                     (b'"\\ud800"', "invalid-json-unicode"))):
+            with self.subTest(case=index):
+                data = original.replace(b'"userAgent": "<REDACTED-USER-AGENT>"', b'"userAgent": ' + replacement)
+                self.assertNotEqual(data, original)
+                path = Path(self.root.name) / f"malformed-value-{index}.json"
+                path.write_bytes(data)
+                audit = Path(self.root.name) / f"malformed-value-{index}.jsonl"
+                result = self.invoke(path, hashlib.sha256(data).hexdigest(), audit,
+                                     supplied=inputs(recording, 1, "app"))
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertEqual(result.stderr, ("recorded-replay: " + code + "\n").encode())
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": code})
+                self.assertEqual(path.read_bytes(), data)
+
+    def test_valid_unicode_rpc_id_is_preserved_in_protocol_and_audit(self):
+        path, digest, recording = capture()
+        supplied = inputs(recording, 1)
+        actual_id = json.loads('"caller-\\ud83d\\ude00-\\ud800\\udc00"')
+        supplied[0]["id"] = actual_id
+        result = self.invoke(path, digest, self.audit, profile="strict", supplied=supplied)
+        self.assertEqual((result.returncode, result.stderr), (0, b""))
+        output = [json.loads(line) for line in result.stdout.splitlines()]
+        expected = [copy.deepcopy(row["frame"]) for row in recording["frames"]
+                    if row["generation"] == 1 and row["direction"] == "codex->app"]
+        expected[0]["id"] = actual_id
+        self.assertEqual(output, expected)
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        self.assertTrue(any(row.get("actual_rpc_id") == actual_id for row in rows))
+        self.assertEqual(rows[-1], {"event": "exit", "outcome": "success"})
+
+    def test_recoverable_reader_failures_are_audited_before_closing_the_stream(self):
+        path, digest, _ = capture()
+        failures = [ValueError("private-reader-canary"), OSError("private-reader-canary"),
+                    RecursionError("private-reader-canary"),
+                    UnicodeEncodeError("utf-8", "\ud800", 0, 1, "private-reader-canary")]
+        for index, error in enumerate(failures):
+            with self.subTest(case=index):
+                audit = Path(self.root.name) / f"reader-failure-{index}.jsonl"
+                errors = io.StringIO()
+                with patch.object(peer.JsonLineInput, "read", side_effect=error), redirect_stderr(errors):
+                    code = peer.main(["--recording", str(path), "--sha256", digest,
+                                      "--generation", "1", "--audit", str(audit)])
+                self.assertEqual(code, 2)
+                self.assertEqual(errors.getvalue(), "recorded-replay: peer-io-or-value-error\n")
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(rows[-2]["frame_index"], 0)
+                self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(19)))
+                self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": "peer-io-or-value-error"})
+                self.assertNotIn("private-reader-canary", audit.read_text())
+
+    def test_output_and_input_setup_errors_keep_terminal_failure_audits(self):
+        path, digest, recording = capture()
+        for stage in ("output", "input-setup"):
+            with self.subTest(stage=stage):
+                audit = Path(self.root.name) / f"{stage}-failure.jsonl"
+                errors = io.StringIO()
+                if stage == "output":
+                    failure = UnicodeEncodeError("utf-8", "\ud800", 0, 1, "private-output-canary")
+                    failing_writer = io.StringIO()
+                    patcher = patch.object(failing_writer, "write", side_effect=failure)
+                    input_patch = patch.object(peer.JsonLineInput, "read", return_value=inputs(recording, 1)[0])
+                else:
+                    failing_writer = io.StringIO()
+                    patcher = patch.object(peer.JsonLineInput, "__init__", side_effect=ValueError("private-setup-canary"))
+                    input_patch = patch.object(peer.JsonLineInput, "read")
+                with patcher, input_patch, patch.object(sys, "stdout", failing_writer), redirect_stderr(errors):
+                    code = peer.main(["--recording", str(path), "--sha256", digest,
+                                      "--generation", "1", "--audit", str(audit)])
+                self.assertEqual(code, 2)
+                self.assertEqual(errors.getvalue(), "recorded-replay: peer-io-or-value-error\n")
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(rows[-2]["consumed_frame_indices"], [0] if stage == "output" else [])
+                self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(1 if stage == "output" else 0, 19)))
+                self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": "peer-io-or-value-error"})
+                self.assertNotIn("private-output-canary", audit.read_text())
+                self.assertNotIn("private-setup-canary", audit.read_text())
 
     def test_malformed_adaptation_metadata_has_fixed_error_and_terminal_audit(self):
         _, _, original = capture()
