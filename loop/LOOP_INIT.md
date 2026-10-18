@@ -6,6 +6,16 @@ Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
 Design and dependency conditions. Consult `docs/PRD.md` and its companions for
 requirements and interfaces involved in this slice, not as a compulsory census.
 
+Orient the current undertaking through this course of knowledge work:
+
+Problem Statement → Requirements → Objectives → Evaluation → Assessment →
+Implementation → Verification → Validation → Integration → Reflection →
+Iteration → Resolution.
+
+Enter where the work currently stands and revisit activities as evidence
+requires. Work within the given scope and authority; resolve against the
+agreed outcome and adequate supporting evidence.
+
 Find the current manuals through the [manual index](../../../docs/alignment-manual/README.md).
 Consult the relevant sections when the work needs them; no full-manual reading is required.
 
