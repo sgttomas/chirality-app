@@ -424,26 +424,6 @@ because the App always sends both explicitly on `thread/start` (CS-8), the
 configured default never selects a conversation's model. `Model.isDefault`
 from `model/list` may be shown as Codex's own label, never preselected.
 
-#### Current new-conversation chooser
-
-The ordinary Start form owns a new-conversation choice separately from the
-native selection observation and existing conversations. A confirmed admitted
-start consumes only the model, provider and entry choice used for that attempt;
-the next conversation starts with no selection. The admitted conversation opens
-in the returned source generation, and the unsent composer and role choice stay
-intact. A failed, unknown or identity-incomplete result retains the choice for
-an explicit retry; it does not cause an automatic retry or another entry choice.
-
-Chooser edits, person-directed home changes and observed active home-class
-changes while Start is pending supersede that attempt's chooser revision,
-including an edit away and back to the same value. A native generation update
-within the same home class alone does not select a new choice. An older
-completion cannot consume the newer choice. Start requires an entry compatible
-with the current home and admits only one pending press. These form controls do
-not change native runtime, account or provider settings. Mounted App checks in
-`app/tests/conversation-panel.test.mjs` cover the consuming path; they establish
-renderer behavior with synthetic native replies, not provider qualification.
-
 #### Current native provider admission
 
 Ordinary Start, Continue as and a clean trial share the current Rust start
@@ -1268,6 +1248,28 @@ assessment's recommendations 3–5):
 - Both routes face supplier churn (the assessment's correction: 0.160.0 was
   published three days after 0.158.0); the pin is a design reference, not
   lasting stability.
+
+## Current implementation conditions
+
+### Current new-conversation chooser
+
+The ordinary Start form owns a new-conversation choice separately from the
+native selection observation and existing conversations. A confirmed admitted
+start consumes only the model, provider and entry choice used for that attempt;
+the next conversation starts with no selection. The admitted conversation opens
+in the returned source generation, and the unsent composer and role choice stay
+intact. A failed, unknown or identity-incomplete result retains the choice for
+an explicit retry; it does not cause an automatic retry or another entry choice.
+
+Chooser edits, person-directed home changes and observed active home-class
+changes while Start is pending supersede that attempt's chooser revision,
+including an edit away and back to the same value. A native generation update
+within the same home class alone does not select a new choice. An older
+completion cannot consume the newer choice. Start requires an entry compatible
+with the current home and admits only one pending press. These form controls do
+not change native runtime, account or provider settings. Mounted App checks in
+`app/tests/conversation-panel.test.mjs` cover the consuming path; they establish
+renderer behavior with synthetic native replies, not provider qualification.
 
 ## UNRESOLVED
 
