@@ -16,7 +16,7 @@ import { NativeActivityView } from "./NativeActivity";
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread, requestScopeKey, requestReplyGuarded, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -39,7 +39,7 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: "api-key", label: "API key in separate configured key home" }]
   : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -155,7 +155,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
     {selected && <div aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} />)}
+      {ordered.map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
@@ -806,6 +806,17 @@ export function App() {
     }
   };
   const [host, setHost] = useState<Json>(null);
+  // Safe reply observations outlive a card's move between the selected chat
+  // and other requests. They are transient App UI facts, never register rows.
+  const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
+  const replyObservationsRef = useRef<Record<string, RequestReplyObservation>>({});
+  const pendingReplies = useRef(new Map<string, Promise<RequestReplyObservation>>());
+  const observeReply = (observation: RequestReplyObservation) => {
+    const next = { ...replyObservationsRef.current, [observation.scope]: observation };
+    replyObservationsRef.current = next;
+    setReplyObservations(next);
+    return observation;
+  };
   const fileActPanel = useRef<FileActPanelHandle>(null);
   const [fileActBusy, setFileActBusy] = useState(false);
   const openArrivalFileAct: OpenArrivalFileAct = async (runRef, arrivalRecordId) => {
@@ -895,11 +906,53 @@ export function App() {
     if (failed) throw failure;
   };
 
-  const answerRequest = async (r: Json, answer: Json) => {
+  const readOriginalRequest: ReadRequestCustody = async r => {
+    const scope = requestScopeKey(r);
     try {
-      const result = await invoke("answer_native_request", { generation: r.generation, requestId: r.requestIdentity, answer });
+      const snapshot = await refresh();
+      const current = (snapshot?.serverRequests ?? []).find((entry: Json) => requestScopeKey(entry) === scope);
+      return current ? { scope, available: true, state: current.state } : { scope, available: false, reason: "The original request is not present in this source view." };
+    } catch (error) { return { scope, available: false, reason: String(error) }; }
+  };
+  const readRequestCustody: ReadRequestCustody = async r => {
+    const scope = requestScopeKey(r);
+    const previous = replyObservationsRef.current[scope];
+    const custody = await readOriginalRequest(r);
+    // A stale observer completion cannot replace a newer command/read result.
+    if (previous && replyObservationsRef.current[scope] === previous) observeReply({ ...previous, custody });
+    return custody;
+  };
+  const answerRequest: RequestAnswer = (r, answer) => {
+    const scope = requestScopeKey(r);
+    const pending = pendingReplies.current.get(scope);
+    if (pending) return pending;
+    const previous = replyObservationsRef.current[scope];
+    if (requestReplyGuarded(previous, scope)) return Promise.resolve(previous);
+    observeReply({ scope, command: { kind: "pending" }, custody: { scope, available: false } });
+    // Only this IPC phase holds the entered answer. The App owner retains
+    // safe observations, and drops its promise latch when IPC completes.
+    const command = Promise.resolve().then(() => {
+      const input = answer;
+      answer = undefined;
+      return invoke<Json>("answer_native_request", { generation: r.generation, requestId: r.requestIdentity, answer: input });
+    }).then<RequestReplyObservation["command"], RequestReplyObservation["command"]>(result => {
+      // The Host reports a local write separately from supplier acknowledgment.
+      // Native confirmation dismissal resolves without attempting that write.
+      if (result && !Object.hasOwn(result, "error") && result.replyWriteResult === "written" && result.acknowledgment === "not-observed" && result.state !== "dismissed") return { kind: "written" };
+      if (result?.state === "dismissed" && result.replyWriteResult === "not-attempted" && !Object.hasOwn(result, "error")) return { kind: "dismissed" };
+      return { kind: "unconfirmed", writeResult: ["write-failed", "unknown", "not-attempted"].includes(result?.replyWriteResult) ? result.replyWriteResult : "unconfirmed response" };
+    }, error => ({ kind: "rejected", reason: String(error) }));
+    const operation = command.then(async result => {
+      pendingReplies.current.delete(scope);
+      const received = observeReply({ scope, command: result, custody: { scope, available: false, reason: "Reading the original request state." } });
       setMessage(`Native answer: ${JSON.stringify(result)}`);
-    } finally { await refresh(); }
+      // Observer failure cannot replace the command's actual outcome or reason.
+      const custody = await readOriginalRequest(r);
+      if (replyObservationsRef.current[scope] === received) return observeReply({ ...received, custody });
+      return replyObservationsRef.current[scope];
+    });
+    pendingReplies.current.set(scope, operation);
+    return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
   const openRequests = (thread: string | null) => {
@@ -1005,7 +1058,7 @@ export function App() {
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 
-      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
@@ -1034,7 +1087,7 @@ export function App() {
         <div id="other-requests">
           <h3>Requests outside the selected conversation</h3>
           <p>Requests of the selected conversation are shown beside it above. Select another conversation to answer its requests there.</p>
-          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} />)}
+          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]} />)}
         </div>
         <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
         <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
