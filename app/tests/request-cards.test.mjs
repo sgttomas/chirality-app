@@ -201,3 +201,215 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   assert.equal(sent.length,2,'nothing more was sent');
   await React.act(()=>root.unmount());
 });
+
+// Actual App -> native request card promise boundary. The controlled peer
+// returns Host::answer_server_request's write observation, then loses only
+// the window's custody refresh; it never invokes a supplier or native dialog.
+async function withReplyObserver(check, {outcome='written',failRefresh=true,permission=false,beforeReply,afterCommandRead,withConversation=false,identity}={}) {
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();const {createRoot}=await import('react-dom/client');
+  const {loadSrc}=await import('./support/load-src.mjs');const {App}=loadSrc('App');
+  const container=document.createElement('div');document.body.appendChild(container);let root=createRoot(container);
+  const original=permission?request('item/fileChange/requestApproval',{threadId:'T',turnId:'u',itemId:'i',reason:'Synthetic requested file change'},{id:identity??'original-permission'}):
+    request('item/tool/requestUserInput',{threadId:'T',turnId:'u',itemId:'i',questions:[{id:'q',header:'Choice',question:'Which option?',isOther:false,isSecret:false,options:[{label:'One',description:'Use one'}]}]},{id:identity??'original-question'});
+  let custody=original,other=null,stale=null,currentOutcome=outcome;
+  let commandSeen=false,refreshUnavailable=false;const calls=[];
+  const snapshot=()=>({state:'ready',generation:(other??custody).generation,threads:withConversation?[{generation:g,threadId:'T',model:'synthetic',modelProvider:'synthetic',appRole:{standing:'unknown'}}]:[],homeRouting:{activeModeHomeClass:'account'},serverRequests:[other??stale??custody]});
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+    calls.push({command,args});
+    if(command==='host_status'){const delayed=commandSeen&&afterCommandRead?await afterCommandRead(snapshot()):null;if(refreshUnavailable)throw Error('reconnect snapshot unavailable');return delayed??snapshot();}
+    if(command==='decision_view')return {rows:[]};
+    if(command==='native_confirmation_content')return [];
+    if(command==='read_home_access')return {};
+    assert.equal(command,'answer_native_request');commandSeen=true;
+    if(beforeReply)await beforeReply();
+    refreshUnavailable=failRefresh;
+    if(currentOutcome==='refused'){custody={...custody,state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved'}};throw 'already-resolved';}
+    if(currentOutcome==='refused-pending')throw 'invalid-answer';
+    if(currentOutcome==='dismissed')return {state:'dismissed',replyWriteResult:'not-attempted'};
+    if(currentOutcome==='write-failed'){custody={...custody,state:'settle-write-failed',replyWriteResult:'write-failed'};throw 'synthetic reply IO failed';}
+    if(currentOutcome==='unknown')return {replyWriteResult:'unknown'};
+    custody={...custody,state:permission?'declined':'answered',replyWriteResult:'written',settlement:{kind:permission?'decline':'answer',origin:{class:'person-via-interaction'}}};
+    return {replyWriteResult:'written',acknowledgment:'not-observed'};
+  }};
+  const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
+  const button=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
+  const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send current question answers…');
+  const render=()=>React.act(async()=>root.render(React.createElement(App)));
+  try {
+    await render();
+    await check({container,calls,props,button,send,get custody(){return custody;},original,
+      async choose(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());},
+      async answer(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());await React.act(async()=>props(send()).onClick());},
+      async read(){await React.act(async()=>props(button('Read current request state')).onClick());},
+      async selectConversation(threadId){const select=container.querySelectorAll(node=>node.localName==='select'&&node.parentNode.textContent.startsWith('Current-generation conversation '))[0];await React.act(()=>props(select).onChange({target:{value:threadId?JSON.stringify([g,threadId]):''}}));},
+      allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},
+      staleSnapshot(){stale=structuredClone(original);},canonicalSnapshot(){stale=null;},
+      async swapSource(next){other=next;await React.act(async()=>props(button('Read native login policy and account')).onClick());},
+      async reconnect(){await React.act(()=>root.unmount());refreshUnavailable=false;root=createRoot(container);await render();},
+      get commandSeen(){return commandSeen;}});
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;}
+}
+
+test('a written native answer remains written when its observer refresh fails, without enabling a stale waiting reply',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();
+    assert.equal(ui.custody.state,'answered');assert.equal(ui.custody.replyWriteResult,'written');
+    assert.doesNotMatch(ui.container.textContent,/Last answer not taken:/,'an observer read failure cannot turn a completed native write into a rejected answer');
+    assert.match(ui.container.textContent,/request state unavailable/i);
+    assert.ok(!ui.send()||ui.props(ui.send()).disabled,'stale outstanding custody cannot invite another answer');
+    assert.deepEqual(ui.calls.filter(call=>call.command==='answer_native_request'),[{command:'answer_native_request',args:{generation:g,requestId:'original-question',answer:{answers:{q:{answers:['One']}}}}}]);
+    await ui.reconnect();
+    assert.match(ui.container.textContent,/Your answer was written to Codex; Codex has not confirmed it/);
+    assert.equal(ui.send(),undefined);assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1,'reopening does not resend');
+  });
+});
+
+test('moving the same original card between the request list and conversation keeps its written-reply guard',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();assert.equal(!!ui.send(),false);
+    await ui.selectConversation('T');
+    assert.equal(!!ui.send(),false,'moving an answered original request into its conversation must not reopen stale reply controls');
+    assert.match(ui.container.textContent,/The reply was written locally/);
+    await ui.selectConversation('');assert.equal(!!ui.send(),false);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+  },{withConversation:true});
+});
+
+test('moving a pending original request keeps its command latch without issuing another reply',async()=>{
+  let release;const held=new Promise(resolve=>{release=resolve;});
+  await withReplyObserver(async ui=>{
+    await ui.choose();let pending;
+    await React.act(()=>{pending=ui.props(ui.send()).onClick();});
+    await ui.selectConversation('T');assert.equal(!!ui.send(),false);
+    assert.match(ui.container.textContent,/Answer command in progress/);
+    await ui.selectConversation('');assert.equal(!!ui.send(),false);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+    release();await React.act(async()=>{await pending;});
+    assert.equal(!!ui.send(),false);assert.match(ui.container.textContent,/The reply was written locally/);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+  },{withConversation:true,beforeReply:()=>held});
+});
+
+test('an explicit native decline is written without becoming supplier acknowledgment or an inferred answer',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();assert.equal(ui.custody.state,'declined');
+    assert.match(ui.container.textContent,/The reply was written locally/);
+    assert.doesNotMatch(ui.container.textContent,/Last answer not taken|Codex reported the request resolved/);
+    await ui.reconnect();assert.match(ui.container.textContent,/You declined; written to Codex; Codex has not confirmed it/);
+    assert.deepEqual(ui.calls.filter(call=>call.command==='answer_native_request').map(call=>call.args),[{generation:g,requestId:'original-permission',answer:{decision:'decline'}}]);
+  },{permission:true});
+});
+
+test('dismissed native confirmation stays not-attempted and retry requires current original custody',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();assert.equal(ui.custody.state,'outstanding');
+    assert.match(ui.container.textContent,/Native confirmation dismissed; no reply write was attempted/);
+    assert.doesNotMatch(ui.container.textContent,/Last answer not taken:/);
+    assert.equal(ui.send(),undefined,'unavailable custody does not offer a fresh answer yet');
+    ui.allowRefresh();await ui.read();assert.ok(ui.send());
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1,'a custody read is never an answer or retry');
+    ui.replyAs('written');await ui.answer();
+    assert.equal(ui.custody.state,'answered');assert.equal(ui.send(),undefined);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2,'only the next explicit answer press retries');
+  },{outcome:'dismissed'});
+});
+
+test('supplier resolution after interruption remains a supplier resolution and its native refusal survives observer failure',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();
+    assert.equal(ui.custody.state,'resolved-by-supplier');
+    assert.match(ui.container.textContent,/Native answer command reported: already-resolved/);
+    assert.match(ui.container.textContent,/Request state unavailable: Error: reconnect snapshot unavailable/);
+    assert.equal(ui.send(),undefined);
+    const call=ui.calls.find(call=>call.command==='answer_native_request');
+    assert.deepEqual(call.args,{generation:g,requestId:'original-permission',answer:{decision:'decline'}});
+    ui.allowRefresh();await ui.read();
+    assert.match(ui.container.textContent,/Resolved by Codex before you answered/);
+    assert.doesNotMatch(ui.container.textContent,/You declined; written/,'the person’s refused decline does not become a settlement');
+    assert.equal(ui.send(),undefined);assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+  },{outcome:'refused',permission:true});
+});
+
+test('a rejected invalid answer can be retried only after current outstanding custody is read',async()=>{
+  await withReplyObserver(async ui=>{
+    await ui.answer();assert.match(ui.container.textContent,/Native answer command reported: invalid-answer/);assert.equal(ui.send(),undefined);
+    ui.allowRefresh();await ui.read();assert.ok(ui.send());
+    ui.replyAs('written');await ui.answer();assert.equal(ui.custody.state,'answered');
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2);
+  },{outcome:'refused-pending'});
+});
+
+test('failed or unconfirmed reply writes stay uncertain and are never upgraded or automatically retried',async()=>{
+  for(const outcome of ['write-failed','unknown'])await withReplyObserver(async ui=>{
+    await ui.answer();assert.equal(ui.send(),undefined);
+    assert.doesNotMatch(ui.container.textContent,/The reply was written locally|Last answer not taken:/);
+    if(outcome==='write-failed')assert.match(ui.container.textContent,/synthetic reply IO failed/);
+    else assert.match(ui.container.textContent,/Reply write outcome not established \(unknown\)/);
+    ui.allowRefresh();await ui.read();
+    assert.equal(ui.send(),undefined,'uncertain local evidence does not authorize another response');
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+    if(outcome==='write-failed')assert.match(ui.container.textContent,/Your answer could not be written; whether Codex received it is unknown/);
+  },{outcome});
+});
+
+test('a written reply guard survives a successful but stale outstanding refresh',async()=>{
+  await withReplyObserver(async ui=>{
+    ui.staleSnapshot();await ui.answer();
+    assert.equal(ui.custody.state,'answered');assert.equal(ui.send(),undefined);
+    assert.match(ui.container.textContent,/Last observed: Waiting for your answer/);
+    await ui.read();assert.equal(ui.send(),undefined,'another stale outstanding snapshot cannot undo the completed write');
+    ui.canonicalSnapshot();await ui.read();assert.match(ui.container.textContent,/Your answer was written to Codex; Codex has not confirmed it/);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+  },{failRefresh:false});
+});
+
+test('queued response presses write once, and an obsolete button cannot resend after completion',async()=>{
+  let release;const held=new Promise(resolve=>{release=resolve;});
+  await withReplyObserver(async ui=>{
+    await ui.choose();const click=ui.props(ui.send()).onClick;let pending,duplicate;
+    await React.act(()=>{pending=click();duplicate=click();});
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+    release();await React.act(async()=>{await pending;await duplicate;});
+    await React.act(async()=>{await click();});
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+  },{beforeReply:()=>held});
+});
+
+test('late reply refresh completion cannot attach its observation to another source or a lookalike typed request ID',async()=>{
+  for(const {next,identity} of [
+    {next:request('item/tool/requestUserInput',{threadId:'T',turnId:'u',itemId:'i',questions:[]},{id:'original-question',generation:{...g,home:'other-home'}})},
+    {next:request('item/tool/requestUserInput',{threadId:'T',turnId:'u',itemId:'i',questions:[]},{id:17}),identity:'17'},
+  ]) {
+    let release,reached;const held=new Promise(resolve=>{release=resolve;});const ready=new Promise(resolve=>{reached=resolve;});let hold=true;
+    await withReplyObserver(async ui=>{
+      await ui.choose();let pending;
+      await React.act(()=>{pending=ui.props(ui.send()).onClick();});
+      await ready;await ui.swapSource(next);
+      assert.ok(ui.send(),'the other original request remains independently answerable');
+      release();await React.act(async()=>{await pending;});
+      assert.ok(ui.send());assert.equal(ui.props(ui.send()).disabled,false);
+      const native=ui.container.querySelectorAll(node=>node.getAttribute('aria-label')==='Native reply observation');
+      assert.equal(native.length,0,'the completed earlier command supplies no local result to the other card');
+      assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
+      assert.equal(ui.calls.find(call=>call.command==='answer_native_request').args.requestId,identity??'original-question');
+    },{identity,failRefresh:false,afterCommandRead:async()=>{if(hold){hold=false;reached();await held;}}});
+  }
+});
+
+test('an older custody reread cannot replace the safe observation of a newer explicit reply',async()=>{
+  let release,reached;const held=new Promise(resolve=>{release=resolve;});const ready=new Promise(resolve=>{reached=resolve;});let reads=0;
+  await withReplyObserver(async ui=>{
+    await ui.answer();ui.allowRefresh();
+    await ui.read();await ready;
+    // The read is still held in the first card. Move to the same original
+    // request's other location and obtain a newer current custody observation.
+    await ui.selectConversation('T');await ui.read();assert.ok(ui.send());
+    ui.replyAs('written');await ui.answer();assert.equal(ui.custody.state,'answered');
+    release();await React.act(async()=>{await new Promise(resolve=>setImmediate(resolve));});
+    assert.equal(ui.send(),undefined,'the stale outstanding page cannot erase the newer written observation');
+    assert.match(ui.container.textContent,/The reply was written locally/);
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2,'only the two person-directed replies were invoked');
+  },{outcome:'dismissed',withConversation:true,afterCommandRead:async snapshot=>{reads++;if(reads===2){reached();await held;return snapshot;}}});
+});

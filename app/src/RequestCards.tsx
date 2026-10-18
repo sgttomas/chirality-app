@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { itemAnchorId, requestAnchorId } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -35,6 +35,34 @@ export function requestThread(request: Json): string | null {
 export function answerable(request: Json): boolean {
   return request?.state === "outstanding" && request?.classification === "known-answerable" && request?.originClass !== "named-service";
 }
+
+/** A UI observation belongs to the full H5 tuple and typed native ID. It
+ * supplies no request authority and contains no answer content. */
+export const requestScopeKey = (request: Json): string => JSON.stringify([
+  request?.generation?.appSession, request?.generation?.home, request?.generation?.spawnCounter,
+  typeof request?.requestIdentity, request?.requestIdentity,
+]);
+export type RequestCustodyObservation = { scope: string; available: boolean; state?: string; reason?: string };
+export type RequestReplyObservation = {
+  scope: string;
+  command: { kind: "pending" | "written" | "dismissed" } | { kind: "rejected"; reason: string } | { kind: "unconfirmed"; writeResult: string };
+  custody: RequestCustodyObservation;
+};
+export type RequestAnswer = (request: Json, answer: Json) => Promise<RequestReplyObservation | void>;
+export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
+
+function replyObservationWords(observation: RequestReplyObservation): string {
+  switch (observation.command.kind) {
+    case "pending": return "Answer command in progress; waiting for native confirmation or a reply write result.";
+    case "written": return "The reply was written locally. Codex receipt or action is not confirmed by that write.";
+    case "dismissed": return "Native confirmation dismissed; no reply write was attempted.";
+    case "rejected": return `Native answer command reported: ${observation.command.reason}. A complete local reply write is not established by this error alone.`;
+    case "unconfirmed": return `Reply write outcome not established (${observation.command.writeResult}); whether Codex received or acted on a reply is unknown.`;
+  }
+}
+export const requestReplyGuarded = (reply: RequestReplyObservation | null | undefined, scope: string): boolean => !!reply && reply.scope === scope &&
+  (reply.command.kind === "pending" || reply.command.kind === "written" || reply.command.kind === "unconfirmed" || !reply.custody.available ||
+    reply.custody.scope !== scope || reply.custody.state !== "outstanding");
 
 /** §4.1 card titles. */
 export function requestTitle(request: Json): string {
@@ -218,21 +246,58 @@ export function requestItem(request: Json, view: Json): Json {
 }
 
 // Request-local drafts are disposable. Secret content is never echoed or saved.
-export function NativeRequestCard({ request, view, answer }: { request: Json; view?: Json; answer: (r: Json, a: Json) => Promise<void> }) {
+export function NativeRequestCard({ request, view, answer, readRequest, observation }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [scope, setScope] = useState("turn");
   const [content, setContent] = useState("");
   const [rejection, setRejection] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const scopeKey = requestScopeKey(request);
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
+  const busyRef = useRef<{ scope: string } | null>(null);
+  const [busyScope, setBusyScope] = useState<string | null>(null);
+  const busy = busyScope === scopeKey;
+  const [scopedError, setScopedError] = useState<{ scope: string; message: string } | null>(null);
+  const setError = (message: string) => setScopedError({ scope: scopeKey, message });
+  const error = scopedError?.scope === scopeKey ? scopedError.message : "";
+  const [lastReply, setLastReply] = useState<RequestReplyObservation | null>(null);
+  const replyRef = useRef<RequestReplyObservation | null>(null);
+  if (observation?.scope === scopeKey) replyRef.current = observation;
+  const observeReply = (observation: RequestReplyObservation) => { replyRef.current = observation; setLastReply(observation); };
+  const reply = observation?.scope === scopeKey ? observation : lastReply?.scope === scopeKey ? lastReply : null;
+  // A completed write cannot be undone by a delayed outstanding snapshot.
+  // A dismissed/rejected command permits retry only after a source-bound
+  // custody read reports that exact request still outstanding.
+  const replyGuard = requestReplyGuarded(reply, scopeKey);
+  const unreconciled = answerable(request) && replyGuard;
   const p = request.nativeParameters ?? {};
   const method = request.method;
   const send = async (value: Json) => {
-    setBusy(true); setError("");
+    if (currentScope.current !== scopeKey || busyRef.current?.scope === scopeKey || !answerable(request) || requestReplyGuarded(replyRef.current, scopeKey)) return;
+    const token = { scope: scopeKey };
+    busyRef.current = token;
+    setBusyScope(scopeKey); setError("");
     // Remove drafts from the rendered control before crossing the IPC boundary.
     setDrafts({}); setContent(""); setRejection("");
-    try { await answer(request, value); } catch (e) { setError(refusalWords(String(e))); }
-    finally { setBusy(false); }
+    try {
+      let completion: ReturnType<RequestAnswer>;
+      try { completion = answer(request, value); }
+      finally { value = undefined; }
+      const observation = await completion;
+      if (currentScope.current === scopeKey && observation?.scope === scopeKey) observeReply(observation);
+    } catch (e) { if (currentScope.current === scopeKey) setError(refusalWords(String(e))); }
+    finally { if (busyRef.current === token) { busyRef.current = null; setBusyScope(null); } }
+  };
+  const reread = async () => {
+    if (!readRequest || !reply || busyRef.current?.scope === scopeKey) return;
+    const token = { scope: scopeKey };
+    busyRef.current = token; setBusyScope(scopeKey);
+    try {
+      const custody = await readRequest(request);
+      if (currentScope.current === scopeKey && custody.scope === scopeKey && replyRef.current?.scope === scopeKey) observeReply({ ...replyRef.current, custody });
+    } catch (e) {
+      if (currentScope.current === scopeKey && replyRef.current?.scope === scopeKey) observeReply({ ...replyRef.current, custody: { scope: scopeKey, available: false, reason: String(e) } });
+    } finally { if (busyRef.current === token) { busyRef.current = null; setBusyScope(null); } }
   };
   const decisionButton = (decision: Json, value: Json, blocked = false) => <button key={JSON.stringify(decision)} disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)} <code>{JSON.stringify(decision)}</code></button>;
   const modern = method === COMMAND || method === FILE_CHANGE;
@@ -249,12 +314,17 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
   const a14 = TOOL_PERMISSION.includes(method);
   return <article id={requestAnchorId(request.generation, request.requestIdentity)} style={{ borderTop: "1px solid #ccc", padding: 8 }}>
     <h3>{requestTitle(request)}</h3>
-    <p><b>{cardState(request)}</b></p>
+    <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>
+    {reply && <section aria-label="Native reply observation">
+      <p>{replyObservationWords(reply)}</p>
+      {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason || "the original request custody could not be read"}</p>}
+      {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
+    </section>}
     <About request={request} item={item} />
     <Subject request={request} item={item} />
     {a14 && <p>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {(method === QUESTION || method === ELICITATION) && <p>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
-    {answerable(request) && <div>
+    {answerable(request) && !replyGuard && <div>
       {forms.map(formButton)}
       {modern && forms.length === 0 && <p>This request offers no answer forms.</p>}
       {legacy && <div>
