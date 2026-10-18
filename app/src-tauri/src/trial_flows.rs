@@ -956,7 +956,12 @@ fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value
     let evidence = home.host.history_wait(&dispatch, READ_WAIT)?;
     let response = &evidence["response"];
     if let Some(error) = response.get("error") {
-        return Err(format!("{method} answered with an error: {error}"));
+        // These read failures can become durable fidelity/record limits. The
+        // full native error stays in the transient Host source observation;
+        // neither its message, data nor unknown fields belong in that record.
+        let code = error.get("code").and_then(Value::as_i64)
+            .map(|code| code.to_string()).unwrap_or_else(|| "unavailable".into());
+        return Err(format!("{method} answered with an error (native code {code}; native error text/data withheld)"));
     }
     let result = response
         .get("result")

@@ -7832,6 +7832,8 @@ for line in sys.stdin:
  elif method=='thread/turns/list' and f['params'].get('threadId','').startswith('child'):
   if mode('child-mode')=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable child'}});continue
+  if mode('child-mode')=='error-content':
+   emit({'id':f['id'],'error':{'code':-32042,'message':'unreadable source echoed fixture-private-message','data':{'transcript':'fixture-private-data','fixture-private-key':{'nested':'fixture-private-nested'}},'fixture-private-top':'opaque native error extension'}});continue
   result={'data':[] if mode('child-mode')=='noturn' else [{'id':'child-turn','status':'completed','items':[],'error':None,'itemsView':'summary'}],'nextCursor':None}
  elif method=='thread/items/list' and f['params'].get('threadId','').startswith('child'):
   trial=[t for t in inputs if t.startswith('[Chirality] Workflow trial')]
@@ -7856,6 +7858,8 @@ for line in sys.stdin:
   m=mode('items-mode');seen=text;cid=client
   if m=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
+  if m=='error-content':
+   emit({'id':f['id'],'error':{'code':-32043,'message':'unreadable source echoed fixture-private-message','data':{'transcript':'fixture-private-data','fixture-private-key':{'nested':'fixture-private-nested'}},'fixture-private-top':'opaque native error extension'}});continue
   if m=='framing':seen=text.replace('[Chirality] Workflow run start:','[Chirality] Workflow run started:',1)
   if m=='differ':seen=text.replace('\n','\r\n')
   if m=='noclient':cid='other-client'
@@ -8280,7 +8284,7 @@ for line in sys.stdin:
         tick_reads(&peer,&root,&descendant_view(&peer,&["child-d","child-e"]));
         let rows=trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]));
         assert_eq!(rows[0]["subAgent"]["unread"],json!(["child-d","child-e"]));
-        assert!(rows[0]["subAgent"]["unreadReasons"].as_array().unwrap().iter().any(|r|r["thread"]=="child-e"&&r["reason"].as_str().unwrap().contains("fixture unreadable child")),"the reason a read failed is reported");
+        assert!(rows[0]["subAgent"]["unreadReasons"].as_array().unwrap().iter().any(|r|r["thread"]=="child-e"&&r["reason"].as_str().unwrap().contains("thread/turns/list answered with an error (native code -32000;")),"the failed native method and code are reported without copying its payload");
         root.lock().unwrap().link_trial_child(&reference,"child-d",true,&descendant_view(&peer,&["child-d","child-e"])).unwrap();
         let rows=trial_rows(&root.lock().unwrap(),&descendant_view(&peer,&[]));
         assert_eq!(rows[0]["subAgent"]["state"],"linked");assert_eq!(rows[0]["subAgent"]["thread"],"child-d");
@@ -8380,6 +8384,73 @@ for line in sys.stdin:
         assert_ne!(again["recorded"][0]["fidelity"]["state"],"verbatim");
         let stored=links(&peer).observations(&reference);
         assert!(!serde_json::to_string(&stored).unwrap().contains("gAAAAfixture"),"schema refusal must not copy rejected native content into durable fidelity limits");
+    }
+
+    fn check_native_history_error_content_is_transient_not_durable_trial_fidelity(kind: &str) {
+        // Give each regression its own records store, including its
+        // first-time administrative publication.
+        let store = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("trial-error-records-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: store, placement: crate::records_store::Placement::Test, limits: vec![] })));
+        struct ResetStore;
+        impl Drop for ResetStore { fn drop(&mut self) { crate::records_store::use_store_for_test(None); } }
+        let _store = ResetStore;
+        let peer = Peer::new();
+        let mut root = trial_root(&peer);
+        let g = peer.generation.clone();
+        let reference = root.prepare_trial(kind, DRAFT, Some((&g, "thread")), Some(&peer.home), peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let thread = if kind == "clean" {
+            root.begin_clean_start(&reference).unwrap();
+            let thread = peer.second_thread();
+            root.mark_clean_started(&reference, &g, &thread);
+            thread
+        } else { "thread".to_owned() };
+        let root = Mutex::new(root);
+        trial_flows::send_trial(&root, &peer.home, &reference, &g, &thread, "").unwrap();
+        let view = if kind == "delegated" {
+            peer.set_mode("child-mode", "error-content");
+            let view = descendant_view(&peer, &["child-s"]);
+            assert!(tick_reads(&peer, &root, &view).is_empty());
+            root.lock().unwrap().link_trial_child(&reference, "child-s", true, &view).unwrap();
+            view
+        } else {
+            peer.set_mode("items-mode", "error-content");
+            let ended = json!({"home":g["home"],"generation":g,"items":[],"descendants":[],"turns":[{"threadId":thread,"id":"turn","status":"completed"}]});
+            let recorded = tick_reads(&peer, &root, &ended);
+            assert_eq!(recorded[0]["fidelity"]["state"], "not checked");
+            ended
+        };
+        let again = trial_flows::read_trial_again(&root, &peer.home, &reference, &view).unwrap();
+        assert_eq!(again["recorded"][0]["fidelity"]["state"], "not checked");
+        if kind == "delegated" {
+            assert_eq!(trial_rows(&root.lock().unwrap(), &view)[0]["readAgain"]["offered"], true);
+        }
+        // The original supplier reply is transient source evidence. Both
+        // error.message and arbitrary error.data can contain native text.
+        let journal = serde_json::to_string(&peer.home.host.journal()).unwrap();
+        for canary in ["fixture-private-message", "fixture-private-data", "fixture-private-key", "fixture-private-nested", "fixture-private-top"] {
+            assert!(journal.contains(canary), "{kind}: raw transient reply remains available");
+        }
+        // Reopen actual files, rather than only examining the returned row.
+        let observations = links(&peer).observations(&reference);
+        assert!(observations.iter().any(|r| r["fidelity"]["state"] == "not checked"));
+        let stored = serde_json::to_string(&observations).unwrap();
+        for canary in ["fixture-private-message", "fixture-private-data", "fixture-private-key", "fixture-private-nested", "fixture-private-top"] {
+            assert!(!stored.contains(canary), "{kind}: native error content must not become a durable fidelity limit");
+        }
+        assert!(stored.contains(if kind == "clean" { "-32043" } else { "-32042" }), "safe numeric code retains the native failure distinction");
+        let sends = peer.turn_starts();
+        peer.set_mode(if kind == "clean" { "items-mode" } else { "child-mode" }, "given");
+        let recovered = trial_flows::read_trial_again(&root, &peer.home, &reference, &view).unwrap();
+        assert_eq!(recovered["recorded"][0]["fidelity"]["state"], "verbatim", "the same explicit read can succeed later");
+        assert_eq!(peer.turn_starts(), sends, "neither failure nor a repeated read resends the trial");
+    }
+    #[test]
+    fn native_history_error_content_is_not_durable_delegated_trial_fidelity() {
+        check_native_history_error_content_is_transient_not_durable_trial_fidelity("delegated");
+    }
+    #[test]
+    fn native_history_error_content_is_not_durable_clean_trial_fidelity() {
+        check_native_history_error_content_is_transient_not_durable_trial_fidelity("clean");
     }
 
     // Review of #1260 (5): the sub-agent's not-checkable reading is the child
