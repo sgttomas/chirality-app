@@ -4956,3 +4956,7 @@ mod hosting_delegation_reply_tests;
 #[cfg(test)]
 #[path = "records_continuity_tests.rs"]
 mod records_continuity_tests;
+
+#[cfg(test)]
+#[path = "hosting_recorded_replay_tests.rs"]
+mod recorded_replay_tests;

@@ -856,6 +856,15 @@ The handshake uses its own unique system-temp home, a local provider at
 no credential, and checks its sampled process-group sockets. Test-owned scratch
 files are cleaned after consumers finish.
 
+## Recorded ST-5 and NV-04 seam replay
+
+The offline recorded peer and actual Host/recovery tests are described in
+[Recorded seam replay](../execution/PKG-01/DEL-01-01/Design/RECORDED_SEAM_REPLAY.md).
+They exercise preserved redacted supplier traffic against current App source,
+including unknown acknowledgment after process loss and a delegated child
+outliving its parent. This is development verification; the existing C1 EXP
+records remain capture-only and no candidate qualification is claimed.
+
 ## Group B offline examination support
 
 `examination/check.py` checks EXP result and PKG identity files and their explicit
