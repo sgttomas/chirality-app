@@ -134,15 +134,304 @@ fn exchange<T>(
 }
 
 #[test]
+fn observer_rebuild_oversized_own_replies_do_not_feed_an_automatic_read_loop() {
+    let fixture = Fixture::new();
+    let host = &fixture.host;
+    {
+        let mut inner = host.inner.0.lock().unwrap();
+        inner.journal = super::super::observer_journal::ObserverJournal::with_limits(20, 512);
+        inner.journal.begin_generation(fixture.generation.clone());
+    }
+    let ledger = fixture.ledger();
+    let custody = host.custody_events();
+    let metadata = json!({"thread":native_thread("thread"),"nativeUnknownField":"original metadata extension".repeat(100)});
+    let summaries = json!({"data":[],"nextCursor":null,"nativeUnknownField":"original summary extension".repeat(100)});
+    let before = host.observe_scoped(&fixture.generation, &Value::Null, 0);
+    assert_eq!(before["gap"], true);
+    let (attempts, wire) = exchange(
+        host,
+        vec![
+            json!({"result":metadata.clone()}),
+            json!({"result":summaries.clone()}),
+        ],
+        || {
+            let attempts = host.observer_rebuild_reads(Duration::from_secs(1));
+            let read = target(host);
+            assert_eq!(read["status"], "partial");
+            assert_eq!(read["cut"], 0);
+            assert_eq!(read["metadata"], metadata);
+            assert_eq!(read["turns"], summaries);
+            let floor = host.inner.0.lock().unwrap().journal.omitted_through();
+            assert_eq!(
+                floor, 2,
+                "both original oversized replies still advance the public omitted-through cut"
+            );
+            for _ in 0..3 {
+                let attached = host.observe_scoped(&fixture.generation, &fixture.generation, 0);
+                assert_eq!(attached["gap"], true, "the gap remains public truth");
+                assert_eq!(
+                    host.observer_rebuild_reads(Duration::from_millis(5)),
+                    0,
+                    "the OA reader's own oversized replies must not cause more history RPCs"
+                );
+            }
+            let held = target(host);
+            assert_eq!(held["status"], "partial");
+            assert_eq!(
+                held["cut"], 0,
+                "the old read never claims the new omission cut"
+            );
+            assert_eq!(held["suppressedCut"], 2);
+            assert_eq!(
+                held["suppressionReason"],
+                "no-new-non-observer-source-activity"
+            );
+            attempts
+        },
+    );
+    assert_eq!(
+        (attempts, wire.len(), host.client_requests().len()),
+        (1, 2, 2)
+    );
+    for (request, expected) in wire.iter().zip([&metadata, &summaries]) {
+        let source = host
+            .source_request(&fixture.generation, &request["id"])
+            .unwrap();
+        assert_eq!(
+            &source.evidence()["response"]["result"],
+            expected,
+            "private original response remains whole"
+        );
+    }
+    // New admitted non-reader source input plus a new omission cut enables
+    // one further attempt; that attempt's own replies become quiet again.
+    let external = json!({"method":"fixture/external-native-input","params":{"nativeUnknownField":"external notification".repeat(100)}});
+    host.on_line(&serde_json::to_vec(&external).unwrap(), &fixture.generation);
+    assert_eq!(host.inner.0.lock().unwrap().journal.omitted_through(), 3);
+    host.observe_scoped(&fixture.generation, &fixture.generation, 0);
+    let (_, next) = exchange(
+        host,
+        vec![json!({"result":metadata}), json!({"result":summaries})],
+        || {
+            assert_eq!(host.observer_rebuild_reads(Duration::from_secs(1)), 1);
+            assert_eq!(target(host)["cut"], 3);
+            host.observe_scoped(&fixture.generation, &fixture.generation, 0);
+            assert_eq!(host.observer_rebuild_reads(Duration::from_millis(5)), 0);
+        },
+    );
+    assert_eq!((next.len(), host.client_requests().len()), (2, 4));
+    assert_eq!(host.inner.0.lock().unwrap().journal.omitted_through(), 5);
+    assert_eq!(target(host)["suppressedCut"], 5);
+    assert_eq!(fixture.ledger(), ledger);
+    assert_eq!(host.custody_events(), custody);
+}
+
+#[test]
+fn observer_rebuild_own_cut_suppression_preserves_failure_and_admits_new_targets_once() {
+    let generation = generation(1);
+    let mut queue = ObserverRebuild::default();
+    queue.request(&generation, 0, vec!["a".into()]);
+    queue.record_source_activity(&generation, 1);
+    let failed = queue.begin(&generation).unwrap();
+    queue.finish(
+        &failed,
+        failed.result(
+            Reading::default(),
+            Some(Failure::Unavailable("fixture-unavailable")),
+        ),
+    );
+    queue.request(&generation, 4, vec!["a".into()]);
+    assert!(queue.begin(&generation).is_none());
+    let held = queue.snapshot()["targets"][0].clone();
+    assert_eq!(held["status"], "unavailable");
+    assert_eq!(held["cut"], 0);
+    assert_eq!(held["requestedCut"], 4);
+    assert_eq!(held["suppressedCut"], 4);
+    assert_eq!(held["sourceActivityPosition"], 1);
+    queue.request(&generation, 4, vec!["a".into(), "b".into()]);
+    let new_target = queue.begin(&generation).unwrap();
+    assert_eq!(
+        new_target.thread, "b",
+        "another target's read never suppresses a genuinely new target"
+    );
+    queue.finish(&new_target, new_target.result(Reading::default(), None));
+    assert!(queue.begin(&generation).is_none());
+    queue.record_source_activity(&generation, 6);
+    assert!(
+        queue.begin(&generation).is_some(),
+        "a previously requested newer gap is eligible after actual external activity"
+    );
+}
+
+#[test]
+fn observer_rebuild_source_activity_is_original_correlation_not_native_labels_or_server_ids() {
+    let fixture = Fixture::new();
+    let host = &fixture.host;
+    let (mut child, mut reader) = pipe(host);
+    let query = crate::native_history::workspace_read(
+        "observer-home",
+        &fixture.generation,
+        "thread/read",
+        json!({"threadId":"thread","includeTurns":false}),
+    )
+    .unwrap();
+    let own = host
+        .history_dispatch_by(
+            &query,
+            json!({"kind":"app-rule","name":"observer-history-read"}),
+        )
+        .unwrap();
+    let request = rpc(&mut reader);
+    let activity = || status(host)["sourceActivityPosition"].as_u64().unwrap();
+    assert_eq!(activity(), 0);
+    // The incoming ID alone cannot hide an independent server request.
+    host.on_line(&serde_json::to_vec(&json!({"id":request["id"],"method":"item/fileChange/requestApproval","params":{"threadId":"thread","turnId":"turn","itemId":"item"},"initiator":{"kind":"app-rule","name":"observer-history-read"}})).unwrap(), &fixture.generation);
+    assert_eq!(activity(), 1);
+    assert_eq!(host.snapshot()["serverRequests"][0]["state"], "outstanding");
+    // Same spelling, different native ID type: this is not the pending client.
+    host.on_line(&serde_json::to_vec(&json!({"id":request["id"].as_u64().unwrap().to_string(),"result":{},"initiator":{"kind":"app-rule","name":"observer-history-read"}})).unwrap(), &fixture.generation);
+    assert_eq!(activity(), 2);
+    assert!(own.evidence()["response"].is_null());
+    let reply = json!({"id":request["id"],"result":{"thread":native_thread("thread")}});
+    host.on_line(&serde_json::to_vec(&reply).unwrap(), &fixture.generation);
+    assert_eq!(
+        activity(),
+        2,
+        "only the actual original pending OA response is excluded"
+    );
+    assert_eq!(own.evidence()["response"], reply);
+    host.on_line(&serde_json::to_vec(&reply).unwrap(), &fixture.generation);
+    assert_eq!(
+        activity(),
+        4,
+        "an uncorrelated duplicate is not a new matching pending response"
+    );
+    let person = host.history_dispatch(&query).unwrap();
+    let person_request = rpc(&mut reader);
+    host.on_line(&serde_json::to_vec(&json!({"id":person_request["id"],"result":{"thread":native_thread("thread")},"initiator":{"kind":"app-rule","name":"observer-history-read"},"requestRef":own.source().request_ref()})).unwrap(), &fixture.generation);
+    assert_eq!(
+        activity(),
+        5,
+        "an incoming label/reference cannot rewrite the person's original private initiator"
+    );
+    assert!(!person.evidence()["response"].is_null());
+    let mut foreign = fixture.generation.clone();
+    foreign["home"] = json!("other-home");
+    host.on_line(
+        &serde_json::to_vec(&json!({"method":"fixture/foreign"})).unwrap(),
+        &foreign,
+    );
+    assert_eq!(activity(), 5);
+    {
+        Host::close_generation(&mut host.inner.0.lock().unwrap());
+    }
+    host.on_line(
+        &serde_json::to_vec(&json!({"method":"fixture/closed"})).unwrap(),
+        &fixture.generation,
+    );
+    assert_eq!(
+        activity(),
+        5,
+        "only actual current/open receipt admission updates activity"
+    );
+    let mut next = fixture.generation.clone();
+    next["spawnCounter"] = json!(2);
+    {
+        let mut inner = host.inner.0.lock().unwrap();
+        inner.generation = next.clone();
+        inner.journal.begin_generation(next.clone());
+        inner.observer_rebuild.reset(&next);
+        inner.state = "ready".into();
+    }
+    assert_eq!(
+        activity(),
+        0,
+        "the actual source installation reset does not inherit an old generation's activity"
+    );
+    host.on_line(
+        &serde_json::to_vec(&json!({"method":"fixture/old-source-after-install"})).unwrap(),
+        &fixture.generation,
+    );
+    assert_eq!(
+        activity(),
+        0,
+        "a late old-source frame cannot create activity in the new generation"
+    );
+    *host.stdin.lock().unwrap() = None;
+    assert!(child.wait().unwrap().success());
+}
+
+#[test]
+fn observer_rebuild_external_activity_during_an_own_read_remains_eligible_after_finish() {
+    let fixture = Fixture::new();
+    let host = &fixture.host;
+    {
+        let mut inner = host.inner.0.lock().unwrap();
+        inner.journal = super::super::observer_journal::ObserverJournal::with_limits(20, 512);
+        inner.journal.begin_generation(fixture.generation.clone());
+    }
+    host.observe_scoped(&fixture.generation, &Value::Null, 0);
+    let (mut child, mut reader) = pipe(host);
+    let source = Arc::clone(host);
+    let generation = fixture.generation.clone();
+    let worker = std::thread::spawn(move || {
+        for (index, result) in [
+            json!({"thread":native_thread("thread")}),
+            json!({"data":[],"nextCursor":null}),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let request = rpc(&mut reader);
+            if index == 0 {
+                source.on_line(&serde_json::to_vec(&json!({"method":"fixture/external-during-read","params":{"extension":"source activity".repeat(100)}})).unwrap(), &generation);
+                source.observe_scoped(&generation, &generation, 0);
+            }
+            source.on_line(
+                &serde_json::to_vec(&json!({"id":request["id"],"result":result})).unwrap(),
+                &generation,
+            );
+        }
+    });
+    assert_eq!(host.observer_rebuild_reads(Duration::from_secs(1)), 1);
+    worker.join().unwrap();
+    *host.stdin.lock().unwrap() = None;
+    assert!(child.wait().unwrap().success());
+    let queued = target(host);
+    assert_eq!(queued["status"], "queued");
+    assert_eq!(queued["cut"], 1);
+    assert_eq!(
+        queued["previousAttempt"]["sourceActivityPosition"], 0,
+        "capture activity at begin, not finish"
+    );
+    assert_eq!(status(host)["sourceActivityPosition"], 1);
+    exchange(
+        host,
+        vec![
+            json!({"result":{"thread":native_thread("thread")}}),
+            json!({"result":{"data":[],"nextCursor":null}}),
+        ],
+        || {
+            assert_eq!(host.observer_rebuild_reads(Duration::from_secs(1)), 1);
+            assert_eq!(target(host)["cut"], 1);
+            assert_eq!(target(host)["sourceActivityPosition"], 1);
+            assert_eq!(host.observer_rebuild_reads(Duration::from_millis(5)), 0);
+        },
+    );
+}
+
+#[test]
 fn observer_rebuild_queue_deduplicates_coalesces_and_never_claims_old_cut_coverage() {
     let generation = generation(1);
     let mut queue = ObserverRebuild::default();
     queue.request(&generation, 4, vec!["thread".into(), "thread".into()]);
+    queue.record_source_activity(&generation, 4);
     let before = queue.snapshot();
     queue.request(&generation, 4, vec!["thread".into()]);
     assert_eq!(queue.snapshot(), before);
     let old = queue.begin(&generation).unwrap();
     assert_eq!(queue.snapshot()["targets"][0]["status"], "reading");
+    queue.record_source_activity(&generation, 8);
     queue.request(&generation, 9, vec!["thread".into()]);
     queue.request(&generation, 7, vec!["thread".into()]);
     assert!(
@@ -180,8 +469,10 @@ fn observer_rebuild_advancing_first_target_cannot_starve_an_unread_target() {
     let generation = generation(1);
     let mut queue = ObserverRebuild::default();
     queue.request(&generation, 1, vec!["a".into(), "b".into()]);
+    queue.record_source_activity(&generation, 1);
     let first = queue.begin(&generation).unwrap();
     assert_eq!(first.thread, "a");
+    queue.record_source_activity(&generation, 2);
     queue.request(&generation, 2, vec!["a".into()]);
     queue.finish(&first, first.result(Reading::default(), None));
     queue.request(&generation, 3, vec!["a".into()]);
@@ -193,6 +484,7 @@ fn observer_rebuild_advancing_first_target_cannot_starve_an_unread_target() {
     queue.finish(&unread, unread.result(Reading::default(), None));
     let next = queue.begin(&generation).unwrap();
     assert_eq!((next.thread.as_str(), next.cut), ("a", 3));
+    queue.record_source_activity(&generation, 4);
     queue.request(&generation, 4, vec!["a".into(), "b".into()]);
     queue.finish(&next, next.result(Reading::default(), None));
     assert_eq!(

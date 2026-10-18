@@ -68,6 +68,33 @@ fn auth_request() -> Value {
 }
 
 #[test]
+fn stopping_keeps_public_receipts_continuous_until_actual_source_close() {
+    let host = host_with_limits(20, usize::MAX, "ready");
+    let owner = host.claim_native_projection().unwrap();
+    emit(&host, &notice(1), &g(1));
+    host.inner.0.lock().unwrap().state = "stopping".into();
+    emit(&host, &notice(2), &g(1));
+    emit(&host, &auth_request(), &g(1));
+    let observed = host.observe(&g(1), 1);
+    assert_eq!(observed["snapshot"]["state"], "stopping");
+    assert_eq!(observed["snapshot"]["generationClosed"], false);
+    assert_eq!(observed["gap"], false, "Stop removes control before it ends source observation");
+    assert_eq!(observed["position"], 3);
+    assert_eq!(observed["frames"].as_array().unwrap().iter().map(|frame|frame["position"].as_u64().unwrap()).collect::<Vec<_>>(), vec![2,3,3]);
+    let diagnostic = observed["frames"].as_array().unwrap().iter().find(|frame|frame["class"]=="private-auth-request-reply").unwrap();
+    assert_ne!(diagnostic["sourceClosedOrReplaced"], true, "a stopping source has not closed or been replaced");
+    assert_eq!(observed["snapshot"]["observerRebuild"]["sourceAvailable"], false, "background reads and controls still require ready");
+    assert!(observed["snapshot"]["observerRebuild"]["requestedCut"].is_null());
+    Host::close_generation(&mut host.inner.0.lock().unwrap());
+    let ended = host.observe(&g(1), 1);
+    assert_eq!(ended["snapshot"]["generationClosed"], true);
+    assert_eq!(ended["gap"], true);
+    assert_eq!(ended["frames"], json!([]));
+    let private = host.pending_native_projection(&owner).unwrap();
+    assert_eq!(private_frames(&private).len(), 3, "every actual receipt remains private input; the public diagnostic is not added");
+}
+
+#[test]
 fn default_count_limit_retains_parser_suffix_without_draining_private_delivery_or_writing() {
     let host = host_with_limits(4096, 16 * 1024 * 1024, "ready");
     let owner = host.claim_native_projection().unwrap();

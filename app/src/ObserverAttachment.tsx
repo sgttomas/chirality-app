@@ -104,6 +104,7 @@ export function ObserverAttachment({ host, observe = nativeObserve }: { host: Js
       {targets.map(target => <article key={target.threadId}>
         <h4>Recovered history · {target.threadId}</h4>
         <p>{target.status}{target.readAt ? ` · read ${target.readAt}` : ""}. This history does not establish current activity.</p>
+        {target.waitingForSourceActivity && <p>More events fell outside replay after this history read began. Another automatic read waits for new Codex activity; the earlier read does not cover the newer gap.</p>}
         {target.limit && <p>{historyLimit(target.limit)}</p>}
         {target.metadata?.thread && <p>Conversation: {target.metadata.thread.id}{target.metadata.thread.preview ? ` · ${target.metadata.thread.preview}` : ""}</p>}
         {Array.isArray(target.turns?.data) && <ul>{target.turns.data.map((turn: Json) => <li key={turn.id}>Turn {turn.id} · {turn.status ?? "status unavailable"} · recovered from Codex</li>)}</ul>}

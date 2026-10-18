@@ -941,8 +941,8 @@ impl Host {
         }
         let capability = i.records_capability.clone();
         let scope_matches = i.journal.scope() == Some(&i.generation);
-        let source_open = !i.server_requests.is_closed(&i.generation)
-            && matches!(i.state.as_str(), "ready" | "handshaking");
+        // Stopping removes control before EOF closes source observation.
+        let source_open = !i.server_requests.is_closed(&i.generation);
         let position = if scope_matches { i.journal.delivered_through() } else { 0 };
         let gap = *generation != i.generation || !scope_matches || !source_open
             || after < i.journal.omitted_through() || after > position;
@@ -3366,6 +3366,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
         let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
+        if !Self::observer_rebuild_own_response(&i, &gen, &frame, class) {
+            i.observer_rebuild.record_source_activity(&gen, pos);
+        }
         let mut automatic_reply=None;
         let mut cce_call=None;
         let mut records_call=None;
@@ -3498,7 +3501,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));
             let mut i=self.inner.0.lock().unwrap();
             let mut diagnostic=json!({"generation":gen,"class":"private-auth-request-reply","requestIdentity":"redacted/unavailable; no public replay authority","replyWriteResult":if result.is_ok(){"written"}else{"unknown/write-failed"},"acknowledgment":"not-observed","standing":"original private framing ID used only for immediate unsupported-method reply; not sign-in completion"});
-            if i.generation == gen && !i.server_requests.is_closed(&gen) && matches!(i.state.as_str(), "ready" | "handshaking") {
+            if i.generation == gen && !i.server_requests.is_closed(&gen) {
                 diagnostic["position"] = json!(pos);
                 if i.state == "handshaking" { i.held_observer_diagnostics.push(diagnostic); }
                 else { i.journal.push(diagnostic); }

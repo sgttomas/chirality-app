@@ -16,6 +16,7 @@ pub(super) struct ObserverRebuild {
     no_known_targets: bool,
     targets: BTreeMap<String, Target>,
     last_started: Option<String>,
+    source_activity_position: u64,
 }
 
 struct Target {
@@ -23,12 +24,20 @@ struct Target {
     requested_at: String,
     running: Option<Running>,
     result: Option<Value>,
+    last_attempt: Option<Attempt>,
+}
+
+#[derive(Clone, Copy)]
+struct Attempt {
+    cut: u64,
+    source_activity_position: u64,
 }
 
 struct Running {
     key: Arc<()>,
     cut: u64,
     started_at: String,
+    source_activity_position: u64,
 }
 
 // An original in-process attempt, not reconstructed from its public status.
@@ -39,6 +48,7 @@ struct Job {
     cut: u64,
     requested_at: String,
     started_at: String,
+    source_activity_position: u64,
 }
 
 #[derive(Default)]
@@ -61,6 +71,22 @@ impl ObserverRebuild {
                 ..Self::default()
             };
         }
+    }
+
+    /// The Host calls this only after current/open primary-receipt admission,
+    /// excluding original correlated responses to this reader's own requests.
+    /// Incoming labels and public cursor positions never supply this value.
+    pub(super) fn record_source_activity(&mut self, generation: &Value, position: u64) {
+        if self.generation == *generation {
+            self.source_activity_position = self.source_activity_position.max(position);
+        }
+    }
+
+    fn eligible(&self, target: &Target) -> bool {
+        target.last_attempt.is_none_or(|attempt| {
+            target.cut > attempt.cut
+                && self.source_activity_position > attempt.source_activity_position
+        })
     }
 
     /// Called with actual current Host coordinates, never a requested future
@@ -89,6 +115,7 @@ impl ObserverRebuild {
                             requested_at: now_rfc3339(),
                             running: None,
                             result: None,
+                            last_attempt: None,
                         },
                     );
                 }
@@ -107,12 +134,7 @@ impl ObserverRebuild {
         let pending: Vec<_> = self
             .targets
             .iter()
-            .filter(|(_, target)| {
-                target
-                    .result
-                    .as_ref()
-                    .is_none_or(|result| result["cut"].as_u64() != Some(target.cut))
-            })
+            .filter(|(_, target)| self.eligible(target))
             .map(|(thread, _)| thread.clone())
             .collect();
         let thread = pending
@@ -122,12 +144,18 @@ impl ObserverRebuild {
             .clone();
         self.last_started = Some(thread.clone());
         let target = self.targets.get_mut(&thread).unwrap();
+        let source_activity_position = self.source_activity_position;
+        target.last_attempt = Some(Attempt {
+            cut: target.cut,
+            source_activity_position,
+        });
         let key = Arc::new(());
         let started_at = now_rfc3339();
         target.running = Some(Running {
             key: Arc::clone(&key),
             cut: target.cut,
             started_at: started_at.clone(),
+            source_activity_position,
         });
         Some(Job {
             key,
@@ -136,6 +164,7 @@ impl ObserverRebuild {
             cut: target.cut,
             requested_at: target.requested_at.clone(),
             started_at,
+            source_activity_position,
         })
     }
 
@@ -153,7 +182,7 @@ impl ObserverRebuild {
         {
             return false;
         }
-        if target.cut != job.cut {
+        if target.cut > job.cut && self.source_activity_position > job.source_activity_position {
             result["attemptStatus"] = result["status"].clone();
             result["status"] = json!("superseded");
             result["supersededByCut"] = json!(target.cut);
@@ -165,19 +194,25 @@ impl ObserverRebuild {
 
     pub(super) fn snapshot(&self) -> Value {
         let targets: Vec<_> = self.targets.iter().map(|(thread, target)| {
-            if let Some(result) = &target.result {
-                if result["cut"].as_u64() == Some(target.cut) && target.running.is_none() {
-                    return result.clone();
-                }
-            }
-            let status = if target.running.as_ref().is_some_and(|running| running.cut == target.cut) {
-                "reading"
-            } else { "queued" };
-            json!({"threadId":thread,"cut":target.cut,"status":status,
+            let suppressed = target.last_attempt.filter(|attempt| target.cut > attempt.cut
+                && self.source_activity_position == attempt.source_activity_position);
+            let mut view = if let Some(result) = target.result.as_ref().filter(|_| target.running.is_none() && !self.eligible(target)) {
+                result.clone()
+            } else {
+            let reading = target.running.as_ref().filter(|running| running.cut == target.cut
+                || self.source_activity_position == running.source_activity_position);
+            json!({"threadId":thread,"cut":reading.map_or(target.cut, |running| running.cut),"status":if reading.is_some(){"reading"}else{"queued"},
                 "requestedAt":target.requested_at,"startedAt":target.running.as_ref().map(|running| &running.started_at),
                 "readAt":null,"completedAt":null,"metadata":null,"turns":null,"methodsRead":[],"receipts":[],"limit":null,
                 "inFlightCut":target.running.as_ref().map(|running| running.cut),"previousAttempt":target.result,
+                "sourceActivityPosition":reading.map(|running| running.source_activity_position),
                 "fullHistoryRebuilt":false,"itemsRequested":false})
+            };
+            view["requestedCut"] = json!(target.cut);
+            view["suppressedCut"] = json!(suppressed.map(|_| target.cut));
+            view["suppressionReason"] = json!(suppressed.map(|_| "no-new-non-observer-source-activity"));
+            view["waitingForSourceActivity"] = json!(suppressed.is_some());
+            view
         }).collect();
         let status = if self.no_known_targets {
             "unavailable"
@@ -197,6 +232,7 @@ impl ObserverRebuild {
             "unavailable"
         };
         json!({"generation":self.generation,"requestedCut":self.requested_cut,"requestedAt":self.requested_at,
+            "sourceActivityPosition":self.source_activity_position,
             "status":status,"targets":targets,"noKnownTargets":self.no_known_targets,
             "limit":if self.no_known_targets {Some("no-known-loaded-threads")} else if self.requested_cut.is_none() {Some("not-requested")} else {None},
             "fullHistoryRebuilt":false,"itemsRequested":false,"durableNativeData":false,
@@ -226,6 +262,7 @@ impl Job {
             Some(value) => json!({"status":"reported","value":value}),
         };
         json!({"generation":self.generation,"threadId":self.thread,"cut":self.cut,"status":status,
+            "sourceActivityPosition":self.source_activity_position,
             "requestedAt":self.requested_at,"startedAt":self.started_at,"readAt":reading.receipts.last().map(|receipt| &receipt["observedAt"]),
             "completedAt":now_rfc3339(),"methodsRead":methods,"receipts":reading.receipts,
             "metadata":reading.metadata,"turns":reading.turns,"turnCursor":cursor,"limit":limit,
@@ -236,6 +273,35 @@ impl Job {
 }
 
 impl Host {
+    /// Only original current pending-client registration can identify one of
+    /// this reader's responses. Native server ID space and incoming labels are
+    /// independent and cannot suppress an actual source-activity observation.
+    pub(super) fn observer_rebuild_own_response(
+        inner: &Inner,
+        generation: &Value,
+        frame: &Value,
+        class: &str,
+    ) -> bool {
+        if class != "response" || frame.get("method").is_some() {
+            return false;
+        }
+        let Some(id) = frame.get("id") else {
+            return false;
+        };
+        let key = id.to_string();
+        let Some(source) = inner.source_requests.get(&key) else {
+            return false;
+        };
+        source.request.generation == *generation
+            && source.request.request_id() == id
+            && inner
+                .pending
+                .get(&key)
+                .is_some_and(|(index, _)| *index == source.index)
+            && source.observation_base["initiator"]
+                == json!({"kind":"app-rule","name":"observer-history-read"})
+    }
+
     /// Perform at most one queued target attempt, outside source/state locks.
     /// Returns selected target attempts (0 or 1), not success or page counts.
     /// Same-cut failures are not retried by later ticks.

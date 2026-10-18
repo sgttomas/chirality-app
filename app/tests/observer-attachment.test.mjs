@@ -136,13 +136,14 @@ test('partial history displays actual coverage and failures without claiming cur
   const view = mounted(observe);
   try {
     await view.show(snapshot(g,3,1,{observerRebuild:{generation:g,status:'partial',targets:[
-      {threadId:'known-thread',status:'partial',readAt:'synthetic time',metadata:{thread:{id:'known-thread',preview:'Recorded preview'}},turns:{data:[{id:'earlier-turn',status:'completed'}],nextCursor:null}},
+      {threadId:'known-thread',status:'partial',readAt:'synthetic time',cut:0,suppressedCut:3,waitingForSourceActivity:true,metadata:{thread:{id:'known-thread',preview:'Recorded preview'}},turns:{data:[{id:'earlier-turn',status:'completed'}],nextCursor:null}},
       {threadId:'unread-thread',status:'unavailable',limit:'supplier-history-error'}]}}));
     const text = view.container.textContent;
     assert.match(text,/earlier-turn · completed · recovered from Codex/);
     assert.match(text,/partial history/);
     assert.match(text,/Item history remains unloaded/);
     assert.match(text,/does not establish current activity/);
+    assert.match(text,/earlier read does not cover the newer gap/);
     assert.match(text,/Codex could not read this conversation’s history/);
     assert.doesNotMatch(text,/supplier-history-error/,'the product explains the read limit in ordinary language');
     assert.equal(view.container.querySelectorAll(element => element.localName === 'button').length,0,'recovered rows grant no controls');

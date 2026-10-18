@@ -121,6 +121,9 @@ when `D <= after <= H`; an absent, foreign, closed, expired or future cursor
 gets the current snapshot and a gap. Returned frames are a retained current
 source suffix, not a closed source's replay. `observerRetention` reports both
 positions and the actual retained serialized-byte and envelope counts.
+An actual open source remains replayable while Stop is in progress; the
+`stopping` lifecycle label alone does not close it. Background history reads,
+controls and actor-account attribution still require `ready`.
 
 Receipt assignment alone does not advance H. Pre-ready frames keep their
 existing held lifetime and handshake deadline. At ready, the original ordered
@@ -154,6 +157,18 @@ silently. The Host checks source/readiness and the loaded target after waits
 and at publication. Unavailable, no-known-target and superseded results remain
 explicit. Rejected payloads and supplier error text/data are withheld from
 failure summaries; original receipts retain their own custody.
+
+History replies can themselves be oversized and evict public replay. To avoid
+an automatic read/eviction feedback loop, each attempt captures the independent
+source-activity high-water at its beginning. Only actual correlated responses
+to this reader's original private App-rule requests are excluded from that
+activity; a server request sharing a client ID and incoming diagnostic labels
+cannot suppress new activity. A higher omission cut with no new independent
+activity does not repeat the target's automatic read. Status keeps the old
+read's actual cut and discloses the newer suppressed gap, waiting for source
+activity. New independent input and a new gap can enable another coalesced
+attempt. Neither public H/D nor original private replies are changed by this
+guard, and the earlier result never claims the newer extent.
 
 `observerRebuild` is a separate memory-only partial-history result. It never
 feeds the canonical live native view, current control guards, execution custody,
