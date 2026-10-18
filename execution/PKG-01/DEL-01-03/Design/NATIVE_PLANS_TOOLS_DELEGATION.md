@@ -194,6 +194,31 @@ shared tool-text presentation is also exercised by
 `app/tests/native-activity.test.mjs`. These deterministic presentation checks
 do not establish supplier compatibility or replace REQ-008's native witnesses.
 
+### 3.2 Prior work in a continued conversation
+
+After the existing explicit Continue admission, DEL-01-02 supplies a separate
+memory-only continuation context. It initially reads the latest descending
+turn page and one item page for the newest received turn, with explicit limits
+and no automatic cursor traversal. The opened conversation presents those
+accepted native pages through the same read-only item renderer as §3.1.
+
+The context belongs to the original admitted resume receipt, home, full
+generation and conversation. Its own native-history factory, selection and
+revision qualify each page independently of the stored-history browser.
+Pending, failed, empty, partial and ended-source states remain visible;
+explicit page/retry controls target only that context. A new source, admission
+or context revision supersedes older reads without replacing the person's
+conversation choice or composer. Page failure does not revoke admission.
+
+Prior work and live activity may mention the same native IDs at different
+observation times. They are separate readings: context pages never enter the
+live projection or recorder and carry no live anchors, request links, offers,
+plan ordinals or recovered checklist revisions. Their native statuses do not
+establish current execution or descendant return/review/integration. The
+context adds no durable transcript, instruction supply, role/CCE restoration,
+message send or human act. It realizes prior-event access while the existing
+CV recovery and observer-rebuild lanes remain unchanged.
+
 ---
 
 ## 4. Experimental surfaces (K-5 as ruled by R18-1 C-05)

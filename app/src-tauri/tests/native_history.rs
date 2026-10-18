@@ -70,7 +70,7 @@ fn exact_native_query_factories_and_continue_have_no_guidance_or_execution_overr
     assert_eq!(goal.params(), &json!({"threadId":"thread"}));
     let continued = v.continue_query().unwrap();
     assert_eq!(continued.method(), "thread/resume");
-    assert_eq!(continued.params(), &json!({"threadId":"thread"}));
+    assert_eq!(continued.params(), &json!({"threadId":"thread","excludeTurns":true}));
     assert_eq!(v.resumed_thread(), None);
     for q in [read, turns, items, goal, continued] {
         let params = q.params().as_object().unwrap();

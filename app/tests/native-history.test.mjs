@@ -4,8 +4,9 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {continuationFixture} from './support/continuation-fixture.mjs';
 
-const {historyPageBinding, StoredItemPage, StoredTurnPage} = loadSrc('NativeHistory');
+const {historyPageBinding, StoredItemPage, StoredTurnPage, ContinuationContext, continuationContextBinding, continuationPageBinding} = loadSrc('NativeHistory');
 const {NativeActivityView, NativeItemCard, historyItemRow} = loadSrc('NativeActivity');
 const generation = {appSession: 'history-session', home: 'history-home', spawnCounter: 2};
 const clone = value => structuredClone(value);
@@ -174,6 +175,152 @@ const props = element => element[Object.keys(element).find(key => key.startsWith
 const buttons = container => container.querySelectorAll(e => e.localName === 'button');
 const button = (container, label) => buttons(container).find(e => e.textContent === label);
 const click = element => React.act(async () => {await props(element).onClick();});
+
+function continued({source = generation, threadId = 'stored', resumeRequestRef = 'req:resume', state = 'partial'} = {}) {
+  const thread = {generation: clone(source), threadId, nativeResumeObserved: true, resumeRequestRef};
+  const context = continuationFixture({generation: source, threadId, resumeRequestRef, state, items: nativeItems()});
+  const host = fixture();host.generation = clone(source);host.continuationContexts = [context];
+  return {host, thread, context};
+}
+const renderContext = ({host, thread}) => renderToStaticMarkup(React.createElement(ContinuationContext, {host, thread}));
+
+test('admitted continuation renders only its independently accepted bounded prior-work pages', () => {
+  const current = continued(), before = clone(current);
+  current.host.nativeHistory.selected.threadId = 'browser-other-chat';
+  current.host.nativeHistory.selectionEpoch++;
+  const html = renderContext(current);
+  for (const text of ['Stored final &lt;answer&gt;', 'Stored plan: inspect, then repair', 'Stored command output', 'Stored MCP text']) assert.ok(html.includes(text), text);
+  assert.ok(html.includes('admitted resume req:resume') && html.includes('bounded partial snapshot'));
+  assert.ok(html.includes('at most 20 turn summaries and 50 items in each page'));
+  assert.ok(html.includes('not a complete transcript or a rebuild of live state'));
+  assert.ok(html.includes('checklist revisions are not restored') && html.includes('Recovered plans have no live revision number'));
+  assert.doesNotMatch(html, /id="item-|href="#request|Must not hydrate this live projection/);
+  assert.deepEqual(current.context, before.context, 'render leaves the accepted context untouched');
+});
+
+test('prior-work and live views with the same native identity keep a single live anchor and no historical controls', () => {
+  const current = continued();
+  const native = item('shared-plan', 'plan', {text: 'Same native plan identity'});
+  current.context.history.selected.itemsPage.data = [{turnId: 'prior-turn', item: native}];
+  const live = React.createElement(NativeActivityView, {threadId: 'stored', view: {items: [{threadId: 'stored', turnId: 'prior-turn', native, standing: 'live-observed', requestRef: {generation, requestIdentity: 4}}], revisions: [{kind: 'plan', itemId: native.id, turnId: 'prior-turn', standing: 'live-observed', ordinal: 99}]}});
+  const history = React.createElement(ContinuationContext, {host: current.host, thread: current.thread});
+  const combined = renderToStaticMarkup(React.createElement(React.Fragment, null, live, history));
+  assert.equal((combined.match(/ id="item-/g) ?? []).length, 1, 'only the live timeline owns an anchor');
+  const historical = renderToStaticMarkup(history);
+  assert.ok(historical.includes('Same native plan identity'));
+  assert.doesNotMatch(historical, / id="item-|href="#request|revision 99|End run|Register|Accept proposal/);
+});
+
+test('foreign or incomplete continuation ownership withholds readable pages and controls', () => {
+  const changes = [
+    c => {c.thread.nativeResumeObserved = false;}, c => {delete c.thread.resumeRequestRef;},
+    c => {c.host.state = 'stopped';}, c => {c.host.generation.appSession += '-later';}, c => {c.host.generation.spawnCounter++;}, c => {c.host.generation.home += '-other';},
+    c => {c.context.resumeRequestRef += '-other';}, c => {c.context.threadId += '-other';}, c => {c.context.home += '-other';}, c => {c.context.generation.spawnCounter++;},
+    c => {c.host.continuationContexts.push(clone(c.context));}, c => {c.context.sourceCurrent = false;}, c => {c.context.admissionSelectionEpoch = 0;}, c => {c.context.revision = 0;},
+    c => {c.context.partial = false;}, c => {c.context.fullHistoryRebuilt = true;}, c => {c.context.durableNativeData = true;}, c => {c.context.pageLimits.items = 500;},
+    c => {c.context.history.selected.threadId += '-other';}, c => {c.context.history.home += '-other';}, c => {c.context.history.generation.appSession += '-other';}, c => {c.context.state = 'observation-ended';},
+  ];
+  for (const change of changes) {
+    const current = continued();change(current);
+    assert.equal(continuationContextBinding(current.host, current.thread).accepted, false, change.toString());
+    const html = renderContext(current);
+    assert.doesNotMatch(html, /Native item agent ·|<b>Agent<\/b>|<button/, change.toString());
+  }
+  const current = continued();current.context.history.selected.streamResolutions['item-pages'].query.params.limit = 500;
+  assert.equal(continuationPageBinding(current.host, current.thread, 'items').accepted, false);
+  assert.ok(renderContext(current).includes('bounded prior-work query limit is not established'));
+  const oversized = continued();oversized.context.history.selected.itemsPage.data = Array.from({length: 51}, () => ({turnId: 'prior-turn', item: nativeItems()[0]}));
+  assert.equal(continuationPageBinding(oversized.host, oversized.thread, 'items').accepted, false, 'supplier output cannot exceed the presented page bound');
+});
+
+test('continuation page acceptance requires the exact original native read receipt', () => {
+  for (const change of [
+    c => {c.context.receipts = [];}, c => {c.context.receipts[1].sourceCurrent = false;},
+    c => {c.context.receipts[1].home += '-other';}, c => {c.context.receipts[1].generation.spawnCounter++;},
+    c => {c.context.receipts[1].query = {...c.context.receipts[1].query, query_id: 999};},
+    c => {c.context.receipts[1].writeResult = 'write-failed';}, c => {c.context.receipts[1].outcome = 'response-observed-error';},
+    c => {delete c.context.receipts[1].requestRef;}, c => {delete c.context.receipts[1].requestIdentity;},
+    ...[null, 0, -1, Number.MAX_SAFE_INTEGER + 1].map(position => c => {c.context.receipts[1].receiptPosition = position;}),
+  ]) {
+    const current = continued();change(current);
+    assert.equal(continuationPageBinding(current.host, current.thread, 'items').accepted, false, change.toString());
+    assert.doesNotMatch(renderContext(current), /Native item agent ·|<b>Agent<\/b>/);
+  }
+});
+
+test('queued, partial and unavailable prior work remains separate from resume admission and current activity', () => {
+  for (const state of ['queued', 'reading']) {
+    const html = renderContext(continued({state}));
+    assert.ok(html.includes('Prior work is loading. The conversation is open'));
+    assert.doesNotMatch(html, /Native item agent ·|<b>Agent<\/b>/);
+  }
+  const current = continued();
+  current.context.state = 'unavailable';current.context.error = 'Selected item read failed';
+  current.context.history.selected.state = 'unavailable';
+  current.context.history.selected.streamResolutions['item-pages'].outcome = 'native-error-observed';
+  current.context.history.selected.errorsByStream['item-pages'] = {message: 'Selected item read failed'};
+  const html = renderContext(current);
+  assert.ok(html.includes('Some prior work could not be read') && html.includes('<b>Turn prior-turn</b>'));
+  assert.ok(html.includes('Selected item read failed') && html.includes('Retry prior-work read'));
+  assert.doesNotMatch(html, /Native item agent ·|<b>Agent<\/b>/);
+  assert.equal(current.thread.nativeResumeObserved, true, 'failed context is not a failed resume');
+});
+
+test('prior-work controls queue only exact context reads and never drain cursors or resume again', async () => {
+  const container = document.createElement('div');document.body.appendChild(container);
+  const root = createRoot(container), calls = [];
+  let current = continued();
+  const previous = window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {calls.push({command, args});return {...current.context, revision: current.context.revision + 1, state: 'queued'};}};
+  const show = () => React.act(() => root.render(React.createElement(ContinuationContext, {host: current.host, thread: current.thread})));
+  const publish = () => {current.context.revision++;};
+  try {
+    await show();assert.deepEqual(calls, [], 'mount/render never initiates native reads');
+    await click(button(container, 'Read more items'));
+    assert.ok(container.textContent.includes('Prior-work read requested'));
+    assert.equal(props(button(container, 'Read more items')).disabled, true, 'waits for current host revision, not the returned payload');
+    publish();await show();
+    await click(button(container, 'Read previous turns page'));
+    publish();await show();
+    await click(button(container, 'Read items for this turn'));
+    publish();current.context.state = 'unavailable';current.context.error = 'Failed native read';await show();
+    await click(button(container, 'Retry prior-work read'));
+    assert.deepEqual(calls, [
+      {command: 'continuation_context_action', args: {generation, threadId: 'stored', resumeRequestRef: 'req:resume', revision: 1, action: 'items', cursor: 'older-items', direction: 'desc', turnId: 'prior-turn'}},
+      {command: 'continuation_context_action', args: {generation, threadId: 'stored', resumeRequestRef: 'req:resume', revision: 2, action: 'turns', cursor: 'newer-turns', direction: 'asc', turnId: null}},
+      {command: 'continuation_context_action', args: {generation, threadId: 'stored', resumeRequestRef: 'req:resume', revision: 3, action: 'items', cursor: null, direction: 'desc', turnId: 'prior-turn'}},
+      {command: 'continuation_context_action', args: {generation, threadId: 'stored', resumeRequestRef: 'req:resume', revision: 4, action: 'retry', cursor: null, direction: 'desc', turnId: null}},
+    ]);
+    assert.equal(calls.length, 4, 'one native read per click, no follow-up traversal');
+  } finally {await React.act(() => root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__ = previous;}
+});
+
+test('late context action failures cannot populate a changed chat, source, resume or newer context revision', async () => {
+  for (const replacement of [
+    () => continued({threadId: 'new-chat'}),
+    () => continued({source: {...generation, home: 'new-home'}}),
+    () => continued({source: {...generation, appSession: 'new-session'}}),
+    () => continued({source: {...generation, spawnCounter: generation.spawnCounter + 1}}),
+    () => continued({resumeRequestRef: 'req:new-resume'}),
+    () => {const next = continued();next.context.revision++;return next;},
+  ]) {
+    const container = document.createElement('div');document.body.appendChild(container);
+    const root = createRoot(container);
+    let current = continued(), reject, request;
+    const held = new Promise((_, fail) => {reject = fail;});
+    const previous = window.__TAURI_INTERNALS__;
+    window.__TAURI_INTERNALS__ = {invoke: () => held};
+    const show = () => React.act(() => root.render(React.createElement(ContinuationContext, {host: current.host, thread: current.thread})));
+    try {
+      await show();
+      await React.act(() => {request = props(button(container, 'Read more items')).onClick();});
+      current = replacement();await show();
+      await React.act(async () => {reject(Error('Old context action refused'));await held.catch(() => {});await request;});
+      assert.ok(!container.textContent.includes('Old context action refused'), replacement.toString());
+      assert.equal(props(button(container, 'Read more items')).disabled, false, 'late response cannot disable the new owner');
+    } finally {await React.act(() => root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__ = previous;}
+  }
+});
 
 test('HistoryPanel pages the exact accepted query turn, cursor and direction, and reading never admits a conversation', async () => {
   const container = document.createElement('div'); document.body.appendChild(container);

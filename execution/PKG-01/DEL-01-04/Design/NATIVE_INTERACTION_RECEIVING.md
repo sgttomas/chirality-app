@@ -1028,6 +1028,20 @@ establish no order between them. RS §7 owns the source checks and append.
 General contextual file/arrival entry links and
 native capture/qualification witnesses remain separate.
 
+**Prior work after admitted Continue.** The opened conversation shows
+DEL-01-02's separate transient prior-work context. The host queues a bounded
+latest turn page and the newest received turn's item page; older pages are
+explicit reads, not an automatic transcript rebuild. The context's accepted
+native queries are bound to its own selection/revision and the original full
+generation, home, thread and resume receipt. Unrelated stored-history choices
+cannot retarget it. Pending, empty, partial, unavailable and ended-source states
+are shown without blocking the already admitted chat or changing its unsent
+composer. Retry and paging queue history reads only, never another resume or
+message send. These read-only pages remain separate from live
+activity/recording and supply no current request, role, CCE or act authority;
+§5.3 V-d still applies. Deterministic fixtures establish this local receiving
+path, not a native GUI/person restart witness or qualification.
+
 **Reply outcome on close.** The owner chose:
 
 > Close as “Reply outcome unknown” (Recommended)

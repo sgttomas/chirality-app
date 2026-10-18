@@ -220,7 +220,7 @@ cases RC-01, RC-07, RC-15…RC-17, RC-19.
 | supplied | person sends | supplied | ordinary turn; no supply. A workflow run may start, end or follow another here (R19-2); none changes the role or the supply |
 | supplied | person selects a role | — (refused) | L-2; the App offers "Continue as ‹role›" instead (§3.3) |
 | supplied | guidance store change affecting this role | supplied | flag "guidance changed since this conversation started" (§4.4); nothing sent |
-| supplied | App relaunch | supplied | `thread/resume` with the thread id only; no supply record (§5.5) |
+| supplied | App relaunch | supplied | `thread/resume` without new guidance; current0.160.0 requests `excludeTurns:true` for paged prior-work reads (§5.5) |
 | supplied | person forks | supplied (source); new conversation *supplied* | §3.3 F-1 |
 
 ### 3.3 Another role, and forks (R19-3, R19-8)
@@ -536,10 +536,14 @@ R19-3; B-8 confirms route A would not have worked at 0.158.0.
 ### 5.5 Resume after relaunch
 
 After a relaunch a thread is `notLoaded`. Before its next turn the App sends
-`thread/resume` with the thread id only. The conversation keeps the guidance
-it started with (B-8: the original developer text stays in force in a new
-process, observed). No supply record is written; if the store changed, §4.4
-flags it.
+`thread/resume` without new guidance. At the current0.160.0 development pin,
+the exact packet adds only `excludeTurns:true` beside the thread id: this
+requests metadata/live resume instead of deprecated full-history hydration,
+not a guidance, model or settings override. The conversation keeps the guidance
+it started with (B-8's original developer-text observation is at0.158.0).
+Any recorded resume observation is not a new instruction supply. The separate
+transient prior-work pages restore no original role evidence after a cold App
+restart; if the store changed, §4.4's original in-memory comparison still applies.
 
 ### 5.6 Operating sequences with failure behaviour
 

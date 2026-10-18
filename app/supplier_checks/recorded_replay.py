@@ -16,6 +16,10 @@ ST5 generation 2 app-continue keeps the full tape and requires one constructed
 thread/list catalog between captured loaded/list and resume. Its envelope and
 membership are not captured; its sole thread is copied unchanged from source
 frame 25. Optional gate 32 pauses after idle, before the recorded resume reply.
+The current App resume request adds exactly excludeTurns:true (0.160.0 native
+metadata/live-resume response coverage). This request-only adaptation is audited;
+the tape's full-history reply and deprecation notice are kept unchanged, not
+claimed as observed supplier behavior for that adapted request.
 The audit destination must be fresh: exclusive creation refuses existing files,
 symlinks and hardlinks without overwriting their bytes.
 """
@@ -414,6 +418,14 @@ class Replay:
                     and params["itemsView"] == "full", "invalid-captured-turns-list-params")
             return {**params, "itemsView": "summary", "sortDirection": "desc"}, [
                 "thread/turns/list.itemsView:full-to-summary", "thread/turns/list.sortDirection:add-desc"]
+        if self.profile == "app-continue" and method == "thread/resume":
+            require(isinstance(params, dict) and set(params) == {"threadId"}
+                    and isinstance(params["threadId"], str) and bool(params["threadId"]),
+                    "invalid-captured-resume-params")
+            # ThreadResumeParams.excludeTurns at the pinned 0.160.0 changes
+            # response coverage only, without instructions/model/settings.
+            # Supplier replies remain original recorded payloads in this peer.
+            return {**params, "excludeTurns": True}, ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"]
         return params, changes
 
     def accept(self, expected, actual):

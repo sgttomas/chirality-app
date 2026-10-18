@@ -45,7 +45,7 @@ fn sent_metadata(id: u64, method: &str) -> Value {
     if method == "thread/fork" {
         return json!({"id":id,"method":method,"params":{"threadId":"original-thread","deferGoalContinuation":true}});
     }
-    json!({"id":id,"method":method,"params":{"threadId":"original-thread"}})
+    json!({"id":id,"method":method,"params":{"threadId":"original-thread","excludeTurns":true}})
 }
 fn binding(role: Option<Role>) -> RoleBinding {
     let c = composition(role, "");
@@ -238,7 +238,7 @@ fn exact_resume_packet_has_no_new_role_guidance_destination_or_policy() {
         .resume("home-A", current.clone(), json!(7), "req:resume")
         .unwrap();
     assert_eq!(resume.method(), "thread/resume");
-    assert_eq!(resume.params(), json!({"threadId":"original-thread"}));
+    assert_eq!(resume.params(), json!({"threadId":"original-thread","excludeTurns":true}));
     assert_eq!(resume.home(), "home-A");
     assert_eq!(resume.generation(), &current);
     assert_eq!(resume.request_id(), &json!(7));
@@ -262,6 +262,22 @@ fn exact_resume_packet_has_no_new_role_guidance_destination_or_policy() {
             &frame(9, "another-thread")
         )
         .is_err());
+}
+
+#[test]
+fn resume_metadata_coverage_is_exact_and_does_not_admit_history_or_setting_overrides() {
+    let b = binding(Some(Role::HELP_HUMAN));
+    let g = generation("home-A", 2);
+    for (field, value) in [("excludeTurns", json!(false)), ("history", json!([])), ("model", json!("other")), ("developerInstructions", json!("other")), ("persistExtendedHistory", json!(true))] {
+        let pending = b.resume("home-A", g.clone(), json!(8), "req:8").unwrap();
+        let mut sent = sent_metadata(8, "thread/resume");
+        sent["params"][field] = value;
+        assert!(pending.observe(&g, &sent, &frame(8, "original-thread")).is_err(), "{field}");
+    }
+    let pending = b.resume("home-A", g.clone(), json!(8), "req:8").unwrap();
+    let mut sent = sent_metadata(8, "thread/resume");
+    sent["params"].as_object_mut().unwrap().remove("excludeTurns");
+    assert!(pending.observe(&g, &sent, &frame(8, "original-thread")).is_err());
 }
 #[test]
 fn fork_inherits_only_original_app_binding_and_native_source_relation() {
