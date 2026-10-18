@@ -16,7 +16,7 @@ import { NativeActivityView } from "./NativeActivity";
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread, requestScopeKey, requestReplyGuarded, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread, requestScopeKey, requestReplyGuarded, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -649,17 +649,18 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
   </section>;
 }
 
-export function HomeAccessPanel({ routing, access, resources, oauth, generation, act }: { routing: Json; access: Json; resources: Json; oauth?: Json; generation: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
+export function HomeAccessPanel({ routing, access, resources, oauth, generation, navigating = false, act }: { routing: Json; access: Json; resources: Json; oauth?: Json; generation: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const action = async (command: string, args: Record<string, unknown>) => {
+    if (command === "select_home" && navigating) return;
     setBusy(true); setError("");
     try { await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
   const entries: Json[] = routing?.entries ?? [];
   return <section><h2>Separate Codex homes and access</h2>
     <p>Active home class: {routing?.activeModeHomeClass ?? "unavailable"}. The full native generation identifies its owning source; switching homes does not transfer a conversation.</p>
-    {entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.modeHomeClass} · {entry.state} · {JSON.stringify(entry.generation)} · {entry.configurationLimit}</p><button disabled={busy || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
+    {entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.modeHomeClass} · {entry.state} · {JSON.stringify(entry.generation)} · {entry.configurationLimit}</p><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("read_home_access", {generation, modeHomeClass:routing.activeModeHomeClass})}>Read native login policy and account</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
@@ -873,7 +874,9 @@ export function App() {
   const entryCompatible = (homeClass === "account" || homeClass === "api-key") && startEntries(host).some(entry => entry.value === entryId);
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
-  const [threadKey, setThreadKey] = useState<string>("");
+  const [threadKey, updateThreadKey] = useState<string>("");
+  const threadChoiceRevision = useRef(0);
+  const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
   const roleInitialized = useRef(false);
   useEffect(() => {
     if (!roleInitialized.current && host?.roleSet?.available) {
@@ -946,18 +949,20 @@ export function App() {
     }
   };
   const homeAction = async (command: string, args: Record<string, unknown>) => {
-    const switching = command === "select_home";
-    if (switching) {
+    const navigating = command === "select_home" || command === "open_waiting_requests";
+    if (navigating) {
       if (homePendingRef.current) return;
       homePendingRef.current = true;
       setHomePending(true);
-      // The person's home choice is a new chooser boundary immediately,
-      // including a transition whose eventual snapshot returns to this home.
-      chooserHome.current = { ...chooserHome.current, epoch: chooserHome.current.epoch + 1 };
-      reviseChoice(emptyConversationChoice);
+      // Same-home request navigation preserves the separate unsent chooser.
+      // A home choice invalidates it at intent, even if the snapshot returns here.
+      if (command === "select_home" || args.modeHomeClass !== currentHost.current?.homeRouting?.activeModeHomeClass) {
+        chooserHome.current = { ...chooserHome.current, epoch: chooserHome.current.epoch + 1 };
+        reviseChoice(emptyConversationChoice);
+      }
     }
-    try { await invoke(command, args); await refresh(); }
-    finally { if (switching) { homePendingRef.current = false; setHomePending(false); } }
+    try { const result: Json = await invoke(command, args); const snapshot = await refresh(); return { result, snapshot }; }
+    finally { if (navigating) { homePendingRef.current = false; setHomePending(false); } }
   };
   // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
   const [processBusy, setProcessBusy] = useState(false);
@@ -1035,10 +1040,30 @@ export function App() {
     return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
-  const openRequests = (thread: string | null) => {
-    const current = (host?.threads ?? []).find((t: Json) => t.threadId === thread && JSON.stringify(t.generation) === JSON.stringify(host?.generation));
-    if (current) setThreadKey(JSON.stringify([current.generation, current.threadId]));
-    document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView();
+  const openRequests = async (group: WaitingRequestGroup) => {
+    if (homePendingRef.current) return;
+    const revision = threadChoiceRevision.current;
+    const viewAtIntent = currentHost.current;
+    try {
+      // Cross-home navigation uses the home controls' chooser boundary.
+      // The native command validates the original group,
+      // not a bare thread ID or the active home's lookalike conversation.
+      const opened = await homeAction("open_waiting_requests", { modeHomeClass: group.modeHomeClass, generation: group.generation, threadId: group.threadId });
+      if (!opened) return;
+      const { result, snapshot } = opened;
+      const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
+      // React may batch the new snapshot until this callback finishes. Use it
+      // when no newer view rendered; otherwise the newer rendered source wins.
+      const viewNow = currentHost.current === viewAtIntent ? snapshot : currentHost.current;
+      if (threadChoiceRevision.current !== revision || result?.modeHomeClass !== group.modeHomeClass || !same(result?.generation, group.generation) || result?.threadId !== group.threadId ||
+          snapshot?.state !== "ready" || snapshot?.homeRouting?.activeModeHomeClass !== group.modeHomeClass || !same(snapshot?.generation, group.generation) ||
+          viewNow?.homeRouting?.activeModeHomeClass !== group.modeHomeClass || !same(viewNow?.generation, group.generation)) {
+        setMessage("Waiting-request navigation superseded or its original source is no longer current; refresh the overview."); return;
+      }
+      const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
+      setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
+      document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView?.();
+    } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
   };
   const runAct: RunAct = async (command, args) => {
     try {
@@ -1078,14 +1103,14 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
-      <WaitingRequestsIndicator requests={hostRequests(host)} open={openRequests} />
+      <WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }} />
       <NativeConfirmationContent />
       <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={homeAction} />
+      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }} />
 
       <section>
         <h2>Codex host</h2>

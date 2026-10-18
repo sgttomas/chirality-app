@@ -70,6 +70,8 @@ mod instruction_store;
 pub(crate) mod run_offers;
 pub(crate) mod run_restart;
 pub mod runtime_session;
+mod waiting_requests;
+#[cfg(test)] mod waiting_requests_tests;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
 mod workflow_selection;
@@ -271,7 +273,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["nativeNamespaces"] = match &*state.native_namespaces.lock().unwrap(){Ok(binding)=>binding.snapshot(),Err(error)=>json!({"state":"storage namespace closure unavailable","limit":error,"ordinaryNativeOperations":"independent of persistence availability"})};
     s["keyNamespaceAdmission"] = state.key_namespace_admission.lock().unwrap().clone();
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
-    s["homeRouting"] = state.homes.lock().unwrap().snapshot();
+    {
+        let homes = state.homes.lock().unwrap();
+        s["homeRouting"] = homes.snapshot();
+        s["waitingRequests"] = waiting_requests::overview(&homes);
+    }
     s["homeAccess"] = home.account_view();
     // OI-008: host_status presents; it records nothing. The checkpoint recorder
     // and the trial reads run on the host's own tick (`host_tick`).
@@ -556,6 +562,10 @@ fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,
     let mut homes=state.homes.lock().unwrap();
     homes.activate(class)?;
     Ok(homes.snapshot())
+}
+#[tauri::command]
+fn open_waiting_requests(state: State<'_, AppState>, mode_home_class: String, generation: Value, thread_id: Value) -> Result<Value, String> {
+    waiting_requests::open(&mut state.homes.lock().unwrap(), &mode_home_class, &generation, &thread_id)
 }
 #[tauri::command(async)]
 fn read_home_access(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
@@ -2163,6 +2173,7 @@ pub fn run() {
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
             select_home,
+            open_waiting_requests,
             read_home_access,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
