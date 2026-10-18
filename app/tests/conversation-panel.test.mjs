@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {continuationFixture} from './support/continuation-fixture.mjs';
 
 // The conversation section is mounted with react-dom/client on a minimal
 // in-memory document, so the test sees what React actually leaves mounted
@@ -128,7 +129,7 @@ test('refused, failed and identity-incomplete Start preserve selection and compo
   }
 });
 
-async function ordinaryContinueCase({initialThread = false, outcome = 'success', source = g}) {
+async function ordinaryContinueCase({initialThread = false, outcome = 'success', source = g, contextState = null}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -191,6 +192,16 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     if (outcome === 'wrong-id') admitted.threadId = 'other';
     if (outcome === 'wrong-query') dispatch.localQuery = {...query, query_id: 99};
     snapshot = {...snapshot, nativeHistory: result, threads: [...snapshot.threads, {...admitted, generation: source, threadId: 'stored'}]};
+    if (contextState) {
+      const context = continuationFixture({generation: source, admissionSelectionEpoch: 1, state: contextState});
+      if (contextState === 'unavailable') {
+        context.error = 'Context item read failed';
+        context.history.selected.state = 'unavailable';
+        context.history.selected.streamResolutions['item-pages'].outcome = 'native-error-observed';
+        context.history.selected.errorsByStream['item-pages'] = {message: 'Context item read failed'};
+      }
+      snapshot = {...snapshot, continuationContexts: [context]};
+    }
     if (outcome === 'not-ready') snapshot = {...snapshot, state: 'stopped'};
     if (outcome === 'no-current-thread') snapshot = {...snapshot, threads: initialThread ? [existing] : []};
     continueResponded = true;
@@ -232,6 +243,12 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     if (outcome === 'success') {
       assert.equal(props(button(conversation(), 'Send text')).disabled, false);
       assert.ok(conversation().textContent.includes('Role not established in this App process'), 'cold role stays unknown despite native agentRole');
+      if (contextState) {
+        assert.ok(conversation().textContent.includes('Prior work'), 'the admitted conversation consumes its context');
+        if (contextState === 'reading') assert.ok(conversation().textContent.includes('Prior work is loading. The conversation is open'));
+        if (contextState === 'unavailable') assert.ok(conversation().textContent.includes('Context item read failed'));
+        if (contextState === 'partial') assert.ok(conversation().textContent.includes('Prior agent response') && conversation().textContent.includes('Prior tool output'));
+      }
     }
   } finally {
     if (pendingContinue) await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
@@ -244,6 +261,10 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
 test('explicit Continue opens the newly admitted current conversation and retains the cold role limit', async () => {
   await ordinaryContinueCase({});
   await ordinaryContinueCase({initialThread: true, source: {...g, home: 'another-home', spawnCounter: 2}});
+});
+
+test('Continue opens with pending, failed or accepted bounded prior work while preserving the composer and original admission guard', async () => {
+  for (const contextState of ['reading', 'unavailable', 'partial']) await ordinaryContinueCase({initialThread: true, contextState});
 });
 
 test('Continue with no matching new current admission preserves selection and composer', async () => {

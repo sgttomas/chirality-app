@@ -335,7 +335,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         },
     );
     assert_eq!(result.unwrap()["writeResult"], "written");
-    assert_eq!(outbound["params"], json!({"threadId":"role-origin"}));
+    assert_eq!(outbound["params"], json!({"threadId":"role-origin","excludeTurns":true}));
     cold.dispatched(receipt.unwrap());
     cold.reconcile(&cold_host);
     assert!(cold_host.snapshot()["threads"]

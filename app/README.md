@@ -136,6 +136,16 @@ implemented behavior and qualification limits.
     and earlier checklist updates remain unrecoverable. Stored item rows have no
     live item anchors, request links, workflow offers or act controls.
 
+    After an admitted **Continue selected conversation**, the opened conversation
+    shows a separate prior-work context. The host queues the latest native turn
+    page, then the newest received turn's item page. Each initial read is bounded
+    (20 turns, 50 items); cursors are never drained automatically. Older turns
+    and item pages remain explicit reads. Loading, empty, partial and unavailable
+    states do not undo the admitted conversation or resend a message. This
+    memory-only context belongs to the actual resume receipt and source, so a
+    different stored-history selection cannot retarget it. It supplies no live
+    execution, request, role or act authority.
+
 12. Native text-file selections retain private handles and an ordered immutable
     source list. Explicit attachment-bearing send or steering uses that whole
     list, durable metadata and the actual Host request; failures do not fall back
@@ -431,6 +441,10 @@ implemented behavior and qualification limits.
     not read; the events are kept in this App process, and
     the ledger keeps the conversation's recovery states. Not witnessed
     natively.
+
+    These custody reads remain metadata/turn-summary reads. Item 11's separate
+    prior-work context follows explicit Continue and changes no CV recovery
+    transition, observer rebuild or ledger retention rule.
 23. **Run panel** (NIR §9 PD-1…PD-7, AS §4, §8, §9). The selected workflow and
     each run show the declared part readably, as the host read it from the
     revision's own bytes: inputs, tools, checkpoints, outputs, returned
@@ -980,7 +994,10 @@ that accepted page's turn, cursor and direction. While a new read is pending or
 unavailable, retained raw evidence stays inspectable and prior readable rows and
 page buttons are withheld. Reading does not supply live status or reconstruct
 earlier checklist updates. **Continue selected conversation** separately requests native
-resume before permitting operational text input. It keeps the conversation’s
+resume before permitting operational text input, requesting `excludeTurns:true`
+instead of deprecated full-history hydration. Its admitted conversation then
+loads the bounded prior-work context described in item 11. A failed context page
+has an explicit retry that reads history without another resume or send. It keeps the conversation’s
 existing guidance/settings and does not resend automatically. Original App role
 evidence is shown only when retained in this process; a cold restart shows
 Unknown. Reading child metadata does not supply a child role.
@@ -1188,7 +1205,7 @@ narrows R-1 but does not close it: anything that can read that file, including
 an agent under Codex's default read access, can seal. Trustworthy persistent
 cold replay remains unfinished under AAC §6.3 U-AAC-3 and I3-CUST, and SEAL-2 stays
 deferred. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, native GUI child-role journeys, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, native witnesses of paged recovery and continued prior-work access (the custody reads in item 22b remain metadata/turn summaries; item 11 adds a separate bounded prior-work context), cold role-source reconciliation, native GUI child-role journeys, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.

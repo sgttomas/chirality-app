@@ -1320,6 +1320,41 @@ seen live is found. Readings this file leaves open, as implemented:
 - `app_restart_interruption` is derived from the rows earlier App sessions
   wrote, so a recovery read in this session does not remove it.
 
+**Prior work after admitted Continue (REQ-005, AC-006; V4-EXE-04).**
+The current 0.160.0 Continue packet is exactly `threadId` plus
+`excludeTurns:true`; the latter requests metadata/live resume without deprecated
+full-history hydration, not new guidance, settings or a model choice. The
+existing private written/correlated resume receipt and current source govern
+active admission. A page read cannot create that admission.
+
+After admission, `hosting_continuation_context.rs` queues a separate transient
+native-history owner for that home, full generation, conversation and original
+`resumeRequestRef`. The worker reads a descending turn page with limit 20, then
+one descending item page with limit 50 for its newest received turn. It does not
+search older turns or drain cursors automatically. Empty, pending, partial,
+unavailable and ended-source readings remain explicit; page limits are not a
+claim of constant byte memory or complete history. Explicit turn/item paging
+and retry queue only reads, with the expected context revision. They never
+resume again or send a message.
+
+The initial pair is `app-rule:continuation-context-read` work queued by the
+admitted Continue; explicit page/retry requests are `person-directed` reads.
+
+This owner has its own native query factory and selection. Changing the stored
+history browser cannot retarget it. An action supersedes obsolete work across
+both read phases; late responses from another admission, revision or source do
+not become the current context. Retained receipt DTOs contain correlation,
+write/outcome and source metadata rather than another raw page history.
+
+The admitted conversation opens independently of context completion. Missing or
+failed prior-work reads leave its composer and admission intact. Accepted pages
+are presented read-only beside live activity, with their own observation time
+and partial coverage; they enter neither `nativeView` nor recording input.
+They restore no role, CCE, request, current-execution or human-act authority.
+Source closure ends current readability; native pages remain disposable and no
+conversation-content copy enters the ledger. R-4/CV recovery and the separate
+observer rebuild keep their existing meanings and inputs.
+
 **App ledger store (§7; PRD R-STORE).** Implemented in the Rust host
 (`recovery.rs`, `recovery_store.rs`, `rusqlite` 0.32 with bundled SQLite).
 Readings §7 leaves open, as implemented:
