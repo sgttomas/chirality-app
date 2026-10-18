@@ -34,6 +34,8 @@ pub(super) struct ExecutionCustody {
     conversations: BTreeMap<(String, String), Conversation>,
     closed: BTreeSet<String>,
     events: Vec<Value>,
+    /// Actual emitting generations, aligned with events; never part of event JSON.
+    event_sources: Vec<Value>,
     limits: Vec<String>,
     /// The ready generation earlier sessions' rows were last adopted for.
     adopted_for: Option<String>,
@@ -50,6 +52,10 @@ fn loss_cause(cause: &str) -> Option<&'static str> {
     ["supplier-exit", "supplier-stop", "app-quit", "system-termination", "app-ended-without-record"].into_iter().find(|c| *c == cause)
 }
 impl ExecutionCustody {
+    fn push_event(&mut self, generation: &Value, event: Value) {
+        self.event_sources.push(generation.clone());
+        self.events.push(event);
+    }
     fn conversation(&mut self, generation: &Value, thread: &str) -> Option<&mut Conversation> {
         let key = generation_ref(generation).ok()?;
         if thread.is_empty() || self.closed.contains(&key) { return None; }
@@ -141,7 +147,7 @@ impl ExecutionCustody {
                 for k in ["turnId","itemId"] {if let Some(v)=r["nativeParameters"][k].as_str().filter(|s|!s.is_empty()){subject[k]=json!(v);}}
                 Some(json!({"generation":g,"requestIdentity":id.to_string(),"method":method,"subject":subject}))
             }).collect::<Vec<_>>();
-            self.events.push(json!({"kind":"observation_lost","eventId":format!("cev:{}:{}",g,home),"appSession":generation["appSession"],"at":at,"standing":"App-observed","home":home,"generation":g,"cause":cause,"conversations":threads,"liveTurns":turns,"inFlightItems":items,"outstandingEntries":outstanding}));
+            self.push_event(generation,json!({"kind":"observation_lost","eventId":format!("cev:{}:{}",g,home),"appSession":generation["appSession"],"at":at,"standing":"App-observed","home":home,"generation":g,"cause":cause,"conversations":threads,"liveTurns":turns,"inFlightItems":items,"outstandingEntries":outstanding}));
         }
         // RECOVERY §3.5 RQ-04 and RQ-05 at this generation's close: each entry
         // still outstanding ended unanswered, and each written reply whose
@@ -168,11 +174,11 @@ impl ExecutionCustody {
             let written = matches!(r["state"].as_str(), Some("answered" | "declined")) || (r["state"] == "errored" && r["laterProtocolError"] == true);
             if (r["state"] == "outstanding" || (r["state"] == "ended-unanswered" && r["closedGeneration"] == true))
                 && !self.events.iter().any(|e|e["eventId"] == format!("cev:rq04:{g}:{identity}")) {
-                self.events.push(json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq04:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"context":cause}));
+                self.push_event(generation,json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq04:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"context":cause}));
             } else if written && r["replyWriteResult"] == "written" && !r["acknowledgment"].is_object()
                 && !self.events.iter().any(|e| e["eventId"] == format!("cev:rq05:{g}:{identity}"))
                 && (origin == "person-via-interaction" || origin == "app-explicit-error" || origin.strip_prefix("app-rule:").is_some_and(|rule| !rule.is_empty())) {
-                self.events.push(json!({"kind":"acknowledgment_not_observed","eventId":format!("cev:rq05:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"settlementOrigin":origin,"context":cause}));
+                self.push_event(generation,json!({"kind":"acknowledgment_not_observed","eventId":format!("cev:rq05:{g}:{identity}"),"appSession":generation["appSession"],"at":at,"standing":"App-observed","entry":entry,"settlementOrigin":origin,"context":cause}));
             }
         }
     }
@@ -251,7 +257,7 @@ impl ExecutionCustody {
         event["priorEvents"]=json!("unavailable");event["unavailableReason"]=json!(reason);
         let Some(row)=self.conversations.get_mut(key) else{return;};
         row.state="unavailable";row.reason=Some(reason.into());row.at=at.into();row.dirty=true;
-        self.events.push(event);
+        self.push_event(generation,event);
     }
     /// CV-13: the reads completed. `status` is the turn last seen live as
     /// Codex history reports it (None: not in history). Emits
@@ -289,8 +295,8 @@ impl ExecutionCustody {
         }
         // Settled: nothing of this generation remains to recover.
         row.state="indexed";row.turn=None;row.open.clear();row.cause=None;row.reason=None;row.at=at.into();row.dirty=true;
-        self.events.push(event);
-        if let Some(outcome)=outcome_event {self.events.push(outcome);}
+        self.push_event(generation,event);
+        if let Some(outcome)=outcome_event {self.push_event(generation,outcome);}
     }
     /// Ledger rows for recovery states not yet queued. A conversation keeps
     /// its last loaded generation; recovering, unavailable and
@@ -316,6 +322,11 @@ impl ExecutionCustody {
     }
     /// The custody events held in this App process, in the order they arose.
     pub(super) fn events(&self)->&[Value] {&self.events}
+    /// Each original event with its actual emitting full generation. Event
+    /// fields can instead cite a lost generation or omit one entirely.
+    pub(super) fn sourced_events(&self)->impl Iterator<Item=(&Value,&Value)> {
+        self.event_sources.iter().zip(self.events.iter())
+    }
     pub(super) fn snapshot(&self)->Value {
         json!({"events":self.events,"limits":self.limits,"observations":self.conversations.iter().map(|((generation,thread),row)|json!({"generation":generation,"threadId":thread,"state":row.state,"liveTurn":row.turn,"openItems":row.open.iter().map(|((turn,id),kind)|json!({"turnId":turn,"itemId":id,"itemType":kind})).collect::<Vec<_>>(),"indexKnown":row.binding.is_some(),"recoveryAttempts":row.attempts,"unavailableReason":row.reason,"standing":"App-observed pointer state; persistence is reported separately"})).collect::<Vec<_>>()})
     }

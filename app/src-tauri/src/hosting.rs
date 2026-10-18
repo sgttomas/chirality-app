@@ -955,7 +955,8 @@ impl Host {
         let mut i = self.inner.0.lock().unwrap();
         Self::publish_native_ready(&mut i);
         let mut snapshot = Self::snapshot_inner(&mut i);
-        snapshot["sourceCustodyEvents"] = json!(i.execution_custody.events());
+        snapshot["sourceCustodyEvents"] = json!(i.execution_custody.sourced_events()
+            .map(|(generation,event)|json!({"generation":generation,"event":event})).collect::<Vec<_>>());
         let capability = i.records_capability.clone();
         let generation = i.generation.clone();
         let observation = json!({"snapshot":snapshot,"generation":generation,"position":i.receipt_position,"gap":false,"frames":[]});

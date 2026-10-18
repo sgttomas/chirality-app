@@ -182,3 +182,70 @@ fn a_close_reports_ended_and_unacknowledged_requests_once() {
     assert_eq!((unacknowledged[0]["entry"]["requestIdentity"].as_str(), unacknowledged[0]["settlementOrigin"].as_str()), (Some("1"), Some("person-via-interaction")));
     assert_eq!(f.host.snapshot()["serverRequestEndContexts"], json!([{"generation":f.g,"requestIdentity":2,"context":"supplier-exit"}]));
 }
+
+#[test]
+fn sourced_events_preserve_flat_json_and_actual_emitting_full_generation() {
+    let f = Fixture::new();
+    f.index();
+    f.turn("inProgress");
+    for id in [json!(7), json!("7")] {
+        f.host.on_line(&serde_json::to_vec(&json!({"id":id,"method":"item/commandExecution/requestApproval","params":{"threadId":"t","turnId":"u","itemId":"i"}})).unwrap(), &f.g);
+    }
+    {
+        let mut inner = f.host.inner.0.lock().unwrap();
+        inner.server_requests.prepare(&f.g, &json!(7), &json!({"decision":"accept"}), "person-via-interaction", Some("person:p (identity not verified)")).unwrap();
+        inner.server_requests.written(&f.g, &json!(7), true);
+    }
+    f.close();
+    f.close();
+
+    let reading = json!({"appSession":"fixture recovery session","home":f.g["home"],"spawnCounter":2});
+    let prior = crate::recovery::generation_ref(&f.g).unwrap();
+    let current = crate::recovery::generation_ref(&reading).unwrap();
+    assert_ne!(reading, f.g);
+    let mut inner = f.host.inner.0.lock().unwrap();
+    inner.generation = reading.clone();
+    inner.spawn_counter = 2;
+    inner.state = "ready".into();
+    let custody = &mut inner.execution_custody;
+    let closed = custody.events().to_vec();
+    assert_eq!(closed.len(), 3, "repeated close does not append another event/source");
+    let ended = closed.iter().find(|event| event["kind"] == "request_ended_unanswered").unwrap();
+    let unacknowledged = closed.iter().find(|event| event["kind"] == "acknowledgment_not_observed").unwrap();
+    assert_eq!(closed[0]["kind"], "observation_lost");
+    assert_eq!(ended["entry"]["requestIdentity"], serde_json::to_string(&json!("7")).unwrap());
+    assert_eq!(unacknowledged["entry"]["requestIdentity"], serde_json::to_string(&json!(7)).unwrap());
+    for event in [ended, unacknowledged] {
+        assert!(event.get("generation").is_none());
+        assert_eq!(event["entry"]["generation"], prior);
+    }
+
+    let targets = custody.begin_recovery(&reading, "first read");
+    assert_eq!(targets.len(), 1);
+    assert_eq!(targets[0].key, (prior.clone(), "t".into()));
+    custody.recovery_failed(&targets[0].key, &reading, "fixture read unavailable", "failed read");
+    assert_eq!(custody.request_retry("t"), 1);
+    let retry = custody.begin_recovery(&reading, "retry");
+    assert_eq!(retry.len(), 1);
+    custody.recovered(&retry[0].key, &reading, Some("completed"), None, "completed read");
+
+    let events = custody.events();
+    assert_eq!(events.len(), 6);
+    assert_eq!(&events[..closed.len()], closed.as_slice());
+    assert_eq!(events[3]["kind"], "observation_recovered");
+    assert_eq!(events[3]["priorEvents"], "unavailable");
+    assert_eq!(events[4]["kind"], "observation_recovered");
+    assert_eq!(events[4]["priorEvents"], "accessible");
+    assert_eq!(events[3]["generation"], current);
+    assert_eq!(events[4]["generation"], current);
+    assert_eq!(events[5]["kind"], "turn_outcome");
+    assert!(events[5].get("generation").is_none());
+    assert_eq!(events[5]["eventId"], format!("cev:outcome:{prior}:t:u"));
+    assert_eq!(custody.sourced_events().count(), events.len());
+    for (index, (source, event)) in custody.sourced_events().enumerate() {
+        assert_eq!(event, &events[index], "source metadata does not change event JSON or order");
+        assert_eq!(source, if index < closed.len() { &f.g } else { &reading });
+        validate_event(event);
+    }
+    assert_eq!(custody.snapshot()["events"], json!(events));
+}

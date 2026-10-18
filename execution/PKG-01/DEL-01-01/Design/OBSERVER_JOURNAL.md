@@ -85,6 +85,10 @@ unavailable immediately; it does not end private source incorporation before
 the original close delivery. Frames received between Stop and EOF remain
 original observations and can reach recording. The record tick visits retained source projections in source order,
 with thread/turn/request/custody metadata qualified by that same generation.
+Execution custody retains each event's actual observing source at creation,
+separately from the unchanged event JSON: request outcomes and recovered turn
+outcomes do not all have a top-level generation field. The private capture
+uses that original association, never a guessed field or decoded event ID.
 It cannot fill an old source's access mode from a later selection. History
 rows retain recovered-from-supplier standing and do not become fresh arrivals.
 Persistent native-event deduplication is unchanged.

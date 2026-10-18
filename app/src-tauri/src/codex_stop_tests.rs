@@ -556,7 +556,23 @@ for line in sys.stdin:
         assert_eq!(out["codexStopRecord"]["state"], "recorded");
         assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex");
         assert_eq!(out["turns"][0]["stopRequest"]["label"], "interrupted by Stop Codex", "the record carries the same label");
-        let rows: Vec<Value> = crate::recovery::stored_entries(&f.ledger());
+        // Stop can return while EOF's nonblocking REC writer is still
+        // publishing the live SR-06. Its observed label is not a disk barrier.
+        // Wait for this exact request's committed row before testing cold reads.
+        let expected = &out["turns"][0]["stopRequest"];
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let rows = loop {
+            let flush = f.home.host.flush_recovery_observations();
+            let rows = crate::recovery::stored_entries(&f.ledger());
+            if rows.iter().any(|entry| entry["kind"]=="stop_request" && entry["record"]["transition"]=="SR-06"
+                && entry["record"]["generation"]==expected["generation"] && entry["record"]["threadId"]==expected["threadId"]
+                && entry["record"]["turnId"]==expected["turnId"] && entry["record"]["stopRequestId"]==expected["stopRequestId"]) {
+                break rows;
+            }
+            let snapshot = f.home.host.snapshot();
+            assert!(Instant::now()<deadline, "exact SR-06 was not committed: flush={flush}, pending={}, persistence={}, stopRequests={}, rows={rows:?}", snapshot["recoveryPendingObservations"],snapshot["recoveryPersistenceError"],snapshot["stopRequests"]);
+            std::thread::sleep(Duration::from_millis(5));
+        };
         let kinds: Vec<String> = rows.iter().map(|e| match e["kind"].as_str().unwrap() {
             "stop_request" => format!("stop_request {}", e["record"]["transition"].as_str().unwrap()),
             other => other.to_owned(),

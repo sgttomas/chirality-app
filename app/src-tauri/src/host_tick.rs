@@ -44,7 +44,7 @@ fn receive_views(home: &HomeSession) -> (Value, Vec<Value>) {
                 .filter(|row|row["generation"]==generation).collect::<Vec<_>>());
         }
         view["custodyEvents"] = json!(snapshot["sourceCustodyEvents"].as_array().into_iter().flatten()
-            .filter(|event|event["generation"].as_str().and_then(|g|crate::recovery::generation_from_ref(g).ok()).as_ref()==Some(&generation)).collect::<Vec<_>>());
+            .filter(|owned|owned["generation"]==generation).map(|owned|&owned["event"]).collect::<Vec<_>>());
         // Do not fill a closed source's mode from a later source/selection.
         view["conversationAccess"] = json!(access.as_ref().filter(|(generation, selection)|
             generation.as_ref()==Some(&view["generation"]) && selection["thread"]["threadId"].is_string())
