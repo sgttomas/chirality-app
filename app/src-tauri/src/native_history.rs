@@ -559,6 +559,16 @@ impl NativeHistory {
         self.selection = Some(Selection::new(thread.into()));
         Ok(())
     }
+    /// A separate read-only owner established by the Host's private matched
+    /// Continue admission. This does not admit execution or fabricate a list
+    /// response; the caller retains the actual admission receipt separately.
+    pub(crate) fn for_admitted_thread(home: &str, generation: Value, thread: &str) -> Result<Self, String> {
+        if thread.is_empty() { return Err("admitted conversation identity absent".into()); }
+        let mut history = Self::new(home, generation)?;
+        history.selection_epoch = 1;
+        history.selection = Some(Selection::new(thread.into()));
+        Ok(history)
+    }
     fn selected(&self) -> Result<&Selection, String> {
         self.selection
             .as_ref()
@@ -578,11 +588,15 @@ impl NativeHistory {
         cursor: Option<&str>,
         direction: Direction,
     ) -> Result<HistoryQuery, String> {
+        self.turns_page_limit(cursor, direction, None)
+    }
+    pub(crate) fn turns_page_limit(&mut self, cursor: Option<&str>, direction: Direction, limit: Option<u32>) -> Result<HistoryQuery, String> {
         let s = self.selected()?;
         check_cursor(&s.turn_cursors, cursor, direction)?;
         let id = s.thread.clone();
         let mut params =
             json!({"threadId":id,"sortDirection":direction.native(),"itemsView":"summary"});
+        if let Some(limit) = limit { params["limit"] = json!(limit); }
         if let Some(c) = cursor {
             params["cursor"] = json!(c);
         }
@@ -599,6 +613,9 @@ impl NativeHistory {
         cursor: Option<&str>,
         direction: Direction,
     ) -> Result<HistoryQuery, String> {
+        self.items_page_limit(turn, cursor, direction, None)
+    }
+    pub(crate) fn items_page_limit(&mut self, turn: &str, cursor: Option<&str>, direction: Direction, limit: Option<u32>) -> Result<HistoryQuery, String> {
         let s = self.selected()?;
         if !s.turn_ids.contains(turn) {
             return Err("turn not received in this selected history".into());
@@ -609,6 +626,7 @@ impl NativeHistory {
         }
         let id = s.thread.clone();
         let mut params = json!({"threadId":id,"turnId":turn,"sortDirection":direction.native()});
+        if let Some(limit) = limit { params["limit"] = json!(limit); }
         if let Some(c) = cursor {
             params["cursor"] = json!(c);
         }
@@ -707,7 +725,7 @@ impl NativeHistory {
         self.issue(
             "thread/resume",
             "ThreadResumeParams",
-            json!({"threadId":id}),
+            json!({"threadId":id,"excludeTurns":true}),
             Kind::Resume(id),
         )
     }
@@ -745,6 +763,26 @@ impl NativeHistory {
         self.check_reply(query, &self.home, &self.generation)?;
         self.pending.get_mut(&query.id()).unwrap().waiting_ended = true;
         Ok(())
+    }
+    /// A failed local read/validation is not a supplier JSON-RPC error. Keep
+    /// that distinction while withholding prior-page/current cursor authority.
+    pub(crate) fn read_unavailable(&mut self, query: &HistoryQuery, reason: &str) -> Result<(), String> {
+        let pending = self.check_reply(query, &self.home, &self.generation)?;
+        let stream = pending.stream.clone();
+        let revision = pending.revision;
+        let evidence = json!({"standing":"local read unavailable; no native result accepted","query":query,"stream":stream,"revision":revision,"reason":reason});
+        let selected = self.selection.as_mut().ok_or("selected read owner absent")?;
+        selected.errors.insert(stream.clone(), evidence.clone());
+        selected.error_history.push(evidence);
+        selected.resolutions.insert(stream, json!({"query":query,"revision":revision,"outcome":"read-unavailable"}));
+        self.pending.remove(&query.id());
+        Ok(())
+    }
+    pub(crate) fn supersede_read(&mut self, query: &HistoryQuery) {
+        if self.read_unavailable(query, "superseded by a newer context selection").is_err()
+            && self.pending.get(&query.id()).is_some_and(|pending| pending.query == *query) {
+            self.pending.remove(&query.id());
+        }
     }
     pub fn receive_error(
         &mut self,

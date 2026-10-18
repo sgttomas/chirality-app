@@ -73,6 +73,7 @@ needs:
   gating: true
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/hosting_continuation_context.rs
 - app/src-tauri/src/hosting_observer_rebuild.rs
 - app/src/ObserverAttachment.tsx
 - app/src-tauri/src/host_tick.rs
@@ -92,6 +93,7 @@ code_paths:
 - app/src-tauri/src/workflow_learning_pointers.rs
 - app/src-tauri/src/historical_run_learning.rs
 checks:
+- app/src-tauri/src/hosting_continuation_context_tests.rs
 - app/src-tauri/src/hosting_observer_journal_tests.rs
 - app/src-tauri/src/hosting_observer_rebuild_tests.rs
 - app/tests/observer-attachment.test.mjs

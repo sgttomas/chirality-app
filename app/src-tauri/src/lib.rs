@@ -1027,6 +1027,15 @@ fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch
     let root = state.instructions_root.lock().unwrap().clone();
     Ok(history.snapshot(root.as_deref().ok()))
 }
+/// Read-only prior-work controls for an already privately admitted Continue.
+/// Queueing never resumes a conversation or waits on native history IO.
+#[tauri::command]
+fn continuation_context_action(state: State<'_, AppState>, generation: Value, thread_id: String,
+    resume_request_ref: String, revision: u64, action: String, cursor: Option<String>, direction: String, turn_id: Option<String>) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    let direction = match direction.as_str() { "asc" => native_history::Direction::Asc, "desc" => native_history::Direction::Desc, _ => return Err("Invalid context paging direction".into()) };
+    home.host.continuation_context_action(&generation, &thread_id, &resume_request_ref, revision, &action, cursor.as_deref(), direction, turn_id.as_deref())
+}
 
 #[tauri::command(async)]
 fn conversation_send_text(
@@ -2149,6 +2158,7 @@ pub fn run() {
             thread_start,
             role_supply_history,
             history_action,
+            continuation_context_action,
             history_select,
             conversation_send_text,
             collaboration_modes_read,

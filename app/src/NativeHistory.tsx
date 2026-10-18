@@ -1,4 +1,6 @@
 import { NativeItemCard } from "./NativeActivity";
+import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 type Json = any;
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
@@ -131,4 +133,95 @@ export function StoredItemPage({ binding }: { binding: HistoryPageBinding }) {
     </>}
     <RawPage binding={binding} kind="item" />
   </div>;
+}
+
+/** The prior-work reader belongs to an exact admitted resume, independently
+ * of the stored-history browser. Its disposable pages never hydrate live rows. */
+export function continuationContextBinding(host: Json, thread: Json): { accepted: boolean; context: Json; notice: string; scope: string | null } {
+  const base = { accepted: false, context: null, scope: null };
+  if (thread?.nativeResumeObserved !== true || !nonempty(thread?.resumeRequestRef)) return { ...base, notice: "No admitted continuation context." };
+  const matches = list(host?.continuationContexts).filter(context => context?.home === thread.generation?.home
+    && sameGeneration(context.generation, thread.generation) && context.threadId === thread.threadId && context.resumeRequestRef === thread.resumeRequestRef);
+  if (matches.length !== 1) return { ...base, notice: "Prior work is unavailable: a unique context for this admitted resume has not been received. No automatic retry." };
+  const context = matches[0];
+  const unavailable = { ...base, context, notice: "The prior-work source is unavailable or has changed. Readable pages and controls are withheld; retained source evidence is a prior read." };
+  if (host?.state !== "ready" || !sameGeneration(host.generation, thread.generation) || context.sourceCurrent !== true
+    || !positive(context.revision) || !positive(context.admissionSelectionEpoch)
+    || context.partial !== true || context.fullHistoryRebuilt !== false || context.durableNativeData !== false
+    || context.pageLimits?.turns !== 20 || context.pageLimits?.items !== 50
+    || context.history?.home !== context.home || !sameGeneration(context.history?.generation, context.generation)
+    || context.history?.selected?.threadId !== context.threadId
+    || !["queued", "reading", "partial", "empty", "unavailable"].includes(context.state)) return unavailable;
+  const scope = JSON.stringify([context.generation, context.home, context.threadId, context.resumeRequestRef, context.admissionSelectionEpoch]);
+  return { accepted: true, context, scope, notice: context.state === "queued" || context.state === "reading"
+    ? "Prior work is loading. The conversation is open; this read does not send a message."
+    : context.state === "unavailable" ? "Some prior work could not be read. Any readable page below is a separately matched partial snapshot. No automatic retry."
+    : context.state === "empty" ? "The bounded read returned an empty page. Other pages or unrecorded work are not established."
+    : "Prior work: bounded partial snapshot from this admitted conversation." };
+}
+
+export function continuationPageBinding(host: Json, thread: Json, kind: "turns" | "items"): HistoryPageBinding {
+  const owner = continuationContextBinding(host, thread);
+  const binding = historyPageBinding({ state: host?.state, generation: host?.generation, nativeHistory: owner.context?.history }, kind);
+  if (!owner.accepted) return { ...binding, accepted: false, page: null, notice: owner.notice };
+  if (binding.accepted && (binding.query?.params?.limit !== owner.context.pageLimits[kind] || binding.page.data.length > owner.context.pageLimits[kind])) {
+    return { ...binding, accepted: false, page: null, notice: "The bounded prior-work query limit is not established. Readable rows and paging are withheld." };
+  }
+  if (binding.accepted && !list(owner.context.receipts).some(receipt => receipt?.sourceCurrent === true
+    && receipt.home === owner.context.home && sameGeneration(receipt.generation, owner.context.generation)
+    && nonempty(receipt.requestRef) && receipt.requestIdentity != null && receipt.writeResult === "written" && receipt.outcome === "response-observed-result"
+    && positive(receipt.receiptPosition)
+    && JSON.stringify(receipt.query) === JSON.stringify(binding.query))) {
+    return { ...binding, accepted: false, page: null, notice: "The prior-work page has no matching accepted native read receipt. Readable rows and paging are withheld." };
+  }
+  return binding;
+}
+
+export function ContinuationContext({ host, thread }: { host: Json; thread: Json }) {
+  const owner = continuationContextBinding(host, thread);
+  const context = owner.context;
+  const turns = continuationPageBinding(host, thread, "turns"), items = continuationPageBinding(host, thread, "items");
+  const [attempt, setAttempt] = useState<Json>(null);
+  const serial = useRef(0);
+  const latest = useRef(owner);
+  latest.current = owner;
+  useEffect(() => () => { serial.current++; }, []);
+  if (thread?.nativeResumeObserved !== true || !nonempty(thread?.resumeRequestRef)) return null;
+  const pending = owner.accepted && attempt?.scope === owner.scope && attempt?.revision === context.revision && ["requesting", "queued"].includes(attempt.state);
+  const failure = owner.accepted && attempt?.scope === owner.scope && attempt?.revision === context.revision && attempt.state === "failed" ? attempt.error : null;
+  const reading = context?.state === "queued" || context?.state === "reading";
+  const canRead = owner.accepted && !pending && !reading;
+  const action = async (kind: string, cursor: string | null = null, direction = "desc", turnId: string | null = null) => {
+    if (!canRead) return;
+    const token = ++serial.current, scope = owner.scope, revision = context.revision;
+    setAttempt({ scope, revision, state: "requesting" });
+    try {
+      await invoke("continuation_context_action", { generation: context.generation, threadId: context.threadId, resumeRequestRef: context.resumeRequestRef, revision, action: kind, cursor, direction, turnId });
+      if (serial.current === token && latest.current.scope === scope && latest.current.context?.revision === revision) setAttempt({ scope, revision, state: "queued" });
+    } catch (error) {
+      if (serial.current === token && latest.current.scope === scope && latest.current.context?.revision === revision) setAttempt({ scope, revision, state: "failed", error: String(error) });
+    }
+  };
+  const paging = (kind: "turns" | "items", binding: HistoryPageBinding) => binding.accepted && <p>
+    {nonempty(binding.page.nextCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.nextCursor, binding.query.params.sortDirection, kind === "items" ? binding.query.params.turnId : null); }}>Read more {kind}</button>}{" "}
+    {nonempty(binding.page.backwardsCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.backwardsCursor, binding.query.params.sortDirection === "desc" ? "asc" : "desc", kind === "items" ? binding.query.params.turnId : null); }}>Read previous {kind} page</button>}
+    <small> {binding.page.nextCursor === null ? "This paging direction is exhausted; this is not a complete conversation." : binding.page.nextCursor === undefined ? "Next cursor not reported." : "More may be read explicitly."}</small>
+  </p>;
+  return <section aria-label="Prior work in continued conversation">
+    <h3>Prior work</h3>
+    <p role="status">{owner.notice}</p>
+    <p><small>Transient, read-only context; at most 20 turn summaries and 50 items in each page. This is not a complete transcript or a rebuild of live state. Native statuses describe the read. Original role, CCE authority, pending requests and checklist revisions are not restored by these pages.</small></p>
+    {pending && <p role="status">Prior-work read requested; waiting for the current host context.</p>}
+    {failure && <p role="alert">Prior-work read request failed: {text(failure)}. No resume or message was retried.</p>}
+    {owner.accepted && <>
+      <p><small>Source home {text(context.home)} · conversation {text(context.threadId)} · admitted resume {text(context.resumeRequestRef)}.</small></p>
+      {context.error != null && <p role="alert">Prior-work read: {text(context.error)}</p>}
+      {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
+      <h4>Prior turn summaries</h4>{paging("turns", turns)}
+      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} />
+      <h4>Prior messages and work</h4>{paging("items", items)}
+      <StoredItemPage binding={items} />
+    </>}
+    {context && <details><summary>Prior-work source and read evidence</summary><pre style={pre}>{JSON.stringify(context, null, 2)}</pre></details>}
+  </section>;
 }

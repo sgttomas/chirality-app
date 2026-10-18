@@ -13,7 +13,7 @@ import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, Selected
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
-import { historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
+import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread } from "./RequestCards";
@@ -137,6 +137,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAc
       fork={() => { void roleAct("forking", "conversation_fork", { generation: selected.generation, threadId: selected.threadId }, result => {
         if (result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
       }); }} />}
+    {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
       start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id }); }}

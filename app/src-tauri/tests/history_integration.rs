@@ -155,7 +155,7 @@ fn continue_is_exact_native_id_and_current_receiving_candidate_only() {
         .prepare(&host(), &g(), 1, "continue", None, Direction::Desc, None)
         .unwrap();
     assert_eq!(q.method(), "thread/resume");
-    assert_eq!(q.params(), &json!({"threadId":"stored"}));
+    assert_eq!(q.params(), &json!({"threadId":"stored","excludeTurns":true}));
     session.history_mut().unwrap().waiting_ended(&q).unwrap();
     assert_eq!(session.snapshot(None)["pending"][0]["waitingEnded"], true);
     assert!(session.history().unwrap().resumed_thread().is_none());

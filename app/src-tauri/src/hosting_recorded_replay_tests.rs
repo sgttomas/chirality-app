@@ -16,16 +16,43 @@ const PEER: &str = concat!(
     "/../supplier_checks/recorded_replay.py"
 );
 
+// Replay fixtures are independent App processes. Give each test thread its own
+// records-store identity rather than racing the process-wide default store's
+// initial publication. Retention checks remain enabled on the real Host path.
+struct OwnStore(PathBuf);
+impl OwnStore {
+    fn new() -> Self {
+        let root = std::fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(opaque_id("recorded-seam-store-").unwrap());
+        std::fs::create_dir_all(&root).unwrap();
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+            root: root.clone(),
+            placement: crate::records_store::Placement::Test,
+            limits: vec![],
+        })));
+        Self(root)
+    }
+}
+impl Drop for OwnStore {
+    fn drop(&mut self) {
+        crate::records_store::use_store_for_test(None);
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
 struct Fixture {
     root: PathBuf,
     cfg: HostConfig,
     home: Arc<HomeSession>,
     recording: Value,
     generation: Value,
+    _store: OwnStore,
 }
 
 impl Fixture {
     fn new(scenario: &str, indexed: bool) -> Self {
+        let store = OwnStore::new();
         let root = std::fs::canonicalize(std::env::temp_dir())
             .unwrap()
             .join(opaque_id("recorded-seam-").unwrap());
@@ -93,6 +120,7 @@ runpy.run_path({peer},run_name='__main__')
             home,
             recording,
             generation,
+            _store: store,
         };
         let result = &fixture.recording["frames"][5]["frame"]["result"];
         fixture
@@ -356,6 +384,10 @@ runpy.run_path({peer},run_name='__main__')
             .iter()
             .any(|t| t["generation"] == generation));
         let resume = self.history_action(&generation, 1, "continue");
+        assert_eq!(
+            resume.source().attempted_frame()["params"],
+            json!({"threadId":self.thread(),"excludeTurns":true})
+        );
         self.until("recorded idle before resume reply", || {
             self.audit(2)
                 .iter()
@@ -508,6 +540,14 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         2
     );
     let binding = audit.iter().find(|e| e["event"] == "binding").unwrap();
+    let adapted_resume = audit
+        .iter()
+        .find(|e| e["event"] == "frame" && e["frame_index"] == 30 && e["direction"] == "app->codex")
+        .unwrap();
+    assert_eq!(
+        adapted_resume["adaptations"],
+        json!(["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"])
+    );
     assert_eq!(binding["outside_segment_frame_indices"], json!([]));
 }
 

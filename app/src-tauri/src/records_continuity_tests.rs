@@ -219,7 +219,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
         .into_iter()
         .find(|frame| frame["method"] == "thread/resume")
         .unwrap();
-    assert_eq!(resumed["params"], json!({"threadId":"thread"}));
+    assert_eq!(resumed["params"], json!({"threadId":"thread","excludeTurns":true}));
     let fork = cold.thread_fork_dispatch(&generation, "thread").unwrap();
     cold.source_request_wait(&fork, Duration::from_secs(2))
         .unwrap();

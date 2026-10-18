@@ -144,6 +144,7 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 code_paths:
+- app/src/App.tsx
 - app/src-tauri/src/native_items.rs
 - app/src-tauri/src/native_history.rs
 - app/src/NativeActivity.tsx

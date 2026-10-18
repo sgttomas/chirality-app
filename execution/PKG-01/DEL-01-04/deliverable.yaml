@@ -396,11 +396,13 @@ code_paths:
 - app/src-tauri/src/act_control_file.rs
 - app/src-tauri/src/file_act_root.rs
 - app/src-tauri/src/runtime_session.rs
-- app/src/App.tsx
 - app/src/FileActPanel.tsx
 - app/src-tauri/src/file_act_view.rs
 - app/src-tauri/src/file_act_lapse.rs
 - app/src-tauri/src/lib.rs
+
+- app/src/App.tsx
+- app/src/NativeHistory.tsx
 - app/src/ObserverAttachment.tsx
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/canonical.rs
