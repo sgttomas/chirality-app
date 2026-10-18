@@ -49,6 +49,9 @@ const SCHEMA_VERSION: &str = "1";
 /// full scan that derives the keys from each entry's JSON, ignoring the
 /// stored columns; entries this build inserts carry its own derivation.
 pub(crate) const INDEX_FORMAT: &str = "1";
+/// One explicit historical read, independent of the live/current projection.
+pub(crate) const TERMINAL_REQUEST_ROWS: usize = 64;
+const TERMINAL_REQUEST_BYTES: usize = 256 * 1024;
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS ledger_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ledger_entry (
@@ -105,6 +108,7 @@ thread_local! {
     /// Test hook: the next batch commits, then its folder flush fails, so the
     /// append is reported not confirmed although it landed.
     pub(crate) static FAIL_FLUSH_AFTER_COMMIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    pub(crate) static AFTER_TERMINAL_READ: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
 }
 
 /// The key under which a later entry supersedes an earlier one among the
@@ -297,6 +301,106 @@ impl Store {
     /// How many entries the database holds.
     pub(crate) fn count(&self) -> Result<u64, String> {
         self.connection.query_row("SELECT COUNT(*) FROM ledger_entry", [], |r| r.get::<_, i64>(0)).map(|n| n as u64).map_err(db_error("App history unavailable"))
+    }
+    /// Latest closed summary per original (full generation, typed serialized
+    /// request ID), newest first at a fixed ledger cut. Only this bounded page
+    /// enters Rust memory. Legacy index formats derive keys in SQL from JSON,
+    /// never trust old columns or load the whole ledger to derive a page.
+    pub(crate) fn terminal_request_page(
+        &self,
+        cursor: Option<&Value>,
+        validate: &dyn Fn(&Value) -> Result<(), String>,
+    ) -> Result<Value, String> {
+        crate::storage::check_path(&self.path)?;
+        self.guard()?;
+        let mut source = self.path.as_os_str().as_encoded_bytes().to_vec();
+        source.extend_from_slice(&self.opened.0.to_be_bytes());
+        source.extend_from_slice(&self.opened.1.to_be_bytes());
+        let source = crate::util::sha256_hex(&source);
+        let tx = self.connection.unchecked_transaction().map_err(db_error("Request history unavailable"))?;
+        let maximum: i64 = tx.query_row("SELECT COALESCE(MAX(seq), 0) FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("Request history unavailable"))?;
+        let decimal = |value: &Value| -> Result<i64, String> {
+            let text = value.as_str().ok_or("Invalid request-history cursor")?;
+            let number = text.parse::<i64>().map_err(|_| "Invalid request-history cursor")?;
+            if number < 0 || number.to_string() != text { return Err("Invalid request-history cursor".into()); }
+            Ok(number)
+        };
+        let (through, before) = match cursor {
+            None => (maximum, None),
+            Some(value) => {
+                if value.as_object().is_none_or(|o| o.len() != 3)
+                    || value["source"] != source {
+                    return Err("Foreign or invalid request-history cursor".into());
+                }
+                let through = decimal(&value["throughSequence"])?;
+                let before = decimal(&value["beforeSequence"])?;
+                if through > maximum || before == 0 || before > through.saturating_add(1) {
+                    return Err("Request-history cursor is outside its ledger cut".into());
+                }
+                (through, Some(before))
+            }
+        };
+        let (kind, subject) = if self.index_current {
+            ("kind", "subject")
+        } else {
+            ("json_extract(entry, '$.kind')", "json_array(json_extract(entry, '$.generation'), json_extract(entry, '$.requestIdentity'))")
+        };
+        let sql = format!(
+            "SELECT seq, length(CAST(entry AS BLOB)), kind, currency, subject, entry
+             FROM ledger_entry WHERE seq <= ?1 AND (?2 IS NULL OR seq < ?2)
+               AND {kind} = 'register_entry_summary' AND json_extract(entry, '$.state') = 'closed'
+               AND seq IN (SELECT MAX(seq) FROM ledger_entry
+                   WHERE seq <= ?1 AND {kind} = 'register_entry_summary'
+                     AND json_extract(entry, '$.state') = 'closed' GROUP BY {subject})
+             ORDER BY seq DESC LIMIT ?3"
+        );
+        let mut entries = Vec::new();
+        let mut bytes = 0usize;
+        let mut last_sequence = None;
+        let mut more = false;
+        {
+            let mut statement = tx.prepare(&sql).map_err(db_error("Request history unavailable"))?;
+            let mut rows = statement.query(params![through, before, (TERMINAL_REQUEST_ROWS + 1) as i64]).map_err(db_error("Request history unavailable"))?;
+            while let Some(row) = rows.next().map_err(db_error("Request history unavailable"))? {
+                if entries.len() == TERMINAL_REQUEST_ROWS { more = true; break; }
+                let size: i64 = row.get(1).map_err(db_error("Request history unavailable"))?;
+                if size < 0 || size as u64 > TERMINAL_REQUEST_BYTES as u64 {
+                    return Err("Request history unavailable: one summary exceeds the bounded read budget".into());
+                }
+                if bytes + size as usize > TERMINAL_REQUEST_BYTES { more = true; break; }
+                let sequence: i64 = row.get(0).map_err(db_error("Request history unavailable"))?;
+                if sequence <= 0 { return Err("Request history unavailable: invalid source sequence".into()); }
+                let text: String = row.get(5).map_err(db_error("Request history unavailable"))?;
+                let entry: Value = serde_json::from_str(&text).map_err(|_| "Request history unavailable: stored summary is not JSON")?;
+                validate(&entry).map_err(|e| format!("Request history unavailable: {e}"))?;
+                if entry["kind"] != "register_entry_summary" || entry["state"] != "closed" {
+                    return Err("Request history unavailable: selected entry is not a closed summary".into());
+                }
+                if self.index_current {
+                    let kind: String = row.get(2).map_err(db_error("Request history unavailable"))?;
+                    let held: Option<String> = row.get(3).map_err(db_error("Request history unavailable"))?;
+                    let request: Option<String> = row.get(4).map_err(db_error("Request history unavailable"))?;
+                    if entry["kind"] != kind || currency(&entry) != held || self::subject(&entry) != request {
+                        return Err("Request history unavailable: stored index columns do not match the original summary".into());
+                    }
+                }
+                bytes += size as usize;
+                last_sequence = Some(sequence);
+                entries.push(entry);
+            }
+        }
+        tx.commit().map_err(db_error("Request history unavailable"))?;
+        #[cfg(test)]
+        if let Some(hook) = AFTER_TERMINAL_READ.with(|slot| slot.borrow_mut().take()) { hook(); }
+        crate::storage::check_path(&self.path)?;
+        self.guard()?;
+        let next = if more {
+            Some(json!({"source":source,"throughSequence":through.to_string(),"beforeSequence":last_sequence.ok_or("Request history unavailable: empty bounded page")?.to_string()}))
+        } else { None };
+        Ok(json!({"entries":entries,"nextCursor":next,"throughSequence":through.to_string(),"hasMore":more,
+            "rowLimit":TERMINAL_REQUEST_ROWS,"byteLimit":TERMINAL_REQUEST_BYTES,
+            "coverage":"Bounded latest closed summary per original generation and typed request identity at this ledger cut; not a complete request transition history",
+            "oldRequestsAnswerable":false}))
     }
     /// The current entries in ledger order (see the module text), by one
     /// indexed query; a request whose latest entry is closed is not held.

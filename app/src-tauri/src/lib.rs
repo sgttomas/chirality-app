@@ -179,6 +179,18 @@ fn read_recovery_custody_from_root(homes:&Mutex<runtime_session::HomeRouter>,mod
     Ok(view)
 }
 
+#[tauri::command(async)]
+fn read_recovery_request_history(state: State<'_, AppState>, mode_home_class: String, generation: Value, cursor: Option<Value>) -> Result<Value,String> {
+    read_recovery_request_history_from_root(&state.homes, &mode_home_class, &generation, cursor.as_ref())
+}
+fn read_recovery_request_history_from_root(homes: &Mutex<runtime_session::HomeRouter>, mode_home_class: &str, generation: &Value, cursor: Option<&Value>) -> Result<Value,String> {
+    let home = homes.try_lock().map_err(|_|"Home selection busy; request-history read not performed")?.active();
+    let view = recovery_root_view::read_request_history(&home, mode_home_class, generation, cursor)?;
+    let active = homes.try_lock().map_err(|_|"Home selection busy after request-history read")?.active();
+    if !Arc::ptr_eq(&home, &active) { return Err("Active request-history home changed; original page not reassigned".into()); }
+    Ok(view)
+}
+
 /// RECOVERY §3.2 CV-15: the person asks for an unavailable conversation's
 /// recovery reads again. The host reads it on this home's ready Codex
 /// (`thread/read`, then its latest turns); nothing is resumed and nothing is
@@ -2125,6 +2137,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
+            read_recovery_request_history,
             recovery_retry,
             read_connector_routes,
             read_fleet_records,

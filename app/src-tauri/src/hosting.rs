@@ -1056,6 +1056,27 @@ impl Host {
             i.recovery_initialization_error.as_deref().or(i.recovery_error.as_deref()))
             .with_history_limits(i.recovery_snapshot.as_ref().map_or(&Value::Null, |o| &o.summary["historyLimits"]))
     }
+    /// A separate explicit historical read. Polling/cached custody never calls
+    /// it, and no Host Inner lock spans ledger IO or waits for the writer.
+    pub(crate) fn read_terminal_request_history(&self, cursor: Option<&Value>) -> Result<Value, String> {
+        let (source, session, generation, path) = {
+            let i = self.inner.0.lock().unwrap();
+            (i.recovery.clone().ok_or("Request history unavailable: no original recovery ledger")?,
+                i.app_session.clone(), i.generation.clone(), i.recovery_path.clone())
+        };
+        let mut page = {
+            let ledger = source.try_lock().map_err(|_| "Request history source is busy; no read performed")?;
+            ledger.read_terminal_request_page(cursor)?
+        };
+        let i = self.inner.0.lock().unwrap();
+        if i.app_session != session || i.generation != generation || i.recovery_path != path
+            || i.recovery.as_ref().is_none_or(|current| !Arc::ptr_eq(current, &source)) {
+            return Err("Recovery request-history source changed during read; no mixed-source page returned".into());
+        }
+        page["pendingPointerFacts"] = json!(i.pending_recovery.facts.lock().unwrap().len());
+        page["persistenceLimit"] = json!(i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()));
+        Ok(page)
+    }
     fn persist_execution(i:&mut Inner) {
         // The held entries and the queued facts, searched in place (no copy).
         let held=i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)).unwrap_or_default();

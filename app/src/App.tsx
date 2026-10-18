@@ -1081,6 +1081,7 @@ export function App() {
         modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null}
         nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })}
+        readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })}
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 

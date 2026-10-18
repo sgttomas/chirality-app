@@ -664,6 +664,37 @@ impl RecoveryLedger {
     pub fn current_entries(&self) -> &[Value] {
         &self.current
     }
+    /// Explicit bounded terminal-history read from this already opened ledger.
+    /// No reopen/import, append, current-projection mutation or native authority.
+    pub(crate) fn read_terminal_request_page(&self, cursor: Option<&Value>) -> Result<Value, String> {
+        crate::storage::check_path(&self.path)?;
+        crate::storage::check_path(&self.database)?;
+        if let Some(binding) = &self.namespaces { self.preflight_namespaces(binding)?; }
+        let store = self.store.as_ref().ok_or("Request history unavailable: no original ledger database is open")?;
+        store.guard()?;
+        let validate = |entry: &Value| validator()?.validate(entry).map_err(|e| format!("{} at {}", e.masked(), e.instance_path()));
+        let mut page = store.terminal_request_page(cursor, &validate)?;
+        store.guard()?;
+        if let Some(binding) = &self.namespaces { self.preflight_namespaces(binding)?; }
+        crate::storage::check_path(&self.path)?;
+        crate::storage::check_path(&self.database)?;
+        let entries = page["entries"].as_array().ok_or("Request history unavailable: page entries absent")?.iter().map(|summary| {
+            let generation = summary["generation"].as_str().and_then(|g| generation_from_ref(g).ok());
+            // Keep the original serialized ID authoritative: re-emitting a
+            // decoded integer would let a JavaScript reader round large IDs.
+            let identity_type = match summary["requestIdentity"].as_str().and_then(|id| serde_json::from_str::<Value>(id).ok()) {
+                Some(Value::String(_)) => "string",
+                Some(id) if id.as_i64().is_some() || id.as_u64().is_some() => "integer",
+                _ => "legacy-unknown",
+            };
+            json!({"summary":summary,"sourceGeneration":generation,"requestIdentityType":identity_type,
+                "identityStanding":"Original full generation and serialized request identity retained; legacy undecodable values remain unknown, never rebound",
+                "projectAssociation":"not supplied by this request summary; not inferred from the selected project or home"})
+        }).collect::<Vec<_>>();
+        page["entries"] = json!(entries);
+        page["standing"] = json!("Historical App-observed pointer summaries only; no current request, reply, grant, acknowledgment or execution authority reconstructed");
+        Ok(page)
+    }
     /// Every entry the database holds, in order, as a JSON array (null when
     /// none can be read). Reads the whole ledger: for inspection and tests;
     /// the host never calls it.

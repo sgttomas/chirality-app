@@ -1254,6 +1254,20 @@ qualified.
 
 ## Current implementation conditions
 
+**Reading recorded terminal requests after relaunch.** An explicit recovery
+history read presents bounded pages of terminal request summaries from the
+original App ledger. It preserves each summary's original generation, typed
+request identity, optional subject, closure context, write result and
+acknowledgment observation. Ended unanswered, written or declined, supplier
+resolution and reply outcome unknown remain distinct; the selected home does
+not become their historical source. The reader checks the original ledger
+source around the read and reports unavailable or limited coverage rather than
+substituting cached success. It does not replay replies, reconstruct answerable
+requests, contact Codex, write ledger facts or load the whole ledger into the
+Host. Existing cached recovery status and conversation-index selection remain
+separate. Historical rows have no answer controls; further pages require an
+explicit read.
+
 **Reply observations at close.** The owner chose:
 
 > Close as “Reply outcome unknown” (Recommended)

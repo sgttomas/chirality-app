@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 type Json = any;
 const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
 const detail = (value: Json) => <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(value, null, 2)}</pre>;
@@ -54,7 +54,53 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
   </>;
 }
 
-export function RecoveryCustodyPanel({ modeHomeClass, generation, nativeHistoryGeneration, read, retry }: { modeHomeClass?: string; generation: Json; nativeHistoryGeneration: Json; read: () => Promise<Json>; retry?: (threadId: string) => Promise<Json> }) {
+export function RecoveryRequestHistory({ modeHomeClass, generation, read }: { modeHomeClass?: string; generation: Json; read: (cursor: Json) => Promise<Json> }) {
+  const [data, setData] = useState<Json>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const active = useRef(true);
+  const pending = useRef(false);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const load = async (cursor: Json) => {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true); setError(""); setData(null);
+    try {
+      const result = await read(cursor);
+      if (!active.current) return;
+      if (result.source.modeHomeClass !== modeHomeClass || JSON.stringify(result.source.generation) !== JSON.stringify(generation)) throw new Error("Request history belongs to a different source; refresh the selected home.");
+      setData(result);
+    } catch (e) { if (active.current) setError(String(e)); }
+    finally { pending.current = false; if (active.current) setBusy(false); }
+  };
+  return <section aria-label="Persisted terminal request summaries">
+    <h3>Persisted terminal request summaries</h3>
+    <p>Historical App pointer metadata only. These are not current requests and cannot be answered here. Original source homes and generations remain separate from the selected home; project association is not inferred.</p>
+    <button disabled={busy || !modeHomeClass} onClick={() => load(null)}>Read latest request summaries</button>
+    {error && <p role="alert">{error}</p>}
+    {data && <>
+      <p>Read at {data.readAt}. {data.readStanding}</p>
+      <p>{data.page.coverage}. Ledger cut: {data.page.throughSequence}; this page: {data.page.entries.length} summaries; row bound: {data.page.rowLimit}.</p>
+      <p>{data.page.standing}</p>
+      <p>Pending pointer facts excluded from this persisted page: {text(data.page.pendingPointerFacts)}.</p>
+      {data.page.persistenceLimit && <p role="status">Persistence limit: {text(data.page.persistenceLimit)}</p>}
+      {data.page.entries.length === 0 && <p>No terminal summaries on this page. This says nothing about current unanswered requests.</p>}
+      {data.page.entries.map((entry: Json, i: number) => {
+        const summary = entry.summary;
+        return <details key={JSON.stringify([summary.generation, summary.requestIdentity]) + i}>
+          <summary>{text(summary.endedAs)}: {summary.method} · request {summary.requestIdentity}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {summary.at}</summary>
+          <p>Source home: {text(entry.sourceGeneration?.home)}; source App session: {text(entry.sourceGeneration?.appSession)}; spawn: {text(entry.sourceGeneration?.spawnCounter)}.</p>
+          <p>Transition: {summary.transition}; context: {text(summary.context)}; reply write: {summary.replyWrite}; acknowledgment: {summary.acknowledgment}.</p>
+          <p>{entry.projectAssociation}</p>
+          {detail(entry)}
+        </details>;
+      })}
+      {data.page.nextCursor ? <button disabled={busy} onClick={() => load(data.page.nextCursor)}>Read earlier request summaries</button> : <p>No earlier terminal summaries at this ledger cut.</p>}
+    </>}
+  </section>;
+}
+
+export function RecoveryCustodyPanel({ modeHomeClass, generation, nativeHistoryGeneration, read, readRequests, retry }: { modeHomeClass?: string; generation: Json; nativeHistoryGeneration: Json; read: () => Promise<Json>; readRequests?: (cursor: Json) => Promise<Json>; retry?: (threadId: string) => Promise<Json> }) {
   const [data, setData] = useState<Json>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -73,6 +119,7 @@ export function RecoveryCustodyPanel({ modeHomeClass, generation, nativeHistoryG
     <p>Selected home: {modeHomeClass ?? "not established"}. Source generation: {text(generation)}. Native History's separately selected generation: {text(nativeHistoryGeneration)}.</p>
     <button disabled={busy || !modeHomeClass} onClick={refresh}>Read recovery metadata for this home</button>
     <p>This explicit read does not flush pending facts, contact Codex, resume a conversation, or record a human act or external operation. Use the existing Native History controls separately.</p>
+    {readRequests && <RecoveryRequestHistory key={JSON.stringify([modeHomeClass, generation])} modeHomeClass={modeHomeClass} generation={generation} read={readRequests} />}
     {error && <p role="alert">{error}</p>}
     {data ? <RecoveryCustodyDetails data={data} retry={retry && !busy ? (threadId) => run(() => retry(threadId)) : undefined} /> : <p>Not read for this selection. Missing data is not evidence of completed work.</p>}
   </section>;

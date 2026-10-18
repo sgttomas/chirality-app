@@ -37,3 +37,30 @@ pub(crate) fn read(
         "compatibility": "Ledger 0.3 preserves known item-to-turn pointers; legacy absent turnId remains unknown. Older 0.2 readers reject new correlated rows; preserve the ledger on rollback, do not strip pointers."
     }))
 }
+
+/// The separate person-requested SQLite page read. Cached custody/status stays
+/// independent, including while the ledger is busy or unavailable for this read.
+pub(crate) fn read_request_history(
+    home: &HomeSession,
+    expected_class: &str,
+    expected_generation: &Value,
+    cursor: Option<&Value>,
+) -> Result<Value, String> {
+    if home.class().as_str() != expected_class {
+        return Err("Request-history source home selection changed".into());
+    }
+    let before = home.host.snapshot()["generation"].clone();
+    if before != *expected_generation {
+        return Err("Request-history source generation changed".into());
+    }
+    if !before.is_null() { crate::recovery::generation_ref(&before)?; }
+    let session = home.host.shared_recovery_observation()["appSession"].clone();
+    let page = home.host.read_terminal_request_history(cursor)?;
+    if home.host.snapshot()["generation"] != before
+        || home.host.shared_recovery_observation()["appSession"] != session {
+        return Err("Request-history source changed during read; refresh the original source".into());
+    }
+    Ok(json!({"source":{"modeHomeClass":home.class().as_str(),"generation":before,"appSession":session},
+        "readAt":crate::util::now_rfc3339(),"page":page,
+        "readStanding":"Explicit bounded read of the original App ledger; no pending fact flushed, native request reconstructed, request answered or supplier contacted"}))
+}

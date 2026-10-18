@@ -83,6 +83,7 @@ code_paths:
 - app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/recovery.rs
 - app/src-tauri/src/recovery_store.rs
+- app/src-tauri/src/recovery_root_view.rs
 - app/src/RecoveryCustodyPanel.tsx
 - app/src-tauri/src/app_quit.rs
 - app/src-tauri/src/codex_stop.rs
@@ -105,6 +106,9 @@ checks:
 - app/src-tauri/src/records_continuity_tests.rs
 - app/src-tauri/src/recovery_startup_request_tests.rs
 - app/src-tauri/src/recovery_store_tests.rs
+- app/src-tauri/src/recovery_request_history_tests.rs
+- app/src-tauri/src/recovery_root_tests.rs
+- app/tests/recovery-custody.test.mjs
 - app/src-tauri/tests/recovery_startup.rs
 - app/src-tauri/src/app_quit_tests.rs
 - app/src-tauri/src/codex_stop_tests.rs

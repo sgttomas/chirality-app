@@ -3,6 +3,8 @@
 use super::*;
 use crate::recovery::{remove_test_ledger, RecoveryLedger};
 
+mod request_history { include!("recovery_request_history_tests.rs"); }
+
 struct Scratch(PathBuf);
 impl Scratch {
     fn new() -> Self {
