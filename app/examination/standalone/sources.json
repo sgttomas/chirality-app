@@ -9,7 +9,7 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:9438a9edce6e326a7df20d4717a549ea69d4f1870313cafe91b41673321f359a",
+      "sha256": "sha256:c6494ed91839aecde83d062b6a0ea6d2cb49977e32e7ba8f05e3da89865464f7",
       "basis_file_sha256": "sha256:65bee77615d7cd8b4107f281a1fb793d300dcea64be6ba6d2341f2bbe100c574",
       "selectors": [
         {

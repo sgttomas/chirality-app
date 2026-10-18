@@ -1,5 +1,6 @@
 """Offline regression tests for the synthetic redacted-recording supplier peer."""
 import copy
+from contextlib import redirect_stderr
 import hashlib
 import io
 import json
@@ -11,6 +12,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 import recorded_replay as peer
 
@@ -182,6 +184,14 @@ class RecordingValidation(unittest.TestCase):
 
 
 class AppProfiles(unittest.TestCase):
+    def test_adaptation_rejects_missing_reply_without_stop_iteration(self):
+        _, _, recording = capture()
+        replay = peer.Replay(recording, 1, "app", peer.Audit(io.StringIO()))
+        expected = copy.deepcopy(recording["frames"][4]["frame"])
+        expected["id"] = "no-captured-reply"
+        with self.assertRaisesRegex(peer.ReplayError, "invalid-captured-thread-start-reply"):
+            replay.adapted_params(expected, {})
+
     def test_exact_initialize_adaptation_is_allowed_and_audited_in_strict(self):
         _, _, recording = capture()
         supplied = inputs(recording, 1)
@@ -276,6 +286,133 @@ class SubprocessReplay(unittest.TestCase):
     def send(process, frame):
         process.stdin.write(json.dumps(frame).encode() + b"\n")
         process.stdin.flush()
+
+    def invoke(self, path, digest, audit, profile="app", generation=1, supplied=(), extra=()):
+        return subprocess.run([sys.executable, str(HERE / "recorded_replay.py"),
+                               "--recording", str(path), "--sha256", digest,
+                               "--generation", str(generation), "--audit", str(audit),
+                               "--profile", profile, *extra],
+                              input=b"".join(json.dumps(frame).encode() + b"\n" for frame in supplied),
+                              capture_output=True, timeout=2)
+
+    def test_malformed_adaptation_metadata_has_fixed_error_and_terminal_audit(self):
+        _, _, original = capture()
+        cases = [
+            (1, "app", lambda d: d["frames"][5]["frame"].update(result=None)),
+            (1, "app", lambda d: d["frames"][5]["frame"].update(result=[])),
+            (1, "app", lambda d: d["frames"][5]["frame"].update(result="private-malformed-result")),
+            (1, "app", lambda d: d["frames"][5]["frame"]["result"].pop("model")),
+            (1, "app", lambda d: d["frames"][5]["frame"]["result"].update(modelProvider=None)),
+            (1, "app", lambda d: d["frames"][4]["frame"].pop("params")),
+            (1, "app", lambda d: d["frames"][4]["frame"]["params"].pop("cwd")),
+            (1, "app", lambda d: d["frames"][4]["frame"]["params"].update(cwd=[])),
+            (1, "app", lambda d: d["frames"][7]["frame"].pop("params")),
+            (1, "app", lambda d: d["frames"][7]["frame"]["params"].update(input=[None])),
+            (1, "app", lambda d: d["frames"][7]["frame"]["params"].update(input=[[]])),
+            (1, "app", lambda d: d["frames"][7]["frame"]["params"].update(input=["private-malformed-input"])),
+            (1, "app", lambda d: d["frames"][7]["frame"]["params"]["input"][0].pop("text")),
+            (1, "app", lambda d: d["frames"][7]["frame"]["params"]["input"][0].update(text=[])),
+            (2, "app-recovery", lambda d: d["frames"][23]["frame"].pop("params")),
+            (2, "app-recovery", lambda d: d["frames"][23]["frame"]["params"].pop("threadId")),
+            (2, "app-recovery", lambda d: d["frames"][26]["frame"].pop("params")),
+            (2, "app-recovery", lambda d: d["frames"][26]["frame"]["params"].update(itemsView=None)),
+        ]
+        for index, (generation, profile, mutate) in enumerate(cases):
+            with self.subTest(case=index):
+                altered = copy.deepcopy(original)
+                mutate(altered)
+                path = Path(self.root.name) / f"malformed-{index}.json"
+                data = json.dumps(altered).encode()
+                path.write_bytes(data)
+                audit = Path(self.root.name) / f"malformed-audit-{index}.jsonl"
+                result = self.invoke(path, hashlib.sha256(data).hexdigest(), audit, profile,
+                                     generation, inputs(original, generation, profile))
+                self.assertEqual(result.returncode, 2, result.stderr.decode())
+                self.assertNotIn(b"Traceback", result.stderr)
+                self.assertNotIn(str(HERE).encode(), result.stderr)
+                self.assertNotIn(b"private-malformed", result.stderr + audit.read_bytes())
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-1]["event"], "exit")
+                self.assertEqual(rows[-1]["outcome"], "error")
+                self.assertTrue(rows[-1]["code"].startswith(("invalid-captured-", "missing-captured-", "unsupported-captured-")))
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(result.stderr, ("recorded-replay: " + rows[-1]["code"] + "\n").encode())
+                for line in result.stdout.splitlines():
+                    peer.frame_kind(json.loads(line))
+                self.assertFalse(any(row["event"] == "finish" for row in rows))
+                self.assertEqual(path.read_bytes(), data)
+
+    def test_short_recording_refuses_pause_index_with_terminal_audit(self):
+        _, _, recording = capture("nv04")
+        recording["frames"] = recording["frames"][:10] + recording["frames"][-2:]
+        positions = {}
+        for row in recording["frames"]:
+            positions[row["direction"]] = positions.get(row["direction"], 0) + 1
+            row["position"] = positions[row["direction"]]
+        peer.validate_recording(recording)
+        path = Path(self.root.name) / "short-recording.json"
+        data = json.dumps(recording).encode()
+        path.write_bytes(data)
+        result = self.invoke(path, hashlib.sha256(data).hexdigest(), self.audit,
+                             extra=("--pause-after-frame", "28", "--release", str(Path(self.root.name) / "release")))
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, b"recorded-replay: unsupported-pause-frame\n")
+        self.assertEqual(result.stdout, b"")
+        self.assertEqual(json.loads(self.audit.read_text().splitlines()[-1]),
+                         {"event": "exit", "outcome": "error", "code": "unsupported-pause-frame"})
+        self.assertEqual(path.read_bytes(), data)
+
+    def test_existing_audit_destinations_and_source_aliases_preserve_all_bytes(self):
+        original_path, digest, recording = capture()
+        original = original_path.read_bytes()
+        for kind in ("same-path", "symlink", "dangling-symlink", "hardlink", "existing-output"):
+            with self.subTest(kind=kind):
+                root = Path(self.root.name) / kind
+                root.mkdir()
+                path, audit = root / "recording.json", root / "audit.jsonl"
+                path.write_bytes(original)
+                if kind == "same-path":
+                    audit = path
+                elif kind == "symlink":
+                    audit.symlink_to(path)
+                elif kind == "dangling-symlink":
+                    audit.symlink_to(root / "must-not-be-created")
+                elif kind == "hardlink":
+                    os.link(path, audit)
+                else:
+                    audit.write_bytes(b"existing-audit-must-stay-unchanged\n")
+                audit_before = audit.read_bytes() if audit.exists() else None
+                result = self.invoke(path, digest, audit, supplied=inputs(recording, 1, "app"))
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertEqual(path.read_bytes(), original)
+                if audit_before is not None:
+                    self.assertEqual(audit.read_bytes(), audit_before)
+                else:
+                    self.assertTrue(audit.is_symlink())
+                    self.assertFalse(audit.exists())
+                self.assertEqual(result.stderr, b"recorded-replay: audit-destination-exists\n")
+
+    def test_audit_link_created_immediately_before_open_cannot_clobber_source(self):
+        original_path, digest, _ = capture()
+        original = original_path.read_bytes()
+        path = Path(self.root.name) / "recording.json"
+        path.write_bytes(original)
+        open_original = Path.open
+
+        def racing_open(target, mode="r", *args, **kwargs):
+            if target == self.audit and mode in ("w", "x"):
+                os.link(path, self.audit)
+            return open_original(target, mode, *args, **kwargs)
+
+        errors = io.StringIO()
+        with patch.object(Path, "open", racing_open), redirect_stderr(errors):
+            code = peer.main(["--recording", str(path), "--sha256", digest,
+                              "--generation", "1", "--audit", str(self.audit)])
+        self.assertEqual(code, 2)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(self.audit.read_bytes(), original)
+        self.assertEqual(errors.getvalue(), "recorded-replay: audit-destination-exists\n")
 
     def test_st5_waits_for_unanswered_request_before_eof_without_ack(self):
         process, reader, recording = self.start(extra=("--", "-c", "fixture=inert", "app-server"))

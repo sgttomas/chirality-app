@@ -12,6 +12,8 @@ Use --recording PATH --sha256 HEX --generation N --audit PATH, optionally
 inert. --version reports the required synthetic development label. The optional
 NV04 --pause-after-frame 28 --release PATH gate lets a test inspect the real
 consumer between parent completion and the following child frames.
+The audit destination must be fresh: exclusive creation refuses existing files,
+symlinks and hardlinks without overwriting their bytes.
 """
 import argparse
 import copy
@@ -232,7 +234,7 @@ class Replay:
         if pause_after_frame is not None:
             require(type(pause_after_frame) is int and pause_after_frame == 28 and
                     recording["scenario"] == "nv04" and generation == 1, "unsupported-pause-gate")
-            require(recording["frames"][28]["direction"] == "codex->app" and
+            require(len(recording["frames"]) > 28 and recording["frames"][28]["direction"] == "codex->app" and
                     recording["frames"][28]["frame"].get("method") == "turn/completed",
                     "unsupported-pause-frame")
             require(not Path(release).exists(), "release-marker-already-exists")
@@ -256,29 +258,53 @@ class Replay:
 
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
+        require(isinstance(expected, dict), "invalid-captured-adaptation-request")
         changes = []
         method, params = expected.get("method"), expected.get("params")
         if method == "initialize":
+            require(exact(params, {"clientInfo": PROTOTYPE_CLIENT, "capabilities": CAPABILITIES}),
+                    "unsupported-captured-initialize")
             adapted = {"clientInfo": APP_CLIENT, "capabilities": {**CAPABILITIES, "explicitGatewayOauth": True}}
             if exact(actual, adapted):
                 return adapted, ["initialize.clientInfo:prototype-to-current-App", "initialize.capabilities.explicitGatewayOauth:add-true"]
         if self.profile == "app" and method == "thread/start":
-            reply = next(row["frame"] for row in self.recording["frames"]
-                         if row["generation"] == self.generation and row["direction"] == "codex->app"
-                         and frame_kind(row["frame"]) == "reply" and rpc_id(row["frame"]["id"]) == rpc_id(expected["id"]))
-            result = reply.get("result", {})
+            policy = "never" if self.recording["scenario"] == "nv04" else "on-request"
+            require(exact(params, {"cwd": "<WORKSPACE>", "approvalPolicy": policy, "sandbox": "read-only"}),
+                    "invalid-captured-thread-start-params")
+            require("id" in expected, "invalid-captured-thread-start-request")
+            recorded_id = rpc_id(expected["id"])
+            reply = next((row["frame"] for row in self.recording["frames"]
+                          if row["generation"] == self.generation and row["direction"] == "codex->app"
+                          and frame_kind(row["frame"]) == "reply" and rpc_id(row["frame"]["id"]) == recorded_id), None)
+            require(isinstance(reply, dict) and isinstance(reply.get("result"), dict),
+                    "invalid-captured-thread-start-reply")
+            result = reply["result"]
             adapted = {"cwd": params["cwd"], "model": result.get("model"), "modelProvider": result.get("modelProvider")}
-            require(isinstance(adapted["model"], str) and isinstance(adapted["modelProvider"], str), "missing-captured-model-selection")
+            require(isinstance(adapted["model"], str) and bool(adapted["model"])
+                    and isinstance(adapted["modelProvider"], str) and bool(adapted["modelProvider"]),
+                    "missing-captured-model-selection")
             return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider"]
         if self.profile == "app" and method == "turn/start":
+            require(isinstance(params, dict) and set(params) == {"threadId", "input"}
+                    and isinstance(params["threadId"], str) and bool(params["threadId"]),
+                    "invalid-captured-turn-start-params")
+            elements = params["input"]
+            require(isinstance(elements, list) and len(elements) == 1 and isinstance(elements[0], dict)
+                    and set(elements[0]) == {"type", "text"} and elements[0]["type"] == "text"
+                    and isinstance(elements[0]["text"], str) and bool(elements[0]["text"]),
+                    "unsupported-captured-text-input")
             adapted = copy.deepcopy(params)
-            require(isinstance(adapted.get("input"), list) and len(adapted["input"]) == 1
-                    and adapted["input"][0].get("type") == "text", "unsupported-captured-text-input")
             adapted["input"][0]["text_elements"] = []
             return adapted, ["turn/start.input[0].text_elements:add-empty-array"]
         if self.profile == "app-recovery" and method == "thread/read":
+            require(isinstance(params, dict) and set(params) == {"threadId", "includeTurns"}
+                    and isinstance(params["threadId"], str) and bool(params["threadId"])
+                    and params["includeTurns"] is True, "invalid-captured-thread-read-params")
             return {**params, "includeTurns": False}, ["thread/read.includeTurns:true-to-false"]
         if self.profile == "app-recovery" and method == "thread/turns/list":
+            require(isinstance(params, dict) and set(params) == {"threadId", "itemsView"}
+                    and isinstance(params["threadId"], str) and bool(params["threadId"])
+                    and params["itemsView"] == "full", "invalid-captured-turns-list-params")
             return {**params, "itemsView": "summary", "sortDirection": "desc"}, [
                 "thread/turns/list.itemsView:full-to-summary", "thread/turns/list.sortDirection:add-desc"]
         return params, changes
@@ -393,8 +419,13 @@ def main(argv=None):
         parser.add_argument("--release", type=Path)
         config = parser.parse_args(options)
         require(not host_args or "app-server" in host_args, "unsupported-host-cli-mode")
-        require(config.audit.resolve() != config.recording.resolve(), "audit-would-overwrite-recording")
-        with config.audit.open("w", encoding="utf-8") as stream:
+        try:
+            # O_CREAT|O_EXCL is checked atomically by open: an alias created
+            # concurrently cannot turn this operation into a truncating write.
+            stream = config.audit.open("x", encoding="utf-8")
+        except FileExistsError:
+            raise ReplayError("audit-destination-exists") from None
+        with stream:
             audit = Audit(stream)
             audit.emit("start", synthetic_standing=SYNTHETIC_STANDING)
             try:
