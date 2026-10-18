@@ -4,7 +4,8 @@ struct RoleR3Store(PathBuf);
 impl RoleR3Store {
     fn new() -> Self {
         let path =
-            PathBuf::from("/private/tmp").join(crate::util::opaque_id("role-r3-store-").unwrap());
+            std::env::temp_dir().canonicalize().unwrap()
+                .join(crate::util::opaque_id("role-r3-store-").unwrap());
         crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
             root: path.clone(),
             placement: crate::records_store::Placement::Test,
@@ -179,6 +180,59 @@ fn role_r3_actual_start_run_and_cold_sources_keep_original_limits_after_edit() {
         bytes
     );
 }
+#[test]
+fn role_r3_ctime_only_change_keeps_receipt_but_same_bytes_inode_replacement_refuses() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let _store = RoleR3Store::new();
+    let peer = Peer::new();
+    let composition = role_r3_composition(Some(crate::role_supply::Role::HELP_HUMAN), false);
+    let thread = role_r3_start(&peer, &composition);
+    let cap = peer.home.history.lock().unwrap()
+        .role_publication(peer.generation["home"].as_str().unwrap(), &thread)
+        .unwrap().unwrap();
+    cap.verify(&peer.fixture.root).unwrap();
+    let folder = crate::records_store::attach(&peer.fixture.root, false)
+        .unwrap().dir.unwrap().join("role-supply");
+    let path = folder.join("observations.jsonl");
+    let original = std::fs::read(&path).unwrap();
+    let before = std::fs::metadata(&path).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    let mut mode = before.permissions().mode();
+    let after = loop {
+        mode ^= 0o100;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+        let after = std::fs::metadata(&path).unwrap();
+        if (after.ctime(), after.ctime_nsec()) != (before.ctime(), before.ctime_nsec()) {
+            break after;
+        }
+        assert!(std::time::Instant::now() < deadline, "fixture ctime did not change");
+        std::thread::sleep(Duration::from_millis(2));
+    };
+    assert_ne!((before.ctime(), before.ctime_nsec()), (after.ctime(), after.ctime_nsec()));
+    assert_eq!((before.dev(), before.ino()), (after.dev(), after.ino()));
+    assert_eq!((before.len(), before.mtime(), before.mtime_nsec()),
+               (after.len(), after.mtime(), after.mtime_nsec()));
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    cap.verify(&peer.fixture.root).unwrap();
+    let mut root = peer.registered();
+    let reference = role_r3_open(&peer, &mut root, &thread);
+    let entry = role_r3_entry(&peer, &reference);
+    let quoted = crate::role_observations::read_r3(&peer.fixture.root, &entry);
+    assert_eq!(quoted["state"], "quoted historical correspondence", "{quoted}");
+    assert_eq!(quoted["sourceBytes"]["composed"], composition.text);
+    assert_eq!(quoted["currentRoleAuthorityRestored"], false);
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    // Retain the original inode so this is a real, byte-identical replacement,
+    // with no possibility of the filesystem reusing the old inode number.
+    std::fs::rename(&path, folder.join("held-original-log")).unwrap();
+    std::fs::write(&path, &original).unwrap();
+    let replaced = std::fs::metadata(&path).unwrap();
+    assert_ne!((before.dev(), before.ino()), (replaced.dev(), replaced.ino()));
+    assert_eq!(cap.verify(&peer.fixture.root).unwrap_err(),
+        "original role publication physical log/folder was replaced");
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+}
+
 #[test]
 fn role_r3_actual_fork_uses_distinct_observation_and_exact_parent_source() {
     let _store = RoleR3Store::new();

@@ -1,5 +1,6 @@
 use super::*;
 use crate::records_store::{Placement, Store};
+use std::os::unix::{ffi::OsStrExt, fs::PermissionsExt};
 struct Fixture {
     root: PathBuf,
     project: PathBuf,
@@ -7,8 +8,12 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let root = PathBuf::from("/private/tmp")
-            .join(crate::util::opaque_id("role-observation-test-").unwrap());
+        let mut template = CString::new(
+            std::env::temp_dir().join("role-observation-test-XXXXXX").as_os_str().as_bytes(),
+        ).unwrap().into_bytes_with_nul();
+        assert!(!unsafe { libc::mkdtemp(template.as_mut_ptr().cast()) }.is_null());
+        let root = PathBuf::from(std::ffi::OsStr::from_bytes(&template[..template.len() - 1]))
+            .canonicalize().unwrap();
         let project = root.join("project");
         std::fs::create_dir_all(&project).unwrap();
         let store = root.join("store");
@@ -130,6 +135,75 @@ fn unknown_and_late_observations_append_without_rewriting_original() {
 // The fourth payload is bound to the same original composition; the unknown
 // wait row and late success retain distinct observations without new content.
 
+// Change metadata only, and prove the filesystem actually gave this inode a
+// different ctime. Never pass vacuously on a coarse timestamp filesystem.
+fn change_ctime_only(path: &Path) {
+    let before = std::fs::metadata(path).unwrap();
+    let bytes = std::fs::read(path).unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let mut mode = before.permissions().mode();
+    let after = loop {
+        mode ^= 0o100;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).unwrap();
+        let after = std::fs::metadata(path).unwrap();
+        if (after.ctime(), after.ctime_nsec()) != (before.ctime(), before.ctime_nsec()) {
+            break after;
+        }
+        assert!(std::time::Instant::now() < deadline, "fixture ctime did not change");
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    };
+    assert_ne!((before.ctime(), before.ctime_nsec()), (after.ctime(), after.ctime_nsec()));
+    assert_eq!((before.dev(), before.ino()), (after.dev(), after.ino()));
+    assert_eq!((before.len(), before.mtime(), before.mtime_nsec()),
+               (after.len(), after.mtime(), after.mtime_nsec()));
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
+
+#[test]
+fn ctime_only_change_before_read_and_append_keeps_quoted_sources() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:first", "supplied");
+    let path = f.directory().join(LOG);
+    let original = std::fs::read(&path).unwrap();
+    let before = log.read("home", Some("thread"));
+    change_ctime_only(&path);
+    let cold = f.log().read("home", Some("thread"));
+    assert_eq!(cold, before);
+    assert_eq!(cold["observations"][0]["sourceBytes"]["composed"], composition().text);
+    assert_eq!(cold["currentRoleAuthorityRestored"], false);
+    assert!(cold["standing"].as_str().unwrap().contains("unverified"));
+    f.append(&log, "sup:later", "unknown");
+    assert!(std::fs::read(&path).unwrap().starts_with(&original));
+    assert_eq!(f.log().read("home", Some("thread"))["observations"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn ctime_only_change_inside_read_or_before_append_still_refuses_mutation() {
+    let f = Fixture::new();
+    let log = f.log();
+    f.append(&log, "sup:first", "supplied");
+    let path = f.directory().join(LOG);
+    let original = std::fs::read(&path).unwrap();
+    let at = path.clone();
+    METADATA_BEFORE_READ.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(move || change_ctime_only(&at)));
+    });
+    let folder = directory(&f.directory()).unwrap();
+    assert_eq!(RoleLog::read_lines_bounded(&folder, &f.directory(), Some(original.len()))
+        .err().unwrap(), "role observation log changed during read");
+    let at = path.clone();
+    BEFORE_APPEND.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(move || change_ctime_only(&at)));
+    });
+    assert_eq!(log.append(observation("sup:later", "unknown"), Some(&composition())).unwrap_err(),
+        "role observation log changed or was replaced before append; no replacement written");
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    // Refusal of an unstable operation is separate from later stable reading.
+    let cold = f.log().read("home", Some("thread"));
+    assert_eq!(cold["observations"].as_array().unwrap().len(), 1);
+    assert!(cold["limits"].as_array().unwrap().is_empty());
+}
 #[test]
 fn corruption_missing_payload_and_duplicate_identity_are_visible_not_promoted() {
     let f = Fixture::new();
