@@ -13,6 +13,7 @@ import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, Selected
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
+import { historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread } from "./RequestCards";
@@ -195,6 +196,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host:
   const generation = history?.generation;
   const epoch = history?.selectionEpoch;
   const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
+  const turnPage = historyPageBinding(host, "turns");
+  const itemPage = historyPageBinding(host, "items");
   const run = async (action: string, cursor: string | null = null, reference: string | null = null, pagingDirection = direction) => {
     setBusy(true); setError("");
     const priorRequests = new Set((history?.dispatches ?? []).map((dispatch: Json) => dispatch.requestRef));
@@ -259,11 +262,10 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host:
       <p>Continue sends the native thread ID and waits for a matching resume response before active admission. Its existing guidance and settings remain in force. No automatic resend.</p>
       <p>Goal: {selected.goalAvailability}. {selected.goal?.goal === null ? "Native reported no goal." : selected.goal ? JSON.stringify(selected.goal.goal) : "Goal has not been read."}</p>
       <p>{selected.checklists}</p>
-      <h3>Turns</h3>{pageButtons("turns", selected.turnsPage, null, selected.turnDirection ?? direction)}
-      {selected.turnsPage?.data?.length === 0 && <p>Native returned an empty turn page.</p>}
-      {(selected.turnsPage?.data ?? []).map((turn: Json) => <article key={turn.id}><p>{turn.id} · {turn.status} · items view: {turn.itemsView ?? "not reported"}</p><button disabled={!available || busy} onClick={() => run("items", null, turn.id)}>Read items for this turn</button><details><summary>Native turn summary</summary><pre>{JSON.stringify(turn, null, 2)}</pre></details></article>)}
-      <h3>Selected item page</h3>{pageButtons("items", selected.itemsPage, selected.itemTurnId ?? null, selected.itemDirection ?? direction)}
-      <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.itemsPage ?? { state: "not read" }, null, 2)}</pre>
+      <h3>Turns</h3>{turnPage.accepted && pageButtons("turns", turnPage.page, null, turnPage.query.params.sortDirection)}
+      <StoredTurnPage binding={turnPage} canRead={available && !busy} readItems={turn => run("items", null, turn)} />
+      <h3>Selected item page</h3>{itemPage.accepted && pageButtons("items", itemPage.page, itemPage.query.params.turnId, itemPage.query.params.sortDirection)}
+      <StoredItemPage binding={itemPage} />
       <h3>Native child references</h3>
       {(selected.knownChildren ?? []).map((child: Json) => <p key={child.threadId}>{child.threadId} · source {child.sourceItemId} <button disabled={!available || busy} onClick={() => run("child", null, child.threadId)}>Read child metadata</button></p>)}
       <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }, null, 2)}</pre></details>

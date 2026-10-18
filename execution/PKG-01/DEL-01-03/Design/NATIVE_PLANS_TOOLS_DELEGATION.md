@@ -147,6 +147,53 @@ An unfamiliar item kind is shown as "unfamiliar item `<type>`" with its
 native content inspectable, never dropped (HOSTING H7) and never mapped to a
 known kind.
 
+### 3.1 Readable selected native history pages
+
+`app/src/NativeHistory.tsx` presents the existing person-directed history
+receiving seam in `App.tsx`. It renders only the selected `turnsPage` and
+`itemsPage`, without accumulating pages or making additional reads. Turn
+summaries show native status, supplied times, item coverage and bounded message
+previews; `summary`, `notLoaded`, empty and the native default `full` remain
+distinct. Embedded summary items are previews, not a substitute for reading the
+selected turn's item page.
+
+The accepted `streamResolutions` query binds each readable page and its paging
+controls to the selected home, full generation, conversation, method, turn
+(for items), cursor and direction. The page identifies home, conversation/turn,
+direction and partial coverage; exact generation, selection and query/revision
+identity remain in expandable source evidence. Pending/error, foreign or
+malformed bindings withhold readable rows and page cursors while retaining the
+prior native JSON as prior evidence, without attributing it to the new request.
+Each native item entry must match the accepted query's turn; an invalid entry
+keeps its unchanged JSON and does not suppress its readable neighbours.
+
+`NativeActivity.tsx` supplies the shared `NativeItemCard`. History takes only
+the native item and its source thread/turn, so live request links, previews,
+revision ordinals, item anchors, run markers and offers cannot enter the stored
+page. Native values and page-entry timing fields remain inspectable beside the
+display. Messages, reasoning summaries, plans, command output, file changes,
+MCP/App tool text and delegation are readable; other result blocks remain
+native JSON and referenced media are not fetched. Native status is labelled as
+the observation at the read, never current execution state. A documented
+terminal status supplies its terminal reading; `inProgress`, an unfamiliar
+status (including unrestricted `imageGeneration.status`) or a missing required
+status remains unknown. Documented no-status history items retain their native
+completion meaning. A separately read turn summary is not treated as same-time
+proof that an in-progress item ended. Recovered plans show no revision number,
+checklist updates remain unrecoverable, and parent status establishes no
+descendant return, review or integration.
+
+This presentation adds no supplier read, durable transcript, operational
+admission or act authority. The existing explicit Continue path and its native
+admission guards remain with DEL-01-02/DEL-01-04. Restart recovery still reads
+what its owner supplies; substantive item pages are read on demand by the
+person. `app/tests/native-history.test.mjs` exercises synthetic received pages,
+malformed/unknown payloads, source and selection changes, restart-shaped
+snapshots, read-only item reuse and actual `HistoryPanel` paging invokes. The
+shared tool-text presentation is also exercised by
+`app/tests/native-activity.test.mjs`. These deterministic presentation checks
+do not establish supplier compatibility or replace REQ-008's native witnesses.
+
 ---
 
 ## 4. Experimental surfaces (K-5 as ruled by R18-1 C-05)

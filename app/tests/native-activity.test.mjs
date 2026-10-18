@@ -82,6 +82,17 @@ test('tool rows keep native status beside the display reading and invent no outc
   assert.equal(resultNotSupplied({displayState:'not-completed',native:{type:'mcpToolCall',result:null,error:null}}),false);
 });
 
+test('native MCP and App tool result text is readable without fetching media and retains the complete result',()=>{
+  const v=view();v.items=[
+    row('turn-1',0,{id:'m',type:'mcpToolCall',server:'sample',tool:'read',status:'completed',result:{content:[{type:'text',text:'MCP <result>'},{type:'resource',resource:{uri:'invented://sample',text:'Resource result'}},{type:'image',data:'retained-native-data',mimeType:'image/png'}],structuredContent:{extra:'kept'}}}),
+    row('turn-1',1,{id:'d',type:'dynamicToolCall',tool:'inspect',status:'completed',contentItems:[{type:'inputText',text:'App tool result'},{type:'inputImage',imageUrl:'https://example.invalid/never-fetch'}]}),
+  ];
+  const html=render(v);
+  assert.ok(html.includes('result text:<pre')&&html.includes('MCP &lt;result&gt;')&&html.includes('Resource result')&&html.includes('App tool result'));
+  assert.ok(html.includes('&quot;structuredContent&quot;')&&html.includes('retained-native-data')&&html.includes('never-fetch'));
+  assert.doesNotMatch(html,/<img|<audio|<iframe|<a /);
+});
+
 test('plans, checklist revisions and their recovery gap are shown as observed',()=>{
   const html=render();
   assert.match(html,/Plan<\/b> · revision 1 in this conversation/);assert.ok(html.includes('1. Do it'));

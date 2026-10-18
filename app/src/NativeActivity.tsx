@@ -117,14 +117,31 @@ function StateLine({ row }: { row: Json }) {
   const native = row.native ?? {};
   return <div>
     <b>{displayStateText(row)}</b>
-    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : text(native.status)}
+    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : native.status === null ? <i>null (as supplied)</i> : text(native.status)}
     {row.standing === "recovered-from-supplier" && " · read from Codex history"}
+    {row.historyRead && " · status at the read; current outcome not established"}
     {row.observationEnded && " · observation ended"}
     {row.endReason && ` · ${text(row.endReason)}`}
     {row.previewStanding && row.displayState !== "completed" && ` · ${text(row.previewStanding)}`}
     {row.requestRef && <>{" · "}<a href={`#${requestAnchorId(row.requestRef.generation, row.requestRef.requestIdentity)}`}>{row.displayState === "waiting-on-request" ? "answer it on its request card" : "its request card"}</a>{row.displayState === "waiting-on-request" && "; this row offers no answer"}</>}
     {row.settlementOrigin && ` · request settled by ${JSON.stringify(row.settlementOrigin)}`}
   </div>;
+}
+
+// A disposable native page is a snapshot, not an observation of a live item or
+// request. Only documented terminal statuses imply a terminal reading. In
+// particular imageGeneration accepts arbitrary status strings in the native
+// schema; an unfamiliar status must remain unknown. The documented no-status
+// kinds are complete items when returned in history, as in native_items.rs.
+const NO_STATUS = new Set(["userMessage", "hookPrompt", "agentMessage", "functionCallOutput", "plan", "reasoning", "subAgentActivity", "webSearch", "imageView", "sleep", "enteredReviewMode", "exitedReviewMode", "contextCompaction"]);
+const TERMINAL = new Set(["completed", "failed", "declined", "interrupted"]);
+export function historyItemRow(native: Json, threadId: string, turnId: string): Json {
+  const status = native?.status;
+  const completed = status === undefined && NO_STATUS.has(native?.type);
+  return { native, threadId, turnId, standing: "recovered-from-supplier", historyRead: true,
+    displayState: completed ? "completed" : TERMINAL.has(status) ? status : "unknown",
+    ...(status === "inProgress" ? { endReason: "in progress at the read" } : {}),
+  };
 }
 
 // TR-4: a completed row whose result elements are all null is "result not supplied".
@@ -169,6 +186,17 @@ function UserMessage({ content, fold }: { content: Json; fold: boolean }) {
   </>;
 }
 
+// Native tool text stays readable without loading referenced media or opening
+// links. Other result blocks remain available as their unchanged native JSON.
+function ToolContent({ content }: { content: Json }) {
+  if (!Array.isArray(content)) return null;
+  return <>{content.map((part: Json, i: number) => {
+    const value = part?.type === "text" || part?.type === "inputText" ? part.text
+      : part?.type === "resource" ? part.resource?.text : undefined;
+    return value !== undefined ? <LongText key={i} label="result text" text={value} /> : <Raw key={i} label={`result content ${i + 1} (${text(part?.type) || "unreported type"})`} value={part} />;
+  })}</>;
+}
+
 function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; runStart?: boolean }) {
   const n = row.native ?? {};
   switch (n.type) {
@@ -206,11 +234,11 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
     case "mcpToolCall":
       return <div><b>MCP tool</b> {text(n.server)} / {text(n.tool)}<StateLine row={row} />
         <Shown label="arguments" value={n.arguments} /><Shown label="read-only hint" value={n.readOnlyHint} /><Shown label="duration ms" value={n.durationMs} />
-        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <>{n.error && <div>error: {text(n.error.message)}</div>}{n.result && <Raw label="result" value={n.result} />}</>}</div>;
+        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <>{n.error && <LongText label="error" text={n.error.message ?? n.error} />}{n.result != null && <><ToolContent content={n.result.content} /><Raw label="result" value={n.result} /></>}</>}</div>;
     case "dynamicToolCall":
       return <div><b>App tool</b> {n.namespace ? `${text(n.namespace)} / ` : ""}{text(n.tool)}<StateLine row={row} />
         <Shown label="arguments" value={n.arguments} /><Shown label="success" value={n.success} />
-        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : n.contentItems && <Raw label="content items" value={n.contentItems} />}</div>;
+        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : n.contentItems != null && <><ToolContent content={n.contentItems} /><Raw label="content items" value={n.contentItems} /></>}</div>;
     case "functionCallOutput":
       return <div><b>Function output</b> {n.namespace ? `${text(n.namespace)} / ` : ""}{text(n.name)}<StateLine row={row} />{typeof n.output === "string" ? <LongText label="output" text={n.output} /> : <Raw label="output" value={n.output} />}</div>;
     case "collabAgentToolCall":
@@ -276,6 +304,19 @@ export class RowBoundary extends Component<BoundaryProps, { failed: boolean; row
     const what = this.props.label === "native item" ? "the native JSON follows unchanged" : "its JSON entry follows unchanged";
     return <div style={card}><i>This {this.props.label} could not be shown readably; {what}.</i><pre style={pre}>{json(this.props.value)}</pre></div>;
   }
+}
+
+// Shared native body and raw item. History deliberately takes only the native
+// item and its source identities: live previews, request links, revisions,
+// run markers and item anchors cannot leak into the read-only page.
+export function NativeItemCard({ row, plans = [], runStart = false, history = false, children, after }: { row: Json; plans?: Json[]; runStart?: boolean; history?: boolean; children?: ReactNode; after?: ReactNode }) {
+  const shown = history ? historyItemRow(row?.native, row?.threadId, row?.turnId) : row;
+  return <RowBoundary value={shown.native} row={row} label="native item"><div style={card} {...(!history ? { id: itemAnchorId(shown.threadId, shown.turnId, shown.native?.id) } : {})}>
+    {history && <div><small>Native item {text(shown.native?.id)} · {text(shown.native?.type)} · read from Codex history</small></div>}
+    <ItemBody row={shown} plans={history ? [] : plans} runStart={!history && runStart} />
+    {!history && children}
+    <Raw value={shown.native} />
+  </div>{!history && after}</RowBoundary>;
 }
 
 // RN-1: run start and end markers from the App's own run records (display only).
@@ -379,11 +420,9 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
-      {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
-        <ItemBody row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} />
+      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
-        <Raw value={row.native} />
-      </div>{offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}</RowBoundary>)}
+      </NativeItemCard>)}
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}
       {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
     </section>)}
