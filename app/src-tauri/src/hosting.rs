@@ -329,6 +329,15 @@ pub(crate) struct PreparedNativeTurnStart<'a> {
     reply_status:String,
     observed_status:String,
 }
+/// Actual complete, correlated text-start acknowledgment. No JSON constructor.
+pub(crate) struct PositiveTextStart {
+    source: SourceRequest,
+    turn: String,
+}
+impl PositiveTextStart {
+    pub(crate) fn source(&self) -> &SourceRequest { &self.source }
+    pub(crate) fn turn(&self) -> &str { &self.turn }
+}
 impl PreparedNativeTurnStart<'_> {
     pub(crate) fn source(&self)->&SourceRequest {self.source}
     pub(crate) fn turn_id(&self)->&str {&self.turn_id}
@@ -1220,6 +1229,13 @@ impl Host {
     /// session, quit, Codex-stop and stop-request entry), not the whole ledger.
     pub fn recovery_entries(&self)->Vec<Value>{
         self.inner.0.lock().unwrap().recovery_snapshot.as_ref().map(|o|o.rows.to_vec()).unwrap_or_default()
+    }
+    /// Fresh bounded REC data for historical source correspondence, with the
+    /// already-open database's physical guard. Never opens or writes a store.
+    pub(crate) fn trial_recovery_rows(&self) -> Result<(PathBuf, Vec<Value>), String> {
+        let ledger = self.inner.0.lock().unwrap().recovery.clone().ok_or("clean trial REC source unavailable")?;
+        let result = ledger.lock().unwrap().read_current_entries();
+        result
     }
     /// Every entry the Host's ledger database holds, read from it (inspection
     /// and tests; never on the Host's own paths).
@@ -2702,6 +2718,47 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let params = json!({"threadId":thread_id,"input":input,"clientUserMessageId":client_id});
         Self::validate_native_result("TurnStartParams", &params).map_err(|e| format!("refused-not-sent: {e}"))?;
         self.conversation_operation("turn/start", generation, params, Duration::from_secs(20))
+    }
+    /// Observe the original retained sender, never the caller's reply DTO, as
+    /// positive evidence for a future clean-trial history pointer.
+    pub(crate) fn positive_text_start(&self, generation: &Value, rpc_id: &Value, thread: &str, elements: &[&str], client: &str) -> Result<PositiveTextStart, String> {
+        let source = self.source_request(generation, rpc_id)?;
+        self.check_source(&source)?;
+        let input: Vec<Value> = elements.iter().map(|text| json!({"type":"text","text":text,"text_elements":[]})).collect();
+        let expected = json!({"threadId":thread,"input":input,"clientUserMessageId":client});
+        let i = self.inner.0.lock().unwrap();
+        if client.is_empty() || elements.is_empty() || elements.iter().any(|text| text.is_empty())
+            || i.generation != *generation || i.state != "ready" || i.server_requests.is_closed(generation)
+            || source.frame["method"] != "turn/start" || source.frame["params"] != expected {
+            return Err("clean trial original current ordered text sender differs".into());
+        }
+        Self::check_conversation_request(&i, "turn/start", &expected)?;
+        let e = i.source_requests.get(&rpc_id.to_string()).ok_or("clean trial actual source unavailable")?;
+        if !e.written || e.write_attempt_in_progress || e.write_error.is_some() || e.source_limit.is_some() {
+            return Err("clean trial complete source write unavailable".into());
+        }
+        let (epoch, identity) = e.source_pipe.ok_or("clean trial source pipe unavailable")?;
+        if epoch != i.attachment_pipe_epoch || Self::pipe_identity(self.stdin.lock().unwrap().as_ref().ok_or("clean trial source pipe closed")?)? != identity {
+            return Err("clean trial original source pipe changed".into());
+        }
+        let response = e.response.as_ref().ok_or("clean trial correlated response unavailable")?;
+        if response.get("id") != Some(source.request_id()) || response.get("method").is_some() || response.get("error").is_some() || e.response_position.is_none() {
+            return Err("clean trial positive correlated response unavailable".into());
+        }
+        let result = response.get("result").ok_or("clean trial native result unavailable")?;
+        Self::validate_native_result("TurnStartResponse", result)?;
+        let turn = result["turn"]["id"].as_str().filter(|id| !id.is_empty()).ok_or("clean trial native turn absent")?.to_owned();
+        drop(i);
+        Ok(PositiveTextStart { source, turn })
+    }
+    pub(crate) fn check_positive_text_start(&self, positive: &PositiveTextStart) -> Result<(), String> {
+        self.check_source(positive.source())?;
+        let params = &positive.source.frame["params"];
+        let elements: Vec<_> = params["input"].as_array().ok_or("positive text input absent")?.iter()
+            .map(|element| element["text"].as_str().ok_or("positive text element absent")).collect::<Result<_, _>>()?;
+        let checked = self.positive_text_start(positive.source.generation(), positive.source.request_id(), params["threadId"].as_str().ok_or("positive text thread absent")?, &elements, params["clientUserMessageId"].as_str().ok_or("positive text client absent")?)?;
+        if checked.turn != positive.turn { return Err("positive text turn identity differs".into()); }
+        Ok(())
     }
 
     fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>)->Result<Value,String>{

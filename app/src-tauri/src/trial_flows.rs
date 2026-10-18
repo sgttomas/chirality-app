@@ -18,6 +18,8 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 use std::time::Duration;
+#[path = "workflow_trial_source.rs"]
+pub(crate) mod restart_source;
 
 /// Who a workspace read is journalled as: the person (Read again, Bring back,
 /// Compare) or the App rule of TT-9's linking read on the host tick (H-4).
@@ -96,7 +98,9 @@ pub(crate) fn home_holding(homes: &[std::sync::Arc<HomeSession>], thread: &str) 
 /// WR TT-9, H-5: the original hot source for Read again and Compare. A
 /// durable trial link has no home/generation and cannot select a source.
 pub(crate) fn trial_home(root: &Mutex<WorkflowRootSession>, homes: &[std::sync::Arc<HomeSession>], reference: &str) -> Result<std::sync::Arc<HomeSession>, String> {
-    root.lock().unwrap().trial_native_source(reference)?.resolve(homes)
+    let root = root.lock().unwrap();
+    if root.trial_desk.sent.contains_key(reference) { return root.trial_native_source(reference)?.resolve(homes); }
+    restart_source::Proof::read(&root.trials, reference, homes).map(|(_, home)| home)
 }
 
 /// TT-11 Try again in the host: the delegation signals of a delegated trial's
@@ -279,6 +283,11 @@ struct PendingBringBack {
 pub(crate) struct TrialDesk {
     pending: BTreeMap<String, PendingTrial>,
     sent: BTreeMap<String, SentState>,
+    /// Only genuine positive observations, for metadata-only continuation.
+    source_pointers: BTreeMap<String, restart_source::Pointer>,
+    /// A send may be known without enough original source facts to hold a
+    /// retryable pointer. Diagnostic DTOs never become retry capabilities.
+    source_limits: BTreeMap<String, Value>,
     bring_backs: BTreeMap<String, PendingBringBack>,
     /// Trial conversation marks (WR §3): clean trial conversations from their
     /// start and forks of them, kept in the App data folder.
@@ -687,6 +696,8 @@ impl WorkflowRootSession {
                 _ => json!("Original authoring source is not established by this saved trial link; choose a current target"),
             };
             row["sourceLimit"] = self.trial_native_source(&reference).err().map_or(Value::Null, |cause| json!(cause));
+            if let Some(pointer) = self.trial_desk.source_pointers.get(&reference) { row["sourceMetadata"] = pointer.status.clone(); }
+            else if let Some(limit) = self.trial_desk.source_limits.get(&reference) { row["sourceMetadata"] = limit.clone(); }
             let sequence = link["trial"]["sequence"].as_u64().unwrap_or(0);
             let short = reference.trim_start_matches("trial:").chars().take(8).collect::<String>();
             let work = format!(".chirality/trial-work/trial-{sequence}-{short}/");
@@ -1020,6 +1031,33 @@ impl WorkflowRootSession {
     }
 }
 
+/// Read-only status join. No root lock crosses filesystem/REC reads, no
+/// supplier call, native dispatch, metadata write or implicit retry occurs.
+pub(crate) fn decorate_restart_sources(root: &Mutex<WorkflowRootSession>, homes: &[std::sync::Arc<HomeSession>], status: &mut Value) {
+    let (links, hot) = {
+        let root = root.lock().unwrap();
+        (root.trials.clone(), root.trial_desk.sent.keys().cloned().collect::<BTreeSet<_>>())
+    };
+    for draft in status["drafts"]["drafts"].as_array_mut().into_iter().flatten() {
+        for row in draft["trials"].as_array_mut().into_iter().flatten() {
+            let Some(reference) = row["reference"].as_str().map(str::to_owned) else { continue };
+            if row["kind"] != "clean" || hot.contains(&reference) { continue; }
+            match restart_source::Proof::read(&links, &reference, homes) {
+                Ok((proof, _)) => {
+                    if root.lock().unwrap().trials.link(&reference) != Some(&proof.link) { continue; }
+                    row["sourceLimit"] = Value::Null;
+                    row["recordedNativeSource"] = proof.view();
+                    row["readAgain"] = json!({"offered":true,"standing":"explicit historical read; original source rechecked on press"});
+                }
+                Err(cause) => {
+                    row["sourceLimit"] = json!(cause);
+                    row["readAgain"] = json!({"offered":false,"reason":row["sourceLimit"]});
+                }
+            }
+        }
+    }
+}
+
 /// Codex's response to one workspace read (TT-9, TT-10), or why it failed.
 fn read_page(home: &HomeSession, generation: &Value, method: &str, params: Value, by: &Value) -> Result<Value, String> {
     let home_key = generation["home"].as_str().ok_or("generation home required")?;
@@ -1295,6 +1333,9 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
     };
     let refs: Vec<&str> = elements.iter().map(String::as_str).collect();
     let outcome = home.host.turn_start_texts(generation, thread, &refs, &client);
+    let positive = if kind == TrialKind::Clean {
+        outcome.as_ref().ok().map(|response| home.host.positive_text_start(generation, &response["id"], thread, &refs, &client))
+    } else { None };
     let mut root = root.lock().unwrap();
     let turn = match outcome {
         Ok(response) => response["result"]["turn"]["id"].as_str().map(str::to_owned),
@@ -1316,6 +1357,22 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
     };
     let sent = SentTrial { kind, authoring_conversation: authoring.clone(), client_message: client.clone(), turn: turn.clone(), clean_conversation: clean.clone() };
     let link = root.trials.record_sent(&p.prepared, &sent);
+    let source_metadata = if kind == TrialKind::Clean {
+        let pointer = positive.ok_or("clean trial positive ACK not observed".to_owned())
+            .and_then(|result| result).and_then(|positive| restart_source::Pointer::observed(home, &positive, &root.trials, reference, &p.prepared.text));
+        match pointer {
+            Ok(mut pointer) => {
+                let status = pointer.persist(&root.trials);
+                root.trial_desk.source_pointers.insert(reference.into(), pointer);
+                status
+            }
+            Err(limit) => {
+                let status = json!({"state":"source observation not held","persistence":"not confirmed","heldMetadata":false,"retry":"no held source observation to retry","limit":limit,"standing":"trial send outcome unchanged; cold native source not established; nothing resent"});
+                root.trial_desk.source_limits.insert(reference.into(), status.clone());
+                status
+            }
+        }
+    } else { Value::Null };
     // TT-2: a trial of a draft of the run's own workflow raises no End-run
     // offer for the rest of that run.
     if kind == TrialKind::Delegated {
@@ -1350,7 +1407,7 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
         },
     );
     match link {
-        Ok(link) => Ok(json!({"reference":reference,"turn":turn,"link":link,"standing":"trial message sent by the person; trial link written on Codex's acknowledgment. Not a run, registration, checking or acceptance"})),
+        Ok(link) => Ok(json!({"reference":reference,"turn":turn,"link":link,"sourceMetadata":source_metadata,"standing":"trial message sent by the person; trial link written on Codex's acknowledgment. Not a run, registration, checking or acceptance"})),
         Err(cause) => Err(SendRefusal::not_kept(format!("The trial message was sent (turn {}) but its trial link could not be written: {cause}. Nothing is resent", turn.unwrap_or_else(|| "not named".into())))),
     }
 }
@@ -1361,6 +1418,19 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
 /// the linked sub-agent's first input, or each candidate whose input was not
 /// read; a clean trial: its first turn. Each read is a new observation.
 pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSession, reference: &str, view: &Value) -> Result<Value, String> {
+    {
+        let mut locked = root.lock().unwrap();
+        // An explicit read may continue only a held original metadata write.
+        // It never reconstructs a pointer or repeats a native send.
+        if let Some(mut pointer) = locked.trial_desk.source_pointers.remove(reference) {
+            pointer.persist(&locked.trials);
+            locked.trial_desk.source_pointers.insert(reference.into(), pointer);
+        }
+        if !locked.trial_desk.sent.contains_key(reference) {
+            drop(locked);
+            return read_cold_clean(root, home, reference);
+        }
+    }
     let (link, text, linked, candidates, generation) = {
         let root = root.lock().unwrap();
         let original = root.trial_native_source(reference)?;
@@ -1449,6 +1519,38 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
         }
     }
     Ok(json!({"reference":reference,"recorded":results,"inputNotRead":unread,"inputNotCheckable":not_checkable_children}))
+}
+
+fn read_cold_clean(root: &Mutex<WorkflowRootSession>, home: &HomeSession, reference: &str) -> Result<Value, String> {
+    // `home` was resolved by trial_home; a foreign or changed source cannot
+    // borrow its class. No loaded/resumed conversation is required for history.
+    let (proof, generation, text) = {
+        let root = root.lock().unwrap();
+        // A temporary Arc wrapper is not source identity; Proof checks the
+        // actual home Host through the caller's owned source below.
+        let (path, _) = home.host.trial_recovery_rows()?;
+        let _ = path;
+        let links = &root.trials;
+        let source = restart_source::Proof::for_home(links, reference, home)?;
+        (source, home.host.snapshot()["generation"].clone(), root.trial_text(reference))
+    };
+    current_history_source(home, &generation)?;
+    let trial = &proof.link["trial"];
+    let thread = trial["clean_conversation"].as_str().unwrap();
+    let reading = match text {
+        Err(cause) => FidelityReading::NotChecked { limits:vec![cause] },
+        Ok(text) => match read_first_user_texts(home, &generation, thread, trial["turn"].as_str(), trial["client_message"].as_str(), TrialKind::Clean, &person_read()) {
+            Ok(texts) => text.fidelity(&texts.iter().map(String::as_str).collect::<Vec<_>>()),
+            Err(cause) => FidelityReading::NotChecked { limits:vec![cause] },
+        },
+    };
+    current_history_source(home, &generation)?;
+    let mut locked = root.lock().unwrap();
+    proof.recheck_home(&locked.trials, home)?;
+    let observation = locked.trials.record_observation(reference, TrialObservation::Fidelity {
+        read_thread:Some(thread.into()), reading, limits:vec!["explicit post-restart history observation; no original native receipt or authority restored".into()]
+    })?;
+    Ok(json!({"reference":reference,"recorded":[observation],"source":proof.view()}))
 }
 
 /// A boundary is an original run/check correspondence, never marker text.
@@ -1787,6 +1889,7 @@ fn live_context(root: &WorkflowRootSession, run: &super::WorkflowRun) -> Result<
     )
 }
 enum LearningProof {
+    ColdClean { proof: restart_source::Proof },
     Trial {
         reference: String,
         link: Value,
@@ -1825,6 +1928,11 @@ impl LearningSource {
             return Err("A turn became live in the source conversation; nothing pre-filled".into());
         }
         match &self.proof {
+            LearningProof::ColdClean { proof } => {
+                let root = root.lock().unwrap();
+                let now = proof.recheck(&root.trials, homes)?;
+                if !std::sync::Arc::ptr_eq(&now, &self.home) { return Err("clean trial source home changed during history reading".into()); }
+            }
             LearningProof::Trial {
                 reference,
                 link,
@@ -1901,6 +2009,7 @@ impl LearningSource {
             view["recordedNativeSource"] = json!({"homeClass":home.home_class,"generations":home.recorded_generations,"evidence":home.evidence,
                 "standing":"quoted original REC provenance, including recorded paths; no current path or native authority inferred"});
         }
+        if let LearningProof::ColdClean { proof } = &self.proof { view["recordedNativeSource"] = proof.view(); }
         view
     }
 }
@@ -1914,6 +2023,13 @@ fn resolve_learning(
     if let (Some(reference), None) = (trial, run) {
         let root = root.lock().unwrap();
         let history = root.trial_source(reference)?;
+        if !root.trial_desk.sent.contains_key(reference) {
+            let (proof, home) = restart_source::Proof::read(&root.trials, reference, homes)?;
+            let generation = home.host.snapshot()["generation"].clone();
+            return Ok(LearningSource { history, home, generation, proof:LearningProof::ColdClean { proof },
+                version:Value::Null, slot:Value::Null, files:None,
+                standing:"historical clean-trial correspondence; quoted native activity only, no hot authoring default or authority restored".into() });
+        }
         let original = root.trial_native_source(reference)?;
         let home_thread = original.thread.clone();
         let home = original.resolve(homes)?;
