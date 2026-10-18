@@ -275,7 +275,7 @@ test('a role outside the written-for roles is shown with the way to another role
   assert.ok(!FORBIDDEN.test(html+none));
 });
 
-test('the selected workflow shows its declared part instead of a JSON dump',()=>{
+test('the selected workflow shows its declared part instead of a JSON dump',async()=>{
   const html=h(SelectedWorkflow,{selection:{identity:{name:'resolve-spacing',origin:'project',revision:'0123456789abcdef'},standing:'registered',runnable:true,declaration:declaration()}});
   assert.ok(html.includes('Selected: <b>resolve-spacing</b> (project), revision 0123456789ab'));
   assert.ok(html.includes('<b>CP-accept</b>'));
@@ -283,8 +283,57 @@ test('the selected workflow shows its declared part instead of a JSON dump',()=>
   assert.ok(h(DeclaredPart,{declaration:{unavailable:'workflow text unreadable'}}).includes('Declared part could not be read: workflow text unreadable'));
   const undeclared=h(DeclaredPart,{declaration:{raw:null,reading:'undeclared',categories:Object.fromEntries(cats.map(c=>[c,'undeclared'])),elements:{},findings:[]}});
   assert.ok(undeclared.includes('declares no requirements part')&&undeclared.includes('Not declared.'));
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<SelectedWorkflow selection={selected} inspection={!thread}/>')&&app.includes('<RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>'));
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();const {createRoot}=await import('react-dom/client');
+  const {WorkflowRootPanel}=load('App.tsx');
+  const g={appSession:'selected-workflow-session',home:'selected-workflow-home',spawnCounter:1};
+  const conversations=['chat-a','chat-b'].map(threadId=>({generation:g,threadId}));
+  const declared=purpose=>{const doc=structuredClone(raw);doc.checkpoints[0].purpose=purpose;return declaration(doc);};
+  const choice=(reference,name,purpose)=>({reference,identity:{name,origin:'project',revision:'0123456789abcdef'},standing:'registered',runnable:true,declaration:declared(purpose)});
+  const original=run({reference:'run-original',conversation:'chat-b',workflow:{...run().workflow,name:'original-running-workflow'},
+    compatibility:[{...run().compatibility[0],preparation:{...run().compatibility[0].preparation,declaration:declared('Original run checkpoint purpose')}}]});
+  const data={context:{sourceRef:'workflow-source',generation:g,historyEpoch:1},
+    inspection:choice('inspection','inspected-workflow','Inspected checkpoint purpose'),
+    selections:[{sourceRef:'workflow-source',threadId:'chat-a',selection:choice('choice-a','selected-workflow-a','Selected A checkpoint purpose')},
+      {sourceRef:'workflow-source',threadId:'chat-b',selection:choice('choice-b','selected-workflow-b','Selected B checkpoint purpose')}],
+    runs:[original],runBringBackDefaults:[{run:original.reference,authoring:{generation:g,threadId:'chat-a'}}]};
+  const host={state:'ready',generation:g,threads:conversations,workflowRoot:data};
+  const calls=[];const act=async(command,args)=>{calls.push([command,args]);return {state:'pre-filled; not sent'};};
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
+  const labelled=name=>container.querySelectorAll(node=>node.getAttribute('aria-label')===name)[0];
+  const selectIn=(parent,label)=>parent.querySelectorAll(node=>node.localName==='label'&&node.textContent.startsWith(label))[0].querySelectorAll(node=>node.localName==='select')[0];
+  const render=async(fileActBusy=false)=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,act,fileActBusy})));
+  try{
+    await render();
+    assert.match(labelled('Inspected workflow content').textContent,/inspected-workflow.*Inspected checkpoint purpose/s);
+    assert.equal(labelled('Selected workflow'),undefined,'inspection does not silently select for a conversation');
+    const chat=selectIn(container,'Workflow chat ');
+    await React.act(()=>props(chat).onChange({target:{value:'chat-a'}}));
+    assert.match(labelled('Selected workflow').textContent,/selected-workflow-a.*Selected A checkpoint purpose/s);
+    assert.doesNotMatch(labelled('Selected workflow').textContent,/Selected B checkpoint purpose|Inspected checkpoint purpose/);
+    const originalPanel=labelled('Run panel');
+    assert.equal(props(selectIn(originalPanel,'Bring back to ')).value,JSON.stringify([g,'chat-a']),'the full original authoring tuple reaches the run through actual workspace wiring');
+    assert.match(originalPanel.textContent,/original-running-workflow.*conversation chat-b.*Original run checkpoint purpose/s);
+    assert.doesNotMatch(originalPanel.textContent,/Selected A checkpoint purpose/,'the run keeps its own declaration');
+    await React.act(()=>props(chat).onChange({target:{value:'chat-b'}}));
+    assert.match(labelled('Selected workflow').textContent,/selected-workflow-b.*Selected B checkpoint purpose/s);
+    assert.doesNotMatch(labelled('Selected workflow').textContent,/Selected A checkpoint purpose/);
+    assert.match(originalPanel.textContent,/Original run checkpoint purpose/,'changing the selected chat does not rebind a started run');
+    await React.act(()=>props(chat).onChange({target:{value:'chat-a'}}));
+    const target=selectIn(originalPanel,'Bring back to ');
+    await React.act(()=>props(target).onChange({target:{value:JSON.stringify([g,'chat-b'])}}));
+    const bringBack=()=>originalPanel.querySelectorAll(node=>node.localName==='button'&&node.textContent==='Bring a real run back to authoring')[0];
+    assert.deepEqual(calls,[],'rendering declarations and changing interface choices calls no host action');
+    await render(true);
+    assert.equal(props(bringBack()).disabled,true,'the shared file-act operation disables run actions through the actual wiring');
+    assert.equal(props(target).value,JSON.stringify([g,'chat-b']),'busy presentation preserves the person’s explicit feedback target');
+    assert.deepEqual(calls,[]);
+    await render(false);
+    assert.equal(props(bringBack()).disabled,false);
+    await React.act(async()=>{await props(bringBack()).onClick();});
+    assert.deepEqual(calls,[['workflow_run_bring_back',{runRef:original.reference,generation:g,threadId:'chat-b',includeNative:false}]],'only the explicit press names the original run and the separately chosen current target');
+  }finally{await React.act(()=>root.unmount());document.body.removeChild(container);}
 });
 
 test('Bring a real run back to authoring calls the host only on the press, with the chosen conversation (TT-10, TT-11)',()=>{
