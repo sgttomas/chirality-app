@@ -42,10 +42,13 @@ def inputs(recording, generation, profile="strict", remap=False):
             frame["params"] = {"cwd": "<WORKSPACE>", "model": "st5-stub-model", "modelProvider": "st5_stub"}
         if profile == "app" and frame.get("method") == "turn/start":
             frame["params"]["input"][0]["text_elements"] = []
-        if profile == "app-recovery" and frame.get("method") == "thread/read":
+        if profile in ("app-recovery", "app-continue") and frame.get("method") == "thread/read":
             frame["params"]["includeTurns"] = False
-        if profile == "app-recovery" and frame.get("method") == "thread/turns/list":
+        if profile in ("app-recovery", "app-continue") and frame.get("method") == "thread/turns/list":
             frame["params"].update(itemsView="summary", sortDirection="desc")
+        if profile == "app-continue" and frame.get("method") == "thread/resume":
+            frames.append({"jsonrpc": "2.0", "id": "constructed-catalog", "method": "thread/list",
+                           "params": {"sortDirection": "desc"}})
         frames.append(frame)
         if profile == "app-recovery" and frame.get("method") == "thread/turns/list":
             break
@@ -308,6 +311,220 @@ class SubprocessReplay(unittest.TestCase):
                                "--profile", profile, *extra],
                               input=b"".join(json.dumps(frame).encode() + b"\n" for frame in supplied),
                               capture_output=True, timeout=2)
+
+    def test_continue_keeps_full_tape_and_separately_labels_exact_constructed_catalog(self):
+        path, digest, recording = capture()
+        supplied = inputs(recording, 2, "app-continue", remap=True)
+        catalog = next(frame for frame in supplied if frame.get("method") == "thread/list")
+        # This equals a recorded source ID, but not an actual request ID.
+        # Its separate correlation must not steal recorded resume ID 5.
+        catalog["id"] = 5
+        result = self.invoke(path, digest, self.audit, "app-continue", 2, supplied)
+        self.assertEqual((result.returncode, result.stderr), (0, b""))
+        output = [json.loads(line) for line in result.stdout.splitlines()]
+        expected, mapped_ids = [], {1: "1", 2: 1, 3: "actual-turn", 4: 104, 5: 105}
+        for index in range(19, 35):
+            row = recording["frames"][index]
+            if row["direction"] == "codex->app":
+                frame = copy.deepcopy(row["frame"])
+                if "id" in frame and "method" not in frame:
+                    frame["id"] = mapped_ids[frame["id"]]
+                expected.append(frame)
+            if index == 29:
+                expected.append({"id": 5, "result": {"data": [copy.deepcopy(recording["frames"][25]["frame"]["result"]["thread"])],
+                                                       "nextCursor": None}})
+        self.assertEqual(output, expected)
+        self.assertEqual(output[5]["result"], {"data": [], "nextCursor": None})
+        self.assertEqual(output[6]["result"]["data"][0], recording["frames"][25]["frame"]["result"]["thread"])
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        binding = next(row for row in rows if row["event"] == "binding")
+        self.assertEqual(binding["selected_frame_indices"], list(range(19, 35)))
+        self.assertEqual(binding["outside_segment_frame_indices"], [])
+        constructed = [row for row in rows if row["event"] == "constructed-frame"]
+        self.assertEqual([row["direction"] for row in constructed], ["app->codex", "codex->app"])
+        for row in constructed:
+            self.assertNotIn("frame_index", row)
+            self.assertNotIn("recorded_rpc_id", row)
+            self.assertEqual(row["source_frame_index"], 25)
+            self.assertEqual(row["recipe"], "thread-list-envelope-from-thread-read")
+            self.assertEqual(row["actual_rpc_id"], 5)
+            self.assertEqual(row["actual_rpc_id_type"], "int")
+            self.assertIn("envelope/membership not captured", row["constructed_standing"])
+        self.assertEqual([row["frame_index"] for row in rows if row["event"] == "frame"], list(range(19, 35)))
+        finish = next(row for row in rows if row["event"] == "finish")
+        self.assertEqual(finish["consumed_frame_indices"], list(range(19, 35)))
+        self.assertEqual(finish["remaining_frame_indices"], [])
+        self.assertEqual(finish["outside_segment_frame_indices"], [])
+
+    def test_continue_catalog_and_resume_refuse_missing_wrong_duplicate_or_reused_inputs(self):
+        path, digest, recording = capture()
+        original = inputs(recording, 2, "app-continue")
+        cases = [
+            ("missing", lambda frames: frames.__delitem__(slice(5, None))),
+            ("resume-before-catalog", lambda frames: frames.pop(5)),
+            ("wrong-method", lambda frames: frames[5].update(method="thread/loaded/list")),
+            ("wrong-params", lambda frames: frames[5]["params"].update(sortDirection="asc")),
+            ("missing-params", lambda frames: frames[5].pop("params")),
+            ("extra-params", lambda frames: frames[5]["params"].update(cursor="PRIVATE_CATALOG_CANARY")),
+            ("reused-id", lambda frames: frames[5].update(id=1)),
+            ("invalid-id", lambda frames: frames[5].update(id=None)),
+            ("notification", lambda frames: frames[5].pop("id")),
+            ("duplicate-catalog", lambda frames: frames.insert(6, {**copy.deepcopy(frames[5]), "id": "second-catalog"})),
+            ("resume-reuses-catalog-id", lambda frames: frames[6].update(id=frames[5]["id"])),
+            ("wrong-resume-thread", lambda frames: frames[6]["params"].update(threadId="PRIVATE_CATALOG_CANARY")),
+            ("extra-resume-param", lambda frames: frames[6]["params"].update(excludeTurns=True)),
+        ]
+        for name, mutate in cases:
+            with self.subTest(case=name):
+                supplied = copy.deepcopy(original)
+                mutate(supplied)
+                audit = Path(self.root.name) / (name + ".jsonl")
+                result = self.invoke(path, digest, audit, "app-continue", 2, supplied)
+                self.assertEqual(result.returncode, 2)
+                self.assertNotIn(b"Traceback", result.stderr)
+                self.assertNotIn(b"PRIVATE_CATALOG_CANARY", result.stderr + audit.read_bytes())
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(rows[-2]["frame_index"], 30)
+                self.assertEqual(rows[-2]["consumed_frame_indices"], list(range(19, 30)))
+                self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(30, 35)))
+                self.assertEqual(rows[-1]["outcome"], "error")
+                self.assertFalse(any(row.get("frame_index") == 30 and row["event"] == "frame" for row in rows))
+                self.assertFalse(any(row["event"] == "finish" for row in rows))
+
+    def test_continue_profile_and_pause_gate_refuse_unsupported_or_existing_inputs(self):
+        for index, (scenario, generation) in enumerate((("st5", 1), ("st5-race", 2), ("nv04", 1))):
+            with self.subTest(scenario=scenario, generation=generation):
+                path, digest, _ = capture(scenario)
+                audit = Path(self.root.name) / f"unsupported-{index}.jsonl"
+                result = self.invoke(path, digest, audit, "app-continue", generation)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertEqual(result.stderr, b"recorded-replay: unsupported-continue-profile\n")
+        path, digest, _ = capture()
+        release = Path(self.root.name) / "existing-release"
+        release.touch()
+        cases = [
+            (("--pause-after-frame", "32", "--release", str(release)), "release-marker-already-exists"),
+            (("--pause-after-frame", "28", "--release", str(release)), "unsupported-pause-gate"),
+            (("--pause-after-frame", "32"), "incomplete-pause-gate"),
+            (("--release", str(release)), "incomplete-pause-gate"),
+        ]
+        for index, (extra, code) in enumerate(cases):
+            with self.subTest(gate=index):
+                audit = Path(self.root.name) / f"gate-{index}.jsonl"
+                result = self.invoke(path, digest, audit, "app-continue", 2, extra=extra)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertEqual(result.stderr, ("recorded-replay: " + code + "\n").encode())
+                self.assertEqual(json.loads(audit.read_text().splitlines()[-1])["outcome"], "error")
+
+    def test_continue_refuses_malformed_source_or_pause_metadata_with_terminal_audit(self):
+        _, _, original = capture()
+        cases = [
+            lambda d: d["frames"][25]["frame"].update(result=None),
+            lambda d: d["frames"][25]["frame"]["result"].pop("thread"),
+            lambda d: d["frames"][25]["frame"]["result"].update(thread=[]),
+            lambda d: d["frames"][25]["frame"]["result"]["thread"].pop("id"),
+            lambda d: d["frames"][25]["frame"]["result"]["thread"].update(id=None),
+            lambda d: d["frames"][29]["frame"].update(result=None),
+            lambda d: d["frames"][30]["frame"]["params"].update(threadId="other-thread"),
+            lambda d: d["frames"][32]["frame"].update(method="warning"),
+            lambda d: d["frames"][32]["frame"]["params"].update(status=None),
+        ]
+        for index, mutate in enumerate(cases):
+            with self.subTest(case=index):
+                recording = copy.deepcopy(original)
+                mutate(recording)
+                data = json.dumps(recording).encode()
+                path = Path(self.root.name) / f"continue-malformed-{index}.json"
+                path.write_bytes(data)
+                audit = Path(self.root.name) / f"continue-malformed-{index}.jsonl"
+                result = self.invoke(path, hashlib.sha256(data).hexdigest(), audit, "app-continue", 2,
+                                     extra=("--pause-after-frame", "32", "--release", str(Path(self.root.name) / "release")))
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+                self.assertNotIn(b"Traceback", result.stderr)
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-1]["outcome"], "error")
+                self.assertIn(rows[-1]["code"], ("invalid-captured-catalog-source", "unsupported-continue-tape", "unsupported-pause-frame"))
+                self.assertEqual(path.read_bytes(), data)
+
+    def test_constructed_catalog_closed_stdout_retains_clean_failure_and_recorded_indices(self):
+        env = {key: value for key, value in os.environ.items() if key != "PYTHONUNBUFFERED"}
+        process, reader, recording = self.start(generation=2, extra=("--profile", "app-continue"), env=env)
+        supplied = iter(inputs(recording, 2, "app-continue"))
+        for index in range(19, 30):
+            row = recording["frames"][index]
+            if row["direction"] == "app->codex":
+                self.send(process, next(supplied))
+            else:
+                self.assertEqual(reader.read(), row["frame"])
+        self.assertEqual(reader.buffer, b"")
+        process.stdout.close()
+        self.send(process, next(supplied))
+        process.stdin.close()
+        self.assertEqual(process.wait(timeout=2), 2)
+        self.assertEqual(process.stderr.read(), b"recorded-replay: peer-io-or-value-error\n")
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        self.assertEqual([row["direction"] for row in rows if row["event"] == "constructed-frame"], ["app->codex"])
+        self.assertEqual(rows[-2]["frame_index"], 30)
+        self.assertEqual(rows[-2]["consumed_frame_indices"], list(range(19, 30)))
+        self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(30, 35)))
+        self.assertEqual(rows[-1]["outcome"], "error")
+
+    def test_continue_pause_holds_idle_before_unchanged_resume_reply(self):
+        release = Path(self.root.name) / "continue-release"
+        process, reader, recording = self.start(generation=2, extra=("--profile", "app-continue", "--pause-after-frame", "32", "--release", str(release)))
+        supplied = iter(inputs(recording, 2, "app-continue"))
+        for index in range(19, 33):
+            row = recording["frames"][index]
+            if index == 30:
+                catalog = next(supplied)
+                self.send(process, catalog)
+                self.assertEqual(reader.read(), {"id": catalog["id"], "result": {
+                    "data": [recording["frames"][25]["frame"]["result"]["thread"]], "nextCursor": None}})
+            if row["direction"] == "app->codex":
+                self.send(process, next(supplied))
+            else:
+                self.assertEqual(reader.read(), row["frame"])
+        deadline = time.monotonic() + 2
+        while '"event": "paused"' not in self.audit.read_text() and time.monotonic() < deadline:
+            time.sleep(.01)
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        paused = next(row for row in rows if row["event"] == "paused")
+        self.assertEqual(paused["frame_index"], 32)
+        self.assertEqual(paused["reason"], "st5-continue-idle-before-resume-reply")
+        self.assertEqual(reader.buffer, b"")
+        self.assertFalse(select.select([process.stdout], [], [], .05)[0])
+        self.assertIsNone(process.poll())
+        release.touch()
+        self.assertEqual(reader.read(), recording["frames"][33]["frame"])
+        self.assertEqual(reader.read(), recording["frames"][34]["frame"])
+        self.assertIsNone(process.poll())
+        process.stdin.close()
+        self.assertIsNone(reader.read())
+        self.assertEqual(process.wait(timeout=2), 0)
+
+    def test_continue_pause_timeout_leaves_resume_reply_unconsumed(self):
+        release = Path(self.root.name) / "absent-release"
+        process, reader, recording = self.start(generation=2, extra=("--profile", "app-continue", "--pause-after-frame", "32", "--release", str(release)))
+        for frame in inputs(recording, 2, "app-continue"):
+            self.send(process, frame)
+        process.stdin.close()
+        # Nine frames reach the consumer: eight original supplier frames
+        # through idle plus the separately constructed catalog result.
+        for unused in range(9):
+            self.assertIsInstance(reader.read(), dict)
+        self.assertEqual(process.wait(timeout=12), 2)
+        self.assertEqual(process.stderr.read(), b"recorded-replay: release-marker-timeout\n")
+        self.assertIsNone(reader.read())
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        self.assertEqual(rows[-2]["event"], "error")
+        self.assertEqual(rows[-2]["frame_index"], 32)
+        self.assertEqual(rows[-2]["consumed_frame_indices"], list(range(19, 33)))
+        self.assertEqual(rows[-2]["remaining_frame_indices"], [33, 34])
+        self.assertEqual(rows[-1]["outcome"], "error")
 
     def test_malformed_actual_numbers_unicode_and_rpc_ids_have_complete_failure_audits(self):
         path, digest, recording = capture()
