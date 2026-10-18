@@ -17,11 +17,20 @@ const text = (value: Json): string => value === null || value === undefined ? ""
 
 /** A conversation as the panel keys it: the generation and thread ID. */
 export const conversationKey = (conversation: Json): string => conversation ? JSON.stringify([conversation.generation, conversation.threadId]) : "";
-/** The started conversation matching a host reference ({generation, threadId} or a thread ID). */
+/** Only a complete native tuple can supply an implicit conversation default. */
+export function conversationReference(ref: Json): Json | null {
+  const g = ref?.generation;
+  return typeof ref === "object" && typeof ref?.threadId === "string" && !!ref.threadId &&
+    typeof g?.appSession === "string" && !!g.appSession && typeof g?.home === "string" && !!g.home &&
+    Number.isSafeInteger(g?.spawnCounter) && g.spawnCounter > 0 ? { generation: g, threadId: ref.threadId } : null;
+}
+/** A saved bare ID is a label, even when only one loaded conversation has it. */
 export function findConversation(conversations: Json[], ref: Json): Json | null {
-  if (!ref) return null;
-  const threadId = typeof ref === "string" ? ref : ref.threadId;
-  return list(conversations).find((c: Json) => c?.threadId === threadId && (typeof ref === "string" || ref.generation === undefined || JSON.stringify(c.generation) === JSON.stringify(ref.generation))) ?? null;
+  const source = conversationReference(ref);
+  if (!source) return null;
+  const matches = list(conversations).filter((c: Json) => c?.threadId === source.threadId &&
+    c.generation?.appSession === source.generation.appSession && c.generation?.home === source.generation.home && c.generation?.spawnCounter === source.generation.spawnCounter);
+  return matches.length === 1 ? matches[0] : null;
 }
 export const conversationName = (ref: Json): string => text(typeof ref === "string" ? ref : ref?.threadId) || "not reported";
 
@@ -92,6 +101,7 @@ export function TrialCard({ pending, busy, act }: { pending: Json; busy: boolean
 
 function PendingNotes({ pending }: { pending: Json }) {
   return <>
+    {pending?.authoringLimit && <p role="note">{text(pending.authoringLimit)}</p>}
     {pending?.delegation && pending.delegation.reading !== "present" && <p role="note">Delegation {text(pending.delegation.reading)}: {text(pending.delegation.reason)}</p>}
     {pending?.runInForce && <p role="note">{text(pending.runInForce)}</p>}
     {pending?.draftChanged && <p role="note">{text(pending.draftChanged)}</p>}
@@ -214,7 +224,7 @@ export function BringBackComposer({ pending, conversations, busy, ready, act }: 
 
 /** Which pending composers belong in the selected conversation's panel. */
 export function composersFor(workflowRoot: Json, selected: Json): { delegated: Json[]; clean: Json[]; bringBacks: Json[] } {
-  const same = (ref: Json) => !!selected && !!ref && ref.threadId === selected.threadId && (ref.generation === undefined || JSON.stringify(ref.generation) === JSON.stringify(selected.generation));
+  const same = (ref: Json) => !!findConversation(selected ? [selected] : [], ref);
   const pending = list(workflowRoot?.pendingTrials);
   return {
     delegated: pending.filter((p: Json) => p?.kind === "delegated" && same(p.authoring)),

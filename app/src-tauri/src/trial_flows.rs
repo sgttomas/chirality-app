@@ -93,22 +93,24 @@ pub(crate) fn home_holding(homes: &[std::sync::Arc<HomeSession>], thread: &str) 
     let first = matches.next()?.clone();
     matches.next().is_none().then_some(first)
 }
-/// WR TT-9, H-5: the home holding the trial's own conversation (a clean
-/// trial's conversation, a delegated trial's authoring conversation), where
-/// Read again, Try again and Compare go.
+/// WR TT-9, H-5: the original hot source for Read again and Compare. A
+/// durable trial link has no home/generation and cannot select a source.
 pub(crate) fn trial_home(root: &Mutex<WorkflowRootSession>, homes: &[std::sync::Arc<HomeSession>], reference: &str) -> Result<std::sync::Arc<HomeSession>, String> {
-    let thread = root.lock().unwrap().trial_home_thread(reference).ok_or_else(|| format!("No trial link {reference}"))?;
-    home_holding(homes, &thread).ok_or_else(|| format!("The trial's conversation {thread} is not loaded in a Codex home now; nothing read or recorded"))
+    root.lock().unwrap().trial_native_source(reference)?.resolve(homes)
 }
 
 /// TT-11 Try again in the host: the delegation signals of a delegated trial's
 /// authoring conversation are read first (no App lock held while Codex
 /// answers), then the trial is pre-filled.
-pub(crate) fn trial_again(root: &Mutex<WorkflowRootSession>, reference: &str, home: &HomeSession, project: Option<&std::path::Path>) -> Result<Value, String> {
-    let authoring = root.lock().unwrap().trials.link(reference).and_then(|l| (l["trial"]["kind"] == "delegated").then(|| l["trial"]["authoring_conversation"].as_str().map(str::to_owned)).flatten());
-    let generation = home.host.snapshot()["generation"].clone();
-    let signals = authoring.as_deref().and_then(|thread| delegation_signals_for("delegated", Some(home), Some((&generation, thread))));
-    root.lock().unwrap().trial_again_with(reference, Some(home), project, signals.as_ref())
+pub(crate) fn trial_again(root: &Mutex<WorkflowRootSession>, reference: &str, homes: &[std::sync::Arc<HomeSession>], project: Option<&std::path::Path>) -> Result<Value, String> {
+    let (kind, authoring) = {
+        let root = root.lock().unwrap();
+        let link = root.trials.link(reference).ok_or_else(|| format!("No trial link {reference}"))?;
+        (link["trial"]["kind"].as_str().unwrap_or_default().to_owned(), root.trial_authoring_source(reference)?)
+    };
+    let home = authoring.as_ref().map(|source| source.resolve(homes)).transpose()?;
+    let signals = delegation_signals_for(&kind, home.as_deref(), authoring.as_ref().map(|source| (&source.generation, source.thread.as_str())));
+    root.lock().unwrap().trial_again_with(reference, home.as_deref(), project, signals.as_ref())
 }
 
 /// SQ-FT FT-3, FT-4 (H-2): the person sends a clean trial. `start` starts the
@@ -181,6 +183,38 @@ fn refused(reason: &str) -> bool {
     reason.starts_with("turn/start native error")
 }
 
+/// Original native ownership observed in this process, never reconstructed
+/// from a bare thread ID, durable trial link or renderer projection.
+#[derive(Clone)]
+struct ConversationSource {
+    generation: Value,
+    thread: String,
+    host: std::sync::Arc<crate::hosting::Host>,
+}
+impl ConversationSource {
+    fn new(home: &HomeSession, generation: &Value, thread: &str) -> Self {
+        Self { generation: generation.clone(), thread: thread.into(), host: home.host.clone() }
+    }
+    fn view(&self) -> Value {
+        json!({"generation":self.generation,"threadId":self.thread})
+    }
+    fn check(&self, home: &HomeSession) -> Result<(), String> {
+        if !std::sync::Arc::ptr_eq(&self.host, &home.host) {
+            return Err("Original trial conversation source differs; no other-home fallback".into());
+        }
+        current_conversation(&home.host.snapshot(), &self.generation, &self.thread)
+            .map_err(|cause| format!("Original trial conversation source is not current: {cause}; choose a current conversation explicitly"))
+    }
+    fn resolve(&self, homes: &[std::sync::Arc<HomeSession>]) -> Result<std::sync::Arc<HomeSession>, String> {
+        let mut matches = homes.iter().filter(|home| self.check(home).is_ok());
+        let first = matches.next().cloned().ok_or("Original trial conversation source is not loaded/current; no other-home or generation fallback")?;
+        if matches.next().is_some() {
+            return Err("Original trial conversation source is ambiguous; nothing selected".into());
+        }
+        Ok(first)
+    }
+}
+
 /// A trial pre-filled and not yet sent (§5.5 *pre-filled*). Process memory only.
 struct PendingTrial {
     prepared: PreparedTrial,
@@ -188,7 +222,8 @@ struct PendingTrial {
     library: String,
     draft: String,
     /// The authoring conversation (generation, thread).
-    authoring: Option<(Value, String)>,
+    authoring: Option<ConversationSource>,
+    authoring_limit: Option<String>,
     /// A clean trial's conversation once started (its message not yet sent).
     clean: Option<(Value, String)>,
     client: String,
@@ -207,6 +242,8 @@ struct SentState {
     home: String,
     generation: Value,
     authoring: String,
+    authoring_source: Option<ConversationSource>,
+    source: ConversationSource,
     turn: Option<String>,
     clean: Option<String>,
     client: String,
@@ -388,7 +425,8 @@ impl WorkflowRootSession {
             kind,
             library: library.reference.clone(),
             draft: name.to_owned(),
-            authoring: authoring.map(|(g, t)| (g.clone(), t.to_owned())),
+            authoring: authoring.map(|(g, t)| ConversationSource::new(home.expect("authoring home checked above"), g, t)),
+            authoring_limit: None,
             clean: None,
             client: crate::util::opaque_id("trial-message:")?,
             message,
@@ -411,17 +449,21 @@ impl WorkflowRootSession {
         let trial = &link["trial"];
         let kind = trial["kind"].as_str().unwrap_or_default().to_owned();
         let name = link["draft"]["name"].as_str().unwrap_or_default().to_owned();
-        let authoring = trial["authoring_conversation"].as_str().map(str::to_owned);
-        let generation = home.map(|h| h.host.snapshot()["generation"].clone());
-        let current = match (&authoring, &generation, home) {
-            (Some(thread), Some(generation), Some(home)) => current_conversation(&home.host.snapshot(), generation, thread).is_ok(),
-            _ => false,
-        };
-        let authoring = if current { authoring.as_deref().zip(generation.as_ref()).map(|(t, g)| (g, t)) } else { None };
+        let original_known = self.trial_desk.sent.contains_key(reference);
+        let authoring = self.trial_authoring_source(reference)?;
+        if let Some(source) = &authoring {
+            source.check(home.ok_or("Original authoring source unavailable; nothing pre-filled")?)?;
+        }
         if kind == "delegated" && authoring.is_none() {
             return Err("The authoring conversation of that trial is not loaded now; choose an authoring conversation and press Try with the authoring agent. Nothing pre-filled".into());
         }
-        self.prepare_trial_with(&kind, &name, authoring, home, project, delegation_signals)
+        let view = self.prepare_trial_with(&kind, &name, authoring.as_ref().map(|source| (&source.generation, source.thread.as_str())), home, project, delegation_signals)?;
+        if !original_known {
+            let pending = self.trial_desk.pending.get_mut(view["reference"].as_str().unwrap()).unwrap();
+            pending.authoring_limit = Some("Original authoring source is not established by this saved trial link; no authoring conversation selected".into());
+            return Ok(self.pending_view(self.trial_desk.pending.get(view["reference"].as_str().unwrap()).unwrap()));
+        }
+        Ok(view)
     }
     /// §5.5: removing the trial card cancels the trial; nothing is recorded.
     pub fn cancel_trial(&mut self, reference: &str) -> Result<Value, String> {
@@ -505,6 +547,22 @@ impl WorkflowRootSession {
         let trial = &link["trial"];
         let thread = if trial["kind"] == "clean" { &trial["clean_conversation"] } else { &trial["authoring_conversation"] };
         thread.as_str().map(str::to_owned)
+    }
+    fn trial_authoring_source(&self, reference: &str) -> Result<Option<ConversationSource>, String> {
+        let link = self.trials.link(reference).ok_or_else(|| format!("No trial link {reference}"))?;
+        let Some(sent) = self.trial_desk.sent.get(reference) else { return Ok(None) };
+        if link["trial"]["authoring_conversation"] != sent.authoring {
+            return Err("Original authoring association changed; no default selected".into());
+        }
+        Ok(sent.authoring_source.clone())
+    }
+    fn trial_native_source(&self, reference: &str) -> Result<ConversationSource, String> {
+        let sent = self.trial_desk.sent.get(reference)
+            .ok_or("Original trial source is not established by this saved trial link; no native history read")?;
+        if self.trial_home_thread(reference).as_deref() != Some(sent.source.thread.as_str()) {
+            return Err("Original trial conversation association changed; no native history read".into());
+        }
+        Ok(sent.source.clone())
     }
     /// The trial a conversation belongs to as a clean trial conversation (or a
     /// fork of one): (trial reference, is a fork).
@@ -607,7 +665,7 @@ impl WorkflowRootSession {
             "content":p.prepared.content,"rev12":rev,
             "card":format!("trial {} of draft {} at content {rev} — not registered; not a workflow run",text.sequence(),p.draft),
             "header":text.header(),"text":text.text(),"textIdentity":text.identity(),"bytes":text.bytes(),"message":p.message,
-            "authoring":place(&p.authoring),"cleanConversation":place(&p.clean),"delegation":p.delegation,"runInForce":p.run_in_force,
+            "authoring":p.authoring.as_ref().map(ConversationSource::view),"authoringLimit":p.authoring_limit,"cleanConversation":place(&p.clean),"delegation":p.delegation,"runInForce":p.run_in_force,
             "draftChanged":changed,"workFolder":p.work_folder,
             "state":if p.clean.is_some(){"started; trial message not sent"}else{"pre-filled"},"limit":Value::Null,
             "standing":"pre-filled, not sent: nothing is sent or recorded until you press Send; the trial text is changed by changing the draft and pressing Try again"})
@@ -621,6 +679,14 @@ impl WorkflowRootSession {
         for row in rows.iter_mut() {
             let Some(reference) = row["reference"].as_str().map(str::to_owned) else { continue };
             let link = self.trials.link(&reference).cloned().unwrap_or(Value::Null);
+            // Only a hot original tuple supplies a default. Saved bare IDs
+            // remain readable labels, never another home's current target.
+            row["authoringSourceLimit"] = match self.trial_authoring_source(&reference) {
+                Ok(Some(source)) => { row["authoringConversation"] = source.view(); Value::Null },
+                Ok(None) if self.trial_desk.sent.contains_key(&reference) => json!("No authoring conversation was selected for this trial; choose a current target"),
+                _ => json!("Original authoring source is not established by this saved trial link; choose a current target"),
+            };
+            row["sourceLimit"] = self.trial_native_source(&reference).err().map_or(Value::Null, |cause| json!(cause));
             let sequence = link["trial"]["sequence"].as_u64().unwrap_or(0);
             let short = reference.trim_start_matches("trial:").chars().take(8).collect::<String>();
             let work = format!(".chirality/trial-work/trial-{sequence}-{short}/");
@@ -698,6 +764,9 @@ impl WorkflowRootSession {
                 },
                 Err(cause) => json!({"state":"not available","reading":cause}),
             };
+            if !row["sourceLimit"].is_null() {
+                row["readAgain"] = json!({"offered":false,"reason":row["sourceLimit"]});
+            }
         }
         rows
     }
@@ -758,7 +827,7 @@ impl WorkflowRootSession {
             if let Some((_, thread)) = &p.clean {
                 let n = p.prepared.text.sequence();
                 let rev = rev12(p.prepared.text.content());
-                let authoring = p.authoring.as_ref().map(|(_, t)| t.as_str()).unwrap_or("none chosen");
+                let authoring = p.authoring.as_ref().map(|source| source.thread.as_str()).unwrap_or("none chosen");
                 conversations.push(json!({"threadId":thread,"reference":reference,"sequence":n,"draftName":p.draft,"rev12":rev,"fork":false,
                     "header":format!("Trial {n} of draft {} at content {rev} — not registered; not a workflow run · authoring conversation {authoring}",p.draft)}));
             }
@@ -787,7 +856,10 @@ impl WorkflowRootSession {
             let w = run.prepared().workflow();
             let latest = links.iter().rev().find(|l| l["draft"]["name"] == w.name.as_str()
                 && self.libraries.values().any(|lib| lib.origin == w.origin && lib.owner.try_lock().is_ok_and(|o| o.draft_key(&w.name) == l["draft"])))?;
-            Some(json!({"run":run_ref,"threadId":latest["trial"]["authoring_conversation"]}))
+            let reference = latest["trial"]["reference"].as_str()?;
+            let authoring = self.trial_authoring_source(reference).ok().flatten();
+            Some(json!({"run":run_ref,"authoring":authoring.as_ref().map(ConversationSource::view),
+                "limit":if authoring.is_none(){Some("Original authoring source is not established or none was selected; choose a current target")}else{None}}))
         }).collect::<Vec<_>>());
         root["trialsStartedHere"] = json!(started_here.into_iter().map(|(t, trials)| json!({"threadId":t,"trials":trials})).collect::<Vec<_>>());
         root["trialTurns"] = json!(turns);
@@ -1206,7 +1278,7 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
                 if clean_here.is_some() {
                     return Err(SendRefusal::kept("A delegated trial is sent in an authoring conversation, not in a trial conversation. Nothing sent"));
                 }
-                p.authoring = Some((generation.clone(), thread.to_owned()));
+                p.authoring = Some(ConversationSource::new(home, generation, thread));
             }
             TrialKind::Clean => match &p.clean {
                 Some((g, t)) if g == generation && t == thread => {}
@@ -1240,7 +1312,7 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
     let p = root.trial_desk.pending.remove(reference).ok_or_else(|| SendRefusal::not_kept("pre-filled trial lost while sending"))?;
     let (authoring, clean) = match kind {
         TrialKind::Delegated => (thread.to_owned(), None),
-        TrialKind::Clean => (p.authoring.as_ref().map(|(_, t)| t.clone()).unwrap_or_else(|| "none chosen".into()), Some(thread.to_owned())),
+        TrialKind::Clean => (p.authoring.as_ref().map(|source| source.thread.clone()).unwrap_or_else(|| "none chosen".into()), Some(thread.to_owned())),
     };
     let sent = SentTrial { kind, authoring_conversation: authoring.clone(), client_message: client.clone(), turn: turn.clone(), clean_conversation: clean.clone() };
     let link = root.trials.record_sent(&p.prepared, &sent);
@@ -1266,6 +1338,8 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
             home: home_key,
             generation: generation.clone(),
             authoring,
+            authoring_source: p.authoring.clone(),
+            source: ConversationSource::new(home, generation, thread),
             turn: turn.clone(),
             clean,
             client,
@@ -1287,8 +1361,10 @@ pub(crate) fn send_trial(root: &Mutex<WorkflowRootSession>, home: &HomeSession, 
 /// the linked sub-agent's first input, or each candidate whose input was not
 /// read; a clean trial: its first turn. Each read is a new observation.
 pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSession, reference: &str, view: &Value) -> Result<Value, String> {
-    let (link, text, linked, candidates) = {
+    let (link, text, linked, candidates, generation) = {
         let root = root.lock().unwrap();
+        let original = root.trial_native_source(reference)?;
+        original.check(home)?;
         let link = root.trials.link(reference).cloned().ok_or_else(|| format!("No trial link {reference}"))?;
         let text = root.trial_text(reference);
         let linked = root.linked_child(reference);
@@ -1298,9 +1374,16 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
                 candidates.extend(descendants_of(view, authoring));
             }
         }
-        (link, text, linked, candidates)
+        (link, text, linked, candidates, original.generation)
     };
-    let generation = home.host.snapshot()["generation"].clone();
+    let record = |observation| {
+        let mut root = root.lock().unwrap();
+        root.trial_native_source(reference)?.check(home)?;
+        if root.trials.link(reference) != Some(&link) {
+            return Err("Trial association changed during history reading; nothing recorded".into());
+        }
+        root.trials.record_observation(reference, observation)
+    };
     let trial = &link["trial"];
     let mut results = vec![];
     if trial["kind"] == "clean" {
@@ -1315,7 +1398,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
             },
         };
         let observation = TrialObservation::Fidelity { read_thread: Some(thread), reading, limits: vec!["read again at the person's request".into()] };
-        results.push(root.lock().unwrap().trials.record_observation(reference, observation)?);
+        results.push(record(observation)?);
         return Ok(json!({"reference":reference,"recorded":results}));
     }
     let text = text?;
@@ -1326,7 +1409,7 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
             Err(cause) => FidelityReading::NotChecked { limits: vec![format!("the sub-agent's first turn could not be read: {cause}")] },
         };
         let observation = TrialObservation::Fidelity { read_thread: Some(child), reading, limits: vec!["read again at the person's request".into()] };
-        results.push(root.lock().unwrap().trials.record_observation(reference, observation)?);
+        results.push(record(observation)?);
         return Ok(json!({"reference":reference,"recorded":results}));
     }
     let marker = text.begin_marker();
@@ -1336,6 +1419,10 @@ pub(crate) fn read_trial_again(root: &Mutex<WorkflowRootSession>, home: &HomeSes
         match read_first_user_texts(home, &generation, &child, None, None, TrialKind::Delegated, &person_read()) {
             Ok(texts) if texts.iter().any(|t| t.contains(&marker)) => {
                 let mut root = root.lock().unwrap();
+                root.trial_native_source(reference)?.check(home)?;
+                if root.trials.link(reference) != Some(&link) {
+                    return Err("Trial association changed during history reading; nothing recorded".into());
+                }
                 if root.linked_child(reference).is_some() {
                     if let Some(s) = root.trial_desk.sent.get_mut(reference) {
                         s.also_given.insert(child);
@@ -1752,8 +1839,11 @@ impl LearningSource {
                 if root.trial_home_thread(reference).as_deref() != Some(home_thread) {
                     return Err("trial's native home anchor changed".into());
                 }
-                let home = home_holding(homes, home_thread)
-                    .ok_or("trial native source became missing or ambiguous")?;
+                let original = root.trial_native_source(reference)?;
+                if original.generation != self.generation || original.thread != *home_thread {
+                    return Err("trial native source changed during history reading".into());
+                }
+                let home = original.resolve(homes)?;
                 if !std::sync::Arc::ptr_eq(&home, &self.home) {
                     return Err("trial native source home changed".into());
                 }
@@ -1824,12 +1914,10 @@ fn resolve_learning(
     if let (Some(reference), None) = (trial, run) {
         let root = root.lock().unwrap();
         let history = root.trial_source(reference)?;
-        let home_thread = root
-            .trial_home_thread(reference)
-            .ok_or("trial's native home anchor unavailable")?;
-        let home = home_holding(homes, &home_thread)
-            .ok_or("trial native history source is not loaded or is ambiguous across homes")?;
-        let generation = home.host.snapshot()["generation"].clone();
+        let original = root.trial_native_source(reference)?;
+        let home_thread = original.thread.clone();
+        let home = original.resolve(homes)?;
+        let generation = original.generation;
         return Ok(LearningSource {
             history,
             home,

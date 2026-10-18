@@ -296,7 +296,7 @@ test('the selected workflow shows its declared part instead of a JSON dump',asyn
     inspection:choice('inspection','inspected-workflow','Inspected checkpoint purpose'),
     selections:[{sourceRef:'workflow-source',threadId:'chat-a',selection:choice('choice-a','selected-workflow-a','Selected A checkpoint purpose')},
       {sourceRef:'workflow-source',threadId:'chat-b',selection:choice('choice-b','selected-workflow-b','Selected B checkpoint purpose')}],
-    runs:[original],runBringBackDefaults:[{run:original.reference,threadId:'chat-a'}]};
+    runs:[original],runBringBackDefaults:[{run:original.reference,authoring:{generation:g,threadId:'chat-a'}}]};
   const host={state:'ready',generation:g,threads:conversations,workflowRoot:data};
   const calls=[];const act=async(command,args)=>{calls.push([command,args]);return {state:'pre-filled; not sent'};};
   const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
@@ -313,6 +313,7 @@ test('the selected workflow shows its declared part instead of a JSON dump',asyn
     assert.match(labelled('Selected workflow').textContent,/selected-workflow-a.*Selected A checkpoint purpose/s);
     assert.doesNotMatch(labelled('Selected workflow').textContent,/Selected B checkpoint purpose|Inspected checkpoint purpose/);
     const originalPanel=labelled('Run panel');
+    assert.equal(props(selectIn(originalPanel,'Bring back to ')).value,JSON.stringify([g,'chat-a']),'the full original authoring tuple reaches the run through actual workspace wiring');
     assert.match(originalPanel.textContent,/original-running-workflow.*conversation chat-b.*Original run checkpoint purpose/s);
     assert.doesNotMatch(originalPanel.textContent,/Selected A checkpoint purpose/,'the run keeps its own declaration');
     await React.act(()=>props(chat).onChange({target:{value:'chat-b'}}));
@@ -326,6 +327,7 @@ test('the selected workflow shows its declared part instead of a JSON dump',asyn
     assert.deepEqual(calls,[],'rendering declarations and changing interface choices calls no host action');
     await render(true);
     assert.equal(props(bringBack()).disabled,true,'the shared file-act operation disables run actions through the actual wiring');
+    assert.equal(props(target).value,JSON.stringify([g,'chat-b']),'busy presentation preserves the person’s explicit feedback target');
     assert.deepEqual(calls,[]);
     await render(false);
     assert.equal(props(bringBack()).disabled,false);
@@ -465,8 +467,8 @@ test('a sent reopened end notice can retry its unsaved history reference without
 test('Bring a real run back defaults to the host’s default conversation for that run, still changeable; none without one (I-8, TT-10)',async()=>{
   const g={appSession:'s',home:'h',spawnCounter:1};
   const conversations=[{generation:g,threadId:'auth'},{generation:g,threadId:'other'}];
-  const root={runBringBackDefaults:[{run:'run-1',threadId:'other'},{run:'run-2',threadId:'auth'}]};
-  assert.equal(runBringBackDefault(root,'run-1'),'other');
+  const root={runBringBackDefaults:[{run:'run-1',authoring:{generation:g,threadId:'other'}},{run:'run-2',authoring:{generation:g,threadId:'auth'}}]};
+  assert.deepEqual(runBringBackDefault(root,'run-1'),{generation:g,threadId:'other'});
   assert.equal(runBringBackDefault(root,'run-9'),null);
   assert.equal(runBringBackDefault({},'run-1'),null);
   assert.equal(runBringBackDefault(undefined,'run-1'),null);
@@ -482,7 +484,7 @@ test('Bring a real run back defaults to the host’s default conversation for th
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);};
   const container=document.createElement('div');document.body.appendChild(container);
   const rootEl=createRoot(container);
-  await React.act(()=>rootEl.render(React.createElement(RunPanel,{run:run(),conversations,bringBackDefault:'other',act})));
+  await React.act(()=>rootEl.render(React.createElement(RunPanel,{run:run(),conversations,bringBackDefault:{generation:g,threadId:'other'},act})));
   assert.deepEqual(calls,[],'mounting sends nothing');
   // React keeps each element's current props on its node; the mini document has no events.
   const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];

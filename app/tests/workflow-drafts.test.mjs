@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync,mkdtempSync,rmSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
 
 const {WorkflowDraftsView,WorkflowDraftsList,DraftRow,TrialRow,CompareResult,draftStateWords,attributionWords,fidelityWords,trialSide,runSide,initialDraftsState}=loadSrc('WorkflowDrafts');
+const {RunBringBack,runBringBackDefault}=loadSrc('RunPanel');
 
 // Drafts in the host shape (WorkflowRootSession::drafts_view over
 // registration::drafts::observe_drafts in the Rust host).
@@ -241,6 +244,69 @@ test('Bring trial back targets the authoring conversation by default, another th
   assert.match(trialHtml(trial({live:true})),/waits until no turn is live/);
   assert.equal(button(trialTree(trial({authoringConversation:null})).tree,'Bring trial back').props.disabled,true,'no target, no bring back');
   assert.deepEqual(trialTree(trial()).calls,[],'rendering a row calls nothing');
+});
+
+test('actual hot and cold trial projections never default feedback to another home’s same ID',async()=>{
+  const out=mkdtempSync(`${tmpdir()}/trial-authoring-renderer-`);
+  let packet;
+  try {
+    execFileSync('cargo',['test','--offline','--locked','--lib','runtime_session::workflow_root_tests::trial_authoring_source_tests::trial_authoring_hot_collision_cold_unknown_and_current_source_packet','--','--exact','--test-threads=1'],{
+      cwd:new URL('../src-tauri/',import.meta.url),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CHIRALITY_TRIAL_AUTHORING_TEST_OUTPUT:out},stdio:'pipe',maxBuffer:8*1024*1024});
+    packet=JSON.parse(readFileSync(`${out}/trial-authoring.json`,'utf8'));
+  } finally {rmSync(out,{recursive:true,force:true});}
+  const {installMiniDom}=await import('./support/mini-dom.mjs');
+  const document=installMiniDom();const {createRoot}=await import('react-dom/client');
+  const container=document.createElement('div');document.body.appendChild(container);const mounted=createRoot(container);
+  const calls=[];const act=async(command,args)=>{calls.push([command,args]);};
+  const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
+  const named=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
+  const select=()=>container.querySelectorAll(node=>node.localName==='select')[0];
+  const selected=()=>props(select()).value;
+  const change=value=>React.act(()=>props(select()).onChange({target:{value}}));
+  const press=async label=>{const button=named(label);assert.equal(props(button).disabled,false);await React.act(()=>props(button).onClick());};
+  function Row({trial,conversations}) {
+    const [state,setState]=React.useState(initialDraftsState);
+    return React.createElement(TrialRow,{trial,conversations,busy:false,act,state,update:patch=>setState(previous=>({...previous,...patch}))});
+  }
+  const renderRow=(trial,conversations,key='row')=>React.act(()=>mounted.render(React.createElement(Row,{key,trial,conversations})));
+  const bThread=packet.bConversations.find(c=>c.threadId===packet.authoring.threadId);
+  try {
+    await renderRow(packet.hotTrial,packet.bConversations);
+    assert.equal(selected(),'');assert.equal(props(named('Bring trial back')).disabled,true);
+    assert.match(container.textContent,/original authoring conversation is not loaded/i);
+    assert.deepEqual(calls,[],'mounting neither chooses a different home nor sends');
+    await renderRow(packet.hotTrial,[...packet.aConversations,...packet.bConversations]);
+    assert.equal(selected(),ckey(packet.authoring),'the hot authoring tuple selects A despite both collisions');
+    await press('Bring trial back');
+    assert.deepEqual(calls.pop(),['workflow_trial_bring_back',{reference:packet.hotTrial.reference,generation:packet.authoring.generation,threadId:packet.authoring.threadId,includeNative:false}]);
+    await renderRow(packet.hotTrial,packet.bConversations);
+    assert.equal(selected(),'');assert.equal(props(named('Bring trial back')).disabled,true);
+    await change(ckey(bThread));await press('Bring trial back');
+    assert.deepEqual(calls.pop(),['workflow_trial_bring_back',{reference:packet.hotTrial.reference,generation:bThread.generation,threadId:bThread.threadId,includeNative:false}],'a current B target requires the person’s explicit choice');
+    await renderRow(packet.hotTrial,packet.bConversations.map(c=>({...c,generation:{...c.generation,spawnCounter:c.generation.spawnCounter+1}})));
+    assert.equal(props(named('Bring trial back')).disabled,true,'a picked target does not move into a successor generation');
+    await renderRow(packet.coldTrial,packet.bConversations,'cold');
+    assert.equal(selected(),'');assert.equal(props(named('Bring trial back')).disabled,true);
+    assert.match(container.textContent,/Original authoring source is not established/);
+    assert.match(container.textContent,/Original trial source is not established/);
+    assert.equal(named('Read again'),undefined,'cold provenance supplies no implicit native history source');
+
+    const defaultTarget=runBringBackDefault({runBringBackDefaults:packet.hotDefaults},packet.run);
+    assert.deepEqual(defaultTarget,packet.authoring);
+    const renderRun=(conversations,defaultThread=defaultTarget,key='run')=>React.act(()=>mounted.render(React.createElement(RunBringBack,{key,run:packet.runView,conversations,defaultThread,busy:false,act})));
+    await renderRun(packet.bConversations);
+    assert.equal(selected(),'');assert.equal(props(named('Bring a real run back to authoring')).disabled,true);
+    await renderRun([...packet.aConversations,...packet.bConversations]);
+    assert.equal(selected(),ckey(packet.authoring));
+    await renderRun(packet.bConversations);
+    await change(ckey(bThread));await press('Bring a real run back to authoring');
+    assert.deepEqual(calls.pop(),['workflow_run_bring_back',{runRef:packet.run,generation:bThread.generation,threadId:bThread.threadId,includeNative:false}]);
+    const unknown=runBringBackDefault({runBringBackDefaults:packet.latestUnknownDefaults},packet.run);
+    assert.equal(unknown,null,'a latest cold link never borrows the older hot trial default');
+    await renderRun(packet.bConversations,unknown,'unknown-run');
+    assert.equal(selected(),'');assert.equal(props(named('Bring a real run back to authoring')).disabled,true);
+    assert.equal(runBringBackDefault({runBringBackDefaults:[{run:packet.run,threadId:bThread.threadId}]},packet.run),null,'a bare saved thread ID is a label, even when uniquely loaded');
+  } finally {await React.act(()=>mounted.unmount());document.body.removeChild(container);}
 });
 
 test('Compare calls workflow_trial_compare with the two chosen sides and shows the difference without judging (TT-11)',async()=>{

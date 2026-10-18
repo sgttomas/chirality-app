@@ -8114,6 +8114,11 @@ for line in sys.stdin:
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
  elif method=='thread/items/list':
   m=mode('items-mode');seen=text;cid=client
+  if m=='hold':
+   import time
+   with open('items-held','w') as held:held.write('waiting')
+   deadline=time.monotonic()+10
+   while mode('items-mode')=='hold' and time.monotonic()<deadline:time.sleep(.005)
   if m=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
   if m=='error-content':
@@ -9321,10 +9326,10 @@ for line in sys.stdin:
         let reference=view["reference"].as_str().unwrap().to_owned();
         let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
         peer.set_mode("namespace-tools","false");let before=caps(&peer);
-        let again=trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap_err();
+        let again=trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap_err();
         assert!(again.contains("namespaceTools false"),"{again}");assert_eq!(caps(&peer),before+1);
         peer.set_mode("namespace-tools","");
-        assert_eq!(trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap()["delegation"]["reading"],"present");
+        assert_eq!(trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap()["delegation"]["reading"],"present");
     }
     // B-1 (#1250 review): model/list and modelProvider/capabilities/read
     // answer for the provider the app-server resolves for itself; a
@@ -9506,8 +9511,15 @@ for line in sys.stdin:
         let (a1,b1)=(turn_lists(&a),turn_lists(&b));
         trial_flows::compare(&root,&|t|trial_flows::home_holding(&homes,t),&json!({"trial":reference}),&json!({"trial":reference})).unwrap();
         assert_eq!(turn_lists(&a),a1,"Compare reads nothing in A");assert!(turn_lists(&b)>b1,"Compare reads B");
-        let again=trial_flows::trial_again(&root,&reference,&home,a.project()).unwrap();
-        assert_eq!(again["kind"],"clean");assert_eq!(again["authoring"]["generation"],b.generation,"Try again takes the trial's home");
+        let again=trial_flows::trial_again(&root,&reference,&homes,a.project()).unwrap();
+        assert_eq!(again["kind"],"clean");
+        // WR TT-3b/TT-11: the clean trial is read in B, but Try again keeps
+        // the originally selected authoring conversation in A as its default.
+        assert_eq!(again["authoring"]["generation"],a.generation,"Try again keeps the original authoring source");
+    }
+    mod trial_authoring_source_tests {
+        use super::*;
+        include!("workflow_trial_authoring_source_tests.rs");
     }
     #[test]
     fn send_refusals_say_whether_the_trial_stays_pre_filled(){
