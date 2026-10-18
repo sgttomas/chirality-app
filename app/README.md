@@ -168,6 +168,15 @@ implemented behavior and qualification limits.
     while a durable capture with a failed record remains retryable without
     recapture. File-act reading is separate from decision packages and preserves
     actor/recorder, cold-origin, current-content and professional-statement limits.
+    **Observe file-act content changes and save history** records lapse
+    observations for existing standing A4/A6/A7 file acts in the project's act
+    log. Reading alone stays read-only. Recorded intervals, current comparison
+    and unresolved source claims are shown separately. Each source log keeps
+    its own sequence, including arrival history for a standing act later used
+    in a run; order between logs is unknown. A return to the original bytes
+    renews no act. Failed saves keep the original observation in this App
+    session for **Retry saving held metadata only**, which writes metadata
+    without capturing another act or replacing the observed content/time.
     Request/output/workflow links open the standing facility only through a person;
     they do not invent an arrival reference or settle a supplier request.
 16. Workflow selection, owner-held review, hot A15 capture and immutable library
@@ -821,6 +830,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
 | `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
 | `src-tauri/src/historical_run_learning.rs`, `workflow_learning_pointers.rs`, `historical_trial_flows_tests.rs` | WR TT-10/11 historical Bring back and Compare: strict original WR/RS correspondence, pointer-only original native ACK coordinates in owned REC tags, separate current source and target homes, quoted activity and exact revision bytes without restored live run/supply/selection authority; unavailable source/history remains named |
+| `src-tauri/src/file_act_lapse.rs`, `file_act_view.rs`, `src/FileActPanel.tsx` | Explicit standing A4/A6/A7 file-content observations in existing RS act logs, original-source-bound metadata retry and separate current comparison/resolved history/limited claims |
 | `src-tauri/src/host_tick.rs` | The host's own ticks (OI-008): a record tick receives native frames and records checkpoint observations, and a separate trial tick makes due trial reads, whether or not the interface polls; each tick is guarded and a failure is shown in `host_status`, which only reads |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
@@ -851,6 +861,11 @@ export CHIRALITY_CODEX_EXPECTED_SHA256=112fae7a5a1223e673c8a1791d32338f37df8b527
 npm test
 (cd src-tauri && cargo test --offline --locked)
 ```
+
+The focused `node --test tests/file-act-panel.test.mjs` check runs offline Rust
+file-act fixtures with `CHIRALITY_SKIP_CODEX=1` and consumes their actual cold
+history and pending-save DTOs. `CHIRALITY_FILE_ACT_LAPSE_DTO_LOG` may point to
+stdout from a completed passing run of those fixtures to reuse that evidence.
 
 Use the complete published platform package, with its `bin/codex` entrypoint,
 helper binaries, resources and `codex-package.json` retained in their original
@@ -1195,7 +1210,7 @@ narrows R-1 but does not close it: anything that can read that file, including
 an agent under Codex's default read access, can seal. Trustworthy persistent
 cold replay remains unfinished under AAC §6.3 U-AAC-3 and I3-CUST, and SEAL-2 stays
 deferred. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, native GUI child-role journeys, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, native GUI child-role journeys, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General contextual file/arrival entry surfaces remain unfinished. Standing A4/A6/A7 App-file acts now have explicit durable lapse observations and separate current/history displays, while complete native file-act witnesses remain separate. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
