@@ -355,6 +355,9 @@ pub(crate) fn corresponds(c: &Value, record: &Value) -> bool {
     };
     c["actKind"] == *kind
         && c["choice"] == if decline { "decline" } else { "act" }
+        && c["answers"].get("runId") == record.get("runId")
+        && c["answers"].get("arrival") == if decline {b.get("arrival")}else{b["relations"].get("arrivalAnswered")}
+        && c.get("requestRef") == if decline {b.get("requestRef")}else{b["relations"].get("requestRef")}
         // The add-once backlink, once present, names this record (AAC §5.2a).
         && c.get("recordId").is_none_or(|linked| *linked == record["recordId"])
         && if decline {

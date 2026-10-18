@@ -736,6 +736,26 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 
 ## Current implementation conditions
 
+**Explicit App-file arrival entry.** A person's press on an eligible arrival
+row resolves the original hot live run and its written, unique current arrival.
+The host takes kind, single App-file subject, scope and purpose from that
+source and the original declaration; the renderer supplies only the run and
+arrival identities. The current file content must match the arrival's effective
+recorded content basis. The resulting offer freezes the exact file bytes and
+run/arrival association for the existing native confirmation. Source, actor,
+home, project and content checks remain in the Rust owner through capture.
+Rendering or polling an arrival opens nothing.
+
+The sealed capture and RS record preserve the run/arrival and any established
+request reference. The record uses the original run's writer allocation in
+§5.2b, with no standing-log duplicate. Original capture continuation writes
+only its held metadata to that target. The checkpoint recorder still decides
+counting and disposition; capture does not resume a run or answer a supplier
+request. Reopened-only history, unsupported subjects, ambiguous or incomplete
+sources and stale content supply no contextual offer. The standing picker
+remains separately available. Local synthetic fixtures do not establish native
+human qualification or authenticity.
+
 **Open readability adoption condition.** The App implements a native statement
 bounded to 30 lines and 1500 characters, with no truncation. A15 names the
 complete review by reference and `aac-offer-digest/0.1`; oversized A16 chosen

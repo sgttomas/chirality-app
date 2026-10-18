@@ -3106,6 +3106,17 @@ logs do not establish an order between them.
 Returning to c₀ records no renewal, acceptance or restored act authority.
 These local fixtures do not establish native capture authenticity or qualification.
 
+**Current contextual App-file capture.** An explicit entry from an eligible
+hot live arrival carries the original run and arrival into the frozen offer,
+sealed capture and existing human-act or decline record. A request reference
+is carried only when its source association is established. The human-act
+relations or decline fields must correspond to the capture; adding or changing
+an arrival, run or request link in a readable record does not create capture
+correspondence. The record uses the original run/writer allocation of §13.8,
+without a duplicate standing entry. Held capture continuation retains that
+original metadata and target, with no second native capture or resumed run.
+The checkpoint recorder owns any counting or disposition that follows.
+
 ## UNRESOLVED
 
 | Item | Owner | Point of need | Effect on this definition |

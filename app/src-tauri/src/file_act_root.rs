@@ -21,6 +21,7 @@ pub(crate) struct FileActReview {
     pub preview: Value,
     pub attempted: bool,
     pub status: Value,
+    pub arrival: Option<Arc<crate::runtime_session::ArrivalSource>>,
 }
 impl FileActRoot {
     pub fn compose(
@@ -34,6 +35,16 @@ impl FileActRoot {
         context: Value,
     ) -> Result<Value, String> {
         let offer = control.compose_file_act(path, kind, scope, purpose)?;
+        self.retain(control, offer, home, context, None)
+    }
+    fn retain(
+        &mut self,
+        control: &ActControl,
+        offer: FileActOfferRef,
+        home: Arc<HomeSession>,
+        context: Value,
+        arrival: Option<Arc<crate::runtime_session::ArrivalSource>>,
+    ) -> Result<Value, String> {
         let (facts, bytes) = control.file_act_preview(&offer)?;
         let preview = json!({"reference":offer.id(),"offer":facts,"byteLength":bytes.len(),"utf8":std::str::from_utf8(bytes).ok(),"hex":bytes.iter().map(|b|format!("{b:02x}")).collect::<String>(),"previewStanding":"exact frozen bytes; selection and preview are not act evidence"});
         let reference = offer.id().to_owned();
@@ -46,9 +57,39 @@ impl FileActRoot {
                 preview: preview.clone(),
                 attempted: false,
                 status: json!({"state":"composed; no capture","recorded":false}),
+                arrival,
             })),
         );
         Ok(preview)
+    }
+    pub fn compose_arrival(
+        &mut self,
+        control: &mut ActControl,
+        source: crate::runtime_session::ArrivalSource,
+        context: Value,
+    ) -> Result<Value, String> {
+        source.validate()?;
+        let offer = control.compose_file_act(
+            source.path(),
+            source.kind(),
+            source.scope(),
+            source.purpose(),
+        )?;
+        let checked = (|| {
+            if !source.matches_identity(
+                &control.file_act_preview(&offer)?.0["subject"]["contentIdentity"],
+            ) {
+                return Err("Frozen preview differs from the arrival's recorded content basis; review again".into());
+            }
+            source.validate()
+        })();
+        if let Err(error) = checked {
+            control.dismiss_file_act(&offer);
+            return Err(error);
+        }
+        let source = Arc::new(source);
+        control.bind_file_arrival(&offer, source.clone())?;
+        self.retain(control, offer, source.home(), context, Some(source))
     }
     pub fn get(&self, id: &str) -> Result<Arc<Mutex<FileActReview>>, String> {
         self.offers

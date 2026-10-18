@@ -480,11 +480,14 @@ pub(crate) fn append_capture_submission(
         &APP_INTERFACE,
         body,
         rid.into(),
-        None,
+        file_capture_run(&pending["capture"]),
         Some(observed),
         RecordSet::Complete,
         crate::schema_validation::bundled(),
     )
+}
+fn file_capture_run(capture:&Value)->Option<&str>{
+    matches!(capture["actKind"].as_str(),Some("A4"|"A6"|"A7")).then(||capture["answers"]["runId"].as_str()).flatten()
 }
 pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), String> {
     if pending["delayed"] != true {
@@ -497,6 +500,12 @@ pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), S
     let rid = pending["recordId"]
         .as_str()
         .ok_or("pending record absent")?;
+    if let Some(run)=file_capture_run(&pending["capture"]){
+        let log=crate::storage::submission_log(root,&pending["capture"],pending["log"].as_str().ok_or("pending log absent")?)?;
+        let source=crate::file_act_view::source_claims(root);
+        let claims:Vec<_>=source.claims.iter().filter(|claim|claim["record"]["kind"]=="evidence_limit" && claim["record"]["body"]["label"]=="record write failed" && claim["record"]["body"]["subjectRef"]==rid).collect();
+        if claims.len()>1 || claims.first().is_some_and(|claim|claim["source"]["log"]!=log.to_string_lossy().as_ref() || claim["record"]["runId"]!=run){return Err("Arrival late-write disclosure is duplicated or outside its original run log".into());}
+    }
     if entries.iter().any(|e| {
         e["kind"] == "evidence_limit"
             && e["body"]["label"] == "record write failed"
@@ -504,11 +513,12 @@ pub(crate) fn finish_capture_delay(root: &Path, pending: &Value) -> Result<(), S
     }) {
         return Ok(());
     }
-    append(
+    append_reserved(
         &crate::storage::submission_log(root, &pending["capture"], pending["log"].as_str().ok_or("pending log absent")?)?,
-        "evidence_limit",
-        &APP_WRITER,
+        "evidence_limit", &APP_WRITER,
         json!({"label":"record write failed","subjectRef":rid,"detail":pending["writeFailure"].as_str().unwrap_or("captured act was written after its original observation")}),
+        crate::util::opaque_id("rec:app:")?, file_capture_run(&pending["capture"]), None,
+        RecordSet::Complete, crate::schema_validation::bundled(),
     )?;
     Ok(())
 }
