@@ -5,7 +5,11 @@ needs:
   condition: 'Consume DEL-01-01''s identified supported native supplier receiving contract to implement
     and exercise additive role supply at the actual supplier boundary, including the native agent-role
     configuration through which delegated children receive product guidance and their role, and the surfaces
-    through which a task agent''s delegation is recorded and shown.
+    through which a task agent''s delegation is recorded and shown. Current development/definition and generated-reference input is
+    the owner-authorized, reviewed SUP1 0.160.0 (DEL-01-01 ScopeOfWork [S], CLM-003, REQ-006
+    and TBD-002), superseding the initial D4 definition-pin declaration in the historical notes below.
+    Qualification remains candidate-bound by R23-22: the newest version that has passed a version-advance
+    check when the candidate is built; the development pin supplies no qualified distribution identity.
 
 
     Notes: FACT: The App supplier-integration owner owns this input. Actual identified supplier contract

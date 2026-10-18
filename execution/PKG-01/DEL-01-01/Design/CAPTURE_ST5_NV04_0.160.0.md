@@ -1,12 +1,20 @@
 # ST-5 and NV-04 development captures at Codex 0.160.0 (2026-10-10)
 
-- **Standing:** development evidence. Captured with the HOSTING §9.1 method
+- **Standing at capture (2026-10-10):** development evidence. Captured with the HOSTING §9.1 method
   at stock Codex 0.160.0 by a prototype harness that stands in for the App
   side of the stdio boundary. There is no App candidate and no qualification
   pin (OI-012 stays open), so this is **not** DEL-09-02 U-SQ-6's candidate-pin
   capture and not an ST-4 counterpart at a candidate pin. It marks no
   acceptance criterion, VER item or examination result as met. The owner
   assesses reliance.
+- **Current-state note (2026-10-17):** the owner-authorized, reviewed SUP1
+  advance establishes 0.160.0 for current development/definition and its
+  generated reference (ScopeOfWork [S], CLM-003, REQ-006 and TBD-002). R23-22
+  selects the qualification pin when the candidate is built; development
+  identity is not qualified distribution identity. The standing above describes
+  this dated capture. DEL-09-02 `STANDALONE_QUALIFICATION.md` U-SQ-5/U-SQ-6
+  and its C1 v2 rehearsal bindings carry the later candidate-pin capture
+  settlement; they do not change these original recordings' development standing.
 - **Supplier:** the npm platform package for macOS arm64, complete layout,
   with `codex-path` on the child's `PATH`. `codex-cli 0.160.0`; `bin/codex`
   sha256 `112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b`.

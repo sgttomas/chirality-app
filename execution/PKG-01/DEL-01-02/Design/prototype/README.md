@@ -16,7 +16,7 @@ the Codex binary is never started; no model is run.
 | `results/RUN_2026-10-02.txt` | The recorded run of round 2 (v0.2) |
 
 The JSON Schema validator is DEL-01-01's
-`../../../DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/jsonschema_subset.py`
+`../../../DEL-01-01/Design/prototype/jsonschema_subset.py`
 (sha256 486e9286e5aa56888b5473f1c08493a115591255685a8a7bb88b93ff2cacffc0 at
 this run), imported read-only; DEL-01-02 consumes DEL-01-01 (DEP-01-02-018).
 The ledger the model writes goes to a temporary folder under `$TMPDIR`.
