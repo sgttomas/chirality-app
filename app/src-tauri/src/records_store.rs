@@ -144,6 +144,12 @@ thread_local! { static TEST_STORE: std::cell::RefCell<Option<Result<Store, Strin
 pub(crate) fn use_store_for_test(store: Option<Result<Store, String>>) {
     TEST_STORE.with(|s| *s.borrow_mut() = store);
 }
+#[cfg(test)]
+thread_local! { static BOOTSTRAP_BLOCKED: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+pub(crate) fn bootstrap_blocked_for_test(hook: Option<Box<dyn FnOnce()>>) {
+    BOOTSTRAP_BLOCKED.with(|slot| *slot.borrow_mut() = hook);
+}
 
 fn from_environment() -> Result<Store, String> {
     // The override is for tests and development: a release build never reads it.
@@ -287,6 +293,19 @@ fn resolve_lexically(path: &Path) -> PathBuf {
     }
 }
 
+/// Cross-process ownership of cold identity bootstrap only.
+fn bootstrap_lock(root: &Path) -> Result<crate::storage::Ownership, String> {
+    let path = root.join(".store-bootstrap.lock");
+    #[cfg(test)]
+    if let Some(hook) = BOOTSTRAP_BLOCKED.with(|slot| slot.borrow_mut().take()) {
+        // Expose an actual refused OS-lock attempt, not a pre-call marker.
+        // Only the coordinating regression installs this scheduling hook.
+        if let Some(guard) = crate::storage::try_lock_exclusive(&path)? { return Ok(guard); }
+        hook();
+    }
+    crate::storage::lock(&path)
+}
+
 /// Opens the store: creates its folder and identity once, and returns its
 /// canonical root and identity. An unreadable store is an error.
 fn opened() -> Result<(PathBuf, String), String> {
@@ -328,15 +347,31 @@ fn opened() -> Result<(PathBuf, String), String> {
             Err(e) => Err(format!("records store unreadable: store.json: {e}")),
         }
     };
-    let id = match read(&identity)? {
-        Some(id) => id,
-        None => {
-            let id = crate::util::opaque_id("records-store:")?;
-            let created = crate::storage::create_json(&identity, &json!({"format":STORE_FORMAT,"formatVersion":VERSION,"storeId":id,"createdAt":now_rfc3339()}));
-            match read(&identity)? {
+    let (id, _bootstrap) = match read(&identity) {
+        // Preserve the existing strict read-only cold path. A valid single-link
+        // identity needs no writable bootstrap control and may be read before
+        // the publisher's final cleanup-directory sync or return, as before.
+        Ok(Some(id)) => (id, None),
+        _ => {
+            // Missing/unreadable identity may be another opener's in-flight
+            // create-once publication. Wait, then repeat the SAME strict read;
+            // lock ownership never authorizes accepting or cleaning bad links.
+            // This distinct guard is released before any returned source or
+            // subsequent store/writer locking; cache misses under an already
+            // held .store.lock must not re-acquire that non-reentrant lock.
+            let bootstrap = bootstrap_lock(&root)?;
+            let id = match read(&identity)? {
                 Some(id) => id,
-                None => return Err(format!("records store unwritable: {}", created.err().unwrap_or_default())),
-            }
+                None => {
+                    let id = crate::util::opaque_id("records-store:")?;
+                    let created = crate::storage::create_json(&identity, &json!({"format":STORE_FORMAT,"formatVersion":VERSION,"storeId":id,"createdAt":now_rfc3339()}));
+                    match read(&identity)? {
+                        Some(id) => id,
+                        None => return Err(format!("records store unwritable: {}", created.err().unwrap_or_default())),
+                    }
+                }
+            };
+            (id, Some(bootstrap))
         }
     };
     *OPENED.lock().unwrap_or_else(|p| p.into_inner()) = Some((store.root.clone(), root.clone(), id.clone()));
