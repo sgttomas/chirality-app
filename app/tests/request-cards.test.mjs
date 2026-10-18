@@ -16,7 +16,7 @@ const load=(name,local={})=>{
 };
 const activity=load('NativeActivity');
 const cards=load('RequestCards',{'./NativeActivity':activity});
-const {NativeRequestCard,WaitingRequestsIndicator,cardState,decisionForms,decisionWords,hostRequests,refusalWords,requestTitle,waitingByConversation,answerable}=cards;
+const {NativeRequestCard,WaitingRequestsIndicator,cardState,decisionForms,decisionWords,hostRequests,refusalWords,requestTitle,answerable}=cards;
 
 // Invented register records in the host shape (native_requests.rs records()).
 const g={appSession:'s',home:'h',spawnCounter:1};
@@ -139,12 +139,13 @@ test('item anchors link the card and the activity row both ways (§4.7, TR-6)',(
   assert.match(render(r,null),/About: Codex item <code>i<\/code> in turn <code>u<\/code>/,'without the row, the supplier identity only');
 });
 
-test('the waiting indicator counts only requests that wait for the person, per conversation (WI-1…WI-3)',()=>{
-  const rs=[entry({id:'a'}),entry({id:'b'}),entry({id:'c',nativeParameters:{threadId:'U',turnId:'v',itemId:'j'}}),entry({id:'d',state:'answered'}),entry({id:'e',originClass:'named-service'}),A14.execCommandApproval];
-  assert.deepEqual(waitingByConversation(rs),[{thread:'T',count:3},{thread:'U',count:1}]);
-  const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{requests:rs,open:()=>{}}));
+test('the waiting indicator shows the native all-home groups and source limits (WI-1…WI-3)',()=>{
+  const overview={groups:[{modeHomeClass:'account',generation:g,threadId:'T',count:3},{modeHomeClass:'api-key',generation:{...g,home:'key'},threadId:'T',count:1}],sources:[{modeHomeClass:'account',state:'ready'},{modeHomeClass:'api-key',state:'ready'}],coverage:'Sequential local snapshots; no supplier read.'};
+  const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview,open:()=>{}}));
   assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/conversation T: 3/);assert.match(html,/it answers nothing/);
-  assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{requests:[],open:()=>{}})),/No requests from Codex are waiting/);
+  assert.match(html,/api-key.*conversation T: 1/);assert.match(html,/Sequential local snapshots/);
+  assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:{groups:[],sources:[{modeHomeClass:'account',state:'stopped'}]},open:()=>{}})),/account: stopped; no current waiting groups shown/);
+  assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:null,open:()=>{}})),/overview unavailable/);
 });
 
 test('an ended request carries the context its process ended in, matched by generation and identity (CS-7)',()=>{

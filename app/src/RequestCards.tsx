@@ -370,19 +370,20 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   </article>;
 }
 
-/** WI-1…WI-3: how many supplier requests wait for the person, in which conversations. */
-export function waitingByConversation(requests: Json[]): { thread: string | null; count: number }[] {
-  const counts = new Map<string | null, number>();
-  for (const request of Array.isArray(requests) ? requests : []) if (answerable(request)) counts.set(requestThread(request), (counts.get(requestThread(request)) ?? 0) + 1);
-  return Array.from(counts.entries()).map(([thread, count]) => ({ thread, count }));
-}
+export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; threadId: string | null; count: number };
 
-export function WaitingRequestsIndicator({ requests, open }: { requests: Json[]; open: (thread: string | null) => void }) {
-  const waiting = waitingByConversation(requests);
+/** WI-1…WI-3: local all-home metadata only; opening revalidates its native source. */
+export function WaitingRequestsIndicator({ overview, busy = false, open }: { overview: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
+  const available = Array.isArray(overview?.groups);
+  const waiting: WaitingRequestGroup[] = available ? overview.groups : [];
   const total = waiting.reduce((sum, row) => sum + row.count, 0);
   return <section aria-label="Requests waiting for your answer" style={{ border: "1px solid #888", padding: "4px 8px", margin: "8px 0" }}>
-    <b>{total === 0 ? "No requests from Codex are waiting for your answer." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
-    {waiting.map(row => <span key={row.thread ?? ""}>{" · "}<button onClick={() => open(row.thread)}>{row.thread ? `conversation ${row.thread}` : "no conversation named"}: {row.count}</button></span>)}
-    {total > 0 && <small> Opening a conversation shows its request cards; it answers nothing.</small>}
+    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
+    {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
+      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {row.threadId ? `conversation ${row.threadId}` : "no conversation named"}: {row.count}</button>
+      <small> Source: {JSON.stringify(row.generation)}.</small>
+    </div>)}
+    {available && <p><small>{overview.coverage} {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json) => `${source.modeHomeClass}: ${source.state}; no current waiting groups shown. `).join("")}</small></p>}
+    {total > 0 && <small> Opening shows the original home's request cards; it answers nothing and resumes no conversation.</small>}
   </section>;
 }

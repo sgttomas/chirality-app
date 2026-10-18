@@ -1013,6 +1013,18 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Waiting requests across App homes.** The in-window overview groups current
+person-answerable supplier requests by their original home, full generation
+and optional conversation. It reads the actual home owners and exposes counts
+and navigation metadata, not question content or a replacement request
+register. The person's click rechecks that source and waiting group before
+selecting its home. The App opens an already-loaded original conversation or
+shows the original home's requests when no loaded conversation is available;
+it does not resume, start, send, answer or decline. A stale source does not
+fall back to another generation or a same-named conversation. Request reply
+observations remain separately bound to their original identities. The Dock
+badge and the outside-window WI-1/WI-3 limitations above are unchanged.
+
 **Answer command and observation refresh.** The request card keeps the native
 answer command's outcome separate from a subsequent failure to refresh custody.
 A reported local write with acknowledgment not observed is not a refusal; a
