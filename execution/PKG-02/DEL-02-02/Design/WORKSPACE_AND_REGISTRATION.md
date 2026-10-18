@@ -1023,6 +1023,28 @@ Library definitions, revision stores, ledgers and A15 evidence still follow
 §3 and §4.8; a records package is not a workflow-library backup or permission
 to reuse a prior act.
 
+**Hot trial authoring and source references (TT-3b, TT-11).**
+The in-session trial owner retains the originally selected authoring
+conversation's full generation and thread separately from the acknowledged
+trial's source home, generation, turn and client. A clean trial started in
+another home changes its reading source, not its authoring default. Try again
+and feedback defaults use the original authoring reference while it remains
+available; Read again and Compare use the actual trial source. Native receivers
+and interface defaults match complete references, so a same-named thread in
+another home supplies neither association. Changed or unavailable source and
+target generations remain limits and cannot redirect a prefill after a wait.
+
+Persisted trial links and conversation marks contain bare conversation IDs,
+not the missing home or generation provenance. They remain quoted evidence;
+even one currently loaded matching thread cannot recreate a lost association.
+Cold or unavailable references yield no inferred authoring default or native
+trial source. The latest trial's unknown authoring reference does not borrow
+an older trial's default. The person may explicitly choose a current feedback
+target, which supplies that new target choice and no historical source proof.
+Bring back remains an unsent prefill. The persisted trial-link format stays
+unchanged; no implicit resume/send or live run authority follows from these
+references.
+
 **Historical real-run Bring back and Compare (TT-10, TT-11).**
 `historical_run_learning.rs` reads one run as quoted evidence from the explicit
 project's `ProjectRecords`. It binds the full workflow tuple, original WR

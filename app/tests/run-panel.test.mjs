@@ -418,8 +418,8 @@ test('a sent reopened end notice can retry its unsaved history reference without
 test('Bring a real run back defaults to the host’s default conversation for that run, still changeable; none without one (I-8, TT-10)',async()=>{
   const g={appSession:'s',home:'h',spawnCounter:1};
   const conversations=[{generation:g,threadId:'auth'},{generation:g,threadId:'other'}];
-  const root={runBringBackDefaults:[{run:'run-1',threadId:'other'},{run:'run-2',threadId:'auth'}]};
-  assert.equal(runBringBackDefault(root,'run-1'),'other');
+  const root={runBringBackDefaults:[{run:'run-1',authoring:{generation:g,threadId:'other'}},{run:'run-2',authoring:{generation:g,threadId:'auth'}}]};
+  assert.deepEqual(runBringBackDefault(root,'run-1'),{generation:g,threadId:'other'});
   assert.equal(runBringBackDefault(root,'run-9'),null);
   assert.equal(runBringBackDefault({},'run-1'),null);
   assert.equal(runBringBackDefault(undefined,'run-1'),null);
@@ -435,7 +435,7 @@ test('Bring a real run back defaults to the host’s default conversation for th
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);};
   const container=document.createElement('div');document.body.appendChild(container);
   const rootEl=createRoot(container);
-  await React.act(()=>rootEl.render(React.createElement(RunPanel,{run:run(),conversations,bringBackDefault:'other',act})));
+  await React.act(()=>rootEl.render(React.createElement(RunPanel,{run:run(),conversations,bringBackDefault:{generation:g,threadId:'other'},act})));
   assert.deepEqual(calls,[],'mounting sends nothing');
   // React keeps each element's current props on its node; the mini document has no events.
   const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
