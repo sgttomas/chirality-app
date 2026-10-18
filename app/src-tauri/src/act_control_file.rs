@@ -1,4 +1,5 @@
-//! App-content A4/A6/A7 standing capture. No record/renderer/native-flag admission.
+//! App-content A4/A6/A7 capture, standing or on an original owned file arrival.
+//! No record/renderer/native-flag admission.
 use super::*;
 #[path = "file_act_native.rs"]
 mod native;
@@ -65,9 +66,48 @@ pub(super) struct FileActSlot {
     context: Option<Value>,
     capture_id: Option<String>,
     uncertain_capture: Option<Value>,
+    arrival: Option<std::sync::Arc<crate::runtime_session::ArrivalSource>>,
+    record_source: Option<crate::file_act_view::FileSource>,
 }
 impl FileActSlot {
-    pub(super) fn pending_native(&self)->bool{matches!(self.state,FileActState::CaptureUncertain|FileActState::RecordPending)}
+    pub(super) fn owns_capture(&self, id: &str) -> bool {
+        self.capture_id.as_deref() == Some(id)
+    }
+    pub(super) fn recording_guard(&self) -> Result<(), String> {
+        if let Some(source) = &self.arrival {
+            source.validate_recording()?;
+            if let Some(expected) = self.record_source {
+                let log = storage::project_log(
+                    &self.root,
+                    self.offer["answers"]["runId"].as_str(),
+                    records::APP_INTERFACE.identity,
+                )?;
+                if crate::file_act_view::FileSource::at(&log)? != expected {
+                    return Err(
+                        "Original arrival act log was replaced; no recording relocation".into(),
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+    pub(super) fn remember_record_source(&mut self) {
+        if self.arrival.is_some() && self.record_source.is_none() {
+            self.record_source = storage::project_log(
+                &self.root,
+                self.offer["answers"]["runId"].as_str(),
+                records::APP_INTERFACE.identity,
+            )
+            .ok()
+            .and_then(|log| crate::file_act_view::FileSource::at(&log).ok());
+        }
+    }
+    pub(super) fn pending_native(&self) -> bool {
+        matches!(
+            self.state,
+            FileActState::CaptureUncertain | FileActState::RecordPending
+        )
+    }
     pub(super) fn set_recording_state(&mut self, recorded: bool) {
         self.state = if recorded {
             FileActState::Recorded
@@ -78,6 +118,10 @@ impl FileActSlot {
 }
 #[cfg(test)]
 thread_local! { static BEFORE_FILE_OPEN: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+pub(crate) fn before_file_open_for_test(hook: impl FnOnce(&Path) + 'static) {
+    BEFORE_FILE_OPEN.with(|slot| *slot.borrow_mut() = Some(Box::new(hook)));
+}
 /// The file must be inside the physical App workspace, never a host proxy.
 /// Recheck every component and the open file metadata before/after reading.
 fn read_subject(root: &Path, path: &Path) -> Result<Vec<u8>, String> {
@@ -183,6 +227,8 @@ impl ActControl {
                 context: None,
                 capture_id: None,
                 uncertain_capture: None,
+                arrival: None,
+                record_source: None,
             },
         );
         Ok(FileActOfferRef { id })
@@ -198,6 +244,30 @@ impl ActControl {
             .get(&reference.id)
             .ok_or("File act offer absent")?;
         Ok((&slot.offer, &slot.bytes))
+    }
+    /// Only Root's original typed arrival source calls this before presenting.
+    /// The renderer receives the frozen result, never an answers setter.
+    pub(crate) fn bind_file_arrival(
+        &mut self,
+        reference: &FileActOfferRef,
+        source: std::sync::Arc<crate::runtime_session::ArrivalSource>,
+    ) -> Result<(), String> {
+        let slot = self
+            .file_offers
+            .get_mut(&reference.id)
+            .ok_or("Original file offer absent")?;
+        if slot.state != FileActState::Composed {
+            return Err("File offer is already presented".into());
+        }
+        slot.offer["answers"] = source.answers();
+        if let Some(request) = source.request_ref() {
+            slot.offer["requestRef"] = json!(request);
+        }
+        slot.offer["offerDigest"] =
+            json!({"method":OFFER_DIGEST_METHOD,"value":offer_digest(&slot.offer)?});
+        crate::schema_validation::validate_offer(&slot.offer)?;
+        slot.arrival = Some(source);
+        Ok(())
     }
     fn freeze_file_native(
         &mut self,
@@ -228,6 +298,21 @@ impl ActControl {
         };
         // Readable lines (V14 F3), composed from the frozen offer only.
         let identity = &slot.offer["subject"]["contentIdentity"];
+        let answers = if let Some(run) = slot.offer["answers"]["runId"].as_str() {
+            format!(
+                "run {run}; checkpoint {}; arrival {}",
+                slot.offer["answers"]["arrival"]["checkpoint"]
+                    .as_str()
+                    .unwrap_or(""),
+                slot.offer["answers"]["arrival"]["arrivalOrdinal"]
+            )
+        } else {
+            STANDING.into()
+        };
+        let request = slot.offer["requestRef"]
+            .as_str()
+            .map(|r| format!("\nRecorded request: {r} (a request is not the act)"))
+            .unwrap_or_default();
         let text = format!(
             "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",
             slot.kind.wording(),
@@ -238,8 +323,8 @@ impl ActControl {
             slot.offer["purpose"].as_str().unwrap_or(""),
             slot.kind.requirement(),
             super::native_statement::actor_line(actor),
-            STANDING,
-            statement
+            answers,
+            format!("{statement}{request}")
         );
         // Bounded before anything is frozen or the offer is Presented: a
         // refused statement leaves the offer Composed and unfrozen (V14 F3).
@@ -286,6 +371,7 @@ impl ActControl {
             }
         }
         let id = crate::util::opaque_id("cap:")?;
+        slot.recording_guard()?;
         let mut limits = vec!["identity not verified"];
         if slot.kind == FileActKind::Rely && event.choice() == "act" {
             limits.push("professional standing is the person's own statement; not verified");
@@ -295,25 +381,32 @@ impl ActControl {
             "boundSubject":[slot.offer["subject"]["ref"]],"boundContent":[slot.offer["subject"]["contentIdentity"]],
             "scope":slot.offer["scope"],"purpose":slot.offer["purpose"],"capturedAt":capture_time(),"surface":"App interface","inputSource":"host-native-confirmation",
             "answers":slot.offer["answers"],"evidenceLimits":limits});
+        if let Some(request) = slot.offer.get("requestRef") {
+            capture["requestRef"] = request.clone();
+        }
         // AAC §6.3 SEAL-C: sealed under this installation's host-held key before
         // publication. If it cannot be sealed the act is still captured and
         // recorded, saying so, and is never counted (AAC §6.3 / EXEC §2.4–2.5).
         if let Err(reason) = crate::capture_seal::seal(&slot.root, &mut capture) {
-            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(crate::capture_seal::unsealed_limit(&reason)));
+            capture["evidenceLimits"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!(crate::capture_seal::unsealed_limit(&reason)));
         }
         crate::schema_validation::validate_capture(&capture)?;
         // The native event is not itself an admitted capture. Definite failure
         // before publication means nothing captured (AAC 4.1 step 6).
         let root = slot.root.clone();
-        let retention_activity=crate::records_retention::activity(&root)?;
+        let retention_activity = crate::records_retention::activity(&root)?;
         slot.state = FileActState::Dismissed; // consume this confirmation even on failure
-        // The project's records store subtree (RS §13.8).
-        let capture_file = storage::capture_file_for(&root, &capture)
-            .map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?;
-        let _lock =
-            storage::lock(&storage::capture_lock_for(&root, &capture).map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?).map_err(|e| {
-                format!("capture failed; nothing captured; review and confirm again: {e}")
-            })?;
+                                              // The project's records store subtree (RS §13.8).
+        let capture_file = storage::capture_file_for(&root, &capture).map_err(|e| {
+            format!("capture failed; nothing captured; review and confirm again: {e}")
+        })?;
+        let _lock = storage::lock(&storage::capture_lock_for(&root, &capture).map_err(|e| {
+            format!("capture failed; nothing captured; review and confirm again: {e}")
+        })?)
+        .map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?;
         match storage::create_capture_json(&capture_file, &capture) {
             Ok(()) => {}
             Err(storage::CapturePublicationFailure::DefinitelyNotPublished(error)) => {
@@ -325,14 +418,17 @@ impl ActControl {
                 // Keep the actual native facts but do not admit them to the writer
                 // or recreate absent bytes. Reconciliation requires stored bytes.
                 slot.state = FileActState::CaptureUncertain;
-                slot.retention_activity=retention_activity;
+                slot.retention_activity = retention_activity;
                 slot.uncertain_capture = Some(capture);
                 return Ok(
                     json!({"state":"capture publication uncertain","captureId":id,"captureDurability":"not established","recorded":false,"writeFailure":error}),
                 );
             }
         }
-        self.file_offers.get_mut(&reference.id).unwrap().retention_activity=retention_activity;
+        self.file_offers
+            .get_mut(&reference.id)
+            .unwrap()
+            .retention_activity = retention_activity;
         self.admit_file_capture(reference, capture);
         let results = self.flush_native_locked();
         results
@@ -356,7 +452,10 @@ impl ActControl {
             NativeCapture {
                 retention_activity: slot.retention_activity.take(),
                 ordinal: self.native_captures.len(),
-                target_log: LOG.into(),
+                target_log: capture["answers"]["runId"]
+                    .as_str()
+                    .map(|run| storage::log_rel(Some(run), records::APP_INTERFACE.identity))
+                    .unwrap_or_else(|| LOG.into()),
                 a15: None,
                 written: false,
                 delay_pending: false,
@@ -381,6 +480,7 @@ impl ActControl {
         let root = slot.root.clone();
         let uncertain = slot.uncertain_capture.clone();
         let admitted_id = slot.capture_id.clone();
+        slot.recording_guard()?;
         if uncertain.is_none() && admitted_id.is_none() {
             return Err("File act has no admitted capture; review and confirm again".into());
         }
@@ -420,11 +520,29 @@ impl ActControl {
 pub(super) fn body(capture: &Value) -> Value {
     let evidence = json!([{"kind":"capture evidence","ref":capture["captureId"],"resolutionAtWrite":"resolved"}]);
     if capture["choice"] == "decline" {
-        return json!({"actor":capture["actor"],"declinedKind":capture["actKind"],"subject":capture["boundSubject"],"time":capture["capturedAt"],"captureEvidence":evidence});
+        let mut body = json!({"actor":capture["actor"],"declinedKind":capture["actKind"],"subject":capture["boundSubject"],"time":capture["capturedAt"],"captureEvidence":evidence});
+        if let Some(arrival) = capture["answers"].get("arrival") {
+            body["arrival"] = arrival.clone();
+        }
+        if let Some(request) = capture.get("requestRef") {
+            body["requestRef"] = request.clone();
+        }
+        return body;
     }
-    json!({"actKind":capture["actKind"],"actClass":{"value":"reserved to the person"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
+    let mut body = json!({"actKind":capture["actKind"],"actClass":{"value":"reserved to the person"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
         "boundSubject":capture["boundSubject"],"boundContent":capture["boundContent"],"scope":capture["scope"],"purpose":capture["purpose"],
-        "captureEvidence":evidence,"captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"]})
+        "captureEvidence":evidence,"captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"]});
+    let mut relations = serde_json::Map::new();
+    if let Some(arrival) = capture["answers"].get("arrival") {
+        relations.insert("arrivalAnswered".into(), arrival.clone());
+    }
+    if let Some(request) = capture.get("requestRef") {
+        relations.insert("requestRef".into(), request.clone());
+    }
+    if !relations.is_empty() {
+        body["relations"] = Value::Object(relations);
+    }
+    body
 }
 #[cfg(test)]
 #[path = "file_act_tests.rs"]

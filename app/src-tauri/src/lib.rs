@@ -1826,18 +1826,29 @@ fn file_act_select(app:tauri::AppHandle,state:State<'_,AppState>,kind:String,sco
 fn file_act_confirm(app:tauri::AppHandle,state:State<'_,AppState>,reference:String)->Result<Value,String>{
     file_act_confirm_original(&state,&reference,|control,offer,observe|act_control::confirm_file_native(&app,control,offer,observe))
 }
+fn file_act_open_arrival_result(state:&AppState,run_ref:&str,arrival_record_id:&str)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No App workspace")?;
+    let run=state.workflows.try_lock().map_err(|_|"Workflow owner busy; review again")?.runs.get(run_ref).cloned().ok_or("Original live run unavailable; cold records do not create live arrival custody")?;
+    let source=runtime_session::ArrivalSource::open(run,root,run_ref,arrival_record_id)?;
+    let (_,context)=file_act_observe(state,&source.home())?;
+    let mut control=state.act.try_lock().map_err(|_|"Act owner busy; review again")?;
+    state.file_acts.try_lock().map_err(|_|"File offer state busy; review again")?.compose_arrival(control.as_mut().ok_or("No App workspace")?,source,context)
+}
+#[tauri::command(async)]
+fn file_act_open_arrival(state:State<'_,AppState>,run_ref:String,arrival_record_id:String)->Result<Value,String>{file_act_open_arrival_result(&state,&run_ref,&arrival_record_id)}
 fn file_act_confirm_original(state:&AppState,reference:&str,
     confirm:impl FnOnce(&mut ActControl,&act_control::FileActOfferRef,&mut dyn FnMut()->Result<(Value,Value),String>)->Result<Option<Value>,String>
 )->Result<Value,String>{
     let owner=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.get(&reference)?;
     let mut owner=owner.try_lock().map_err(|_|"Original file operation pending")?;
     if owner.attempted{return Err("Original attempt retained; continue its recording or review a new offer".into());}
-    let home=owner.home.clone();let original=owner.context.clone();
+    let home=owner.home.clone();let original=owner.context.clone();let arrival=owner.arrival.clone();
     let mut control=state.act.try_lock().map_err(|_|"Act owner busy; no native attempt")?;
     let control=control.as_mut().ok_or("Original act owner absent")?;
     owner.attempted=true;
     let result=confirm(control,&owner.offer,&mut ||{
         let observed=file_act_observe(&state,&home)?;
+        if let Some(source)=&arrival{source.validate()?;}
         if observed.1!=original{return Err("Actor or owning context changed since preview; review again".into());}
         Ok(observed)
     });
@@ -1846,6 +1857,9 @@ fn file_act_confirm_original(state:&AppState,reference:&str,
 }
 #[tauri::command(async)]
 fn file_act_continue(state:State<'_,AppState>,reference:String)->Result<Value,String>{
+    file_act_continue_result(&state,&reference)
+}
+fn file_act_continue_result(state:&AppState,reference:&str)->Result<Value,String>{
     let owner=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.get(&reference)?;
     let mut owner=owner.try_lock().map_err(|_|"Original file operation pending")?;
     let mut control=state.act.try_lock().map_err(|_|"Act owner busy; original status retained")?;
@@ -2111,7 +2125,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
+            file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
