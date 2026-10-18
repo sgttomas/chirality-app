@@ -31,6 +31,7 @@ mod connector_source_fs;
 pub mod decision_view;
 mod file_act_root;
 mod file_act_view;
+mod file_act_lapse;
 pub mod external_observation;
 pub mod external_trace;
 pub mod trace_receiving;
@@ -102,6 +103,7 @@ pub struct AppState {
     act: Arc<Mutex<Option<ActControl>>>,
     workflows: Mutex<runtime_session::WorkflowRootSession>,
     file_acts: Mutex<file_act_root::FileActRoot>,
+    file_act_lapses: Mutex<file_act_lapse::Observer>,
     decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
     instructions_root: Mutex<Result<PathBuf, String>>,
@@ -1862,8 +1864,22 @@ fn file_act_read(state:State<'_,AppState>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No App workspace")?;
     let mut view=file_act_view::read(root);
     view["hotOffers"]=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.snapshot();
+    view["lapseObservation"]=state.file_act_lapses.try_lock().map_err(|_|"File lapse observer busy")?.snapshot();
     Ok(view)
 }
+fn file_act_lapse_result(state:&AppState,retry:bool)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No App workspace")?;
+    let observation={let mut owner=state.file_act_lapses.try_lock().map_err(|_|"File lapse observer busy")?;
+        if retry{owner.retry(root)}else{owner.observe(root)}};
+    let mut view=file_act_view::read(root);
+    view["hotOffers"]=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.snapshot();
+    view["lapseObservation"]=observation;
+    Ok(view)
+}
+#[tauri::command(async)]
+fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,false)}
+#[tauri::command(async)]
+fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -1913,6 +1929,7 @@ pub fn run() {
         act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
         workflows: Mutex::new(runtime_session::WorkflowRootSession::default()),
         file_acts: Mutex::new(file_act_root::FileActRoot::default()),
+        file_act_lapses: Mutex::new(file_act_lapse::Observer::default()),
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace: workspace.clone(),
         person_name: Mutex::new(None),
@@ -2092,7 +2109,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
+            file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             recovery_retry,
             read_connector_routes,
@@ -2176,7 +2193,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
@@ -2216,6 +2233,8 @@ mod workflow_root_context_tests {
 
 #[cfg(all(test,unix))]
 mod file_act_consumer_tests;
+#[cfg(test)]
+mod file_act_lapse_tests;
 
 #[cfg(test)]
 #[path = "../../tests/group_b_fixture_consumer.rs"]

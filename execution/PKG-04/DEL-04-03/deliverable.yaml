@@ -431,6 +431,9 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/file_act_lapse.rs
+- app/src-tauri/src/file_act_view.rs
+- app/src/FileActPanel.tsx
 - app/src-tauri/src/historical_run_learning.rs
 - app/src/App.tsx
 - app/src-tauri/src/lib.rs
@@ -459,6 +462,8 @@ code_paths:
 - app/tools/verify_records_bag.py
 - app/src-tauri/src/storage.rs
 checks:
+- app/src-tauri/src/file_act_lapse_tests.rs
+- app/tests/file-act-panel.test.mjs
 - app/src-tauri/src/historical_run_learning_tests.rs
 - app/src-tauri/src/historical_trial_flows_tests.rs
 - app/src-tauri/src/act_control_a15.rs

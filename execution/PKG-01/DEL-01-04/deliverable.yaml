@@ -392,6 +392,11 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src/FileActPanel.tsx
+- app/src-tauri/src/file_act_view.rs
+- app/src-tauri/src/file_act_lapse.rs
+- app/src-tauri/src/lib.rs
+
 - app/src/App.tsx
 - app/src/NativeHistory.tsx
 - app/src/ObserverAttachment.tsx
@@ -411,6 +416,8 @@ code_paths:
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
+- app/tests/file-act-panel.test.mjs
+- app/src-tauri/src/file_act_lapse_tests.rs
 - app/tests/observer-attachment.test.mjs
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs

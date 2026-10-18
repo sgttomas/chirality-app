@@ -686,7 +686,7 @@ pub(crate) struct Spec<'a> {
     pub observed_at: Option<String>,
 }
 #[allow(clippy::too_many_arguments)]
-fn append_reserved(
+pub(crate) fn append_reserved(
     log: &Path,
     kind: &str,
     recorder: &Recorder,
