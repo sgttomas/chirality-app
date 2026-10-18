@@ -54,6 +54,40 @@ def portable_inventory():
                         {'path': 'link', 'kind': 'symlink', **copy.deepcopy(meta), 'target': 'dir/file'}]}
 
 
+@contextlib.contextmanager
+def controlled_provenance(value):
+    """Control only libc xattr reads; these are not native presence witnesses.
+
+    Protected provenance cannot reliably be created or removed by a fixture.
+    Stat, ACL, content reads, inventory validation and hashing remain real.
+    """
+    def read(data, buf, size):
+        if buf is not None:
+            if size < len(data):
+                ctypes.set_errno(errno.ERANGE)
+                return -1
+            ctypes.memmove(buf, data, len(data))
+        return len(data)
+
+    def listing(handle, buf, size, options):
+        return read(b'' if value is None else b'com.apple.provenance\0', buf, size)
+
+    def getter(handle, name, buf, size, position, options):
+        if name != b'com.apple.provenance':
+            raise AssertionError('unexpected controlled xattr: ' + repr(name))
+        if value is None:
+            ctypes.set_errno(errno.ENOATTR)
+            return -1
+        return read(value, buf, size)
+
+    with contextlib.ExitStack() as stack:
+        for name in ('flistxattr', 'listxattr'):
+            stack.enter_context(mock.patch.object(identify._libc, name, side_effect=listing))
+        for name in ('fgetxattr', 'getxattr'):
+            stack.enter_context(mock.patch.object(identify._libc, name, side_effect=getter))
+        yield
+
+
 def malformed_inventories():
     mutations = {
         'top list': lambda i: [],
@@ -250,7 +284,11 @@ class BundleIdentity(Scratch):
     def native_xattr(self, path, name):
         libc = identify._libc
         size = libc.getxattr(os.fsencode(path), name.encode(), None, 0, 0, identify.XATTR_NOFOLLOW)
-        self.assertGreaterEqual(size, 0)
+        if size < 0:
+            code = ctypes.get_errno()
+            if code == errno.ENOATTR:
+                return None
+            raise OSError(code, os.strerror(code))
         buf = ctypes.create_string_buffer(size)
         self.assertEqual(libc.getxattr(os.fsencode(path), name.encode(), buf, size, 0, identify.XATTR_NOFOLLOW), size)
         return buf.raw[:size]
@@ -354,19 +392,67 @@ class BundleIdentity(Scratch):
 
     def test_provenance_value_is_observed_not_excluded_even_if_os_ignores_mutation(self):
         app = write_bundle(self.tmp)
+        self.assert_provenance_observation(app)
+
+    def assert_provenance_entry(self, app, path, inv, raw):
+        entry = inv['root'] if path == app else next(e for e in inv['entries'] if e['path'] == path.relative_to(app).as_posix())
+        expected = [] if raw is None else [{'name': 'com.apple.provenance', 'size': len(raw), 'sha256': identify.sha(raw)}]
+        self.assertEqual(entry['xattrs'], expected)
+
+    def assert_provenance_observation(self, app):
         inv = identify.inventory(app)
         for path in (app, app / 'Contents', app / 'Contents/MacOS/app', app / 'Contents/Resources/link'):
             raw = self.native_xattr(path, 'com.apple.provenance')
-            entry = inv['root'] if path == app else next(e for e in inv['entries'] if e['path'] == path.relative_to(app).as_posix())
-            self.assertIn({'name': 'com.apple.provenance', 'size': len(raw), 'sha256': identify.sha(raw)}, entry['xattrs'])
+            self.assert_provenance_entry(app, path, inv, raw)
+            # METHOD permits absence: macOS can attach provenance, but need not.
+            # Do not invent a native presence witness by attempting to create it.
+            if raw is None:
+                continue
             self.set_xattr(path, 'com.apple.provenance', b'attempted replacement')
             observed = self.native_xattr(path, 'com.apple.provenance')
             newer = identify.inventory(app)
-            changed = newer['root'] if path == app else next(e for e in newer['entries'] if e['path'] == path.relative_to(app).as_posix())
-            self.assertIn({'name': 'com.apple.provenance', 'size': len(observed), 'sha256': identify.sha(observed)}, changed['xattrs'])
+            self.assert_provenance_entry(app, path, newer, observed)
             if observed != raw:
                 self.assertNotEqual(identify.identity(inv), identify.identity(newer))
+            else:
+                self.assertEqual(identify.identity(inv), identify.identity(newer))
             inv = newer
+        return inv
+
+    def test_controlled_provenance_absence_and_values_are_observed(self):
+        app = write_bundle(self.tmp)
+        identities = []
+        for value in (None, b'', b'controlled first', b'controlled other'):
+            with self.subTest(value=value), controlled_provenance(value), \
+                    mock.patch.object(identify._libc, 'setxattr', return_value=0) as ignored_write:
+                inv = self.assert_provenance_observation(app)
+                expected = [] if value is None else [
+                    {'name': 'com.apple.provenance', 'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}]
+                for entry in [inv['root'], *inv['entries']]:
+                    self.assertEqual(entry['xattrs'], expected)
+                self.assertEqual(ignored_write.call_count, 0 if value is None else 4)
+                identities.append(identify.identity(inv))
+        self.assertEqual(len(set(identities)), len(identities))
+
+    def test_native_xattr_accepts_only_missing_attribute_as_absence(self):
+        def failure(*args):
+            ctypes.set_errno(code)
+            return -1
+
+        for code in (errno.ENOATTR, errno.ENOENT, errno.EACCES, errno.EIO, errno.ENOTSUP, errno.ERANGE):
+            with self.subTest(code=code), mock.patch.object(identify._libc, 'getxattr', side_effect=failure):
+                if code == errno.ENOATTR:
+                    self.assertIsNone(self.native_xattr(self.tmp, 'com.apple.provenance'))
+                else:
+                    with self.assertRaises(OSError) as error:
+                        self.native_xattr(self.tmp, 'com.apple.provenance')
+                    self.assertEqual(error.exception.errno, code)
+        # Once presence was observed, a failed/short value read is not absence.
+        for result in (-1, 0):
+            with self.subTest(value_read=result), \
+                    mock.patch.object(identify._libc, 'getxattr', side_effect=[1, result]):
+                with self.assertRaises(AssertionError):
+                    self.native_xattr(self.tmp, 'com.apple.provenance')
 
     def test_special_files_hard_links_and_unsafe_root_ancestry_refuse(self):
         app = write_bundle(self.tmp / 'fifo'); os.mkfifo(app / 'Contents/pipe')
@@ -536,6 +622,19 @@ class CandidateRecord(GitScratch):
         self.assertIn('Contents/Resources/instructions/AGENTS.md', json.loads(out)['changed'])
 
     def test_each_derived_record_field_tamper_is_detected_independently(self):
+        self.assert_each_derived_record_field_tamper()
+
+    def test_controlled_optional_provenance_record_tampers_are_detected(self):
+        for value in (None, b'controlled provenance'):
+            with self.subTest(value=value), controlled_provenance(value):
+                self.assert_each_derived_record_field_tamper()
+                record = json.loads((self.tmp / 'rec/candidate-identification.json').read_bytes())
+                inv = json.loads((self.tmp / 'rec/bundle-inventory.json').read_bytes())
+                expected = {} if value is None else {'com.apple.provenance': len(inv['entries']) + 1}
+                self.assertEqual(record['bundle']['metadata_state']['extended_attributes'], expected)
+                shutil.rmtree(self.tmp / 'rec')
+
+    def assert_each_derived_record_field_tamper(self):
         self.assertEqual(self.record()[0], 0)
         path = self.tmp / 'rec/candidate-identification.json'; original = json.loads(path.read_bytes())
         mutations = {
@@ -555,18 +654,23 @@ class CandidateRecord(GitScratch):
             mutations['counts ' + kind] = lambda r, kind=kind: r['bundle']['counts'].__setitem__(kind, r['bundle']['counts'][kind] + 1)
         for key, value in original['bundle']['metadata_state'].items():
             mutations['metadata ' + key] = lambda r, key=key, value=value: r['bundle']['metadata_state'].__setitem__(
-                key, value + 1 if type(value) is int else ([] if isinstance(value, list) else {}))
+                key, value + 1 if type(value) is int else (
+                    [] if isinstance(value, list) else ({} if value else {'com.apple.provenance': 1})))
         def coherent_identifier(record):
             record['bundle']['identifier'] = 'dev.example.other'
             record['app_data'] = identify.app_data_declaration('dev.example.other')
         mutations['coherent identifier'] = coherent_identifier
-        mutations['metadata owner values'] = lambda r: r['bundle']['metadata_state'].update(owners=[{'uid': 0, 'gid': 0}])
+        owner = original['bundle']['metadata_state']['owners'][0]
+        mutations['metadata owner values'] = lambda r: r['bundle']['metadata_state'].update(
+            owners=[{'uid': owner['uid'] + 1, 'gid': owner['gid']}])
         schema_refusals = {'identifier', 'app directory', 'checked omitted', 'checked forged', 'checked reordered',
                            'metadata acl_entries', 'metadata nonzero_flags', 'metadata set_id_bits',
                            'metadata xattr_allowlist', 'metadata owners'}
         for label, mutate in mutations.items():
-            record = copy.deepcopy(original); mutate(record); path.write_text(json.dumps(record))
+            record = copy.deepcopy(original); mutate(record)
             with self.subTest(label):
+                self.assertNotEqual(record, original, 'tamper must change the record: ' + label)
+                path.write_text(json.dumps(record))
                 code, out, err = self.check()
                 self.assertEqual(code, 2 if label in schema_refusals else 1, out + err)
                 if code == 1:
