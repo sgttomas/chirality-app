@@ -21,6 +21,8 @@
 
 #[path = "act_control_file.rs"]
 mod file_act;
+#[cfg(test)]
+pub(crate) use file_act::before_file_open_for_test;
 pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
 
 #[path = "act_control_a15.rs"]
@@ -1357,9 +1359,12 @@ impl ActControl {
         let mut results = vec![];
         let mut earlier_held = false;
         for (_, id) in &ids {
+            let file_limit=self.file_offers.values().find(|slot|slot.owns_capture(id)).and_then(|slot|slot.recording_guard().err());
             let native = self.native_captures.get_mut(id).unwrap();
             let original = native.capture.clone();
-            let result = if self.file_capture_roots.get(id).is_some_and(|root| root != &self.workspace) {
+            let result = if let Some(error)=file_limit{
+                json!({"state":"AC-8 record pending","capture":original,"writeFailure":error})
+            } else if self.file_capture_roots.get(id).is_some_and(|root| root != &self.workspace) {
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":"File act original workspace changed; no write or relocation"})
             } else if native.a15.as_ref().is_some_and(|a|!a.belongs_to(&self.workspace)) {
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":"A15 original library custody changed; no write or relocation"})
@@ -1376,6 +1381,7 @@ impl ActControl {
                     }
                 }
             };
+            if let Some(slot)=self.file_offers.values_mut().find(|slot|slot.owns_capture(id)){slot.remember_record_source();}
             if result["state"] == "AC-7 recorded" {
                 native.written = true;
                 native.delay_pending = result["delayEvidencePending"] == true;
@@ -1556,7 +1562,9 @@ fn recover_capture(
         return Err("capture disagrees with original native custody; no replay".into());
     }
     let target_log = hot.as_ref().map(|h| h.target_log.clone()).unwrap_or_else(|| {
-        if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() } else { LOG.into() }
+        if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() }
+        else if matches!(original["actKind"].as_str(),Some("A4"|"A6"|"A7")) && original["answers"]["runId"].is_string(){storage::log_rel(original["answers"]["runId"].as_str(),records::APP_INTERFACE.identity)}
+        else { LOG.into() }
     });
     // A pending submission written before the records store names its log by
     // the §13.7 spelling of the same home-relative path.
@@ -1624,6 +1632,18 @@ fn recover_capture(
         return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
     }
     let body = act_body(original);
+    if matches!(original["actKind"].as_str(),Some("A4"|"A6"|"A7")) && original["answers"]["runId"].is_string(){
+        let source=crate::file_act_view::source_claims(root);
+        if !source.limits.is_empty(){return Err(format!("Original arrival act source incomplete: {:?}",source.limits));}
+        let claims:Vec<_>=source.claims.iter().filter(|c|matches!(c["record"]["kind"].as_str(),Some("human_act"|"act_declined")) && c["record"]["body"]["captureEvidence"].as_array().is_some_and(|refs|refs.iter().any(|r|r["ref"]==id))).collect();
+        if claims.len()>1 || claims.first().is_some_and(|claim|claim["source"]["log"]!=owning.to_string_lossy().as_ref()
+            || !crate::file_act_view::corresponds(original,&claim["record"])
+            || claim["record"]["recorder"]["role"]!=records::APP_INTERFACE.role
+            || claim["record"]["recorder"]["identity"]!=records::APP_INTERFACE.identity
+            || claim["record"]["observedAt"]!=original["capturedAt"]){
+            return Err("Arrival capture record is duplicated, changed or outside its original run/writer log; no replay".into());
+        }
+    }
     let matches: Vec<_> = entries
         .iter()
         .filter(|e| {

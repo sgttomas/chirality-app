@@ -679,35 +679,6 @@ unknown (unavailable) · not yet evaluated. For A12/A13: current · superseded.
 For A15: not lapse-evaluated (L-0).
 *Not yet evaluated* never renders as *not lapsed*.
 
-**Current standalone App-file observations.** `file_act_lapse.rs` records
-content observations for standing A4/A6/A7 file acts outside runs, through the
-existing project act-log writer and CE-10 body with no arrival or `when`.
-The explicit observation command requires complete source records, a unique
-current act with original capture correspondence under SEAL-C, and the physical
-project/store and subject binding. It records changed or absent content,
-unknown comparisons and return to c₀ after a recorded lapse. Repeated unchanged
-observations do not create another entry. Declines and other act kinds are not
-promoted into this path, and run/arrival observations retain their own owners.
-
-A failed write retains the original observation's identity, content and time
-in that App session. Metadata-only retry rechecks its original source and
-project/store binding; it never recomputes the held observation from later
-bytes or creates a human act. A successful original observation save remains
-identified as saved if its required late-write disclosure is still pending.
-The explicit writer can reconcile its own unterminated log tail through
-RS W-0, then rereads and fully validates the source set before appending.
-A correction recovered from that tail can therefore refuse the held write;
-unrelated incomplete logs remain a refusal. Reading alone repairs nothing.
-The read-only file-act view keeps resolved
-history, limited source claims and the current content comparison separate.
-Matching run/arrival lapse evidence remains visible in its own source log,
-including when a standing act later counted at an arrival. Standalone append
-and duplicate suppression use only the original project act log; evidence
-from another log does not become that writer's observation history. Multiple
-logs do not establish an order between them.
-Returning to c₀ records no renewal, acceptance or restored act authority.
-These local fixtures do not establish native capture authenticity or qualification.
-
 ## 8. Settings-in / record-out exchange with DEL-04-02 (CASE-002 M3)
 
 Identical in DEL-04-02/AS-v0.8 §6. A data exchange, not an ordering between
@@ -3088,6 +3059,48 @@ AS settings and EXEC checkpoint schemas before checking entries. The maintained
 `prototype/test_minischema.py` guards conditional branches, the native-turn
 rule, references and these value distinctions; with the installed standard
 validator it also compares their outcomes. These remain Design rehearsals.
+
+## Current implementation conditions
+
+**Current standalone App-file observations.** `file_act_lapse.rs` records
+content observations for standing A4/A6/A7 file acts outside runs, through the
+existing project act-log writer and CE-10 body with no arrival or `when`.
+The explicit observation command requires complete source records, a unique
+current act with original capture correspondence under SEAL-C, and the physical
+project/store and subject binding. It records changed or absent content,
+unknown comparisons and return to c₀ after a recorded lapse. Repeated unchanged
+observations do not create another entry. Declines and other act kinds are not
+promoted into this path, and run/arrival observations retain their own owners.
+
+A failed write retains the original observation's identity, content and time
+in that App session. Metadata-only retry rechecks its original source and
+project/store binding; it never recomputes the held observation from later
+bytes or creates a human act. A successful original observation save remains
+identified as saved if its required late-write disclosure is still pending.
+The explicit writer can reconcile its own unterminated log tail through
+RS W-0, then rereads and fully validates the source set before appending.
+A correction recovered from that tail can therefore refuse the held write;
+unrelated incomplete logs remain a refusal. Reading alone repairs nothing.
+The read-only file-act view keeps resolved
+history, limited source claims and the current content comparison separate.
+Matching run/arrival lapse evidence remains visible in its own source log,
+including when a standing act later counted at an arrival. Standalone append
+and duplicate suppression use only the original project act log; evidence
+from another log does not become that writer's observation history. Multiple
+logs do not establish an order between them.
+Returning to c₀ records no renewal, acceptance or restored act authority.
+These local fixtures do not establish native capture authenticity or qualification.
+
+**Current contextual App-file capture.** An explicit entry from an eligible
+hot live arrival carries the original run and arrival into the frozen offer,
+sealed capture and existing human-act or decline record. A request reference
+is carried only when its source association is established. The human-act
+relations or decline fields must correspond to the capture; adding or changing
+an arrival, run or request link in a readable record does not create capture
+correspondence. The record uses the original run/writer allocation of §13.8,
+without a duplicate standing entry. Held capture continuation retains that
+original metadata and target, with no second native capture or resumed run.
+The checkpoint recorder owns any counting or disposition that follows.
 
 ## UNRESOLVED
 

@@ -6607,6 +6607,9 @@ impl WorkflowCheckSlot {
             "published":self.published.is_some(),"publicationLimit":self.publication_failure,"r3":r3,"adoption":"unknown"})
     }
 }
+#[path = "file_act_arrival.rs"]
+mod file_act_arrival;
+pub(crate) use file_act_arrival::ArrivalSource;
 pub(crate) struct WorkflowRun {
     learning_pointers: crate::workflow_learning_pointers::Held,
     retention_activity: Option<crate::storage::Ownership>,
@@ -6748,6 +6751,7 @@ impl WorkflowRun {
             "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
             "compatibility":self.compatibility_view(),
             "checkpointRecorder":self.checkpoints.as_ref().map(crate::checkpoint_recorder::CheckpointRecorder::view),
+            "fileActEntries":file_act_arrival::entry_views(self),
             "modelTurns":self.model_turns.view(),
             "workflow":{"origin":self.prepared().workflow().origin,"name":self.prepared().workflow().name,"revision":self.prepared().workflow().revision,"sourceRoot":self.prepared().workflow().source_root},
             "home":self.prepared().scope().home,"generation":self.prepared().scope().generation,
@@ -7759,6 +7763,7 @@ pub(crate) mod trial_flows;
 mod workflow_root_tests {
     use super::*;
     use std::{path::PathBuf,sync::{Arc,Mutex},time::Duration};
+    mod file_act_arrival_tests { use super::*; include!("file_act_arrival_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

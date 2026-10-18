@@ -9,9 +9,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
-import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault } from "./RunPanel";
+import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
-import { FileActPanel } from "./FileActPanel";
+import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
@@ -500,7 +500,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
+export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -614,7 +614,7 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
         <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
         {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
-      <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy} act={action}/>
+      <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy || fileActBusy} act={action} openFileAct={openFileAct}/>
       <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       {!isRecordedRun(run)&&<>
       <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
@@ -805,6 +805,13 @@ export function App() {
     }
   };
   const [host, setHost] = useState<Json>(null);
+  const fileActPanel = useRef<FileActPanelHandle>(null);
+  const [fileActBusy, setFileActBusy] = useState(false);
+  const openArrivalFileAct: OpenArrivalFileAct = async (runRef, arrivalRecordId) => {
+    await fileActPanel.current?.openArrival(runRef, arrivalRecordId);
+    // Navigation follows this explicit click, never an arriving record or poll.
+    document.getElementById("file-acts")?.scrollIntoView?.({ block: "start" });
+  };
   const [view, setView] = useState<Json>(null);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
@@ -941,9 +948,9 @@ export function App() {
       <NativeConfirmationContent />
       <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
-      <FileActPanel command={(name,args)=>invoke(name,args)} />
+      <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
-      <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
+      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
 
       <section>
