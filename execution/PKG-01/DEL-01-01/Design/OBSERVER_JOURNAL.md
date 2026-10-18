@@ -2,8 +2,14 @@
 
 RECOVERY §3.3 OA-01/OA-02 and HOSTING §5 require a bounded, disposable
 per-generation replay journal. The current implementation still retains the
-whole journal. Its production frame/byte limits remain unselected under
-REC U-R4 / HOSTING U-05. No eviction is enabled by this change.
+whole journal. The selected implementation defaults for replay are **4,096
+frames or 16 MiB of serialized UTF-8 envelopes per home's current full
+generation**, whichever limit is reached first. The byte metric includes the
+retained envelope's metadata and unknown fields after existing sensitive-data
+projection. It measures retained serialized content, not Rust heap overhead.
+These are the observer-journal numbers left open by REC U-R4 / HOSTING U-05;
+the implementation owner selects them under the session's development grant.
+No eviction is enabled by this change.
 
 `hosting_observation_facts.rs` separates the operational facts previously read
 from that replay storage. The Host captures them from its actual current,
@@ -40,7 +46,10 @@ retained-floor/gap semantics and source-scoped history reconstruction without
 resuming a thread, answering a request, replaying old observations as new
 events, or claiming unavailable checklist revisions were recovered. Handshake
 overflow must preserve ordered delivery or refuse startup truthfully. Selected
-limits and independently reviewed overflow behavior remain activation inputs.
+limits' implementation and independently reviewed overflow behavior remain
+activation inputs. An oversized native frame is processed normally by the
+protocol/custody paths; it is omitted from replay without truncation and makes
+that receipt a disclosed gap. Older windows rebuild from supplier history.
 
 `hosting_observation_custody_tests.rs` removes diagnostic replay as an explicit
 test stimulus and checks operational source facts. `steering_integration.rs`
