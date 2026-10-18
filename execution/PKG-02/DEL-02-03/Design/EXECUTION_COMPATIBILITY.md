@@ -1809,7 +1809,9 @@ because they concern what is recorded.
   queue) is an **item-left** event, "cleared by the person, no decision
   record". A `validation_rejected` at Apply is *refused — invalid* at
   application. Neither is ever A10 or A11. On SWBPIPE, **accept and apply
-  are one step**, per batch, with no A10 record. The App keeps the meanings
+  are one step**, per batch, with no A10 record. That Apply carries no
+  attributable act, so the App records no A5 and no applied outcome for it
+  (P §9.1, §9.2; 2026-10-17). The App keeps the meanings
   of MX-1…MX-8 and records the missing counterparts: accepted-then-stale
   (MX-7) and per-item A5/A10 mixes (MX-5) have no SWBPIPE counterpart.
 - **Session undo (R8-5).** SWBPIPE's session undo writes no receipt. R2-15

@@ -502,7 +502,9 @@ session undo, SQ-10), *reverses ⟨receipt⟩* is recorded *not supplied*, and a
 lapse it causes is recorded from the identity change (R8-5, R8-4). **OE-7** Accepted then refused stale: both the A5
 record and the *refused — stale* entry are present; A5 not lapsed; item not
 applied (R2-16). On SWBPIPE accept and apply are one step per batch, with no
-A10 record, so OE-7 does not arise there (SQ-01, SQ-23; R8-5). **OE-8**
+A10 record, so OE-7 does not arise there (SQ-01, SQ-23; R8-5). That Apply
+carries no attributable act, so the App records no A5 and no applied outcome
+for it (P §9.1, §9.2; 2026-10-17). **OE-8**
 **Phase 1:** a **run** action taken after an arrival and before the act that
 answers it is recorded normally and may carry the optional annotation
 "continued past ‹checkpoint› before ‹act›" with its turn initiator; it is

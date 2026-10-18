@@ -36,7 +36,7 @@ CURRENT_INPUTS = (
     *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
       for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
 )
-INPUTS_SHA256 = 'b40f5c73ea43ff7a9b474e34709f0e2f38f51fad3c2439b151f4d7a1c0b0d67e'
+INPUTS_SHA256 = '78a8b8103cecd05457b6124cd6253d122c0a6d6863b3abb9c739e4f116a9922d'
 LIMITS = [
     'Exact exported file correspondence only; native S1 semantics are not reexecuted.',
     'Serialized readback is a producer report, not authenticated history or a native-held reference capability.',

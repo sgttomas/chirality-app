@@ -2137,7 +2137,9 @@ deferred (DECISION-3). SWBPIPE has no loop today (SQ-20).
   | `validation_rejected` at Apply | *refused — invalid* at application | A10 or A11 |
 
   Accept and apply are one step on SWBPIPE (Apply), per batch, with no A10
-  record. The loop keeps the App's meanings of A5, A10 and A2 (§9) and
+  record. That Apply carries no attributable act, so the App records no A5
+  and no applied outcome for it (P §9.1, §9.2; 2026-10-17). The loop keeps
+  the App's meanings of A5, A10 and A2 (§9) and
   records the missing counterparts. Session undo writes no receipt, so
   "reverses ⟨receipt⟩" is *not supplied* for SWBPIPE (R2-15 and R3-4
   stand; FX-UNDO).

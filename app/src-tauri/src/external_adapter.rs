@@ -44,8 +44,26 @@ impl Channel {
 pub struct DispatchAccount { document: Value, bytes: Vec<u8>, pub missing: Vec<&'static str> }
 impl DispatchAccount {
     pub fn receive(bytes: &[u8]) -> Result<Self, String> {
+        Self::receive_in_context(bytes, None)
+    }
+    /// A retained direct result needs the original bound request's grant
+    /// reference. The dispatch document alone supplies no such authority.
+    pub fn receive_for_proposal(bytes: &[u8], proposal: &BoundProposal) -> Result<Self, String> {
+        Self::receive_in_context(bytes, Some(proposal))
+    }
+    fn receive_in_context(bytes: &[u8], proposal: Option<&BoundProposal>) -> Result<Self, String> {
         let document: Value = serde_json::from_slice(bytes).map_err(|e| format!("schema-invalid JSON: {e}"))?;
         contracts()?.validate(DISPATCH, &document)?;
+        if let Some(proposal) = proposal {
+            if document["proposal_identity"] != proposal.identity() {
+                return Err("domain-invalid dispatch: bound proposal identity mismatch".into());
+            }
+            if let Some(mode) = document.get("requested_mode") {
+                if mode != &proposal.document()["requested_mode"] {
+                    return Err("domain-invalid dispatch: bound requested mode mismatch".into());
+                }
+            }
+        }
         let outcome = document["outcome"]["value"].as_str().unwrap();
         if let Some(result) = document.get("host_result") {
             let request = document["request_kind"].as_str().unwrap();
@@ -55,7 +73,12 @@ impl DispatchAccount {
                 else { return Err("domain-invalid dispatch: host result contract not isolated".into()); };
             contracts()?.validate(id, result)?;
             if id == crate::proposal::STATE {
-                crate::proposal::validate_host_state(result)?;
+                if let Some(proposal) = proposal {
+                    let result_bytes = serde_json::to_vec(result).map_err(|e| format!("invalid host result: {e}"))?;
+                    proposal.receive_state(&result_bytes)?;
+                } else {
+                    crate::proposal::validate_host_state(result)?;
+                }
                 if !matches!(request,"submission"|"observation"|"change_call") || result["proposal_identity"] != document["proposal_identity"] {
                     return Err("domain-invalid dispatch: wrong request/result proposal family or identity".into());
                 }

@@ -1,7 +1,7 @@
 {
   "record_kind": "xt_result",
   "format": "proposed-0.1",
-  "record_id": "XC-02/5/2026-09-30",
+  "record_id": "XC-02/5/2026-10-17",
   "case": "XC-02",
   "witness": "V4-EXM-25",
   "phase_reading": "current",
@@ -22,7 +22,7 @@
       },
       {
         "path": "PKG-03/DEL-03-03/Design/prototype/observe_map.py",
-        "sha256": "df4cf59cbc3d132de93ff7a1fec0607c2c9e0b038f52ae7fb0c949ead85b9f37"
+        "sha256": "cf7ba7b4d4218d660d53dc89fe48b37c797041b5d6864e3f28adf342e5d193d6"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"
@@ -36,7 +36,7 @@
       "not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"
     }
   },
-  "date": "2026-09-30",
+  "date": "2026-10-17",
   "suite_position": {
     "segment": "M",
     "order": 5,
