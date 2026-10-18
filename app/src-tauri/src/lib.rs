@@ -1000,21 +1000,15 @@ fn history_action(
         history.prepare(&home.host.snapshot(), &generation, selection_epoch, &action, cursor.as_deref(), match direction.as_str() { "asc" => native_history::Direction::Asc, "desc" => native_history::Direction::Desc, _ => return Err("Invalid history paging direction".into()) }, reference.as_deref())?
     };
     let receipt = home.host.history_dispatch(&query)?;
-    home.history.lock().unwrap().dispatched(receipt.clone());
+    home.history.lock().unwrap().dispatched_manual(receipt.clone());
     let waited = home.host.history_wait(&receipt, std::time::Duration::from_secs(20));
-    // The page also feeds the readable native view (DEL-01-03 REQ-001: plan and
-    // other items are recovered from Codex history). Runtime before history lock,
-    // matching host_status's order.
-    if let Ok(evidence) = &waited {
-        if let Some(result) = evidence["response"].get("result") {
-            home.runtime.lock().unwrap().receive_history(query.generation(), query.home(), query.method(), query.params(), result);
-        }
-    }
-    let mut history = home.history.lock().unwrap();
-    history.reconcile(&home.host);
+    // Only the original accepted manual page can enter native activity. The
+    // shared receiver also delivers pages accepted by an earlier host tick.
+    home.reconcile_manual_history();
     waited?;
     let root = state.instructions_root.lock().unwrap().clone();
-    Ok(history.snapshot(root.as_deref().ok()))
+    let snapshot = home.history.lock().unwrap().snapshot(root.as_deref().ok());
+    Ok(snapshot)
 }
 #[tauri::command]
 fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch: u64, thread_id: String) -> Result<Value, String> {

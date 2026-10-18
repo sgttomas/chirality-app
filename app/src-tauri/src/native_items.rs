@@ -92,6 +92,7 @@ fn identity(content: &Value) -> Value {
     json!({"method":"sha256/canonical-json/npt-v0 (TEST VALUE; HOSTING U-08)","value":sha256_hex(&bytes)})
 }
 
+#[derive(Clone)]
 pub struct NativeView {
     home: String,
     generation: Option<Value>,

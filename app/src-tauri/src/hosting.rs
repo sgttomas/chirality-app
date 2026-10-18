@@ -4067,6 +4067,7 @@ mod additive_guidance_transport_tests {
 
 #[cfg(test)]
 mod conversation_transport_tests {
+    mod manual_history_tests { include!("hosting_manual_history_tests.rs"); }
     mod observation_custody_tests { include!("hosting_observation_custody_tests.rs"); }
     mod role_observations_host_tests { include!("role_observations_host_tests.rs"); }
     mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }

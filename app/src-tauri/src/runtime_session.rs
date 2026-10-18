@@ -255,9 +255,10 @@ impl RuntimeSession {
             "observerGap":observation["gap"],"priorNativeViews":self.prior_views,"nativeViewObservationEnded":self.closed,
             "observerRecovery":{"historyRebuilt":false,"historyPagesRead":self.history_pages,"recoveryPagesRead":self.recovery_pages,"historyRead":"after a Codex restart the host reads each conversation that lost observation (thread/read, then its latest turn summaries) and adds those pages to the native view as recovered-from-supplier rows; pages the person reads in stored history are added the same way; the full history is not rebuilt, and items are added only as their pages are read","standing":"App-observed receiving state plus Codex history pages read by the host's recovery reads or by the person"}})
     }
-    /// A person-requested native history page of this open generation, read into
-    /// the native view as `recovered-from-supplier` rows. Other generations,
-    /// closed views and methods the view does not read are left out.
+    /// Leaf projection for the host's separately validated recovery reads and
+    /// constructed view fixtures. Manual reads use the private accepted-page
+    /// delivery below. Other generations, closed views and unsupported methods
+    /// are left out; rows retain `recovered-from-supplier` standing.
     pub fn receive_history(&mut self, generation: &Value, home: &str, method: &str, params: &Value, result: &Value) {
         if !matches!(method, "thread/read" | "thread/turns/list" | "thread/items/list" | "thread/goal/get") {
             return;
@@ -279,6 +280,47 @@ impl RuntimeSession {
         if let Some(limit) = refused {
             if !self.limits.contains(&limit) {
                 self.limits.push(limit);
+            }
+        }
+    }
+    /// Consume only the original page accepted by the manual history owner.
+    /// `false` retains a delivery until actual native Ready has initialized the
+    /// receiving view. Refused or applied deliveries are consumed exactly once.
+    fn receive_accepted_manual_history(&mut self, host: &crate::hosting::Host, page: &AcceptedManualHistory) -> bool {
+        let query = page.dispatch.query();
+        let applied = (|| -> Result<Option<NativeView>, String> {
+            // Runtime's last observation can lag source closure. Recheck the
+            // original private Host receipt at delivery, not a cached snapshot.
+            let status = host.history_dispatch_status(&page.dispatch)?;
+            if status["sourceCurrent"] != true {
+                return Err("original manual history source is no longer current".into());
+            }
+            if status["writeResult"] != "written" || status["outcome"] != "response-observed-result"
+                || status["response"]["result"] != page.result {
+                return Err("original accepted manual history result is unavailable".into());
+            }
+            let Some(view) = self.view.as_ref() else { return Ok(None) };
+            if self.generation != *query.generation() || self.closed {
+                return Err("its generation is not the open receiving generation".into());
+            }
+            // Schema acceptance and view semantics are separate. Apply to a
+            // disposable copy so a later item refusal cannot leak earlier
+            // items, revisions, descendant joins or the next observed order.
+            let mut next = view.clone();
+            next.history(query.home(), query.method(), query.params(), &page.result)?;
+            Ok(Some(next))
+        })();
+        match applied {
+            Ok(Some(view)) => {
+                self.view = Some(view);
+                self.history_pages += 1;
+                true
+            }
+            Ok(None) => false,
+            Err(error) => {
+                let limit = format!("{} page not read into the native view: {error}", query.method());
+                if !self.limits.contains(&limit) { self.limits.push(limit); }
+                true
             }
         }
     }
@@ -1042,6 +1084,7 @@ pub struct HistorySession {
     child_guidance: crate::native_child_guidance::ChildGuidance,
     limits: Vec<String>,
     dispatches: Vec<HistoryPending>,
+    accepted_manual_pages: std::collections::VecDeque<AcceptedManualHistory>,
     starts: Vec<StartPending>,
     forks: Vec<ForkPending>,
     role_log: Option<Result<std::sync::Arc<crate::role_observations::RoleLog>, String>>,
@@ -1054,8 +1097,15 @@ pub struct HistorySession {
 }
 struct HistoryPending {
     receipt: crate::hosting::HistoryDispatch,
+    manual_projection: bool,
     finished: bool,
     evidence: Value,
+}
+// Owned only after successful exact NativeHistory acceptance of an original
+// manual Host dispatch. No renderer constructor, Serde or latest-page lookup.
+struct AcceptedManualHistory {
+    dispatch: crate::hosting::HistoryDispatch,
+    result: Value,
 }
 struct ForkPending {
     receipt: crate::hosting::SourceRequest,
@@ -1207,9 +1257,16 @@ impl HistorySession {
         }
     }
     pub fn dispatched(&mut self, receipt: crate::hosting::HistoryDispatch) {
+        self.track_history_dispatch(receipt, false);
+    }
+    pub(crate) fn dispatched_manual(&mut self, receipt: crate::hosting::HistoryDispatch) {
+        self.track_history_dispatch(receipt, true);
+    }
+    fn track_history_dispatch(&mut self, receipt: crate::hosting::HistoryDispatch, manual_projection: bool) {
         self.dispatches.push(HistoryPending {
             evidence: receipt_summary(&receipt.evidence()),
             receipt,
+            manual_projection,
             finished: false,
         });
     }
@@ -1390,6 +1447,13 @@ impl HistorySession {
                 self.limits
                     .push(format!("History receiving refused: {error}"));
                 continue;
+            }
+            if pending.manual_projection && status["outcome"] == "response-observed-result"
+                && matches!(pending.receipt.query().method(), "thread/read" | "thread/turns/list" | "thread/items/list" | "thread/goal/get") {
+                self.accepted_manual_pages.push_back(AcceptedManualHistory {
+                    dispatch: pending.receipt.clone(),
+                    result: status["response"]["result"].clone(),
+                });
             }
             if status["outcome"] == "response-observed-result" {
                 let params = pending.receipt.query().params();
@@ -2575,6 +2639,20 @@ pub struct HomeSession {
     oauth_start_gate: std::sync::Mutex<()>,
 }
 impl HomeSession {
+    /// Explicit commands and the host tick reconcile private receipts. Status
+    /// remains a read. Runtime precedes History in the existing lock order.
+    pub(crate) fn reconcile_manual_history(&self) {
+        let mut runtime = self.runtime.lock().unwrap();
+        // Establish the actual receiving source before draining a first manual
+        // page; a public Host snapshot cannot fabricate a Ready delivery.
+        runtime.receive_native(&self.host);
+        let mut history = self.history.lock().unwrap();
+        history.reconcile(&self.host);
+        while let Some(page) = history.accepted_manual_pages.front() {
+            if !runtime.receive_accepted_manual_history(&self.host, page) { break; }
+            history.accepted_manual_pages.pop_front();
+        }
+    }
     pub fn new(
         class: crate::home_resources::HomeClass,
         host: std::sync::Arc<crate::hosting::Host>,

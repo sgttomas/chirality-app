@@ -183,6 +183,26 @@ proof that an in-progress item ended. Recovered plans show no revision number,
 checklist updates remain unrecoverable, and parent status establishes no
 descendant return, review or integration.
 
+The Rust native activity view separately accumulates accepted person-directed
+history pages. A correlated Host receipt alone does not qualify that projection:
+the original query must pass the history owner's home, full-generation,
+selection, stream-revision, schema and relational-identity checks first. A
+private, memory-only handoff retains that accepted dispatch and result for one
+delivery, including when an earlier host tick accepted it. Delivery checks the
+original source again; it never substitutes the browser's latest page or
+selection. Internal workflow reads retain their separate receiving path.
+
+Each manual page is applied to native activity as a whole. A projection refusal
+leaves items, revisions, turns, goals, descendants and page counters unchanged,
+while the raw receipt and receiving limit remain inspectable. A page accepted
+by native history can still be refused by the activity projection, for example
+when an item has an empty identity. Successful pages preserve native direction,
+accumulated recovered rows, first-observed order and existing terminal-item
+protection. Their recovered standing creates no live request, role or act
+authority. The `history_bridge` tests in
+`app/src-tauri/src/hosting_manual_history_tests.rs` exercise this joined
+acceptance and projection path with controlled native peers.
+
 This presentation adds no supplier read, durable transcript, operational
 admission or act authority. The existing explicit Continue path and its native
 admission guards remain with DEL-01-02/DEL-01-04. Restart recovery still reads

@@ -840,6 +840,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src/NativeHistory.tsx`, `src/App.tsx`, `tests/native-history.test.mjs` | Source-bound readable stored turn summaries and the selected item page, shared native item bodies with retained raw source, and accepted-query paging regressions; reading and explicit Continue remain separate |
+| `src-tauri/src/runtime_session.rs`, `host_tick.rs`, `hosting_manual_history_tests.rs` (`history_bridge` tests) | Person-directed history reaches native activity once through its original accepted query and current source; rejected pages leave the activity projection and counters unchanged, with raw receipts and limits retained |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
 ## Offline build and checks
