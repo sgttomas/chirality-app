@@ -854,15 +854,15 @@ pub fn observed_steering_target(
                 && turn["observationEnded"] != true
         })
         .collect::<Vec<_>>();
-    let latest = snapshot["journal"]
+    let latest = snapshot["turnEventBoundaries"]
         .as_array()
-        .into_iter()
-        .flatten()
+        .ok_or("source-owned turn boundary observations unavailable; refresh native observations")?
+        .iter()
         .filter(|frame| {
             frame["generation"] == *generation
-                && frame["frame"]["params"]["threadId"] == thread_id
+                && frame["threadId"] == thread_id
                 && matches!(
-                    frame["frame"]["method"].as_str(),
+                    frame["method"].as_str(),
                     Some("turn/started" | "turn/completed")
                 )
                 && frame["position"].as_u64().is_some()
@@ -890,14 +890,14 @@ pub fn observed_steering_target(
     } else {
         latest
             .filter(|frame| {
-                frame["frame"]["method"] == "turn/started"
-                    && frame["frame"]["params"]["turn"]["status"] == "inProgress"
+                frame["method"] == "turn/started"
+                    && frame["status"] == "inProgress"
             })
             .and_then(|frame| {
                 eligible
                     .iter()
                     .copied()
-                    .find(|turn| turn["turnId"] == frame["frame"]["params"]["turn"]["id"])
+                    .find(|turn| turn["turnId"] == frame["turnId"])
             })
     }
     .ok_or(
@@ -2946,7 +2946,10 @@ pub fn assess_native_home_work(
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
-    let namespace_events=snapshot["journal"].as_array().into_iter().flatten().filter(|event|event["generation"]==*generation&&event["frame"]["method"]=="account/updated").map(|event|json!({"generation":event["generation"],"receiptPosition":event["position"],"method":event["frame"]["method"]})).collect::<Vec<_>>();
+    let namespace_revision = &snapshot["accountNamespaceRevision"];
+    if namespace_revision["generation"] != *generation {
+        return Err("source-owned account namespace observation unavailable; refresh before confirmation".into());
+    }
     let operations=snapshot["clientRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&matches!(request["method"].as_str(),Some("account/login/start"|"account/login/cancel"|"account/logout"))).map(|request|json!({"requestIdentity":request["requestIdentity"],"method":request["method"],"writeResult":request["writeResult"],"outcome":request["outcome"]})).collect::<Vec<_>>();
     let latest_read = snapshot["clientRequests"]
         .as_array()
@@ -2979,7 +2982,7 @@ pub fn assess_native_home_work(
         Some(account) if matches!(account["type"].as_str(),Some("chatgpt"|"apiKey"|"chatgptAuthTokens"))=>json!({"state":"native type reported; identity not established","nativeType":account["type"]}),
         Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
     }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
-    let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceEvents":namespace_events,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
+    let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceRevision":namespace_revision,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
     let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
     let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
     Ok(HomeLogoutAssessment {

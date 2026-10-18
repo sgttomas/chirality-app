@@ -93,8 +93,11 @@ code_paths:
 - app/supplier_checks/recorded_replay.py
 - app/src-tauri/src/process_group_custody.rs
 - app/src-tauri/src/hosting.rs
+- app/src-tauri/src/hosting_observation_facts.rs
 - app/src-tauri/src/model_turn_recorder.rs
 checks:
+- app/src-tauri/src/hosting_observation_custody_tests.rs
+- app/src-tauri/tests/steering_integration.rs
 - app/supplier_checks/test_recorded_replay.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs

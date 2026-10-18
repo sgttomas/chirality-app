@@ -27,6 +27,8 @@
 mod records_continuity;
 #[path = "execution_custody.rs"]
 mod execution_custody;
+#[path = "hosting_observation_facts.rs"]
+mod observation_facts;
 #[path = "hosting_recovery_reads.rs"]
 pub(crate) mod recovery_reads;
 #[path = "hosting_request_event_join.rs"]
@@ -188,6 +190,8 @@ struct Inner {
     held: Vec<Value>,
     /// Frames delivered to receivers, in received order, each {generation, position, class, frame}.
     journal: Vec<Value>,
+    // Operational guards must not depend on how much diagnostic replay is kept.
+    observation_facts: observation_facts::ObservationFacts,
     receipt_position: u64,
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
@@ -854,6 +858,8 @@ impl Host {
             "recovery": i.recovery_snapshot.as_ref().map(|o|&o.summary),"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
             "recoveryPersistenceError": i.recovery_error,"recoveryInitializationError":i.recovery_initialization_error,
             "journal": i.journal,
+            "turnEventBoundaries": i.observation_facts.turn_boundaries(&i.generation),
+            "accountNamespaceRevision": i.observation_facts.account_revision(&i.generation),
             "malformedFrames": i.malformed,
             "threads": i.threads,
             "planMode": Self::plan_mode_availability(&i),
@@ -1590,7 +1596,7 @@ impl Host {
         let Some(entry)=entry else{return false;};
         // A source resolution that arrived while queued is not an ack and
         // cannot be overwritten by a late locally prepared reply.
-        !i.journal.iter().chain(i.held.iter()).any(|e|e["generation"]==*generation&&e["frame"]["method"]=="serverRequest/resolved"&&e["frame"]["params"]["requestId"]==frame["id"]&&e["frame"]["params"]["threadId"]==entry["nativeParameters"]["threadId"])
+        !i.observation_facts.resolved(generation, &frame["id"], &entry["nativeParameters"]["threadId"])
     }
     fn observe_reply_writes(i: &mut Inner) {
         let settlements = i.server_requests.observe_completed_reply_writes();
@@ -3141,14 +3147,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
 
     fn current_live_turn<'a>(i: &'a Inner, thread: &str) -> Option<&'a Value> {
-        let latest_event = i.journal.iter().chain(i.held.iter()).filter(|e| e["generation"] == i.generation && e["frame"]["params"]["threadId"] == thread && matches!(e["frame"]["method"].as_str(),Some("turn/started"|"turn/completed"))).max_by_key(|e|e["position"].as_u64().unwrap_or(0));
+        let latest_event = i.observation_facts.turn_boundary(&i.generation, thread);
         let boundary = latest_event.and_then(|e|e["position"].as_u64());
         let fresh_responses: Vec<_> = i.conversation_turns.iter().filter(|e| e["generation"] == i.generation && e["threadId"] == thread && e["source"] == "turn/start response" && e["nativeTurn"]["status"] == "inProgress" && e["terminalEventObserved"] != true && e["observationEnded"] != true && boundary.map(|p|e["startResponseIssuedAfterReceipt"].as_u64().map(|sent|sent>=p).unwrap_or(false)).unwrap_or(true)).collect();
         if fresh_responses.len() == 1 { return Some(fresh_responses[0]); }
         if fresh_responses.len() > 1 { return None; }
         let event = latest_event?;
-        if event["frame"]["method"] != "turn/started" || event["frame"]["params"]["turn"]["status"] != "inProgress" { return None; }
-        i.conversation_turns.iter().find(|e|e["generation"]==i.generation&&e["threadId"]==thread&&e["turnId"]==event["frame"]["params"]["turn"]["id"]&&e["nativeTurn"]["status"]=="inProgress"&&e["terminalEventObserved"]!=true&&e["observationEnded"]!=true)
+        if event["method"] != "turn/started" || event["status"] != "inProgress" { return None; }
+        i.conversation_turns.iter().find(|e|e["generation"]==i.generation&&e["threadId"]==thread&&e["turnId"]==event["turnId"]&&e["nativeTurn"]["status"]=="inProgress"&&e["terminalEventObserved"]!=true&&e["observationEnded"]!=true)
     }
 
     fn spawn_reader(self: &Arc<Self>, stdout: std::process::ChildStdout, generation: Value) {
@@ -3231,6 +3237,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":projection_label}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
+        i.observation_facts.receive(&gen, pos, &frame);
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
         let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
@@ -3453,6 +3460,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let handshake_ended=startup_closure.as_ref().is_some_and(|(attempt,_)|i.state=="handshaking"&&i.start_attempt==*attempt
             &&i.start_admission==Some(StartAdmission::Installed{attempt:*attempt,generation:generation.clone()}));
         let counts=match startup_closure{Some((_,counts))=>counts,None=>Self::close_generation(&mut i)};
+        i.observation_facts.observe_exit(generation, exit.clone());
         if i.state=="stopping" {
             i.journal.push(json!({"generation":generation,"class":"exit","exitFacts":exit}));
             self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();self.release_records_activity(generation);return;
@@ -3586,13 +3594,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let (lock, cv) = &*self.inner;
         let mut i = lock.lock().unwrap();
         let deadline = std::time::Instant::now() + Duration::from_secs(3);
-        while i.generation==target_generation&&!i.journal.iter().any(|e| e["class"] == "exit" && e["generation"] == target_generation)
+        while i.generation==target_generation && i.observation_facts.exit(&target_generation).is_none()
             && std::time::Instant::now() < deadline
         {
             let (g, _) = cv.wait_timeout(i, Duration::from_millis(100)).unwrap();
             i = g;
         }
-        let mut exit = i.journal.iter().rev().find(|e| e["class"] == "exit" && e["generation"] == target_generation).map(|e| e["exitFacts"].clone())
+        let mut exit = i.observation_facts.exit(&target_generation).cloned()
             .unwrap_or(json!({"exitCode": null, "signal": null}));
         exit["forcedAfterGrace"] = json!(forced);
         if i.generation!=target_generation {
@@ -3840,6 +3848,7 @@ mod additive_guidance_transport_tests {
 
 #[cfg(test)]
 mod conversation_transport_tests {
+    mod observation_custody_tests { include!("hosting_observation_custody_tests.rs"); }
     mod role_observations_host_tests { include!("role_observations_host_tests.rs"); }
     mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }
     use super::*;
