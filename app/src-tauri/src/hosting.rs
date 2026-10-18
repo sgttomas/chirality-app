@@ -29,6 +29,9 @@ mod records_continuity;
 mod execution_custody;
 #[path = "hosting_observation_facts.rs"]
 mod observation_facts;
+#[path = "hosting_native_delivery.rs"]
+mod native_delivery;
+pub(crate) use native_delivery::{NativeProjectionOwner, NativeProjectionBatch, NativeProjectionEvent};
 #[path = "hosting_recovery_reads.rs"]
 pub(crate) mod recovery_reads;
 #[path = "hosting_request_event_join.rs"]
@@ -192,6 +195,8 @@ struct Inner {
     journal: Vec<Value>,
     // Operational guards must not depend on how much diagnostic replay is kept.
     observation_facts: observation_facts::ObservationFacts,
+    native_delivery: native_delivery::NativeDelivery,
+    native_delivery_ready: Value,
     receipt_position: u64,
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
@@ -928,6 +933,41 @@ impl Host {
         snapshot["distributionEvidence"] = evidence;
         json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames})
     }
+    fn publish_native_ready(i: &mut Inner) {
+        if i.state != "ready" || i.server_requests.is_closed(&i.generation) || i.native_delivery_ready == i.generation { return; }
+        let ready = json!({"state":"ready","generation":i.generation,"generationClosed":false,
+            "versionIdentity":i.version_identity,"supplierStanding":i.supplier_standing});
+        i.native_delivery.publish(NativeProjectionEvent::Ready(ready));
+        i.native_delivery_ready = i.generation.clone();
+    }
+    fn publish_native_frame(i: &mut Inner, envelope: &Value) {
+        Self::publish_native_ready(i);
+        i.native_delivery.publish(NativeProjectionEvent::Frame(envelope.clone()));
+    }
+    /// One non-serializable receiving owner for this Host's lifetime. Public
+    /// observers and their JSON cursors cannot claim or acknowledge delivery.
+    pub(crate) fn claim_native_projection(&self) -> Result<NativeProjectionOwner, String> {
+        let mut i = self.inner.0.lock().unwrap();
+        Self::publish_native_ready(&mut i);
+        i.native_delivery.claim()
+    }
+    pub(crate) fn pending_native_projection(&self, owner: &NativeProjectionOwner) -> Result<NativeProjectionBatch, String> {
+        let mut i = self.inner.0.lock().unwrap();
+        Self::publish_native_ready(&mut i);
+        let mut snapshot = Self::snapshot_inner(&mut i);
+        snapshot["sourceCustodyEvents"] = json!(i.execution_custody.events());
+        let capability = i.records_capability.clone();
+        let generation = i.generation.clone();
+        let observation = json!({"snapshot":snapshot,"generation":generation,"position":i.receipt_position,"gap":false,"frames":[]});
+        let mut batch = i.native_delivery.pending(owner, observation)?;
+        drop(i);
+        Self::with_records_capability(&mut batch.observation["snapshot"], capability);
+        batch.observation["snapshot"]["distributionEvidence"] = self.distribution_evidence(&generation);
+        Ok(batch)
+    }
+    pub(crate) fn ack_native_projection(&self, owner: &NativeProjectionOwner, batch: NativeProjectionBatch) -> Result<(), String> {
+        self.inner.0.lock().unwrap().native_delivery.ack(owner, batch)
+    }
     /// DEL-01-02's custody events held in this process (`observation_lost`,
     /// `observation_recovered`, `turn_outcome`), in order, for receivers that
     /// map them (RECOVERY §8.2; EXEC AE-6). A read; it changes nothing.
@@ -1104,6 +1144,10 @@ impl Host {
     }
     pub fn client_requests(&self) -> Vec<Value> {
         self.inner.0.lock().unwrap().client_requests.iter().filter(|r|r.is_object()).cloned().collect()
+    }
+    #[cfg(test)]
+    pub(crate) fn discard_public_replay_for_test(&self) {
+        self.inner.0.lock().unwrap().journal.clear();
     }
     pub fn journal(&self) -> Vec<Value> {
         self.inner.0.lock().unwrap().journal.clone()
@@ -1501,7 +1545,9 @@ impl Host {
         Self::check_successor_handshake(&i,generation,attempt)?;
         let vi = i.version_identity.clone().unwrap();
         self.lt(&mut i,"LT-09","handshake-completed","ready",json!({"versionIdentity":vi,"declaredCapabilities":caps}));
+        Self::publish_native_ready(&mut i);
         let held: Vec<Value> = std::mem::take(&mut i.held);
+        for envelope in &held { Self::publish_native_frame(&mut i, envelope); }
         i.journal.extend(held);
         if !successor {drop(i);drop(_gate);return Ok(self.snapshot());}
         let event=i.lifecycle.last().cloned().ok_or("actual LT-09 absent")?;
@@ -1528,10 +1574,12 @@ impl Host {
 
     fn deliver_never_ready(i: &mut Inner) {
         // Receipt order and every native frame survive a failed handshake and later spawn.
-        i.journal.extend(std::mem::take(&mut i.held).into_iter().map(|mut frame| {
+        let frames: Vec<_> = std::mem::take(&mut i.held).into_iter().map(|mut frame| {
             frame["generationNeverReady"] = json!(true);
             frame
-        }));
+        }).collect();
+        for frame in &frames { Self::publish_native_frame(i, frame); }
+        i.journal.extend(frames);
     }
 
     /// H10: every pending client request of the closing generation becomes unknown.
@@ -1546,9 +1594,11 @@ impl Host {
             }
         }
         let generation = i.generation.clone();
+        let already_closed = i.server_requests.is_closed(&generation);
         let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit"||s["reason"]==crate::app_quit::QUIT_STOP_REASON) {"app-quit"} else if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="system termination") {"system-termination"} else {"supplier-stop"}} else {"supplier-exit"};
         Self::observe_reply_writes(i);
         let (ended, settlements) = i.server_requests.close_for_observed(&generation, cause);
+        if !already_closed { i.native_delivery.publish(NativeProjectionEvent::Close(generation.clone())); }
         Self::persist_request_observations(i, &settlements);
         i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
         Self::persist_execution(i);
@@ -3332,7 +3382,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame.clone() };
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":projection_label});
-                if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
+                if i.state == "handshaking" { i.held.push(entry); } else { Self::publish_native_frame(&mut i, &entry); i.journal.push(entry); }
                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
                 drop(i);
                 if let Some(source) = attachment_source { let _ = self.persist_attachment_observation(&source); }
@@ -3344,13 +3394,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // as its outcome only.
             let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame };
             let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": journalled,"sourceProjection":projection_label});
-            if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
+            if i.state == "handshaking" { i.held.push(entry); } else { Self::publish_native_frame(&mut i, &entry); i.journal.push(entry); }
             return;
         }
         let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame,"sourceProjection":projection_label});
         if i.state == "handshaking" {
             i.held.push(entry); // H4
         } else {
+            Self::publish_native_frame(&mut i, &entry);
             i.journal.push(entry);
         }
         drop(i);

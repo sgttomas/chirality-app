@@ -19,8 +19,95 @@ pub struct RuntimeSession {
     history_pages: u64,
     /// Of those, the pages the host's recovery reads returned (RECOVERY §5 R-4).
     recovery_pages: u64,
+    native_owner: Option<crate::hosting::NativeProjectionOwner>,
+    source_ready: Option<Value>,
 }
 impl RuntimeSession {
+    fn owned(owner: crate::hosting::NativeProjectionOwner) -> Self {
+        Self { native_owner: Some(owner), ..Self::default() }
+    }
+    /// Consume actual source delivery, independently of public replay cursors.
+    /// No Host lock is held while applying frames; acknowledgment follows only
+    /// incorporation into this owned projection. It is not a disk-write receipt.
+    pub(crate) fn receive_native(&mut self, host: &crate::hosting::Host) -> (Value, Value) {
+        let result = (|| {
+            let owner = self.native_owner.as_ref().ok_or("native projection has no original receiving owner")?;
+            let batch = host.pending_native_projection(owner)?;
+            let observation = batch.observation().clone();
+            let mut frames = Vec::new();
+            for event in batch.events() {
+                use crate::hosting::NativeProjectionEvent;
+                match event {
+                    NativeProjectionEvent::Ready(ready) => {
+                        self.incorporate_delivery_frames(&observation, &mut frames);
+                        self.source_ready = Some(ready.clone());
+                        let source = self.delivery_observation(ready, &observation, vec![]);
+                        self.receive(&source);
+                    }
+                    NativeProjectionEvent::Frame(frame) => {
+                        let context = self.source_ready.as_ref().filter(|ready|ready["generation"]==frame["generation"] && frame["generationNeverReady"]!=true).cloned();
+                        if context.is_some() {
+                            frames.push(frame.clone());
+                        } else {
+                            let reason = "source frame had no actual ready delivery; not admitted as live native input".to_owned();
+                            if !self.limits.contains(&reason) { self.limits.push(reason); }
+                        }
+                    }
+                    NativeProjectionEvent::Close(generation) => {
+                        self.incorporate_delivery_frames(&observation, &mut frames);
+                        if let Some(mut ready) = self.source_ready.as_ref().filter(|r|r["generation"]==*generation).cloned() {
+                            ready["state"] = json!("observation-ended");
+                            ready["generationClosed"] = json!(true);
+                            let source = self.delivery_observation(&ready, &observation, vec![]);
+                            self.receive(&source);
+                        }
+                    }
+                }
+            }
+            self.incorporate_delivery_frames(&observation, &mut frames);
+            // The final current snapshot alone governs current controls. Closed
+            // source projections are kept separately for recording only.
+            let received = self.receive(&observation);
+            host.ack_native_projection(self.native_owner.as_ref().unwrap(), batch)?;
+            Ok::<_,String>((observation, received))
+        })();
+        match result {
+            Ok(received) => received,
+            Err(error) => {
+                let reason = format!("native source delivery unavailable: {error}");
+                if !self.limits.contains(&reason) { self.limits.push(reason); }
+                let snapshot = host.snapshot();
+                let observation = json!({"generation":snapshot["generation"],"snapshot":snapshot,"frames":[],"gap":true,"sourceDeliveryUnavailable":true});
+                let received = json!({"nativeView":null,"accountObservation":null,"nativeViewLimits":self.limits,"nativeViewObservationEnded":true,"sourceDeliveryUnavailable":true});
+                (observation, received)
+            }
+        }
+    }
+    fn incorporate_delivery_frames(&mut self, observation: &Value, frames: &mut Vec<Value>) {
+        if frames.is_empty() { return; }
+        if let Some(ready) = self.source_ready.clone() {
+            let source = self.delivery_observation(&ready, observation, std::mem::take(frames));
+            self.receive(&source);
+        }
+    }
+    fn delivery_observation(&self, ready: &Value, final_observation: &Value, frames: Vec<Value>) -> Value {
+        let mut snapshot = final_observation["snapshot"].clone();
+        for field in ["state","generation","generationClosed","versionIdentity","supplierStanding"] {
+            snapshot[field] = ready[field].clone();
+        }
+        if ready["generation"] != final_observation["generation"] {
+            // A later source's distribution evidence cannot qualify an earlier one.
+            snapshot["distributionEvidence"] = Value::Null;
+        }
+        json!({"generation":ready["generation"],"snapshot":snapshot,"frames":frames,"gap":false})
+    }
+    /// Original live-observed projections remain retryable recording input even
+    /// when a run was locked during an earlier tick. They grant no current control.
+    pub(crate) fn recording_views(&self) -> Vec<Value> {
+        let mut views = self.prior_views.iter().filter_map(|prior|prior.get("view").cloned()).collect::<Vec<_>>();
+        if let Some(view) = self.view.as_ref() { views.push(view.snapshot()); }
+        views
+    }
     pub fn cursor(&self) -> (&Value, u64) {
         (&self.generation, self.position)
     }
@@ -208,9 +295,10 @@ impl RuntimeSession {
         name: Option<&str>,
         os: Option<&str>,
     ) -> Value {
-        self.receive(observation);
+        if self.native_owner.is_none() { self.receive(observation); }
+        let account = if observation["sourceDeliveryUnavailable"] == true { None } else { self.codex_account_for(&observation["generation"]) };
         json!({"generation":observation["generation"],"hostState":observation["snapshot"]["state"],
-            "displayName":name,"osAccount":os,"codexAccount":self.codex_account_for(&observation["generation"]),
+            "displayName":name,"osAccount":os,"codexAccount":account,
             "accountRevision":self.account_revision})
     }
     pub fn codex_account_for(&self, generation: &Value) -> Option<String> {
@@ -2464,12 +2552,14 @@ impl HomeSession {
         if class == crate::home_resources::HomeClass::Probe {
             return Err("Probe is not an active conversation/account entry".into());
         }
+        let workflow_source_ref = crate::util::opaque_id("workflow-home:" )?;
+        let native_owner = host.claim_native_projection()?;
         Ok(Self {
             class,
-            workflow_source_ref: crate::util::opaque_id("workflow-home:" )?,
+            workflow_source_ref,
             host,
             host_config: config,
-            runtime: std::sync::Mutex::new(RuntimeSession::default()),
+            runtime: std::sync::Mutex::new(RuntimeSession::owned(native_owner)),
             history: std::sync::Mutex::new(HistorySession::default()),
             access_selection: std::sync::Mutex::new(None),
             recovery_startup: std::sync::Arc::new(
@@ -2860,13 +2950,12 @@ pub fn assess_native_home_work(
 ) -> Result<HomeLogoutAssessment, String> {
     crate::recovery::generation_ref(generation)?;
     let mut runtime = home.runtime.lock().unwrap();
-    let (cursor, position) = runtime.cursor();
-    let observation = home.host.observe(cursor, position);
+    let (observation, received) = runtime.receive_native(&home.host);
+    if observation["sourceDeliveryUnavailable"] == true { return Err("native source delivery unavailable for assessment".into()); }
     let snapshot = &observation["snapshot"];
     if snapshot["generation"] != *generation || snapshot["state"] != "ready" || snapshot["generationClosed"] == true {
         return Err("Selected native home/full generation is unavailable for assessment; no window/home fallback".into());
     }
-    let received = runtime.receive(&observation);
     drop(runtime);
     let mut live = vec![];
     let mut unresolved_turns = vec![];
@@ -8153,6 +8242,104 @@ for line in sys.stdin:
         // Every entry was validated by the RS writer (W-1); the log reads complete.
         assert!(peer.fixture.rs_entries().iter().all(|e|e["formatVersion"].is_string()));
     }
+    #[test]
+    fn native_projection_delivery_survives_public_replay_loss_and_late_recording() {
+        for (closed, status_first, busy) in [(false,false,false),(false,true,false),(true,false,false),(true,true,false),(false,false,true),(true,true,true)] {
+            let peer = Peer::new();
+            peer.set_mode("notify-mode", "checkpoint");
+            let mut root = declared(&peer);
+            let run = open_run(&peer, &mut root, "thread");
+            let before = kinds_for(&peer, &run);
+            assert_eq!(before, ["run_opened","checkpoint_listed","checkpoint_listed","checkpoint_listed","declaration_finding"]);
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while !peer.home.host.journal().iter().any(|e|e["frame"]["method"]=="item/completed" && e["frame"]["params"]["item"]["id"]=="m1") {
+                assert!(std::time::Instant::now() < deadline, "source checkpoint receipt observed");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            // Test stimulus only: no production retention policy is selected.
+            peer.home.host.discard_public_replay_for_test();
+            if closed {
+                peer.home.host.stop("fixture:person", "codex-stop").unwrap();
+                peer.home.host.discard_public_replay_for_test();
+            }
+            let workflows = Mutex::new(root);
+            if status_first {
+                crate::host_tick::receive_view(&peer.home);
+                assert_eq!(kinds_for(&peer, &run), before, "status incorporates source delivery but writes nothing");
+            }
+            let homes = Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+            if busy {
+                let held_run = workflows.lock().unwrap().runs[&run].clone();
+                let held = held_run.lock().unwrap();
+                crate::host_tick::tick(&homes, &workflows);
+                assert_eq!(kinds_for(&peer, &run), before, "a busy run is retried later");
+                drop(held);
+            }
+            crate::host_tick::tick(&homes, &workflows);
+            let after = kinds_for(&peer, &run);
+            assert_eq!(&after[5..], ["model_turn","checkpoint_arrival","disposition_change"], "closed={closed}, status_first={status_first}, busy={busy}: {after:?}");
+            let entries = rs_for(&peer, &run);
+            assert!(entries.iter().all(|e|e["recordId"].is_string()), "actual reserved record identities are present");
+            let identities = entries.iter().map(|e|e["recordId"].clone()).collect::<Vec<_>>();
+            for _ in 0..2 { crate::host_tick::receive_view(&peer.home); crate::host_tick::tick(&homes, &workflows); }
+            let later = rs_for(&peer, &run);
+            assert_eq!(later.iter().map(|e|e["recordId"].clone()).collect::<Vec<_>>(), identities, "no duplicate records after delivery or status retry");
+            assert_eq!(kinds_for(&peer, &run), after);
+            assert!(later.iter().all(|e|e["formatVersion"].is_string()), "actual run records validate");
+        }
+    }
+
+    #[test]
+    fn native_projection_delivery_preserves_generations_and_history_is_not_a_fresh_arrival() {
+        let peer = Peer::new();
+        peer.set_mode("notify-mode", "checkpoint");
+        let mut root = declared(&peer);
+        let run = open_run(&peer, &mut root, "thread");
+        let wait_for = |generation: &Value, turn: &str| {
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while !peer.home.host.journal().iter().any(|e|e["generation"]==*generation && e["frame"]["method"]=="item/completed" && e["frame"]["params"]["turnId"]==turn && e["frame"]["params"]["item"]["id"]=="m1") {
+                assert!(std::time::Instant::now()<deadline, "actual source receipt in {generation}");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        };
+        wait_for(&peer.generation, "turn");
+        peer.home.host.discard_public_replay_for_test();
+        peer.home.host.stop("fixture:person", "codex-stop").unwrap();
+        let second = peer.relaunch();
+        peer.set_mode("turn-id", "turn-2");
+        peer.home.host.turn_start_text(&second, "thread", "next source turn").unwrap();
+        wait_for(&second, "turn-2");
+        peer.home.host.discard_public_replay_for_test();
+        let workflows = Mutex::new(root);
+        let homes = Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        crate::host_tick::tick(&homes, &workflows);
+        let records = rs_for(&peer, &run);
+        let arrivals = |records: &[Value]| records.iter().filter(|e|e["kind"]=="checkpoint_arrival").count();
+        assert_eq!(arrivals(&records), 2, "both original live source generations reach the actual run log");
+        let reports = records.iter().enumerate().filter(|(_,e)|e["kind"]=="model_turn" && e["body"]["scope"]=="thread").map(|(i,_)|i).collect::<Vec<_>>();
+        assert_eq!(reports.len(), 2, "one actual thread report per source generation");
+        let first_arrival = records.iter().position(|e|e["kind"]=="checkpoint_arrival").unwrap();
+        assert!(reports[0] < first_arrival && first_arrival < reports[1], "later source metadata must not overtake the earlier checkpoint");
+        {
+            let mut runtime = peer.home.runtime.lock().unwrap();
+            runtime.receive_history(&second, second["home"].as_str().unwrap(), "thread/items/list", &json!({"threadId":"thread","turnId":"historical-turn"}), &json!({"data":[{"turnId":"historical-turn","item":{"type":"agentMessage","id":"historical-message","text":"Spacing report"}}],"nextCursor":null}));
+        }
+        crate::host_tick::tick(&homes, &workflows);
+        assert_eq!(arrivals(&rs_for(&peer, &run)), 2, "a history page is not a live arrival");
+        // Reobserving the same persistent native IDs does not mint new arrivals.
+        peer.home.host.turn_start_text(&second, "thread", "same native IDs fixture").unwrap();
+        let deadline = std::time::Instant::now()+Duration::from_secs(5);
+        while peer.home.host.journal().iter().filter(|e|e["frame"]["method"]=="item/completed" && e["frame"]["params"]["item"]["id"]=="m1").count()<1 {
+            assert!(std::time::Instant::now()<deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        crate::host_tick::tick(&homes, &workflows);
+        assert_eq!(arrivals(&rs_for(&peer, &run)), 2, "persistent-event deduplication is unchanged");
+        let current = crate::host_tick::receive_view(&peer.home);
+        assert_eq!(current["generation"], second, "current controls never receive the prior source projection");
+        assert_eq!(peer.home.host.snapshot()["generation"], second);
+    }
+
     // OI-008: observations are recorded by the host's own tick with no host_status
     // call, and host_status's workflow part records nothing.
     #[test]

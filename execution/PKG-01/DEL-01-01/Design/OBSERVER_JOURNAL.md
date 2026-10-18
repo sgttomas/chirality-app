@@ -40,8 +40,9 @@ Turn boundaries are one per observed thread; resolution references deduplicate
 by typed subject. This is not a bound on total Host memory, request custody,
 native views or pending record observations.
 
-Before enabling retention, preserve delivery into the Rust native projection
-and checkpoint/model-turn recorders independently of window replay. Then add
+Delivery into the Rust native projection and checkpoint/model-turn recorders
+is independent of window replay through the private handoff below. Before
+enabling retention, add
 retained-floor/gap semantics and source-scoped history reconstruction without
 resuming a thread, answering a request, replaying old observations as new
 events, or claiming unavailable checklist revisions were recovered. Handshake
@@ -57,3 +58,43 @@ checks the receiving projection independently. Those checks establish this
 separation, not an implemented memory cap, candidate examination or native
 supplier qualification. ScopeOfWork commitments and dependency conditions
 retain their existing meanings.
+
+## Private native delivery and recording
+
+`hosting_native_delivery.rs` owns an unread-only sequence separate from public
+replay: actual ready publication, positioned projected envelopes, and source
+closure. Its original Host issues one non-serializable receiving owner. A
+pending batch retains exact Arc prefix identities; acknowledgment validates
+the entire original prefix before removing it. Later receipts remain pending.
+Dropping a batch acknowledges nothing. Public observers, cursors and equal JSON
+cannot drain the sequence or replace its owner.
+
+`HomeSession` gives that owner to its existing `RuntimeSession`. Status, actor,
+action and host-tick reads share this projection. They incorporate source
+frames in order, outside the Host lock, then acknowledge incorporation. This
+prevents a Runtime/Host lock inversion and keeps record IO off the protocol
+reader. Consecutive frames are applied as a generation batch rather than
+serializing the complete native view for every frame. Failed startup supplies
+no invented ready state; closed or foreign-source frames remain diagnostics.
+
+Actual ready/frame/close input is processed even if its source closed before
+the first read. Closed original projections retain their live-observed receipt
+standing for recording, while current controls receive only the final current
+snapshot. The record tick visits retained source projections in source order,
+with thread/turn/request/custody metadata qualified by that same generation.
+It cannot fill an old source's access mode from a later selection. History
+rows retain recovered-from-supplier standing and do not become fresh arrivals.
+Persistent native-event deduplication is unchanged.
+
+Acknowledgment means projection incorporation, not durable recording. Status
+writes no records. A busy run can be retried because its source projection
+remains available; existing pending record identities and IO-retry behavior
+remain the writer's responsibility. Neither the unread handoff nor retained
+closed projections acquire a disposal policy or a total-memory bound here.
+
+The actual checkpoint regression in `runtime_session.rs` removes public replay
+before the ordinary tick and reopens the real run records. It covers closed
+sources, status-first delivery, busy runs, repeated ticks, two generations,
+source metadata order and history/duplicate controls. The module's focused
+checks cover owner/prefix identity, concurrent append and refusal without
+partial acknowledgment. Ordinary App CI runs both maintained cohorts.

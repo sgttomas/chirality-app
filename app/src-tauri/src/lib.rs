@@ -191,9 +191,7 @@ fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generatio
 fn host_status(state: State<'_, AppState>) -> Value {
     let home = state.homes.lock().unwrap().active();
     let mut runtime = home.runtime.lock().unwrap();
-    let (generation, position) = runtime.cursor();
-    let observation = home.host.observe(generation, position);
-    let received = runtime.receive(&observation);
+    let (observation, received) = runtime.receive_native(&home.host);
     let mut s = observation["snapshot"].clone();
     for (key, value) in received.as_object().unwrap() {
         s[key] = value.clone();
@@ -1229,8 +1227,7 @@ fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSessi
     let name = state.person_name.lock().unwrap().clone();
     let os = util::os_account();
     let mut runtime = home.runtime.lock().unwrap();
-    let (generation, position) = runtime.cursor();
-    let observation = home.host.observe(generation, position);
+    let (observation, _) = runtime.receive_native(&home.host);
     let context = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
     (observation["snapshot"].clone(), context)
 }
@@ -1580,9 +1577,7 @@ fn workflow_send_run(state:State<'_,AppState>,run_ref:String)->Result<Value,Stri
 /// Callers hold no Root guard: `host_status` takes the receiver before Root.
 fn current_native_view(home:&Arc<runtime_session::HomeSession>)->Value{
     let mut runtime=home.runtime.lock().unwrap();
-    let (generation,position)=runtime.cursor();
-    let observation=home.host.observe(generation,position);
-    runtime.receive(&observation)["nativeView"].clone()
+    runtime.receive_native(&home.host).1["nativeView"].clone()
 }
 /// EXEC AE-7 / A-11: only the person's explicit end ends a run. FN-2: the cause is
 /// *completed* only when the person ends it on the agent's finished report, which
@@ -1782,8 +1777,7 @@ fn file_act_observe(state:&AppState, home:&Arc<runtime_session::HomeSession>) ->
     let name=state.person_name.try_lock().map_err(|_|"Actor setting busy; review again")?.clone();
     let os=util::os_account();
     let mut runtime=home.runtime.try_lock().map_err(|_|"Actor observation busy; review again")?;
-    let (generation,position)=runtime.cursor();
-    let observed=home.host.observe(generation,position);
+    let (observed, _)=runtime.receive_native(&home.host);
     let current=runtime.actor_context(&observed,name.as_deref(),os.as_deref());
     let mut actor=act_control::person(current["displayName"].as_str(),current["osAccount"].as_str());
     if let Some(account)=current["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}

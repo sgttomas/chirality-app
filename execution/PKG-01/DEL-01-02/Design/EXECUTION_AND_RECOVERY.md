@@ -725,6 +725,16 @@ is never reported as received.
 
 ## 7. Data and persistence: what the App keeps (R17-4; TBD-002)
 
+Current native-view delivery is separate from diagnostic replay. The Host's
+private ordered ready/frame/close handoff is incorporated by the one Rust
+receiving owner, then acknowledged; it is not a durable-write receipt. The
+record tick can retry original closed source projections without turning
+supplier-history rows into new arrivals. See
+[Observer replay and operational custody](../../DEL-01-01/Design/OBSERVER_JOURNAL.md)
+for the mechanism, source qualification and remaining retention activation
+conditions. This changes no pointer-ledger format or durable retention policy.
+
+
 **Rule (DERIVED from ARCH §3 "rather than a Chirality copy of the
 transcript"; R17-4).** Conversation content is read back from Codex. The App
 keeps only pointers and its own observations, labelled *App-observed*, and

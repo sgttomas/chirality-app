@@ -118,9 +118,7 @@ impl Fixture {
     /// What host_status hands the view: the Host snapshot plus received native items.
     fn status(&self) -> Value {
         let mut runtime = self.home.runtime.lock().unwrap();
-        let (generation, position) = runtime.cursor();
-        let observation = self.home.host.observe(&generation.clone(), position);
-        let received = runtime.receive(&observation);
+        let (observation, received) = runtime.receive_native(&self.home.host);
         let mut s = observation["snapshot"].clone();
         for (k, v) in received.as_object().unwrap() {
             s[k] = v.clone();

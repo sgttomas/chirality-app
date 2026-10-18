@@ -73,6 +73,9 @@ needs:
   gating: true
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/process_group_custody.rs
 - app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/recovery.rs
@@ -87,6 +90,8 @@ code_paths:
 - app/src-tauri/src/workflow_learning_pointers.rs
 - app/src-tauri/src/historical_run_learning.rs
 checks:
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs

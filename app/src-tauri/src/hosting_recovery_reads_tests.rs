@@ -225,7 +225,7 @@ fn vcr05_exit_restart_read_failure_retry_and_recovery_from_codex() {
     // The stale rendered view is replaced: the ready generation's view has
     // the recovered turn, and the prior one stays observation-ended.
     let view = crate::host_tick::receive_view(&f.home);
-    let status = f.home.runtime.lock().unwrap().receive(&f.home.host.observe(&second, 0));
+    let status = f.home.runtime.lock().unwrap().receive_native(&f.home.host).1;
     assert_eq!(status["observerRecovery"]["recoveryPagesRead"], 2);
     assert_eq!(status["observerRecovery"]["historyRebuilt"], false, "metadata and turn summaries only");
     let turns = view["turns"].as_array().unwrap();
