@@ -372,7 +372,10 @@ fn validate(target: &str, value: &Value) -> Result<(), String> {
         .get(target)
         .ok_or("native schema unavailable")?
         .validate(value)
-        .map_err(|e| format!("native history schema refused {target}: {e}"))
+        // A validator's Display can quote the rejected conversation payload.
+        // Trial fidelity and recovery readers may retain this diagnostic; keep
+        // the contract name and refusal without copying native content there.
+        .map_err(|_| format!("native history schema refused {target}: invalid response shape"))
 }
 fn cursor_view(page: Option<&Value>) -> Value {
     match page.and_then(|p| p.get("nextCursor")) {

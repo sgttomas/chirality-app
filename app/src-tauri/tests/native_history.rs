@@ -265,6 +265,30 @@ fn schema_and_relational_identity_refusals_are_atomic_with_native_extras_preserv
         .is_err());
     assert_eq!(v.snapshot(), before);
 }
+
+#[test]
+fn malformed_native_history_diagnostics_never_include_rejected_payload() {
+    let mut v = selected();
+    let metadata = v.read_metadata().unwrap();
+    let before = v.snapshot();
+    let private = "invented-native-content-not-for-diagnostics";
+    let mut invalid = json!({"thread":thread("thread","notLoaded")});
+    invalid["thread"]["preview"] = json!({"private":private});
+    let error = v.receive(&metadata, "history-home", &g(), &invalid).unwrap_err();
+    assert!(error.starts_with("native history schema refused ThreadReadResponse:"));
+    assert!(!error.contains(private), "the diagnostic may become a durable reading limit");
+    assert_eq!(v.snapshot(), before, "refusal stays atomic");
+
+    let turns = v.turns_page(None, Direction::Desc).unwrap();
+    accept(&mut v, &turns, json!({"data":[turn("turn","completed","summary")]}));
+    let items = v.items_page("turn", None, Direction::Asc).unwrap();
+    let before = v.snapshot();
+    let invalid = json!({"data":[{"turnId":"turn","item":{"type":"agentMessage","id":"task","content":[{"type":"encrypted_content","encrypted_content":private}]}}],"nextCursor":null});
+    let error = v.receive(&items, "history-home", &g(), &invalid).unwrap_err();
+    assert!(error.starts_with("native history schema refused ThreadItemsListResponse:"));
+    assert!(!error.contains(private));
+    assert_eq!(v.snapshot(), before);
+}
 #[test]
 fn goals_missing_null_and_value_keep_their_native_availability() {
     let mut v = selected();

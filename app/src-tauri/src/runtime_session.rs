@@ -8378,6 +8378,8 @@ for line in sys.stdin:
         let again=trial_flows::read_trial_again(&root,&peer.home,&reference,&view).unwrap();
         assert!(again["recorded"][0]["fidelity"]["limits"].as_array().unwrap().iter().any(|l|l.as_str().is_some_and(|s|s.contains("native history schema refused"))),"{again}");
         assert_ne!(again["recorded"][0]["fidelity"]["state"],"verbatim");
+        let stored=links(&peer).observations(&reference);
+        assert!(!serde_json::to_string(&stored).unwrap().contains("gAAAAfixture"),"schema refusal must not copy rejected native content into durable fidelity limits");
     }
 
     // Review of #1260 (5): the sub-agent's not-checkable reading is the child
