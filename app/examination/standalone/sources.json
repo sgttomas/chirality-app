@@ -1,5 +1,5 @@
 {
-  "source_basis_revision": "8212c765ec0bcc812ad4c4f7079bc661b55d70ab",
+  "source_basis_revision": "14c91b83810a97c768f2bd5c18e2238a562dc7db",
   "sources": [
     {
       "role": "step_map",
@@ -9,8 +9,8 @@
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:a39c3d17fe614c13d3afcedae14e1bed665b3b5d94c55b0f7203d69409fa20d1",
-      "basis_file_sha256": "sha256:edb0f79b1476c99651a854d18d0dfc5832aae54ecb7b92c11385ea35e0d3b2bf",
+      "sha256": "sha256:9438a9edce6e326a7df20d4717a549ea69d4f1870313cafe91b41673321f359a",
+      "basis_file_sha256": "sha256:65bee77615d7cd8b4107f281a1fb793d300dcea64be6ba6d2341f2bbe100c574",
       "selectors": [
         {
           "heading": "## 2. Interfaces"

@@ -167,8 +167,9 @@ test('one existing library entry goes from in-place review to an explicit native
 
 // Host shapes from WorkflowReviewContext::accept_result/advance and Root::snapshot.
 // Exercise App's real handlers and refresh with an invented native invoke boundary.
-test('native review actions end with the host presentation while original continuation and Select remain',async()=>{
-  const {reviewDigest,readablePaths}=loadSrc('presentation');
+test('native review actions end with the host presentation while original continuation and Select remain',async(t)=>{
+  const presentationSource=loadSrc('presentation');
+  const {reviewDigest,readablePaths}=presentationSource;
   const generation={appSession:'session-review',home:'home-review',spawnCounter:1};
   const identity={name:'load-check',origin:'project',source_root:'/synthetic',revision:'a'.repeat(64)};
   const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
@@ -190,12 +191,22 @@ test('native review actions end with the host presentation while original contin
         libraries:[{reference:'lib-native',origin:'project',sourceRoot:'/synthetic',registered:[held]}],reviews:[fresh]};
       let snapshot={state:'ready',generation,threads:[{generation,threadId:'chat-native'}],workflowRoot:data};
       const calls=[],previous=window.__TAURI_INTERNALS__;
+      const nativeDigestRelease=Promise.withResolvers(),viewDigestComputed=Promise.withResolvers();
+      const digestRead=t.mock.method(presentationSource,'reviewDigest',content=>{
+        const pending=reviewDigest(content);
+        viewDigestComputed.resolve(pending);
+        return pending;
+      });
       window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
         calls.push([command,args]);
         if(command==='host_status')return snapshot;
         if(command==='decision_view')return {rows:[]};
         if(command==='native_confirmation_content')return [];
-        if(command==='workflow_review_digest')return {digest:await reviewDigest(presentation)};
+        if(command==='workflow_review_digest'){
+          const digest=await reviewDigest(presentation);
+          await nativeDigestRelease.promise;
+          return {digest};
+        }
         if(command==='workflow_register_native'){
           snapshot={...snapshot,workflowRoot:{...data,reviews:[{reference:fresh.reference,...resultRow}]}};
           return resultRow.status??resultRow;
@@ -208,7 +219,9 @@ test('native review actions end with the host presentation while original contin
       const body=()=>article().querySelectorAll(e=>e.localName==='pre')[0];
       try{
         await React.act(()=>root.render(React.createElement(App)));
-        await React.act(async()=>{await new Promise(r=>setTimeout(r,0));});
+        // Deliver the native reply inside act and await the view's real hash too:
+        // neither one timer tick nor an independent expected hash waits for both.
+        await React.act(async()=>{nativeDigestRelease.resolve();await viewDigestComputed.promise;});
         assert.equal(body().textContent,JSON.stringify(readablePaths(fresh.status),null,2),'complete current review stays visible');
         const digest=await reviewDigest(presentation);assert.ok(article().textContent.includes(digest));
         assert.ok(article().textContent.includes(`Read the complete review below before choosing ${disposition==='re-confirmation'?'Re-confirm':'Register'}`),'fresh presentation retains the read-first action cue');
@@ -238,7 +251,7 @@ test('native review actions end with the host presentation while original contin
         }else assert.ok(!select,'incomplete attempts supply no Select result');
         assert.equal(calls.filter(([c])=>c==='workflow_register_native').length,1,'continuation/selection never reopens native capture');
       }finally{
-        await React.act(()=>root.unmount());container.parentNode.removeChild(container);window.__TAURI_INTERNALS__=previous;
+        await React.act(()=>root.unmount());container.parentNode.removeChild(container);window.__TAURI_INTERNALS__=previous;digestRead.mock.restore();
       }
     }
   }
