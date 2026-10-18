@@ -67,8 +67,18 @@ impl Pointer {
         client: &str,
         class: &str,
     ) -> Result<Self, String> {
-        let frame = native.source().attempted_frame();
-        if native.source().generation() != &text.scope().generation
+        Self::observed_source(native.source(), native.turn_id(), text, original, client, class)
+    }
+    fn observed_source(
+        source: &crate::hosting::SourceRequest,
+        turn: &str,
+        text: &crate::workflow_workspace::PreparedRunText,
+        original: &str,
+        client: &str,
+        class: &str,
+    ) -> Result<Self, String> {
+        let frame = source.attempted_frame();
+        if source.generation() != &text.scope().generation
             || client.is_empty()
             || !matches!(class, "H-acct" | "H-key")
             || frame["method"] != "turn/start"
@@ -78,7 +88,7 @@ impl Pointer {
         {
             return Err("native boundary does not match its original source".into());
         }
-        let value = json!({"version":1,"run":text.scope().run,"conversation":text.scope().conversation,"run_text_ref":original,"purpose":text.record()["purpose"],"generation":text.scope().generation,"turn":native.turn_id(),"client_user_message_id":client});
+        let value = json!({"version":1,"run":text.scope().run,"conversation":text.scope().conversation,"run_text_ref":original,"purpose":text.record()["purpose"],"generation":text.scope().generation,"turn":turn,"client_user_message_id":client});
         decode(&value.to_string())?;
         Ok(Self {
             value,
@@ -118,7 +128,7 @@ pub(crate) fn retain(
     original: &str,
     client: &str,
 ) -> Value {
-    let mut pointer = match class
+    let pointer = match class
         .ok_or("native source class unavailable")
         .and_then(|class| {
             Pointer::observed(native, text, original, client, class)
@@ -129,6 +139,34 @@ pub(crate) fn retain(
             return json!({"persistence":"memory-only","limit":limit,"standing":"no historical boundary retained; the native send outcome is unchanged"})
         }
     };
+    save(held, host, pointer)
+}
+
+/// The attachment path admits only the Host's private positive full-packet
+/// observation. A resolved submission DTO or cold metadata cannot supply it.
+pub(crate) fn retain_attachment(
+    held: &Held,
+    host: &crate::hosting::Host,
+    class: Option<&str>,
+    native: &crate::hosting::AttachmentNativeTurnStart<'_>,
+    text: &crate::workflow_workspace::PreparedRunText,
+    original: &str,
+    client: &str,
+) -> Value {
+    let pointer = match class.ok_or("native source class unavailable").and_then(|class| {
+        if text.record()["purpose"] != "run end notice" {
+            return Err("attachment boundary is not an original end notice");
+        }
+        Pointer::observed_source(native.source(), native.turn_id(), text, original, client, class)
+            .map_err(|_| "native boundary does not match its original source")
+    }) {
+        Ok(pointer) => pointer,
+        Err(limit) => return json!({"persistence":"memory-only","limit":limit,"standing":"no historical boundary retained; the native send outcome is unchanged"}),
+    };
+    save(held, host, pointer)
+}
+
+fn save(held: &Held, host: &crate::hosting::Host, mut pointer: Pointer) -> Value {
     let result = pointer.persist(host);
     let mut held = held.lock().unwrap();
     if !held.iter().any(|p| p.value == pointer.value) {

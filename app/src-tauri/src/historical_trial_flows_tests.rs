@@ -755,6 +755,119 @@ fn historical_trial_positive_ack_metadata_retry_after_same_host_restart_sends_no
     .unwrap();
     assert_eq!(peer.turn_starts(), starts);
 }
+
+#[test]
+fn historical_attachment_notice_without_manual_checks_survives_all_owners_and_bounds_learning() {
+    let mut peer = historical_trial_peer();
+    let mut live = trial_root(&peer);
+    let trial = live.prepare_trial("clean", DRAFT, Some((&peer.generation, "thread")), Some(&peer.home), peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+    live.begin_clean_start(&trial).unwrap();
+    let trial_thread = peer.second_thread();
+    live.mark_clean_started(&trial, &peer.generation, &trial_thread);
+    let live = Mutex::new(live);
+    peer.set_mode("turn-id", "attachment-comparison-trial");
+    trial_flows::send_trial(&live, &peer.home, &trial, &peer.generation, &trial_thread, "trial input").unwrap();
+    peer.set_mode("turn-id", "attachment-run-start");
+    let run = open_run(&peer, &mut live.lock().unwrap(), "thread");
+    let workflow = live.lock().unwrap().runs[&run].lock().unwrap().prepared().record()["workflow"].clone();
+    peer.set_mode("turn-id", "attachment-run-activity");
+    peer.home.host.turn_start_texts(&peer.generation, "thread", &["Exact activity inside the registered run"], "in-run-client").unwrap();
+    live.lock().unwrap().runs[&run].lock().unwrap().end_run(None, None).unwrap();
+    peer.set_mode("turn-id", "attachment-end-carrier");
+    let (list, owner, revision, refs, custody, _) = attachment(&peer, "learning-carrier.txt", "carrier-only file bytes must stay outside the run\n");
+    let sent = submit_attachments_with_pending_notice(&list, &live, &peer.home.host, Ok(custody.clone()), &owner, revision, &refs, &peer.generation, "thread", None, "carrier-only person text must stay outside the run", crate::recovery::ExplicitAppProjectContext::unknown(), None).unwrap();
+    assert_eq!(sent["endNotice"]["turn"], "attachment-end-carrier");
+    assert_eq!(sent["endNotice"]["outcome"]["learningBoundary"]["persistence"], "durable App metadata");
+    peer.set_mode("turn-id", "attachment-later-turn");
+    peer.home.host.turn_start_texts(&peer.generation, "thread", &["later-only activity must stay outside the run"], "later-client").unwrap();
+    let before_records = peer.fixture.rs_entries();
+    assert_eq!(kinds_of(&rs_for(&peer, &run)), ["run_opened", "run_ended"]);
+    let wr_folder = crate::storage::project_file(&peer.fixture.root, "workflow").unwrap();
+    let wr = peer.fixture.wr_files();
+    assert!(wr.iter().all(|name| {
+        let row: Value = serde_json::from_slice(&std::fs::read(wr_folder.join(name)).unwrap()).unwrap();
+        row["body"]["record_kind"] != "supply_check"
+    }), "neither start nor end requires a manual Check");
+    let old_host = Arc::downgrade(&peer.home.host);
+    drop((live, list, custody));
+    let original_generation = peer.generation.clone();
+    historical_trial_new_process(&mut peer);
+    assert!(old_host.upgrade().is_none(), "all original Host/run/selection owners ended");
+    assert_ne!(original_generation, peer.generation);
+    let mut target = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
+    Arc::get_mut(&mut target.home).unwrap().workflow_source_ref = "separate learning target".into();
+    let mut fresh = WorkflowRootSession::default();
+    fresh.set_app_user_data(peer.fixture.root.join("app-data"));
+    fresh.open_library(peer.fixture.root.clone(), "project", peer.project(), Arc::new(Mutex::new(None))).unwrap();
+    let fresh = Mutex::new(fresh);
+    let homes = [target.home.clone(), peer.home.clone()];
+    let starts = (peer.turn_starts(), target.turn_starts());
+    let pending = trial_flows::bring_back_with_homes(&fresh, &homes, peer.project(), &target.home, None, Some(&run), &target.generation, "thread", false).unwrap();
+    let view = historical_trial_snapshot(&fresh);
+    assert_eq!(view["pendingBringBacks"][0]["source"]["generation"], peer.generation);
+    assert_eq!(view["pendingBringBacks"][0]["target"]["generation"], target.generation);
+    let text = view["pendingBringBacks"][0]["transcript"].as_str().unwrap();
+    for exact in ["Exact activity inside the registered run", "Invented historical native result for attachment-run-start", "Invented historical native result for attachment-run-activity"] {
+        assert!(text.contains(exact), "{text}");
+    }
+    for excluded in ["carrier-only", "attachment-end-carrier", "later-only", "attachment-later-turn", "attachment-comparison-trial"] {
+        assert!(!text.contains(excluded), "{text}");
+    }
+    assert!(pending["card"].as_str().unwrap().contains("historical quoted"));
+    let compare = trial_flows::compare_with_homes(&fresh, &homes, peer.project(), &json!({"trial":trial}), &json!({"run":run})).unwrap();
+    assert_eq!(compare["right"]["version"], json!({"method":workflow["revision_method"],"value":workflow["revision"]}));
+    assert_eq!(compare["right"]["summary"]["turns"], 2, "{compare}");
+    assert_eq!(compare["right"]["summary"]["endings"], json!([{"turn":"attachment-run-start","status":"failed"},{"turn":"attachment-run-activity","status":"failed"}]));
+    assert_eq!(compare["right"]["summary"]["finalAgentMessage"], "Invented historical native result for attachment-run-activity");
+    assert_eq!(compare["difference"]["files"], json!([]));
+    assert!(compare["difference"]["unchanged"].as_u64().unwrap() > 0);
+    assert_eq!((peer.turn_starts(), target.turn_starts()), starts, "Bring back/Compare only prefill/read");
+    assert_eq!(peer.fixture.rs_entries(), before_records);
+    assert_eq!(peer.fixture.wr_files(), wr);
+    let root = fresh.lock().unwrap();
+    assert!(root.runs.is_empty() && root.selected.is_empty() && root.reviews.is_empty(), "no run, selection or registration act owner restored");
+}
+
+#[test]
+fn historical_attachment_notice_save_failure_keeps_sent_and_retries_only_original_metadata() {
+    let mut peer = historical_trial_peer();
+    let (root, run) = ended_run(&peer);
+    let (list, owner, revision, refs, custody, _) = attachment(&peer, "retry-notes.txt", "ordinary selected file\n");
+    let ledger = peer.fixture.root.join("app-data/runtime/recovery.ledger.jsonl");
+    let path = crate::recovery::database_path(&ledger);
+    let saved = path.with_extension("attachment-saved-db");
+    let original_index = peer.home.host.recovery_custody().snapshot()["historicalConversations"][0]["index"].clone();
+    std::fs::rename(&path, &saved).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    peer.set_mode("turn-id", "attachment-metadata-retry");
+    let sent = submit_attachments_with_pending_notice(&list, &root, &peer.home.host, Ok(custody.clone()), &owner, revision, &refs, &peer.generation, "thread", None, "ordinary carrier", crate::recovery::ExplicitAppProjectContext::unknown(), None).unwrap();
+    assert_eq!(sent["endNotice"]["state"], "sent once with the next ordinary turn");
+    assert_eq!(sent["endNotice"]["turn"], "attachment-metadata-retry");
+    assert_eq!(sent["endNotice"]["outcome"]["learningBoundary"]["persistence"], "memory-only");
+    let old_generation = peer.generation.clone();
+    let original_client = last_turn_start(&peer)["params"]["clientUserMessageId"].clone();
+    let before = (peer.turn_starts(), peer.fixture.wr_files(), peer.fixture.rs_entries());
+    peer.home.host.stop("invented child restart", "hold original attachment pointer").unwrap();
+    peer.generation = peer.relaunch();
+    std::fs::remove_dir(&path).unwrap();
+    std::fs::rename(saved, &path).unwrap();
+    root.lock().unwrap().runs[&run].lock().unwrap().retry_records().unwrap();
+    assert_eq!((peer.turn_starts(), peer.fixture.wr_files(), peer.fixture.rs_entries()), before);
+    assert!(send_with_pending_notice(&root, &peer.generation, "thread", "never resent").is_none());
+    let row = peer.home.host.recovery_custody().snapshot()["historicalConversations"][0]["index"].clone();
+    assert_eq!(row["lastLoadedGeneration"], original_index["lastLoadedGeneration"]);
+    let pointers: Vec<Value> = row["tags"].as_array().unwrap().iter().filter(|tag| tag["owner"] == crate::workflow_learning_pointers::OWNER).map(|tag| crate::workflow_learning_pointers::decode(tag["value"].as_str().unwrap()).unwrap()).collect();
+    let end = pointers.iter().find(|p| p["purpose"] == "run end notice").unwrap();
+    assert_eq!(end["generation"], old_generation);
+    assert_eq!(end["turn"], "attachment-metadata-retry");
+    assert_eq!(end["run"], run);
+    assert_eq!(end["client_user_message_id"], original_client);
+    drop((root, list, custody));
+    historical_trial_new_process(&mut peer);
+    let fresh = Mutex::new(WorkflowRootSession::default());
+    trial_flows::bring_back_with_homes(&fresh, &[peer.home.clone()], peer.project(), &peer.home, None, Some(&run), &peer.generation, "thread", false).unwrap();
+    assert_eq!(peer.turn_starts(), before.0);
+}
 #[test]
 fn historical_trial_explicit_target_generation_changed_while_source_is_read_refuses_prefill() {
     let source = historical_trial_peer();

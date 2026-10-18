@@ -2144,10 +2144,10 @@ fn submit_attachments_with_notice(
     home: Option<&str>,
 ) -> Result<Value, String> {
     let claim = run.try_claim(generation, thread)?;
-    let mut claimed = ClaimedNotice { run, claim: Some(claim), source: None };
+    let mut claimed = ClaimedNotice { run, claim: Some(claim), prepared: None };
     let lead = claimed.claim.as_ref().map(NoticeClaim::lead);
-    let result = submit_selected_inner(state, host, custody, owner, revision, order, generation, thread, None, text, context, home, lead, &mut claimed.source);
-    claimed.settle(result)
+    let result = submit_selected_inner(state, host, custody, owner, revision, order, generation, thread, None, text, context, home, lead, &mut claimed.prepared);
+    claimed.settle(host, result)
 }
 
 /// A notice claimed by an attachment-bearing turn, settled exactly once: by
@@ -2158,20 +2158,31 @@ fn submit_attachments_with_notice(
 struct ClaimedNotice<'a> {
     run: &'a PendingNotice,
     claim: Option<NoticeClaim>,
-    /// The prepared frame's source, once prepared (before any write).
-    source: Option<crate::hosting::SourceRequest>,
+    /// Original private full packet, retained before any write. It cannot be
+    /// reconstructed from the attachment submission's JSON projection.
+    prepared: Option<std::sync::Arc<crate::hosting::PreparedAttachmentDispatch>>,
 }
 impl ClaimedNotice<'_> {
     fn write_attempted(&self) -> bool {
-        self.source.as_ref().and_then(|source| source.write_attempt_observed()).unwrap_or(false)
+        self.prepared.as_ref().and_then(|prepared| prepared.source().write_attempt_observed()).unwrap_or(false)
     }
-    fn settle(mut self, result: Result<Value, String>) -> Result<Value, String> {
+    fn settle(mut self, host: &crate::hosting::Host, result: Result<Value, String>) -> Result<Value, String> {
         let carriage = if self.write_attempted() {
-            let turn = result.as_ref().ok().and_then(|resolved| resolved["nativeTurnRef"]["turnId"].as_str()).map(str::to_owned);
-            let outcome = match &result {
-                Ok(resolved) => json!({"state":"native turn observed","carrier":"attachment-bearing turn","submissionRef":resolved["submissionRef"]}),
+            let claim = self.claim.as_ref().expect("a claimed notice is settled once");
+            let positive = self.prepared.as_ref().ok_or_else(|| "original private attachment packet unavailable".to_owned())
+                .and_then(|prepared| host.attachment_turn_start_finish(prepared, std::time::Duration::ZERO));
+            let turn = positive.as_ref().ok().map(|native| native.turn_id().to_owned());
+            let mut outcome = match &result {
+                Ok(resolved) => json!({"state":"attachment-bearing turn written; outcome failed/unknown; not resent","carrier":"attachment-bearing turn","submissionRef":resolved["submissionRef"]}),
                 Err(e) => json!({"state":"attachment-bearing turn written; outcome failed/unknown; not resent","carrier":"attachment-bearing turn","limit":e}),
             };
+            match positive {
+                Ok(native) => {
+                    outcome["state"] = json!("native turn observed");
+                    outcome["learningBoundary"] = crate::workflow_learning_pointers::retain_attachment(&claim.held, host, claim.home_class.as_deref(), &native, &claim.notice, &claim.original, &claim.client_id);
+                }
+                Err(limit) => outcome["learningBoundary"] = json!({"persistence":"memory-only","limit":limit,"standing":"no historical boundary retained; the native send outcome is unchanged"}),
+            }
             NoticeCarriage::Written { turn, outcome, result }
         } else {
             NoticeCarriage::NotWritten(result.err().unwrap_or_else(|| "attachment-bearing turn: no write attempt observed".into()))
@@ -2189,8 +2200,8 @@ impl Drop for ClaimedNotice<'_> {
         // Never panics while unwinding: the Host's write facts are read through
         // a poisoned lock; a prepared frame whose facts cannot be read at all is
         // taken as written, outcome unknown, so the notice is not resent.
-        let attempted = match &self.source {
-            Some(source) => source.write_attempt_observed().unwrap_or(true),
+        let attempted = match &self.prepared {
+            Some(prepared) => prepared.source().write_attempt_observed().unwrap_or(true),
             None => false,
         };
         let carriage = if attempted {
@@ -2226,7 +2237,7 @@ pub fn submit_selected_attachments(
 }
 
 /// As `submit_selected_attachments`, with an optional leading App text element
-/// for a new turn (the run-end line, TC-2). `prepared_source` receives the
+/// for a new turn (the run-end line, TC-2). `prepared_packet` receives the
 /// prepared frame's source before any write, so the caller can read from the
 /// Host whether that write was attempted (then it is never resent).
 fn submit_selected_inner(
@@ -2243,7 +2254,7 @@ fn submit_selected_inner(
     context: crate::recovery::ExplicitAppProjectContext,
     home: Option<&str>,
     lead: Option<(&str, &str)>,
-    prepared_source: &mut Option<crate::hosting::SourceRequest>,
+    prepared_packet: &mut Option<std::sync::Arc<crate::hosting::PreparedAttachmentDispatch>>,
 ) -> Result<Value, String> {
     let selected = {
         let state = state.lock().unwrap();
@@ -2278,7 +2289,7 @@ fn submit_selected_inner(
         &selected,
         lead,
     )?);
-    *prepared_source = Some(prepared.source().clone());
+    *prepared_packet = Some(prepared.clone());
     {
         let mut state = state.lock().unwrap();
         let session = state.as_mut().map_err(|error| error.clone())?;
@@ -9875,7 +9886,7 @@ for line in sys.stdin:
         let run=root.lock().unwrap().runs[&a].clone();
         let claim=run.lock().unwrap().claim_end_notice(&peer.generation,"thread").unwrap();
         let unwound=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
-            let _claimed=ClaimedNotice{run:&PendingNotice::Run(run.clone()),claim:Some(claim),source:None};
+            let _claimed=ClaimedNotice{run:&PendingNotice::Run(run.clone()),claim:Some(claim),prepared:None};
             panic!("fixture: the send path panicked after the claim");
         }));
         assert!(unwound.is_err());

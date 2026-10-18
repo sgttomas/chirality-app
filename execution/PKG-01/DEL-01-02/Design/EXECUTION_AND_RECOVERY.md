@@ -856,6 +856,13 @@ request. The pointer is neither a supply check nor current run/receipt/act
 authority. The index's historical project and `lastLoadedGeneration` remain
 unchanged; the pointer names its own original acknowledgment generation.
 
+For a run-end notice carried with ordinary attachments, the producer consumes
+the Host's private typed positive attachment finish. It binds the complete
+original ordered frame and owning custody to the completed source write and
+matched valid native turn-start response. Attachment resolution JSON and cold
+files supply no producer authority. The same pointer format and REC tag apply;
+the attachment carrier remains outside the closed run's quoted transcript.
+
 A failed tag save preserves the native send outcome and names the unavailable
 historical source. Its typed pointer may be retried in that App process without
 resending: the same actual home/App session's current loaded-thread context
