@@ -1045,6 +1045,33 @@ Bring back remains an unsent prefill. The persisted trial-link format stays
 unchanged; no implicit resume/send or live run authority follows from these
 references.
 
+**Clean-trial source continuity after restart (TT-9–TT-11).** Newly acknowledged
+clean trials retain a separate trial-specific source pointer through REC's
+opaque receiver tags. The private native producer checks the complete ordered
+trial/person text frame, completed write, original source generation and
+correlated positive acknowledgment. The pointer binds the original trial link,
+draft/content and text identities, snapshot reference, client message and turn;
+it changes neither the trial-link schema nor the run-only learning pointer.
+This remains unsigned App-kept metadata: current correspondence is not native
+authentication or proof against same-user forgery or replay.
+
+An explicit cold read requires consistent original pointer and REC home/session
+provenance, current durable trial-link correspondence and the owning current
+native source. The reader rechecks the source and durable evidence after native
+pages return, including removal, replacement and conflicting claims. The active
+or feedback-target home is never substituted. Snapshot-byte and fidelity limits
+remain observations; the pointer does not make a changed snapshot original.
+Source-pointer saving failures retain their actual sent outcome and permit
+only a metadata retry from the held native observation, never a resend. A
+missing trial link retains its own existing unavailable-source limit.
+
+Older links without this evidence remain source-unknown. A delegated trial's
+parent acknowledgment alone does not establish its child's source. Original
+authoring defaults remain separate from the qualified clean-trial reading
+source; the person explicitly chooses a current feedback target. Bring back
+still prepares an unsent transcript. No native receipt, workflow selection,
+run, registration, act or model-adoption authority is reconstructed.
+
 **Historical real-run Bring back and Compare (TT-10, TT-11).**
 `historical_run_learning.rs` reads one run as quoted evidence from the explicit
 project's `ProjectRecords`. It binds the full workflow tuple, original WR

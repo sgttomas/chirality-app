@@ -251,6 +251,8 @@ code_paths:
 - app/src-tauri/src/host_tick.rs
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/trial_flows.rs
+- app/src-tauri/src/workflow_trial_source.rs
+- app/src-tauri/src/recovery.rs
 - app/src-tauri/src/historical_run_learning.rs
 - app/src-tauri/src/workflow_learning_pointers.rs
 - app/src-tauri/src/hosting.rs
@@ -278,6 +280,8 @@ checks:
 - app/src-tauri/src/workflow_journey_tests.rs
 - app/src-tauri/src/workflow_trial_transcript_tests.rs
 - app/src-tauri/src/workflow_trial_authoring_source_tests.rs
+- app/src-tauri/src/workflow_trial_restart_tests.rs
+- app/tests/clean-trial-restart.test.mjs
 - app/src-tauri/src/workflow_trials_tests.rs
 - app/tests/trials.test.mjs
 - app/tests/workflow-drafts.test.mjs

@@ -26,6 +26,24 @@ use std::{
     path::{Path, PathBuf},
 };
 
+
+/// Original plain source ancestry, shared by the exact link and its consumer.
+pub(crate) fn source_physical(path: &Path, directory: bool) -> Result<Value, String> {
+    use std::os::unix::fs::MetadataExt;
+    if !path.is_absolute() { return Err("trial source path must be absolute".into()); }
+    crate::storage::check_path(path)?;
+    let mut facts = Vec::new();
+    for part in path.ancestors() {
+        let meta = std::fs::symlink_metadata(part).map_err(|e| format!("trial source path unavailable: {e}"))?;
+        if meta.file_type().is_symlink() || (part != path && !meta.is_dir())
+            || (part == path && if directory { !meta.is_dir() } else { !meta.is_file() || meta.nlink() != 1 }) {
+            return Err("trial source requires original plain single-link file and directories".into());
+        }
+        facts.push(json!({"path":crate::attachments::native_path_identity(part),"dev":meta.dev(),"ino":meta.ino()}));
+    }
+    Ok(json!(facts))
+}
+
 /// TT-4's fixed standing sentence for a CC-WR-TRIALS trial link.
 pub(crate) const LINK_STANDING: &str =
     "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance";
@@ -164,7 +182,7 @@ pub(crate) enum TrialObservation {
 /// names. Writes are atomic (temporary file, sync, exclusive link, directory
 /// sync); a file that cannot be read back, does not conform, or breaks a
 /// reader check is reported in `limits`, never dropped silently or rewritten.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct TrialLinks {
     dir: Option<PathBuf>,
     /// Set when an App data folder is attached but its trial folder is
@@ -177,6 +195,25 @@ pub(crate) struct TrialLinks {
     limits: Vec<String>,
 }
 impl TrialLinks {
+    /// Read the selected immutable link again, including physical ancestry and
+    /// exact canonical file bytes. Sibling observations and malformed aliases are
+    /// diagnostics, never alternative sources for this canonical trial identity.
+    /// Cached listing values are never cold source evidence.
+    pub(crate) fn source_link(&self, reference: &str) -> Result<(Value, Value), String> {
+        let dir = self.dir.as_ref().ok_or("trial link folder unavailable")?;
+        if !valid_trial_reference(reference) { return Err("invalid trial reference".into()); }
+        let path = dir.join(format!("{}.json", link_stem(reference)));
+        let before = source_physical(&path, false)?;
+        let bytes = crate::workflow_workspace::read_regular_file(&path).map_err(|e| format!("durable trial link unreadable: {e}"))?;
+        let link: Value = serde_json::from_slice(&bytes).map_err(|e| format!("durable trial link malformed: {e}"))?;
+        check_pointer(&link, &link_stem(reference))?;
+        if self.link(reference) != Some(&link) { return Err("durable trial link differs from the opened trial".into()); }
+        if source_physical(&path, false)? != before
+            || crate::workflow_workspace::read_regular_file(&path).map_err(|e| e.to_string())? != bytes {
+            return Err("durable trial link changed while read".into());
+        }
+        Ok((link, json!({"physical":before,"bytes":bytes.len(),"sha256":crate::util::sha256_hex(&bytes)})))
+    }
     /// Reads every record already kept under `app_data`.
     pub(crate) fn open(app_data: &Path) -> Self {
         let dir = app_data.join(TRIAL_POINTERS);

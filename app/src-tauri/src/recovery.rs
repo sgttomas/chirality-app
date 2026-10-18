@@ -664,6 +664,16 @@ impl RecoveryLedger {
     pub fn current_entries(&self) -> &[Value] {
         &self.current
     }
+    /// Fresh, bounded, validated rows from the already-open original store.
+    /// Its named database must still be the physical file the store opened.
+    pub(crate) fn read_current_entries(&self) -> Result<(PathBuf, Vec<Value>), String> {
+        let store = self.store.as_ref().ok_or("REC store not open")?;
+        store.guard()?;
+        let validate = |entry: &Value| validator()?.validate(entry).map_err(|e| e.masked().to_string());
+        let rows = store.current_entries(&validate)?;
+        store.guard()?;
+        Ok((self.database.clone(), rows))
+    }
     /// Every entry the database holds, in order, as a JSON array (null when
     /// none can be read). Reads the whole ledger: for inspection and tests;
     /// the host never calls it.

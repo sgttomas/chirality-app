@@ -12716,6 +12716,10 @@ for line in sys.stdin:
     include!("role_r3_run_tests.rs");
     include!("records_portable_reconstruction_tests.rs");
     include!("historical_trial_flows_tests.rs");
+    mod trial_restart_source_tests {
+        use super::*;
+        include!("workflow_trial_restart_tests.rs");
+    }
     include!("records_access_role_tests.rs");
     include!("run_restart_tests.rs");
     include!("workflow_chat_selection_tests.rs");
