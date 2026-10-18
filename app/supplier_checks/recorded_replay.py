@@ -401,8 +401,21 @@ class Replay:
                                 "recorded_rpc_id_type": key[0], "actual_rpc_id_type": rpc_id(outgoing["id"])[0]}
                     elif kind == "request":
                         self.pending_server.add(rpc_id(frame["id"]))
-                    writer.write(json.dumps(outgoing, ensure_ascii=False, allow_nan=False) + "\n")
-                    writer.flush()
+                    try:
+                        writer.write(json.dumps(outgoing, ensure_ascii=False, allow_nan=False) + "\n")
+                        writer.flush()
+                    except BrokenPipeError:
+                        if writer is sys.stdout:
+                            # A failed flush leaves buffered bytes behind.
+                            # Redirect the descriptor without flushing again,
+                            # so interpreter shutdown cannot retry the pipe
+                            # and replace the intended error status with 120.
+                            sink = os.open(os.devnull, os.O_WRONLY)
+                            try:
+                                os.dup2(sink, writer.fileno())
+                            finally:
+                                os.close(sink)
+                        raise
                 self.consumed.append(index)
                 self.audit.emit("frame", frame_index=index, direction=row["direction"], kind=frame_kind(frame), **info)
                 if index == self.pause_after_frame:

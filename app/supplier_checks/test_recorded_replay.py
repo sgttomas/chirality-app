@@ -279,11 +279,11 @@ class SubprocessReplay(unittest.TestCase):
         self.addCleanup(self.root.cleanup)
         self.audit = Path(self.root.name) / "audit.jsonl"
 
-    def start(self, scenario="st5", generation=1, extra=()):
+    def start(self, scenario="st5", generation=1, extra=(), env=None):
         path, digest, recording = capture(scenario)
         command = [sys.executable, str(HERE / "recorded_replay.py"), "--recording", str(path),
                    "--sha256", digest, "--generation", str(generation), "--audit", str(self.audit), *extra]
-        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         self.addCleanup(self.cleanup_process, process)
         return process, peer.JsonLineInput(process.stdout, timeout=2), recording
 
@@ -421,6 +421,26 @@ class SubprocessReplay(unittest.TestCase):
                 self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": "peer-io-or-value-error"})
                 self.assertNotIn("private-output-canary", audit.read_text())
                 self.assertNotIn("private-setup-canary", audit.read_text())
+
+    def test_closed_stdout_pipe_exits_cleanly_with_complete_failure_audit(self):
+        # Keep ordinary buffered stdout: its shutdown flush is part of this
+        # regression, so an inherited unbuffered-mode setting must not mask it.
+        env = {key: value for key, value in os.environ.items() if key != "PYTHONUNBUFFERED"}
+        process, _, recording = self.start(env=env)
+        process.stdout.close()
+        self.send(process, inputs(recording, 1)[0])
+        process.stdin.close()
+        status = process.wait(timeout=2)
+        errors = process.stderr.read()
+        self.assertEqual(status, 2, errors.decode())
+        self.assertEqual(errors, b"recorded-replay: peer-io-or-value-error\n")
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        self.assertEqual(rows[-2]["event"], "error")
+        self.assertEqual(rows[-2]["frame_index"], 1)
+        self.assertEqual(rows[-2]["consumed_frame_indices"], [0])
+        self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(1, 19)))
+        self.assertEqual(rows[-1], {"event": "exit", "outcome": "error", "code": "peer-io-or-value-error"})
+        self.assertFalse(any(row["event"] == "finish" for row in rows))
 
     def test_malformed_adaptation_metadata_has_fixed_error_and_terminal_audit(self):
         _, _, original = capture()
