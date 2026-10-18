@@ -523,7 +523,7 @@ and content identities are placeholders, labelled in `limits`.
 |---|---|---|---|
 | U-PKG-1 | G-2, G-5, G-7 confirmed (FP-1, FP-3, FP-4, the witness) | DEL-01-06 at the first package | Before any reliance on B |
 | U-PKG-2 | HOSTING U-17 launcher value (§4.1 proposes the vendor binary) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
-| U-PKG-3 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. FP-0 runs at that pin | When a candidate is built |
+| U-PKG-3 | Qualification pin | **Decided by rule (R23-22):** the current development/definition and generated-reference pin is 0.160.0 under the owner-authorized, reviewed SUP1 advance (DEL-01-01 ScopeOfWork [S], CLM-003, REQ-006 and TBD-002); D4's initial 0.158.0 selection is historical. The qualification pin is the newest version that has passed a version-advance check when a candidate is built. FP-0 runs at that pin; the development pin supplies no qualified distribution identity | When a candidate is built |
 | U-PKG-4 | Voice host shipped but unused; no microphone string | App implementation owner | If voice is ever offered |
 | U-PKG-5 | Minimum macOS version (CF-5) | App implementation owner | Before the first package |
 | U-PKG-6 | OI-011 SWB co-owner part | Waits with host joins (R23-13.2, R23-26) | When joins resume |

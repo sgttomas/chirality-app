@@ -15,7 +15,7 @@ binary is not run.
 
 Run: `python3 run_cases.py` in this folder. It reads, never writes, the
 committed 0.158.0 bundle at
-`../../../DEL-01-01_Stock Codex hosting and supplier contract/Design/generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json`.
+`../../../DEL-01-01/Design/generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json`.
 
 A passing case shows that the Design file's rules run as written against
 constructed frames. It passes no VER criterion, and the constructed frames

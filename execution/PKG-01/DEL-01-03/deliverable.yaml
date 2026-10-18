@@ -4,7 +4,11 @@ needs:
 - from: DEL-01-01
   condition: 'Consume supplied generated native types, selected supplier identity and its qualification
     evidence from App DEL-01-01 for the native views and pinned fixtures. Missing selected inputs block
-    only the affected implementation or qualification witness.
+    only the affected implementation or qualification witness. Current development/definition and generated-reference input is
+    the owner-authorized, reviewed SUP1 0.160.0 (DEL-01-01 ScopeOfWork [S], CLM-003, REQ-006
+    and TBD-002), superseding the initial D4 definition-pin declaration in the historical notes below.
+    Qualification remains candidate-bound by R23-22: the newest version that has passed a version-advance
+    check when the candidate is built; the development pin supplies no qualified distribution identity.
 
 
     Notes: FACT: positive supplier-input relationship. INITIALIZED is local contract maturity only; actual
