@@ -179,6 +179,12 @@ thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = con
 pub(crate) fn fail_directory_for_test(path: Option<PathBuf>) {
     FAIL_DIRECTORY.with(|p| *p.borrow_mut() = path);
 }
+#[cfg(test)]
+thread_local! { static AFTER_CREATE_LINK: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+pub(crate) fn after_create_link_for_test(hook: Option<Box<dyn FnOnce(&Path)>>) {
+    AFTER_CREATE_LINK.with(|slot| *slot.borrow_mut() = hook);
+}
 pub fn sync_dir(path: &Path) -> Result<(), String> {
     #[cfg(test)]
     if FAIL_DIRECTORY.with(|p| p.borrow().as_deref() == Some(path)) {
@@ -218,7 +224,11 @@ pub fn sync_publication(path: &Path) -> Result<(), String> {
     File::open(path)
         .and_then(|f| f.sync_all())
         .map_err(|e| format!("file sync uncertain: {e}"))?;
-    let store = records_store::project_dir_of(path).and_then(|d| d.parent().and_then(Path::parent).map(Path::to_path_buf));
+    // Sync-boundary discovery must not open store identity: create-once
+    // store.json publication itself calls this before its temporary hard link
+    // is removed, while the bootstrap publisher still owns its lock. This is
+    // only a physical sync boundary; owning read/write admission stays above.
+    let store = records_store::configured_project_dir(path).and_then(|d| d.parent().and_then(Path::parent).map(Path::to_path_buf));
     let boundary = store.as_deref().or_else(|| path
         .ancestors()
         .find(|p| p.file_name().is_some_and(|n| n == ".chirality"))
@@ -275,6 +285,10 @@ fn publish_json_observed(
         } else {
             std::fs::hard_link(&temp, path)
                 .map_err(|e| format!("create-once evidence publication: {e}"))?;
+            #[cfg(test)]
+            if let Some(hook) = AFTER_CREATE_LINK.with(|slot| slot.borrow_mut().take()) {
+                hook(path);
+            }
         }
         sync_publication(path)?;
         Ok(())

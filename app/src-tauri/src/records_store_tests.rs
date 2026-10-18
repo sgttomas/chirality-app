@@ -7,6 +7,8 @@ use crate::records::{self, APP_WRITER};
 use crate::storage;
 use serde_json::json;
 
+mod publication { include!("records_store_publication_tests.rs"); }
+
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
     std::fs::create_dir_all(&p).unwrap();
