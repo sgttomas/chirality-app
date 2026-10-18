@@ -77,6 +77,40 @@ test('non-ready sources and unsafe positions do not trigger reads; each new gene
   } finally {await view.close();}
 });
 
+test('late rejected attachment from a different home does not block revisiting its source', async () => {
+  let reject;
+  const calls = [];
+  const observe = async (...args) => {
+    calls.push(args);
+    if (calls.length === 1) return new Promise((_, fail) => {reject = fail;});
+    return reply(args[0],4,false);
+  };
+  const view = mounted(observe);
+  try {
+    await view.show(snapshot(g,4,0));
+    await view.show(snapshot(other,4,0));
+    await React.act(async () => {reject(new Error('synthetic old source read failed'));});
+    assert.match(view.container.textContent,/Window replay is current/);
+    await view.show(snapshot(g,4,0));
+    assert.deepEqual(calls.map(call => call[0]),[g,other,g],'late refusal retires only the obsolete attempt, allowing reattachment');
+    assert.match(view.container.textContent,/Window replay is current/);
+  } finally {await view.close();}
+});
+
+test('a trusted same-source attachment ahead of the last status waits for status without a duplicate snapshot', async () => {
+  const calls = [];
+  const view = mounted(async (...args) => {calls.push(args);return reply(g,calls.length === 1 ? 12 : 15,false);});
+  try {
+    await view.show(snapshot(g,10,0));
+    assert.equal(calls.length,1,'a newer actual attachment cut is not a future cursor supplied by a caller');
+    await view.show(snapshot(g,11,0));
+    await view.show(snapshot(g,12,0));
+    assert.equal(calls.length,1,'older status must neither roll back the trusted cursor nor trigger another full snapshot');
+    await view.show(snapshot(g,15,13));
+    assert.deepEqual(calls.map(call => call[2]),[0,12],'genuinely expired coverage still repairs');
+  } finally {await view.close();}
+});
+
 test('coverage that expires while attachment is pending is checked again after that reply', async () => {
   let complete;
   const calls = [];

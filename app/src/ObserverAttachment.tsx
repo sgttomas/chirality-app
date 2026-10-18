@@ -49,10 +49,12 @@ export function ObserverAttachment({ host, observe = nativeObserve }: { host: Js
     }
     const saved = cursors.current.get(home);
     const cursor = saved && JSON.stringify(saved.generation) === scope ? saved : undefined;
-    if (cursor && floor <= cursor.position && cursor.position <= high) {
+    if (cursor && floor <= cursor.position) {
       // The received status already contains the Host's current projection and
       // retained replay. Avoid transferring the same complete snapshot twice.
-      cursors.current.set(home, { generation: source, position: high });
+      // An actual scoped reply can be newer than the last polled status. Keep
+      // that trusted same-generation cursor until status catches up.
+      if (cursor.position <= high) cursors.current.set(home, { generation: source, position: high });
       setAttachment(previous => previous.scope === scope && previous.status !== "waiting" ? previous : { scope, status: "attached", gap: false });
       return;
     }
@@ -78,7 +80,11 @@ export function ObserverAttachment({ host, observe = nativeObserve }: { host: Js
       setCursorRevision(revision => revision + 1);
     }).catch(() => {
       pending.current.delete(scope);
-      if (alive.current && current.current === scope) setAttachment({ scope, status: "unavailable", limit: "Window attachment could not be read; current native activity remains separately received." });
+      if (!alive.current || current.current !== scope) {
+        if (attempted.current.get(home) === attempt) attempted.current.delete(home);
+        return;
+      }
+      setAttachment({ scope, status: "unavailable", limit: "Window attachment could not be read; current native activity remains separately received." });
     });
   }, [scope, ready, high, floor, observe, cursorRevision]); // full source identity is scope
 
