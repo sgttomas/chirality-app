@@ -155,20 +155,15 @@ fn historical_trial_run_after_restart_brings_back_unsent_without_restoring_owner
 #[test]
 fn historical_trial_source_is_separate_from_target_and_duplicate_home_ids_refuse() {
     let source = historical_trial_peer();
-    let target = Peer::new();
+    let mut target = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
     let mut live = source.registered();
     let run = open_run(&source, &mut live, "thread");
     drop(live);
     let root = Mutex::new(WorkflowRootSession::default());
-    let mut target_home = HomeSession::new(
-        crate::home_resources::HomeClass::ApiKey,
-        target.home.host.clone(),
-        target.home.host_config.clone(),
-    )
-    .unwrap();
     // Key is another native source even when its supplier repeats "thread".
-    target_home.workflow_source_ref = "invented explicit target home".into();
-    let target_home = Arc::new(target_home);
+    Arc::get_mut(&mut target.home).unwrap().workflow_source_ref =
+        "invented explicit target home".into();
+    let target_home = target.home.clone();
     let homes = vec![target_home.clone(), source.home.clone()];
     let sent = (source.turn_starts(), target.turn_starts());
     let pending = trial_flows::bring_back_with_homes(
@@ -763,7 +758,7 @@ fn historical_trial_positive_ack_metadata_retry_after_same_host_restart_sends_no
 #[test]
 fn historical_trial_explicit_target_generation_changed_while_source_is_read_refuses_prefill() {
     let source = historical_trial_peer();
-    let target = Peer::new();
+    let target = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
     let mut live = source.registered();
     let run = open_run(&source, &mut live, "thread");
     drop(live);
@@ -773,14 +768,7 @@ fn historical_trial_explicit_target_generation_changed_while_source_is_read_refu
         .iter()
         .filter(|frame| frame["method"] == "thread/turns/list")
         .count();
-    let target_home = Arc::new(
-        HomeSession::new(
-            crate::home_resources::HomeClass::ApiKey,
-            target.home.host.clone(),
-            target.home.host_config.clone(),
-        )
-        .unwrap(),
-    );
+    let target_home = target.home.clone();
     let homes = vec![source.home.clone(), target_home.clone()];
     let root = Mutex::new(WorkflowRootSession::default());
     std::thread::scope(|scope| {
@@ -902,7 +890,7 @@ fn historical_trial_delegated_child_uses_authoring_home_without_loading_child() 
 #[test]
 fn historical_trial_recorded_source_history_can_be_read_without_loading_original_thread() {
     let mut source = historical_trial_peer();
-    let target = Peer::new();
+    let target = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
     let mut live = source.registered();
     let run = open_run(&source, &mut live, "thread");
     drop(live);
@@ -932,14 +920,7 @@ fn historical_trial_recorded_source_history_can_be_read_without_loading_original
         .as_array()
         .unwrap()
         .is_empty());
-    let target_home = Arc::new(
-        HomeSession::new(
-            crate::home_resources::HomeClass::ApiKey,
-            target.home.host.clone(),
-            target.home.host_config.clone(),
-        )
-        .unwrap(),
-    );
+    let target_home = target.home.clone();
     let root = Mutex::new(WorkflowRootSession::default());
     let homes = vec![source.home.clone(), target_home.clone()];
     let pending = trial_flows::bring_back_with_homes(

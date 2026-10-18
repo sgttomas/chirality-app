@@ -65,9 +65,10 @@ impl RuntimeSession {
                 }
             }
             self.incorporate_delivery_frames(&observation, &mut frames);
-            // The final current snapshot alone governs current controls. Closed
-            // source projections are kept separately for recording only.
-            let received = self.receive(&observation);
+            // Stop removes current control before EOF ends source observation.
+            // Only original Close delivery ends this private incorporation path;
+            // an intervening stopping snapshot must not discard later frames.
+            let received = self.receive_observation(&observation, false);
             host.ack_native_projection(self.native_owner.as_ref().unwrap(), batch)?;
             Ok::<_,String>((observation, received))
         })();
@@ -116,6 +117,9 @@ impl RuntimeSession {
         self.view.as_ref().map_or(Value::Null, NativeView::snapshot)
     }
     pub fn receive(&mut self, observation: &Value) -> Value {
+        self.receive_observation(observation, true)
+    }
+    fn receive_observation(&mut self, observation: &Value, close_from_snapshot: bool) -> Value {
         let snapshot = &observation["snapshot"];
         let generation = &observation["generation"];
         let active = snapshot["state"] == "ready";
@@ -228,7 +232,7 @@ impl RuntimeSession {
                 self.position = position;
             }
         }
-        if !active && self.view.is_some() && !self.closed && snapshot["state"] != "handshaking" {
+        if close_from_snapshot && !active && self.view.is_some() && !self.closed && snapshot["state"] != "handshaking" {
             if let Some(view) = self.view.as_mut() {
                 let _ = view.close(&self.generation);
             }
@@ -296,7 +300,7 @@ impl RuntimeSession {
         os: Option<&str>,
     ) -> Value {
         if self.native_owner.is_none() { self.receive(observation); }
-        let account = if observation["sourceDeliveryUnavailable"] == true { None } else { self.codex_account_for(&observation["generation"]) };
+        let account = if observation["sourceDeliveryUnavailable"] == true || observation["snapshot"]["state"] != "ready" { None } else { self.codex_account_for(&observation["generation"]) };
         json!({"generation":observation["generation"],"hostState":observation["snapshot"]["state"],
             "displayName":name,"osAccount":os,"codexAccount":account,
             "accountRevision":self.account_revision})
@@ -7818,6 +7822,12 @@ mod workflow_root_tests {
         /// for a known App project (H-acct), so the run tag can be stored.
         fn with_recovery()->Self{Self::build(true)}
         fn build(recovery:bool)->Self {
+            Self::build_with_class(recovery, crate::home_resources::HomeClass::Account)
+        }
+        fn with_class(class:crate::home_resources::HomeClass)->Self {
+            Self::build_with_class(false, class)
+        }
+        fn build_with_class(recovery:bool,class:crate::home_resources::HomeClass)->Self {
             use std::os::unix::fs::PermissionsExt;
             let fixture=Fixture::new();for name in ["account","probe"]{std::fs::create_dir(fixture.root.join(name)).unwrap();}
             // The peer sees the WR records where the App publishes them (RS §13.8).
@@ -7970,7 +7980,7 @@ for line in sys.stdin:
             host.start(&cfg,"owned workflow source fixture").unwrap();assert_eq!(host.snapshot()["supplierStanding"],"unverified-development");
             let generation=host.snapshot()["generation"].clone();host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
             if recovery{let project=crate::recovery::ExplicitAppProjectContext::known("fixture App project",crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap();assert!(host.observe_conversation_project(&generation,"thread",Some("H-acct"),&project).unwrap()["indexSnapshot"].is_object());}
-            let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,host,Ok(cfg)).unwrap());Self{fixture,home,generation}
+            let home=Arc::new(HomeSession::new(class,host,Ok(cfg)).unwrap());Self{fixture,home,generation}
         }
         fn wire(&self)->Vec<Value>{std::fs::read_to_string(self.fixture.root.join("wire.jsonl")).unwrap().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
         fn turn_starts(&self)->usize{self.wire().iter().filter(|f|f["method"]=="turn/start").count()}
@@ -8242,8 +8252,23 @@ for line in sys.stdin:
         // Every entry was validated by the RS writer (W-1); the log reads complete.
         assert!(peer.fixture.rs_entries().iter().all(|e|e["formatVersion"].is_string()));
     }
+    struct NativeDeliveryRecordsStore(PathBuf);
+    impl NativeDeliveryRecordsStore {
+        fn new() -> Self {
+            let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("native-delivery-records-").unwrap());
+            crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: root.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+            Self(root)
+        }
+    }
+    impl Drop for NativeDeliveryRecordsStore {
+        fn drop(&mut self) {
+            crate::records_store::use_store_for_test(None);
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
     #[test]
     fn native_projection_delivery_survives_public_replay_loss_and_late_recording() {
+        let _store = NativeDeliveryRecordsStore::new();
         for (closed, status_first, busy) in [(false,false,false),(false,true,false),(true,false,false),(true,true,false),(false,false,true),(true,true,true)] {
             let peer = Peer::new();
             peer.set_mode("notify-mode", "checkpoint");
@@ -8290,7 +8315,67 @@ for line in sys.stdin:
     }
 
     #[test]
+    fn native_projection_delivery_records_frames_between_stop_request_and_source_close() {
+        let _store = NativeDeliveryRecordsStore::new();
+        for status_first in [false, true] {
+            let peer = Peer::new();
+            let mut root = declared(&peer);
+            let run = open_run(&peer, &mut root, "thread");
+            let workflows = Mutex::new(root);
+            let homes = Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+            crate::host_tick::receive_view(&peer.home);
+            let (paused_tx, paused_rx) = std::sync::mpsc::channel();
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            peer.home.host.pause_stop_cleanup_for_test(move || {
+                let _ = paused_tx.send(());
+                release_rx.recv_timeout(Duration::from_secs(10)).expect("test releases Stop before cleanup");
+            });
+            let host = peer.home.host.clone();
+            let stopping = std::thread::spawn(move || host.stop("fixture:person", "codex-stop"));
+            // Always release and join the actual Stop even when a regression
+            // assertion fails. The paused Stop holds the dispatch gate, so no
+            // test attempts a real protocol dispatch while it is paused.
+            let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                paused_rx.recv_timeout(Duration::from_secs(5)).expect("actual Stop reached stopping before closing input");
+                let snapshot = peer.home.host.snapshot();
+                assert_eq!(snapshot["state"], "stopping");
+                assert_eq!(snapshot["generationClosed"], false);
+                if status_first {
+                    crate::host_tick::receive_view(&peer.home);
+                } else {
+                    crate::host_tick::tick(&homes, &workflows);
+                }
+                let mut dispatched = false;
+                assert!(steer_conversation_turn(&snapshot, &peer.generation, "thread", "turn", "keep working", |_,_,_,_| {
+                    dispatched = true;
+                    Ok(json!({"result":{"turnId":"turn"}}))
+                }).is_err(), "current controls refuse while Stop is in progress");
+                assert!(!dispatched);
+                let item = json!({"id":"late-stop-message","type":"agentMessage","text":"Spacing report"});
+                for method in ["item/started", "item/completed"] {
+                    peer.home.host.native_frame_for_test(&peer.generation, &json!({"method":method,"params":{"threadId":"thread","turnId":"turn","item":item}}));
+                }
+                peer.home.host.discard_public_replay_for_test();
+                crate::host_tick::tick(&homes, &workflows);
+                let records = rs_for(&peer, &run);
+                assert_eq!(records.iter().filter(|e|e["kind"]=="checkpoint_arrival").count(), 1, "late actual-parser receipt must reach the real run writer: {records:?}");
+                assert_eq!(records.iter().filter(|e|e["kind"]=="disposition_change").count(), 1);
+                assert_eq!(peer.turn_starts(), 1, "no resend or control dispatch");
+                records.iter().filter(|e|e["kind"]=="checkpoint_arrival").map(|e|e["recordId"].clone()).collect::<Vec<_>>()
+            }));
+            let _ = release_tx.send(());
+            let stopped = stopping.join().expect("Stop worker completes");
+            stopped.unwrap();
+            let arrival_ids = match outcome { Ok(ids) => ids, Err(panic) => std::panic::resume_unwind(panic) };
+            assert_eq!(peer.home.host.snapshot()["generationClosed"], true);
+            for _ in 0..2 { crate::host_tick::receive_view(&peer.home); crate::host_tick::tick(&homes, &workflows); }
+            assert_eq!(rs_for(&peer, &run).iter().filter(|e|e["kind"]=="checkpoint_arrival").map(|e|e["recordId"].clone()).collect::<Vec<_>>(), arrival_ids, "closure/status/tick retries never duplicate the late receipt");
+        }
+    }
+
+    #[test]
     fn native_projection_delivery_preserves_generations_and_history_is_not_a_fresh_arrival() {
+        let _store = NativeDeliveryRecordsStore::new();
         let peer = Peer::new();
         peer.set_mode("notify-mode", "checkpoint");
         let mut root = declared(&peer);

@@ -80,7 +80,10 @@ no invented ready state; closed or foreign-source frames remain diagnostics.
 Actual ready/frame/close input is processed even if its source closed before
 the first read. Closed original projections retain their live-observed receipt
 standing for recording, while current controls receive only the final current
-snapshot. The record tick visits retained source projections in source order,
+snapshot. A Stop request makes current controls and actor-account attribution
+unavailable immediately; it does not end private source incorporation before
+the original close delivery. Frames received between Stop and EOF remain
+original observations and can reach recording. The record tick visits retained source projections in source order,
 with thread/turn/request/custody metadata qualified by that same generation.
 It cannot fill an old source's access mode from a later selection. History
 rows retain recovered-from-supplier standing and do not become fresh arrivals.
@@ -95,6 +98,6 @@ closed projections acquire a disposal policy or a total-memory bound here.
 The actual checkpoint regression in `runtime_session.rs` removes public replay
 before the ordinary tick and reopens the real run records. It covers closed
 sources, status-first delivery, busy runs, repeated ticks, two generations,
-source metadata order and history/duplicate controls. The module's focused
+source metadata order, Stop-before-EOF delivery and history/duplicate controls. The module's focused
 checks cover owner/prefix identity, concurrent append and refusal without
 partial acknowledgment. Ordinary App CI runs both maintained cohorts.

@@ -1149,6 +1149,14 @@ impl Host {
     pub(crate) fn discard_public_replay_for_test(&self) {
         self.inner.0.lock().unwrap().journal.clear();
     }
+    #[cfg(test)]
+    pub(crate) fn pause_stop_cleanup_for_test(&self, hook: impl FnOnce() + Send + 'static) {
+        *self.before_stop_cleanup.lock().unwrap() = Some(Box::new(hook));
+    }
+    #[cfg(test)]
+    pub(crate) fn native_frame_for_test(&self, generation: &Value, frame: &Value) {
+        self.on_line(&serde_json::to_vec(frame).unwrap(), generation);
+    }
     pub fn journal(&self) -> Vec<Value> {
         self.inner.0.lock().unwrap().journal.clone()
     }
