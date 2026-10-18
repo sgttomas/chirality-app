@@ -1013,6 +1013,17 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Answer command and observation refresh.** The request card keeps the native
+answer command's outcome separate from a subsequent failure to refresh custody.
+A reported local write with acknowledgment not observed is not a refusal; a
+native confirmation dismissal reports no attempt. An arbitrary command error
+does not prove that no write occurred. A failed refresh cannot replace those
+observations with "last answer not taken" or authorize another response from
+an old waiting view. Request-local attempt evidence is bound to the original
+generation and typed request identity and retains no answer content. It does
+not synthesize a register settlement, supplier acknowledgment or a new request.
+Reopening the view still reconstructs cards from the Host's actual register.
+
 **Person-opened App-file arrival review (PD-5).** Eligible live single-file
 A4/A6/A7 arrival rows offer an explicit entry into the existing frozen file
 preview. The host resolves the original run and written arrival; the renderer
