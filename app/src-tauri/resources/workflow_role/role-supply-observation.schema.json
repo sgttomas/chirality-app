@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-02-04:role-supply-observation:0.2",
+  "$id": "urn:chirality:app-v4:del-02-04:role-supply-observation:0.3",
   "title": "App role supply observation log",
-  "description": "Immutable observations grouped by stable supplyId, from actual App native request custody or an App pre-send refusal. A later correlated observation appends another row; prior rows remain exact. Quoted cold evidence never restores current role/CCE authority. Historical chirality.role.supply/0.2 remains a different format. Current observation 0.2 adds immutable limit evidence bound to the original App composition. Prior observation 0.1 is read through its exact preserved schema.",
+  "description": "Immutable App supply observations. Version0.3 retains exact native child compositions, sources, envelopes and limits. Cold files never restore current role or CCE authority; versions0.1 and0.2 retain their original schemas.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -29,7 +29,7 @@
       "const": "chirality.role.supply.observation"
     },
     "formatVersion": {
-      "const": "0.2"
+      "const": "0.3"
     },
     "observationId": {
       "type": "string",
@@ -70,7 +70,9 @@
     "trigger": {
       "enum": [
         "thread-start",
-        "fork"
+        "fork",
+        "native-child-association",
+        "native-task-delegation"
       ]
     },
     "thread": {
@@ -136,7 +138,8 @@
           "enum": [
             "thread/start",
             "thread/fork",
-            null
+            null,
+            "thread/read"
           ]
         },
         "writeResult": {
@@ -207,7 +210,9 @@
         "inherited",
         "refused-before-send",
         "request-failed",
-        "unknown"
+        "unknown",
+        "native-child-associated",
+        "task-delegation-observed"
       ]
     },
     "supplierReported": {
@@ -298,6 +303,31 @@
           "items": {
             "$ref": "#/$defs/childRole"
           }
+        },
+        "nativeChildObservation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "standing"
+          ],
+          "properties": {
+            "standing": {
+              "type": "string"
+            },
+            "candidateNames": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sourceCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "config": {
+              "$ref": "#/$defs/contentIdentity"
+            }
+          }
         }
       }
     },
@@ -357,6 +387,106 @@
             "byteLength": {
               "type": "integer",
               "minimum": 1
+            }
+          }
+        },
+        "nativeChildren": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "carried",
+              "composed",
+              "parts",
+              "file",
+              "limitAccount"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "HELP_HUMAN",
+                  "HELPS_HUMANS",
+                  "WORKING_ITEMS",
+                  "TASK"
+                ]
+              },
+              "carried": {
+                "$ref": "#/properties/carried"
+              },
+              "composed": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "$ref": "#/$defs/contentIdentity"
+                  },
+                  "byteLength": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "content",
+                  "byteLength"
+                ]
+              },
+              "parts": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "$ref": "#/$defs/contentIdentity"
+                    },
+                    "byteLength": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "byteLength"
+                  ]
+                }
+              },
+              "file": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "$ref": "#/$defs/contentIdentity"
+                  },
+                  "byteLength": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "content",
+                  "byteLength"
+                ]
+              },
+              "limitAccount": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "$ref": "#/$defs/contentIdentity"
+                  },
+                  "byteLength": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "content",
+                  "byteLength"
+                ]
+              }
             }
           }
         }
@@ -571,6 +701,49 @@
                 "pattern": "^sup:.+"
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "native-child-associated"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "carried",
+          "appBytes"
+        ],
+        "properties": {
+          "trigger": {
+            "const": "native-child-association"
+          },
+          "request": {
+            "properties": {
+              "method": {
+                "const": "thread/read"
+              },
+              "writeResult": {
+                "const": "written"
+              },
+              "outcome": {
+                "const": "response-observed-result"
+              }
+            }
+          },
+          "lineage": {
+            "required": [
+              "parentSupplyRef",
+              "nativeChildEvent",
+              "supplyCarrier"
+            ]
           }
         }
       }
@@ -886,7 +1059,9 @@
             "user-configuration-defines-role",
             "not-offered-by-role",
             "mechanism-not-supported-at-pin",
-            "user-configuration-not-read"
+            "user-configuration-not-read",
+            "child-guidance-unavailable",
+            "child-file-unavailable"
           ]
         }
       },

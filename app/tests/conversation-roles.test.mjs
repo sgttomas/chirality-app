@@ -7,7 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
+const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const noop=()=>{};
 
@@ -74,6 +74,8 @@ test('the start display is readable: preselection, no role, TASK not offered, li
   // The host's list governs when it is handed.
   const hostList=h(RoleChoice,{group:"start-thread-role",roleSet:{...roleSet,conversationRoles:['HELP_HUMAN','WORKING_ITEMS']},limits,role:'',setRole:noop,preselected:false});
   assert.ok(hostList.includes('value="WORKING_ITEMS"')&&!hostList.includes('value="HELPS_HUMANS"')&&!hostList.includes('value="TASK"'));
+  const invalidList=h(RoleChoice,{group:"start-thread-role",roleSet:{...roleSet,conversationRoles:['HELP_HUMAN','TASK']},limits,role:'',setRole:noop,preselected:false});
+  assert.ok(!invalidList.includes('value="TASK"'),'a malformed list cannot turn TASK into a primary conversation role');
   // Continue as offers the same three and No role, never TASK.
   const cont=header(thread());
   assert.ok(!/<option[^>]*value="TASK"/.test(cont)&&/<option[^>]*value="WORKING_ITEMS"/.test(cont));
@@ -205,4 +207,126 @@ test('late source-bound supply is shown separately from the original wait, never
   }
   const prepared=structuredClone(supply);prepared.state='response-observed';prepared.originalStartReceipts=[];
   assert.ok(!h(SupplyStatus,{supply:prepared}).includes('Supplied at start'));
+});
+
+const identity=letter=>({method:'chirality.app.exact-bytes.sha256/v1',value:letter.repeat(64)});
+const nativeChild=(role='TASK')=>({role,status:'supplied',configKeys:[`agents.${role}.description`,`agents.${role}.config_file`],composed:identity('c'),file:identity('d')});
+function childSupply(selection='HELP_HUMAN') {
+  const offered=selection==='HELP_HUMAN'?['HELPS_HUMANS','WORKING_ITEMS','TASK']:['HELPS_HUMANS','WORKING_ITEMS'].includes(selection)?['TASK']:[];
+  const carried={baseInstructions:'not-set',developerInstructions:{content:identity('a'),byteLength:10,parts:[{source:{path:'AGENTS.md',state:'default'},length:10}]},nativeChildRoles:roles.map(r=>offered.includes(r.name)?nativeChild(r.name):{role:r.name,status:'not-supplied',reason:'not-offered-by-role'})};
+  const supply={state:'response-observed',supplyRef:'sup:parent',selection,generation:g,roleSet:identity('b'),carried,
+    childNamespaceObservation:{standing:'observed configuration and source bytes; not a lock on later changes',candidateNames:['PERSON_ROLE'],sourceCount:4,config:identity('e')}};
+  supply.originalStartReceipts=[{supplyRef:supply.supplyRef,selection,generation:structuredClone(g),roleSet:structuredClone(supply.roleSet),carried:structuredClone(carried),requestRef:'req:start',requestIdentity:201,activeAdmission:true,writeResult:'written',outcome:'response-observed-result'}];
+  return supply;
+}
+
+test('child catalog presents the host matrix without adding TASK to primary roles',()=>{
+  for (const [selection,count] of [['HELP_HUMAN',3],['HELPS_HUMANS',1],['WORKING_ITEMS',1],[null,0]]) {
+    const supply=childSupply(selection);
+    const html=h(NativeChildRoles,{supply});
+    assert.equal((html.match(/Supplied in the original parent start\./g)??[]).length,count);
+    assert.equal((html.match(/Not supplied\. Not offered by this conversation&#x27;s role\./g)??[]).length,4-count);
+    assert.ok(html.includes('PERSON_ROLE')&&html.includes('Sources observed: 4')&&html.includes(identity('e').value));
+    assert.ok(html.includes('not a lock on later changes'));
+    assert.ok(html.includes('TASK&#x27;s default nondelegation limit is stated, not enforced'));
+    assert.ok(!/<(input|option|button)/.test(html),'catalog is evidence, with no role-changing or delegation control');
+    assert.ok(h(SupplyStatus,{supply}).includes('aria-label="Native child role supply"'),'the ordinary supply display consumes the catalog');
+  }
+});
+
+test('child role supply requires the complete original receipt, including child bytes and file identity',()=>{
+  const supply=childSupply();
+  for (const change of [s=>{s.originalStartReceipts=[];},s=>{s.originalStartReceipts[0].carried.nativeChildRoles.find(r=>r.status==='supplied').file.value='f'.repeat(64);},s=>{s.originalStartReceipts[0].carried.nativeChildRoles.find(r=>r.status==='supplied').composed.value='f'.repeat(64);},s=>{s.originalStartReceipts[0].generation.spawnCounter++;},s=>{s.originalStartReceipts[0].roleSet=identity('f');},s=>{s.originalStartReceipts[0].activeAdmission=false;},s=>{s.originalStartReceipts[0].writeResult='write-failed';},s=>{s.originalStartReceipts[0].outcome='response-observed-error';},s=>{delete s.originalStartReceipts[0].requestRef;}]) {
+    const prepared=structuredClone(supply);change(prepared);
+    const html=h(NativeChildRoles,{supply:prepared});
+    assert.equal((html.match(/Prepared; native supply not established\./g)??[]).length,3);
+    assert.ok(!html.includes('Supplied in the original parent start.'));
+  }
+  // A later call failure does not erase a matched original successful receipt.
+  assert.ok(h(NativeChildRoles,{supply:{...supply,state:'start-failed-or-unknown'}}).includes('Supplied in the original parent start.'));
+  assert.equal(h(NativeChildRoles,{supply:{nativeChildRoles:[nativeChild()]}}),'','an unbound top-level status is not a carrier');
+});
+
+test('withheld child roles explain collisions, unreadable sources, unestablished support and publication failure',()=>{
+  const reasons=['user-configuration-defines-role','user-configuration-not-read','mechanism-not-supported-at-pin','child-guidance-unavailable','child-file-unavailable','future-withholding-reason'];
+  const supply=childSupply();supply.carried.nativeChildRoles=reasons.map(reason=>({role:'TASK',status:'not-supplied',reason}));
+  supply.childNamespaceObservation={standing:'Native child roles withheld: configuration origins or source currency unavailable'};
+  const html=h(NativeChildRoles,{supply});
+  for (const reading of ['A person-defined role with this name was preserved.','Configuration origins or source currency could not be established.','Child-role carrier support is not established for this acting supplier.','Child guidance could not be read or composed.','The App child guidance file could not be published or verified.','future-withholding-reason']) assert.ok(html.includes(reading),reading);
+  assert.equal((html.match(/Not supplied\./g)??[]).length,reasons.length);
+  assert.ok(!html.includes('Supplied in the original parent start.')&&!html.includes('Sources observed:'));
+  assert.ok(html.includes('The App preserves the person&#x27;s roles, features, depth and permissions'));
+});
+
+test('unknown or different acting supplier identity withholds support without claiming version incompatibility',()=>{
+  // Core uses this reason when executable identity is unknown or different,
+  // even with a compatible declared version and configuration. The UI receives
+  // the withholding reason; it must not turn it into a version-level conclusion.
+  const supply=childSupply();supply.originalStartReceipts=[];
+  supply.carried.nativeChildRoles=supply.carried.nativeChildRoles.map(child=>child.status==='supplied'?{role:child.role,status:'not-supplied',reason:'mechanism-not-supported-at-pin'}:child);
+  const html=h(SupplyStatus,{supply});
+  assert.ok(html.includes('Child-role carrier support is not established for this acting supplier.'));
+  assert.ok(!html.includes('This Codex version does not support'));
+  assert.ok(!html.includes('Supplied in the original parent start.'));
+});
+
+const childEvent={generation:g,parentThreadId:'parent',threadId:'child',turnId:'turn:1',itemId:'native-item:1',receiptPosition:17,source:'live item/completed subAgentActivity(kind=started)'};
+const associatedChild={standing:'app-observed-child-supply',role:'TASK',parentSupplyRef:'sup:parent',composition:identity('c'),file:identity('d'),native:childEvent,metadataRequestRef:'req:metadata',agentRole:'TASK',parentThreadId:'parent',limitAccount:{role:'TASK',limits:[task,all]},providerAdoption:'unknown',currentRoleAuthorityRestored:false,basis:'original parent + native event + metadata',roleSupplyRecord:{state:'written'}};
+
+test('selected child evidence remains historical and separate from the primary conversation role',()=>{
+  const html=header(thread({threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},childGuidance:associatedChild}));
+  assert.ok(html.includes('Role not established in this App process (no primary App binding)'));
+  assert.ok(html.includes('Original App child guidance: <b>TASK</b> (observed). Parent conversation: parent. Provider uptake remains unknown.'));
+  assert.ok(!html.includes('Role: <b>TASK</b>')&&!/<option[^>]*value="TASK"/.test(html));
+  assert.ok(html.includes('A task agent does not delegate: <b>Stated, not enforced</b>'));
+  assert.ok(html.includes('It does not set the primary conversation role or restore current role authority'));
+  assert.ok(html.includes('Resume, fork and later generations do not authorize new child associations from this catalog'));
+  assert.ok(html.includes('req:metadata')&&html.includes('native-item:1')&&html.includes(identity('d').value),'original identity remains inspectable');
+  const later=header(thread({generation:{...g,spawnCounter:2},threadId:'child',childGuidance:associatedChild}));
+  assert.ok(later.includes('Original App child guidance')&&later.includes('&quot;spawnCounter&quot;: 1'),'later generations preserve the original evidence');
+  const unknown=h(ChildAssociations,{associations:[{native:childEvent,guidance:{standing:'unknown',reason:'native child metadata pending'}}]});
+  assert.ok(unknown.includes('Child child · parent parent · guidance unknown')&&unknown.includes('Child guidance unknown: native child metadata pending'));
+  assert.ok(!unknown.includes('Original App child guidance')&&!unknown.includes('Stated, not enforced'));
+  assert.ok(h(SupplyStatus,{supply:{childAssociations:[{native:childEvent,guidance:associatedChild}]}}).includes('Observed native children'),'events remain visible even when there is no last-start state');
+});
+
+test('TASK delegation shows the observed event, original standing and root provenance without enforcement claims',()=>{
+  const observed={...childEvent,parentThreadId:'child',threadId:'grandchild',itemId:'native-item:2',receiptPosition:21,root:childEvent,parentSupplyRef:'sup:parent',standing:'stated-not-enforced',originalRole:'TASK',basis:'comparison-with-original-child-guidance',actionGeneration:g,originalAssociation:{associationId:'sup:child:1',generation:g,parentSupplyRef:'sup:parent',role:'TASK'}};
+  const html=h(RoleLimitObservations,{observations:[observed]});
+  assert.ok(html.includes('Child child started child grandchild. Original TASK limit standing: <b>Stated, not enforced</b>'));
+  assert.ok(html.includes('Native delegation compared with original TASK guidance'));
+  assert.ok(html.includes('The App did not prevent this delegation.'));
+  assert.ok(html.includes('native-item:2')&&html.includes('receipt position 21')&&html.includes('Original root parent: parent · original parent supply: sup:parent'));
+  assert.ok(html.includes('original TASK association: sup:child:1')&&!html.includes('Original guidance generation:'),'same-generation comparison keeps generation detail in raw evidence');
+  const unknown=h(RoleLimitObservations,{observations:[{...observed,standing:'unknown',presentedAs:'TASK prohibition stated, not enforced'}]});
+  assert.ok(unknown.includes('Original TASK limit standing: <b>unknown</b>')&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  assert.ok(header(thread({roleLimitObservations:[observed]})).includes('aria-label="Observed TASK delegations"'),'shown in the source conversation');
+  assert.ok(h(SupplyStatus,{supply:{roleLimitObservations:[observed]}}).includes('Native delegation compared with original TASK guidance'),'shown in the home supply display');
+});
+
+test('later native action compares with original TASK guidance without renewed supply or a new child association',()=>{
+  const later={...g,spawnCounter:2};
+  const event={...childEvent,generation:later,parentThreadId:'child',threadId:'grandchild',itemId:'native-item:later',receiptPosition:23};
+  const observed={...event,root:childEvent,parentSupplyRef:'sup:parent',standing:'unknown',presentedAs:'Original TASK limit assessment unknown',originalRole:'TASK',basis:'comparison-with-original-child-guidance',actionGeneration:later,originalAssociation:{associationId:'sup:child:1',generation:g,parentSupplyRef:'sup:parent',role:'TASK'},comparisonStanding:'Original App guidance compared with a later native action; no renewed supply, provider uptake, RoleBinding, CCE or current-source authority'};
+  const html=h(SupplyStatus,{supply:{childAssociations:[{native:childEvent,guidance:associatedChild},{native:event,guidance:{standing:'unknown',reason:'no supported original App parent carrier'}}],roleLimitObservations:[observed]}});
+  assert.ok(html.includes(`Original guidance generation: ${JSON.stringify(g).replaceAll('"','&quot;')}. Native action generation: ${JSON.stringify(later).replaceAll('"','&quot;')}.`));
+  assert.ok(html.includes('original TASK association: sup:child:1')&&html.includes('original parent supply: sup:parent'));
+  assert.ok(html.includes('Original TASK limit standing: <b>unknown</b>'),'edited original guidance keeps its unknown assessment');
+  assert.ok(html.includes('Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.'));
+  assert.ok(html.includes('Child grandchild · parent child · guidance unknown'));
+  assert.ok(html.includes('Child guidance unknown: no supported original App parent carrier.'));
+  assert.equal((html.match(/Original App child guidance:/g)??[]).length,1,'only the original child has an association');
+  assert.ok(!html.includes('TASK child child started')&&!html.includes('Supplied in the original parent start.'));
+});
+
+test('quoted history exposes exact child composition, sources, envelope and original limits without restoring associations',()=>{
+  const {RoleSupplyHistory}=load('ConversationRoles.tsx');
+  const child={role:'TASK',composed:'common\r\n\n# Active role: TASK\n\n<child instructions>',parts:[{source:{path:'agents/AGENT_TASK.md'},kind:'role-guidance',text:'<child instructions>'}],envelope:'developer_instructions = "quoted\\r\\n"\n',limitAccount:{role:'TASK',limits:[task]}};
+  const html=h(RoleSupplyHistory,{view:{observations:[{record:{trigger:'thread-start',outcome:'supplied',supplyId:'sup:old'},sourceBytes:{composed:'original parent',parts:[],nativeChildren:[child]}}]}});
+  assert.ok(html.includes('Recorded TASK child instruction bytes (quoted evidence)'));
+  assert.ok(html.includes('common\r\n\n# Active role: TASK\n\n&lt;child instructions&gt;'));
+  assert.ok(html.includes('agents/AGENT_TASK.md · role-guidance')&&html.includes('&lt;child instructions&gt;'));
+  assert.ok(html.includes('Recorded child configuration file bytes')&&html.includes('developer_instructions = &quot;quoted\\r\\n&quot;\n'));
+  assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
+  assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
 });

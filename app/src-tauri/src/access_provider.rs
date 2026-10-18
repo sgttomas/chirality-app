@@ -7,7 +7,12 @@ pub(crate) struct ProviderAdmission {
     cwd: String,
     provider: String,
     model: String,
+    entry: String,
+    config: Value,
+    children: Option<ChildStartGuard>,
+    config_link: Option<crate::child_roles::ConfigLink>,
 }
+struct ChildStartGuard { namespace: crate::child_roles::Namespace, config: Value, files: Vec<crate::child_roles::ChildSupply> }
 const LIMIT: &str = "Access entry unavailable: current provider configuration could not be established; no thread/start sent";
 fn unavailable() -> String {
     LIMIT.into()
@@ -305,6 +310,10 @@ impl Host {
             cwd: cwd.into(),
             provider: provider.into(),
             model: model.into(),
+            entry: entry.into(),
+            config: result.clone(),
+            children: None,
+            config_link: None,
         };
         let i = self.inner.0.lock().unwrap();
         self.check_provider_admission(
@@ -353,7 +362,124 @@ impl Host {
         {
             return Err("Access entry unavailable: original provider reading superseded/unavailable or destination/source differs; no thread/start sent".into());
         }
+        if let Some(children)=&proof.children {
+            if params.get("config")!=Some(&children.config){return Err("Native child configuration differs from the prepared observation; no start sent".into())}
+        }
         Ok(())
+    }
+    pub(crate) fn role_config_link(
+        &self,
+        proof: &mut ProviderAdmission,
+        link: crate::child_roles::ConfigLink,
+    ) {
+        proof.config_link = Some(link);
+    }
+    pub(super) fn recheck_child_sources(&self, proof: &ProviderAdmission) -> Result<(), String> {
+        if let Some(children) = &proof.children {
+            children.namespace.recheck()?;
+            for child in &children.files {
+                child.recheck()?;
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn prepare_role_children(
+        &self,
+        proof: &mut ProviderAdmission,
+        composition: &mut crate::role_supply::Composition,
+        instructions: &std::path::Path,
+        data: &std::path::Path,
+    ) -> Result<(), String> {
+        let reading = (|| {
+            {
+                let i = self
+                    .inner
+                    .0
+                    .lock()
+                    .map_err(|_| "Native source unavailable".to_string())?;
+                self.check_provider_admission(
+                    &i,
+                    proof,
+                    &json!({"cwd":proof.cwd,"modelProvider":proof.provider,"model":proof.model}),
+                )?;
+                let pin = i
+                    .version_identity
+                    .as_ref()
+                    .ok_or("unsupported-native-child-supplier")?;
+                if pin["declaredPin"]!="0.160.0"||!pin["distributionContentIdentity"].as_array().is_some_and(|rows|rows.iter().any(|r|r["path"]=="bin/codex"&&r["identity"]["algorithm"]=="sha-256"&&r["identity"]["value"]=="112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b")){return Err("unsupported-native-child-supplier".into())}
+            }
+            crate::child_roles::Namespace::observe_linked(&proof.config, proof.config_link.clone())
+        })();
+        let namespace = crate::child_roles::prepare(composition, reading, instructions, data);
+        if !composition.children.is_empty() {
+            // Config-layer/source coherence is a separate requirement from an
+            // equal filesystem rereading. A newer native read always replaces
+            // the provider proof; a changed response never promotes absence.
+            let refreshed = self.provider_admission_read(
+                &proof.source.generation,
+                &proof.cwd,
+                &proof.entry,
+                &proof.provider,
+                &proof.model,
+            )?;
+            let stable = refreshed.config == proof.config
+                && namespace.as_ref().is_some_and(|n| n.recheck().is_ok());
+            let link = proof.config_link.clone();
+            *proof = refreshed;
+            proof.config_link = link;
+            if stable {
+                proof.children = namespace.map(|namespace| ChildStartGuard {
+                    namespace,
+                    config: composition.native_config(),
+                    files: composition.children.clone(),
+                });
+            } else {
+                crate::child_roles::prepare(
+                    composition,
+                    Err("Native role reading changed".into()),
+                    instructions,
+                    data,
+                );
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn thread_start_with_role_dispatch(
+        &self,
+        proof: &ProviderAdmission,
+        composition: &crate::role_supply::Composition,
+    ) -> Result<SourceRequest, String> {
+        composition.verify()?;
+        let (mut params, project) = self.offered_start_params(
+            &proof.cwd,
+            &proof.model,
+            &proof.provider,
+            Some(&composition.text),
+        )?;
+        if !composition.children.is_empty() {
+            params["config"] = composition.native_config();
+        }
+        if proof.children.is_some() != !composition.children.is_empty() {
+            return Err("Native child preparation source unavailable; no start sent".into());
+        }
+        crate::role_supply::check_role_inputs(
+            "thread/start",
+            &json!({"developerInstructions":composition.text,"config":composition.native_config()}),
+        )?;
+        self.request_begin_with_access_offer(
+            "thread/start",
+            params,
+            json!({"kind":"person-directed"}),
+            false,
+            Some(&proof.source.generation),
+            false,
+            None,
+            None,
+            None,
+            project,
+            false,
+            Some(proof),
+        )
     }
     pub(crate) fn thread_start_with_access_dispatch(
         &self,

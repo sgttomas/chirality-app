@@ -308,6 +308,8 @@ fn read_guidance(root: &std::path::Path, path: &str, after_open: impl FnOnce()) 
 mod guidance_reads;
 #[derive(Debug, Clone)]
 pub struct Composition {
+    pub(crate) children: Vec<crate::child_roles::ChildSupply>,
+    pub(crate) child_reading: Value,
     role_set_identity: Value,
     pub text: String,
     pub carried: Value,
@@ -349,16 +351,91 @@ impl Composition {
         }
         let carried = json!({"compositionFormat":"chirality.role.compose/0.2","developerInstructions":{"content":content(&bytes),"byteLength":bytes.len(),"parts":parts},"baseInstructions":"not-set","nativeChildRoles":[]});
         Ok(Self {
+            children: vec![],
+            child_reading: Value::Null,
             role_set_identity: content(role_set_bytes),
             text: String::from_utf8(bytes).map_err(|e| e.to_string())?,
             carried,
             role: role.map(|(r, _)| r),
         })
     }
+    pub(crate) fn compose_child(&self, role: Role, guidance: &Guidance) -> Result<Self, String> {
+        self.verify()?;
+        let part = &self.carried["developerInstructions"]["parts"][0];
+        let length = part["length"]
+            .as_u64()
+            .ok_or("common source length absent")? as usize;
+        let common = Guidance {
+            bytes: self
+                .text
+                .as_bytes()
+                .get(..length)
+                .ok_or("common source range absent")?
+                .to_vec(),
+            source: part["source"].clone(),
+        };
+        let mut child = Self::new(&common, Some((role, guidance)), true)?;
+        child.role_set_identity = self.role_set_identity.clone();
+        Ok(child)
+    }
+    pub(crate) fn native_config(&self) -> Value {
+        let mut config = json!({});
+        for child in &self.children {
+            for (key, value) in child.config().as_object().unwrap() {
+                config[key] = value.clone();
+            }
+        }
+        config
+    }
+    /// Quoted-byte validation only. This cannot create a private RoleBinding.
+    pub(crate) fn quoted(role:Option<Role>,role_set:Value,text:String,carried:Value)->Result<Self,String>{
+        let composition=Self{children:vec![],child_reading:Value::Null,role_set_identity:role_set,text,carried,role};
+        composition.verify()?;crate::role_lifecycle::verify_composition_sources(&composition)?;Ok(composition)
+    }
     pub fn role_set_identity(&self) -> &Value {
         &self.role_set_identity
     }
     pub fn verify(&self) -> Result<(), String> {
+        let supplied: Vec<_> = self.carried["nativeChildRoles"]
+            .as_array()
+            .ok_or("child supply account absent")?
+            .iter()
+            .filter(|r| r["status"] == "supplied")
+            .collect();
+        if supplied.len() != self.children.len() {
+            return Err("child supply account differs from frozen bytes".into());
+        }
+        for child in &self.children {
+            if child.composition.role != Some(child.role)
+                || !self
+                    .role
+                    .is_some_and(|r| r.child_roles().contains(&child.role))
+            {
+                return Err("child role differs from original offered relationship".into());
+            }
+            if supplied
+                .iter()
+                .filter(|r| r["role"] == json!(child.role))
+                .count()
+                != 1
+                || !supplied.iter().any(|r| **r == child.record())
+            {
+                return Err("child supply identity differs".into());
+            }
+            child.composition.verify()?;
+            let envelope: toml::Value = toml::from_str(
+                std::str::from_utf8(&child.envelope).map_err(|_| "child envelope not UTF8")?,
+            )
+            .map_err(|_| "child envelope invalid")?;
+            if envelope.as_table().is_none_or(|t| t.len() != 1)
+                || envelope["developer_instructions"].as_str()
+                    != Some(child.composition.text.as_str())
+                || child.path.file_name().and_then(|p| p.to_str())
+                    != Some(format!("{}.toml", sha256_hex(&child.envelope)).as_str())
+            {
+                return Err("child envelope/composition/content path differs".into());
+            }
+        }
         let b = self.text.as_bytes();
         let d = &self.carried["developerInstructions"];
         if d["content"] != content(b) || d["byteLength"] != b.len() {
@@ -377,7 +454,8 @@ impl Composition {
     }
     pub fn start_params(&self) -> Result<Value, String> {
         self.verify()?;
-        let params = json!({"developerInstructions":self.text});
+        let mut params = json!({"developerInstructions":self.text});
+        if !self.children.is_empty(){params["config"]=self.native_config();}
         check_role_inputs("thread/start", &params)?;
         Ok(params)
     }

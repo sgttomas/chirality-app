@@ -136,6 +136,8 @@ impl FrozenGuidance {
     }
 }
 
+/// Checks source framing/identities without restoring operational custody.
+pub(crate) fn verify_composition_sources(composition:&Composition)->Result<(),String>{FrozenGuidance::capture(composition).map(|_|())}
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "standing", rename_all = "kebab-case")]
 pub enum RoleInForce {
@@ -240,6 +242,8 @@ enum Origin {
 /// Authentic transport provenance remains Host's responsibility, not this Rust type.
 #[derive(Clone, Debug, Serialize)]
 pub struct RoleBinding {
+    #[serde(skip)]
+    native_children: Vec<crate::child_roles::ChildSupply>,
     home: String,
     thread: String,
     supply_ref: String,
@@ -261,6 +265,9 @@ impl RoleBinding {
     pub fn supply_ref(&self) -> &str {
         &self.supply_ref
     }
+    pub(crate) fn original_child_carrier(&self,generation:&Value)->bool{matches!(self.origin,Origin::Start)&&&self.observation.generation==generation}
+    pub(crate) fn original_request_ref(&self)->&str{&self.observation.request_ref}
+    pub(crate) fn supplied_children(&self)->&[crate::child_roles::ChildSupply]{&self.native_children}
     pub(crate) fn original_content(&self) -> &Value { &self.original.identity }
     /// A file row or renderer DTO cannot supply this immutable private binding.
     /// Match the publication to its actual correlated request and original bytes.
@@ -429,6 +436,7 @@ fn observation(
 /// Frozen before dispatch. Does not claim a native start or provider adoption.
 #[derive(Clone, Debug)]
 pub struct PreparedStart {
+    native_children: Vec<crate::child_roles::ChildSupply>,
     home: String,
     generation: Value,
     id: Value,
@@ -466,6 +474,7 @@ impl PreparedStart {
             request_ref: request_ref.into(),
             supply_ref: supply_ref.into(),
             guidance: FrozenGuidance::capture(composition)?,
+            native_children: composition.children.clone(),
             continued_from: None,
         })
     }
@@ -485,6 +494,10 @@ impl PreparedStart {
         {
             return Err("actual native start request does not carry the frozen guidance".into());
         }
+        let mut expected=json!({});for child in &self.native_children {for(k,v)in child.config().as_object().unwrap(){expected[k]=v.clone();}}
+        let config=actual_sent["params"].get("config").cloned().unwrap_or(json!({}));
+        if !expected.as_object().unwrap().is_empty() && config!=expected {return Err("actual native start child keys differ from frozen supply".into())}
+        if expected.as_object().unwrap().is_empty() && config.as_object().is_some_and(|c|c.keys().any(|k|k.starts_with("agents."))){return Err("unaccounted native child keys".into())}
         native_validate("ThreadStartParams", &actual_sent["params"])?;
         let mut observation = observation(
             &self.id,
@@ -509,6 +522,7 @@ impl PreparedStart {
             "nativeBaseAndConfigurationPreservation":"not-established-by-role-binding","settingsOwner":"native caller/user; not overridden or vetoed by role lifecycle"});
 
         Ok(RoleBinding {
+            native_children: self.native_children,
             home: self.home,
             thread: observation.thread.clone(),
             supply_ref: self.supply_ref,
@@ -628,6 +642,7 @@ impl MetadataRequest {
             return Err("fork/source relation not observed".into());
         }
         Ok(RoleBinding {
+            native_children: vec![],
             home: self.home,
             thread: observation.thread.clone(),
             supply_ref: self.fork_supply_ref.ok_or("fork supply reference absent")?,

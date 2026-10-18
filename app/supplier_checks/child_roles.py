@@ -25,9 +25,10 @@ import time
 BINARY_SHA = "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
 BASE_SHA = "e1bdd4f8f0df4b20f4a0ffc8a861ce819df45325d8cecdfb92e80379cf8d142e"
 RESOURCES = Path(__file__).resolve().parents[1] / "src-tauri/resources/instructions"
-DESCRIPTION = "Bounded TASK child with complete App guidance"
+DESCRIPTION = "Chirality TASK: bounded work; does not delegate (stated, not enforced)"
 USER_DESCRIPTION = "Synthetic person-defined TASK; preserve this definition"
 STANDALONE_DESCRIPTION = "Synthetic standalone person-defined TASK; preserve this definition"
+RUST_HELPER = None
 ORIGIN_CASES = ("declared-alias", "project-nearest", "project-untrusted", "role-file-currentness")
 
 
@@ -237,7 +238,7 @@ class Native:
         self.process.stdout.close()
 
 
-def run_case(binary, root, case, parent, task):
+def run_case(binary, root, case, parent, task, parent_role="WORKING_ITEMS", child_role="TASK"):
     root.mkdir()
     (root / "home").mkdir()
     (root / "os-home").mkdir()
@@ -246,7 +247,7 @@ def run_case(binary, root, case, parent, task):
     # Git/setup failures in new origin inputs occur before any provider starts.
     selected_cwd, origin_config, origin_expected, origin_absent, changing = prepare_origin_case(root, case)
     captures, lock = [], threading.Lock()
-    spawning = case in ("none", "all")
+    spawning = case in ("none", "all", "linked-home") or case.startswith("matrix-")
 
     class Provider(http.server.BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -265,8 +266,8 @@ def run_case(binary, root, case, parent, task):
             if spawning and first:
                 item = {"id": "fc_fixture", "type": "function_call", "namespace": "collaboration",
                         "name": "spawn_agent", "call_id": "call_fixture_task", "status": "completed",
-                        "arguments": json.dumps({"task_name": "fixture_child", "agent_type": "TASK",
-                            "fork_turns": case, "message": "Synthetic bounded carrier check only."})}
+                        "arguments": json.dumps({"task_name": "fixture_child", "agent_type": child_role,
+                            "fork_turns": case if case in ("none", "all") else "none", "message": "Synthetic bounded carrier check only."})}
                 events = [
                     {"type": "response.created", "response": {"id": "resp_fixture", "status": "in_progress", "output": []}},
                     {"type": "response.output_item.added", "output_index": 0, "item": dict(item, status="in_progress")},
@@ -309,7 +310,17 @@ def run_case(binary, root, case, parent, task):
     config += origin_config
     original_config = config.encode()
     original_standalone = standalone.read_bytes() if standalone is not None else None
-    (root / "home/config.toml").write_text(config)
+    linked_target = None
+    if case == "linked-home":
+        linked_target = root / "shared/config.toml"
+        linked_target.parent.mkdir()
+        linked_target.write_text(config)
+        (root / "home/config.toml").symlink_to(linked_target)
+        # The config link grants no sibling agents/ sharing. The native role
+        # roots remain relative to the reported CODEX_HOME user-layer file.
+        write_origin_role(root / "shared/agents/task.toml", "TASK", "LINK_TARGET_SIBLING_MUST_NOT_BE_IMPORTED")
+    else:
+        (root / "home/config.toml").write_text(config)
     origin_sources = {path: path.read_bytes() for path in root.rglob("*.toml")} if case in ORIGIN_CASES else {}
     origin_reading = {}
     native = None
@@ -347,7 +358,24 @@ def run_case(binary, root, case, parent, task):
                 "canonicalConfigResponseSha256": sha(canonical_reading),
                 "configReading": "complete parsed responses and canonical JSON equal; native key order is not wire-byte identity"})
         roles = effective["config"]["agents"]
-        overrides = fixture_role_overrides(case, roles, role_file)
+        production = None
+        if RUST_HELPER is not None and case not in ("baseline", "missing", "invalid"):
+            save(root / "effective-current.json", effective)
+            (root / "app-data").mkdir()
+            command = [str(RUST_HELPER), str(root / "effective-current.json"), str(root / "instructions"), str(root / "app-data"), parent_role or "none"]
+            if linked_target is not None:
+                command += [str(root / "home/config.toml"), str(linked_target)]
+            run = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            production = json.loads(run.stdout)
+            save(root / "rust-preparation.json", production)
+            assert production["parent"] == parent, "production Rust parent composition differs"
+            for child in production["children"]:
+                expected = (RESOURCES / "AGENTS.md").read_bytes() + ("\n\n# Active role: " + child["role"] + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + child["role"] + ".md")).read_bytes()
+                assert child["text"].encode() == expected, "production Rust child composition differs"
+            overrides = production["config"]
+        else:
+            overrides = fixture_role_overrides(case, roles, role_file)
+        app_description = overrides.get("agents." + child_role + ".description", DESCRIPTION)
         if case == "collision":
             assert isinstance(roles, dict) and "TASK" in roles, "native config did not expose person-defined TASK"
             assert not overrides, "fixture must withhold the colliding App name"
@@ -389,8 +417,8 @@ def run_case(binary, root, case, parent, task):
         assert parent in developer_texts(first), "complete parent composition not carried as developer guidance"
         assert sha(developer_texts(first)[0].encode()) == BASE_SHA, "native model template differs from selected reference"
         offered = role_description(first)
-        if case in ("baseline", "missing", "invalid"):
-            assert DESCRIPTION not in offered, "unavailable fixture role was advertised"
+        if case in ("baseline", "missing", "invalid", "no-role"):
+            assert app_description not in offered, "unavailable fixture role was advertised"
         elif case == "collision":
             assert USER_DESCRIPTION in offered and DESCRIPTION not in offered, "person-defined role was replaced"
         elif case == "standalone-collision":
@@ -420,10 +448,21 @@ def run_case(binary, root, case, parent, task):
                 assert before != thread, "currency catalogs were not observed in separate starts of the same native source"
                 origin_reading.update({"postMutationDefinitionBytesRetained": True, "otherDefinitionBytesUnchanged": True})
         else:
-            assert DESCRIPTION in offered, "per-thread custom role was not advertised"
+            assert app_description in offered, "per-thread custom role was not advertised"
         findings = {"case": case, "requests": len(captures), "nativeTemplate": BASE_SHA,
-                    "customRoleOffered": DESCRIPTION in offered, "personRolePreserved": True if changing is None and case in ("collision", "standalone-collision", *ORIGIN_CASES) else None}
+                    "customRoleOffered": app_description in offered, "personRolePreserved": True if changing is None and case in ("collision", "standalone-collision", *ORIGIN_CASES) else None}
         findings.update(origin_reading)
+        findings["parentRole"] = parent_role
+        findings["selectedChildRole"] = child_role if spawning else None
+        if production is not None:
+            assert_origin_catalog(offered, [(child["role"], production["config"]["agents." + child["role"] + ".description"]) for child in production["children"]], [])
+        findings["preparationBasis"] = "production Rust namespace/composition/publication" if production is not None else "direct native negative/control fixture"
+        if case == "linked-home":
+            assert linked_target.read_bytes() == original_config
+            assert (root / "home/config.toml").readlink() == linked_target
+            assert "LINK_TARGET_SIBLING_MUST_NOT_BE_IMPORTED" not in offered
+            findings["ownedConfigLinkRetained"] = True
+            findings["linkTargetAgentsSiblingNotImported"] = True
         if case == "standalone-collision":
             findings.update({"effectiveAgentsNull": True, "standaloneDescriptionRetained": True,
                              "appChildKeysWithheldByFixture": True, "originalDefinitionBytesRetained": True,
@@ -432,7 +471,7 @@ def run_case(binary, root, case, parent, task):
             child = next(iter(children))
             received = native.send("thread/read", {"threadId": child, "includeTurns": True})
             save(root / "child-read.json", received)
-            assert received["thread"]["agentRole"] == "TASK" and received["thread"]["parentThreadId"] == thread
+            assert received["thread"]["agentRole"] == child_role and received["thread"]["parentThreadId"] == thread
             child_bodies = [c["body"] for c in captures if task in developer_texts(c["body"])]
             assert len(child_bodies) == 1, "exact child composition not observed once"
             child_body = child_bodies[0]
@@ -466,7 +505,11 @@ def main():
         raise RuntimeError("run this check without Python optimization; its evidence assertions are required")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--codex", type=Path, required=True, help="already acquired stock 0.160.0 macOS arm64 binary")
+    parser.add_argument("--rust-helper", type=Path, required=True, help="offline-built production child_role_boundary example")
+    parser.add_argument("--matrix-only", action="store_true", help="only the additional standing-role and no-role consuming paths")
     args = parser.parse_args()
+    global RUST_HELPER
+    RUST_HELPER = args.rust_helper.resolve(strict=True)
     binary = args.codex.resolve(strict=True)
     if sha(binary.read_bytes()) != BINARY_SHA:
         parser.error("binary is not the identified stock 0.160.0 arm64 input; nothing executed")
@@ -477,15 +520,22 @@ def main():
     task = (common + b"\n\n# Active role: TASK\n\n" + executor).decode()
     root = Path(tempfile.mkdtemp(prefix="chirality-child-roles-", dir="/private/tmp"))
     report = {"format": "chirality.child-carrier-check/1", "binarySha256": BINARY_SHA,
-              "checkerSha256": sha(Path(__file__).read_bytes()), "invocation": [sys.executable, *sys.argv],
+              "checkerSha256": sha(Path(__file__).read_bytes()), "rustHelperSha256": sha(RUST_HELPER.read_bytes()), "invocation": [sys.executable, *sys.argv],
               "sourceComponents": {"AGENTS.md": sha(common), "agents/AGENT_WORKING_ITEMS.md": sha(manager),
                                    "agents/AGENT_TASK.md": sha(executor)},
               "parentComposition": sha(parent.encode()), "childComposition": sha(task.encode()),
               "network": "OS sandbox allows localhost only", "modelPredictions": 0,
-              "standing": "scripted stock-supplier carriage; not App integration, adoption, enforcement or qualification"}
+              "standing": "production Rust preparation and scripted stock-supplier carriage; private App Host custody tested separately; no adoption, enforcement or qualification"}
     print(f"Private evidence: {root}", flush=True)
-    report["cases"] = [run_case(binary, root / case, case, parent, task)
-                       for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all", *ORIGIN_CASES)]
+    report["cases"] = [] if args.matrix_only else [run_case(binary, root / case, case, parent, task)
+                       for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all", "linked-home", *ORIGIN_CASES)]
+    for parent_role, child_role in (("HELP_HUMAN", "HELPS_HUMANS"), ("HELP_HUMAN", "WORKING_ITEMS"), ("HELP_HUMAN", "TASK"), ("HELPS_HUMANS", "TASK")):
+        case = "matrix-" + parent_role + "-" + child_role
+        parent_bytes = (common + ("\n\n# Active role: " + parent_role + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + parent_role + ".md")).read_bytes()).decode()
+        child_bytes = (common + ("\n\n# Active role: " + child_role + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + child_role + ".md")).read_bytes()).decode()
+        report["cases"].append(run_case(binary, root / case, case, parent_bytes, child_bytes, parent_role, child_role))
+    report["cases"].append(run_case(binary, root / "no-role", "no-role", common.decode(), task, None))
+    report["rustProductionSources"] = {name: sha((RESOURCES.parents[1] / "src" / name).read_bytes()) for name in ("child_roles.rs", "role_supply.rs", "role_lifecycle.rs", "runtime_session.rs", "access_provider.rs")}
     report["evidenceFiles"] = {str(path.relative_to(root)): sha(path.read_bytes())
                              for path in sorted(root.rglob("*.json"))}
     save(root / "report.json", report)

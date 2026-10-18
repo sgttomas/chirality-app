@@ -50,7 +50,7 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
 export function RoleChoice({ roleSet, limits, role, setRole, preselected, group }: { roleSet: Json; limits: Json; role: string; setRole: (role: string) => void; preselected: boolean; group: string }) {
   if (!roleSet?.available) return <p>Role set unavailable: {text(roleSet?.reason)}. Only “No role” can be chosen.</p>;
   const offered: string[] = Array.isArray(roleSet.conversationRoles) ? roleSet.conversationRoles.map(text) : CONVERSATION_ROLES;
-  const roles = list(roleSet.roles).filter((r: Json) => offered.includes(text(r.name)));
+  const roles = list(roleSet.roles).filter((r: Json) => CONVERSATION_ROLES.includes(text(r.name)) && offered.includes(text(r.name)));
   return <fieldset>
     <legend>Conversation role (fixed for the conversation's life)</legend>
     {roles.map((r: Json) => {
@@ -66,11 +66,10 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected, group 
   </fieldset>;
 }
 
-/** The last start's supply, readable (ROLE §6.1, §6.4): the five facts stay apart. */
-export function SupplyStatus({ supply }: { supply: Json }) {
-  if (!supply || !supply.state) return <p>Role guidance: no conversation started in this home yet.</p>;
-  const parts = list(supply.carried?.developerInstructions?.parts);
-  const receipt = list(supply.originalStartReceipts).find((r: Json) =>
+/** A prepared catalog is supply only when the original native start receipt
+ * matches the complete carrier, including every child composition and file. */
+function originalSupplyReceipt(supply: Json): Json {
+  return list(supply?.originalStartReceipts).find((r: Json) =>
     typeof supply.supplyRef === "string" && supply.supplyRef.length > 0 && r.supplyRef === supply.supplyRef &&
     r.activeAdmission === true && r.writeResult === "written" && r.outcome === "response-observed-result" &&
     typeof r.requestRef === "string" && r.requestRef.length > 0 && r.requestIdentity != null &&
@@ -79,10 +78,102 @@ export function SupplyStatus({ supply }: { supply: Json }) {
     JSON.stringify(r.generation) === JSON.stringify(supply.generation) &&
     JSON.stringify(r.roleSet) === JSON.stringify(supply.roleSet) &&
     JSON.stringify(r.carried) === JSON.stringify(supply.carried));
+}
+
+const childWithholding: Record<string, string> = {
+  "not-offered-by-role": "Not offered by this conversation's role.",
+  "mechanism-not-supported-at-pin": "Child-role carrier support is not established for this acting supplier.",
+  "user-configuration-not-read": "Configuration origins or source currency could not be established.",
+  "user-configuration-defines-role": "A person-defined role with this name was preserved.",
+  "child-guidance-unavailable": "Child guidance could not be read or composed.",
+  "child-file-unavailable": "The App child guidance file could not be published or verified.",
+};
+
+/** CR-1/CR-2: receipt-bound supply, with visible withholding. The native
+ * configuration reading is bounded evidence, never a lock on future inputs. */
+export function NativeChildRoles({ supply }: { supply: Json }) {
+  const children = list(supply?.carried?.nativeChildRoles);
+  if (children.length === 0) return null;
+  const supplied = !!originalSupplyReceipt(supply);
+  const namespace = supply?.childNamespaceObservation ?? supply?.carried?.nativeChildObservation;
+  return <section aria-label="Native child role supply">
+    <p><b>Native child role guidance</b></p>
+    <ul>{children.map((child, i) => <li key={`${text(child.role)}:${i}`}>
+      <b>{text(child.role)}</b>: {child.status === "supplied"
+        ? (supplied ? "Supplied in the original parent start." : "Prepared; native supply not established.")
+        : `Not supplied. ${childWithholding[text(child.reason)] ?? (text(child.reason) || "Reason unknown.")}`}
+    </li>)}</ul>
+    {namespace && <details><summary>Configuration observation</summary>
+      <p>{text(namespace.standing)}</p>
+      {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
+      {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
+    </details>}
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App preserves the person's roles, features, depth and permissions. TASK's default nondelegation limit is stated, not enforced.</small></p>
+  </section>;
+}
+
+/** The child's original supply observation is separate from its primary
+ * conversation role. Kept in memory across resume; quoted files restore none. */
+export function ChildGuidance({ guidance }: { guidance: Json }) {
+  if (!guidance) return null;
+  if (guidance.standing !== "app-observed-child-supply") return <p>Child guidance unknown: {text(guidance.reason) || "no original App supply association"}.</p>;
+  return <div aria-label="Original child guidance">
+    <p>Original App child guidance: <b>{text(guidance.role)}</b> (observed). Parent conversation: {text(guidance.native?.parentThreadId ?? guidance.parentThreadId)}. Provider uptake remains unknown.</p>
+    <RoleLimits limits={{ account: { roles: [guidance.limitAccount] } }} role={text(guidance.role)} />
+    <p><small>This is evidence of the original child supply. It does not set the primary conversation role or restore current role authority. Resume, fork and later generations do not authorize new child associations from this catalog.</small></p>
+    {guidance.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Child association history was not confirmed: {text(guidance.roleSupplyRecord.limit)}.</p>}
+    <details><summary>Original child supply evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(guidance, null, 2)}</pre></details>
+  </div>;
+}
+
+export function ChildAssociations({ associations }: { associations: Json }) {
+  const rows = list(associations);
+  if (rows.length === 0) return null;
+  return <section aria-label="Observed native child associations">
+    <p><b>Observed native children</b></p>
+    {rows.map((row, i) => <details key={i}>
+      <summary>Child {text(row.native?.threadId)} · parent {text(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${text(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
+      <ChildGuidance guidance={row.guidance ?? { standing: "unknown" }} />
+      <details><summary>Native child event</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row.native, null, 2)}</pre></details>
+    </details>)}
+  </section>;
+}
+
+/** DL-3: compare the action with the original child guidance. An association
+ * retained across generations establishes no renewed supply or authority. */
+export function RoleLimitObservations({ observations }: { observations: Json }) {
+  const rows = list(observations);
+  if (rows.length === 0) return null;
+  return <section aria-label="Observed TASK delegations">
+    <p><b>Native delegation compared with original TASK guidance</b></p>
+    {rows.map((row, i) => {
+      const original = row.originalAssociation;
+      const originalGeneration = original?.generation ?? row.root?.generation;
+      const actionGeneration = row.actionGeneration ?? row.generation;
+      return <div key={i}>
+        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. Original TASK limit standing: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : text(row.standing) || "unknown"}</b>. The App did not prevent this delegation.</p>
+        <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
+        {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
+        <p><small>Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.</small></p>
+        {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
+        <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
+      </div>;
+    })}
+  </section>;
+}
+
+/** The last start's supply, readable (ROLE §6.1, §6.4): the five facts stay apart. */
+export function SupplyStatus({ supply }: { supply: Json }) {
+  if (!supply) return <p>Role guidance: no conversation started in this home yet.</p>;
+  const parts = list(supply.carried?.developerInstructions?.parts);
+  const receipt = originalSupplyReceipt(supply);
   return <div>
-    <p>Last start call: {text(supply.state)} · role {supply.selection ? text(supply.selection) : "none"}{supply.continuedFrom ? ` · continues conversation ${text(supply.continuedFrom.sourceThread)}` : ""}.
-      {supply.reason ? ` Refused before sending: ${text(supply.reason)}.` : ""}</p>
+    {supply.state ? <p>Last start call: {text(supply.state)} · role {supply.selection ? text(supply.selection) : "none"}{supply.continuedFrom ? ` · continues conversation ${text(supply.continuedFrom.sourceThread)}` : ""}.
+      {supply.reason ? ` Refused before sending: ${text(supply.reason)}.` : ""}</p> : <p>Role guidance: no conversation started in this home yet.</p>}
     {parts.length > 0 && <p><small>{receipt ? "Supplied at start (retained original receipt)" : "Prepared App guidance; native supply not established by a matching retained receipt"}: {parts.map((p: Json) => `${text(p.source?.path)} (${text(p.source?.state)}, ${text(p.length)} bytes)`).join(" + ")}; App base instructions not set. Whether the model takes it up is unknown.</small></p>}
+    <NativeChildRoles supply={supply} />
+    <ChildAssociations associations={supply.childAssociations} />
+    <RoleLimitObservations observations={supply.roleLimitObservations} />
     {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
     <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
   </div>;
@@ -114,10 +205,16 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
         <pre style={{whiteSpace:"pre-wrap"}}>{text(observation.sourceBytes.composed)}</pre>
         {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
+        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
+          <pre style={{whiteSpace:"pre-wrap"}}>{text(child.composed)}</pre>
+          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
+          <details><summary>Recorded child configuration file bytes</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(child.envelope)}</pre></details>
+          <details><summary>Recorded child limit account</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(child.limitAccount, null, 2)}</pre></details>
+        </details>)}
       </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}
     </details>)}
     {list(view.observations).length === 0 && <p>No role-supply observations were returned. The limits above apply.</p>}
-    <p><small>This history does not set the conversation's role or restore CCE authority. Supplier adoption remains unknown.</small></p>
+    <p><small>This history does not set the conversation's role or restore CCE authority. Quoted child bytes do not restore child associations. Supplier adoption remains unknown.</small></p>
   </section>;
 }
 
@@ -145,6 +242,8 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, tria
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
+    <ChildGuidance guidance={thread?.childGuidance} />
+    <RoleLimitObservations observations={thread?.roleLimitObservations} />
     <RoleHistoryReader read={readSupplyHistory} scope={JSON.stringify([thread?.generation, thread?.threadId])} ready={ready} />
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}

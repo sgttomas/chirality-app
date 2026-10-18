@@ -70,11 +70,13 @@ implemented behavior and qualification limits.
    discloses expected model contact at thread start, before a turn; it does not
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations
-   read current bytes. Native child roles remain not supplied by the App. The
-   opt-in [supplier child-carrier check](supplier_checks/child_roles.py) and its
+   read current bytes. The Rust host prepares additive native child roles
+   from that frozen guidance, withholding colliding or unsupported names and
+   rechecking configuration/source currentness before dispatch. The opt-in
+   [supplier child-carrier check](supplier_checks/child_roles.py) and its
    [receiving account](../execution/PKG-02/DEL-02-04/Design/CHILD_ROLE_CARRIER_0.160.0.md)
-   observe per-thread TASK configuration and exact child guidance in scripted
-   stock-supplier execution; the App configuration/publication join remains open.
+   distinguish production preparation and scripted stock-supplier carriage
+   from the App's private-receipt/live-association checks and qualification.
 3. The recorder validates package files, records source-faithful requests and
    separately states when the requester identity is unestablished.
 4. The host freezes the chosen alternative and all its consequences before
@@ -633,12 +635,49 @@ implemented behavior and qualification limits.
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
 
+    Native child roles follow the parent matrix: HELP_HUMAN offers
+    HELPS_HUMANS, WORKING_ITEMS and TASK; HELPS_HUMANS and WORKING_ITEMS offer
+    TASK; a conversation with No role offers no child roles. Each
+    content-bound App TOML file carries the complete common + child-role
+    `developer_instructions`. Only
+    `agents.<ROLE>.description/config_file` is added at `thread/start`;
+    person-defined names, features, depth and permissions stay unchanged.
+    Conservative name exclusion reads enabled supported declarations,
+    referenced TOML content names and recursive native `agents/` sources.
+    Unknown, unsupported, malformed, unreadable or changed context visibly
+    withholds children. The path requires the acting supplier's recorded
+    0.160.0 pin and identified stock `bin/codex` hash; a compatible response
+    from another or unknown executable grants no child supply. Supported empty
+    System context recognizes the standard macOS `/etc` alias; a config leaf
+    link requires the App's owned descriptor and checked link/target
+    identities. Native role roots stay at the reported home/project, never the link target's siblings. The reading establishes
+    observed currentness, with no lock on later external edits.
+
+    A live completed native started-child event can establish App child supply
+    only with the same original generation/scope's private matched parent
+    start receipt and correctly correlated child/parent/role metadata.
+    `agentRole` alone, self/ancestor/fork/foreign references and older resumed
+    or restarted parents grant no fresh association. An observed child's
+    original guidance/limits stay fixed in memory for its same home/thread
+    lifetime, including warm resume or Codex restart. Later native action may
+    be compared with that original TASK statement. Across generations, live
+    or quoted accounts separate original supply/association from the action
+    generation and label the comparison as historical. This
+    grants no new child association, renewed supplier uptake, role binding,
+    CCE or current-source authority; current-run role attribution retains its
+    own original-scope gates. Untyped or unmatched children retain unknown
+    guidance. Observed TASK delegation is recorded and shown.
+    Its default prohibition is **stated, not enforced**; an edited or
+    unrecognized TASK copy keeps limits unknown. Native tools are not denied.
+
     The Rust host records each App start/fork attempt's actual supply
     observations in the project's explicit records store (ROLE §6.1a),
     retaining content-identified copies of the exact App-owned guidance
-    bytes. **Read quoted role-supply history** inspects those bytes and
-    recorded outcomes without a native request. Cold history is unsigned,
-    unverified file evidence; it leaves the current conversation's role
+    bytes. New v0.3 observations also retain exact child compositions, source
+    parts, TOML envelopes and historical limits; exact v0.1/v0.2 readers keep
+    mixed history intact. **Read quoted role-supply history** inspects those
+    bytes and recorded outcomes without a native request. Cold history is
+    unsigned, unverified file evidence; it leaves the current conversation's role
     unknown and restores no role binding or CCE owner.
 
     A run opened with a confirmed original role supply records a role-guidance
@@ -742,6 +781,7 @@ implemented behavior and qualification limits.
 | `native_requests.rs`, `recovery.rs`, `native_items.rs`, `access.rs` | Typed native request custody, pointer ledger, scoped live/ended activity and reported account/destination observations |
 | `src-tauri/src/recovery_store.rs`, `recovery_store_tests.rs` | The pointer ledger's SQLite store (DEL-01-02 §7): append-only triggers, one transaction per batch, synced commits, the held current entries' indexed query, the once-only JSON Lines import; tests include the flat cost from 1,000 to 100,000 rows |
 | `role_supply.rs`, `runtime_session.rs`, `resources/instructions/` | Reviewed v4 defaults, fixed composition bytes, seeding and generation-bound receiving/startup; supplier/model adoption remains a separate warrant |
+| `child_roles.rs`, `access_provider.rs`, `hosting_child_roles.rs`, `native_child_guidance.rs` | Conservative native-name/currentness observation, immutable full child TOML publication, private guarded additive starts and original live child association; unknown origins and unmatched children stay qualified |
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
@@ -1148,7 +1188,7 @@ narrows R-1 but does not close it: anything that can read that file, including
 an agent under Codex's default read access, can seal. Trustworthy persistent
 cold replay remains unfinished under AAC §6.3 U-AAC-3 and I3-CUST, and SEAL-2 stays
 deferred. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild (the recovery reads after a restart, item 22b, read metadata and turn summaries only), native witnesses of those reads and cold role-source reconciliation, native GUI child-role journeys, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished: lapses are recorded only for acts that answer an arrival of a live run. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
@@ -1214,7 +1254,11 @@ and `role-supply/content/`. An actual workflow run records role-guidance R3 by
 reference to the original supply, limit account and run context. Pending or
 unavailable publication stays qualified; cold source reading quotes historical
 file evidence and restores no current role or CCE authority. Native child-role
-supply is still unimplemented. Delete or archive beside Fork waits on U-R13.
+preparation, guarded supply, live association and exact quoted child-source
+retention are implemented within item 24's observed-origin and generation
+limits. Supplier carriage evidence remains source-bound; native GUI journeys,
+provider/model adoption and qualification remain separate. Delete or archive
+beside Fork waits on U-R13.
 
 The ask-first App quit (item 22a) and the startup SR-08 write are
 implemented but not witnessed natively, as are the startup RQ-06 endings. The Restart Codex question

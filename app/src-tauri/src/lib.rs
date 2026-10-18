@@ -63,6 +63,8 @@ pub mod records_retention;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
+pub mod child_roles;
+mod native_child_guidance;
 mod instruction_store;
 pub(crate) mod run_offers;
 pub(crate) mod run_restart;
@@ -216,11 +218,15 @@ fn host_status(state: State<'_, AppState>) -> Value {
     let root = state.instructions_root.lock().unwrap().clone();
     s["nativeHistory"] = history.snapshot(root.as_deref().ok());
     s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
+    s["roleSupply"]["childAssociations"]=s["nativeHistory"]["childAssociations"].clone();
+    s["roleSupply"]["roleLimitObservations"]=s["nativeHistory"]["roleLimitObservations"].clone();
     for thread in s["threads"].as_array_mut().into_iter().flatten() {
         if let (Some(home), Some(id)) = (thread["generation"]["home"].as_str(), thread["threadId"].as_str()) {
             let role = history.role_details(home, id, root.as_deref().ok());
             thread["appRole"] = role["appRole"].clone();
             thread["roleRelation"] = role["roleRelation"].clone();
+            thread["childGuidance"] = role["childGuidance"].clone();
+            thread["roleLimitObservations"] = role["roleLimitObservations"].clone();
             thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
         }
     }
@@ -887,7 +893,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
                 .map_err(|error| format!("Production instruction resource directory unavailable: {error}"))
         })
     })();
-    let (composition, package_correspondence) = match prepared {
+    let (mut composition, package_correspondence) = match prepared {
         Ok(prepared) => prepared,
         Err(reason) => {
             *home.role_supply_status.lock().unwrap() = refused_role_entry(role, &reason);
@@ -896,7 +902,16 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     };
     composition.verify()?;
     let generation = home.host.snapshot()["generation"].clone();
-    let provider_admission=home.host.provider_admission_read(&generation,&cwd,&entry_id,&model_provider,&model)?;
+    let mut provider_admission=home.host.provider_admission_read(&generation,&cwd,&entry_id,&model_provider,&model)?;
+    if let Ok(set)=&*state.home_bootstrap.lock().unwrap(){
+        if let Ok(Some(link))=set.child_role_config_link(home.class(),home.host_config.as_ref().map_err(Clone::clone)?){home.host.role_config_link(&mut provider_admission,link);}
+    }
+    let instruction_root=state.instructions_root.lock().unwrap().clone()?;
+    let data_root=state.app_user_data_root.lock().unwrap().clone();
+    match data_root {
+        Ok(data)=>home.host.prepare_role_children(&mut provider_admission,&mut composition,&instruction_root,&data)?,
+        Err(_)=>{crate::child_roles::prepare(&mut composition,Err("App data unavailable".into()),&instruction_root,std::path::Path::new("/unavailable"));},
+    }
     let mut native_relationship = continued_source.map(|origin| (native_conversation_links::freeze_source(state.workspace.as_deref(), &home), origin));
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
@@ -909,13 +924,13 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     let supply_ref = {
         let mut slot = home.access_selection.lock().unwrap();
         let supply_ref = runtime_session::claim_start(&mut slot, selection, || Ok(supply_ref.to_owned()))?;
-        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.carried["nativeChildRoles"],"childNamespaceObservation":composition.child_reading,"continuedFrom":continued_from});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
     // Host receipt IDs, exact sent bytes and correlated results bind its role.
     *dispatch_invoked=true;
-    let dispatch = home.host.thread_start_with_access_dispatch(&provider_admission, &composition.text);
+    let dispatch = home.host.thread_start_with_role_dispatch(&provider_admission, &composition);
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
@@ -952,7 +967,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
         };
         let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
-            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false),"continuedFrom":continued_from});
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"supplyRef":supply_ref,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.carried["nativeChildRoles"],"childNamespaceObservation":composition.child_reading,"continuedFrom":continued_from});
         }
         if !record_status.is_null(){status["roleSupplyRecord"]=record_status.clone();}
         result

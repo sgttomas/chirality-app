@@ -612,10 +612,242 @@ fn mixed_observation_01_02_log_heads_and_export_keep_declared_schemas(){
     let prefix=std::fs::read(f.directory().join(LOG)).unwrap();f.append(&log,"sup:current","supplied");
     assert!(std::fs::read(f.directory().join(LOG)).unwrap().starts_with(&prefix));
     let read=log.read("home",Some("thread"));assert_eq!(read["observations"].as_array().unwrap().len(),2);
-    assert_eq!(read["observations"][0]["record"]["formatVersion"],"0.1");assert_eq!(read["observations"][1]["record"]["formatVersion"],"0.2");
+    assert_eq!(read["observations"][0]["record"]["formatVersion"],"0.1");assert_eq!(read["observations"][1]["record"]["formatVersion"],"0.3");
     assert!(read["observations"][0]["record"]["appBytes"].get("limitAccount").is_none());assert!(read["observations"][1]["record"]["appBytes"]["limitAccount"].is_object());
     let before=project_chain_head(&f.project).unwrap().unwrap();let bag=f.root.join("mixed-bag");crate::records_export::export(&f.project,&bag).unwrap();crate::records_export::verify(&bag).unwrap();
     let copied=copied_chain_head(&bag.join("data/role-supply/observations.jsonl"));
     assert_eq!(before["lines"],2);assert!(before["head"].as_str().is_some());
     for key in ["lines","linked","head"]{assert_eq!(before[key],copied[key],"{key}");}
+}
+fn native_child_record_fixture(f: &Fixture) -> (crate::role_supply::Composition, Value) {
+    let root = &f.root;
+    let instructions = root.join("instructions");
+    crate::runtime_session::seed_instructions(&instructions).unwrap();
+    std::fs::create_dir(root.join("native-home")).unwrap();
+    std::fs::write(root.join("native-home/config.toml"), "").unwrap();
+    std::fs::create_dir(root.join("app-data")).unwrap();
+    let reading = json!({"config":{},"origins":{},"layers":[{"name":{"type":"user","file":root.join("native-home/config.toml"),"profile":null},"version":"user","config":{}},{"name":{"type":"system","file":root.join("absent-system/config.toml")},"version":"system","config":{}}]});
+    let mut c = crate::runtime_session::compose_role(
+        &instructions,
+        Some(crate::role_supply::Role::HELP_HUMAN),
+    )
+    .unwrap();
+    crate::child_roles::prepare(
+        &mut c,
+        crate::child_roles::Namespace::observe(&reading),
+        &instructions,
+        &root.join("app-data"),
+    );
+    let mut row = observation("sup:native-children", "supplied");
+    row["carried"] = c.carried.clone();
+    row["selection"]["roleSet"] = c.role_set_identity().clone();
+    (c, row)
+}
+#[test]
+fn native_children_quoted_payload_exact_set_missing_duplicate_and_mislabel_are_unavailable() {
+    let f = Fixture::new();
+    let log = f.log();
+    let (c, row) = native_child_record_fixture(&f);
+    log.append(row, Some(&c)).unwrap();
+    let read = log.read("home", Some("thread"));
+    assert_eq!(
+        read["observations"][0]["sourceBytes"]["nativeChildren"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    let (_, folder, _, _) = log.location(false).unwrap().unwrap();
+    let (rows, _, _) = RoleLog::read_lines(&folder, &f.directory()).unwrap();
+    let payloads = child(&folder, "content", false).unwrap().unwrap();
+    for case in ["missing", "drop-one", "duplicate", "mislabel"] {
+        let mut bad = rows[0].clone();
+        match case {
+            "missing" => {
+                bad["appBytes"]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("nativeChildren");
+            }
+            "drop-one" => {
+                bad["appBytes"]["nativeChildren"]
+                    .as_array_mut()
+                    .unwrap()
+                    .pop();
+            }
+            "duplicate" => {
+                let copied = bad["appBytes"]["nativeChildren"][0].clone();
+                bad["appBytes"]["nativeChildren"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(copied);
+            }
+            "mislabel" => {
+                bad["appBytes"]["nativeChildren"][0]["carried"]["developerInstructions"]["parts"]
+                    [1]["role"] = json!("TASK");
+            }
+            _ => unreachable!(),
+        };
+        let path = f.root.join(format!("saved-{case}.json"));
+        std::fs::write(&path, serde_json::to_vec(&bad).unwrap()).unwrap();
+        let saved: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        assert!(
+            RoleLog::source_bytes(Some(&payloads), &saved).is_err(),
+            "{case}"
+        );
+    }
+}
+#[test]
+fn native_children_canonical_guidance_and_publication_failure_rows_remain_readable() {
+    for reason in ["child-guidance-unavailable", "child-file-unavailable"] {
+        let f = Fixture::new();
+        let log = f.log();
+        let (mut c, mut row) = native_child_record_fixture(&f);
+        c.children.clear();
+        c.carried["nativeChildRoles"] = json!([{ "role":"HELP_HUMAN","status":"not-supplied","reason":"not-offered-by-role"},{"role":"HELPS_HUMANS","status":"not-supplied","reason":reason},{"role":"WORKING_ITEMS","status":"not-supplied","reason":reason},{"role":"TASK","status":"not-supplied","reason":reason}]);
+        row["carried"] = c.carried.clone();
+        log.append(row, Some(&c)).unwrap();
+        let read = log.read("home", Some("thread"));
+        assert_eq!(
+            read["observations"].as_array().unwrap().len(),
+            1,
+            "{reason}: {read}"
+        );
+        assert!(read["observations"][0]["sourceBytes"].is_object(), "{read}");
+        assert_eq!(
+            read["observations"][0]["record"]["carried"]["nativeChildRoles"][1]["reason"],
+            reason
+        );
+    }
+}
+#[test]
+fn native_children_mixed_01_02_03_preserves_previous_schema_bytes_and_rows() {
+    assert_eq!(
+        PREVIOUS_SCHEMA.as_bytes(),
+        include_bytes!(
+            "../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation-0.2.schema.json"
+        )
+    );
+    let f = Fixture::new();
+    let log = f.log();
+    let c = composition();
+    for (version, supply) in [("0.1", "sup:01"), ("0.2", "sup:02"), ("0.3", "sup:03")] {
+        let mut row = observation(supply, "supplied");
+        row["formatVersion"] = json!(version);
+        log.append(row, Some(&c)).unwrap();
+    }
+    let read = log.read("home", Some("thread"));
+    assert_eq!(
+        read["observations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["record"]["formatVersion"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["0.1", "0.2", "0.3"]
+    );
+    assert!(read["observations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["sourceBytes"].is_object()));
+}
+#[test]
+fn native_children_quoted_original_limit_and_common_source_mismatches_are_unavailable() {
+    let f = Fixture::new();
+    let log = f.log();
+    let (c, row) = native_child_record_fixture(&f);
+    log.append(row, Some(&c)).unwrap();
+    let (_, folder, _, _) = log.location(false).unwrap().unwrap();
+    let (rows, _, _) = RoleLog::read_lines(&folder, &f.directory()).unwrap();
+    let payloads = child(&folder, "content", false).unwrap().unwrap();
+    for case in [
+        "wrong-limit-role-set",
+        "modified-source-stated-limit",
+        "different-common",
+    ] {
+        let mut bad = rows[0].clone();
+        let original_account =
+            crate::conversation_roles::frozen_limit_account(&c.children[0].composition).unwrap();
+        let mut account = original_account;
+        match case {
+            "wrong-limit-role-set" => account["roleSet"]["value"] = json!("0".repeat(64)),
+            "modified-source-stated-limit" => {
+                bad["appBytes"]["nativeChildren"][0]["carried"]["developerInstructions"]["parts"]
+                    [1]["source"]["state"] = json!("modified");
+                account["roleGuidance"]["source"] = bad["appBytes"]["nativeChildren"][0]["carried"]
+                    ["developerInstructions"]["parts"][1]["source"]
+                    .clone();
+            }
+            "different-common" => {
+                let role = c.children[0].role;
+                let common = crate::role_supply::Guidance::seeded(
+                    "AGENTS.md",
+                    crate::runtime_session::INSTRUCTION_RELEASE,
+                    b"Different common guidance\n".to_vec(),
+                    crate::runtime_session::COMMON_DEFAULT,
+                )
+                .unwrap();
+                let guidance = crate::role_supply::Guidance::read_seeded(
+                    &f.root.join("instructions"),
+                    &format!("agents/AGENT_{}.md", role.name()),
+                    crate::runtime_session::INSTRUCTION_RELEASE,
+                    crate::runtime_session::role_default(role),
+                )
+                .unwrap();
+                let changed =
+                    crate::role_supply::Composition::new(&common, Some((role, &guidance)), true)
+                        .unwrap();
+                let composed = RoleLog::publish_bytes(&payloads, changed.text.as_bytes())
+                    .unwrap()
+                    .0;
+                let envelope = format!(
+                    "developer_instructions = {}\n",
+                    serde_json::to_string(&changed.text).unwrap()
+                );
+                let file = RoleLog::publish_bytes(&payloads, envelope.as_bytes())
+                    .unwrap()
+                    .0;
+                let mut parts = vec![];
+                for part in changed.carried["developerInstructions"]["parts"]
+                    .as_array()
+                    .unwrap()
+                {
+                    let start = part["offset"].as_u64().unwrap() as usize;
+                    let len = part["length"].as_u64().unwrap() as usize;
+                    parts.push(
+                        RoleLog::publish_bytes(
+                            &payloads,
+                            &changed.text.as_bytes()[start..start + len],
+                        )
+                        .unwrap()
+                        .0,
+                    );
+                }
+                bad["appBytes"]["nativeChildren"][0]["carried"] = changed.carried.clone();
+                bad["appBytes"]["nativeChildren"][0]["composed"] = composed.clone();
+                bad["appBytes"]["nativeChildren"][0]["parts"] = json!(parts);
+                bad["appBytes"]["nativeChildren"][0]["file"] = file.clone();
+                for supplied in bad["carried"]["nativeChildRoles"].as_array_mut().unwrap() {
+                    if supplied["role"] == role.name() {
+                        supplied["composed"] = composed["content"].clone();
+                        supplied["file"] = file["content"].clone();
+                    }
+                }
+                account = crate::conversation_roles::frozen_limit_account(&changed).unwrap();
+            }
+            _ => unreachable!(),
+        }
+        bad["appBytes"]["nativeChildren"][0]["limitAccount"] =
+            RoleLog::publish_bytes(&payloads, &serde_json::to_vec(&account).unwrap())
+                .unwrap()
+                .0;
+        let saved = f.root.join(format!("saved-{case}.json"));
+        std::fs::write(&saved, serde_json::to_vec(&bad).unwrap()).unwrap();
+        let bad: Value = serde_json::from_slice(&std::fs::read(saved).unwrap()).unwrap();
+        assert!(
+            RoleLog::source_bytes(Some(&payloads), &bad).is_err(),
+            "{case}"
+        );
+    }
 }

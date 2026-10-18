@@ -87,6 +87,9 @@ use crate::attachments::{self, PreparedAttachmentList, SelectedTextAttachment};
 use crate::native_requests::RequestRegister;
 use crate::native_history::{HistoryQuery, NativeHistory};
 use crate::recovery::RecoveryLedger;
+#[path="hosting_child_roles.rs"]
+mod child_role_receiving;
+pub(crate) use child_role_receiving::NativeChildStart;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
@@ -199,6 +202,7 @@ struct Inner {
     held_observer_diagnostics: Vec<Value>,
     /// Frames delivered to receivers, in received order, each {generation, position, class, frame}.
     journal: observer_journal::ObserverJournal,
+    native_child_events: Vec<NativeChildStart>,
     observer_rebuild: observer_rebuild::ObserverRebuild,
     // Operational guards must not depend on how much diagnostic replay is kept.
     observation_facts: observation_facts::ObservationFacts,
@@ -1777,6 +1781,7 @@ impl Host {
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
         #[cfg(test)] let cce_selected=cce_intent.is_some();
+        if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if cce_intent.is_some() && i.cce_offer.is_some(){return Err("one offered start per generation; no replacement".into())}
@@ -1837,6 +1842,9 @@ impl Host {
         let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential{
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
+            // Source IO has bounded work and holds neither Inner nor the
+            // attachment/Stop gate. Recheck cheap context/receipt custody below.
+            if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
@@ -3322,8 +3330,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if text.is_empty() {
             return;
         }
-        let mut i = self.inner.0.lock().unwrap();
         let parsed:Option<Value>=serde_json::from_str(text).ok();
+        // Validate/retain only minimal child identities outside Inner.
+        // Disposable observer replay is not this receiver's recording source.
+        let child_event=parsed.as_ref().and_then(|frame|NativeChildStart::capture(generation,frame));
+        let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
         let safe_reply_id=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
         let possible_original_account=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
@@ -3422,6 +3433,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 Self::remember_turn(&mut i, &gen, thread, &frame["params"]["turn"], frame["method"].as_str().unwrap(), pos);
             }
         }
+        if class=="notification"&&i.state=="ready"&&!i.server_requests.is_closed(&gen){if let Some(event)=child_event{i.native_child_events.push(event.at_receipt(pos));}}
         if class == "notification" && matches!(frame["method"].as_str(),Some("item/started"|"item/completed")) {
             i.execution_custody.item(&gen,&frame["params"],frame["method"]=="item/completed",&now_rfc3339());
             Self::persist_execution(&mut i);

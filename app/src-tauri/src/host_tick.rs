@@ -43,6 +43,7 @@ fn receive_views(home: &HomeSession) -> (Value, Vec<Value>) {
             view[target] = json!(snapshot[source].as_array().into_iter().flatten()
                 .filter(|row|row["generation"]==generation).collect::<Vec<_>>());
         }
+        view["roleLimitObservations"]=home.history.lock().unwrap().child_limit_observations();
         view["custodyEvents"] = json!(snapshot["sourceCustodyEvents"].as_array().into_iter().flatten()
             .filter(|owned|owned["generation"]==generation).map(|owned|&owned["event"]).collect::<Vec<_>>());
         // Do not fill a closed source's mode from a later source/selection.

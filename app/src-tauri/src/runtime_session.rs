@@ -1039,6 +1039,7 @@ pub struct HistorySession {
     cce_manager_owner: Option<crate::hosting::call_custody::ManagerOwner>,
     history: Option<crate::native_history::NativeHistory>,
     roles: crate::role_lifecycle::RoleBindings,
+    child_guidance: crate::native_child_guidance::ChildGuidance,
     limits: Vec<String>,
     dispatches: Vec<HistoryPending>,
     starts: Vec<StartPending>,
@@ -1441,6 +1442,7 @@ impl HistorySession {
         }
         self.record_start_observations(host);
         self.reconcile_forks(host);
+        self.child_guidance.reconcile(host,&self.roles,self.role_log.as_ref());
     }
     /// Immutable source observations: waiting may end before a genuinely late
     /// response. Each state is attempted once; a record error never retries native work.
@@ -1488,6 +1490,7 @@ impl HistorySession {
     pub fn history_mut(&mut self) -> Option<&mut crate::native_history::NativeHistory> {
         self.history.as_mut()
     }
+    pub(crate) fn child_limit_observations(&self)->Value{self.child_guidance.limits()}
     pub fn bind(&mut self, binding: crate::role_lifecycle::RoleBinding) -> Result<(), String> {
         self.roles.insert(binding)
     }
@@ -1499,7 +1502,7 @@ impl HistorySession {
     }
     pub fn role_details(&self, home: &str, thread: &str, root: Option<&std::path::Path>) -> Value {
         let Some(binding) = self.binding(home, thread) else {
-            return json!({"appRole":self.role(home,thread),"futureGuidanceNotices":[]});
+            return json!({"appRole":self.role(home,thread),"childGuidance":self.child_guidance.for_thread(home,thread),"roleLimitObservations":self.child_guidance.limits().as_array().unwrap().iter().filter(|r|r["generation"]["home"]==home&&r["parentThreadId"]==thread).collect::<Vec<_>>(),"futureGuidanceNotices":[]});
         };
         let mut current = std::collections::BTreeMap::new();
         let read = |path: &str, default| match root {
@@ -1582,10 +1585,12 @@ impl HistorySession {
     }
     pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
         let Some(history) = self.history.as_ref() else {
-            return json!({"state":"unavailable","limits":self.limits,"durableNativeData":false});
+            return json!({"state":"unavailable","limits":self.limits,"durableNativeData":false,"childAssociations":self.child_guidance.snapshot(),"roleLimitObservations":self.child_guidance.limits(),"startReceipts":self.starts.iter().map(|p|&p.evidence).collect::<Vec<_>>()});
         };
         let mut view = history.snapshot();
         view["selectionEpoch"] = json!(history.selection_epoch());
+        view["childAssociations"]=self.child_guidance.snapshot();
+        view["roleLimitObservations"]=self.child_guidance.limits();
         view["listDirection"] = json!(self.list_direction);
         view["receivingLimits"] = json!(self.limits);
         view["dispatches"] = json!(self
@@ -1604,6 +1609,8 @@ impl HistorySession {
             view["selected"]["itemDirection"] = json!(self.item_direction);
             view["selected"]["itemTurnId"] = json!(self.item_turn);
             view["selected"]["appRole"] = self.role(history.home(), thread);
+            view["selected"]["childGuidance"]=self.child_guidance.for_thread(history.home(),thread);
+            view["selected"]["roleLimitObservations"]=self.role_details(history.home(),thread,instruction_root)["roleLimitObservations"].clone();
             let details = self.role_details(history.home(), thread, instruction_root);
             view["selected"]["originalRoleSupply"] = details["originalRoleSupply"].clone();
             view["selected"]["futureGuidanceNotices"] = details["futureGuidanceNotices"].clone();
@@ -2405,6 +2412,15 @@ impl HomeBootstrapSet {
                 None => Err(original),
             },
         }
+    }
+    pub(crate) fn child_role_config_link(&self,class:crate::home_resources::HomeClass,config:&crate::hosting::HostConfig)->Result<Option<crate::child_roles::ConfigLink>,String>{
+        self.validate_binding(class,config)?;
+        let target=match class {
+            crate::home_resources::HomeClass::Account=>self.shared_root_targets.as_ref().map(|s|s.config_toml.clone()),
+            crate::home_resources::HomeClass::ApiKey=>self.key_plan()?.inspect()?.resources.into_iter().find(|r|r.name=="config.toml"&&r.state==crate::home_resources::ResourceState::Linked).and_then(|r|r.intended_target),
+            crate::home_resources::HomeClass::Probe=>None,
+        };
+        target.map(|target|crate::child_roles::ConfigLink::observed(config.codex_home.join("config.toml"),target)).transpose()
     }
     pub fn key_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> {
         self.key.as_ref().ok_or_else(|| {
@@ -5112,6 +5128,7 @@ impl WorkflowRootSession {
             checkpoints: None,
             run_tag: Value::Null,
             model_turns: Default::default(),
+            role_limits_seen: Default::default(),
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -6637,6 +6654,7 @@ pub(crate) struct WorkflowRun {
     run_tag: Value,
     /// RS R5 / HOSTING §8.3: the run's `model_turn` entries (per turn, and thread reports).
     model_turns: crate::model_turn_recorder::ModelTurnRecorder,
+    role_limits_seen: std::collections::BTreeSet<String>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -7243,6 +7261,9 @@ impl WorkflowRun {
             return;
         }
         self.observe_model_turns(view);
+        let scope=self.prepared().scope().clone();let start=self.start_in(view);
+        let bodies=crate::native_child_guidance::run_limit_bodies(view,&scope.home,&scope.conversation,start,&mut self.role_limits_seen);
+        if !bodies.is_empty(){self.push_recorder_outputs(bodies.into_iter().map(|body|("role_limit_observation",body)).collect(),&crate::util::now_rfc3339());self.flush_records();}
         let Some(mut recorder) = self.checkpoints.take() else { return };
         let scope = self.prepared().scope().clone();
         let start = self.start_in(view);

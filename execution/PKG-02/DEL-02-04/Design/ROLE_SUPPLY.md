@@ -1,7 +1,7 @@
 # Additive role selection and supply
 
 - Contribution: DEL-02-04/ROLE-v0.2 (supersedes DEL-02-04/ROLE-v0.1, committed at `63a6e0fa47`, file sha256 `692873d1d025b4ab0bc3d741a19bf1facad5d39b875e58ac1f0127042059b644`)
-- Status: DRAFT DEFINITION — not accepted or qualified. Historical definition/prototype standing remains; §2.1 separately records the current bounded supplier sample and receiving-pin clarification. No complete App implementation/adoption follows.
+- Status: Historical definition/prototype with current bounded App implementation in §5.3 and §6.1a. Supplier observations remain source-bound in §2.1 and the child-carrier account. No qualification, owner acceptance or consumer adoption follows.
 - Run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D6, round 2 (BRIEFS.md "D round 2"). Executor: Type 2 TASK (Claude Opus 5.5, high effort), no delegation. Date 2026-10-02; repository HEAD `e4e14d6ae6`.
 - Binding direction: DECISION-K3 as revised (K-9, K-10, K-7, K-3); **DECISION-L L-2** (a conversation's role is fixed for its life; a different role is a new conversation; edited guidance applies to new conversations; workflows are not bound to the conversation); rulings R17 (R17-1, R17-5, R17-9 as amended, R17-10, R17-13…R17-15), **R18-4, R18-6, R18-9, R18-1 (C-04, C-05, C-07, C-08, C-15, C-19)**, **R19-1, R19-3, R19-5, R19-7, R19-8**; **R20-5, R20-6** (`R20_RESOLUTIONS.md` `516d0fe0d3cddb1e`; added in place, no version step); **R20-9** (`R20_RESOLUTIONS.md` `5e68574054a3353e`; added in place at node RX, no version step); **R20-11** (`R20_RESOLUTIONS.md` `b52e0347ad91ba42`; at node RX2); **R22-1, R22-2** (`R22_RESOLUTIONS.md` `2acc830206bd40b3`; at closeout node G, with `closeout/C1-B.md` `b2b8bfad297f9125` §3.3, §3.4, §7 items 1–2); R1–R16 stand.
 - Serves (ScopeOfWork): OUT-001 (design of the code), OUT-002 (identity and limit account, §6), OUT-003 (fixture design and a design prototype, §10, not product code); REQ-001…REQ-006; AC-001…AC-006 by designed verification (§11); VER-001…VER-006 (designed; offline prototype cases run; nothing qualified).
@@ -155,12 +155,13 @@ this sample proves no other/no-role native supply. Rust Host/store/seeding joins
 other primary roles, lifetime/resume/fork, provider/model adoption,
 delegation availability/enforcement and qualification still require their own
 candidate evidence. The separately maintained
-[child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md) observes per-thread TASK
-configuration and exact child bytes in scripted stock-supplier execution with
-clean and full-history delegation. It does not establish App configuration,
-publication or child-role reconciliation. The current App still reports child
-roles **not-supplied**; 0.158.0 adapter observations below remain historical. Runtime capability values
-are read from the actual acting route, never inferred from0.160.0 or this sample.
+[child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md) now consumes production
+Rust namespace inspection, composition and child-file publication before
+scripted stock-supplier execution. Its source-bound evidence and limits are
+separate from the App Host/private-receipt join in §5.3 and quoted source
+retention in §6.1a. The 0.158.0 adapter observations below remain historical.
+Runtime capability values are read from the actual acting route, never
+inferred from 0.160.0 or this sample.
 
 ## 3. Selection
 
@@ -431,7 +432,7 @@ Rules:
 | `developerInstructions` / `config.developer_instructions` on `thread/fork` | Never | Ignored (B-16) |
 | `baseInstructions` | Never | Preserves Codex's base instructions |
 | `config` keys `instructions`, `developer_instructions` | Never | One carrier |
-| `config` keys `agents.<ROLE>.description`, `agents.<ROLE>.config_file` on `thread/start` | Candidate additive child carrier only; currently not-supplied (§5.3) | R17-9, R18-4; current carrier evidence remains open |
+| `config` keys `agents.<ROLE>.description`, `agents.<ROLE>.config_file` on `thread/start` | Only the frozen, source-checked additive child entries (§5.3) | R17-9, R18-4; bounded 0.160.0 carrier evidence in the child-carrier account |
 | `config` keys `features.*`, `agents.enabled`, `agents.max_depth`, any other | Never | K-10; no veto of user configuration |
 | `personality`, `multiAgentMode`, effort chosen to steer delegation | Never | Deprecated / ignored (B-9); K-10 |
 | `approvalPolicy`, `approvalsReviewer`, `sandbox` | Never by role supply | D3 |
@@ -442,77 +443,90 @@ instructions on resume or fork (RC-07, RC-11; schema IS-1, IS-6, IS-9).
 
 ### 5.3 Native child roles (R17-9 as amended by R18-4)
 
-**Current0.160.0 receiving standing:** the primary sample §2.1 does not establish
-the child carrier. The [maintained supplier check](CHILD_ROLE_CARRIER_0.160.0.md)
-separately observes the per-thread dotted configuration carrier, exact
-common+TASK bytes and correlated child metadata. Its native child identity comes
-from completed `subAgentActivity(kind=started).agentThreadId`, not the
-historical CR-5 item shape. Missing/malformed role files and a person-defined
-TASK collision are checked separately. The requirements and historical
-0.158.0 adapter mechanism below remain; the App's actual configuration,
-content-bound file publication and child reconciliation are not supplied by
-this fixture. U-R3 remains open for that App implementation and evidence;
-there is no need to choose session flags for the observed per-thread route.
+The Rust host implements the bounded 0.160.0 path in `child_roles.rs`,
+`access_provider.rs`, `role_supply.rs`, `hosting_child_roles.rs` and
+`native_child_guidance.rs`. The [child-carrier account](CHILD_ROLE_CARRIER_0.160.0.md)
+separates actual supplier evidence from the original 0.158.0 adapter mechanism
+(B-15) and the App's private-receipt/association checks. The original generic
+per-thread-versus-session-flags choice is resolved for this path: only
+`thread/start.config` carries the child entries; no process-wide fallback is
+used. This source model is admitted only when the acting supplier records
+`declaredPin: 0.160.0` and actual `bin/codex` SHA-256
+`112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b`.
+Unknown or different executable identities withhold children even if their
+configuration response looks compatible. This gate supplies no qualified
+distribution identity.
 
-- **CR-1** A conversation whose role offers child roles (§4.1) is started with
-  additive `agents.<CHILD>.description` and `agents.<CHILD>.config_file`. The
-  file, written into the App's data folder, named by its content identity,
-  created exclusively and verified on reuse, holds `developer_instructions` =
-  **product guidance + `# Active role: <CHILD>` + the child's role file**.
-  Because that text **replaces** the parent's for the child (B-15), the
-  product guidance must be in it (RC-12).
-- **CR-1a Carrier (open).** The mechanism is observed with the keys in the
-  home's `config.toml`. Under K-1 that file is the person's (linked) and the
-  App never writes it. The App's candidate carriers are the per-thread
-  `config` map on `thread/start` (PROPOSED; not observed) and, failing that,
-  `-c` session flags at process start (the `sessionFlags` layer is observed
-  for `-c` in general, OBS-2 O-6 M2; not for `agents.*`). With session flags
-  the roles would be offered in every conversation of that process, TASK and
-  no-role included (no enforcement either way). U-R3.
-- **CR-2 Additive only.** The App reads the effective configuration
-  (`config/read`) and supplies no child role whose name the person's
-  configuration defines; if it cannot read it, none
-  (`user-configuration-not-read`). It enables, disables and limits nothing.
-**Open discovery and receiving condition.** Stock 0.160.0 `config/read`
-  returning `agents:null` does not establish complete collision exclusion:
-  per-thread definitions can shadow a person's standalone `agents/` definition
-  without those origins appearing in that response. ACCESS/HOST M-A shares
-  `config.toml`, `AGENTS.md` and `skills`; native `agents/` is outside that set.
-  The maintained standalone collision fixture writes a known synthetic TASK
-  definition in its Codex home's `agents/task.toml`. It observes `agents:null`,
-  sends no App child keys, retains the original definition bytes and sees the
-  person's description in the native catalog. That withholding is the fixture's
-  known-case policy, not an implemented App discovery guard. The controlled
-  native carrier witness in `CHILD_ROLE_CARRIER_0.160.0.md` supplies bounded
-  collision/carrier evidence, not complete configuration-layer discovery or
-  actual App child supply. Its maintained origin controls also distinguish a
-  config-table `ALIAS` from file-declared native `TASK`, nearest trusted project
-  precedence from excluded untrusted project layers, and a changed standalone
-  role from an unchanged complete `config/read` response. The currency control
-  observes actual native catalogs before and after its explicit fixture edit
-  in one supplier process/home and selected cwd; both starts send no App child
-  keys. Complete parsed response content and canonical JSON agree, without a
-  raw wire-byte identity claim. The separately pinned official source model
-  described in that witness is not evidence that this binary was built from
-  that source or that all origins were observed. Complete discovery/exclusion, additive
-  child content and base preservation, App publication and actual association
-  remain open; no process-wide fallback or user configuration edit is selected.
+- **CR-1 Complete child bytes.** HELP_HUMAN offers HELPS_HUMANS,
+  WORKING_ITEMS and TASK; HELPS_HUMANS and WORKING_ITEMS offer TASK; a
+  conversation with no role offers none. TASK is never a primary conversation
+  role and offers no child roles. The child composition freezes the parent's exact common guidance
+  plus `# Active role: <CHILD>` and the current editable child-role guidance.
+  Each App-owned, content-named TOML file contains the complete composition
+  as `developer_instructions`. Exclusive creation, exact reuse comparison,
+  synchronization and read-only mode protect publication; source and file
+  rechecks precede dispatch. They do not prevent later external edits.
+- **CR-1a Additive carrier.** The exact prepared request adds only
+  `agents.<CHILD>.description` and `agents.<CHILD>.config_file`. The admission
+  matches the actual request to those frozen entries and full generation,
+  cwd, provider and model. The person's role names, configuration, feature
+  switches, depth, permissions and native base instructions are never
+  overridden. A changed queued source or child file refuses that prepared
+  send; it cannot silently promote or strip its supply.
+- **CR-2 Conservative name exclusion.** `config/read(includeLayers=true)`
+  alone cannot establish absence: `agents:null` can coexist with native
+  standalone roles. The inspector unions declaration hints from enabled
+  supported layers, names inside their referenced TOML files, current raw
+  layer declarations and recursive standalone `agents/` content at the
+  reported native roots. It deliberately excludes any candidate name seen
+  in that union rather than reconstructing precedence to free a name.
+  Disabled project layers are excluded. Configuration/source identity and
+  exact bytes are read again; the native config response must remain equal
+  across preparation. This is an observed currentness cut, never a lock on
+  later configuration or native reload behavior.
 
-- **CR-3** TASK offers no child roles. That is not enforcement (K-10).
-- **CR-4 A child without a role type.** A child spawned with a built-in type
-  (`default`, `explorer`, `worker`) or none has **unknown** guidance: not
-  observed, never stated as inherited (R18-4). Its delegation is never
-  attributed a role (RC-14).
-- **CR-5 Finding children.** No `thread/started` arrives for a child (B-11).
-  The App learns a child from a **completed** `spawnAgent` item's
-  `receiverThreadIds` (the started item's list is empty) and reads it with
-  `thread/read` for `agentRole` and `parentThreadId`. A child's role counts
-  only when `agentRole` names a child role the App supplied to that
-  conversation; listing children after a relaunch uses `thread/loaded/list`
-  or the App's own record, never `thread/list` (B-11).
-- **CR-6 Local models.** On a provider that drops `namespace` tools (LM Studio
-  0.4.16) delegation never reaches the model (B-9): no child exists, and the
-  delegation view is absent (K-5).
+  Initial support requires a reported User layer and an empty System layer
+  with no System `agents/` root. The standard observed macOS
+  `/etc` → `/private/etc` alias is recognized. A linked User `config.toml`
+  is supported only through the App's owned home-resource descriptor and
+  checked link/target identities. Native `agents/` roots stay at the reported
+  home/project folders; the link imports no target-sibling `agents/` folder.
+  Non-null profiles, managed/unknown origins, System role sources, arbitrary
+  or ambiguous links, malformed/unreadable sources, changed context and
+  exceeded inspection bounds visibly withhold App child roles. This does not
+  claim complete native-origin discovery in a person's project. At official
+  source `a956835d020762cb2b570053af06f643a11c0ecc`, packaged defaults omit
+  role definitions; the App supplies no default-loader override. That source
+  fact is distinct from executable/build correspondence.
+- **CR-3 Limits.** TASK's prohibition is **stated, not enforced**. Supplying
+  no child roles to TASK denies no native tool and does not change the
+  person's controls. An observed TASK delegation is recorded and shown with
+  its original limit assessment; a modified/unrecognized guidance comparison
+  keeps its limits unknown.
+- **CR-4 Unknown children.** Untyped, built-in, foreign or unmatched children
+  retain unknown guidance. `agentRole` alone grants no App association and
+  metadata reading supplies no instructions.
+- **CR-5 Original live association.** A schema-valid, live completed
+  `subAgentActivity(kind=started).agentThreadId` supplies the child ID.
+  Association requires the original private matched parent start receipt in
+  the same original generation and scope, its actually supplied child entry,
+  and a correctly correlated `thread/read` whose child ID, parent ID,
+  `source.subAgent.thread_spawn` and `agentRole` agree. Self, ancestor,
+  duplicate, fork, foreign and mismatched references grant none. Old resumed,
+  forked or restarted parents cannot supply fresh associations without
+  retention evidence; this implementation withholds them. An already observed
+  child's original composition and limit evidence remain fixed in process
+  memory for that same home/thread lifetime, including warm resume or Codex
+  restart. Retention supplies no fresh child association or renewed supply.
+  Cold quoted observations restore neither `RoleBinding` nor CCE authority
+  (§6.1a).
+
+B-9/B-10/B-11 and the original CR-6 LM Studio tool-shape observation remain
+historical 0.158.0 facts, not a current capability or child-identity oracle.
+Current delegation availability is read from the acting native route. Source
+selection, actual supply, provider uptake, behavior and consumer adoption stay
+separate; no native GUI journey, person act, distribution qualification or
+consumer adoption is established by these joins.
 
 ### 5.4 Withdrawn
 
@@ -536,7 +550,7 @@ flags it.
 | 1 | Role preselected; person keeps, changes or clears it | Role set invalid | `role-set-invalid`; release defect shown |
 | 2 | Person chooses a model and writes a first message | No model (K-3) | "not started — no model selected" |
 | 3 | Compose (§5.1) | Missing / unreadable / non-UTF-8 file | `refused-before-send`; message kept unsent |
-| 4 | Child-role keys (§5.3) | `config/read` fails | None supplied; start continues |
+| 4 | Child-role keys (§5.3) | Unsupported/uncertain name context or changed preparation | Withhold child roles before preparation; a later changed prepared source refuses that send |
 | 5 | Request check (§5.2) | Forbidden input | `forbidden-input-in-request`; nothing sent (a design defect) |
 | 6 | `thread/start` (HOSTING §5.1) | Not ready; error; no response | `request-failed` / `unknown-no-response`; T-2 |
 | 7 | Response; record written; HOSTING §8.2 records the carried identity | Identities differ | Finding "supply evidence mismatch" (VC-R12) |
@@ -546,10 +560,10 @@ Fails as SQ-1; the source is untouched.
 
 **SQ-3 Relaunch.** §5.5. Fails as HOSTING §4 and DEL-01-02's recovery.
 
-**SQ-4 Delegated child.** A completed `spawnAgent` names the child (CR-5);
-`thread/read` gives its role. Fails when the item is not observed → the
-child's role is *unknown* for that span; when `thread/read` fails → role
-*unknown*.
+**SQ-4 Delegated child.** The live completed native started item names the
+child (CR-5); the original parent carrier and correlated metadata establish
+its bounded association. Missing event, source receipt or matching metadata
+keeps the child guidance *unknown*.
 
 **SQ-5 A task agent delegates.** §6.3.
 
@@ -619,11 +633,18 @@ New exports use chain-head tag profile 0.2. The previous 0.1 RS-only profile
 remains byte/admin verifiable, including arbitrary retained payload names;
 its role-log head coverage is explicitly unestablished.
 
-New observations use **`chirality.role.supply.observation/0.2`**, with
-`role-supply-observation.schema.json`. Observation0.1 is read through its exact
-preserved `role-supply-observation-0.1.schema.json`; mixed logs retain every
-original row and the same chain/head and export profile. Version0.2 adds an
-immutable `appBytes.limitAccount` payload for a carried start. It is distinct from the preserved
+New observations use **`chirality.role.supply.observation/0.3`**, with
+`role-supply-observation.schema.json`. Observation 0.1 and 0.2 retain exact
+readers in `role-supply-observation-0.1.schema.json` and
+`role-supply-observation-0.2.schema.json`; mixed logs retain every original row
+and the same chain/head and export profile. Version 0.2 added the immutable
+`appBytes.limitAccount`; version 0.3 also retains each supplied child's exact
+common/role source parts, full composition, TOML envelope and historical
+limit account under `appBytes.nativeChildren`. The reader checks content
+identities, ranges and the TOML `developer_instructions` value against the
+carried child account. Native child associations and observed TASK delegations
+have distinct observation outcomes and original-event lineage; they do not
+turn a metadata read into instruction supply. It is distinct from the preserved
 `chirality.role.supply/0.2` proposal above; old schema and witness bytes are
 unchanged. A stable `supplyId` names each attempted start or fork. Each
 immutable observation has its own identity and chain-linked source order.
@@ -659,7 +680,9 @@ For a carried start, the writer retains the exact App-owned common, role
 and composed UTF-8 bytes as immutable content-identified payloads. The reader
 checks lengths, identities and part ranges against those payloads; editing
 the live instruction copy changes none of them. Native base instructions,
-configuration, transcript and credentials are not copied. Source-byte failure,
+person configuration, transcript and credentials are not copied. Exact
+App-owned child TOML envelopes are retained separately from the native
+configuration that references them. Source-byte failure,
 unavailable storage, non-plain or substituted paths, torn/corrupt logs and
 unresolved lineage remain visible limits. The chain is unsigned; file
 provenance is unverified and signing is not supplied by this log.
@@ -673,8 +696,9 @@ operation (`role_supply_history`), including the current home's attempted
 starts and the selected conversation's observations and source bytes. This
 reader writes nothing and performs no native request. It neither inserts a
 `RoleBinding` nor recreates a CCE owner: a fresh App's role remains unknown
-even when the file claims prior supply. Legacy0.2 rows keep their exact file
-evidence and unknown H5/home attribution; they are shown only in the full
+even when the file claims prior supply. Legacy `chirality.role.supply/0.2`
+proposal rows keep their exact file evidence and unknown H5/home attribution;
+they are shown only in the full
 project role-history inspection. Provider adoption remains unknown.
 
 **Current R3 receiving (`role_record_source.rs`, `record_supply.rs`).** A
@@ -767,22 +791,40 @@ or shared consumer adoption.
 
 ### 6.3 Limit observations: a task agent delegates (K-10)
 
-- **DL-1 Trigger.** A `collabAgentToolCall` `spawnAgent` whose sender has TASK
-  in force: supplied to it at start (`supplied-to-thread`), or a child whose
-  `agentRole` is TASK and was supplied by the App
-  (`native-child-role-reported`). No other basis exists; a child without a
-  role type is never attributed TASK (IL-6).
-- **DL-2** One observation per item id (started and completed collapse).
-- **DL-3** Nothing is prevented, declined, interrupted or answered (B-18
-  observed it proceeds in full).
-- **DL-4** Shown in the conversation; handed to DEL-01-03 as a runtime value
-  (C-07); written to the run record when a run is in progress (RS R3 limits;
-  J-11).
-- **DL-5** Delegation by a role that may delegate is not an observation; a
-  task agent's later `sendInput`/`wait` to its child belongs to the same
-  delegation.
-- **DL-6** Items are delivered (B-10, through an adapter). On a provider that
-  drops `namespace` tools there is no delegation to observe (CR-6).
+The current native path observes a schema-valid completed started-child item
+whose sender has the original live TASK child association from CR-5. It keeps
+the original TASK composition and historical limit assessment, records
+`native-task-delegation` / `task-delegation-observed` with the native event and
+original association lineage in the role observation log, and presents that
+observation in the conversation. Later native action at the same home/thread
+may be compared with that retained original TASK statement across a warm
+resume or Codex restart. A cross-generation live or quoted account names
+the original generation, supply and association separately from the action's
+generation and labels the comparison as historical (`originalAssociation`,
+`actionGeneration`, and `comparison-with-original-child-guidance`; quoted
+rows keep the original association in lineage and the action generation in
+the request). It establishes no new child guidance association,
+renewed supplier uptake, `RoleBinding`, CCE or current-source authority. A failed history publication leaves the live
+native observation with an explicit unconfirmed-history limit. It neither
+prevents nor answers the native operation.
+
+A native descendant event received before the TASK parent's metadata reply is
+held until that parent association can be established; once established, the
+same original event produces one limit observation. A modified/unrecognized
+TASK guidance comparison retains unknown limits. Untyped, unmatched or
+foreign senders are never labelled TASK from their role name alone. Other
+roles' authorized delegation produces no TASK-limit observation.
+
+The earlier `collabAgentToolCall.spawnAgent` trigger and B-18's direct
+TASK-guided parent are historical 0.158.0 adapter observations. The current
+run recorder also writes the existing `role_limit_observation` body only when
+both the original child-creation event and TASK delegation event belong to
+that live run's original scope. Historical comparisons, quoted/recovered
+items or an older child creation cannot establish current-run `roleInForce`
+attribution. This is separate from
+role-guidance supply R3. TASK is not a current primary conversation role.
+Depth, approval, sandbox, person configuration and tool presence establish no
+role enforcement.
 
 ### 6.4 The five facts kept apart (CLM-004, AC-005)
 
@@ -994,7 +1036,7 @@ examples accepted; IS-1…IS-9 and IL-1…IL-6 each rejected for its reason).
 | VC-R8 | L-2 | Relaunch keeps the start supply; no instructions on resume | Live | B-8 observed; RC-07 |
 | VC-R9 | K-9 | Seed, restore, upgrade, guidance-changed flag | Fixture | RC-02, RC-08, RC-16, RC-18 |
 | VC-R10 | REQ-002 | Refusals | Fixture | RC-08, RC-09, RC-11 |
-| VC-R11 | REQ-003 | Child roles additive, product guidance in each file; the carrier at the pin | Live for CR-1a | RC-12; mechanism observed through an adapter; carrier open |
+| VC-R11 | REQ-003 | Child roles additive, product guidance in each file; the carrier at the pin | Live for CR-1a | Current bounded Rust preparation → stock 0.160.0 carrier evidence in CHILD_ROLE_CARRIER_0.160.0; App Host/private association and quoted-source fixtures are separate. Historical RC-12/B-15 retained |
 | VC-R12 | REQ-004 | Record identity = HOSTING §8.2 carried identity | Candidate with tap | Designed |
 | VC-R13 | R19-8 | Fork keeps role; recorded inherited | Live | B-16 observed; RC-06 |
 
@@ -1066,7 +1108,7 @@ amendments are marked "(v0.2)".
 |---|---|---|---|
 | U-R1 App role content-identity method (HOSTING broader U-08 remains open) | CC-CONTENT-IDENTITY technical selection; App/RS consumer owners | Independent review and product propagation before qualification records | Exact-byte method selected in §6.1; historical records retain their designation; host identities untouched |
 | U-R2 *Closed* (route A/B): L-2, B-8 | — | — | — |
-| U-R3 Current0.160.0 child-role carrier (per-thread `config` or `-c` session flags; CR-1a; historical0.158.0 adapter mechanism retained) | App implementation owner; a later observation | Before native child supply | Carrier open; currently not-supplied; primary sample is not child evidence |
+| U-R3 Bounded 0.160.0 child-role carrier and App join | App implementation owner | Before relying on native child supply | Per-thread carrier, guarded Rust preparation and original live association implemented (§5.3); supported-source limits and source-bound supplier evidence retained. Person-project/native GUI, distribution qualification, behavior and adoption remain separate |
 | U-R4 Composition size bound | App implementation owner | Before implementation | Length recorded |
 | U-R5 *Closed* by the owner's OI-008 ruling (2026-10-10) | — | — | §8 SETTLED |
 | U-R6 `UNRESOLVED{OI-014}` role identity set placement | App/shared contract owners | Before allocation | Role set is the App's own |

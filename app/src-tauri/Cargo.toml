@@ -22,6 +22,7 @@ sha2 = "0.10"
 libc = "0.2"
 uuid = "=1.23.1"
 getrandom = "=0.4.2"
+toml = "=1.1.2"
 jsonschema = { version = "=0.58.5", default-features = false }
 # The App-private recovery ledger (DEL-01-02 §7; PRD R-STORE direction).
 rusqlite = { version = "0.32", features = ["bundled"] }

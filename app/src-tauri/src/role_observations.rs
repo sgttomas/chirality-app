@@ -20,6 +20,7 @@ pub(crate) use receiving::FAIL_CONTEXT_AFTER_FILE_SYNC;
 pub(crate) use receiving::{PublishedRoleSupply, PreparedRoleRunSupply, read_r3, read_r3_with_relations, read_project_sources, BoundedRoleReading};
 
 pub const OLD_SCHEMA: &str = include_str!("../resources/workflow_role/role-supply-observation-0.1.schema.json");
+pub const PREVIOUS_SCHEMA: &str = include_str!("../resources/workflow_role/role-supply-observation-0.2.schema.json");
 pub const SCHEMA: &str =
     include_str!("../resources/workflow_role/role-supply-observation.schema.json");
 const FOLDER: &str = "role-supply";
@@ -168,7 +169,7 @@ impl LogBasis {
 struct PublicationBasis {path:PathBuf,folder:(u64,u64),log:(u64,u64)}
 fn validate(value: &Value) -> Result<(), String> {
     static VALIDATORS: OnceLock<Result<std::collections::BTreeMap<&'static str,jsonschema::Validator>, String>> = OnceLock::new();
-    VALIDATORS.get_or_init(|| [ ("0.1",OLD_SCHEMA),("0.2",SCHEMA) ].into_iter().map(|(version,schema)| {
+    VALIDATORS.get_or_init(|| [ ("0.1",OLD_SCHEMA),("0.2",PREVIOUS_SCHEMA),("0.3",SCHEMA) ].into_iter().map(|(version,schema)| {
         jsonschema::options().offline().build(&serde_json::from_str::<Value>(schema).map_err(|e|e.to_string())?).map(|v|(version,v)).map_err(|e|e.to_string())
     }).collect()).as_ref().map_err(Clone::clone)?.get(value["formatVersion"].as_str().unwrap_or(""))
         .ok_or("unsupported role observation format version")?.validate(value).map_err(|e|e.to_string())
@@ -491,8 +492,10 @@ impl RoleLog {
         self.append_row(row,composition).map(|(status,_,_)|status)
     }
     fn append_row(
-        &self, mut row:Value, composition:Option<&role_supply::Composition>,
-    ) -> Result<(Value,Value,PublicationBasis),String> {
+        &self,
+        mut row: Value,
+        composition: Option<&role_supply::Composition>,
+    ) -> Result<(Value, Value, PublicationBasis), String> {
         // The Root shares this owner across homes. Serialize initial store
         // attachment too, before the cross-process log lock can be opened.
         let _owner = self
@@ -546,11 +549,61 @@ impl RoleLog {
                 held.push((reference.clone(), file));
                 parts.push(reference);
             }
-            row["appBytes"] = if row["formatVersion"]=="0.1" {json!({"composed":composed,"parts":parts})} else {
-                let account=crate::conversation_roles::frozen_limit_account(composition)?;receiving::validate_limit(&account)?;
-                let bytes=serde_json::to_vec(&account).map_err(|e|e.to_string())?;
-                let (limit,file)=Self::publish_bytes(&payloads,&bytes)?;held.push((limit.clone(),file));
-                json!({"composed":composed,"parts":parts,"limitAccount":limit})
+            row["appBytes"] = if row["formatVersion"] == "0.1" {
+                json!({"composed":composed,"parts":parts})
+            } else {
+                let account = crate::conversation_roles::frozen_limit_account(composition)?;
+                receiving::validate_limit(&account)?;
+                let bytes = serde_json::to_vec(&account).map_err(|e| e.to_string())?;
+                let (limit, file) = Self::publish_bytes(&payloads, &bytes)?;
+                held.push((limit.clone(), file));
+                {
+                    let mut native_children = vec![];
+                    for child in &composition.children {
+                        let (child_composed, file) =
+                            Self::publish_bytes(&payloads, child.composition.text.as_bytes())?;
+                        held.push((child_composed.clone(), file));
+                        let (envelope, file) = Self::publish_bytes(&payloads, &child.envelope)?;
+                        held.push((envelope.clone(), file));
+                        let mut child_parts = vec![];
+                        for part in child.composition.carried["developerInstructions"]["parts"]
+                            .as_array()
+                            .ok_or("child source parts absent")?
+                        {
+                            let start =
+                                part["offset"].as_u64().ok_or("child offset absent")? as usize;
+                            let length =
+                                part["length"].as_u64().ok_or("child length absent")? as usize;
+                            let bytes = child
+                                .composition
+                                .text
+                                .as_bytes()
+                                .get(
+                                    start
+                                        ..start
+                                            .checked_add(length)
+                                            .ok_or("child source overflow")?,
+                                )
+                                .ok_or("child source outside composition")?;
+                            let (reference, file) = Self::publish_bytes(&payloads, bytes)?;
+                            held.push((reference.clone(), file));
+                            child_parts.push(reference);
+                        }
+                        let child_limit =
+                            crate::conversation_roles::frozen_limit_account(&child.composition)?;
+                        let (child_limit, file) = Self::publish_bytes(
+                            &payloads,
+                            &serde_json::to_vec(&child_limit).map_err(|e| e.to_string())?,
+                        )?;
+                        held.push((child_limit.clone(), file));
+                        native_children.push(json!({"role":child.role,"carried":child.composition.carried,"composed":child_composed,"parts":child_parts,"file":envelope,"limitAccount":child_limit}));
+                    }
+                    let mut bytes = json!({"composed":composed,"parts":parts,"limitAccount":limit});
+                    if row["formatVersion"] == "0.3" {
+                        bytes["nativeChildren"] = json!(native_children);
+                    }
+                    bytes
+                }
             };
             content = Some(payloads);
         }
@@ -609,7 +662,15 @@ impl RoleLog {
         if let Some(content) = &content {
             Self::verify_content(&folder, content, &held)?;
         }
-        Ok((json!({"state":"written","observationId":row["observationId"],"supplyId":row["supplyId"],"standing":"App observation publication confirmed; supplier adoption and current role authority remain separate"}),row,PublicationBasis {path,folder:identity(&folder)?,log:identity(&file)?}))
+        Ok((
+            json!({"state":"written","observationId":row["observationId"],"supplyId":row["supplyId"],"standing":"App observation publication confirmed; supplier adoption and current role authority remain separate"}),
+            row,
+            PublicationBasis {
+                path,
+                folder: identity(&folder)?,
+                log: identity(&file)?,
+            },
+        ))
     }
     fn source_bytes(content: Option<&File>, row: &Value) -> Result<Value, String> {
         let folder = content.ok_or("App source content folder absent")?;
@@ -647,7 +708,121 @@ impl RoleLog {
             }
             parts.push(json!({"source":part["source"],"kind":part["kind"],"role":part["role"],"text":bytes}));
         }
-        Ok(json!({"composed":composed,"parts":parts}))
+        let supplied = row["carried"]["nativeChildRoles"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|r| r["status"] == "supplied")
+            .collect::<Vec<_>>();
+        let mut expected = std::collections::BTreeSet::new();
+        for child in &supplied {
+            let role = child["role"]
+                .as_str()
+                .ok_or("quoted supplied child role absent")?;
+            if !expected.insert(role.to_owned()) {
+                return Err("quoted supplied child roles repeat".into());
+            }
+        }
+        if row["formatVersion"] == "0.3" {
+            let children = refs
+                .get("nativeChildren")
+                .and_then(Value::as_array)
+                .ok_or("quoted native child payload set absent")?;
+            let mut actual = std::collections::BTreeSet::new();
+            for child in children {
+                let role = child["role"]
+                    .as_str()
+                    .ok_or("quoted child payload role absent")?;
+                if !actual.insert(role.to_owned()) {
+                    return Err("quoted child payload roles repeat".into());
+                }
+            }
+            if actual != expected {
+                return Err("quoted native child payload set differs from supplied roles".into());
+            }
+        }
+        let mut native_children = vec![];
+        if let Some(children) = refs.get("nativeChildren").and_then(Value::as_array) {
+            for child in children {
+                let child_row = json!({"appBytes":{"composed":child["composed"],"parts":child["parts"]},"carried":child["carried"]});
+                let mut bytes = Self::source_bytes(Some(folder), &child_row)?;
+                let metadata = child["carried"]["developerInstructions"]["parts"]
+                    .as_array()
+                    .ok_or("quoted child parts absent")?;
+                let role = child["role"].as_str().ok_or("quoted child role absent")?;
+                if metadata.len() != 2
+                    || metadata[0]["kind"] != "product-guidance"
+                    || metadata[0]["source"]["path"] != "AGENTS.md"
+                    || metadata[1]["kind"] != "role-guidance"
+                    || metadata[1]["role"] != role
+                    || metadata[1]["source"]["path"] != format!("agents/AGENT_{role}.md")
+                {
+                    return Err("quoted child role/source metadata differs".into());
+                }
+                let child_parts = bytes["parts"]
+                    .as_array()
+                    .ok_or("quoted child exact parts absent")?;
+                if bytes["composed"]
+                    != format!(
+                        "{}\n\n# Active role: {role}\n\n{}",
+                        child_parts[0]["text"]
+                            .as_str()
+                            .ok_or("quoted common text absent")?,
+                        child_parts[1]["text"]
+                            .as_str()
+                            .ok_or("quoted role text absent")?
+                    )
+                {
+                    return Err("quoted child framing differs".into());
+                }
+
+                if metadata[0] != row["carried"]["developerInstructions"]["parts"][0]
+                    || child_parts[0]["text"] != parts[0]["text"]
+                {
+                    return Err("quoted child common source differs from original parent".into());
+                }
+                let envelope = get(&child["file"])?;
+                let account = get(&child["limitAccount"])?;
+                let parsed: toml::Value =
+                    toml::from_str(&envelope).map_err(|_| "quoted child envelope invalid")?;
+                let supplied = row["carried"]["nativeChildRoles"]
+                    .as_array()
+                    .ok_or("child supply account absent")?
+                    .iter()
+                    .find(|r| r["role"] == child["role"] && r["status"] == "supplied")
+                    .ok_or("child has no carried supply")?;
+                if parsed.as_table().is_none_or(|t| t.len() != 1)
+                    || supplied["composed"] != child["composed"]["content"]
+                    || supplied["file"] != child["file"]["content"]
+                    || parsed["developer_instructions"].as_str() != bytes["composed"].as_str()
+                {
+                    return Err("quoted child composition/envelope differs".into());
+                }
+                let account: Value =
+                    serde_json::from_str(&account).map_err(|_| "quoted child limits invalid")?;
+                receiving::validate_limit(&account)?;
+                let role: crate::role_supply::Role = serde_json::from_value(child["role"].clone())
+                    .map_err(|_| "quoted child role unknown")?;
+                let quoted = crate::role_supply::Composition::quoted(
+                    Some(role),
+                    row["selection"]["roleSet"].clone(),
+                    bytes["composed"]
+                        .as_str()
+                        .ok_or("quoted child text absent")?
+                        .to_owned(),
+                    child["carried"].clone(),
+                )?;
+                let expected = crate::conversation_roles::frozen_limit_account(&quoted)?;
+                if account != expected {
+                    return Err("quoted child original limits/source comparison differs".into());
+                }
+                bytes["role"] = child["role"].clone();
+                bytes["envelope"] = json!(envelope);
+                bytes["limitAccount"] = account;
+                native_children.push(bytes);
+            }
+        }
+        Ok(json!({"composed":composed,"parts":parts,"nativeChildren":native_children}))
     }
     fn head(chain: &record_lines::Chain) -> Value {
         json!({"method":record_lines::LINE_METHOD,"head":chain.last,"lines":chain.lines,"linked":chain.linked,"unchained":chain.unchained,"unchainedLimit":chain.unchained_note("role supply observations"),"broken":[],"signedCheckpoints":"not written: they wait for App signing (OI-011)"})
@@ -691,7 +866,9 @@ impl RoleLog {
                 };
                 let reference = row["lineage"]["inheritedFrom"]
                     .as_str()
-                    .or_else(|| row["lineage"]["continuedFrom"]["sourceStartRecord"].as_str());
+                    .or_else(|| row["lineage"]["continuedFrom"]["sourceStartRecord"].as_str())
+                    .or_else(||row["lineage"]["parentSupplyRef"].as_str())
+                    .or_else(||row["lineage"]["originalParentSupplyRef"].as_str());
                 let mut lineage = vec![];
                 if let Some(reference) = reference {
                     lineage=rows.iter().filter(|candidate|candidate["format"]==FORMAT && candidate["supplyId"]==reference && candidate["request"]["home"]==home).map(|candidate|json!({"observationId":candidate["observationId"],"outcome":candidate["outcome"],"standing":"quoted source reference only"})).collect();
@@ -760,7 +937,7 @@ pub(crate) fn row(
     lineage: Value,
     limit: Option<&str>,
 ) -> Result<Value, String> {
-    let mut row = json!({"format":FORMAT,"formatVersion":"0.2","observationId":crate::util::opaque_id("role-observation:v1:")?,"supplyId":supply_id,"recorder":"App DEL-02-04 role supply observer","trigger":trigger,"thread":thread,"request":request,"selection":selection,"outcome":outcome,"supplierReported":supplier_reported,"lineage":lineage,"adoption":"unknown"});
+    let mut row = json!({"format":FORMAT,"formatVersion":"0.3","observationId":crate::util::opaque_id("role-observation:v1:")?,"supplyId":supply_id,"recorder":"App DEL-02-04 role supply observer","trigger":trigger,"thread":thread,"request":request,"selection":selection,"outcome":outcome,"supplierReported":supplier_reported,"lineage":lineage,"adoption":"unknown"});
     if let Some(carried) = carried {
         row["carried"] = carried;
     }
