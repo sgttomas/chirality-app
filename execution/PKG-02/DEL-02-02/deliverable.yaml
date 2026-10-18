@@ -252,6 +252,7 @@ code_paths:
 - app/src-tauri/src/trial_flows.rs
 - app/src-tauri/src/historical_run_learning.rs
 - app/src-tauri/src/workflow_learning_pointers.rs
+- app/src-tauri/src/hosting.rs
 - app/src-tauri/src/workflow_drafts.rs
 - app/src-tauri/src/workflow_library.rs
 - app/src-tauri/src/workflow_package_copy.rs
@@ -263,6 +264,8 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/historical_run_learning_tests.rs
 - app/src-tauri/src/historical_trial_flows_tests.rs
 - app/tests/run-panel.test.mjs

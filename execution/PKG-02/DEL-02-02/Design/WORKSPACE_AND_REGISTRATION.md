@@ -1038,16 +1038,20 @@ original generation provenance. `trial_flows.rs` routes the read through that
 home's current full generation, separately from the chosen target home's
 composer. Missing or ambiguous source identity is unavailable; the active or
 target home is never substituted. The historical generation is provenance,
-not current operational authority. New run starts and text/mode/Continue-as end-notice
-acknowledgments retain their exact turn/client coordinates as pointer-only REC
-metadata (`workflow_learning_pointers.rs`, REC §7.1). No manual supply check is
+not current operational authority. New run starts and text/mode/Continue-as or
+ordinary attachment-bearing end-notice acknowledgments retain their exact
+turn/client coordinates as pointer-only REC metadata
+(`workflow_learning_pointers.rs`, REC §7.1). No manual supply check is
 required for those pointers. Older runs without either saved check coordinates
 or an original acknowledgment pointer remain unavailable for transcript reads;
 unique matching or pasted text cannot recreate the missing original boundary.
-Attachment-carried end notices do not yet produce this automatic acknowledgment
-pointer: their actual source is retained, but no typed positive attachment finish
-is connected to this receiver. A saved valid supply check can supply that end
-boundary; otherwise the historical transcript is unavailable with its cause.
+For attachment carriage, the Host's private typed positive finish checks the
+complete original ordered frame, completed write, owning attachment custody,
+source pipe and exact matched valid native turn-start response before retaining
+the original notice boundary. A merely attempted or failed write, steer, failed or
+uncorrelated response, or cold attachment metadata cannot produce that pointer.
+The notice-bearing carrier and later turns are outside the closed run's
+transcript. This adds no pointer format or native transcript store.
 Failed pointer or run-association saving preserves the actual send and offers
 metadata-only retry while the original positive native observation remains held;
 no resend or new supply record occurs. Original REC project references remain

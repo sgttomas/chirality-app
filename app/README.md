@@ -147,6 +147,13 @@ implemented behavior and qualification limits.
     their order. The notice is marked sent only once that frame's write was
     attempted; a send refused or failed before then leaves it pending. An
     attachment steer is not a new turn and does not carry it.
+    The Host's private positive attachment acknowledgment also saves the notice's
+    exact original turn/client boundary in pointer-only REC metadata. With the
+    original records and native history available after an App restart,
+    **Bring a real run back** and **Compare** can read the closed run without a
+    manual supply check; the carrier and later turns are excluded. A failed
+    metadata save preserves the send and offers metadata-only retry while the
+    original observation is held in this App process.
 13. Explicit App project association comes from configured `CHIRALITY_WORKSPACE`,
     separately from native thread cwd, Codex home and workflow run. Unknown context
     produces no canonical project row. Historical project P remains intact when
