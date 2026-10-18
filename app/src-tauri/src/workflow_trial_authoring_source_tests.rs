@@ -60,19 +60,41 @@ fn trial_authoring_hot_collision_cold_unknown_and_current_source_packet() {
     let run = open_run(&a, &mut root.lock().unwrap(), "thread");
     let hot = authoring_status(&root);
     let hot_row = authoring_row(&hot, &reference);
+    // This is a newly acknowledged send, but Peer::new has no REC store:
+    // its saved link is not a qualified future restart pointer.
+    assert_eq!(hot_row["sourceMetadata"]["heldMetadata"], false);
+    assert_eq!(hot_row["sourceMetadata"]["persistence"], "not confirmed");
+    assert!(a.home.host.trial_recovery_rows().is_err());
+    assert!(b.home.host.trial_recovery_rows().is_err());
     assert_eq!(hot_row["authoringConversation"], again["authoring"]);
     assert_eq!(hot["runBringBackDefaults"][0]["authoring"], again["authoring"]);
 
-    // Reload genuine saved trial links: they supply names but no source tuple.
+    // Reload the genuine saved link without REC evidence: names alone supply no source.
     let cold = Mutex::new(authoring_reopen(&a));
     let cold_row = authoring_row(&authoring_status(&cold), &reference);
     assert_eq!(cold_row["authoringConversation"], "thread");
     assert!(cold_row["sourceLimit"].as_str().unwrap().contains("not established"));
+    assert_eq!(cold.lock().unwrap().trials.link(&reference), root.lock().unwrap().trials.link(&reference), "the actual acknowledged link survives reopening unchanged");
     let reads = (authoring_history_reads(&a), authoring_history_reads(&b));
+    let starts = (a.turn_starts(), b.turn_starts());
+    let source_limit = trial_flows::trial_home(&cold, &homes, &reference).err().expect("an unproven saved link has no native source");
     assert!(trial_flows::trial_home(&cold, std::slice::from_ref(&b.home), &reference).is_err(), "even a unique loaded bare ID supplies no cold source");
+    assert!(trial_flows::read_trial_again(&cold, &b.home, &reference, &json!({})).is_err());
     assert!(trial_flows::bring_back_with_homes(&cold, &homes, a.project(), &a.home, Some(&reference), None, &a.generation, "thread", false).is_err());
     let comparison = trial_flows::compare_with_homes(&cold, &homes, a.project(), &json!({"trial":reference}), &json!({"trial":reference})).unwrap();
-    assert!(comparison.to_string().contains("not established"));
+    for side in ["left", "right"] {
+        let summary = &comparison[side]["summary"];
+        assert_eq!(summary["turns"], 0);
+        assert_eq!(summary["endings"], json!([]));
+        assert_eq!(summary["commands"], json!({"run":0,"failed":0,"list":[]}));
+        assert_eq!(summary["fileChanges"], json!([]));
+        assert!(summary["finalAgentMessage"].is_null());
+        let limits = summary["limits"].as_array().unwrap();
+        assert!(!limits.is_empty());
+        assert!(limits.contains(&json!(source_limit)), "Compare discloses the native-source refusal on each side: {summary}");
+    }
+    assert!(authoring_status(&cold)["pendingBringBacks"].as_array().unwrap().is_empty(), "source refusal leaves no feedback prefill");
+    assert_eq!((a.turn_starts(), b.turn_starts()), starts, "cold inspection sends nothing");
     assert_eq!((authoring_history_reads(&a), authoring_history_reads(&b)), reads, "cold inspection does not query an inferred home");
     let cold_again = trial_flows::trial_again(&cold, &reference, &homes, a.project()).unwrap();
     assert!(cold_again["authoring"].is_null());

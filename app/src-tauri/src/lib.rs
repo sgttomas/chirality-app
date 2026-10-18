@@ -265,6 +265,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // and the trial reads run on the host's own tick (`host_tick`).
     s["hostTicks"] = host_tick::tick_state();
     s["workflowRoot"] = host_tick::workflow_status(&state.workflows, &s["nativeView"], state.workspace.is_some());
+    let trial_homes = state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::decorate_restart_sources(&state.workflows, &trial_homes, &mut s["workflowRoot"]);
     workflow_selection::publish_context(&mut s, &home);
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["continueAs"] = state.continue_as.lock().unwrap().view(&s);
