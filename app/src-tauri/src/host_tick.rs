@@ -147,6 +147,9 @@ pub(crate) fn trial_tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRo
     let entries = homes.lock().unwrap().entries();
     for home in entries {
         recovery_tick_home(&home);
+        // OA window gaps do not change CV recovery custody or the live native
+        // projection. Read at most one queued target on this existing worker.
+        home.host.observer_rebuild_reads(crate::hosting::recovery_reads::RECOVERY_READ_WAIT);
         trial_tick_home(&home, workflows);
         delegation_tick_home(&home);
     }

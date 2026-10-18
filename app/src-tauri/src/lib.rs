@@ -1210,11 +1210,13 @@ fn select_external_observation(
     )
 }
 
-/// Public reattachment is read-only and always uses the complete owning tuple.
+/// Public reattachment queues only memory-owned history needs. Protocol reads
+/// run on the background tick, never in this observer/IPC call. The current
+/// owning source is distinct from an older or absent window cursor.
 #[tauri::command]
-fn host_observe(state: State<'_, AppState>, generation: Value, after: u64) -> Value {
-    let home = match state.homes.lock().unwrap().for_generation(&generation) { Ok(home)=>home,Err(error)=>return json!({"error":error,"generation":generation,"frames":[]}) };
-    home.host.observe(&generation, after)
+fn host_observe(state: State<'_, AppState>, generation: Value, after: u64, source_generation: Option<Value>) -> Value {
+    let source = source_generation.as_ref().unwrap_or(&generation);
+    runtime_session::observe_home(&state.homes, source, &generation, after)
 }
 
 /// Attribution consumes the Host's current atomic observation rather than the

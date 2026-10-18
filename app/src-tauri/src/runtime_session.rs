@@ -2592,6 +2592,15 @@ impl HomeSession {
         json!({"modeHomeClass":self.class.as_str(),"observations":sources.iter().map(|source|self.host.account_rpc_observation(source).unwrap_or_else(|error|json!({"limit":error,"source":source.evidence()}))).collect::<Vec<_>>(),"limit":"native source facts; credential validity and actor identity are not inferred"})
     }
 }
+/// Read the explicitly selected actual source with an independent window
+/// cursor. No active-home fallback, receipt acknowledgment or native dispatch.
+pub(crate) fn observe_home(homes: &std::sync::Mutex<HomeRouter>, source: &Value, cursor: &Value, after: u64) -> Value {
+    let home = match homes.lock().unwrap().for_generation(source) {
+        Ok(home) => home,
+        Err(error) => return json!({"error":error,"sourceUnavailable":true,"generation":cursor,"frames":[]}),
+    };
+    home.host.observe_scoped(source, cursor, after)
+}
 pub struct HomeRouter {
     account: std::sync::Arc<HomeSession>,
     key: Option<std::sync::Arc<HomeSession>>,
@@ -8266,6 +8275,28 @@ for line in sys.stdin:
             let _ = std::fs::remove_dir_all(&self.0);
         }
     }
+    #[test]
+    fn observer_journal_routing_uses_selected_source_separately_from_missing_or_old_cursor() {
+        let account = Peer::new();
+        let key = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
+        // Construct two already-owned actual peers for this read-routing test;
+        // it does not claim a qualified shared App namespace/bootstrap.
+        let homes = Mutex::new(HomeRouter { account: account.home.clone(), key: Some(key.home.clone()), active: crate::home_resources::HomeClass::ApiKey });
+        let before = (account.home.host.client_requests().len(), key.home.host.client_requests().len());
+        let attached = observe_home(&homes, &account.generation, &Value::Null, 0);
+        assert_eq!(attached["generation"], account.generation, "the active key home never substitutes for the selected account source");
+        assert_eq!(attached["gap"], true);
+        assert_eq!(attached["snapshot"]["observerRebuild"]["status"], "queued");
+        let mut old_cursor = account.generation.clone();
+        old_cursor["appSession"] = json!("old-window-session");
+        assert_eq!(observe_home(&homes, &key.generation, &old_cursor, 0)["generation"], key.generation);
+        let mut stale_source = account.generation.clone();
+        stale_source["spawnCounter"] = json!(account.generation["spawnCounter"].as_u64().unwrap()+1);
+        assert_eq!(observe_home(&homes, &stale_source, &Value::Null, 0)["sourceUnavailable"], true);
+        assert_eq!(observe_home(&homes, &old_cursor, &Value::Null, 0)["sourceUnavailable"], true, "unknown owning session has no active-home fallback");
+        assert_eq!((account.home.host.client_requests().len(), key.home.host.client_requests().len()), before, "attachment only queues memory-owned needs");
+    }
+
     #[test]
     fn native_projection_delivery_survives_public_replay_loss_and_late_recording() {
         let _store = NativeDeliveryRecordsStore::new();

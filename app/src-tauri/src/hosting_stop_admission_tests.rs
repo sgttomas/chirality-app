@@ -52,13 +52,13 @@ fn stop_admission_lt20_preserves_historical_pid_pipe_and_rec_cause(){
     for successor in [false,true]{
         let f=route(successor);let h=Arc::new(Host::new());let old=h.start(&f.cfg,"prior source").unwrap()["generation"].clone();h.inner.0.lock().unwrap().execution_custody.bind(&old,"diagnostic-thread",&json!({"home":"synthetic-account"}));h.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"diagnostic-thread","turn":{"id":"diagnostic-turn","status":"inProgress","items":[]}}})).unwrap(),&old);h.stop("prior actor","prior source stop").unwrap();
         let(rx,go)=pause_at(&h.before_successor_gate);let source=h.clone();let cfg=f.cfg.clone();let start=std::thread::spawn(move||source.start(&cfg,"cancel new attempt"));rx.recv_timeout(Duration::from_secs(5)).unwrap();
-        let before={let i=h.inner.0.lock().unwrap();json!({"generation":i.generation,"pid":i.child_pid,"stopRecord":i.stop_record,"journal":i.journal,"requests":i.server_requests.entries(),"execution":i.execution_custody.snapshot(),"pending":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>()})};
+        let before={let i=h.inner.0.lock().unwrap();json!({"generation":i.generation,"pid":i.child_pid,"stopRecord":i.stop_record,"journal":i.journal.iter().collect::<Vec<_>>(),"requests":i.server_requests.entries(),"execution":i.execution_custody.snapshot(),"pending":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>()})};
         // This hook is before stdin close, group probes/signals, EOF wait and closure.
         // If the LT20 branch falls through, panic before any historical process action.
         *h.before_stop_cleanup.lock().unwrap()=Some(Box::new(||panic!("LT20 entered historical cleanup")));
         h.stop("new actor","cancel current verification").unwrap();assert!(h.before_stop_cleanup.lock().unwrap().is_some());h.before_stop_cleanup.lock().unwrap().take();
         assert!(before["execution"].to_string().contains("supplier-stop"),"first loss cause must actually be observed");
-        let after={let i=h.inner.0.lock().unwrap();json!({"generation":i.generation,"pid":i.child_pid,"stopRecord":i.stop_record,"journal":i.journal,"requests":i.server_requests.entries(),"execution":i.execution_custody.snapshot(),"pending":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>()})};assert_eq!(after,before);
+        let after={let i=h.inner.0.lock().unwrap();json!({"generation":i.generation,"pid":i.child_pid,"stopRecord":i.stop_record,"journal":i.journal.iter().collect::<Vec<_>>(),"requests":i.server_requests.entries(),"execution":i.execution_custody.snapshot(),"pending":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>()})};assert_eq!(after,before);
         h.on_eof(&old);let i=h.inner.0.lock().unwrap();assert_eq!(i.stop_record,before["stopRecord"].as_object().map(|_|before["stopRecord"].clone()));assert_eq!(i.execution_custody.snapshot(),before["execution"]);drop(i);
         go.send(()).unwrap();assert!(start.join().unwrap().is_err());
     }

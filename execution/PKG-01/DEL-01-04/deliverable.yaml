@@ -392,6 +392,7 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src/ObserverAttachment.tsx
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/canonical.rs
 - app/src-tauri/src/capture_seal.rs
@@ -408,6 +409,7 @@ code_paths:
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
+- app/tests/observer-attachment.test.mjs
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/tests/codex-controls.test.mjs

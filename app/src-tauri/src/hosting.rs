@@ -29,6 +29,10 @@ mod records_continuity;
 mod execution_custody;
 #[path = "hosting_observation_facts.rs"]
 mod observation_facts;
+#[path = "hosting_observer_journal.rs"]
+mod observer_journal;
+#[path = "hosting_observer_rebuild.rs"]
+mod observer_rebuild;
 #[path = "hosting_native_delivery.rs"]
 mod native_delivery;
 pub(crate) use native_delivery::{NativeProjectionOwner, NativeProjectionBatch, NativeProjectionEvent};
@@ -191,8 +195,11 @@ struct Inner {
     client_requests: Vec<Value>,
     /// Frames received before ready (H4), in received order.
     held: Vec<Value>,
+    /// Public-only diagnostics of held receipts; never native projection input.
+    held_observer_diagnostics: Vec<Value>,
     /// Frames delivered to receivers, in received order, each {generation, position, class, frame}.
-    journal: Vec<Value>,
+    journal: observer_journal::ObserverJournal,
+    observer_rebuild: observer_rebuild::ObserverRebuild,
     // Operational guards must not depend on how much diagnostic replay is kept.
     observation_facts: observation_facts::ObservationFacts,
     native_delivery: native_delivery::NativeDelivery,
@@ -862,7 +869,9 @@ impl Host {
             "serverRequestEndContexts": i.server_requests.end_contexts(),
             "recovery": i.recovery_snapshot.as_ref().map(|o|&o.summary),"recoveryPendingObservations":i.pending_recovery.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"recoveryProjectionLimits":i.recovery_projection_errors,
             "recoveryPersistenceError": i.recovery_error,"recoveryInitializationError":i.recovery_initialization_error,
-            "journal": i.journal,
+            "journal": i.journal.iter().collect::<Vec<_>>(),
+            "observerRetention": i.journal.retention(),
+            "observerRebuild": Self::observer_rebuild_status(i),
             "turnEventBoundaries": i.observation_facts.turn_boundaries(&i.generation),
             "accountNamespaceRevision": i.observation_facts.account_revision(&i.generation),
             "malformedFrames": i.malformed,
@@ -917,21 +926,64 @@ impl Host {
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
     /// calls; it never touches the pipe. A foreign/closed cursor gets a gap marker.
     pub fn observe(&self, generation: &Value, after: u64) -> Value {
+        self.observe_inner(None, generation, after)
+    }
+    pub fn observe_scoped(&self, expected_source: &Value, cursor_generation: &Value, after: u64) -> Value {
+        self.observe_inner(Some(expected_source), cursor_generation, after)
+    }
+    fn observe_inner(&self, expected_source: Option<&Value>, generation: &Value, after: u64) -> Value {
         let mut i = self.inner.0.lock().unwrap();
-        let snapshot = Self::snapshot_inner(&mut i);
+        if expected_source.is_some_and(|expected| expected != &i.generation) {
+            return json!({"sourceUnavailable":true,
+                "error":"selected source changed before observer capture; no replacement source observed or queued",
+                "requestedSourceGeneration":expected_source,"generation":i.generation,
+                "snapshot":null,"position":null,"gap":true,"frames":[]});
+        }
         let capability = i.records_capability.clone();
-        let gap = *generation != i.generation || after > i.receipt_position || !matches!(i.state.as_str(), "ready" | "handshaking");
+        let scope_matches = i.journal.scope() == Some(&i.generation);
+        let source_open = !i.server_requests.is_closed(&i.generation)
+            && matches!(i.state.as_str(), "ready" | "handshaking");
+        let position = if scope_matches { i.journal.delivered_through() } else { 0 };
+        let gap = *generation != i.generation || !scope_matches || !source_open
+            || after < i.journal.omitted_through() || after > position;
+        if gap && scope_matches && source_open && i.state == "ready" {
+            let actual_generation = i.generation.clone();
+            let cut = i.journal.omitted_through();
+            let mut targets = Vec::new();
+            for thread in &i.threads {
+                if thread["generation"] == actual_generation {
+                    if let Some(id) = thread["threadId"].as_str().filter(|id| !id.is_empty()) {
+                        if !targets.iter().any(|target| target == id) { targets.push(id.to_owned()); }
+                    }
+                }
+            }
+            i.observer_rebuild.request(&actual_generation, cut, targets);
+        }
+        let snapshot = Self::snapshot_inner(&mut i);
         let frames: Vec<_> = i.journal.iter().filter(|e| {
+            scope_matches && source_open &&
             e["generation"] == i.generation && e["position"].as_u64().map(|p| gap || p > after).unwrap_or(false)
         }).cloned().collect();
         let current_generation = i.generation.clone();
-        let position = i.receipt_position;
+        let retention = i.journal.retention();
         drop(i);
         let evidence = self.distribution_evidence(&current_generation);
         let mut snapshot = snapshot;
         Self::with_records_capability(&mut snapshot, capability);
         snapshot["distributionEvidence"] = evidence;
-        json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames})
+        json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames,"observerRetention":retention})
+    }
+    fn observer_rebuild_status(i: &Inner) -> Value {
+        let mut status = i.observer_rebuild.snapshot();
+        let closed = i.server_requests.is_closed(&i.generation);
+        let available = i.state == "ready" && !closed && !i.generation.is_null();
+        status["sourceGeneration"] = i.generation.clone();
+        status["sourceAvailable"] = json!(available);
+        status["unavailableReason"] = if available { Value::Null } else {
+            json!(if closed { "native source closed; no current observer history read available" }
+                  else { "native source not ready; no observer history read available" })
+        };
+        status
     }
     fn publish_native_ready(i: &mut Inner) {
         if i.state != "ready" || i.server_requests.is_closed(&i.generation) || i.native_delivery_ready == i.generation { return; }
@@ -1159,7 +1211,7 @@ impl Host {
         self.on_line(&serde_json::to_vec(frame).unwrap(), generation);
     }
     pub fn journal(&self) -> Vec<Value> {
-        self.inner.0.lock().unwrap().journal.clone()
+        self.inner.0.lock().unwrap().journal.iter().cloned().collect()
     }
 
     fn successor_prospective(&self, i: &Inner, cfg: &HostConfig) -> Result<Value, String> {
@@ -1444,7 +1496,13 @@ impl Host {
             i.attachment_pipe_epoch += 1;
             i.aa_capture=None;
             i.cce_offer=None;
+            // Flush an earlier never-ready source before replacing its public
+            // replay scope. Private delivery still owns its original frames.
+            Self::deliver_never_ready(&mut i);
             i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
+            let public_generation = i.generation.clone();
+            i.journal.begin_generation(public_generation.clone());
+            i.observer_rebuild.reset(&public_generation);
             child.bind(&i.generation)?;
             if let Some(limit)=child.observation_limit(){let g=i.generation.clone();i.journal.push(json!({"generation":g,"class":"process-exit-observation-unavailable","reason":limit,"standing":"actual spawned custody retained; no observed exit inferred"}));}
             i.start_admission=Some(StartAdmission::Installed{attempt,generation:i.generation.clone()});
@@ -1555,9 +1613,7 @@ impl Host {
         let vi = i.version_identity.clone().unwrap();
         self.lt(&mut i,"LT-09","handshake-completed","ready",json!({"versionIdentity":vi,"declaredCapabilities":caps}));
         Self::publish_native_ready(&mut i);
-        let held: Vec<Value> = std::mem::take(&mut i.held);
-        for envelope in &held { Self::publish_native_frame(&mut i, envelope); }
-        i.journal.extend(held);
+        Self::release_held_observations(&mut i, false);
         if !successor {drop(i);drop(_gate);return Ok(self.snapshot());}
         let event=i.lifecycle.last().cloned().ok_or("actual LT-09 absent")?;
         let sequence=event["sequence"].as_u64().ok_or("actual LT-09 sequence absent")?;
@@ -1582,12 +1638,22 @@ impl Host {
     }
 
     fn deliver_never_ready(i: &mut Inner) {
-        // Receipt order and every native frame survive a failed handshake and later spawn.
-        let frames: Vec<_> = std::mem::take(&mut i.held).into_iter().map(|mut frame| {
-            frame["generationNeverReady"] = json!(true);
-            frame
-        }).collect();
-        for frame in &frames { Self::publish_native_frame(i, frame); }
+        Self::release_held_observations(i, true);
+    }
+
+    fn release_held_observations(i: &mut Inner, never_ready: bool) {
+        let mut frames = std::mem::take(&mut i.held);
+        let mut diagnostics = std::mem::take(&mut i.held_observer_diagnostics);
+        if never_ready {
+            for envelope in frames.iter_mut().chain(diagnostics.iter_mut()) {
+                envelope["generationNeverReady"] = json!(true);
+            }
+        }
+        // H4/private incorporation precedes every public retention decision.
+        // Public-only diagnostics must not become native projection frames.
+        for envelope in &frames { Self::publish_native_frame(i, envelope); }
+        frames.extend(diagnostics);
+        frames.sort_by_key(|envelope| envelope["position"].as_u64().unwrap_or(0));
         i.journal.extend(frames);
     }
 
@@ -3431,7 +3497,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Some((bound,id,token_refresh))=private_auth_reply{
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));
             let mut i=self.inner.0.lock().unwrap();
-            i.journal.push(json!({"generation":gen,"position":pos,"class":"private-auth-request-reply","requestIdentity":"redacted/unavailable; no public replay authority","replyWriteResult":if result.is_ok(){"written"}else{"unknown/write-failed"},"acknowledgment":"not-observed","standing":"original private framing ID used only for immediate unsupported-method reply; not sign-in completion"}));
+            let mut diagnostic=json!({"generation":gen,"class":"private-auth-request-reply","requestIdentity":"redacted/unavailable; no public replay authority","replyWriteResult":if result.is_ok(){"written"}else{"unknown/write-failed"},"acknowledgment":"not-observed","standing":"original private framing ID used only for immediate unsupported-method reply; not sign-in completion"});
+            if i.generation == gen && !i.server_requests.is_closed(&gen) && matches!(i.state.as_str(), "ready" | "handshaking") {
+                diagnostic["position"] = json!(pos);
+                if i.state == "handshaking" { i.held_observer_diagnostics.push(diagnostic); }
+                else { i.journal.push(diagnostic); }
+            } else {
+                diagnostic["receiptPosition"] = json!(pos);
+                diagnostic["sourceClosedOrReplaced"] = json!(true);
+                i.journal.push(diagnostic);
+            }
         }
         self.flush_recovery_observations();
         if let Some((bound,reply))=automatic_reply { let _ = self.write_reply(bound,&reply); }
@@ -3760,6 +3835,7 @@ mod request_transport_tests {
         let host = Host::new();
         let mut i = host.inner.0.lock().unwrap();
         i.generation = json!({"appSession":"s","home":"h","spawnCounter":1});
+        let generation=i.generation.clone();i.journal.begin_generation(generation);
         i.state = "ready".into();
         i.declared_capabilities = Some(json!({"experimentalApi":false}));
         drop(i); host
@@ -3914,7 +3990,7 @@ mod conversation_transport_tests {
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
-        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}host
+        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}host
     }
     fn turn(status:&str)->Value {json!({"id":"turn","status":status,"items":[],"itemsView":"full","nativeExtra":{"unchanged":true}})}
     fn event(host:&Host,status:&str) {host.on_line(&serde_json::to_vec(&json!({"method":if status=="inProgress"{"turn/started"}else{"turn/completed"},"params":{"threadId":"thread","turn":turn(status)}})).unwrap(),&g());}
@@ -5029,3 +5105,7 @@ mod records_continuity_tests;
 #[cfg(test)]
 #[path = "hosting_recorded_replay_tests.rs"]
 mod recorded_replay_tests;
+
+#[cfg(test)]
+#[path = "hosting_observer_journal_tests.rs"]
+mod observer_journal_tests;
