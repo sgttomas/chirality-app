@@ -1013,6 +1013,17 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Person-opened App-file arrival review (PD-5).** Eligible live single-file
+A4/A6/A7 arrival rows offer an explicit entry into the existing frozen file
+preview. The host resolves the original run and written arrival; the renderer
+sends identities, never replacement subject, kind, scope or purpose. Native
+confirmation remains a separate person action. A new arrival or refreshed
+view never opens, focuses or notifies the control. Contextual refusal states
+remain visible, and reopened history does not become a live act owner. AAC's
+current implementation conditions describe source and capture custody; RS
+retains run allocation and arrival links. General output/attachment contextual
+shortcuts and native qualification remain separate.
+
 **Standing file-act lapse history (PD-2, AP-5).** The existing standing file
 picker and act log now offer an explicit content-observation action and a
 separate retry of held observation metadata. Neither opens or operates the
@@ -1025,8 +1036,8 @@ evidence held only in this App process. A saved observation whose late-write
 disclosure remains pending is identified separately. Retry does not capture
 another act. Each source log retains its recorded sequence; several logs
 establish no order between them. RS §7 owns the source checks and append.
-General contextual file/arrival entry links and
-native capture/qualification witnesses remain separate.
+General contextual file entry links and native capture/qualification witnesses
+remain separate from the live arrival entry above.
 
 **Prior work after admitted Continue.** The opened conversation shows
 DEL-01-02's separate transient prior-work context. The host queues a bounded

@@ -1590,6 +1590,21 @@ or act record; an explicitly sent transcript is an ordinary person message.
   of them unless that configuration adds it, or runs with
   `danger-full-access`. A test or development store in a temporary folder is
   inside them; the host status shows that as a placement limit.
+  *First opening.* A valid existing identity passes the ordinary single-link
+  checks without requiring a bootstrap control-file write. When a cold read
+  finds no readable identity, cooperating App processes coordinate its read,
+  create-once publication, temporary-link cleanup and readback under separate
+  bootstrap ownership. An opener observing unfinished publication waits and
+  then reads the identity strictly; it does not accept a two-link file.
+  Bootstrap ownership ends before project or writer ownership, and cached
+  store reads keep their existing identity revalidation and fresh retention
+  admission. It supplies no project source authority or retained admission
+  lease. Directory synchronization determines its owning boundary without
+  opening the store recursively. A missing or
+  changed previously opened identity, or a persistently unreadable identity,
+  remains unavailable; no replacement identity or fallback is minted. Controlled
+  regressions in `app/src-tauri/src/records_store_publication_tests.rs` establish
+  this concurrency behavior, not new crash or filesystem-durability qualification.
 - **Project identity** (implemented). The App mints a stable opaque project
   identity (`chirality-project:<UUID>`) once, when it opens the project or
   first records for it, and writes it in the project at
@@ -3090,6 +3105,17 @@ from another log does not become that writer's observation history. Multiple
 logs do not establish an order between them.
 Returning to c₀ records no renewal, acceptance or restored act authority.
 These local fixtures do not establish native capture authenticity or qualification.
+
+**Current contextual App-file capture.** An explicit entry from an eligible
+hot live arrival carries the original run and arrival into the frozen offer,
+sealed capture and existing human-act or decline record. A request reference
+is carried only when its source association is established. The human-act
+relations or decline fields must correspond to the capture; adding or changing
+an arrival, run or request link in a readable record does not create capture
+correspondence. The record uses the original run/writer allocation of §13.8,
+without a duplicate standing entry. Held capture continuation retains that
+original metadata and target, with no second native capture or resumed run.
+The checkpoint recorder owns any counting or disposition that follows.
 
 ## UNRESOLVED
 
