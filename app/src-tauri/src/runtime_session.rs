@@ -5218,6 +5218,7 @@ impl WorkflowRootSession {
             run_tag: Value::Null,
             model_turns: Default::default(),
             role_limits_seen: Default::default(),
+            files,
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -6051,6 +6052,8 @@ thread_local! {
     /// Test hook: the next `WorkflowRun::send` panics while its lock is held,
     /// before (`Some(false)`) or after (`Some(true)`) its write is attempted.
     static PANIC_IN_SEND: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+    /// Synthetic mutation after publication/evaluation, before the final guard.
+    static BEFORE_GENERATED_FILES_DISPATCH: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
     /// Mutate the authoritative record after the first lifecycle projection.
     static AFTER_RUN_PRIOR_READING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
 }
@@ -6747,6 +6750,9 @@ pub(crate) struct WorkflowRun {
     /// RS R5 / HOSTING §8.3: the run's `model_turn` entries (per turn, and thread reports).
     model_turns: crate::model_turn_recorder::ModelTurnRecorder,
     role_limits_seen: std::collections::BTreeSet<String>,
+    /// The actual TX-7 folder chosen at preparation, never reconstructed from
+    /// display JSON or silently regenerated during a send retry.
+    files: crate::workflow_workspace::FilesFolder,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -7121,6 +7127,7 @@ impl WorkflowRun {
             &self.prepared().scope().generation,
             &self.prepared().scope().conversation,
         )?;
+        self.verify_generated_supporting_files()?;
         self.publish_pre_send()?;
         let (selection_ref, text_ref) = {
             let published = self.published.as_ref().unwrap();
@@ -7144,6 +7151,12 @@ impl WorkflowRun {
         self.evaluate_compatibility(
             crate::execution_compatibility::report::Occasion::BeforeFirstAction,
         );
+        #[cfg(test)]
+        BEFORE_GENERATED_FILES_DISPATCH.with(|hook| { if let Some(hook)=hook.borrow_mut().take(){hook();} });
+        // Publication/evaluation may take time. The original selected source
+        // and named generated folder must match before the native attempt,
+        // including when publication already succeeded on an earlier call.
+        self.verify_prepared_files_at_dispatch()?;
         #[cfg(test)]
         if PANIC_IN_SEND.with(|p| p.get()) == Some(false) {
             PANIC_IN_SEND.with(|p| p.set(None));
@@ -7202,6 +7215,24 @@ impl WorkflowRun {
         }
         self.open_run();
         Ok(self.status.clone())
+    }
+    fn verify_generated_supporting_files(&mut self)->Result<(),String>{
+        if let Err(cause)=self.files.verify_generated_copy(self.selection.snapshot()){
+            let records=json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
+            self.status=json!({"state":"generated supporting files changed or unavailable; nothing sent","sent":false,"supplied":"not supplied","records":records,"limit":cause,"retry":"Restore the original supporting files and retry this prepared send while it remains eligible. A withdrawn chained successor needs a new preparation. Files are left unchanged.","otherFiles":self.files.describe(),"adoption":"unknown","runStanding":"not opened: original prepared run retained"});
+            return Err(format!("{cause}; nothing sent; original selection and prepared text retained"));
+        }
+        Ok(())
+    }
+    fn verify_prepared_files_at_dispatch(&mut self)->Result<(),String>{
+        // Retry Records can publish without sending. A cached publication is
+        // no substitute for the same source condition at the native boundary.
+        if let Err(cause)=self.selection.verify_store(&self.prepared().scope().revision_store){
+            let records=json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
+            self.status=json!({"state":"selected revision source changed or unavailable; nothing sent","sent":false,"supplied":"not supplied","records":records,"limit":cause,"retry":"Restore the exact original selected revision and retry this prepared send while it remains eligible. A withdrawn chained successor needs a new preparation.","otherFiles":self.files.describe(),"adoption":"unknown","runStanding":"not opened: original prepared run retained"});
+            return Err(format!("Selected revision source no longer verifies: {cause}; nothing sent; original selection and prepared text retained"));
+        }
+        self.verify_generated_supporting_files()
     }
     /// V9 F-1: publish the *not found* check for a definitely refused start. R3
     /// stays unavailable: no source-bound native turn exists (RS §13.6a).
@@ -7842,6 +7873,7 @@ mod workflow_root_tests {
     use super::*;
     use std::{path::PathBuf,sync::{Arc,Mutex},time::Duration};
     mod file_act_arrival_tests { use super::*; include!("file_act_arrival_tests.rs"); }
+    mod supply_dispatch_tests { use super::*; include!("workflow_supply_dispatch_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
@@ -8082,6 +8114,11 @@ for line in sys.stdin:
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
  elif method=='thread/items/list':
   m=mode('items-mode');seen=text;cid=client
+  if m=='hold':
+   import time
+   with open('items-held','w') as held:held.write('waiting')
+   deadline=time.monotonic()+10
+   while mode('items-mode')=='hold' and time.monotonic()<deadline:time.sleep(.005)
   if m=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
   if m=='error-content':
@@ -9289,10 +9326,10 @@ for line in sys.stdin:
         let reference=view["reference"].as_str().unwrap().to_owned();
         let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
         peer.set_mode("namespace-tools","false");let before=caps(&peer);
-        let again=trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap_err();
+        let again=trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap_err();
         assert!(again.contains("namespaceTools false"),"{again}");assert_eq!(caps(&peer),before+1);
         peer.set_mode("namespace-tools","");
-        assert_eq!(trial_flows::trial_again(&root,&reference,&peer.home,peer.project()).unwrap()["delegation"]["reading"],"present");
+        assert_eq!(trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap()["delegation"]["reading"],"present");
     }
     // B-1 (#1250 review): model/list and modelProvider/capabilities/read
     // answer for the provider the app-server resolves for itself; a
@@ -9474,8 +9511,15 @@ for line in sys.stdin:
         let (a1,b1)=(turn_lists(&a),turn_lists(&b));
         trial_flows::compare(&root,&|t|trial_flows::home_holding(&homes,t),&json!({"trial":reference}),&json!({"trial":reference})).unwrap();
         assert_eq!(turn_lists(&a),a1,"Compare reads nothing in A");assert!(turn_lists(&b)>b1,"Compare reads B");
-        let again=trial_flows::trial_again(&root,&reference,&home,a.project()).unwrap();
-        assert_eq!(again["kind"],"clean");assert_eq!(again["authoring"]["generation"],b.generation,"Try again takes the trial's home");
+        let again=trial_flows::trial_again(&root,&reference,&homes,a.project()).unwrap();
+        assert_eq!(again["kind"],"clean");
+        // WR TT-3b/TT-11: the clean trial is read in B, but Try again keeps
+        // the originally selected authoring conversation in A as its default.
+        assert_eq!(again["authoring"]["generation"],a.generation,"Try again keeps the original authoring source");
+    }
+    mod trial_authoring_source_tests {
+        use super::*;
+        include!("workflow_trial_authoring_source_tests.rs");
     }
     #[test]
     fn send_refusals_say_whether_the_trial_stays_pre_filled(){

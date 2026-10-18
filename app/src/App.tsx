@@ -39,6 +39,20 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: "api-key", label: "API key in separate configured key home" }]
   : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
+// The ordinary native command resolves only after private receipt admission
+// and finalization, then adds its actual H5 tuple (lib.rs start_conversation).
+// Record publication and the reported model are independent observations.
+const startedConversationKey = (response: Json): string | null => {
+  const generation = response?.startGeneration;
+  const thread = response?.result?.thread?.id;
+  if (!response || Object.hasOwn(response, "error") || !generation || Object.keys(generation).length !== 3 ||
+      typeof generation.appSession !== "string" || !generation.appSession || typeof generation.home !== "string" || !generation.home ||
+      !Number.isSafeInteger(generation.spawnCounter) || generation.spawnCounter <= 0 || typeof thread !== "string" || !thread) return null;
+  return JSON.stringify([generation, thread]);
+};
+
+const emptyConversationChoice = { model: "", modelProvider: "", entryId: "" };
+
 export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
@@ -829,9 +843,32 @@ export function App() {
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [model, setModel] = useState<string>("");
-  const [modelProvider, setModelProvider] = useState<string>("");
-  const [entryId, setEntryId] = useState<string>("");
+  const homeClass = host?.homeRouting?.activeModeHomeClass ?? null;
+  const chooserHome = useRef({ mode: homeClass, epoch: 0 });
+  if (chooserHome.current.mode !== homeClass) {
+    // A different active home invalidates its previous chooser even if the
+    // person returns before an earlier request finishes. A spawn update alone
+    // is not a new choice: the command reports the actual admitted generation.
+    chooserHome.current = { mode: homeClass, epoch: chooserHome.current.epoch + 1 };
+  }
+  const editRevision = useRef(0);
+  const [conversationChoice, setConversationChoice] = useState({ ...emptyConversationChoice, homeEpoch: 0 });
+  const choiceRef = useRef(conversationChoice);
+  const reviseChoice = (patch: Partial<typeof emptyConversationChoice>) => {
+    editRevision.current++;
+    const previous = choiceRef.current.homeEpoch === chooserHome.current.epoch ? choiceRef.current : emptyConversationChoice;
+    const next = { ...previous, ...patch, homeEpoch: chooserHome.current.epoch };
+    choiceRef.current = next;
+    setConversationChoice(next);
+  };
+  const { model, modelProvider, entryId } = conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice;
+  const [startPending, setStartPending] = useState(false);
+  const startPendingRef = useRef(false);
+  const [homePending, setHomePending] = useState(false);
+  const homePendingRef = useRef(false);
+  const currentHost = useRef(host);
+  currentHost.current = host;
+  const entryCompatible = (homeClass === "account" || homeClass === "api-key") && startEntries(host).some(entry => entry.value === entryId);
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, setThreadKey] = useState<string>("");
@@ -869,15 +906,56 @@ export function App() {
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
       const r: Json = await invoke(cmd, args);
-      // Open the admitted native start in its own source, never the pre-click snapshot.
-      if (cmd === "thread_start" && r?.startGeneration && typeof r?.result?.thread?.id === "string" && r.result.thread.id) {
-        setThreadKey(JSON.stringify([r.startGeneration, r.result.thread.id]));
-      }
       setMessage(`${cmd}: ${JSON.stringify(r).slice(0, 300)}`);
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     }
     await refresh();
+  };
+  const startConversation = async () => {
+    const source = currentHost.current;
+    const mode = source?.homeRouting?.activeModeHomeClass;
+    const submitted = choiceRef.current;
+    const epoch = chooserHome.current.epoch;
+    if (startPendingRef.current || homePendingRef.current || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
+        !submitted.model.trim() || !submitted.modelProvider.trim() || !(mode === "account" || mode === "api-key") ||
+        !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
+    const revision = editRevision.current;
+    startPendingRef.current = true;
+    setStartPending(true);
+    try {
+      const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId,
+        modeHomeClass: mode, role: role || null, preselected: !roleTouched && !!role && role === source?.roleSet?.defaultRole });
+      const opened = startedConversationKey(response);
+      if (opened) {
+        setThreadKey(opened);
+        // Consume only the submitted edit, before the independent refresh.
+        // Even an edit away and back is a newer choice and must survive.
+        if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
+      }
+      setMessage(`thread_start: ${JSON.stringify(response).slice(0, 300)}`);
+    } catch (error) {
+      setMessage(`thread_start: ${String(error)}`);
+    } finally {
+      startPendingRef.current = false;
+      setStartPending(false);
+      try { await refresh(); }
+      catch (error) { setMessage(previous => `${previous}; current host view unavailable: ${String(error)}`); }
+    }
+  };
+  const homeAction = async (command: string, args: Record<string, unknown>) => {
+    const switching = command === "select_home";
+    if (switching) {
+      if (homePendingRef.current) return;
+      homePendingRef.current = true;
+      setHomePending(true);
+      // The person's home choice is a new chooser boundary immediately,
+      // including a transition whose eventual snapshot returns to this home.
+      chooserHome.current = { ...chooserHome.current, epoch: chooserHome.current.epoch + 1 };
+      reviseChoice(emptyConversationChoice);
+    }
+    try { await invoke(command, args); await refresh(); }
+    finally { if (switching) { homePendingRef.current = false; setHomePending(false); } }
   };
   // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
   const [processBusy, setProcessBusy] = useState(false);
@@ -1005,7 +1083,7 @@ export function App() {
       <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
+      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={homeAction} />
 
       <section>
         <h2>Codex host</h2>
@@ -1017,9 +1095,9 @@ export function App() {
         </p>
         <p>Supplier standing: {host?.supplierStanding ?? "not started"}</p>
         <p>
-          <ModelProviderFields model={model} modelProvider={modelProvider} setModel={setModel} setModelProvider={setModelProvider} />
+          <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({model})} setModelProvider={modelProvider => reviseChoice({modelProvider})} />
         </p>
-        <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
+        <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({entryId:e.target.value})}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
         <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
         <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole}
           setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }} />
@@ -1029,10 +1107,11 @@ export function App() {
         {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
         <RecordsStorePanel store={host?.recordsStore} act={act} />
         <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }} />
-        <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
+        <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
+        <details><summary>Last native start selection in this home</summary><pre>{JSON.stringify(host?.accessSelection ?? null, null, 2)}</pre></details>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>
-          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null, preselected: !roleTouched && !!role && role === host?.roleSet?.defaultRole })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>
+          <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending}>Start thread</button>
         </p>
         <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }} />
         <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>

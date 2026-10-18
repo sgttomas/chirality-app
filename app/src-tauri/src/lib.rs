@@ -1429,8 +1429,8 @@ fn workflow_trial_prepare(state:State<'_,AppState>,name:String,kind:String,gener
 /// WR TT-11 Try again: a new trial of the draft's current version.
 #[tauri::command(async)]
 fn workflow_trial_again(state:State<'_,AppState>,reference:String)->Result<Value,String>{
-    let home=trial_home(&state,&reference).unwrap_or_else(|_|state.homes.lock().unwrap().active());
-    runtime_session::trial_flows::trial_again(&state.workflows,&reference,&home,state.workspace.as_deref())
+    let homes=state.homes.lock().unwrap().entries();
+    runtime_session::trial_flows::trial_again(&state.workflows,&reference,&homes,state.workspace.as_deref())
 }
 /// WR §5.5: removing the trial card cancels the trial; nothing is recorded.
 #[tauri::command]

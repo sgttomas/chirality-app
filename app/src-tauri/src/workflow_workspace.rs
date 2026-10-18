@@ -807,6 +807,17 @@ pub struct FilesFolder {
     pub limits: Vec<String>,
 }
 impl FilesFolder {
+    /// Recheck only the generated TX-7 folder this preparation named. This is
+    /// a read: a changed/missing copy is never recreated or overwritten here.
+    pub(crate) fn verify_generated_copy(&self, expected: &Snapshot) -> Result<(), String> {
+        let FilesFolderBasis::SupplyCopy { path, .. } = &self.basis else { return Ok(()) };
+        match package_copy::copy_standing(path, expected.revision()) {
+            package_copy::CopyStanding::Current => Ok(()),
+            package_copy::CopyStanding::Changed(cause) | package_copy::CopyStanding::NotAvailable(cause) => {
+                Err(format!("Generated supporting folder {} no longer holds the prepared revision: {cause}", self.label))
+            }
+        }
+    }
     pub fn describe(&self) -> serde_json::Value {
         let mut described = self.describe_basis();
         if !self.limits.is_empty() {

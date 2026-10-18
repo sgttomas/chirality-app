@@ -245,6 +245,7 @@ code_paths:
 - app/src-tauri/src/workflow_record_store.rs
 - app/src-tauri/src/record_supply.rs
 - app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
 - app/src-tauri/src/workflow_selection.rs
 - app/src/workflowSelection.ts
 - app/src-tauri/src/host_tick.rs
@@ -264,6 +265,8 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/workflow_supply_dispatch_tests.rs
+- app/tests/workflow-supply-dispatch.test.mjs
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/historical_run_learning_tests.rs
@@ -276,6 +279,7 @@ checks:
 - app/src-tauri/src/workflow_drafts_tests.rs
 - app/src-tauri/src/workflow_journey_tests.rs
 - app/src-tauri/src/workflow_trial_transcript_tests.rs
+- app/src-tauri/src/workflow_trial_authoring_source_tests.rs
 - app/src-tauri/src/workflow_trials_tests.rs
 - app/tests/trials.test.mjs
 - app/tests/workflow-drafts.test.mjs

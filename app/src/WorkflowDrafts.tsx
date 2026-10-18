@@ -115,6 +115,7 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
     <div><small>Fidelity: {fidelityWords(fidelity, trial.kind)}{fidelity.checkable !== false && list(fidelity.limits).length ? ` (${list(fidelity.limits).map(text).join("; ")})` : ""}. Snapshot: {text(trial.snapshot?.reading) || "not read"}.
       {trial.filesOutsideWorkFolder ? ` ${text(trial.filesOutsideWorkFolder.reading)}.` : ""} Work folder <code>{text(trial.workFolder)}</code>.</small></div>
     <div><small>{list(trial.broughtBack).length ? `Brought back: ${list(trial.broughtBack).map((b: Json) => `${text(b.time)} to ${conversationName(b.to)}`).join("; ")}.` : "Not brought back."} {text(trial.standing)}</small></div>
+    {(trial.authoringSourceLimit || !findConversation(conversations, trial.authoringConversation)) && <p role="note"><small>{text(trial.authoringSourceLimit) || "The original authoring conversation is not loaded in its original generation; choose a current target explicitly."}</small></p>}
     <div>
       <button disabled={busy} onClick={() => { void act("workflow_trial_again", { reference }); }}>Try again</button>{" "}
       {trial.readAgain?.offered === false
@@ -122,8 +123,9 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
         : <><button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}</>}
       <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} />{" "}
       <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => update({ bbNative: { ...state.bbNative, [reference]: e.target.checked } })} /> include native items</label>{" "}
-      <button disabled={busy || !!trial.live || !chosen} onClick={() => { void act("workflow_trial_bring_back", { reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring trial back</button>
+      <button disabled={busy || !!trial.live || !chosen || !!trial.sourceLimit} onClick={() => { void act("workflow_trial_bring_back", { reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring trial back</button>
       {trial.live && <small> Bring trial back waits until no turn is live.</small>}
+      {trial.sourceLimit && <small> {text(trial.sourceLimit)}</small>}
     </div>
   </li>;
 }

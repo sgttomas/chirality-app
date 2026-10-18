@@ -1001,6 +1001,19 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Generated supporting files at dispatch (TX-7).** Run preparation retains the
+typed description of the generated folder named by the frozen files line.
+An unattempted Send preserves the original selected revision-store check and
+checks that copy against the original selected package identity before
+publication and again before native dispatch, including when the original
+selection and run-text records were already published. A changed,
+missing or nonplain copy refuses the start without rewriting it, changing the
+prepared text or falling back to another folder. Existing once-only and chained
+start disposition rules still decide whether the original preparation can be
+retried. A copy check does not establish subsequent supplier reads or adoption,
+and it does not make the filesystem permanently immutable. Direct holding
+folders and packages with no supporting files retain their existing paths.
+
 **Records-store and recovery consumption.** `workflow_record_store.rs`
 resolves the explicitly opened project's stable association to the records
 store and pins the physical source while reading or publishing. Pending
@@ -1022,6 +1035,28 @@ establish the complete workflow-making or host reconstruction witness.
 Library definitions, revision stores, ledgers and A15 evidence still follow
 §3 and §4.8; a records package is not a workflow-library backup or permission
 to reuse a prior act.
+
+**Hot trial authoring and source references (TT-3b, TT-11).**
+The in-session trial owner retains the originally selected authoring
+conversation's full generation and thread separately from the acknowledged
+trial's source home, generation, turn and client. A clean trial started in
+another home changes its reading source, not its authoring default. Try again
+and feedback defaults use the original authoring reference while it remains
+available; Read again and Compare use the actual trial source. Native receivers
+and interface defaults match complete references, so a same-named thread in
+another home supplies neither association. Changed or unavailable source and
+target generations remain limits and cannot redirect a prefill after a wait.
+
+Persisted trial links and conversation marks contain bare conversation IDs,
+not the missing home or generation provenance. They remain quoted evidence;
+even one currently loaded matching thread cannot recreate a lost association.
+Cold or unavailable references yield no inferred authoring default or native
+trial source. The latest trial's unknown authoring reference does not borrow
+an older trial's default. The person may explicitly choose a current feedback
+target, which supplies that new target choice and no historical source proof.
+Bring back remains an unsent prefill. The persisted trial-link format stays
+unchanged; no implicit resume/send or live run authority follows from these
+references.
 
 **Historical real-run Bring back and Compare (TT-10, TT-11).**
 `historical_run_learning.rs` reads one run as quoted evidence from the explicit
