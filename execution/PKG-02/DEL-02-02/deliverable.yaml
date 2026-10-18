@@ -267,6 +267,8 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/workflow_supply_dispatch_tests.rs
+- app/tests/workflow-supply-dispatch.test.mjs
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/historical_run_learning_tests.rs

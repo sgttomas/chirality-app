@@ -220,9 +220,14 @@ implemented behavior and qualification limits.
     picked), from "newer revision ‹n› available", and from a confirmed agent
     proposal (item 20). An edited published copy or an identical copy
     elsewhere is never used, and a store that does not recompute refuses with
-    the selection unchanged. A run's files line (WR TX-7) therefore names the
-    revision's store folder, project- or `~`-relative, and the selection's
-    holding library is recorded as that folder's parent. Other rows keep Refine and re-confirmation through a
+    the selection unchanged. A run's files line (WR TX-7) names that folder
+    project- or `~`-relative when possible; otherwise preparation creates a
+    content-addressed supporting copy in the explicit project. An unattempted
+    Send rechecks that generated copy against the original selected package,
+    retaining the original revision-store check even after prepublication.
+    Changed, missing or nonplain content refuses the start without rewriting
+    the copy or prepared text. The selection still records its original
+    holding library and revision store. Other rows keep Refine and re-confirmation through a
     draft; selecting one, a draft or an unregistered library entry is refused
     with its standing and route (SL-5). Beside a registered selection the view
     shows "newer revision ‹n› available" when the slot's ledger has a newer
@@ -849,7 +854,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/run_restart.rs`, `run_restart_tests.rs` | EXEC §2.7 / RECOVERY §4.1: the REC run tag at `run_opened` (owner `DEL-02-03`) and the host's startup writer of RS "App-restart interruption" limits; tests also cover WR TX-5 / SQ-END end notices after relaunch and (j) permanent refusals |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
-| `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
+| `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`), `runtime_session.rs` (`WorkflowRun`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies rechecked before unattempted run dispatch, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
 | `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, separate hot authoring and trial-source references, source-bound Try again/feedback defaults, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
 | `src-tauri/src/workflow_trial_source.rs`, `workflow_trial_restart_tests.rs`, `tests/clean-trial-restart.test.mjs` | WR TT-9–TT-11 clean-trial source continuity after restart: a separate pointer from the original positive native acknowledgment, guarded current link/REC correspondence and explicit read/feedback through the original source; older links and delegated child sources remain unavailable without their own evidence |
 | `src-tauri/src/historical_run_learning.rs`, `workflow_learning_pointers.rs`, `historical_trial_flows_tests.rs` | WR TT-10/11 historical Bring back and Compare: strict original WR/RS correspondence, pointer-only original native ACK coordinates in owned REC tags, separate current source and target homes, quoted activity and exact revision bytes without restored live run/supply/selection authority; unavailable source/history remains named |
