@@ -24,7 +24,10 @@ python3 -B prototype/run_w14_rehearsals.py --out "$TMPDIR/b7-w14"
 
 Exit status 0 only if every check holds. The observed output of the run of
 2026-09-30 is recorded in CA-v0.6 §8.5 and in
-`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B7.md`.
+`projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B7.md`
+(with `WAVE_B/RP-4.md` beside it), retired in commit 11718e61a2 and recoverable at tag
+`archive/pre-efficiency-cleanup-2026-10-09`: from the repository root,
+`git show archive/pre-efficiency-cleanup-2026-10-09:<path>`.
 
 **RP-4 (2026-09-30).** Evidence limits are written in RS R11's own spelling
 (the mapper's tokens are mapped once) and checked against the labels of
