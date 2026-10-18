@@ -1001,6 +1001,19 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Generated supporting files at dispatch (TX-7).** Run preparation retains the
+typed description of the generated folder named by the frozen files line.
+An unattempted Send preserves the original selected revision-store check and
+checks that copy against the original selected package identity before
+publication and again before native dispatch, including when the original
+selection and run-text records were already published. A changed,
+missing or nonplain copy refuses the start without rewriting it, changing the
+prepared text or falling back to another folder. Existing once-only and chained
+start disposition rules still decide whether the original preparation can be
+retried. A copy check does not establish subsequent supplier reads or adoption,
+and it does not make the filesystem permanently immutable. Direct holding
+folders and packages with no supporting files retain their existing paths.
+
 **Records-store and recovery consumption.** `workflow_record_store.rs`
 resolves the explicitly opened project's stable association to the records
 store and pins the physical source while reading or publishing. Pending
