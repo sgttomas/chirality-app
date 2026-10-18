@@ -7842,7 +7842,12 @@ for line in sys.stdin:
   if m=='framing':given=given.replace('[Chirality] Workflow run start:','[Chirality] Workflow run started:',1)
   first={'type':'userMessage','id':'child-message','content':[{'type':'text','text':'Your task, from the authoring agent:'},{'type':'text','text':given}]}
   # TT-9 at Codex 0.160.0: the task arrives as an inter-agent message whose payload is encrypted (encrypted), or no user message is reported at all (nouser).
-  if m=='encrypted':first={'type':'agentMessage','id':'child-task','author':'/root','recipient':'/root/summarize_trial','content':[{'type':'input_text','text':'Message Type: NEW_TASK\nTask name: summarize_trial\nSender: /root\nPayload:'},{'type':'encrypted_content','encrypted_content':'gAAAAfixture'}]}
+  if m in ('encrypted','encrypted-rollout'):
+   first={'type':'agentMessage','id':'child-task','author':'/root','recipient':'/root/summarize_trial','content':[{'type':'input_text','text':'Message Type: NEW_TASK\nTask name: summarize_trial\nSender: /root\nPayload:'},{'type':'encrypted_content','encrypted_content':'gAAAAfixture'}]}
+   # Construct a native ThreadItem, not a raw rollout response_item. The
+   # published AgentMessageThreadItem requires text. The negative mode keeps
+   # the old malformed shape to prove the reader still refuses it.
+   if m=='encrypted':first['text']=first['content'][0]['text']
   data=[{'turnId':'child-turn','item':{'type':'agentMessage','id':'child-reply','text':'Done.'}}]
   if m!='nouser':data.insert(0,{'turnId':'child-turn','item':first})
   result={'data':data,'nextCursor':None}
@@ -8350,6 +8355,31 @@ for line in sys.stdin:
         let recorded=tick_reads(&peer,&root,&view);
         assert_eq!(recorded[0]["observation"],"sub-agent linked","{recorded:?}");
     }
+    #[test]
+    fn a_rollout_task_without_required_native_text_stays_unread_instead_of_not_checkable(){
+        let peer=Peer::new();let mut root=trial_root(&peer);let g=peer.generation.clone();
+        let reference=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+        let root=Mutex::new(root);
+        trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
+        peer.set_mode("child-mode","encrypted-rollout");
+        let view=descendant_view(&peer,&["child-s"]);
+        assert!(tick_reads(&peer,&root,&view).is_empty(),"malformed native input cannot establish fidelity or link automatically");
+        let rows=trial_rows(&root.lock().unwrap(),&view);
+        assert_eq!(rows[0]["subAgent"]["state"],"sub-agent not linked");
+        assert_eq!(rows[0]["subAgent"]["unread"],json!(["child-s"]));
+        assert_eq!(rows[0]["subAgent"]["notCheckable"],json!([]));
+        let reasons=rows[0]["subAgent"]["unreadReasons"].as_array().unwrap();
+        assert_eq!(reasons.len(),1);
+        assert!(reasons[0]["reason"].as_str().unwrap().starts_with("native history schema refused ThreadItemsListResponse:"),"{reasons:?}");
+        assert_eq!(rows[0]["readAgain"]["offered"],true,"unread is retryable, not a final not-checkable claim");
+        // Explicit linking remains the person's choice; it cannot turn an
+        // invalid page into a known task, a verbatim reading or an approval.
+        root.lock().unwrap().link_trial_child(&reference,"child-s",true,&view).unwrap();
+        let again=trial_flows::read_trial_again(&root,&peer.home,&reference,&view).unwrap();
+        assert!(again["recorded"][0]["fidelity"]["limits"].as_array().unwrap().iter().any(|l|l.as_str().is_some_and(|s|s.contains("native history schema refused"))),"{again}");
+        assert_ne!(again["recorded"][0]["fidelity"]["state"],"verbatim");
+    }
+
     // Review of #1260 (5): the sub-agent's not-checkable reading is the child
     // read's only; a clean trial's first turn with items but no user message
     // reads "not yet", never a sub-agent sentence.
