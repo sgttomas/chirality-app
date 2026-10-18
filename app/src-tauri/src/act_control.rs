@@ -39,6 +39,8 @@ use std::path::{Path, PathBuf};
 
 pub const CAPTURE_STORE: &str = ".chirality/captures";
 #[cfg(test)]
+thread_local! { static AFTER_UNAVAILABLE_A15_ANNOTATIONS: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
 thread_local! {static FIXED_CAPTURE_TIME:std::cell::RefCell<Option<String>>=const {std::cell::RefCell::new(None)};}
 fn capture_time() -> String {
     #[cfg(test)]
@@ -102,6 +104,19 @@ struct NativeCapture {
     capture: Value,
     pending: Option<Value>,
     failure: Option<String>,
+}
+
+/// Borrow the already acquired library capture lease; retry code cannot
+/// manufacture writer admission from a pathname or acquire a nested flock.
+struct A15CaptureWriter<'a> {
+    root: &'a Path,
+    _lease: &'a storage::Ownership,
+}
+impl A15CaptureWriter<'_> {
+    fn check(&self, root: &Path) -> Result<(), String> {
+        if self.root != root { return Err("A15 capture ownership belongs to another library".into()); }
+        Ok(())
+    }
 }
 
 pub struct ActControl {
@@ -1305,7 +1320,7 @@ impl ActControl {
         // The next writer admission first drains earlier trusted submissions and their delay account.
         self.flush_native_locked();
         let out = if self.writer_ready() {
-            recover_capture(&ws, &capture, Some(&mut native), None, true)
+            recover_capture(&ws, &capture, Some(&mut native), None, true, None)
         } else {
             let error="older trusted native submission remains pending; new captured facts retained in writer admission order";
             pending_failure(&ws, &mut native, error);
@@ -1332,12 +1347,37 @@ impl ActControl {
             .all(|n| n.written && !n.delay_pending) && self.file_offers.values().all(|slot|!slot.pending_native())
     }
 
+    fn a15_sources_current(&self) -> Result<(), String> {
+        for native in self.native_captures.values() {
+            if let Some(custody) = &native.a15 {
+                if !custody.is_settled(native) { custody.recording_guard(&self.workspace)?; }
+            }
+        }
+        Ok(())
+    }
+
+    /// Nothing in this retained queue can write at the observed source. Return
+    /// its historical results without creating a lock in a replacement root;
+    /// a newly captured, source-current act is processed normally.
+    fn only_unavailable_a15_annotations(&self) -> bool {
+        self.native_captures.values().any(|n|n.a15.as_ref().is_some_and(|a|a.backlink_pending()))
+            && self.native_captures.values().all(|n|n.a15.as_ref().is_some_and(|a|
+                a.is_settled(n) && a.recording_guard(&self.workspace).is_err()))
+    }
+
     /// Explicit App startup/command writer continuation uses this boundary; reader calls do not.
     pub fn refresh_recording(
         &mut self,
     ) -> (Result<Vec<Value>, String>, Result<Vec<Value>, String>) {
-        let recovery = self.recover_pending();
-        let requests = if self.writer_ready() {
+        let (recovery, cached_only) = match self.recover_pending_mode() {
+            Ok((results,cached_only)) => (Ok(results),cached_only),
+            Err(error) => (Err(error),false),
+        };
+        let requests = if cached_only || self.only_unavailable_a15_annotations() {
+            Err("Original A15 backlink source changed; recorded act retained, annotation not relocated".into())
+        } else if let Err(error) = self.a15_sources_current() {
+            Err(error)
+        } else if self.writer_ready() {
             crate::recorder::identify_packages(&self.workspace)
         } else {
             Err(
@@ -1348,8 +1388,15 @@ impl ActControl {
         (recovery, requests)
     }
 
-    /// Caller holds capture ownership; untrusted files never enter this native admission queue.
+    /// Project/file-act callers hold their own capture lease, not the library
+    /// lease. They cannot retry listed settled A15 metadata through this path.
     fn flush_native_locked(&mut self) -> Vec<Value> {
+        self.flush_native_with_a15_writer(None)
+    }
+    /// Original admission boundaries remain in force. A listed settled retry
+    /// additionally needs this library's borrowed capture lease; None keeps
+    /// that metadata cached. Untrusted files never enter the native queue.
+    fn flush_native_with_a15_writer(&mut self, a15_writer: Option<&A15CaptureWriter<'_>>) -> Vec<Value> {
         let mut ids = self
             .native_captures
             .iter()
@@ -1362,18 +1409,26 @@ impl ActControl {
             let file_limit=self.file_offers.values().find(|slot|slot.owns_capture(id)).and_then(|slot|slot.recording_guard().err());
             let native = self.native_captures.get_mut(id).unwrap();
             let original = native.capture.clone();
-            let result = if let Some(error)=file_limit{
+            let settled = native.a15.as_ref().and_then(|a|a.settled_result(native));
+            let result = if let Some(mut settled) = settled {
+                // A pending backlink is metadata work, not a pending act or
+                // queue hold. Verification failure retains recorded history.
+                match recover_capture(&self.workspace, &original, Some(native), None, false, a15_writer) {
+                    Ok(result) => result,
+                    Err(error) => { settled["backlinkFailure"] = json!(error); settled }
+                }
+            } else if let Some(error)=file_limit{
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":error})
             } else if self.file_capture_roots.get(id).is_some_and(|root| root != &self.workspace) {
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":"File act original workspace changed; no write or relocation"})
-            } else if native.a15.as_ref().is_some_and(|a|!a.belongs_to(&self.workspace)) {
-                json!({"state":"AC-8 record pending","capture":original,"writeFailure":"A15 original library custody changed; no write or relocation"})
+            } else if let Some(error) = native.a15.as_ref().and_then(|a|a.recording_guard(&self.workspace).err()) {
+                json!({"state":"AC-8 record pending","capture":original,"writeFailure":error})
             } else if earlier_held && !native.written {
                 let error="older trusted native submission remains pending; captured facts retained in writer admission order";
                 pending_failure(&self.workspace, native, error);
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":error})
             } else {
-                match recover_capture(&self.workspace, &original, Some(native), None, false) {
+                match recover_capture(&self.workspace, &original, Some(native), None, false, a15_writer) {
                     Ok(result) => result,
                     Err(error) => {
                         pending_failure(&self.workspace, native, &error);
@@ -1408,6 +1463,10 @@ impl ActControl {
         for ((_, id), result) in ids.iter().zip(results.iter_mut()) {
             let native = self.native_captures.get_mut(id).unwrap();
             if result["state"] == "AC-7 recorded" && result["delayEvidencePending"] == true {
+                if let Some(error) = native.a15.as_ref().and_then(|a|a.recording_guard(&self.workspace).err()) {
+                    result["delayEvidenceFailure"] = json!(error);
+                    continue;
+                }
                 if let Some(pending) = &native.pending {
                     match records::finish_capture_delay(&self.workspace, pending) {
                         Ok(()) => {
@@ -1431,16 +1490,35 @@ impl ActControl {
 
     /// Relaunch/late-write reconciliation; never captures again or changes act facts.
     pub fn recover_pending(&mut self) -> Result<Vec<Value>, String> {
+        self.recover_pending_mode().map(|(results,_)|results)
+    }
+    fn recover_pending_mode(&mut self) -> Result<(Vec<Value>,bool), String> {
+        // Check before capture-directory locks or writer admission can create
+        // metadata at a replacement source, including an unpublished capture.
+        self.a15_sources_current()?;
+        if self.only_unavailable_a15_annotations() {
+            #[cfg(test)]
+            if let Some(hook) = AFTER_UNAVAILABLE_A15_ANNOTATIONS.with(|slot|slot.borrow_mut().take()) { hook(); }
+            // This branch never re-enters writer code, even if a source is
+            // restored after the decision above. Preserve admission order.
+            let mut native:Vec<_> = self.native_captures.values().collect();
+            native.sort_by_key(|n|n.ordinal);
+            return Ok((native.into_iter().map(|n|n.a15.as_ref().unwrap().settled_result(n).unwrap()).collect(),true));
+        }
         // A15 captures stay with the library (U-STORE-2); the project's are in
         // its records store subtree (RS §13.8). Each folder's lock is held.
         let library = storage::library_capture_dir(&self.workspace);
-        let _library = if library.is_dir() { Some(storage::lock(&library.join(".capture.lock"))?) } else { None };
+        let library_work = self.native_captures.values().any(|n|n.a15.as_ref().is_some_and(|a|
+            (!a.is_settled(n) || a.backlink_pending()) && a.recording_guard(&self.workspace).is_ok()));
+        let _library = if library.is_dir() || library_work { Some(storage::lock(&library.join(".capture.lock"))?) } else { None };
+        let library_root = self.workspace.clone();
+        let a15_writer = _library.as_ref().map(|lease|A15CaptureWriter { root:&library_root,_lease:lease });
         // A project's records store subtree that cannot be written (store
         // unavailable, no identity, §13.7 records waiting for import) holds its
         // recovery visibly: no capture status is established by this attempt.
         let project = if self.library_only { None } else { Some(storage::write_capture_dir(&self.workspace)?) };
         let _project = match &project { Some(dir) => Some(storage::lock(&dir.join(".capture.lock"))?), None => None };
-        let mut results = self.flush_native_locked();
+        let mut results = self.flush_native_with_a15_writer(a15_writer.as_ref());
         let mut candidates = HashMap::<String, (Value, Option<Value>)>::new();
         let mut folders = vec![(library.clone(), false, true), (library.join("pending"), true, true)];
         if let Some(dir) = &project {
@@ -1515,11 +1593,11 @@ impl ActControl {
         let mut candidates = candidates.into_iter().collect::<Vec<_>>();
         candidates.sort_by(|a, b| a.0.cmp(&b.0));
         for (_, (original, pending)) in candidates {
-            match recover_capture(&self.workspace,&original,None,pending.as_ref(),false) {
+            match recover_capture(&self.workspace,&original,None,pending.as_ref(),false,a15_writer.as_ref()) {
                 Ok(result)=>results.push(result),Err(error)=>results.push(json!({"state":"AC-8 record pending","capture":original,"originLimit":ORIGIN_HOLD,"writeFailure":error})),
             }
         }
-        Ok(results)
+        Ok((results,false))
     }
 }
 
@@ -1541,7 +1619,13 @@ fn cold_file_limit(path: &Path, error: &str) -> Value {
     json!({"state":"unverified capture file — automatic replay held","sourceFile":path.display().to_string(),"originLimit":ORIGIN_HOLD,"writeFailure":error})
 }
 
+fn a15_recording_guard(root: &Path, hot: Option<&NativeCapture>) -> Result<(), String> {
+    if let Some(custody) = hot.and_then(|h|h.a15.as_ref()) { custody.recording_guard(root)?; }
+    Ok(())
+}
 fn pending_failure(root: &Path, hot: &mut NativeCapture, error: &str) {
+    if hot.a15.as_ref().is_some_and(|a|a.is_settled(hot)) { return; }
+    if a15_recording_guard(root, Some(hot)).is_err() { return; }
     hot.failure = Some(error.into());
     if let Some(pending) = hot.pending.as_mut() {
         let _ = records::note_capture_submission_failure(root, pending, error);
@@ -1553,7 +1637,46 @@ fn recover_capture(
     mut hot: Option<&mut NativeCapture>,
     disk_pending: Option<&Value>,
     account_delay: bool,
+    a15_writer: Option<&A15CaptureWriter<'_>>,
 ) -> Result<Value, String> {
+    if let Some(mut settled) = hot.as_ref().and_then(|h|h.a15.as_ref().and_then(|a|a.settled_result(h))) {
+        if hot.as_ref().is_some_and(|h|h.capture != *original) {
+            return Err("capture disagrees with original native custody; no replay".into());
+        }
+        if settled["backlinkPending"] != true { return Ok(settled); }
+        // No ownership means a strictly cached read, not permission to retry
+        // merely because the original source happens to be available now.
+        let Some(writer) = a15_writer else { return Ok(settled); };
+        // A metadata read/write failure cannot demote the original act or
+        // hold the admission queue. The inner path still requires its unique
+        // matching durable record; `written` forbids any replacement append.
+        let result = writer.check(root).and_then(|_|a15_recording_guard(root, hot.as_deref())).and_then(|_| {
+            recover_capture_recording(root, original, hot.as_deref_mut(), disk_pending, account_delay, a15_writer)
+        });
+        match result {
+            Ok(result) if result["state"] == "AC-7 recorded" && result["recordDurable"] == true => {
+                hot.as_deref_mut().unwrap().a15.as_mut().unwrap().remember_settled_result(&result);
+                return Ok(result);
+            }
+            Ok(result) => settled["backlinkFailure"] = result["writeFailure"].clone(),
+            Err(error) => settled["backlinkFailure"] = json!(error),
+        }
+        return Ok(settled);
+    }
+    recover_capture_recording(root, original, hot, disk_pending, account_delay, a15_writer)
+}
+fn recover_capture_recording(
+    root: &Path,
+    original: &Value,
+    mut hot: Option<&mut NativeCapture>,
+    disk_pending: Option<&Value>,
+    account_delay: bool,
+    a15_writer: Option<&A15CaptureWriter<'_>>,
+) -> Result<Value, String> {
+    if hot.as_ref().is_some_and(|n|n.a15.as_ref().is_some_and(|a|a.is_settled(n))) {
+        a15_writer.ok_or("Settled A15 metadata retry requires library capture ownership")?.check(root)?;
+    }
+    a15_recording_guard(root, hot.as_deref())?;
     crate::schema_validation::validate_capture(original)?;
     let id = original["captureId"]
         .as_str()
@@ -1587,6 +1710,7 @@ fn recover_capture(
                 json!({"state":"AC-8 record pending","capture":original,"captureDurability":"not established","originLimit":ORIGIN_HOLD}),
             );
         }
+        a15_recording_guard(root, hot.as_deref())?;
         storage::create_json(&cap_path, original)?;
     }
     let durable: Value =
@@ -1608,6 +1732,7 @@ fn recover_capture(
     }
     // RS W-0 when the act control opens its own log (AAC §5.2a keeps it in
     // force); a torn append of this capture's own record holds its replay.
+    a15_recording_guard(root, hot.as_deref())?;
     if let Err(e) = records::open_owning_log(root, &owning) {
         if let Some(h) = hot.as_deref_mut() {
             pending_failure(root, h, &e);
@@ -1690,6 +1815,7 @@ fn recover_capture(
                 json!({"state":"AC-8 record pending","capture":durable,"originLimit":ORIGIN_HOLD,"writeFailure":ORIGIN_HOLD}),
             );
         };
+        a15_recording_guard(root, Some(native))?;
         if native.pending.is_none() {
             match records::prepare_capture_submission(root, original, &target_log) {
                 Ok(mut p) => {
@@ -1708,10 +1834,12 @@ fn recover_capture(
             }
         }
         let pending = native.pending.as_ref().unwrap();
+        a15_recording_guard(root, Some(native))?;
         if let Err(e) = records::persist_capture_submission(root, pending) {
             pending_failure(root, native, &e);
             return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
         }
+        a15_recording_guard(root, Some(native))?;
         match records::append_capture_submission(root, native.pending.as_ref().unwrap(), body) {
             Ok(record) => record,
             Err(e) => {
@@ -1724,9 +1852,12 @@ fn recover_capture(
     };
     let mut result = json!({"state":"AC-7 recorded","record":record,"recordDurable":true,"capture":durable,"captureFile":cap_path.display().to_string(),"provenance":"recorded claim; this recovery does not verify native capture origin"});
     if let Some(native) = hot.as_deref_mut() {
-        if let Some(pending) = &native.pending {
+        // A transferred act's delayed account was already completed. A
+        // backlink retry never reopens that independently settled metadata.
+        if let Some(pending) = native.pending.as_ref().filter(|_|!native.a15.as_ref().is_some_and(|a|a.is_settled(native))) {
             if pending["delayed"] == true {
                 if account_delay {
+                    a15_recording_guard(root, Some(native))?;
                     if let Err(e) = records::finish_capture_delay(root, pending) {
                         result["delayEvidencePending"] = json!(true);
                         result["delayEvidenceFailure"] = json!(e);
@@ -1741,6 +1872,7 @@ fn recover_capture(
         .as_str()
         .ok_or("matching record identity absent")?
         .to_owned();
+    a15_recording_guard(root, hot.as_deref())?;
     match storage::backlink(&cap_path, &rid) {
         Ok(capture) => result["capture"] = capture,
         Err(e) => {

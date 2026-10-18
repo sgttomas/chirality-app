@@ -258,6 +258,10 @@ code_paths:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/workflow_drafts.rs
 - app/src-tauri/src/workflow_library.rs
+- app/src-tauri/src/workflow_library_entries.rs
+- app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/src/act_control.rs
+- app/src/LibraryEntries.tsx
 - app/src-tauri/src/workflow_package_copy.rs
 - app/src-tauri/src/workflow_trial_transcript.rs
 - app/src-tauri/src/workflow_trials.rs
@@ -288,4 +292,7 @@ checks:
 - app/tests/trials.test.mjs
 - app/tests/workflow-drafts.test.mjs
 - app/src-tauri/src/workflow_library_tests.rs
+- app/src-tauri/src/workflow_library_entries_tests.rs
+- app/src-tauri/src/act_control_a15.rs
+- app/tests/library-entries.test.mjs
 - app/tests/workflow-library.test.mjs

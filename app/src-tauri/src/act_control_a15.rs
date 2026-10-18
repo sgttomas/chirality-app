@@ -65,6 +65,7 @@ struct BoundReview {
     descriptor: Value,
     presentation: Value,
     bindings: Vec<A15Binding>,
+    listed_sources: Option<crate::workflow_workspace::registration::ListedSources>,
 }
 impl BoundReview {
     fn observe(view: &CurrentReviewView<'_>) -> Result<Self, String> {
@@ -201,6 +202,7 @@ impl BoundReview {
             descriptor,
             presentation: view.review_presentation().clone(),
             bindings,
+            listed_sources: view.listed_sources().cloned(),
         })
     }
     fn matches(&self, other: &Self) -> bool {
@@ -212,6 +214,7 @@ impl BoundReview {
             && self.descriptor == other.descriptor
             && self.presentation == other.presentation
             && self.bindings == other.bindings
+            && self.listed_sources == other.listed_sources
     }
 }
 struct A15NativeWitness {
@@ -277,10 +280,36 @@ pub(super) struct A15Custody {
     original_offer: Value,
     record_id: Option<String>,
     receipt_issued: bool,
+    listed_sources: Option<crate::workflow_workspace::registration::ListedSources>,
+    settled_result: Option<Value>,
 }
 impl A15Custody {
+    pub(super) fn is_settled(&self, native: &NativeCapture) -> bool {
+        self.listed_sources.is_some() && self.receipt_issued && native.written
+            && !native.delay_pending && self.settled_result.is_some()
+    }
+    pub(super) fn settled_result(&self, native: &NativeCapture) -> Option<Value> {
+        self.is_settled(native).then(|| self.settled_result.clone()).flatten()
+    }
+    pub(super) fn backlink_pending(&self) -> bool {
+        self.settled_result.as_ref().is_some_and(|r|r["backlinkPending"] == true)
+    }
+    pub(super) fn remember_settled_result(&mut self, result: &Value) {
+        if self.listed_sources.is_some() && self.receipt_issued {
+            let mut historical = result.clone();
+            historical["standing"] = json!("original settled A15 recording result; retained history; only a pending backlink may retry at its original source");
+            self.settled_result = Some(historical);
+        }
+    }
     pub(super) fn belongs_to(&self, root: &Path) -> bool {
         self.library_root == root
+    }
+    pub(super) fn recording_guard(&self, root: &Path) -> Result<(), String> {
+        if !self.belongs_to(root) {
+            return Err("A15 original library custody changed; no write or relocation".into());
+        }
+        if let Some(sources) = &self.listed_sources { sources.check_current()?; }
+        Ok(())
     }
 }
 pub(super) struct A15OfferSlot {
@@ -622,10 +651,12 @@ impl ActControl {
             target_log,
             a15: Some(A15Custody {
                 library_root: root.clone(),
+                listed_sources: bound.listed_sources.clone(),
                 bound: Some(bound),
                 original_offer: o,
                 record_id: None,
                 receipt_issued: false,
+                settled_result: None,
             }),
             written: false,
             delay_pending: false,
@@ -637,7 +668,8 @@ impl ActControl {
         // the first storage boundary. No record ID is reserved before capture
         // publication. This hot continuation choice does not redefine AAC's
         // permitted pre-capture "nothing captured" refusal or old A16 behavior.
-        let _lock = match storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock")) {
+        let _lock = match native.a15.as_ref().unwrap().recording_guard(&root)
+            .and_then(|_| storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock"))) {
             Ok(lock) => lock,
             Err(error) => {
                 native.failure = Some(error.clone());
@@ -646,14 +678,16 @@ impl ActControl {
                 return Ok(HotA15Result::RecordPending { capture_id: cap_id, reason: error });
             }
         };
-        if let Err(e) = storage::create_json(&storage::library_capture_path(&root, &cap_id), &capture) {
+        if let Err(e) = native.a15.as_ref().unwrap().recording_guard(&root)
+            .and_then(|_| storage::create_json(&storage::library_capture_path(&root, &cap_id), &capture)) {
             native.failure = Some(e);
         } else {
-            match records::prepare_capture_submission(&root, &capture, &native.target_log) {
+            match native.a15.as_ref().unwrap().recording_guard(&root)
+                .and_then(|_| records::prepare_capture_submission(&root, &capture, &native.target_log)) {
                 Ok(p) => {
                     native.pending = Some(p);
-                    if let Err(e) =
-                        records::persist_capture_submission(&root, native.pending.as_ref().unwrap())
+                    if let Err(e) = native.a15.as_ref().unwrap().recording_guard(&root)
+                        .and_then(|_| records::persist_capture_submission(&root, native.pending.as_ref().unwrap()))
                     {
                         pending_failure(&root, &mut native, &e);
                     }
@@ -662,7 +696,8 @@ impl ActControl {
             }
         }
         self.native_captures.insert(cap_id, native);
-        self.flush_native_locked();
+        let writer = A15CaptureWriter { root:&root,_lease:&_lock };
+        self.flush_native_with_a15_writer(Some(&writer));
         self.finish_a15_delivery(offer)
     }
     pub(crate) fn continue_a15(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
@@ -678,16 +713,29 @@ impl ActControl {
             .get(&offer.id)
             .and_then(|s| s.capture_id.as_ref())
             .ok_or("A15 captured offer absent")?;
-        if self
+        let native = self
             .native_captures
             .get(id)
-            .and_then(|n| n.a15.as_ref())
-            .is_none_or(|a| !a.belongs_to(&self.workspace))
-        {
-            return Err("A15 original library custody changed".into());
+            .ok_or("A15 original native custody absent")?;
+        let custody = native.a15.as_ref()
+            .ok_or("A15 original library custody absent")?;
+        if custody.is_settled(native) {
+            // The act and receipt stay settled even while this annotation is
+            // pending. Retry metadata only, never capture or transfer again.
+            if custody.backlink_pending() && custody.recording_guard(&self.workspace).is_ok() {
+                let root = self.workspace.clone();
+                if let Ok(lease) = storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock")) {
+                    let writer = A15CaptureWriter { root:&root,_lease:&lease };
+                    self.flush_native_with_a15_writer(Some(&writer));
+                }
+            }
+            return self.finish_a15_delivery(offer);
         }
-        let _lock = storage::lock(&self.workspace.join(CAPTURE_STORE).join(".capture.lock"))?;
-        self.flush_native_locked();
+        custody.recording_guard(&self.workspace)?;
+        let root = self.workspace.clone();
+        let lease = storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock"))?;
+        let writer = A15CaptureWriter { root:&root,_lease:&lease };
+        self.flush_native_with_a15_writer(Some(&writer));
         self.finish_a15_delivery(offer)
     }
     fn finish_a15_delivery(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
@@ -713,6 +761,7 @@ impl ActControl {
                     .ok_or("A15 issued record identity absent")?,
             });
         }
+        a15.recording_guard(&self.workspace)?;
         if !native.written || native.delay_pending {
             slot.state = OfferState::RecordPending;
             return Ok(HotA15Result::RecordPending {
@@ -725,7 +774,7 @@ impl ActControl {
         // Equality validates original witness; it does not create origin. Only this
         // retained A15 native object can reach receipt construction.
         let original = native.capture.clone();
-        let result = recover_capture(&self.workspace, &original, Some(native), None, true)?;
+        let result = recover_capture(&self.workspace, &original, Some(native), None, true, None)?;
         if result["state"] != "AC-7 recorded"
             || result["recordDurable"] != true
             || result["delayEvidencePending"] == true
@@ -756,6 +805,7 @@ impl ActControl {
         });
         a15.receipt_issued = true;
         a15.record_id = Some(rid.clone());
+        a15.remember_settled_result(&result);
         slot.state = OfferState::Recorded;
         Ok(HotA15Result::Recorded(HotA15Receipt {
             bound,
@@ -837,6 +887,370 @@ mod tests {
         let digest = ac.frozen_a15_offer_digest(&offer).unwrap().clone();
         ac.present_a15(&offer).unwrap();
         (ac, offer, actor, context, digest)
+    }
+    fn listed_tree(root: &Path) -> std::collections::BTreeMap<PathBuf, Value> {
+        use std::os::unix::fs::MetadataExt;
+        fn visit(root: &Path, path: &Path, tree: &mut std::collections::BTreeMap<PathBuf, Value>) {
+            let meta = std::fs::symlink_metadata(path).unwrap();
+            tree.insert(path.strip_prefix(root).unwrap().to_path_buf(), json!({
+                "inode":meta.ino(),"modified":meta.mtime(),"nanos":meta.mtime_nsec(),
+                "bytes":if meta.is_file(){Some(std::fs::read(path).unwrap())}else{None}
+            }));
+            if meta.is_dir() {
+                for entry in std::fs::read_dir(path).unwrap() {
+                    visit(root, &entry.unwrap().path(), tree);
+                }
+            }
+        }
+        let mut tree = Default::default();
+        visit(root, root, &mut tree);
+        tree
+    }
+    #[test]
+    fn listed_a15_pending_capture_record_and_delay_never_write_replacement_sources() {
+        for stage in ["capture", "record", "delay"] {
+            for replacement in ["library", "entry"] {
+                for route in ["continue", "recovery", "flush", "refresh", "capture recovery", "pending failure"] {
+                    let (root, direct) = library(&["sample"], true);
+                    drop(direct);
+                    let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+                    let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+                    let view = listing.view();
+                    let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+                        &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+                    let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+                    let log = storage::library_log(&root);
+                    if stage == "capture" {
+                        std::fs::create_dir_all(root.join(CAPTURE_STORE).join(".capture.lock")).unwrap();
+                    } else {
+                        std::fs::create_dir_all(&log).unwrap();
+                    }
+                    let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &session.current().unwrap());
+                    assert!(matches!(result.unwrap(), HotA15Result::RecordPending { .. }));
+                    if stage == "capture" {
+                        std::fs::remove_dir(root.join(CAPTURE_STORE).join(".capture.lock")).unwrap();
+                    } else { std::fs::remove_dir(&log).unwrap(); }
+                    let capture = ac.native_captures.values().next().unwrap().capture.clone();
+                    let id = capture["captureId"].as_str().unwrap().to_owned();
+                    if stage == "capture" {
+                        assert!(!storage::library_capture_path(&root, &id).exists());
+                        assert!(ac.native_captures[&id].pending.is_none());
+                    } else {
+                        assert!(ac.native_captures[&id].pending.as_ref().unwrap()["delayed"] == true);
+                    }
+                    if stage == "delay" {
+                        // Pause between the writer's record and delayed-account phases.
+                        let native = ac.native_captures.get_mut(&id).unwrap();
+                        let recorded = recover_capture(&root, &capture, Some(native), None, false, None).unwrap();
+                        assert_eq!(recorded["state"], "AC-7 recorded");
+                        assert_eq!(recorded["delayEvidencePending"], true);
+                        native.written = true;
+                        native.delay_pending = true;
+                    }
+                    let pending = ac.native_captures[&id].pending.clone();
+                    let failure = ac.native_captures[&id].failure.clone();
+                    let progress = (ac.native_captures[&id].written, ac.native_captures[&id].delay_pending);
+                    let path = if replacement == "library" { root.clone() } else { root.join(".chirality/workflows/sample") };
+                    let original = path.with_extension("original");
+                    std::fs::rename(&path, &original).unwrap();
+                    std::fs::create_dir(&path).unwrap();
+                    if replacement == "entry" {
+                        std::fs::write(path.join("WORKFLOW.md"), std::fs::read(original.join("WORKFLOW.md")).unwrap()).unwrap();
+                    }
+                    let replacement_before = listed_tree(&root);
+                    let original_before = listed_tree(&original);
+                    match route {
+                        "continue" => { let _ = ac.continue_a15(&offer); }
+                        "recovery" => { let _ = ac.recover_pending(); }
+                        "flush" => { ac.flush_native_locked(); }
+                        "refresh" => { ac.refresh_recording(); }
+                        "capture recovery" => { let _ = recover_capture(&root, &capture, ac.native_captures.get_mut(&id), None, true, None); }
+                        "pending failure" => { pending_failure(&root, ac.native_captures.get_mut(&id).unwrap(), "late writer failure"); }
+                        _ => unreachable!(),
+                    }
+                    assert_eq!(listed_tree(&root), replacement_before,
+                        "{stage}/{replacement}/{route}: no metadata write or recovery into replacement source");
+                    assert_eq!(listed_tree(&original), original_before);
+                    assert_eq!(ac.native_captures[&id].capture, capture);
+                    assert_eq!(ac.native_captures[&id].pending, pending);
+                    assert_eq!(ac.native_captures[&id].failure, failure);
+                    assert_eq!((ac.native_captures[&id].written, ac.native_captures[&id].delay_pending), progress);
+                    assert_eq!(ac.native_captures.len(), 1);
+                    assert!(!ac.native_captures[&id].a15.as_ref().unwrap().receipt_issued);
+                    std::fs::remove_dir_all(&path).unwrap();
+                    std::fs::rename(&original, &path).unwrap();
+                    // Continuation checks source, not pre-capture content freshness.
+                    std::fs::write(root.join(".chirality/workflows/sample/WORKFLOW.md"), b"changed after capture").unwrap();
+                    let HotA15Result::Recorded(receipt) = ac.continue_a15(&offer).unwrap() else { panic!("original pending capture must remain resumable") };
+                    assert_eq!(receipt.capture_id(), id);
+                    assert_eq!(receipt.witness.original_capture, capture);
+                    assert_eq!(receipt.witness.durable_record["observedAt"], capture["capturedAt"]);
+                    if let Some(pending) = pending { assert_eq!(receipt.record_id(), pending["recordId"].as_str().unwrap()); }
+                    assert_eq!(ac.native_captures.len(), 1);
+                    assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                    let (records, limits) = records::read_log(&log);
+                    assert!(limits.is_empty());
+                    assert_eq!(records.iter().filter(|r| r["kind"] == "human_act").count(), 1);
+                    std::fs::remove_dir_all(root).unwrap();
+                }
+            }
+        }
+    }
+    #[test]
+    fn listed_a15_ownership_missing_capture_directory_holds_real_lock() {
+        use std::{os::fd::AsRawFd, cell::Cell, rc::Rc};
+        let (root, mut ac, offer, capture, record_id) = settled_backlink_fixture();
+        let before = listed_tree(&root);
+        assert_eq!(ac.flush_native_locked()[0]["backlinkPending"],true);
+        let id = capture["captureId"].as_str().unwrap();
+        assert_eq!(recover_capture(&root,&capture,ac.native_captures.get_mut(id),None,false,None).unwrap()["backlinkPending"],true);
+        assert_eq!(listed_tree(&root),before,"direct unowned flush/recovery must stay cached even at a current source");
+        let log = std::fs::read(storage::library_log(&root)).unwrap();
+        let captures = root.join(CAPTURE_STORE);
+        std::fs::remove_dir_all(&captures).unwrap();
+        let held = Rc::new(Cell::new(false));
+        let observed = held.clone();
+        let expected = storage::library_capture_path(&root, capture["captureId"].as_str().unwrap());
+        storage::after_create_link_for_test(Some(Box::new(move |path| {
+            assert_eq!(path, expected);
+            let locked = std::fs::OpenOptions::new().read(true).write(true).open(captures.join(".capture.lock"))
+                .is_ok_and(|file| unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0
+                    && std::io::Error::last_os_error().kind() == std::io::ErrorKind::WouldBlock);
+            observed.set(locked);
+        })));
+        let results = ac.recover_pending().unwrap();
+        storage::after_create_link_for_test(None);
+        assert!(held.get(), "recreated settled capture must be published under the actual library capture lock");
+        assert_eq!(results[0]["state"], "AC-7 recorded");
+        assert_ne!(results[0]["backlinkPending"], true);
+        let mut disk:Value = serde_json::from_slice(&std::fs::read(storage::library_capture_path(&root, capture["captureId"].as_str().unwrap())).unwrap()).unwrap();
+        assert_eq!(disk["recordId"], record_id);
+        disk.as_object_mut().unwrap().remove("recordId"); assert_eq!(disk,capture);
+        assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(),log);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(),HotA15Result::AlreadyTransferred { .. }));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn listed_a15_ownership_unavailable_return_is_readonly_after_source_restore() {
+        use std::{cell::RefCell,rc::Rc};
+        for route in ["recovery","refresh"] {
+        let (root, mut ac, offer, capture, record_id) = settled_backlink_fixture();
+        let log = std::fs::read(storage::library_log(&root)).unwrap();
+        let entry = root.join(".chirality/workflows/sample");
+        let saved = entry.with_extension("original");
+        std::fs::rename(&entry,&saved).unwrap(); std::fs::create_dir(&entry).unwrap();
+        let restored = Rc::new(RefCell::new(None)); let observed = restored.clone(); let original_root = root.clone();
+        AFTER_UNAVAILABLE_A15_ANNOTATIONS.with(|slot| *slot.borrow_mut() = Some(Box::new(move || {
+            std::fs::remove_dir(&entry).unwrap(); std::fs::rename(saved,entry).unwrap();
+            *observed.borrow_mut() = Some(listed_tree(&original_root));
+        })));
+        let results = if route == "refresh" {
+            let (results,requests) = ac.refresh_recording();
+            assert!(requests.is_err(),"a cached-only recovery must not become a recorder write after source restoration");
+            results.unwrap()
+        } else { ac.recover_pending().unwrap() };
+        assert_eq!(listed_tree(&root), restored.borrow().clone().unwrap(),
+            "an unavailable-source return must remain read-only when the original source returns before its result");
+        assert_eq!(results[0]["state"], "AC-7 recorded"); assert_eq!(results[0]["backlinkPending"],true);
+        assert!(ac.writer_ready());
+        let results = ac.recover_pending().unwrap();
+        assert_eq!(results[0]["capture"]["recordId"], record_id);
+        assert_eq!(results[0]["capture"]["captureId"],capture["captureId"]);
+        assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(),log);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(),HotA15Result::AlreadyTransferred { .. }));
+        std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    fn settled_backlink_fixture() -> (PathBuf,ActControl,A15OfferRef,Value,String) {
+        use std::os::unix::fs::PermissionsExt;
+        let (root,direct) = library(&["sample"],true); drop(direct);
+        let owner = LibraryOwner::open(root.clone(),"project","fixture-library").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner,"held-library");
+        let view = listing.view();
+        let session = listing.review(&owner,"held-library",view["reference"].as_str().unwrap(),&[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+        let (mut ac,offer,actor,context,digest) = ready(&root,&session); ac.library_only = true;
+        let captures = root.join(CAPTURE_STORE); std::fs::create_dir_all(captures.join("pending")).unwrap();
+        let denied = captures.clone(); crate::installation::folder_for_test(Some(None));
+        storage::after_create_link_for_test(Some(Box::new(move |_| {
+            std::fs::set_permissions(&denied,std::fs::Permissions::from_mode(0o500)).unwrap();
+        })));
+        let result = ac.confirm_a15_after_native_event(&offer,event(&offer,digest,actor,context),&session.current().unwrap());
+        std::fs::set_permissions(captures,std::fs::Permissions::from_mode(0o700)).unwrap();
+        storage::after_create_link_for_test(None); crate::installation::folder_for_test(None);
+        let HotA15Result::Recorded(receipt) = result.unwrap() else { panic!("real writer must retain recorded act with failed backlink") };
+        let capture = receipt.witness.original_capture.clone(); let record_id = receipt.record_id().to_owned();
+        assert_eq!(ac.native_captures[capture["captureId"].as_str().unwrap()].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"],true);
+        (root,ac,offer,capture,record_id)
+    }
+    #[test]
+    fn listed_a15_recorded_backlink_failure_retries_only_at_original_source() {
+        use std::os::unix::fs::PermissionsExt;
+        for route in ["continue", "recovery"] {
+            for replacement in ["library", "entry"] {
+                for accounted_delay in [false, true] {
+                let (root, direct) = library(&["sample"], true);
+                drop(direct);
+                let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+                let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+                let view = listing.view();
+                let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+                    &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+                let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+                let captures = root.join(CAPTURE_STORE);
+                std::fs::create_dir_all(captures.join("pending")).unwrap();
+                crate::installation::folder_for_test(Some(None));
+                let result = if accounted_delay {
+                    let log = storage::library_log(&root);
+                    std::fs::create_dir_all(&log).unwrap();
+                    let pending = ac.confirm_a15_after_native_event(&offer, event(&offer,digest,actor,context), &session.current().unwrap()).unwrap();
+                    assert!(matches!(pending, HotA15Result::RecordPending { .. }));
+                    std::fs::remove_dir(&log).unwrap();
+                    std::fs::set_permissions(&captures, std::fs::Permissions::from_mode(0o500)).unwrap();
+                    ac.continue_a15(&offer)
+                } else {
+                    let denied = captures.clone();
+                    storage::after_create_link_for_test(Some(Box::new(move |path| {
+                        assert_eq!(path.parent(), Some(denied.as_path()));
+                        // Capture is published; its existing pending subfolder and
+                        // the act log remain writable, but backlink temps cannot open.
+                        std::fs::set_permissions(&denied, std::fs::Permissions::from_mode(0o500)).unwrap();
+                    })));
+                    ac.confirm_a15_after_native_event(&offer, event(&offer,digest,actor,context), &session.current().unwrap())
+                };
+                std::fs::set_permissions(&captures, std::fs::Permissions::from_mode(0o700)).unwrap();
+                storage::after_create_link_for_test(None);
+                crate::installation::folder_for_test(None);
+                let HotA15Result::Recorded(receipt) = result.unwrap() else { panic!("backlink I/O failure must preserve the recorded act") };
+                let capture_id = receipt.capture_id().to_owned();
+                let record_id = receipt.record_id().to_owned();
+                let original = receipt.witness.original_capture.clone();
+                let capture_path = storage::library_capture_path(&root, &capture_id);
+                let disk:Value = serde_json::from_slice(&std::fs::read(&capture_path).unwrap()).unwrap();
+                assert!(disk.get("recordId").is_none(), "fixture must fail before annotation publication");
+                assert_eq!(disk, original);
+                assert_eq!(ac.native_captures[&capture_id].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"], true);
+                let mut registration = session.begin_hot_registration(receipt).unwrap();
+                assert!(matches!(registration.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+                let act_log = std::fs::read(storage::library_log(&root)).unwrap();
+                let ledger = std::fs::read(root.join(".chirality/workflow-registry.jsonl")).unwrap();
+                let path = if replacement == "library" { root.clone() } else { root.join(".chirality/workflows/sample") };
+                let saved = path.with_extension("original");
+                std::fs::rename(&path, &saved).unwrap();
+                std::fs::create_dir(&path).unwrap();
+                if replacement == "entry" {
+                    std::fs::write(path.join("WORKFLOW.md"), std::fs::read(saved.join("WORKFLOW.md")).unwrap()).unwrap();
+                }
+                let before = listed_tree(&root);
+                let original_before = listed_tree(&saved);
+                if route == "continue" {
+                    let HotA15Result::AlreadyTransferred { capture_id:id,record_id:rid } = ac.continue_a15(&offer).unwrap() else { panic!("no new receipt") };
+                    assert_eq!((id,rid), (capture_id.clone(),record_id.clone()));
+                } else {
+                    let results = ac.recover_pending().unwrap();
+                    assert_eq!(results[0]["state"], "AC-7 recorded");
+                    assert_eq!(results[0]["backlinkPending"], true);
+                }
+                assert_eq!(listed_tree(&root), before, "{route}/{replacement}: no annotation or lock writes into replacement");
+                assert_eq!(listed_tree(&saved), original_before);
+                assert!(ac.writer_ready(), "annotation failure does not unsettle the act");
+                std::fs::remove_dir_all(&path).unwrap();
+                std::fs::rename(&saved, &path).unwrap();
+                // An unrelated record-durability read limit cannot demote the
+                // original act or reopen its already accounted delayed write.
+                storage::fail_directory_for_test(Some(storage::library_log(&root).parent().unwrap().to_path_buf()));
+                let uncertain = ac.recover_pending();
+                storage::fail_directory_for_test(None);
+                let uncertain = uncertain.unwrap();
+                assert_eq!(uncertain[0]["state"], "AC-7 recorded");
+                assert_eq!(uncertain[0]["backlinkPending"], true);
+                assert!(ac.writer_ready());
+                if route == "continue" {
+                    assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                } else {
+                    let results = ac.recover_pending().unwrap();
+                    assert_eq!(results[0]["state"], "AC-7 recorded");
+                    assert_ne!(results[0]["backlinkPending"], true);
+                }
+                let mut annotated:Value = serde_json::from_slice(&std::fs::read(&capture_path).unwrap()).unwrap();
+                assert_eq!(annotated["recordId"], record_id, "{route}/{replacement}: cleared I/O must retry the retained backlink");
+                annotated.as_object_mut().unwrap().remove("recordId");
+                assert_eq!(annotated, original);
+                assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(), act_log);
+                assert_eq!(std::fs::read(root.join(".chirality/workflow-registry.jsonl")).unwrap(), ledger);
+                let records = records::read_log(&storage::library_log(&root)).0;
+                assert_eq!(records.iter().filter(|r|r["kind"] == "human_act").count(), 1);
+                assert_eq!(records[0]["recordId"], record_id);
+                assert_eq!(records[0]["observedAt"], original["capturedAt"]);
+                assert_eq!(ac.native_captures.len(), 1);
+                assert!(!ac.native_captures[&capture_id].delay_pending);
+                assert_ne!(ac.native_captures[&capture_id].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"], true);
+                assert!(matches!(registration.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+                let before = listed_tree(&root);
+                assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                assert_eq!(listed_tree(&root), before, "successful annotation makes later continuation inert");
+                std::fs::remove_dir_all(root).unwrap();
+                }
+            }
+        }
+    }
+    #[test]
+    fn listed_a15_settled_source_replacement_allows_new_disjoint_registration() {
+        let (root, direct) = library(&["sample"], true);
+        drop(direct);
+        let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+        let view = listing.view();
+        let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+            &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &session.current().unwrap()).unwrap();
+        let HotA15Result::Recorded(receipt) = result else { panic!("first listed A15 must settle") };
+        let old_capture_id = receipt.capture_id().to_owned();
+        let mut first = session.begin_hot_registration(receipt).unwrap();
+        assert!(matches!(first.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        drop(first);
+        assert!(ac.writer_ready());
+        let entry = root.join(".chirality/workflows/sample");
+        std::fs::rename(&entry, entry.with_extension("original")).unwrap();
+        std::fs::create_dir(&entry).unwrap();
+        std::fs::write(entry.join("WORKFLOW.md"), std::fs::read(entry.with_extension("original").join("WORKFLOW.md")).unwrap()).unwrap();
+        assert!(ac.writer_ready(), "a settled capture remains settled for existing project close/import readiness");
+        let before = listed_tree(&root);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+        assert_eq!(listed_tree(&root), before, "settled continuation must be inert");
+        let old_capture = ac.native_captures[&old_capture_id].capture.clone();
+        let capture_path = storage::library_capture_path(&root, &old_capture_id);
+        let pending_path = storage::pending_file_for(&root, &old_capture).unwrap();
+        let old_capture_before = listed_tree(&capture_path);
+        let old_pending_before = listed_tree(&pending_path);
+        let replaced_entry_before = listed_tree(&entry);
+        assert!(ac.recover_pending().is_ok(), "settled source limits must not hold normal writer recovery");
+        let other = root.join(".chirality/workflows/other");
+        std::fs::create_dir(&other).unwrap();
+        std::fs::write(other.join("WORKFLOW.md"), b"---\nname: other\n---\n# Other explicit work\n").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+        let view = listing.view();
+        let reference = view["entries"].as_array().unwrap().iter().find(|e|e["name"] == "other").unwrap()["reference"].as_str().unwrap();
+        let next = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(), &[reference.into()]).unwrap();
+        let current = next.current().unwrap();
+        let new_offer = ac.compose_a15(&current).unwrap();
+        let actor = person(Some("Synthetic test person"), Some("fixture"));
+        let context = json!({"fixture":"new disjoint explicit review"});
+        ac.a15_confirmation_text(&new_offer, &current, &actor, &context).unwrap();
+        let digest = ac.frozen_a15_offer_digest(&new_offer).unwrap().clone();
+        ac.present_a15(&new_offer).unwrap();
+        let HotA15Result::Recorded(receipt) = ac.confirm_a15_after_native_event(&new_offer, event(&new_offer,digest,actor,context), &current).unwrap()
+            else { panic!("old settled custody must not hold the new native capture") };
+        drop(current);
+        let mut second = next.begin_hot_registration(receipt).unwrap();
+        assert!(matches!(second.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        assert_eq!(ac.native_captures.len(), 2);
+        assert!(ac.recover_pending().is_ok());
+        assert!(ac.writer_ready());
+        assert_eq!(listed_tree(&capture_path), old_capture_before);
+        assert_eq!(listed_tree(&pending_path), old_pending_before);
+        assert_eq!(listed_tree(&entry), replaced_entry_before);
+        std::fs::remove_dir_all(root).unwrap();
     }
     /// J6 D-1 control (written before the repair, kept): the native A15
     /// statement must fit a readable alert and still name every binding element.
@@ -979,6 +1393,7 @@ mod tests {
             }
         };
         let bound = |bindings: Vec<A15Binding>| BoundReview {
+            listed_sources: None,
             review_ref: format!("review:{}", uuid_like()),
             descriptor_id: "descriptor:x".into(),
             descriptor_kind: "a15_descriptor".into(),
@@ -1097,6 +1512,7 @@ mod tests {
             derived_from: None,
         };
         let b = BoundReview {
+            listed_sources: None,
             review_ref: "review:r".into(),
             descriptor_id: "descriptor:r".into(),
             descriptor_kind: "a15_descriptor".into(),

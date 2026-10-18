@@ -1001,6 +1001,18 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Opened-library entry discovery (LS-2, ME-1–ME-4).** Opening a library and
+explicitly refreshing its entry list observe the published-copy folders. The
+interface shows that retained observation; status polling does not rescan the
+folders. Presence alone grants no registration, selection or run authority.
+The person chooses eligible entries in order, then requests their existing
+in-place review. The host retains the listed library, source and content and
+rechecks the selected entries before composing that review. Changed or
+unavailable evidence requires a fresh observation rather than substitution of
+another library or newer bytes. The original physical source remains bound
+through the frozen review, native A15 confirmation and any continuation of
+that captured registration. Existing freshness and publication checks remain.
+
 **Generated supporting files at dispatch (TX-7).** Run preparation retains the
 typed description of the generated folder named by the frozen files line.
 An unattempted Send preserves the original selected revision-store check and

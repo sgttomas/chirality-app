@@ -31,6 +31,23 @@ pub(crate) struct LibraryOwner {
     reconciliation: Vec<String>,
 }
 type Held = std::sync::Arc<std::sync::Mutex<std::collections::HashSet<(String, String)>>>;
+/// Physical correspondence of an explicit listing, retained by review and AAC
+/// custody. Comparison data only; never reconstructed from a capture or DTO.
+#[derive(Clone, PartialEq)]
+pub(crate) struct ListedSources(Vec<(PathBuf, Value)>);
+impl ListedSources {
+    pub(crate) fn check_current(&self) -> Result<(), String> {
+        for (path, original) in &self.0 {
+            if entries::directory_source(path).as_ref() != Ok(original) {
+                return Err("original listed library/entry source changed; original metadata retained without rebinding".into());
+            }
+        }
+        Ok(())
+    }
+}
+#[path = "workflow_library_entries.rs"]
+mod entries;
+pub(crate) use entries::EntryListing;
 impl LibraryOwner {
     pub(crate) fn open(root: PathBuf, origin: &str, source_root: &str) -> Result<Self, String> {
         if !root.is_absolute()
@@ -608,6 +625,7 @@ impl LibraryOwner {
             descriptor: Value::Null,
             presentation: Value::Null,
             withdrawn: Cell::new(false),
+            listed_sources: None,
             live: Some(live),
         };
         session.descriptor = session.compose_descriptor();
@@ -715,6 +733,9 @@ pub(crate) struct ReviewSession {
     descriptor: Value,
     presentation: Value,
     withdrawn: Cell<bool>,
+    /// New listed-entry route only: preserve physical source correspondence
+    /// through the existing native pre/post-confirmation freshness checks.
+    listed_sources: Option<ListedSources>,
     /// SQ-X liveness (WR §6 X-1): a shared lock on the library's liveness file,
     /// held while this review or its registration attempt may still record an
     /// A15 or write its ledger line. Another process's X-2 closes an attempt
@@ -751,9 +772,19 @@ impl ReviewSession {
     pub(crate) fn library_root(&self) -> &Path {
         &self.root
     }
+    fn listed_sources_current(&self) -> Result<(), String> {
+        if let Some(sources) = &self.listed_sources {
+            sources.check_current()?;
+        }
+        Ok(())
+    }
     pub(crate) fn current(&self) -> Result<CurrentReviewView<'_>, String> {
         if self.withdrawn.get() {
             return Err("review descriptor withdrawn".into());
+        }
+        if let Err(cause) = self.listed_sources_current() {
+            self.withdrawn.set(true);
+            return Err(cause);
         }
         let ledger = read_ledger(&self.root)?;
         for e in &self.entries {
@@ -915,6 +946,9 @@ pub(crate) struct CurrentReviewView<'a> {
     session: &'a ReviewSession,
 }
 impl CurrentReviewView<'_> {
+    pub(crate) fn listed_sources(&self) -> Option<&ListedSources> {
+        self.session.listed_sources.as_ref()
+    }
     pub(crate) fn revalidate(&self) -> Result<(), String> {
         self.session.current().map(|_| ())
     }
@@ -1281,6 +1315,17 @@ pub(crate) enum EntryOutcome {
 }
 impl HotRegistrationAttempt {
     pub(crate) fn advance(&mut self) -> Vec<EntryOutcome> {
+        // The new listed route keeps its physical source through continuation.
+        // Refuse before even creating a lock in a replacement library. Durable
+        // prior outcomes stay historical facts; unresolved metadata is retained.
+        if let Err(reason) = self.session.listed_sources_current() {
+            return self.progress.iter().zip(&self.session.entries).map(|(progress, entry)| match progress {
+                Progress::Committed(revision, publication) => EntryOutcome::Registered { revision:revision.clone(), publication:publication.clone() },
+                Progress::ReConfirmed(revision, publication) => EntryOutcome::ReConfirmed { revision:revision.clone(), publication:publication.clone() },
+                Progress::Failed(reason) => EntryOutcome::NotCompleted { identity:entry.review.identity.clone(), reason:reason.clone() },
+                _ => EntryOutcome::Pending { identity:entry.review.identity.clone(), reason:reason.clone() },
+            }).collect();
+        }
         let locked = storage::lock(&self.session.root.join(".chirality/workflow-registry.lock"));
         if let Err(error) = locked {
             return self
@@ -1343,6 +1388,7 @@ impl HotRegistrationAttempt {
             .collect()
     }
     fn advance_entry(&mut self, index: usize) -> Result<(), String> {
+        self.session.listed_sources_current()?;
         let e = &self.session.entries[index];
         let root = &self.session.root;
         let rows = read_ledger(root)?;
@@ -1377,6 +1423,7 @@ impl HotRegistrationAttempt {
                 );
             }
             rc9_guard(root, &rows, &line)?;
+            self.session.listed_sources_current()?;
             append_line(root, &line)?;
             return self.finish_line(index, line);
         }
@@ -1418,6 +1465,7 @@ impl HotRegistrationAttempt {
                 return self.fail_entry(index, "store conflict".into(), &rows);
             }
         } else {
+            self.session.listed_sources_current()?;
             storage::ensure_directory(store.parent().unwrap())?;
             if let Err(error) = publish_reserved_store(e.review.snapshot(), &store) {
                 return self.fail_entry(
@@ -1447,6 +1495,7 @@ impl HotRegistrationAttempt {
         #[cfg(test)]
         lose_at(LOSE_BEFORE_COMMIT)?;
         self.progress[index] = Progress::Intended(line.clone());
+        self.session.listed_sources_current()?;
         append_line(root, &line)?;
         self.finish_commit(index, line)
     }
@@ -1622,6 +1671,7 @@ impl HotRegistrationAttempt {
         v
     }
     fn fail_entry(&mut self, index: usize, reason: String, rows: &[Value]) -> Result<(), String> {
+        self.session.listed_sources_current()?;
         let mut line = self.line(index, rows, "not completed");
         line["reason"] = json!(reason);
         super::wr_validate("library_entry", &line)?;

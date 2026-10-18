@@ -4509,6 +4509,8 @@ pub(crate) struct WorkflowRootSession {
     selection_marks: std::collections::HashMap<(String, String), crate::run_offers::SelectionMark>,
     /// WR SQ-D D-2/D-4: the latest draft observation per opened library.
     drafts: std::collections::HashMap<String, DraftListing>,
+    /// Explicit open/refresh observations only; status never scans entries.
+    library_entries: std::collections::HashMap<String, crate::workflow_workspace::registration::EntryListing>,
     /// D-3 "app action": per library, draft name -> content the App itself wrote.
     app_made: std::collections::HashMap<String, std::collections::BTreeMap<String, String>>,
     /// WR TT-4: App-kept trial links and observations (App data folder once attached).
@@ -4550,6 +4552,7 @@ impl Default for WorkflowRootSession {
             app_user_data: None,
             selection_marks: Default::default(),
             drafts: Default::default(),
+            library_entries: Default::default(),
             app_made: Default::default(),
             trials: Default::default(),
             trial_desk: Default::default(),
@@ -4612,7 +4615,7 @@ impl WorkflowRootSession {
         };
         json!({"productionCatalog":production_catalog,"selections":self.selected.iter().map(|(chat,s)|json!({"sourceRef":chat.source,"threadId":chat.thread,"selection":self.selection_view(s)})).collect::<Vec<_>>(),
             "inspection":self.inspected.as_ref().map(|s|self.selection_view(s)),
-            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
+            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null),"entryListing":self.library_entries.get(&l.reference).map(|entries|entries.view()).unwrap_or_else(||json!({"state":"not observed","entries":[],"limits":[],"standing":"Refresh library entries to observe this library"}))})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>self.after_run_end.decorate(id,run.view(id)),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
@@ -4782,6 +4785,7 @@ impl WorkflowRootSession {
             }
             let id = existing.reference.clone();
             self.active_library = Some(id.clone());
+            self.observe_library_entries(&id)?;
             return Ok(id);
         }
         let source_root=root.to_str().ok_or("Native library root is not Unicode; source-qualified identity cannot be encoded losslessly")?.to_owned();
@@ -4811,7 +4815,55 @@ impl WorkflowRootSession {
             }),
         );
         self.active_library = Some(id.clone());
+        self.observe_library_entries(&id)?;
         Ok(id)
+    }
+    /// The two listed-entry commands recheck the displayed home and library
+    /// after waiting for Root, without imposing a workflow-selection policy.
+    pub(crate) fn with_library_context<T>(
+        workflows: &std::sync::Mutex<Self>,
+        context: &crate::workflow_selection::Context,
+        active_home: impl Fn() -> std::sync::Arc<HomeSession>,
+        action: impl FnOnce(&mut Self, std::sync::Arc<HomeSession>) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let home = active_home();
+        context.verify_home(&home)?;
+        let mut root = workflows.lock().unwrap();
+        let current = active_home();
+        context.verify_home(&current)?;
+        if !std::sync::Arc::ptr_eq(&home, &current) {
+            return Err("Workflow App home source changed; no library operation performed".into());
+        }
+        root.verify_library_context(context)?;
+        action(&mut root, current)
+    }
+    /// One explicit open/refresh, not a polling/status side effect.
+    pub fn observe_library_entries(&mut self, library_ref: &str) -> Result<Value, String> {
+        let library = self.active_library()?;
+        if library.reference != library_ref { return Err("The displayed active library changed; entries not observed in another source".into()); }
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy; entries not observed now")?;
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, library_ref);
+        drop(owner);
+        self.library_entries.insert(library_ref.into(), listing);
+        Ok(self.snapshot())
+    }
+    pub fn review_library_entries(&mut self, home: std::sync::Arc<HomeSession>, context: Value, library_ref: &str, listing_ref: &str, entry_refs: &[String]) -> Result<Value, String> {
+        let library = self.active_library()?;
+        if library.reference != library_ref { return Err("The displayed active library changed; no review retarget".into()); }
+        let listing = self.library_entries.get(library_ref).ok_or("Observe this library before choosing entries")?;
+        let mut control = library.control.try_lock().map_err(|_| "Original library act control busy; review pending")?;
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy; review pending")?;
+        let review = listing.review(&owner, library_ref, listing_ref, entry_refs)?;
+        let view = review.current()?;
+        let reference = view.review_ref().to_owned();
+        let presentation = view.review_presentation().clone();
+        let offer = control.as_mut().ok_or("Original library act control unavailable")?.compose_a15(&view)?;
+        drop(owner);
+        drop(control);
+        self.reviews.insert(reference.clone(), std::sync::Arc::new(std::sync::Mutex::new(WorkflowReviewContext { reference:reference.clone(), library, home, home_context:context,
+            review:Some(review), offer:Some(offer), attempted_native:false, transaction:None, registered:Default::default(), status:json!({"state":"reviewed; native A15 not captured","presentation":presentation}) })));
+        self.active_review = Some(reference);
+        Ok(self.snapshot())
     }
     pub fn active_library(&self) -> Result<std::sync::Arc<WorkflowLibraryContext>, String> {
         self.active_library
@@ -7874,6 +7926,7 @@ mod workflow_root_tests {
     use std::{path::PathBuf,sync::{Arc,Mutex},time::Duration};
     mod file_act_arrival_tests { use super::*; include!("file_act_arrival_tests.rs"); }
     mod supply_dispatch_tests { use super::*; include!("workflow_supply_dispatch_tests.rs"); }
+    mod library_entries_tests { use super::*; include!("workflow_library_entries_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

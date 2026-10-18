@@ -15,7 +15,8 @@ export function workflowContext(data: Json, host: Json, thread: string): Json {
 }
 const scoped = new Set(["workflow_select_development", "workflow_select_production_bundle", "workflow_select_production_copy",
   "workflow_select_registered", "workflow_select_listed", "workflow_follow_newer_revision", "workflow_create_draft",
-  "workflow_open_library", "workflow_open_project_library", "workflow_observe_drafts", "workflow_prepare_run", "workflow_end_and_start"]);
+  "workflow_open_library", "workflow_open_project_library", "workflow_observe_drafts", "workflow_prepare_run", "workflow_end_and_start",
+  "workflow_library_entries_refresh", "workflow_review_library_entries"]);
 export function workflowArguments(command: string, args: Record<string, unknown>, data: Json, host: Json, thread: string): Record<string, unknown> {
   if (!scoped.has(command)) return args;
   const target = typeof args.threadId === "string" ? args.threadId : thread;

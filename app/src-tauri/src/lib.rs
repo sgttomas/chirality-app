@@ -1428,6 +1428,20 @@ fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::
     let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
     root.observe_drafts(&view["items"])
 }
+/// WR ME-1: explicitly refresh the opened library's file entries. No native
+/// contact, review, selection, registration or record write is performed.
+#[tauri::command]
+fn workflow_library_entries_refresh(state:State<'_,AppState>,library_ref:String,context:workflow_selection::Context)->Result<Value,String>{
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,_|root.observe_library_entries(&library_ref))
+}
+/// WR ME-1/2: choose an ordered subset of one held observation. Names and
+/// content are resolved by its original owner, never supplied by the renderer.
+#[tauri::command]
+fn workflow_review_library_entries(state:State<'_,AppState>,library_ref:String,listing_ref:String,entry_refs:Vec<String>,context:workflow_selection::Context)->Result<Value,String>{
+    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let (_,observed)=current_actor_context_for(&state,&home);
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,home|root.review_library_entries(home,observed,&library_ref,&listing_ref,&entry_refs))
+}
 /// WR TT-3, TT-3a, TT-3b (SQ-DT DT-1…DT-3, SQ-FT FT-1…FT-3): Try pressed on a
 /// listed draft. The host takes the trial snapshot, composes the trial text and
 /// keeps the pre-filled message; nothing is sent or recorded. `thread_id` is
@@ -2177,7 +2191,7 @@ pub fn run() {
             continue_as_dismiss,
             conversation_fork,
             set_person_name,
-            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,
