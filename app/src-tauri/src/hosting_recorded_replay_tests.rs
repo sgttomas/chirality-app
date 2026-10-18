@@ -45,9 +45,13 @@ import pathlib,runpy,sys
 root=pathlib.Path({root})
 generation=(root/'generation').read_text().strip()
 profile='app' if generation=='1' else 'app-recovery'
+if generation=='2' and (root/'profile').exists():
+ profile=(root/'profile').read_text().strip()
 args=[{peer},'--recording',{recording},'--sha256',{digest},'--generation',generation,'--audit',str(root/('audit-'+generation+'.jsonl')),'--profile',profile]
 if {pause} and generation=='1':
  args += ['--pause-after-frame','28','--release',str(root/'release')]
+if profile=='app-continue':
+ args += ['--pause-after-frame','32','--release',str(root/'release')]
 sys.argv=args+['--']+sys.argv[1:]
 runpy.run_path({peer},run_name='__main__')
 "#,
@@ -142,7 +146,14 @@ runpy.run_path({peer},run_name='__main__')
                 Instant::now() < deadline,
                 "{description}: state={} audit={}",
                 self.home.host.state(),
-                std::fs::read_to_string(self.root.join("audit-1.jsonl")).unwrap_or_default()
+                std::fs::read_to_string(self.root.join(
+                    if self.root.join("audit-2.jsonl").exists() {
+                        "audit-2.jsonl"
+                    } else {
+                        "audit-1.jsonl"
+                    }
+                ))
+                .unwrap_or_default()
             );
             std::thread::sleep(Duration::from_millis(5));
         }
@@ -153,7 +164,8 @@ runpy.run_path({peer},run_name='__main__')
     fn audit(&self, stage: u64) -> Vec<Value> {
         std::fs::read_to_string(self.root.join(format!("audit-{stage}.jsonl")))
             .unwrap()
-            .lines()
+            .split_inclusive('\n')
+            .filter(|line| line.ends_with('\n'))
             .map(|line| serde_json::from_str(line).unwrap())
             .collect()
     }
@@ -168,8 +180,14 @@ runpy.run_path({peer},run_name='__main__')
         assert!(!audit.iter().any(|e| e["event"] == "error"), "{audit:?}");
         let expected = audit
             .iter()
-            .filter(|e| e["event"] == "frame" && e["direction"] == "codex->app")
+            .filter(|e| matches!(e["event"].as_str(), Some("frame" | "constructed-frame")) && e["direction"] == "codex->app")
             .map(|e| {
+                if e["event"]=="constructed-frame" {
+                    assert_eq!(e["recipe"],"thread-list-envelope-from-thread-read");
+                    assert_eq!(e["source_frame_index"],25);
+                    assert!(e.get("frame_index").is_none(),"constructed catalog has no recorded frame index");
+                    return json!({"id":e["actual_rpc_id"],"result":{"data":[self.recording["frames"][25]["frame"]["result"]["thread"]],"nextCursor":null}});
+                }
                 let mut frame = self.recording["frames"]
                     [e["frame_index"].as_u64().unwrap() as usize]["frame"]
                     .clone();
@@ -246,7 +264,9 @@ runpy.run_path({peer},run_name='__main__')
         // evidence that its append has already finished.
         self.until("lost acknowledgment persisted", || {
             self.home.host.flush_recovery_observations();
-            self.ledger().iter().any(|entry| entry["transition"] == "RQ-05")
+            self.ledger()
+                .iter()
+                .any(|entry| entry["transition"] == "RQ-05")
         });
         source
     }
@@ -285,6 +305,98 @@ runpy.run_path({peer},run_name='__main__')
         );
         generation
     }
+
+    fn prepare_continue(&self) -> (Value, HistoryDispatch) {
+        std::fs::write(self.root.join("profile"), "app-continue").unwrap();
+        let generation = self.restart();
+        assert_eq!(crate::host_tick::recovery_tick_home(&self.home), 2);
+        self.home
+            .host
+            .request(
+                "thread/loaded/list",
+                json!({}),
+                json!({"kind":"person-directed"}),
+            )
+            .unwrap();
+        {
+            let mut history = self.home.history.lock().unwrap();
+            assert!(
+                history
+                    .select(&self.home.host.snapshot(), &generation, 0, self.thread())
+                    .is_err(),
+                "loaded IDs and recovered turns do not supply a selectable history catalog"
+            );
+        }
+        let catalog = self.history_action(&generation, 0, "list");
+        let result = self
+            .home
+            .host
+            .history_wait(&catalog, Duration::from_secs(2))
+            .unwrap();
+        assert_eq!(result["response"]["result"],json!({"data":[self.recording["frames"][25]["frame"]["result"]["thread"]],"nextCursor":null}),"catalog envelope/membership is constructed; its thread metadata is unchanged recorded data");
+        {
+            let mut history = self.home.history.lock().unwrap();
+            history.reconcile(&self.home.host);
+            history
+                .select(&self.home.host.snapshot(), &generation, 0, self.thread())
+                .unwrap();
+        }
+        assert!(
+            !self
+                .home
+                .host
+                .client_requests()
+                .iter()
+                .any(|r| r["generation"] == generation && r["method"] == "thread/resume"),
+            "recovery, catalog and selection cannot resume"
+        );
+        assert!(!self.home.host.snapshot()["threads"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["generation"] == generation));
+        let resume = self.history_action(&generation, 1, "continue");
+        self.until("recorded idle before resume reply", || {
+            self.audit(2)
+                .iter()
+                .any(|e| e["event"] == "paused" && e["frame_index"] == 32)
+        });
+        self.home.history.lock().unwrap().reconcile(&self.home.host);
+        assert!(
+            !self.home.host.snapshot()["threads"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|t| t["generation"] == generation),
+            "an idle notification is not a successful Continue receipt"
+        );
+        (generation, resume)
+    }
+
+    fn history_action(&self, generation: &Value, epoch: u64, action: &str) -> HistoryDispatch {
+        let query = {
+            let mut history = self.home.history.lock().unwrap();
+            history.reconcile(&self.home.host);
+            history
+                .prepare(
+                    &self.home.host.snapshot(),
+                    generation,
+                    epoch,
+                    action,
+                    None,
+                    crate::native_history::Direction::Desc,
+                    None,
+                )
+                .unwrap()
+        };
+        let receipt = self.home.host.history_dispatch(&query).unwrap();
+        self.home
+            .history
+            .lock()
+            .unwrap()
+            .dispatched(receipt.clone());
+        receipt
+    }
 }
 
 impl Drop for Fixture {
@@ -294,6 +406,165 @@ impl Drop for Fixture {
             assert!(std::thread::panicking(), "replay scratch cleanup: {error}");
         }
     }
+}
+
+#[test]
+fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown_role_standing() {
+    let f = Fixture::new("st5", true);
+    f.lose_acknowledgment();
+    let (generation, resume) = f.prepare_continue();
+    let waiting = f
+        .home
+        .host
+        .history_wait(&resume, Duration::from_millis(20))
+        .unwrap();
+    assert_eq!(waiting["writeResult"], "written");
+    assert_eq!(waiting["waitingEnded"], true);
+    assert!(waiting["response"].is_null());
+    f.home.history.lock().unwrap().reconcile(&f.home.host);
+    assert!(!f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|t| t["generation"] == generation));
+    std::fs::write(
+        f.root.join("release"),
+        "person still selected original Continue source",
+    )
+    .unwrap();
+    f.until("late Continue admission", || {
+        f.home.history.lock().unwrap().reconcile(&f.home.host);
+        f.home.host.snapshot()["threads"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["generation"] == generation && t["nativeResumeObserved"] == true)
+    });
+    let history = f.home.history.lock().unwrap().snapshot(None);
+    let admission = history["dispatches"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["requestRef"] == resume.source().request_ref())
+        .unwrap()["activeAdmission"]
+        .clone();
+    assert_eq!(admission["resumeRequestRef"], resume.source().request_ref());
+    assert_eq!(admission["threadId"], f.thread());
+    assert_eq!(admission["nativeResumeObserved"], true);
+    // This fixture supplied no original App role authority. Native resume
+    // cannot create one from supplier metadata.
+    assert_eq!(admission["appRole"]["standing"], "unknown");
+    for _ in 0..3 {
+        f.home.history.lock().unwrap().reconcile(&f.home.host);
+    }
+    let threads = f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(
+        threads
+            .iter()
+            .filter(|t| t["generation"] == generation)
+            .count(),
+        1
+    );
+    let sent = f
+        .home
+        .host
+        .client_requests()
+        .into_iter()
+        .filter(|r| r["generation"] == generation)
+        .map(|r| r["method"].as_str().unwrap().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        sent,
+        [
+            "initialize",
+            "thread/read",
+            "thread/turns/list",
+            "thread/loaded/list",
+            "thread/list",
+            "thread/resume"
+        ]
+    );
+    assert_eq!(
+        f.ledger()
+            .iter()
+            .filter(|r| r["transition"] == "RQ-05" && r["acknowledgment"] == "not-observed")
+            .count(),
+        1
+    );
+    f.home
+        .host
+        .stop("recorded Continue cleanup", "done")
+        .unwrap();
+    f.assert_recorded_frames(&generation, 2);
+    let audit = f.audit(2);
+    assert_eq!(
+        audit
+            .iter()
+            .filter(|e| e["event"] == "constructed-frame")
+            .count(),
+        2
+    );
+    let binding = audit.iter().find(|e| e["event"] == "binding").unwrap();
+    assert_eq!(binding["outside_segment_frame_indices"], json!([]));
+}
+
+#[test]
+fn recorded_continue_reply_cannot_admit_after_the_selected_epoch_changes() {
+    let f = Fixture::new("st5", true);
+    f.lose_acknowledgment();
+    let (generation, resume) = f.prepare_continue();
+    f.home
+        .history
+        .lock()
+        .unwrap()
+        .select(&f.home.host.snapshot(), &generation, 1, f.thread())
+        .unwrap();
+    std::fs::write(
+        f.root.join("release"),
+        "selection changed while original reply pending",
+    )
+    .unwrap();
+    let evidence = f
+        .home
+        .host
+        .history_wait(&resume, Duration::from_secs(2))
+        .unwrap();
+    assert!(
+        evidence["response"].get("result").is_some(),
+        "native result still observed at original source"
+    );
+    f.home.history.lock().unwrap().reconcile(&f.home.host);
+    assert!(!f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|t| t["generation"] == generation));
+    let history = f.home.history.lock().unwrap().snapshot(None);
+    assert_eq!(history["selectionEpoch"], 2);
+    let receipt = history["dispatches"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["requestRef"] == resume.source().request_ref())
+        .unwrap();
+    assert!(receipt.get("activeAdmission").is_none());
+    assert_eq!(
+        f.home
+            .host
+            .client_requests()
+            .iter()
+            .filter(|r| r["generation"] == generation && r["method"] == "thread/resume")
+            .count(),
+        1
+    );
+    f.home
+        .host
+        .stop("recorded Continue cleanup", "done")
+        .unwrap();
+    f.assert_recorded_frames(&generation, 2);
 }
 
 #[test]

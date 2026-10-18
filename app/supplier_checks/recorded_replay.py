@@ -8,10 +8,14 @@ except correlated client-reply IDs. Audit JSONL is scratch evidence, not an EXP
 or qualification record. Capture timestamps are metadata, never replay delays.
 
 Use --recording PATH --sha256 HEX --generation N --audit PATH, optionally
---profile strict|app|app-recovery. Host CLI arguments may follow -- and remain
+--profile strict|app|app-recovery|app-continue. Host CLI arguments may follow -- and remain
 inert. --version reports the required synthetic development label. The optional
 NV04 --pause-after-frame 28 --release PATH gate lets a test inspect the real
 consumer between parent completion and the following child frames.
+ST5 generation 2 app-continue keeps the full tape and requires one constructed
+thread/list catalog between captured loaded/list and resume. Its envelope and
+membership are not captured; its sole thread is copied unchanged from source
+frame 25. Optional gate 32 pauses after idle, before the recorded resume reply.
 The audit destination must be fresh: exclusive creation refuses existing files,
 symlinks and hardlinks without overwriting their bytes.
 """
@@ -39,6 +43,8 @@ APP_CLIENT = {"name": "chirality-app-v4", "title": "Chirality App v4 (walking sk
 PROTOTYPE_CLIENT = {"name": "chirality-st5-harness", "title": "Chirality ST-5 capture harness",
                     "version": "0.0.0-st5"}
 CAPABILITIES = {"experimentalApi": True, "requestAttestation": False}
+CATALOG_RECIPE = "thread-list-envelope-from-thread-read"
+CATALOG_STANDING = "constructed-catalog-prerequisite; envelope/membership not captured"
 
 
 class ReplayError(Exception):
@@ -248,23 +254,53 @@ class JsonLineInput:
         return frame
 
 
+def write_protocol_frame(writer, frame):
+    try:
+        writer.write(json.dumps(frame, ensure_ascii=False, allow_nan=False) + "\n")
+        writer.flush()
+    except BrokenPipeError:
+        if writer is sys.stdout:
+            # Neutralize buffered stdout without another flush, preserving
+            # the intended failure status when Python later shuts down.
+            sink = os.open(os.devnull, os.O_WRONLY)
+            try:
+                os.dup2(sink, writer.fileno())
+            finally:
+                os.close(sink)
+        raise
+
+
 class Replay:
     def __init__(self, recording, generation, profile, audit, *, sha256=None,
                  pause_after_frame=None, release=None):
         self.recording, self.generation, self.profile, self.audit = recording, generation, profile, audit
         require(type(generation) is int and any(row["generation"] == generation for row in recording["frames"]),
                 "unsupported-selected-generation")
-        require(profile in ("strict", "app", "app-recovery"), "unsupported-profile")
+        require(profile in ("strict", "app", "app-recovery", "app-continue"), "unsupported-profile")
         require(profile != "app" or generation == 1, "unsupported-app-profile")
         require(profile != "app-recovery" or (recording["scenario"] == "st5" and generation == 2),
                 "unsupported-recovery-profile")
+        require(profile != "app-continue" or (recording["scenario"] == "st5" and generation == 2),
+                "unsupported-continue-profile")
         require((pause_after_frame is None) == (release is None), "incomplete-pause-gate")
+        self.pause_reason = None
         if pause_after_frame is not None:
-            require(type(pause_after_frame) is int and pause_after_frame == 28 and
-                    recording["scenario"] == "nv04" and generation == 1, "unsupported-pause-gate")
-            require(len(recording["frames"]) > 28 and recording["frames"][28]["direction"] == "codex->app" and
-                    recording["frames"][28]["frame"].get("method") == "turn/completed",
+            nv04_gate = pause_after_frame == 28 and recording["scenario"] == "nv04" and generation == 1
+            continue_gate = pause_after_frame == 32 and profile == "app-continue"
+            require(type(pause_after_frame) is int and (nv04_gate or continue_gate), "unsupported-pause-gate")
+            require(len(recording["frames"]) > pause_after_frame, "unsupported-pause-frame")
+            pause_row = recording["frames"][pause_after_frame]
+            pause_frame = pause_row["frame"]
+            require(pause_row["generation"] == generation and pause_row["direction"] == "codex->app",
                     "unsupported-pause-frame")
+            if nv04_gate:
+                require(pause_frame.get("method") == "turn/completed", "unsupported-pause-frame")
+                self.pause_reason = "nv04-parent-completed-consumer-inspection"
+            else:
+                params = pause_frame.get("params")
+                require(pause_frame.get("method") == "thread/status/changed" and isinstance(params, dict)
+                        and exact(params.get("status"), {"type": "idle"}), "unsupported-pause-frame")
+                self.pause_reason = "st5-continue-idle-before-resume-reply"
             require(not Path(release).exists(), "release-marker-already-exists")
         self.pause_after_frame, self.release = pause_after_frame, release
         self.indices = [i for i, row in enumerate(recording["frames"]) if row["generation"] == generation]
@@ -277,12 +313,55 @@ class Replay:
             self.indices, self.outside_segment = self.indices[:end], self.indices[end:]
         self.consumed, self.current_index = [], None
         self.id_map, self.actual_ids, self.pending_server = {}, set(), set()
+        self.catalog_request_id = None
+        self.catalog_result = self.continue_catalog_result() if profile == "app-continue" else None
         self.audit.emit("binding", sha256=sha256, scenario=recording["scenario"], generation=generation,
                         profile=profile, recorded_standing=recording["fixture_standing"],
                         synthetic_standing=SYNTHETIC_STANDING, selected_frame_indices=self.indices,
                         outside_segment_frame_indices=self.outside_segment,
                         other_generation_frame_indices=[i for i, row in enumerate(recording["frames"])
                                                         if row["generation"] != generation])
+
+    def continue_catalog_result(self):
+        """One declared prerequisite, with no invented recorded RPC identity."""
+        require(self.indices == list(range(19, 35)), "unsupported-continue-tape")
+        source = self.recording["frames"][25]
+        result = source["frame"].get("result")
+        require(source["generation"] == 2 and source["direction"] == "codex->app"
+                and frame_kind(source["frame"]) == "reply" and isinstance(result, dict)
+                and isinstance(result.get("thread"), dict), "invalid-captured-catalog-source")
+        thread = result["thread"]
+        require(isinstance(thread.get("id"), str) and bool(thread["id"]), "invalid-captured-catalog-source")
+        loaded_request, loaded_reply, resume = [self.recording["frames"][index] for index in (28, 29, 30)]
+        require(loaded_request["direction"] == "app->codex" and loaded_request["frame"].get("method") == "thread/loaded/list"
+                and exact(loaded_request["frame"].get("params"), {})
+                and loaded_reply["direction"] == "codex->app"
+                and frame_kind(loaded_reply["frame"]) == "reply"
+                and exact(loaded_reply["frame"].get("result"), {"data": [], "nextCursor": None})
+                and resume["direction"] == "app->codex" and resume["frame"].get("method") == "thread/resume"
+                and exact(resume["frame"].get("params"), {"threadId": thread["id"]}), "unsupported-continue-tape")
+        return {"data": [copy.deepcopy(thread)], "nextCursor": None}
+
+    def receive_catalog_prerequisite(self, reader, writer):
+        require(self.profile == "app-continue" and self.current_index == 30 and self.catalog_result is not None,
+                "unsupported-constructed-catalog-prerequisite")
+        require(self.catalog_request_id is None, "duplicate-constructed-catalog-prerequisite")
+        actual = reader.read()
+        require(actual is not None, "missing-constructed-catalog-prerequisite")
+        require(frame_kind(actual) == "request", "constructed-catalog-request-mismatch")
+        actual_id = rpc_id(actual["id"])
+        require(actual_id not in self.actual_ids, "duplicate-actual-request-id")
+        require(exact(without_envelope(actual), {"id": actual["id"], "method": "thread/list",
+                                               "params": {"sortDirection": "desc"}}),
+                "constructed-catalog-request-mismatch")
+        self.catalog_request_id = actual_id
+        self.actual_ids.add(actual_id)
+        fields = {"method": "thread/list", "recipe": CATALOG_RECIPE, "source_frame_index": 25,
+                  "actual_rpc_id": actual["id"], "actual_rpc_id_type": actual_id[0],
+                  "constructed_standing": CATALOG_STANDING}
+        self.audit.emit("constructed-frame", direction="app->codex", kind="request", **fields)
+        write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(self.catalog_result)})
+        self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
@@ -324,12 +403,12 @@ class Replay:
             adapted = copy.deepcopy(params)
             adapted["input"][0]["text_elements"] = []
             return adapted, ["turn/start.input[0].text_elements:add-empty-array"]
-        if self.profile == "app-recovery" and method == "thread/read":
+        if self.profile in ("app-recovery", "app-continue") and method == "thread/read":
             require(isinstance(params, dict) and set(params) == {"threadId", "includeTurns"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"])
                     and params["includeTurns"] is True, "invalid-captured-thread-read-params")
             return {**params, "includeTurns": False}, ["thread/read.includeTurns:true-to-false"]
-        if self.profile == "app-recovery" and method == "thread/turns/list":
+        if self.profile in ("app-recovery", "app-continue") and method == "thread/turns/list":
             require(isinstance(params, dict) and set(params) == {"threadId", "itemsView"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"])
                     and params["itemsView"] == "full", "invalid-captured-turns-list-params")
@@ -367,7 +446,7 @@ class Replay:
         return {"adaptations": changes, **correlation}
 
     def pause(self):
-        self.audit.emit("paused", frame_index=self.current_index, reason="nv04-parent-completed-consumer-inspection")
+        self.audit.emit("paused", frame_index=self.current_index, reason=self.pause_reason)
         deadline = time.monotonic() + INPUT_TIMEOUT
         while time.monotonic() < deadline:
             try:
@@ -386,6 +465,8 @@ class Replay:
         try:
             for index in self.indices:
                 self.current_index = index
+                if self.profile == "app-continue" and index == 30:
+                    self.receive_catalog_prerequisite(reader, writer)
                 row, info = self.recording["frames"][index], {}
                 frame = row["frame"]
                 if row["direction"] == "app->codex":
@@ -401,21 +482,7 @@ class Replay:
                                 "recorded_rpc_id_type": key[0], "actual_rpc_id_type": rpc_id(outgoing["id"])[0]}
                     elif kind == "request":
                         self.pending_server.add(rpc_id(frame["id"]))
-                    try:
-                        writer.write(json.dumps(outgoing, ensure_ascii=False, allow_nan=False) + "\n")
-                        writer.flush()
-                    except BrokenPipeError:
-                        if writer is sys.stdout:
-                            # A failed flush leaves buffered bytes behind.
-                            # Redirect the descriptor without flushing again,
-                            # so interpreter shutdown cannot retry the pipe
-                            # and replace the intended error status with 120.
-                            sink = os.open(os.devnull, os.O_WRONLY)
-                            try:
-                                os.dup2(sink, writer.fileno())
-                            finally:
-                                os.close(sink)
-                        raise
+                    write_protocol_frame(writer, outgoing)
                 self.consumed.append(index)
                 self.audit.emit("frame", frame_index=index, direction=row["direction"], kind=frame_kind(frame), **info)
                 if index == self.pause_after_frame:
@@ -458,7 +525,7 @@ def main(argv=None):
         parser.add_argument("--sha256", required=True)
         parser.add_argument("--generation", required=True, type=int)
         parser.add_argument("--audit", required=True, type=Path)
-        parser.add_argument("--profile", choices=("strict", "app", "app-recovery"), default="strict")
+        parser.add_argument("--profile", choices=("strict", "app", "app-recovery", "app-continue"), default="strict")
         parser.add_argument("--pause-after-frame", type=int)
         parser.add_argument("--release", type=Path)
         config = parser.parse_args(options)
