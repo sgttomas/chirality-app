@@ -87,6 +87,7 @@ code_paths:
 - app/src-tauri/src/workflow_learning_pointers.rs
 - app/src-tauri/src/historical_run_learning.rs
 checks:
+- app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs
 - app/src-tauri/src/records_continuity_tests.rs
