@@ -49,6 +49,7 @@ def inputs(recording, generation, profile="strict", remap=False):
         if profile == "app-continue" and frame.get("method") == "thread/resume":
             frames.append({"jsonrpc": "2.0", "id": "constructed-catalog", "method": "thread/list",
                            "params": {"sortDirection": "desc"}})
+            frame["params"]["excludeTurns"] = True
         frames.append(frame)
         if profile == "app-recovery" and frame.get("method") == "thread/turns/list":
             break
@@ -356,6 +357,34 @@ class SubprocessReplay(unittest.TestCase):
         self.assertEqual(finish["remaining_frame_indices"], [])
         self.assertEqual(finish["outside_segment_frame_indices"], [])
 
+    def test_continue_resume_coverage_is_native_request_only_and_strict_recording_stays_exact(self):
+        path, digest, recording = capture()
+        original = copy.deepcopy(recording)
+        schema = json.loads((HERE.parent / "src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json").read_bytes())
+        field = schema["definitions"]["ThreadResumeParams"]["properties"]["excludeTurns"]
+        self.assertEqual(field["type"], "boolean")
+        self.assertIn("metadata and live-resume state", field["description"])
+        supplied = inputs(recording, 2, "app-continue")
+        actual = next(frame for frame in supplied if frame.get("method") == "thread/resume")
+        self.assertEqual(actual["params"], {"threadId": recording["frames"][30]["frame"]["params"]["threadId"], "excludeTurns": True})
+        result = self.invoke(path, digest, self.audit, "app-continue", 2, supplied)
+        self.assertEqual((result.returncode, result.stderr), (0, b""))
+        rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
+        resume = next(row for row in rows if row.get("frame_index") == 30 and row["event"] == "frame")
+        self.assertEqual(resume["adaptations"], ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"])
+        output = [json.loads(line) for line in result.stdout.splitlines()]
+        recorded_reply = recording["frames"][33]["frame"]
+        self.assertTrue(recorded_reply["result"]["thread"]["turns"], "captured full reply is not rewritten as metadata-only")
+        self.assertIn(recorded_reply, output)
+        self.assertIn(recording["frames"][31]["frame"], output, "recorded deprecation notice remains original supplier data")
+        strict = inputs(recording, 2)
+        resume = next(frame for frame in strict if frame.get("method") == "thread/resume")
+        resume["params"]["excludeTurns"] = True
+        with self.assertRaisesRegex(peer.ReplayError, "request-method-or-params-mismatch"):
+            run_memory(recording, 2, "strict", strict)
+        self.assertEqual(recording, original)
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+
     def test_continue_catalog_and_resume_refuse_missing_wrong_duplicate_or_reused_inputs(self):
         path, digest, recording = capture()
         original = inputs(recording, 2, "app-continue")
@@ -372,7 +401,13 @@ class SubprocessReplay(unittest.TestCase):
             ("duplicate-catalog", lambda frames: frames.insert(6, {**copy.deepcopy(frames[5]), "id": "second-catalog"})),
             ("resume-reuses-catalog-id", lambda frames: frames[6].update(id=frames[5]["id"])),
             ("wrong-resume-thread", lambda frames: frames[6]["params"].update(threadId="PRIVATE_CATALOG_CANARY")),
-            ("extra-resume-param", lambda frames: frames[6]["params"].update(excludeTurns=True)),
+            ("missing-resume-coverage", lambda frames: frames[6]["params"].pop("excludeTurns")),
+            ("false-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=False)),
+            ("null-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=None)),
+            ("numeric-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=1)),
+            ("resume-guidance-override", lambda frames: frames[6]["params"].update(developerInstructions="PRIVATE_CATALOG_CANARY")),
+            ("resume-model-override", lambda frames: frames[6]["params"].update(model="PRIVATE_CATALOG_CANARY")),
+            ("extra-resume-param", lambda frames: frames[6]["params"].update(persistExtendedHistory=True)),
         ]
         for name, mutate in cases:
             with self.subTest(case=name):
