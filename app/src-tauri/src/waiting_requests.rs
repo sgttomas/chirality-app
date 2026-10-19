@@ -33,7 +33,7 @@ pub(crate) fn overview(router: &HomeRouter) -> Value {
     json!({"groups":waiting,"sources":sources,"coverage":"Known answerable requests awaiting the person in ready, current local registers of all configured App conversation homes. Sequential snapshots, not an atomic cross-home observation; counts can change before opening. No supplier read."})
 }
 
-pub(crate) fn open(router: &mut HomeRouter, mode: &str, generation: &Value, thread: &Value) -> Result<Value, String> {
+pub(crate) fn validate(router: &HomeRouter, mode: &str, generation: &Value, thread: &Value) -> Result<bool, String> {
     crate::recovery::generation_ref(generation)?;
     if !thread.is_null() && !thread.as_str().is_some_and(|s|!s.is_empty()) { return Err("Waiting conversation must be the original named thread or null".into()); }
     let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
@@ -46,6 +46,12 @@ pub(crate) fn open(router: &mut HomeRouter, mode: &str, generation: &Value, thre
         return Err("Original conversation has no current waiting request group; refresh the overview".into());
     }
     let loaded = thread.is_string() && snapshot["threads"].as_array().into_iter().flatten().any(|t|t["generation"] == *generation && t["threadId"] == *thread);
+    Ok(loaded)
+}
+
+pub(crate) fn open(router: &mut HomeRouter, mode: &str, generation: &Value, thread: &Value) -> Result<Value, String> {
+    let loaded = validate(router, mode, generation, thread)?;
+    let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
     router.activate(class)?;
     Ok(json!({"modeHomeClass":mode,"generation":generation,"threadId":thread,"threadLoaded":loaded,
         "standing":"Explicit navigation to the original current waiting-request source only; no answer, resume or send"}))

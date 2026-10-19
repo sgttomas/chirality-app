@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -65,8 +66,8 @@ test('actual generated-copy refusal preserves original intent and publication st
     assert.ok(restored.source,'actual native attempt has its original source evidence');
 
     let current = prepared,sendPresses = 0;
-    const calls = [],previous = window.__TAURI_INTERNALS__;
-    window.__TAURI_INTERNALS__ = {invoke:async (name,args) => {
+    const calls = [];
+    const idle = installIdleNativeWaiting(async (name,args) => {
       calls.push([name,args]);
       if (name === 'host_status') return {state:'ready',generation:prepared.generation,threads:[],workflowRoot:{runs:[current]}};
       if (name === 'decision_view') return {rows:[]};
@@ -80,7 +81,7 @@ test('actual generated-copy refusal preserves original intent and publication st
         return result;
       }
       throw Error(`Unexpected command: ${name}`);
-    }};
+    });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -120,9 +121,10 @@ test('actual generated-copy refusal preserves original intent and publication st
       assert.ok(runArticle().textContent.includes(prepared.runText.text_identity.value));
       assert.match(runArticle().textContent,/Adoption: unknown/,'native dispatch does not claim provider adoption');
     } finally {
+      const renderedText = container.textContent;
       await React.act(() => root.unmount());
       document.body.removeChild(container);
-      window.__TAURI_INTERNALS__ = previous;
+      idle.restore(renderedText);
     }
   }
 });

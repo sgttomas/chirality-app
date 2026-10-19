@@ -71,6 +71,7 @@ pub(crate) mod run_offers;
 pub(crate) mod run_restart;
 pub mod runtime_session;
 mod waiting_requests;
+mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
@@ -722,6 +723,8 @@ const QUIT_MENU_ID: &str = "chirality-quit";
 fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     use tauri::menu::{Menu, MenuItem, MenuItemKind, Submenu};
     let menu = Menu::default(app)?;
+    #[cfg(target_os = "macos")]
+    native_waiting::append_menu(app, &menu)?;
     let quit = MenuItem::with_id(app, QUIT_MENU_ID, format!("Quit {}", app.package_info().name), true, Some("CmdOrCtrl+Q"))?;
     for top in menu.items()? {
         let MenuItemKind::Submenu(sub) = top else { continue };
@@ -738,6 +741,37 @@ fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
     }
     menu.append(&Submenu::with_items(app, "File", true, &[&quit])?)?;
     Ok(menu)
+}
+// Menu dispatch only queues navigation; activation stays behind the App's guards.
+fn request_native_waiting(app: &tauri::AppHandle, id: &str) {
+    use tauri::Emitter;
+    let state = app.state::<AppState>();
+    let result = {
+        let homes = state.homes.lock().unwrap();
+        app.state::<Mutex<native_waiting::Registry>>().lock().unwrap().select(id, &homes)
+    };
+    show_main_window(app);
+    if let Err(reason) = result {
+        app.dialog().message(reason).title("Waiting requests").kind(MessageDialogKind::Info).show(|_| {});
+    } else {
+        // This is a wake-up only. The host retains the original pending target
+        // even if there is no listener yet or this emit fails.
+        let _ = app.emit_to("main", native_waiting::WAKE_EVENT, ());
+    }
+}
+#[tauri::command]
+fn checkpoint_native_waiting_ui(registry: State<'_, Mutex<native_waiting::Registry>>, consumer: String, revision: u64) -> Result<(), String> {
+    registry.lock().unwrap().checkpoint(&consumer, revision)
+}
+#[tauri::command]
+fn claim_native_waiting_intent(state: State<'_, AppState>, registry: State<'_, Mutex<native_waiting::Registry>>, consumer: String) -> Value {
+    let homes = state.homes.lock().unwrap();
+    registry.lock().unwrap().claim(&consumer, &homes)
+}
+#[tauri::command]
+fn finish_native_waiting_intent(registry: State<'_, Mutex<native_waiting::Registry>>, consumer: String, intent_id: Option<String>) -> Result<(), String> {
+    let mut registry = registry.lock().unwrap();
+    match intent_id { Some(id) => registry.finish(&consumer, &id), None => { registry.abandon(&consumer); Ok(()) } }
 }
 /// DEF-1 / SQ-W W-4: show the App's window again (the Dock click on macOS,
 /// or before the quit question so that content it names is visible).
@@ -793,9 +827,13 @@ fn request_quit(app: tauri::AppHandle) {
 }
 /// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
 /// person, on the App's Dock icon, whether or not the window is shown.
-fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>) {
+fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>, menu: &mut native_waiting::MenuObserver) {
     let state = app.state::<AppState>();
     let snapshots: Vec<Value> = state.homes.lock().unwrap().entries().iter().map(|home| home.host.snapshot()).collect();
+    let overview = waiting_requests::overview(&state.homes.lock().unwrap());
+    if let Err(error) = menu.update(app, app.state::<Mutex<native_waiting::Registry>>().inner(), &overview) {
+        eprintln!("chirality: waiting menu update failed: {error}");
+    }
     let count = app_quit::waiting_requests(&snapshots)["count"].as_i64().unwrap_or(0);
     if *last != Some(count) {
         if let Some(window) = app.webview_windows().into_values().next() {
@@ -1939,7 +1977,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
-        .on_menu_event(|app, event| if event.id() == QUIT_MENU_ID { request_quit(app.clone()) })
+        .on_menu_event(|app, event| {
+            if event.id() == QUIT_MENU_ID { request_quit(app.clone()); }
+            else if event.id().as_ref().starts_with(native_waiting::ITEM_PREFIX) { request_native_waiting(app, event.id().as_ref()); }
+        })
         // DEF-1, SQ-W: closing the window is not quit and stops nothing. The
         // window is hidden (macOS; the Dock click shows it again) or minimized
         // (platforms with no Dock), so the main process keeps observing and
@@ -2006,6 +2047,7 @@ pub fn run() {
     };
     let host = Arc::clone(&home.host);
             app.manage(state);
+            app.manage(Mutex::new(native_waiting::Registry::default()));
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
             // RS §13.8: the App's records store, configured once before any
             // record is read or written; a store that cannot be used refuses
@@ -2120,9 +2162,10 @@ pub fn run() {
                 let handle = app.handle().clone();
                 std::thread::Builder::new().name("chirality-waiting-indicator".into()).spawn(move || {
                     let mut last = None;
+                    let mut menu = native_waiting::MenuObserver::default();
                     loop {
                         std::thread::sleep(host_tick::INTERVAL);
-                        host_tick::guarded("indicator", || show_waiting_indicator(&handle, &mut last));
+                        host_tick::guarded("indicator", || show_waiting_indicator(&handle, &mut last, &mut menu));
                     }
                 }).map_err(|e| format!("waiting indicator thread not started: {e}"))?;
             }
@@ -2174,6 +2217,9 @@ pub fn run() {
             host_status,
             select_home,
             open_waiting_requests,
+            claim_native_waiting_intent,
+            checkpoint_native_waiting_ui,
+            finish_native_waiting_intent,
             read_home_access,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
