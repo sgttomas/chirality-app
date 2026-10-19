@@ -150,7 +150,10 @@ implemented behavior and qualification limits.
     source list. Explicit attachment-bearing send or steering uses that whole
     list, durable metadata and the actual Host request; failures do not fall back
     to text-only sending or automatic retry. A native acknowledgment is separate
-    from provider uptake or completion. When a run-end notice is pending in the
+    from provider uptake or completion. A failed view refresh is shown
+    separately from the original Send or Steer result: it does not turn an
+    acknowledgment into a rejected command or replace a native error. When a
+    run-end notice is pending in the
     conversation (WR TX-5), an attachment-bearing new turn carries it in one
     frame, in NIR TC-2's order: the run-end line, then the person's text, then
     the attachments. The supply records still name only the attachments, in
@@ -869,6 +872,7 @@ implemented behavior and qualification limits.
 | `file_act_root.rs`, `file_act_view.rs`, `src/FileActPanel.tsx` | Original file-offer ownership, separate read-only act/decline comparison and per-offer controls; no cold native-origin upgrade |
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
+| `src/App.tsx`, `tests/attachment-outcome.test.mjs`, `src-tauri/src/attachment_outcome_tests.rs` | Ordered-attachment Send/Steer outcomes reach the composer separately from subsequent view-read failures; actual owned-list, write and source-correlation packets supply the mounted consumer checks |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings |
 | `role_observations.rs`, `role_record_source.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `role_r3_run_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations, exact retained App guidance and historical limits; private confirmed receipts supply role R3 references at run opening, with immutable source-qualified run context and explicit quoted cold inspection; cold claims restore no role/CCE authority |

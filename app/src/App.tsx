@@ -71,7 +71,10 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
   return { threadId: row.threadId, requestRef: from.forkRequestRef };
 };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, forkConversation }: { forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
+type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
+
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation }: { forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -82,6 +85,9 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   // (the host also refuses new turns once a stop is confirmed).
   const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");
   const [error, setError] = useState<string>("");
+  const [attachmentOutcome, setAttachmentOutcome] = useState<AttachmentOutcome | null>(null);
+  const attachmentView = useRef({ generation: host?.generation, threadKey });
+  attachmentView.current = { generation: host?.generation, threadKey };
   const generationKey = JSON.stringify(host?.generation);
   const currentThreads = (host?.threads ?? []).filter((thread: Json) => JSON.stringify(thread.generation) === generationKey);
   const selected = currentThreads.find((thread: Json) => JSON.stringify([thread.generation, thread.threadId]) === threadKey);
@@ -107,12 +113,24 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const attachmentText = async (expected: string | null) => {
     const selection = host?.attachmentSelections;
     if (!selected || !selection?.ownerRef || !(selection.selections ?? []).length || busy) return;
+    const request: AttachmentRequest = { generation: selected.generation, threadId: selected.threadId, expectedTurnId: expected, text, ownerRef: selection.ownerRef, listRevision: selection.listRevision, selectionRefs: selection.selections.map((row: Json) => row.selection.selectionRef) };
     setBusy(expected ? "steering with attachments" : "sending with attachments"); setError("");
+    setAttachmentOutcome(null);
+    let outcome: AttachmentOutcome;
     try {
-      await submitAttachments(selected.generation, selected.threadId, expected, text, selection.ownerRef, selection.listRevision, selection.selections.map((row: Json) => row.selection.selectionRef));
-      setText("");
-    } catch (e) { setError(String(e)); }
+      const nativeValue = await submitAttachments(request.generation, request.threadId, request.expectedTurnId, request.text, request.ownerRef, request.listRevision, request.selectionRefs);
+      // Fulfilment is the host's matching-ack contract. A later view read cannot
+      // change it, clear another conversation's draft or erase a newer edit.
+      outcome = { request, result: { acknowledged: true, nativeValue } };
+      if (JSON.stringify(attachmentView.current.generation) === JSON.stringify(request.generation) && attachmentView.current.threadKey === JSON.stringify([request.generation, request.threadId])) {
+        setText(current => current === request.text ? "" : current);
+      }
+    } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
+    setAttachmentOutcome(outcome);
+    try { await observeAttachmentView?.(request); }
+    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
     finally { setBusy(""); }
+    return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
   const interruptTurn = async () => {
     if (!selected || !live || ownBusy || alreadyRequested) return;
@@ -209,6 +227,17 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       <button disabled={host?.state !== "ready" || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
       <p>Every selected source is revalidated as one whole list. Source/custody/context failures retain the draft and evidence; no text-only fallback or automatic resend. Native acknowledgments remain separate from completion and provider uptake.</p>
       {host?.attachmentCustody?.state !== "opened" && <p>Attachment custody unavailable: {host?.attachmentCustody?.error}. Plain-text controls remain available.</p>}
+    </div>}
+    {attachmentOutcome && <div aria-label="Attachment submission outcome">
+      <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
+      {attachmentOutcome.result.acknowledged
+        ? <p role="status">Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.</p>
+        : <p role="alert">{String(attachmentOutcome.result.nativeError)} No automatic retry.</p>}
+      {attachmentOutcome.observationLimit && <p role="alert">Attachment view refresh unavailable for this original request: {attachmentOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      <details><summary>Original attachment request identity</summary>
+        <p>App session: {attachmentOutcome.request.generation?.appSession} · spawn: {attachmentOutcome.request.generation?.spawnCounter} · selection owner: {attachmentOutcome.request.ownerRef} · list revision: {attachmentOutcome.request.listRevision}.</p>
+        <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
+      </details>
     </div>}
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
@@ -1272,10 +1301,19 @@ export function App() {
       }} steer={async (generation, threadId, expectedTurnId, text) => {
         await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
-        try {
-          await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
-          setMessage("Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.");
-        } finally { setHost(await invoke("host_status")); }
+        return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
+      }} observeAttachmentView={async request => {
+        const viewAtRead = currentHost.current;
+        const snapshot = await invoke<Json>("host_status");
+        // This read belongs to the original attachment request, not a Home or
+        // generation selected while its native response/read was pending.
+        if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
+          throw new Error("The current source changed; this original request's view was not applied");
+        }
+        if (currentHost.current !== viewAtRead) {
+          throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
+        }
+        setHost(snapshot);
       }} interrupt={async (generation, threadId, turnId) => {
         await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }} />

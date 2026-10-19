@@ -423,6 +423,8 @@ code_paths:
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
+- app/src-tauri/src/attachment_outcome_tests.rs
+- app/tests/attachment-outcome.test.mjs
 - app/src-tauri/src/file_act_arrival_tests.rs
 - app/tests/file-act-arrival.test.mjs
 - app/tests/file-act-panel.test.mjs
