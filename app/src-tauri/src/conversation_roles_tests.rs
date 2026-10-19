@@ -50,6 +50,13 @@ for line in sys.stdin:
   result(f,settled(t),'fork');continue
  if m=='turn/start':
   n['turn']+=1;tid='turn-%d'%n['turn'];th=f['params']['threadId']
+  mode=open('handoff-mode').read().strip() if os.path.exists('handoff-mode') else ''
+  if mode=='native-error': emit({'id':f['id'],'error':{'code':-32600,'message':'synthetic handoff native refusal'}});continue
+  if mode=='hold':
+   def late(frame=f,turn=tid):
+    while not os.path.exists('release-handoff'): time.sleep(.005)
+    emit({'id':frame['id'],'result':{'turn':{'id':turn,'status':'inProgress','items':[],'error':None}}})
+   threading.Thread(target=late,daemon=True).start();continue
   emit({'id':f['id'],'result':{'turn':{'id':tid,'status':'inProgress','items':[],'error':None}}})
   emit({'method':'turn/started','params':{'threadId':th,'turn':{'id':tid,'status':'inProgress','items':[],'error':None,'itemsView':'summary'}}})
   status=open('turn-status').read().strip() if os.path.exists('turn-status') else 'completed'
@@ -285,17 +292,17 @@ fn continue_as_falls_back_to_the_header_when_the_source_turn_fails() {
 #[test]
 fn continue_as_request_carrying_the_end_notice_keeps_the_handoff_rules() {
     use crate::runtime_session::NoticeSend;
-    let sent = notice_turn_outcome(NoticeSend { result: Ok(json!({"state":"end notice and the person's text sent once","turnId":"turn-9","endNotice":{"state":"sent once with the next ordinary turn"}})), written: true });
+    let sent = notice_turn_outcome(NoticeSend { result: Ok(json!({"state":"end notice and the person's text sent once","turnId":"turn-9","endNotice":{"state":"sent once with the next ordinary turn"}})), written: true, source: None });
     let mut handoffs = Handoffs::default();
     let generation = json!({"appSession":"s","home":"h","spawnCounter":1});
     let out = handoffs.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| sent.clone()).unwrap();
     assert_eq!((out["request"]["state"].as_str(), out["request"]["turnId"].as_str()), (Some("sent"), Some("turn-9")));
-    let unwritten = notice_turn_outcome(NoticeSend { result: Err("End notice not durably recorded; nothing sent: disk full".into()), written: false });
+    let unwritten = notice_turn_outcome(NoticeSend { result: Err("End notice not durably recorded; nothing sent: disk full".into()), written: false, source: None });
     let mut closed = Handoffs::default();
     let error = closed.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| unwritten.clone()).unwrap_err();
     assert!(error.contains("No summary was requested") && error.contains("disk full"), "{error}");
     assert_eq!(closed.view(&json!({})), json!([]), "nothing written: no handoff left open");
-    let failed = notice_turn_outcome(NoticeSend { result: Err("End notice turn outcome unavailable; not resent".into()), written: true });
+    let failed = notice_turn_outcome(NoticeSend { result: Err("End notice turn outcome unavailable; not resent".into()), written: true, source: None });
     let mut kept = Handoffs::default();
     let out = kept.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| failed.clone()).unwrap();
     assert_eq!(out["request"]["state"], "failed", "a written request is never treated as unsent");
@@ -472,3 +479,6 @@ fn native_links_actual_error_and_failed_write_release_original_custody(){
 
 #[test]
 fn native_links_definite_pre_dispatch_refusal_drops_unused_original_custody(){let l=LinksFixture::new();let f=&l.native;let _=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let actor=crate::act_control::person(Some("invented second controller"),Some("invented OS"));let observed=json!({"fixture":"synthetic explicit controller"});let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);assert!(crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).is_err());let calls=std::cell::Cell::new(0);let refusal=fork_conversation_tracked(&f.home,&f.generation,"not-an-actual-loaded-source",Duration::from_millis(10),|r|{calls.set(calls.get()+1);links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(refusal.is_err());assert_eq!(calls.get(),0);assert!(!links.has_pending());assert!(crate::records_retention::prepare(&f.root,"close",None,&actor,&observed).is_ok());assert_eq!(f.wire().iter().filter(|r|r["method"]=="thread/fork").count(),0);}
+
+#[path = "conversation_handoff_send_tests.rs"]
+mod handoff_send_tests;

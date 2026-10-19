@@ -694,7 +694,13 @@ implemented behavior and qualification limits.
     or has an unknown outcome leaves the header only. The new
     conversation starts with no model chosen and records `continuedFrom`
     {source thread, source start record}; its first message is sent only when
-    the person sends it, and it reads sent only once the send succeeded.
+    the person sends it. The host keeps that original send attempt and its
+    source receipt. A received native turn result stays visible if refreshing
+    the view fails. Pending, incomplete-write and unavailable outcomes remain
+    unknown and block another handoff send. **Read the original send outcome**
+    observes that same attempt without sending again; only a proved no-attempt
+    outcome offers an explicit retry. A native error remains separate from
+    both no-attempt and unknown.
     **Fork (same role)** sends `thread/fork` with the thread id, no
     instructions or settings, and `deferGoalContinuation: true` so that a
     source goal starts no automatic turn in the fork that the person did not
@@ -896,6 +902,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/host_tick.rs` | The host's own ticks (OI-008): a record tick receives native frames and records checkpoint observations, and a separate trial tick makes due trial reads, whether or not the interface polls; each tick is guarded and a failure is shown in `host_status`, which only reads |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx`, `src/App.tsx` | Source-bound navigation of admitted same-role Forks, Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
+| `src-tauri/src/conversation_handoff_send.rs`, `src-tauri/src/hosting_handoff_send.rs` | Original Continue-as send custody and read-only outcome observation; full-source attempt/write/response facts remain separate from view refresh, with the ordinary pending end-notice route preserved |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src/NativeHistory.tsx`, `src/App.tsx`, `tests/native-history.test.mjs` | Source-bound readable stored turn summaries and the selected item page, shared native item bodies with retained raw source, and accepted-query paging regressions; reading and explicit Continue remain separate |
 | `src-tauri/src/runtime_session.rs`, `host_tick.rs`, `hosting_manual_history_tests.rs` (`history_bridge` tests) | Person-directed history reaches native activity once through its original accepted query and current source; rejected pages leave the activity projection and counters unchanged, with raw receipts and limits retained |

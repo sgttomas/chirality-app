@@ -293,30 +293,86 @@ export function SendOutcome({ outcome }: { outcome: SendState }) {
   return null;
 }
 
+/** A projection of the handoff owner's original private attempt. This is not
+ * a trial SendState, a new native admission or a renderer-created receipt. */
+export type HandoffSendOutcome = {
+  state: "unsent" | "sending" | "not-attempted" | "sent" | "native-failed" | "unknown";
+  attemptRef?: string; target?: Json; reason?: string; nativeResponse?: Json;
+  readAvailable?: boolean; sourceCurrent?: boolean; observationFailure?: string;
+};
+const unknownHandoff = (reason: string): HandoffSendOutcome => ({ state: "unknown", reason });
+function handoffOutcome(value: Json): HandoffSendOutcome {
+  if (!value || !["unsent", "sending", "not-attempted", "sent", "native-failed", "unknown"].includes(value.state)) return unknownHandoff("The original send observation is unavailable.");
+  if (["not-attempted", "sent", "native-failed"].includes(value.state) && (!value.attemptRef || !value.target?.generation || !value.target?.threadId)) return unknownHandoff("The original attempt binding is unavailable.");
+  return value;
+}
+function retainHandoffOutcome(previous: HandoffSendOutcome, next: HandoffSendOutcome): HandoffSendOutcome {
+  if (["sent", "native-failed"].includes(previous.state) && next.state !== previous.state) return { ...previous, observationFailure: next.observationFailure ?? next.reason ?? "The current source observation is unavailable." };
+  return next;
+}
+export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) {
+  return <>
+    {outcome.state === "sending" && <p role="status"><small>Waiting for the original send. A second send is blocked while its outcome is observed.</small></p>}
+    {outcome.state === "sent" && <p role="status"><small>Sent once as an ordinary message; the original native turn response was observed. Provider completion remains as observed in the new conversation.</small></p>}
+    {outcome.state === "not-attempted" && <p role="alert"><small>Not sent: the native owner established that no write attempt occurred. {outcome.reason} The draft is kept; you can send it again.</small></p>}
+    {outcome.state === "native-failed" && <p role="alert"><small>The original request received a native error: {text(outcome.nativeResponse?.error?.message ?? outcome.reason)}. The draft is kept; nothing is resent automatically.</small></p>}
+    {outcome.state === "unknown" && <p role="alert"><small>Send outcome unknown: {outcome.reason} The draft is kept. Nothing is resent automatically; no second send is offered as proved safe.</small></p>}
+    {outcome.observationFailure && <p role="alert"><small>View refresh unavailable: {outcome.observationFailure}. The original send outcome above is retained.</small></p>}
+  </>;
+}
+
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
-export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, open, dismiss }: {
+export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, read, open, dismiss }: {
   handoff: Json; entries: { value: string; label: string }[]; busy: boolean; ready: boolean;
-  start: (choice: StartChoice) => void; send: (text: string) => Promise<boolean>; open: () => void; dismiss: () => void;
+  start: (choice: StartChoice) => void; send: (text: string) => Promise<HandoffSendOutcome>; read?: () => Promise<HandoffSendOutcome>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
   const [seededFrom, setSeededFrom] = useState<string>(text(handoff?.draft?.state));
   const [choice, setChoice] = useState<StartChoice>({ model: "", modelProvider: "", entryId: "" });
-  const [sending, setSending] = useState<SendState>({ state: "unsent" });
-  const sent = sending.state === "sent" || sending.state === "sending";
+  const [sending, setSending] = useState<HandoffSendOutcome>(() => handoff?.sendOutcome ? handoffOutcome(handoff.sendOutcome) : { state: "unsent" });
+  const [reading, setReading] = useState(false);
+  const pressed = useRef(!["unsent", "not-attempted"].includes(sending.state));
+  const sendEpoch = useRef(0);
+  const blocked = !["unsent", "not-attempted"].includes(sending.state);
+  const sendDraft = () => {
+    if (pressed.current || busy || !ready || !draft || blocked) return;
+    const epoch = ++sendEpoch.current;
+    pressed.current = true;
+    setSending({ state: "sending" });
+    void Promise.resolve().then(() => send(draft)).then(handoffOutcome, error => unknownHandoff(String(error))).then(outcome => {
+      if (epoch !== sendEpoch.current) return;
+      if (outcome.state === "unsent") outcome = unknownHandoff("The original send has no observed receipt yet.");
+      pressed.current = outcome.state !== "not-attempted";
+      setSending(previous => retainHandoffOutcome(previous, outcome));
+    });
+  };
+  const readOriginal = async () => {
+    if (!read || reading) return;
+    const epoch = sendEpoch.current;
+    setReading(true);
+    try {
+      let outcome = handoffOutcome(await read());
+      if (epoch !== sendEpoch.current) return;
+      if (outcome.state === "unsent" && pressed.current) outcome = unknownHandoff("The original attempt is not observed yet; no replacement send is allowed.");
+      pressed.current = !["unsent", "not-attempted"].includes(outcome.state);
+      setSending(previous => retainHandoffOutcome(previous, outcome));
+    } catch (error) { if (epoch === sendEpoch.current) setSending(previous => retainHandoffOutcome(previous, unknownHandoff(String(error)))); }
+    finally { setReading(false); }
+  };
   // The draft is seeded once when the summary arrives. It cannot be edited while
   // the summary is still awaited, so the seed never replaces the person's edits.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
-    if (state !== seededFrom && state !== "waiting") { setDraft(text(handoff?.draftText)); setSeededFrom(state); }
+    if (state !== seededFrom && state !== "waiting") { if (!pressed.current) setDraft(text(handoff?.draftText)); setSeededFrom(state); }
   }, [handoff?.draft?.state, handoff?.draftText, seededFrom]);
   const started = handoff?.started;
   const target = handoff?.targetRole ? text(handoff.targetRole) : "no role";
   return <section aria-label="Continue as" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
     <h3>Continue as {target} from conversation {text(handoff?.sourceThread)}</h3>
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
-    <label>Handoff message (editable; not sent) <textarea value={draft} disabled={busy || sent || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
+    <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose one.</p>
       <ModelProviderFields model={choice.model} modelProvider={choice.modelProvider}
@@ -327,11 +383,12 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, op
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
     </div>}
     {started && <div>
-      <p>New conversation {text(started.threadId)} started with {target}. Nothing has been sent to it.</p>
-      <button disabled={busy || !ready || !draft || sent} onClick={() => { setSending({ state: "sending" }); void attemptSend(send, draft).then(setSending); }}>Send this message to the new conversation</button>{" "}
+      <p>New conversation {text(started.threadId)} started with {target}.{!blocked && " Nothing has been sent to it."}</p>
+      <button disabled={busy || !ready || !draft || blocked} onClick={sendDraft}>Send this message to the new conversation</button>{" "}
+      {read && blocked && <><button disabled={busy || reading} onClick={() => { void readOriginal(); }}>Read the original send outcome</button>{" "}</>}
       <button disabled={busy} onClick={open}>Open the new conversation</button>{" "}
       <button disabled={busy} onClick={dismiss}>Close</button>
-      <SendOutcome outcome={sending} />
+      <HandoffSendStatus outcome={sending} />
     </div>}
     <details><summary>Summary request sent to the source conversation</summary><p>{text(handoff?.requestText)}</p><p>Request: {text(handoff?.request?.state)}{handoff?.request?.reason ? ` (${text(handoff.request.reason)})` : ""}</p></details>
   </section>;
