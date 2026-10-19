@@ -1001,6 +1001,17 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Advisory before a proposed start (PR-1–PR-5 / CK-1).** The message's
+verified registered candidate receives the existing compatibility evaluation
+before the person chooses Start or End A and start B. The read uses the
+original conversation's role evidence and names the unavailable environment
+observations; it neither selects nor prepares a run, stores a report or writes
+R14. Unknown, unsupported and unavailable evaluations leave the ordinary choice
+available. The press retains the displayed proposal's source, message, run and
+registered revision; the host rechecks that correspondence before the existing
+selection, preparation and once-only dispatch path. A changed proposal requires
+a fresh displayed choice rather than silently substituting another candidate.
+
 **Opened-library entry discovery (LS-2, ME-1–ME-4).** Opening a library and
 explicitly refreshing its entry list observe the published-copy folders. The
 interface shows that retained observation; status polling does not rescan the

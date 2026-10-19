@@ -1,3 +1,5 @@
+import { CompatibilityAdvisory } from "./RunPanel";
+
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Run offers beneath an agent message (DEL-01-04 NIR §5.7 RN-3…RN-7; DEL-02-02
@@ -22,9 +24,10 @@ export function RunOffer({ offer, generation, ready, busy, act }: { offer: Json;
     {finished && <small> Ending here records that you ended the run, with cause “completed” as the agent stated. It does not check or take the work as done.</small>}
     {proposal && <p>The agent proposed <q>Next workflow: {text(proposal.proposed)}</q>. Nothing is selected or started unless you choose it.</p>}
     {proposal && !workflow && <p role="note">{text(proposal.resolution?.notice) || "The proposal names no single registered workflow."} No start is offered.</p>}
-    {proposal && workflow && !during && <button disabled={busy || !ready} onClick={() => { void act("workflow_start_proposed", { generation, message: offer.message, runRef: null, personText: "" }); }}>Start {text(workflow.name)} (proposed by the agent)</button>}
+    {proposal && workflow && <ul aria-label="Proposed workflow compatibility"><CompatibilityAdvisory entry={proposal.compatibility} /></ul>}
+    {proposal && workflow && !during && <button disabled={busy || !ready} onClick={() => { void act("workflow_start_proposed", { generation, message: offer.message, runRef: null, personText: "", proposalContext: proposal.context }); }}>Start {text(workflow.name)} (proposed by the agent)</button>}
     {proposal && workflow && during && <>
-      <button disabled={busy || !ready} onClick={() => { void act("workflow_start_proposed", { generation, message: offer.message, runRef: during.run, personText: "" }); }}>End {text(during.workflow) || "the current run"} and start {text(workflow.name)}</button>
+      <button disabled={busy || !ready} onClick={() => { void act("workflow_start_proposed", { generation, message: offer.message, runRef: during.run, personText: "", proposalContext: proposal.context }); }}>End {text(during.workflow) || "the current run"} and start {text(workflow.name)}</button>
       <small> One step, your choice: run {text(during.run)} ends with cause “{text(during.endCause)}”, then {text(workflow.name)} starts in this conversation.</small>
     </>}
     {proposal && workflow && <p><small>Proposed workflow: {text(workflow.origin)} library “{text(workflow.source_root)}”, revision {text(workflow.revision).slice(0, 12)} ({text(proposal.resolution?.standing)}).</small></p>}

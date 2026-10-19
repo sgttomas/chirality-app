@@ -1,25 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
-import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {loadSrc} from './support/load-src.mjs';
 
-const load=name=>{
-  const url=new URL(`../src/${name}.tsx`,import.meta.url);
-  const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
-  const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);return exports;
-};
-const {RunOffer}=load('RunOffers');
-const {NativeActivityView}=load('NativeActivity');
+const {RunOffer}=loadSrc('RunOffers');
+const {NativeActivityView}=loadSrc('NativeActivity');
 
 // Offers in the host shape (WorkflowRootSession::offers in runtime_session.rs).
 const message={threadId:'T',turnId:'t2',itemId:'m'};
 const workflow={kind:'workflow',origin:'project',source_root:'/lib',name:'load-check',revision:'abcdef0123456789',revision_method:'m'};
 const finished={message:'unused',run:'run:workflow:a',statement:'Workflow finished: project:supports-adjust',standing:"the agent's statement in its message; the person ended the run"};
-const proposal=(extra={})=>({proposed:'project:load-check',resolution:{workflow,standing:'registered — selectable in this App session',notice:null},runInForce:null,standing:'x',...extra});
 const g={appSession:'s',home:'h',spawnCounter:1};
+const context={sourceRef:'source:original',home:'h',generation:g,message,proposed:'project:load-check',runRef:null,libraryRef:'library:original',workflow,holdingLibrary:'/lib/holding',roleSupplyRef:'role:original'};
+const proposal=(extra={})=>({proposed:'project:load-check',resolution:{workflow,standing:'registered — selectable in this App session',notice:null},runInForce:null,context,standing:'x',...extra});
 const html=(offer,ready=true)=>renderToStaticMarkup(React.createElement(RunOffer,{offer,generation:g,ready,busy:false,act:async()=>{}}));
 // Find the buttons of a rendered element tree (RunOffer holds no state, so it can be called directly).
 const buttons=(node,found=[])=>{
@@ -46,14 +40,14 @@ test('a proposal is never a start: the person starts it, and only one way at a t
   assert.match(h,/The agent proposed <q>Next workflow: project:load-check<\/q>\. Nothing is selected or started unless you choose it\./);
   assert.match(h,/<button>Start load-check \(proposed by the agent\)<\/button>/);
   assert.ok(!/End .* and start/.test(h));
-  assert.deepEqual(pressAll(plain),[['workflow_start_proposed',{generation:g,message,runRef:null,personText:''}]]);
+  assert.deepEqual(pressAll(plain),[['workflow_start_proposed',{generation:g,message,runRef:null,personText:'',proposalContext:context}]]);
   assert.match(html(plain,false),/<button disabled="">Start load-check/,'no start while Codex is not ready');
-  const during={message,finished,proposal:proposal({runInForce:{run:'run:workflow:a',workflow:'supports-adjust',endCause:'completed'}})};
+  const during={message,finished,proposal:proposal({runInForce:{run:'run:workflow:a',workflow:'supports-adjust',endCause:'completed'},context:{...context,runRef:'run:workflow:a'}})};
   const d=html(during);
   assert.ok(!/Start load-check \(proposed/.test(d),'no plain start while a run is in force');
   assert.match(d,/<button>End supports-adjust and start load-check<\/button>/);
   assert.match(d,/ends with cause “completed”/);assert.match(d,/<button>End run<\/button>/,'End run beside it');
-  assert.deepEqual(pressAll(during),[['workflow_end_run',{runRef:'run:workflow:a',finishedReport:message}],['workflow_start_proposed',{generation:g,message,runRef:'run:workflow:a',personText:''}]]);
+  assert.deepEqual(pressAll(during),[['workflow_end_run',{runRef:'run:workflow:a',finishedReport:message}],['workflow_start_proposed',{generation:g,message,runRef:'run:workflow:a',personText:'',proposalContext:during.proposal.context}]]);
 });
 
 test('an unresolved proposal shows its notice and offers no start (RN-5, PR-3)',()=>{

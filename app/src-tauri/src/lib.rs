@@ -230,22 +230,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // Native commands and the per-home Rust tick reconcile private receipts.
     // Status projects the last received history; polling does not write role
     // observations or admit a genuinely late native outcome.
-    let history = home.history.lock().unwrap();
-    let root = state.instructions_root.lock().unwrap().clone();
-    s["nativeHistory"] = history.snapshot(root.as_deref().ok());
-    s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
-    s["roleSupply"]["childAssociations"]=s["nativeHistory"]["childAssociations"].clone();
-    s["roleSupply"]["roleLimitObservations"]=s["nativeHistory"]["roleLimitObservations"].clone();
-    for thread in s["threads"].as_array_mut().into_iter().flatten() {
-        if let (Some(home), Some(id)) = (thread["generation"]["home"].as_str(), thread["threadId"].as_str()) {
-            let role = history.role_details(home, id, root.as_deref().ok());
-            thread["appRole"] = role["appRole"].clone();
-            thread["roleRelation"] = role["roleRelation"].clone();
-            thread["childGuidance"] = role["childGuidance"].clone();
-            thread["roleLimitObservations"] = role["roleLimitObservations"].clone();
-            thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
-        }
-    }
+    let (root,history) = host_tick::project_status_history(&home,&mut s,||state.instructions_root.lock().unwrap().clone());
     // NPTD §7.1: each conversation's delegation reading, as this home's host
     // last read it (the reads run on the host tick and when Try with the
     // authoring agent is pressed; host_status reads nothing from Codex).
@@ -282,7 +267,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // OI-008: host_status presents; it records nothing. The checkpoint recorder
     // and the trial reads run on the host's own tick (`host_tick`).
     s["hostTicks"] = host_tick::tick_state();
-    s["workflowRoot"] = host_tick::workflow_status(&state.workflows, &s["nativeView"], state.workspace.is_some());
+    s["workflowRoot"] = host_tick::workflow_status_after_history(&state.workflows, &home, &s["nativeView"], state.workspace.is_some(),history);
     let trial_homes = state.homes.lock().unwrap().entries();
     runtime_session::trial_flows::decorate_restart_sources(&state.workflows, &trial_homes, &mut s["workflowRoot"]);
     workflow_selection::publish_context(&mut s, &home);
@@ -1653,10 +1638,10 @@ fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Opti
 /// with a run in force, ends it and starts the proposed one). The proposal is
 /// re-read from the observed message; it never selects or starts anything itself.
 #[tauri::command(async)]
-fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Value,run_ref:Option<String>,person_text:String)->Result<Value,String>{
+fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Value,run_ref:Option<String>,person_text:String,proposal_context:runtime_session::ProposalContext)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
-    let next=state.workflows.lock().unwrap().start_proposed(&view,home,&generation,&message,run_ref.as_deref(),person_text,state.workspace.as_deref())?;
+    let next=state.workflows.lock().unwrap().start_proposed_disclosed(&view,home,&generation,&message,run_ref.as_deref(),person_text,state.workspace.as_deref(),&proposal_context)?;
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"proposed workflow run prepared but not started","limit":e})}}))
 }

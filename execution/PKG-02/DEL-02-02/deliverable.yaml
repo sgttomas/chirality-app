@@ -249,6 +249,8 @@ code_paths:
 - app/src-tauri/src/workflow_selection.rs
 - app/src/workflowSelection.ts
 - app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/workflow_proposal_advisory.rs
+- app/src/RunOffers.tsx
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/trial_flows.rs
 - app/src-tauri/src/workflow_trial_source.rs
@@ -271,6 +273,8 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
+- app/tests/proposed-run-disclosure.test.mjs
 - app/src-tauri/src/workflow_supply_dispatch_tests.rs
 - app/tests/workflow-supply-dispatch.test.mjs
 - app/src-tauri/src/hosting.rs
