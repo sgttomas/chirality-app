@@ -5,7 +5,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type HandoffSendOutcome } from "./ConversationRoles";
@@ -13,11 +13,11 @@ import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
-import { NativeActivityView } from "./NativeActivity";
+import { NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestThread, requestScopeKey, requestReplyGuarded, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -71,7 +71,7 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
   return { threadId: row.threadId, requestRef: from.forkRequestRef };
 };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead }: { forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink }: { activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -189,14 +189,14 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       modeHomeClass={host?.homeRouting?.activeModeHomeClass} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
     {composers.delegated.map((pending: Json) => <DelegatedTrialComposer key={`trial:${selected?.threadId}:${pending.reference}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
     {composers.bringBacks.map((pending: Json) => <BringBackComposer key={`bring-back:${selected?.threadId}:${pending.id}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
-    <NativeActivityView key={`activity:${selected?.threadId ?? ""}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
+    <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
@@ -909,6 +909,7 @@ export function App() {
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
   const threadChoiceRevision = useRef(0);
+  const activityNavigationRef = useRef<NativeActivityHandle>(null);
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
   const forkSequence = useRef(0);
   const forkInFlight = useRef(false);
@@ -1186,6 +1187,34 @@ export function App() {
   // The conversation the panel actually shows (current generation only), so no request is hidden.
   const selectedThread: string | null = (host?.threads ?? []).find((t: Json) => JSON.stringify([t.generation, t.threadId]) === threadKey && JSON.stringify(t.generation) === JSON.stringify(host?.generation))?.threadId ?? null;
 
+  const activityLink: RequestActivityLink = request => {
+    const snapshot = currentHost.current;
+    const root = (snapshot?.threads ?? []).find((row: Json) => JSON.stringify([row.generation, row.threadId]) === threadKey
+      && sameActivityGeneration(row.generation, snapshot?.generation));
+    const item = requestItem(request, snapshot?.nativeView);
+    if (!root || !item || !(typeof request.requestIdentity === "string" || Number.isSafeInteger(request.requestIdentity))) return null;
+    const generation = { appSession: request.generation.appSession, home: request.generation.home, spawnCounter: request.generation.spawnCounter };
+    const location = { generation, rootThreadId: root.threadId, threadId: item.threadId, turnId: item.turnId, itemId: item.native.id };
+    const scope = requestScopeKey(request), method = request.method;
+    const choiceRevision = threadChoiceRevision.current, homeEpoch = chooserHome.current.epoch;
+    let current = true;
+    const isCurrent = () => {
+      const shown = currentHost.current;
+      const original = hostRequests(shown).find(row => requestScopeKey(row) === scope && row.method === method
+        && row.nativeParameters?.threadId === location.threadId && row.nativeParameters?.turnId === location.turnId && row.nativeParameters?.itemId === location.itemId);
+      current = current && threadChoiceRevision.current === choiceRevision && chooserHome.current.epoch === homeEpoch && !homePendingRef.current
+        && shown?.state === "ready" && shown.generationClosed !== true && shown.nativeViewObservationEnded !== true
+        && sameActivityGeneration(shown.generation, generation) && !!original && !!requestItem(original, shown.nativeView)
+        && (shown.threads ?? []).some((row: Json) => row.threadId === location.rootThreadId && sameActivityGeneration(row.generation, generation))
+        && (location.threadId === location.rootThreadId || activityModel(shown.nativeView, location.rootThreadId).subtree.some(child => child.threadId === location.threadId));
+      return current;
+    };
+    if (!isCurrent()) return null;
+    return { open: () => {
+      if (isCurrent()) activityNavigationRef.current?.reveal({ location, isCurrent });
+    } };
+  };
+
   const openControl = async (requestRef: string) => {
     try {
       setOffer(await invoke("compose_offer", { requestRef }));
@@ -1283,7 +1312,7 @@ export function App() {
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 
-      <ConversationPanel forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
@@ -1312,7 +1341,7 @@ export function App() {
         <div id="other-requests">
           <h3>Requests outside the selected conversation</h3>
           <p>Requests of the selected conversation are shown beside it above. Select another conversation to answer its requests there.</p>
-          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]} />)}
+          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]} />)}
         </div>
         <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
         <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>

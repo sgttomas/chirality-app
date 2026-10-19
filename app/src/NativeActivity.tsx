@@ -1,4 +1,4 @@
-import { Component, useState, type ReactNode } from "react";
+import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
@@ -8,6 +8,16 @@ type Json = any;
 
 export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[] };
 export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Json | null; checklistGaps: Json[]; children: Json[]; subtree: Json[]; parent: Json | null };
+export type ActivityLocation = { generation: Json; rootThreadId: string; threadId: string; turnId: string; itemId: string };
+export type ActivityReveal = { location: ActivityLocation; isCurrent: () => boolean };
+export type NativeActivityHandle = { reveal: (navigation: ActivityReveal) => void };
+
+export function sameActivityGeneration(a: Json, b: Json): boolean {
+  const valid = (g: Json) => g && typeof g === "object" && Object.keys(g).length === 3
+    && typeof g.appSession === "string" && !!g.appSession && typeof g.home === "string" && !!g.home
+    && Number.isSafeInteger(g.spawnCounter) && g.spawnCounter > 0;
+  return !!valid(a) && !!valid(b) && a.appSession === b.appSession && a.home === b.home && a.spawnCounter === b.spawnCounter;
+}
 
 // Native collections are read through list() so an off-schema value (an object
 // or string where Codex documents an array) shows nothing instead of throwing.
@@ -384,8 +394,36 @@ export function DelegationLine({ delegation, descendants }: { delegation: Json; 
   return null;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json }) {
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
+  const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
+  const revision = useRef(0);
+  const container = useRef<HTMLDivElement>(null);
+  const received = (location: ActivityLocation) => threadId === location.rootThreadId
+    && sameActivityGeneration(view?.generation, location.generation) && view?.home === location.generation.home
+    && (location.threadId === threadId || activityModel(view, threadId).subtree.some(child => child.threadId === location.threadId))
+    && list(view?.items).some(row => row?.threadId === location.threadId && row?.turnId === location.turnId && row?.native?.id === location.itemId);
+  useImperativeHandle(navigationRef, () => ({ reveal: navigation => {
+    if (!navigation.isCurrent() || !received(navigation.location)) return;
+    setShown(navigation.location.threadId === threadId ? "" : navigation.location.threadId);
+    setPending({ ...navigation, revision: ++revision.current });
+  } }));
+  useEffect(() => {
+    if (!pending) return;
+    if (pending.revision !== revision.current || !pending.isCurrent() || !received(pending.location)) {
+      setPending(null);
+      if (pending.revision === revision.current) setShown("");
+      return;
+    }
+    const target = shown || threadId;
+    if (target !== pending.location.threadId) { setPending(null); return; }
+    const { threadId: thread, turnId: turn, itemId: item } = pending.location;
+    // Source/intent checks establish the destination. DOM lookup only scrolls
+    // the already-rendered row inside this activity view, never supplies custody.
+    const element = container.current?.querySelector<HTMLElement>(`#${itemAnchorId(thread, turn, item)}`);
+    setPending(null);
+    if (element && pending.revision === revision.current && pending.isCurrent()) element.scrollIntoView({ block: "center" });
+  });
   // WR TT-2, TT-4: the host's trial labels (worded by the host) on the turn
   // that carried a trial message and on a linked sub-agent's row. Display only.
   const turnLabel = (thread: string, turn: string) => list(trialTurns).find((t: Json) => t?.threadId === thread && t?.turnId === turn)?.label;
@@ -401,10 +439,13 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
   const turnIds = model.turns.map(turn => text(turn.turnId));
   const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
   const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
-  return <div aria-label="Native activity">
+  return <div ref={container} aria-label="Native activity">
     <h3>Activity</h3>
     <p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p>
-    {descendants.length > 0 && <label>Show <select value={target} onChange={e => setShown(e.target.value === threadId ? "" : e.target.value)}>
+    {descendants.length > 0 && <label>Show <select value={target} onChange={e => {
+      revision.current++; setPending(null);
+      setShown(e.target.value === threadId ? "" : e.target.value);
+    }}>
       <option value={threadId}>this conversation</option>
       {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {text(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${text(c.parentThreadId)})` : ""}</option>)}
     </select></label>}

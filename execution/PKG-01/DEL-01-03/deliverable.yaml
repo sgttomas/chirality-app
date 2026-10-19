@@ -165,3 +165,4 @@ checks:
 - app/tests/conversation-panel.test.mjs
 - app/tests/plan-mode.test.mjs
 - app/tests/request-cards.test.mjs
+- app/tests/request-activity-navigation.test.mjs

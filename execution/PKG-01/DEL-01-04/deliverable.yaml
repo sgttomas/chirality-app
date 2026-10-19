@@ -441,6 +441,7 @@ checks:
 - app/tests/fork-admission.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
+- app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs
 - app/src-tauri/src/waiting_requests_tests.rs

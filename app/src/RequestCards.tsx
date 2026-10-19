@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { itemAnchorId, requestAnchorId } from "./NativeActivity";
+import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+export type RequestActivityLink = (request: Json) => { open: () => void } | null;
 
 // Readable request cards (DEL-01-04 NIR §4.1–§4.8). A card presents what Codex
 // asks and sends the native answer value unchanged; classification, the answer
@@ -232,21 +233,22 @@ function Subject({ request, item }: { request: Json; item: Json }) {
 }
 
 /** §4.7: "about: ‹item›", linking to the activity row; the supplier's identity when the row is absent. */
-function About({ request, item }: { request: Json; item: Json }) {
+function About({ request, item, navigation }: { request: Json; item: Json; navigation: { open: () => void } | null }) {
   const p = request?.nativeParameters ?? {};
   if (!p.itemId) return null;
-  if (item) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`}>{text(item.native?.type) || "item"} in this conversation’s activity</a></div>;
+  if (item && navigation) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`} onClick={event => { event.preventDefault(); navigation.open(); }}>{text(item.native?.type) || "item"} in this conversation’s activity</a></div>;
   return <div>About: Codex item <code>{text(p.itemId)}</code> in turn <code>{text(p.turnId)}</code> (not in this view’s activity)</div>;
 }
 
 /** The activity row of the item a request is about, if this view holds it. */
 export function requestItem(request: Json, view: Json): Json {
   const p = request?.nativeParameters ?? {};
+  if (!sameActivityGeneration(request?.generation, view?.generation) || view?.home !== request.generation.home) return null;
   return (Array.isArray(view?.items) ? view.items : []).find((row: Json) => row?.threadId === p.threadId && row?.turnId === p.turnId && row?.native?.id === p.itemId) ?? null;
 }
 
 // Request-local drafts are disposable. Secret content is never echoed or saved.
-export function NativeRequestCard({ request, view, answer, readRequest, observation }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation }) {
+export function NativeRequestCard({ request, view, answer, readRequest, observation, activityLink }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation; activityLink?: RequestActivityLink }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [scope, setScope] = useState("turn");
   const [content, setContent] = useState("");
@@ -320,7 +322,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
       {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason || "the original request custody could not be read"}</p>}
       {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
     </section>}
-    <About request={request} item={item} />
+    <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
     <Subject request={request} item={item} />
     {a14 && <p>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {(method === QUESTION || method === ELICITATION) && <p>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}

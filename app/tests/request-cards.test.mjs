@@ -129,9 +129,9 @@ test('questions and input requests say they are conversation input and offer the
 
 test('item anchors link the card and the activity row both ways (§4.7, TR-6)',()=>{
   const row={threadId:'T',turnId:'u',native:{id:'i',type:'commandExecution',command:'ls -la',status:'inProgress'},displayState:'waiting-on-request',standing:'live-observed',observedOrder:0,requestRef:{generation:g,requestIdentity:'item/commandExecution/requestApproval'}};
-  const view={items:[row],turns:[],turnRecords:[{threadId:'T',turnId:'u'}],revisions:[],descendants:[]};
+  const view={home:g.home,generation:g,items:[row],turns:[],turnRecords:[{threadId:'T',turnId:'u'}],revisions:[],descendants:[]};
   const r=command();
-  const cardHtml=render(r,view);
+  const cardHtml=renderToStaticMarkup(React.createElement(NativeRequestCard,{request:r,view,answer:async()=>{},activityLink:()=>({open:()=>{}})}));
   const item=activity.itemAnchorId('T','u','i');const card=activity.requestAnchorId(g,r.requestIdentity);
   assert.ok(cardHtml.includes(`id="${card}"`)&&cardHtml.includes(`href="#${item}"`),'card has its id and links to the row');
   const rowHtml=renderToStaticMarkup(React.createElement(activity.NativeActivityView,{view,threadId:'T'}));

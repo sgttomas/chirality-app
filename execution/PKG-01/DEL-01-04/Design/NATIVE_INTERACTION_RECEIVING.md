@@ -1050,6 +1050,17 @@ fall back to another generation or a same-named conversation. Request reply
 observations remain separately bound to their original identities. The Dock
 badge and the outside-window WI-1/WI-3 limitations above are unchanged.
 
+**Request cards and received item navigation.** A person's About link reveals
+its already-received item in the displayed conversation's parent/descendant
+activity view, then reaches that row's anchor. This read-only view choice does
+not select another operational conversation, change its composer or role, or
+send a native request. Navigation is qualified by the original request/view
+source and full generation, exact item identity and current reachable subtree;
+a changed source or unavailable row leaves the supplier's item identity rather
+than a dead or retargeted link. Item details remain separate from whether the
+row can be reached in this activity view. The activity row's link back to the
+original typed request card is unchanged.
+
 **Answer command and observation refresh.** The request card keeps the native
 answer command's outcome separate from a subsequent failure to refresh custody.
 A reported local write with acknowledgment not observed is not a refusal; a
