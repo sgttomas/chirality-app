@@ -1,5 +1,5 @@
-//! CK-1 for the verified workflow offered in an original native message.
-//! A closed subject is comparison input, never the person's workflow choice.
+//! Read-only CK-1 for an actual selected workflow or verified native offer.
+//! Reading a closed subject never creates or changes the person's choice.
 use super::*;
 use crate::execution_compatibility::report;
 use crate::role_lifecycle::RoleInForce;
@@ -39,7 +39,7 @@ pub(crate) struct ProposalContext {
     role_supply_ref: Option<String>,
 }
 
-fn role_in_proposal(home: &HomeSession, native_home: &str, thread: &str) -> RoleInForce {
+fn role_in_conversation(home: &HomeSession, native_home: &str, thread: &str) -> RoleInForce {
     match home.history.try_lock() {
         Ok(history) => history
             .binding(native_home, thread)
@@ -57,6 +57,55 @@ fn role_supply(role: &RoleInForce) -> Option<String> {
         RoleInForce::AppObserved { supply_ref, .. } => Some(supply_ref.clone()),
         _ => None,
     }
+}
+// Same evaluator and honest unobserved environment for both CK-1 receiving
+// surfaces. The closed subject is read only; no selection or report is stored.
+fn compatibility_for_subject(
+    selection: &crate::workflow_workspace::Selection,
+    holding_library: &str,
+    role: RoleInForce,
+    generation: &Value,
+    thread: &str,
+    label: &str,
+) -> Value {
+    let basis = report::Basis {
+        home: generation["home"].as_str().unwrap_or("").into(),
+        generation: generation.clone(),
+        conversation: thread.into(),
+        acting_pin: "App Codex 0.160.0".into(),
+        surface: "X".into(),
+        environment_observation: None,
+        catalog_edition: None,
+    };
+    let compatibility = match report::evaluate(report::Request {
+        selection,
+        holding_library: Some(holding_library.into()),
+        role,
+        basis: basis.clone(),
+        occasion: report::Occasion::Selection,
+        evaluated_at: crate::util::now_rfc3339(),
+        inventory: report::Inventory {
+            origin: report::InventoryOrigin::CallerSupplied {
+                source: "App Root: no environment collector; nothing observed".into(),
+            },
+            host_id: None,
+            observations: report::Observations::default(),
+        },
+        model_destination: None,
+    }) {
+        Ok(evaluation) => evaluation.view(&basis),
+        Err(limit) => unavailable_compatibility(limit),
+    };
+    label_compatibility(compatibility, label)
+}
+fn unavailable_compatibility(limit: impl Into<String>) -> Value {
+    json!({"preparation":null,"state":"no evaluation","limit":limit.into(),"advisory":true})
+}
+fn label_compatibility(mut compatibility: Value, label: &str) -> Value {
+    compatibility["occasionLabel"] = json!(label);
+    compatibility["gate"] = json!("informs only; never gates a start (CC-3)");
+    compatibility["r14"] = json!("no report stored; no R14 written");
+    compatibility
 }
 fn context_for(
     home: &HomeSession,
@@ -126,7 +175,7 @@ impl WorkflowRootSession {
                 crate::storage::check_path(&store)?;
                 selection.verify_store(&store)?;
                 let run = self.run_in_force(native_home, &message.thread)?;
-                let role = role_in_proposal(home, native_home, &message.thread);
+                let role = role_in_conversation(home, native_home, &message.thread);
                 let context = context_for(
                     home,
                     generation,
@@ -146,46 +195,69 @@ impl WorkflowRootSession {
                     continue;
                 }
             };
-            let basis = report::Basis {
-                home: context.home.clone(),
-                generation: context.generation.clone(),
-                conversation: context.message.thread_id.clone(),
-                acting_pin: "App Codex 0.160.0".into(),
-                surface: "X".into(),
-                environment_observation: None,
-                catalog_edition: None,
-            };
             // Context is established independently of the advisory read. A
             // malformed declaration cannot erase a valid ordinary choice.
             offer["proposal"]["resolution"]["workflow"] = json!(context.workflow);
             offer["proposal"]["context"] = json!(context);
-            let mut compatibility = match report::evaluate(report::Request {
-                selection: &selection,
-                holding_library: Some(context.holding_library.clone()),
+            offer["proposal"]["compatibility"] = compatibility_for_subject(
+                &selection,
+                &context.holding_library,
                 role,
-                basis: basis.clone(),
-                occasion: report::Occasion::Selection,
-                evaluated_at: crate::util::now_rfc3339(),
-                inventory: report::Inventory {
-                    origin: report::InventoryOrigin::CallerSupplied {
-                        source: "App Root: no environment collector; nothing observed".into(),
-                    },
-                    host_id: None,
-                    observations: report::Observations::default(),
-                },
-                model_destination: None,
-            }) {
-                Ok(evaluation) => evaluation.view(&basis),
-                Err(limit) => {
-                    json!({"preparation":null,"state":"no evaluation","limit":limit,"advisory":true})
-                }
-            };
-            compatibility["occasionLabel"] = json!("CK-1 offered candidate");
-            compatibility["gate"] = json!("informs only; never gates a start (CC-3)");
-            compatibility["r14"] = json!("no report stored; no R14 written");
-            offer["proposal"]["compatibility"] = compatibility;
+                &context.generation,
+                &context.message.thread_id,
+                "CK-1 offered candidate",
+            );
         }
         offers
+    }
+
+    /// Display the existing per-chat closed choice in its owning Home only.
+    /// Inspection is not a chat choice; another Home's same thread ID cannot
+    /// supply the role or comparison basis. Existing mutation guards are intact.
+    pub(crate) fn decorate_selected_compatibility(
+        &self,
+        status: &mut Value,
+        view: &Value,
+        home: &HomeSession,
+    ) {
+        let host = home.host.snapshot();
+        let generation = &host["generation"];
+        for row in status["selections"].as_array_mut().into_iter().flatten() {
+            if row["sourceRef"] != home.workflow_source_ref {
+                continue;
+            }
+            let Some(thread) = row["threadId"].as_str() else {
+                continue;
+            };
+            let chat = crate::workflow_selection::Chat::in_home(home, thread);
+            let Some(selected) = self.selected.get(&chat) else {
+                continue;
+            };
+            let holding = selected.package.parent().and_then(Path::to_str);
+            let subject = (|| {
+                if view["generation"] != *generation || view["home"] != generation["home"] {
+                    return Err(
+                        "Selected workflow's original Home generation view is unavailable".into(),
+                    );
+                }
+                current_conversation(&host, generation, thread)?;
+                selected.selection.verify_store(&selected.package)?;
+                let holding = holding.ok_or("Selected workflow holding library unavailable")?;
+                Ok::<_, String>(compatibility_for_subject(
+                    &selected.selection,
+                    holding,
+                    role_in_conversation(home, generation["home"].as_str().unwrap_or(""), thread),
+                    generation,
+                    thread,
+                    "CK-1 selected candidate",
+                ))
+            })();
+            let mut compatibility = subject.unwrap_or_else(|limit| {
+                label_compatibility(unavailable_compatibility(limit), "CK-1 selected candidate")
+            });
+            compatibility["holdingLibrary"] = json!(holding);
+            row["selection"]["compatibility"] = compatibility;
+        }
     }
 
     /// Only the original displayed proposal/candidate is accepted here. The
@@ -230,7 +302,7 @@ impl WorkflowRootSession {
         if home.host.snapshot()["generation"] != *generation || view["generation"] != *generation {
             return Err("Original proposal generation changed; refresh the offer; nothing selected or started".into());
         }
-        let role = role_in_proposal(
+        let role = role_in_conversation(
             home,
             generation["home"].as_str().unwrap_or(""),
             &message.thread,

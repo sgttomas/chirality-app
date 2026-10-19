@@ -2412,11 +2412,12 @@ provider adoption or human act (SoW VER-007; AX-002).
 
 ## Current implementation conditions
 
-**Proposed-workflow advisory (CK-1 / CC-3).** An eligible agent proposal is
-evaluated as the resolved offered candidate, without manufacturing a selection.
-Its existing report is shown before the ordinary Start or End A and start B
-choice, including requirement purposes, role findings and the current basis's
-limits. A busy or absent original role binding remains unknown, distinct from
+**Before-choice workflow advisory (CK-1 / CC-3).** An eligible agent proposal
+is evaluated as the resolved offered candidate, without manufacturing a
+selection. The existing per-chat selected revision also receives its own
+report before the direct End A and start B choice. Both show requirement
+purposes, role findings and the current basis's limits for their original
+conversation. A busy or absent original role binding remains unknown, distinct from
 an evidenced no-role conversation. This display read publishes no report or
 R14 and supplies no new environment observations. Compatibility does not gate
 the choice; the existing CK-1 preparation and CK-2 dispatch checks still run.

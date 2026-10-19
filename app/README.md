@@ -338,6 +338,10 @@ implemented behavior and qualification limits.
     budget. Package files are opened no-follow and non-blocking relative to their
     opened folder: links, FIFOs and devices are refused. Transitions are
     observed only when the list is read; the folder is not watched.
+    A returned workflow command response stays visible if a later view read
+    fails, with that observation limit shown separately. Create draft and
+    Refine still attempt one draft observation through their original context;
+    this does not repeat the write or infer that a native error left no files.
     **Trials (WR §4.2, owner direction U-WR-24).** A trial mirrors a real run:
     the host takes a content-addressed trial snapshot and composes the trial
     text, a trial header followed by the run text a registered run of that
@@ -648,6 +652,11 @@ implemented behavior and qualification limits.
     advisory compatibility (DEL-02-03 CK-1/CK-2) is shown readably; a role
     outside the written-for roles names both and points to Continue as
     (U-R10, chosen display).
+    The direct **End this run and start** choice shows the chat's selected
+    successor and its own advisory before the button, including its source,
+    revision and holding library. Unsupported, unknown and unavailable
+    evaluations leave the existing choice available; the displayed selection's
+    original context is rechecked by the existing chaining command.
     **Across a relaunch (WR TX-5 / SQ-END, (d), (j)).** When a run opens, the host
     tags its conversation in the App's recovery ledger with the run reference
     (owner `DEL-02-03`). A tag that cannot be stored is kept in memory only and
@@ -893,9 +902,10 @@ implemented behavior and qualification limits.
 | `src-tauri/src/model_turn_recorder.rs` | RS R5 `model_turn` entries (HOSTING §8.3): thread-scope reports and one entry per run turn, effective only from a `model/rerouted` naming the turn; observes `native_items.rs`'s `modelReroutes` and the host's thread rows; never reacts |
 | `src-tauri/src/run_restart.rs`, `run_restart_tests.rs` | EXEC §2.7 / RECOVERY §4.1: the REC run tag at `run_opened` (owner `DEL-02-03`) and the host's startup writer of RS "App-restart interruption" limits; tests also cover WR TX-5 / SQ-END end notices after relaunch and (j) permanent refusals |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
-| `src-tauri/src/workflow_proposal_advisory.rs` | Read-only CK-1 evaluation of a verified offered candidate before the ordinary choice, with the original proposal/source/revision correspondence rechecked at that press |
+| `src-tauri/src/workflow_proposal_advisory.rs` | Shared read-only CK-1 evaluation of the chat's closed selected revision and a verified offered candidate before the ordinary choice; existing source/selection or proposal correspondence is rechecked at the press |
 | `src-tauri/src/workflow_library_entries.rs`, `src/LibraryEntries.tsx` | Explicit opened-library entry observations and ordered picks for the existing in-place review; host-held source/content correspondence, named refusal limits and no registration or selection authority from presence |
 | `src/WorkflowRegistrationReview.tsx` | Read-only presentation of the existing frozen registration review before and during native A15 confirmation, with literal workflow text, reported metadata and unchanged digest input |
+| `src/App.tsx`, `tests/workflow-action-result.test.mjs`, `src-tauri/src/workflow_action_result_tests.rs` | Workflow command responses remain distinct from later observation failures; actual draft-copy output reaches the mounted consumer and its once-only original-context draft observation |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
 | `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`), `runtime_session.rs` (`WorkflowRun`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies rechecked before unattempted run dispatch, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
 | `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, separate hot authoring and trial-source references, source-bound Try again/feedback defaults, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
