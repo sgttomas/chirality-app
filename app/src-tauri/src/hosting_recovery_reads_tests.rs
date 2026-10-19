@@ -334,8 +334,16 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     assert_eq!(f.states().last().unwrap(), "indexed");
     // A third session finds nothing left to recover.
     let _ = relaunched.host.stop("fixture", "test relaunch");
+    let third_start_wire = f.wire().len();
     let third = Fixture::session(&f.root, &f.cfg);
-    let wire = f.wire().len();
+    // Ready establishes the Host's handshake write, not the peer's log append.
+    // Account for exactly that startup before testing the recovery tick's work.
+    f.until("third session initialized in peer wire", || f.wire()[third_start_wire..].iter().any(|frame| frame["method"] == "initialized"));
+    let startup = f.wire();
+    let startup_methods: Vec<&str> = startup[third_start_wire..].iter().map(|frame| frame["method"].as_str().unwrap()).collect();
+    assert_eq!(startup_methods, ["initialize", "initialized"]);
+    // Use this checked snapshot: another read here could absorb unexpected work.
+    let wire = startup.len();
     assert_eq!(crate::host_tick::recovery_tick_home(&third), 0);
     assert_eq!(f.wire().len(), wire);
     let _ = third.host.stop("fixture", "test ended");
