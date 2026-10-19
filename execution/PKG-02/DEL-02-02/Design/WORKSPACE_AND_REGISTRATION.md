@@ -1012,6 +1012,16 @@ registered revision; the host rechecks that correspondence before the existing
 selection, preparation and once-only dispatch path. A changed proposal requires
 a fresh displayed choice rather than silently substituting another candidate.
 
+**Frozen registration review display (RB-2).** The App presents the existing
+host-frozen review through the same read-only view before native confirmation
+and while an open A15 confirmation names it. Workflow text keeps its literal
+line breaks. Targets, content identities, file manifests, declarations,
+findings, prior/base file and digest changes, lineage and evidence limits
+remain those supplied by the host. The complete reported data remains
+available beside the readable presentation. Digest calculation uses the
+original frozen representation; the display adds no act or selection control
+and preserves the existing presentation withdrawal and continuation paths.
+
 **Opened-library entry discovery (LS-2, ME-1–ME-4).** Opening a library and
 explicitly refreshing its entry list observe the published-copy folders. The
 interface shows that retained observation; status polling does not rescan the

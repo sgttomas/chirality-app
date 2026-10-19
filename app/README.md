@@ -214,6 +214,11 @@ implemented behavior and qualification limits.
     **Register** confirmation. Its single A15 uses the reviewed `entry:` reference
     and no prior revision; no draft is created. Only the newly captured hot
     registration makes it selectable here; quoted earlier history remains separate.
+    The complete registration review shows literal workflow text alongside its
+    target, content identities, files, findings and reported prior/base changes.
+    The same frozen review remains readable while its native confirmation is
+    open. Its digest and complete reported data remain available; reading the
+    review captures no act.
     **Reuse (WR §4.4, §4.6).** The active library's list of registered revisions
     offers **Select revision ‹n›** on a revision whose registration or
     re-confirmation result this App process holds (RC-2) and whose revision
@@ -867,6 +872,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_proposal_advisory.rs` | Read-only CK-1 evaluation of a verified offered candidate before the ordinary choice, with the original proposal/source/revision correspondence rechecked at that press |
 | `src-tauri/src/workflow_library_entries.rs`, `src/LibraryEntries.tsx` | Explicit opened-library entry observations and ordered picks for the existing in-place review; host-held source/content correspondence, named refusal limits and no registration or selection authority from presence |
+| `src/WorkflowRegistrationReview.tsx` | Read-only presentation of the existing frozen registration review before and during native A15 confirmation, with literal workflow text, reported metadata and unchanged digest input |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
 | `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`), `runtime_session.rs` (`WorkflowRun`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies rechecked before unattempted run dispatch, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
 | `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, separate hot authoring and trial-source references, source-bound Try again/feedback defaults, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
