@@ -103,6 +103,38 @@ test('matched admitted Continue opens original prior context with cold role unkn
 test('matched resolution after several thread-state queries uses its exact positive revision',async()=>{
  await mounted({metadataReads:4},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.account.nativeHistory.selected.streamResolutions['thread-state'].revision,5);assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());});
 });
+test('original prospective resume pending-to-accepted observation still requires the matched returned admission',async()=>{
+ const commandGate=deferred();let pending=true;
+ await mounted({commandGate,view:async(value,resumed)=>{
+  if(!resumed||!pending)return;
+  value.nativeHistory.selected={...value.nativeHistory.selected,state:'indexed-read-only',resumeEligibilityCurrent:false,resume:null,metadata:{thread:native()}};
+  value.nativeHistory.selected.streamResolutions['thread-state'].outcome='pending';
+  value.nativeHistory.dispatches.at(-1).outcome='pending';delete value.nativeHistory.dispatches.at(-1).activeAdmission;
+  value.threads=value.threads.filter(row=>row.threadId!=='stored');delete value.continuationContexts;
+ }},async ui=>{
+  await ui.press('Continue selected conversation');await ui.poll();assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);
+  pending=false;await ui.poll();assert.equal(ui.selected(),key('existing'),'even an accepted observed query/row cannot replace the original command receipt');
+  await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
+ });
+});
+test('matched Continue keeps its original pending view through observer failure until acceptance is read',async()=>{
+ const commandGate=deferred();let pending=true,failReturnedRead=false;
+ await mounted({commandGate,view:async(value,resumed)=>{
+  if(!resumed)return;
+  if(failReturnedRead)throw Error('observation after original acceptance unavailable');
+  if(!pending)return;
+  value.nativeHistory.selected={...value.nativeHistory.selected,state:'indexed-read-only',resumeEligibilityCurrent:false,resume:null,metadata:{thread:native()}};
+  value.nativeHistory.selected.streamResolutions['thread-state'].outcome='pending';
+  value.nativeHistory.dispatches.at(-1).outcome='pending';delete value.nativeHistory.dispatches.at(-1).activeAdmission;
+  value.threads=value.threads.filter(row=>row.threadId!=='stored');delete value.continuationContexts;
+ }},async ui=>{
+  await ui.press('Continue selected conversation');await ui.poll();assert.equal(ui.selected(),key('existing'));
+  pending=false;failReturnedRead=true;
+  await React.act(async()=>{commandGate.resolve();});
+  assert.equal(ui.selected(),key('existing'));assert.match(ui.c.textContent,/Continue admission confirmed; waiting/);
+  failReturnedRead=false;await ui.poll();assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
+ });
+});
 test('confirmed Continue waits for its actual operational row and completes once on a later read',async()=>{
  let holdRow=true;
  await mounted({view:async(value,resumed)=>{if(resumed&&holdRow)value.threads=value.threads.filter(row=>row.threadId!=='stored');}},async ui=>{
@@ -125,6 +157,33 @@ test('newer successful Start and later chooser edits survive a delayed Continue'
 });
 test('stale Continue observer cannot restore the original home over a newer home choice',async()=>{
  const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Use api-key home');await ui.edit({model:'new-key-choice',modelProvider:'configured',entryId:'api-key'});const newer=ui.values();await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Active home class: api-key/);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
+});
+// The first Continue observer has already captured its old admitted view.
+// A later normal poll renders supersession before that old response returns.
+for(const supersession of ['selection epoch','thread-state query'])test(`delayed Continue observer cannot restore history after newer ${supersession}`,async()=>{
+ const observerGate=deferred();
+ await mounted({observerGate},async ui=>{
+  await ui.press('Continue selected conversation');
+  assert.equal(ui.selected(),key('existing'));
+  assert.equal(ui.calls.filter(call=>call.command==='host_status').length,4,'Continue observer captured the admitted snapshot before the newer poll');
+  if(supersession==='selection epoch'){
+   ui.account.nativeHistory.selectionEpoch=2;
+   ui.account.nativeHistory.selected={threadId:'stored',state:'indexed-read-only',resumeEligibilityCurrent:false,appRole:unknown};
+  }else{
+   ui.account.nativeHistory.selected.state='indexed-read-only';ui.account.nativeHistory.selected.resumeEligibilityCurrent=false;
+   ui.account.nativeHistory.selected.streamResolutions['thread-state']={query:{...metadataQuery,query_id:4},revision:3,outcome:'native-result-observed'};
+  }
+  await ui.poll();
+  assert.equal(ui.selected(),key('existing'));
+  await React.act(async()=>{observerGate.resolve();});
+  assert.equal(ui.selected(),key('existing'),'the old observer must not restore a superseded history view and open its conversation');
+  assert.equal(ui.context(),undefined);
+  await ui.poll();
+  assert.equal(ui.selected(),key('existing'),'another read cannot revive the cancelled navigation');
+  assert.deepEqual(ui.values(),choice);
+  assert.equal(ui.account.continuationContexts[0].threadId,'stored');
+  assert.equal(ui.account.continuationContexts[0].resumeRequestRef,ref,'native admission/context remains original, independently of cancelled UI navigation');
+ });
 });
 test('home away-and-back intent cancels Continue despite identical final source/key',async()=>{
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Use api-key home');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.deepEqual(ui.values(),choice);});
