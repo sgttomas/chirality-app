@@ -1087,6 +1087,18 @@ establish no order between them. RS §7 owns the source checks and append.
 General contextual file entry links and native capture/qualification witnesses
 remain separate from the live arrival entry above.
 
+**Fork admission and navigation.** The dedicated Fork handler keeps the
+returned native admission separate from observation refresh. Navigation waits
+for the actual source view to contain the admitted fork with its original full
+generation, source thread and fork receipt; it never inserts a thread row.
+A failed refresh leaves this bounded navigation pending for a later read.
+Newer conversation choices, validated Start intents, home changes and replaced
+sources supersede it, including a newer Start whose outcome stays unknown.
+Pending navigation performs no Fork, Start, resume or message send. Native
+admission, role/supply publication and the current displayed selection remain
+separate; unknown role publication does not turn a valid native fork into a
+refusal. No native admission or same-role contract changes here.
+
 **Prior work after admitted Continue.** The opened conversation shows
 DEL-01-02's separate transient prior-work context. The host queues a bounded
 latest turn page and the newest received turn's item page; older pages are
