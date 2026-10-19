@@ -307,8 +307,13 @@ implemented behavior and qualification limits.
     this session, the message offers **Start ‹workflow› (proposed by the agent)**,
     or **End ‹A› and start ‹B›** while a run is in force (*completed* when the same
     message reports A finished). The proposal selects nothing until the person
-    presses; the selection is then recorded as "agent proposal confirmed by the
-    person". The press resolves the proposed revision from the revision store
+    presses. Before that choice, the resolved candidate's advisory report shows
+    its requirement purposes, the conversation's fixed role and the limits of
+    the environment evidence. Unknown, unsupported or unavailable evaluations
+    leave Start available; displaying the report selects, prepares and sends
+    nothing. The selection is then recorded as "agent proposal confirmed by the
+    person". The press rechecks the displayed source, message, current run and
+    candidate, then resolves the proposed revision from the revision store
     and verifies it there, as a selection from the library list does (SL-4); an
     edited published copy is not used, and a store that does not recompute
     refuses with nothing selected or started. Unresolved proposals show their notice. The activity view marks run
@@ -878,6 +883,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/model_turn_recorder.rs` | RS R5 `model_turn` entries (HOSTING §8.3): thread-scope reports and one entry per run turn, effective only from a `model/rerouted` naming the turn; observes `native_items.rs`'s `modelReroutes` and the host's thread rows; never reacts |
 | `src-tauri/src/run_restart.rs`, `run_restart_tests.rs` | EXEC §2.7 / RECOVERY §4.1: the REC run tag at `run_opened` (owner `DEL-02-03`) and the host's startup writer of RS "App-restart interruption" limits; tests also cover WR TX-5 / SQ-END end notices after relaunch and (j) permanent refusals |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
+| `src-tauri/src/workflow_proposal_advisory.rs` | Read-only CK-1 evaluation of a verified offered candidate before the ordinary choice, with the original proposal/source/revision correspondence rechecked at that press |
 | `src-tauri/src/workflow_library_entries.rs`, `src/LibraryEntries.tsx` | Explicit opened-library entry observations and ordered picks for the existing in-place review; host-held source/content correspondence, named refusal limits and no registration or selection authority from presence |
 | `src/WorkflowRegistrationReview.tsx` | Read-only presentation of the existing frozen registration review before and during native A15 confirmation, with literal workflow text, reported metadata and unchanged digest input |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |

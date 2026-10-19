@@ -182,12 +182,45 @@ pub(crate) fn tick_state() -> Value {
     json!({"ticks":state.clone(),"standing":"the host's own record and trial ticks; a failed tick is counted here and the next tick runs"})
 }
 
+/// The history/thread projection and the workflow read are separate phases
+/// of the same status composition. Keep the caller's intervening projections
+/// in place; carry the original history guard to the explicit join below.
+pub(crate) fn project_status_history<'a>(
+    home:&'a HomeSession, status:&mut Value,
+    instructions:impl FnOnce()->Result<std::path::PathBuf,String>,
+) -> (Result<std::path::PathBuf,String>,std::sync::MutexGuard<'a,crate::runtime_session::HistorySession>) {
+    let history = home.history.lock().unwrap();
+    let root = instructions();
+    status["nativeHistory"] = history.snapshot(root.as_deref().ok());
+    status["roleSupply"]["originalStartReceipts"] = status["nativeHistory"]["startReceipts"].clone();
+    status["roleSupply"]["childAssociations"] = status["nativeHistory"]["childAssociations"].clone();
+    status["roleSupply"]["roleLimitObservations"] = status["nativeHistory"]["roleLimitObservations"].clone();
+    for thread in status["threads"].as_array_mut().into_iter().flatten() {
+        if let (Some(home),Some(id)) = (thread["generation"]["home"].as_str(),thread["threadId"].as_str()) {
+            let role = history.role_details(home,id,root.as_deref().ok());
+            for field in ["appRole","roleRelation","childGuidance","roleLimitObservations","futureGuidanceNotices"] {
+                thread[field] = role[field].clone();
+            }
+        }
+    }
+    (root,history)
+}
+pub(crate) fn workflow_status_after_history(
+    workflows:&Mutex<WorkflowRootSession>,home:&HomeSession,view:&Value,project_library:bool,
+    history:std::sync::MutexGuard<'_,crate::runtime_session::HistorySession>,
+) -> Value {
+    // The role checker uses try_lock on the same original history owner.
+    // Release our projection lease first; genuine contention stays Unknown.
+    drop(history);
+    workflow_status(workflows,home,view,project_library)
+}
+
 /// `host_status`'s workflow part: a read. It records and sends nothing.
-pub(crate) fn workflow_status(workflows: &Mutex<WorkflowRootSession>, view: &Value, project_library: bool) -> Value {
+pub(crate) fn workflow_status(workflows: &Mutex<WorkflowRootSession>, home:&HomeSession, view: &Value, project_library: bool) -> Value {
     let root = workflows.lock().unwrap();
     let mut status = root.snapshot();
     // RN-3…RN-7: offers from agent messages observed live; display data only.
-    status["offers"] = root.offers(view);
+    status["offers"] = root.offers_for_home(view,home);
     // WR §3: the explicit App project can be opened as its own project library.
     status["projectLibraryAvailable"] = json!(project_library);
     // WR §4.2: trials, pre-filled messages, headers and labels (display only).

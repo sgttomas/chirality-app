@@ -2412,6 +2412,15 @@ provider adoption or human act (SoW VER-007; AX-002).
 
 ## Current implementation conditions
 
+**Proposed-workflow advisory (CK-1 / CC-3).** An eligible agent proposal is
+evaluated as the resolved offered candidate, without manufacturing a selection.
+Its existing report is shown before the ordinary Start or End A and start B
+choice, including requirement purposes, role findings and the current basis's
+limits. A busy or absent original role binding remains unknown, distinct from
+an evidenced no-role conversation. This display read publishes no report or
+R14 and supplies no new environment observations. Compatibility does not gate
+the choice; the existing CK-1 preparation and CK-2 dispatch checks still run.
+
 **After-run-end act observations (RE-2 / CE-16).** The Rust project record tick
 reads recorded App ended-run sources independently of the live recorder's Open
 guard, including after reopening and without a running supplier. It uses the

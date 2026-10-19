@@ -401,7 +401,7 @@ export const roleWords = (role: Json): string => role?.standing === "app-observe
  * roles is shown with the role in force and the way to work in another role. */
 export function CompatibilityAdvisory({ entry }: { entry: Json }) {
   const p = entry?.preparation;
-  if (!p) return <li>{text(entry?.occasionLabel)}: no evaluation{entry?.limit ? ` (${text(entry.limit)})` : ""}. This check is advisory and never decides whether the run starts.</li>;
+  if (!p) return <li>{text(entry?.occasionLabel) || "Compatibility"}: no evaluation{entry?.limit ? ` (${text(entry.limit)})` : ""}. Evaluation basis not supplied. This check is advisory and never decides whether the run starts.</li>;
   const declared = p.declaration?.raw?.compatible_roles;
   const role = p.role;
   const inForce = role?.standing === "app-observed" ? (role.role ?? null) : undefined;
@@ -409,10 +409,14 @@ export function CompatibilityAdvisory({ entry }: { entry: Json }) {
   return <li>
     {text(entry.occasionLabel)}: requirement check {CHECK[text(p.check?.result)] ?? text(p.check?.result)} ({text(entry.statement)}){entry.notCurrent ? "; evaluated on an earlier basis, so it is not current" : ""}. Advisory: it never decides whether the run starts.
     <ul>
-      {list(p.requirements).map((r: Json, i: number) => <li key={i}>{text(r.name)}: {OUTCOME[text(r.outcome)] ?? text(r.outcome)}{r.reason ? `: ${text(r.reason)}` : ""}{r.fallback ? ` · fallback: ${text(r.fallback)}` : ""}</li>)}
+      {list(p.requirements).map((r: Json, i: number) => <li key={i}>{text(r.name)}: {OUTCOME[text(r.outcome)] ?? text(r.outcome)}{r.reason ? `: ${text(r.reason)}` : ""} · purpose: {text(r.purpose) || "not supplied"}{r.fallback ? ` · fallback: ${text(r.fallback)}` : ""}</li>)}
       <li>Role in force: {roleWords(role)}, fixed for the conversation's life.</li>
       {mismatch && <li role="note">The workflow is written for {names(declared)}; this conversation has {inForce ?? "no role"}. The check does not pass for the role. You may still start or continue the run. To work in one of those roles, use Continue as on the conversation: that starts a new conversation and leaves this one as it is.</li>}
       {list(p.check?.findings).filter((f: Json) => !(mismatch && /written for/.test(text(f)))).map((f: Json, i: number) => <li key={`f${i}`}>Finding: {text(f)}</li>)}
+      <li>Evaluation basis: surface {text(p.basis?.surface) || "not supplied"}; acting pin {text(p.basis?.acting_pin) || "not supplied"}; catalog edition {text(p.basis?.catalog_edition) || "not supplied"}; environment observation {text(p.basis?.environment_observation) || "not supplied"}; evaluated at {text(p.evaluated_at) || "not supplied"}.</li>
+      <li>Evaluation context: conversation {text(p.basis?.conversation) || "not supplied"}; home {text(p.basis?.home) || "not supplied"}; generation {text(p.basis?.generation) || "not supplied"}.</li>
+      <li>Environment inventory source: {text(entry.inventoryOrigin?.kind) || "not supplied"}{entry.inventoryOrigin?.source ? ` · ${text(entry.inventoryOrigin.source)}` : ""}.</li>
+      {list(entry.publication?.factsNotSupplied).map((limit: Json, i: number) => <li key={`publication${i}`}>Report publication limit: {text(limit)}</li>)}
     </ul>
     <small>Publication: {text(entry.publication?.state) || "not published"}; {text(entry.r14)}</small>
   </li>;

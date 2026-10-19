@@ -352,9 +352,12 @@ pub struct ModelDestination {
 /// `RoleInForce::Unknown` (for the role) or make no evaluation; never pair
 /// facts from different conversations.
 ///
-/// - `selection`: the exact current `workflow_workspace::Selection` held for
-///   the conversation (`WorkflowRootSession`'s selected state or the run's
-///   selection). Its snapshot's declaration is what is checked.
+/// - `selection`: the exact verified closed `workflow_workspace::Selection`
+///   subject for this conversation: its offered revision (CK-1 includes
+///   "offered for a run"), the person's selected state, or the run's selection.
+///   Its snapshot's declaration is checked. Evaluating an offered subject does
+///   not choose it, create a selection record or prepare a run; the person's
+///   ordinary confirmation still owns those effects (EXEC A-1 / WR PR-4).
 /// - `holding_library`: the holding library of that selection (the run scope's
 ///   `holding_library`, or the opened library's label). `None` refuses publication.
 /// - `role`: the conversation's fixed role in force, typed: the same value as
