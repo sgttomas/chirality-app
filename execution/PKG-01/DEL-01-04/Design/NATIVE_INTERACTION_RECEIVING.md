@@ -1125,6 +1125,17 @@ admission, role/supply publication and the current displayed selection remain
 separate; unknown role publication does not turn a valid native fork into a
 refusal. No native admission or same-role contract changes here.
 
+**Admitted Continue navigation.** A confirmed original resume keeps a minimal
+window-local navigation ticket when the following observation fails or has not
+yet shown its admitted row. A later current-source observation can complete
+that same selection only with the original exact query, positive resolution
+revision, history selection and new resume receipt still matching the actual
+operational conversation. A newer conversation choice, validated Start intent,
+home/source change or history operation supersedes the ticket, including when
+the final selected conversation happens to be the same. An unknown command
+result supplies no ticket. Reading never retries resume or sends a message;
+this transient navigation state restores no request or role authority.
+
 **Prior work after admitted Continue.** The opened conversation shows
 DEL-01-02's separate transient prior-work context. The host queues a bounded
 latest turn page and the newest received turn's item page; older pages are

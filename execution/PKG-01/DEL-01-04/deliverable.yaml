@@ -439,6 +439,7 @@ checks:
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
 - app/tests/fork-admission.test.mjs
+- app/tests/history-continue-navigation.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/request-activity-navigation.test.mjs

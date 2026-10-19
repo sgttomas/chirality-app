@@ -43,6 +43,21 @@ function fixture() {
   return {state: 'ready', generation, threads: [{generation, threadId: 'parent', appRole: {standing: 'app-observed', role: null, supply_ref: 'parent-fixture-role'}, roleRelation: {kind: 'start'}, futureGuidanceNotices: []}],
     nativeView: view, serverRequests: requests, roleLimits: {account: {roles: []}}, homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}};
 }
+// Actual close projection facts: Host retains its generation/threads, the
+// register ends unanswered requests, NativeView keeps rows/descendants but ends
+// observation, and snapshot_with_requests no longer overlays a closed source.
+function endSource(host, state = 'stopped') {
+  host.state = state; host.generationClosed = true; host.nativeViewObservationEnded = true;
+  for (const request of host.serverRequests) {
+    request.closedGeneration = true;
+    if (request.state === 'outstanding') {request.state = 'ended-unanswered'; request.endCause = 'process-exit';}
+  }
+  for (const row of host.nativeView.items) {
+    delete row.requestRef; delete row.settlementOrigin;
+    if (row.displayState === 'in-progress' || row.displayState === 'waiting-on-request') {row.displayState = 'unknown'; row.observationEnded = true;}
+  }
+  for (const child of host.nativeView.descendants) child.observationEnded = true;
+}
 const document = installMiniDom();
 // MiniDom has no layout/CSS API. Supply only the standard scoped ID lookup
 // used by this interaction; its result is still an actual mounted element.
@@ -267,5 +282,43 @@ test('newer operational choice ABA cancels a deferred About even when its final 
     });
     assert.equal(ui.scrolls.length, 0); assert.equal(ui.byId(itemId(childItem)).length, 0);
     await ui.poll(); assert.equal(ui.scrolls.length, 0);
+  });
+});
+
+for (const state of ['stopped', 'exited-unexpectedly']) test(`fresh About on retained ${state} source reveals parent and descendant without live authority`, async () => {
+  await mounted(async ui => {
+    const retainedRequests = structuredClone(ui.host.serverRequests);
+    assert.equal(ui.byId(itemId(parentItem)).length, 1, 'the retained exact parent anchor is supplied');
+    await ui.show('child'); assert.equal(ui.byId(itemId(childItem)).length, 1, 'manual Show already reaches the retained child anchor');
+    await ui.clickAbout('7', parentItem);
+    assert.equal(ui.byId(itemId(parentItem)).length, 1); assert.equal(ui.scrolls.at(-1), ui.byId(itemId(parentItem))[0]);
+    await ui.clickAbout(7, childItem);
+    assert.equal(ui.byId(itemId(childItem)).length, 1); assert.equal(ui.scrolls.at(-1), ui.byId(itemId(childItem))[0]);
+    for (const id of ['7', 7]) {
+      assert.match(ui.card(id).textContent, /Ended unanswered/);
+      assert.equal(elements(ui.card(id), 'button').length, 0, 'closed requests offer no native answer controls');
+      assert.equal(elements(ui.card(id), 'select').length, 0, 'no permission-scope control is made live');
+    }
+    assert.deepEqual(ui.host.serverRequests, retainedRequests, 'read navigation never changes original ended request/permission facts');
+  }, host => {
+    host.serverRequests[0].method = 'item/permissions/requestApproval';
+    host.serverRequests[0].nativeParameters = {...parentItem, cwd: '/invented', permissions: {network: {enabled: true}}, reason: null};
+    endSource(host, state);
+  });
+});
+test('close cancels an old deferred About while a fresh ended-source click remains usable', async () => {
+  await mounted(async ui => {
+    const old = props(ui.about(7, childItem)).onClick;
+    await React.act(async () => {
+      React.startTransition(() => old({preventDefault() {}}));
+      endSource(ui.host); await ui.read();
+    });
+    assert.equal(ui.scrolls.length, 0, 'the old live-phase intent must not anchor after close');
+    assert.equal(ui.byId(itemId(childItem)).length, 0);
+    await React.act(() => old({preventDefault() {}})); assert.equal(ui.scrolls.length, 0);
+    await ui.clickAbout(7, childItem);
+    assert.equal(ui.scrolls.at(-1), ui.byId(itemId(childItem))[0]); assert.equal(ui.scrolls.length, 1);
+    await React.act(() => old({preventDefault() {}})); assert.equal(ui.scrolls.length, 1, 'fresh navigation does not revive the old token');
+    assert.equal(elements(ui.card(7), 'button').length, 0); assert.match(ui.card(7).textContent, /Ended unanswered/);
   });
 });

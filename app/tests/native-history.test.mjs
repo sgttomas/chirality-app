@@ -328,7 +328,7 @@ test('HistoryPanel pages the exact accepted query turn, cursor and direction, an
   let host = fixture();
   const previous = window.__TAURI_INTERNALS__;
   window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {calls.push({command, args}); return host.nativeHistory;}};
-  const show = () => React.act(() => root.render(React.createElement(HistoryPanel, {host, refresh: async () => host, threadKey: 'existing-chat', setThreadKey: key => admissions.push(key)})));
+  const show = () => React.act(() => root.render(React.createElement(HistoryPanel, {host, captureContinueNavigation: () => {throw Error('read-only paging must not capture Continue navigation');}, refresh: async () => host, threadKey: 'existing-chat', setThreadKey: key => admissions.push(key)})));
   try {
     await show();
     assert.deepEqual(calls, [], 'rendering issues no native reads or resume');
@@ -356,7 +356,7 @@ test('HistoryPanel withholds retained-page buttons during pending/error/source c
   let host = fixture();
   const previous = window.__TAURI_INTERNALS__;
   window.__TAURI_INTERNALS__ = {invoke: async (...args) => {calls.push(args);}};
-  const show = () => React.act(() => root.render(React.createElement(HistoryPanel, {host, refresh: async () => host, threadKey: '', setThreadKey: () => {throw Error('history must not admit');}})));
+  const show = () => React.act(() => root.render(React.createElement(HistoryPanel, {host, captureContinueNavigation: () => {throw Error('read-only paging must not capture Continue navigation');}, refresh: async () => host, threadKey: '', setThreadKey: () => {throw Error('history must not admit');}})));
   const readableItems = () => container.querySelectorAll(e => e.localName === 'small' && e.textContent.startsWith('Native item '));
   try {
     await show(); assert.equal(readableItems().length, nativeItems().length);
