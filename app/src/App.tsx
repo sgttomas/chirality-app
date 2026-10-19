@@ -1,3 +1,4 @@
+import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
@@ -1128,6 +1129,23 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
+      <NativeWaitingBridge ready={!!host} report={setMessage}
+        checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
+          pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
+        const revision = threadChoiceRevision.current;
+        const homeEpoch = chooserHome.current.epoch;
+        const chooserRevision = editRevision.current;
+        const wasBusy = homePendingRef.current || startPendingRef.current;
+        return async group => {
+          if (wasBusy || homePendingRef.current || startPendingRef.current) {
+            setMessage("Waiting-request navigation refused while another home or conversation operation is pending; choose again from the current menu."); return;
+          }
+          if (revision !== threadChoiceRevision.current || homeEpoch !== chooserHome.current.epoch || chooserRevision !== editRevision.current) {
+            setMessage("Waiting-request navigation superseded by a newer home or conversation choice; choose again from the current menu."); return;
+          }
+          await openRequests(group);
+        };
+      }} />
       <WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }} />
       <NativeConfirmationContent />
       <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />

@@ -411,6 +411,8 @@ code_paths:
 - app/src-tauri/src/attachments.rs
 - app/src/RequestCards.tsx
 - app/src-tauri/src/waiting_requests.rs
+- app/src-tauri/src/native_waiting.rs
+- app/src/NativeWaitingBridge.tsx
 - app/src/RunOffers.tsx
 - app/src/WorkflowDrafts.tsx
 - app/src/CodexControls.tsx
@@ -439,6 +441,7 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/waiting-requests.test.mjs
+- app/tests/native-waiting.test.mjs
 - app/src-tauri/src/waiting_requests_tests.rs
 - app/tests/run-offers.test.mjs
 - app/tests/workflow-drafts.test.mjs

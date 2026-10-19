@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
@@ -33,13 +34,13 @@ function producer(){
 
 test('actual two-home Host requests remain visible in the App overview after selecting the other home',async()=>{
   const dto=producer();const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
-  let active='account';const calls=[];const previous=window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+  let active='account';const calls=[];
+  const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});if(command==='host_status')return dto[active];if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
     if(command==='host_observe')return {sourceUnavailable:true,error:'Synthetic fixture does not replay observer journal frames',frames:[]};
     if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
     throw Error(`Unexpected command ${command}`);
-  }};
+  });
   const indicator=()=>container.querySelectorAll(node=>node.getAttribute('aria-label')==='Requests waiting for your answer')[0];
   try{
     await React.act(async()=>root.render(React.createElement(App)));
@@ -49,15 +50,15 @@ test('actual two-home Host requests remain visible in the App overview after sel
     assert.match(indicator().textContent,/api-key.*shared-thread.*1/);
     assert.match(indicator().textContent,/no conversation named.*1/);
     assert.deepEqual(calls.filter(call=>!['host_status','decision_view','native_confirmation_content','host_observe','select_home'].includes(call.command)),[],'overview and home choice never answer, resume or send');
-  }finally{await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;}
+  }finally{const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 });
 
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {promise,resolve};};
 async function mounted(check,{initial='api-key',navigationWait,decisionWait,wrongRefresh=false,refuse=false}={}){
   const dto=producer();const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
-  let active=initial,opened=false;const calls=[],scrolls=[];const previous=window.__TAURI_INTERNALS__;const priorGet=document.getElementById;
+  let active=initial,opened=false;const calls=[],scrolls=[];const priorGet=document.getElementById;
   document.getElementById=id=>{const element=container.querySelectorAll(node=>node.getAttribute('id')===id)[0];if(element)element.scrollIntoView=()=>scrolls.push(id);return element;};
-  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+  const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});
     if(command==='host_status')return dto[wrongRefresh&&opened?'api-key':active];
     if(command==='decision_view'){if(opened&&decisionWait)await decisionWait.promise;return {rows:[]};}
@@ -69,7 +70,7 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
     if(navigationWait)await navigationWait.promise;
     if(refuse)throw Error(stale.error);
     active=result.modeHomeClass;opened=true;return result;
-  }};
+  });
   const conversation=()=>container.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
   const byTag=(c,tag)=>c.querySelectorAll(node=>node.localName===tag);
   const field=(tag,label)=>byTag(container,tag).find(node=>node.parentNode.textContent.startsWith(label));
@@ -79,7 +80,7 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
   try{
     await React.act(async()=>root.render(React.createElement(App)));
     await check({dto,container,calls,scrolls,press,change,settle,conversation,field,select:()=>byTag(conversation(),'select')[0],draft:()=>byTag(conversation(),'textarea')[0]});
-  }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;document.getElementById=priorGet;}
+  }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);document.getElementById=priorGet;}
 }
 
 test('an explicit all-home click opens the original full-generation conversation despite a same-ID active-home conversation',async()=>{

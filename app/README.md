@@ -294,9 +294,10 @@ implemented behavior and qualification limits.
     the verbatim native value; a tool-permission card says it is tool permission
     only and its words never say accept or approve. Classification, answer values
     and register checks are unchanged. A card and its activity row link to each
-    other; the row never answers. The top of the App counts requests waiting for
-    the person, per conversation; opening one answers nothing. Requests of other
-    conversations stay listed under Native requests.
+    other; the row never answers. The top of the App counts current requests
+    waiting for the person across configured homes, grouped by original source
+    and conversation; opening one answers nothing. Requests of other
+    conversations in the selected home stay listed under Native requests.
 20. Workflow run offers come only from agent messages this App observed complete
     live. On the exact `Workflow finished: ‹origin›:‹name›` line naming the run in
     force, the message offers **End run**; the host re-reads the message and
@@ -447,9 +448,16 @@ implemented behavior and qualification limits.
     Stop/Restart Codex refuse each other while one is under way. *Limits:* on macOS the
     Dock's Quit, logout and shutdown reach the App as `terminate:` and cannot
     be held; they are recorded as `session_ended` *system-terminated* with no
-    question. The indicator gives a count only; the conversations are listed
-    in the window's request cards, and clicking the Dock icon opens the App,
-    not a particular conversation (WI-3). Quit has not been witnessed natively.
+    question. The Dock indicator gives a count only, and clicking it opens the
+    App. The macOS App's **Waiting requests** menu additionally names current
+    source-qualified conversation groups; a person selection shows the window
+    and uses guarded navigation to that original source. A process-owned,
+    single-use handoff survives missed wake events and explicitly refuses
+    interrupted, superseded or unconfirmed-view navigation; choose again from
+    the current menu after the view is acknowledged. Cleanup failures retry
+    cleanup without replaying navigation. These checks do not establish native
+    menu interaction, other-platform outside-window coverage or person
+    qualification. Quit has not been witnessed natively.
 22b. **Recovery after a restart** (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22;
     §3.4 SR-09; §5 R-4, X-3…X-5). When a home's Codex is ready again (Start or
     Restart Codex, or the App's start after a relaunch), the host reads, on
@@ -863,6 +871,7 @@ implemented behavior and qualification limits.
 | `role_observations.rs`, `role_record_source.rs`, `role_observations_tests.rs`, `role_observations_host_tests.rs`, `role_r3_run_tests.rs`, `src/ConversationRoles.tsx` | App start/fork supply observations, exact retained App guidance and historical limits; private confirmed receipts supply role R3 references at run opening, with immutable source-qualified run context and explicit quoted cold inspection; cold claims restore no role/CCE authority |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence (in the project's records store subtree; earlier in-project accounts read in place until imported) and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
+| `src-tauri/src/native_waiting.rs`, `src/NativeWaitingBridge.tsx` | macOS native waiting-menu metadata, immutable original-source targets and single-use navigation handoff; no supplier response or restored request authority |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
 | `src-tauri/src/app_quit.rs` | App quit asked first (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2): assessment across homes, `quit_requested`/`quit_answered`, quit interrupts (cause *quit*), the exit's process stops and `session_ended` (AS-09, AS-10); the DEF-1 exit rule; the C-24 waiting count |
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |

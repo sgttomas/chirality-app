@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
@@ -10,13 +11,19 @@ import {loadSrc} from './support/load-src.mjs';
 
 // The maintained actual Host/role/HomeRouter journey produces these packets.
 // No invented renderer acceptance flag or error string classifies the sender.
-const fixture = mkdtempSync(join(tmpdir(), 'chirality-handoff-native-'));
-const native = spawnSync('cargo', ['test','--offline','--locked','--lib','producer_receipts_preserve_native_ack_refusal_error_unknown_and_late_response','--','--nocapture'], {
-  cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)), encoding:'utf8', timeout:180000,
-  env:{...process.env, CHIRALITY_SKIP_CODEX:'1', CARGO_NET_OFFLINE:'true', CHIRALITY_HANDOFF_FIXTURE_DIR:fixture, TMPDIR:fixture},
-});
-writeFileSync(join(fixture,'producer.log'),`${native.stdout ?? ''}${native.stderr ?? ''}`);
-assert.equal(native.status,0,`native producer fixture failed: ${native.error ?? native.stderr}\n${native.stdout}`);
+// A checked producer directory may be reused for UI-only integration checks.
+// Ordinary runs still execute the maintained native producer in fresh scratch.
+const retainedFixture = process.env.CHIRALITY_CONTINUE_AS_FIXTURE_DIR;
+const fixture = retainedFixture ?? mkdtempSync(join(tmpdir(), 'chirality-handoff-native-'));
+if (!retainedFixture) {
+  const native = spawnSync('cargo', ['test','--offline','--locked','--lib','producer_receipts_preserve_native_ack_refusal_error_unknown_and_late_response','--','--nocapture'], {
+    cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)), encoding:'utf8', timeout:180000,
+    env:{...process.env, CHIRALITY_SKIP_CODEX:'1', CARGO_NET_OFFLINE:'true', CHIRALITY_HANDOFF_FIXTURE_DIR:fixture, TMPDIR:fixture},
+  });
+  writeFileSync(join(fixture,'producer.log'),`${native.stdout ?? ''}${native.stderr ?? ''}`);
+  assert.equal(native.status,0,`native producer fixture failed: ${native.error ?? native.stderr}\n${native.stdout}`);
+}
+assert.match(readFileSync(join(fixture,'producer.log'),'utf8'),/test result: ok\. [1-9]\d* passed; 0 failed;/,'packets accompany a successful actual producer run');
 const packet = name => JSON.parse(readFileSync(join(fixture,`${name}.json`),'utf8'));
 const sent = packet('sent'), refused = packet('not-attempted'), failed = packet('native-failed'), unknown = packet('unknown'), late = packet('late-sent');
 console.log(`Continue-as actual producer packets: ${fixture}`);
@@ -35,8 +42,7 @@ async function mounted(basis, command, run, {refreshFails=false, observeStatus}=
   const root=createRoot(container), calls=[], unexpected=[];
   let afterSend=false;
   const before=structuredClone(basis.snapshot), snapshot=structuredClone(basis.snapshot);
-  const previous=window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__={invoke:async(name,args)=>{
+  const idle=installIdleNativeWaiting(async(name,args)=>{
     calls.push({name,args});
     if(name==='host_status') {if(afterSend&&refreshFails)throw Error('synthetic observer refresh unavailable');if(observeStatus)await observeStatus(afterSend);return snapshot;}
     if(name==='decision_view')return {rows:[]};
@@ -56,7 +62,7 @@ async function mounted(basis, command, run, {refreshFails=false, observeStatus}=
       return command(name,args);
     }
     unexpected.push({name,args});throw Error(`Unexpected original command: ${name}`);
-  }};
+  });
   const panel=()=>container.querySelectorAll(e=>e.getAttribute('aria-label')==='Continue as')[0];
   const press=async label=>React.act(async()=>{const b=button(panel(),label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);props(b).onClick();});
   const change=async text=>React.act(()=>props(elements(panel(),'textarea')[0]).onChange({target:{value:text}}));
@@ -70,8 +76,11 @@ async function mounted(basis, command, run, {refreshFails=false, observeStatus}=
     await run({container,panel,press,change,calls,send:()=>button(panel(),sendLabel),draft:()=>props(elements(panel(),'textarea')[0]).value});
     assert.deepEqual(unexpected,[],'strict original dispatcher saw no implicit command');
     assert.deepEqual(snapshot,before,'the mounted consumer cannot replace a native target, role or source');
+    idle.assertClean(container);
   } finally {
-    await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;
+    const renderedText=container.textContent;
+    try {await React.act(()=>root.unmount());}
+    finally {document.body.removeChild(container);idle.restore(renderedText);}
   }
 }
 

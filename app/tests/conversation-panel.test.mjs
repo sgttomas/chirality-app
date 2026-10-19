@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 
 // The conversation section is mounted with react-dom/client on a minimal
@@ -64,8 +65,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
   let snapshot = {...host, threads: initialThread ? [thread('existing', null)] : [],
     homeRouting: {activeModeHomeClass: 'account'},
     roleSet: {available: true, defaultRole: 'HELP_HUMAN', roles: [{name: 'HELP_HUMAN', meaning: 'Alignment', default_for_new_chat: true}]}};
-  const previous = window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {
+  const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args});
     if (command === 'host_status') return snapshot;
     if (command === 'decision_view') return {rows: []};
@@ -78,7 +78,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     const created = {...thread('created', 'HELP_HUMAN'), generation: startGeneration, model: args.model, modelProvider: args.modelProvider};
     snapshot = {...snapshot, generation: startGeneration, threads: [...snapshot.threads, created]};
     return {id: 42, startGeneration, result: {thread: {id: created.threadId}}, roleSupplyRecord: {state: 'recorded'}};
-  }};
+  });
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
@@ -118,9 +118,10 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       if (outcome === 'refused' || outcome === 'failed') assert.ok(container.textContent.includes('thread_start: Error: Native start'));
     }
   } finally {
+    const renderedText = container.textContent;
     await React.act(() => root.unmount());
     document.body.removeChild(container);
-    window.__TAURI_INTERNALS__ = previous;
+    idle.restore(renderedText);
   }
 }
 
@@ -158,8 +159,7 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
     // native reported destination need not equal what the person requested.
     return {id:index,startGeneration:generation,result:{thread:{id},model:'native-reported-model',modelProvider:'native-reported-provider'},roleSupplyRecord:{state:'not-confirmed'},...extra};
   };
-  const previous=window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+  const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});
     if(command==='host_status'){if(statusFailure)throw Error('Current status read unavailable');return snapshot();}
     if(command==='decision_view')return decisionReply?decisionReply(active):{rows:[]};
@@ -169,16 +169,16 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
     assert.equal(command,'thread_start');
     const index=calls.filter(call=>call.command==='thread_start').length;
     return startReply?startReply(args,index,admitted):admitted(args,index);
-  }};
+  });
   const field=(tag,label)=>labelled(container,tag,label);
   const values=()=>({model:props(field('input','Model ')).value,modelProvider:props(field('input','Configured Codex provider ')).value,entryId:props(field('select','Access entry ')).value});
   const edit=async(patch)=>{for(const [key,value] of Object.entries(patch)){const [tag,label]=key==='model'?['input','Model ']:key==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(field(tag,label),value);}};
   const press=async(text)=>React.act(async()=>{await props(button(container,text)).onClick();});
   try {
     await React.act(async()=>root.render(React.createElement(App)));
-    await check({container,calls,homes,values,edit,press,start:()=>button(container,'Start thread'),
+    await check({container,calls,idle,homes,values,edit,press,start:()=>button(container,'Start thread'),
       failStatus:()=>{statusFailure=true;},generation:()=>homes[active].generation});
-  } finally {await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;}
+  } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
 const selectedChoice={model:'chosen-model',modelProvider:'openai',entryId:'chatgpt-account'};
 const blankChoice={model:'',modelProvider:'',entryId:''};
@@ -352,8 +352,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
   let snapshot = {...host, generation: source, threads: interleave ? [existing, {...thread('other-current', null), generation: source}] : initialThread ? [existing] : [],
     homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}, {modeHomeClass: 'api-key'}]},
     nativeHistory: {state: 'history-receiving', home: source.home, generation: source, selectionEpoch: 0, threads: [{native: metadata.thread}], dispatches: outcome === 'old-admission' ? [{requestRef: 'req:resume'}] : []}};
-  const previous = window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__ = {invoke: async (command, args) => {
+  const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args});
     if (command === 'host_status') {
       if (outcome === 'refresh-failed' && continueResponded) throw Error('Current source read failed');
@@ -413,7 +412,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     if (outcome === 'selection-changed') snapshot = {...snapshot, nativeHistory: {...result, selectionEpoch: 2}};
     if (outcome === 'query-superseded') snapshot = {...snapshot, nativeHistory: {...result, selected: {...result.selected, streamResolutions: {'thread-state': {outcome: 'native-result-observed', query: {...query, query_id: 99}}}}}};
     return result;
-  }};
+  });
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
@@ -456,9 +455,10 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     }
   } finally {
     if (pendingContinue) await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
+    const renderedText = container.textContent;
     await React.act(() => root.unmount());
     document.body.removeChild(container);
-    window.__TAURI_INTERNALS__ = previous;
+    idle.restore(renderedText);
   }
 }
 
@@ -481,4 +481,40 @@ test('Continue with no matching new current admission preserves selection and co
 test('a Continue refresh awaiting decision_view cannot overwrite a newer source or chat choice', async () => {
   await ordinaryContinueCase({initialThread: true, outcome: 'delayed-source-choice'});
   await ordinaryContinueCase({initialThread: true, outcome: 'delayed-chat-choice'});
+});
+
+
+test('idle native waiting startup reads no intent, performs no action and cleans up its listener and polling on App unmount', async t => {
+  const intervals = new Map();
+  t.mock.method(globalThis, 'setInterval', (callback, delay) => {
+    const token = {}; intervals.set(token, {callback, delay}); return token;
+  });
+  t.mock.method(globalThis, 'clearInterval', token => {
+    assert.ok(intervals.delete(token), 'clear an installed App interval exactly once');
+  });
+  let idle, waitingPoll;
+  await withStartChooser(async ui => {
+    idle = ui.idle;
+    assert.deepEqual(idle.calls.map(call => call.command), ['checkpoint_native_waiting_ui', 'plugin:event|listen', 'claim_native_waiting_intent'],
+      'startup acknowledges its UI checkpoint, installs the listener, then reads host intent once');
+    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command)),
+      'a null waiting claim never navigates, starts, resumes, sends or answers');
+    assert.deepEqual(ui.values(), blankChoice);
+    idle.assertClean(ui.container);
+    for (const {callback} of intervals.values()) {
+      const claimsBefore = idle.calls.filter(call => call.command === 'claim_native_waiting_intent').length;
+      await React.act(async () => {callback();});
+      if (idle.calls.filter(call => call.command === 'claim_native_waiting_intent').length > claimsBefore) waitingPoll = callback;
+    }
+    assert.equal(typeof waitingPoll, 'function', 'the mounted App installs its waiting recovery poll');
+    assert.deepEqual(idle.calls.filter(call => call.command === 'claim_native_waiting_intent').map(call => call.args.consumer),
+      [idle.calls[0].args.consumer, idle.calls[0].args.consumer], 'polls read the same single-use consumer without a target');
+    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command)),
+      'an idle recovery poll also performs no navigation or supplier action');
+  });
+  assert.equal(intervals.size, 0, 'App unmount clears every installed poll, including native waiting');
+  assert.equal(idle.calls.filter(call => call.command === 'plugin:event|unlisten').length, 1);
+  const callsAfterUnmount = idle.calls.length;
+  await waitingPoll();
+  assert.equal(idle.calls.length, callsAfterUnmount, 'an already queued waiting tick stops after effect cleanup');
 });

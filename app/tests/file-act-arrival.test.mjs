@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -52,14 +53,13 @@ test('App arrival click opens only the host-resolved frozen review, with native 
   const {run,arrival,preview} = fixture();
   let snapshot = {state:'ready',generation,threads:[],workflowRoot:{runs:[run]}};
   const calls = [],scrolls = [];
-  const previous = window.__TAURI_INTERNALS__;
   const previousFind = document.getElementById;
   document.getElementById = id => {
     const element = document.body.querySelectorAll(node => node.getAttribute('id') === id)[0];
     if (element) element.scrollIntoView = () => scrolls.push(id);
     return element;
   };
-  window.__TAURI_INTERNALS__ = {invoke:async (name,args) => {
+  const idle = installIdleNativeWaiting(async (name,args) => {
     calls.push([name,args]);
     if (name === 'host_status') return snapshot;
     if (name === 'decision_view') return {rows:[]};
@@ -67,7 +67,7 @@ test('App arrival click opens only the host-resolved frozen review, with native 
     if (name === 'file_act_open_arrival') return preview;
     if (name === 'file_act_confirm') return {state:'original native capture recorded',recorded:true,captureId:'cap:synthetic:original'};
     throw Error(`Unexpected command: ${name}`);
-  }};
+  });
   const view = mount(App,{});
   const actions = () => calls.filter(([name]) => name.startsWith('file_act_') || /answer|submit|conversation_send|steer/.test(name));
   try {
@@ -100,8 +100,9 @@ test('App arrival click opens only the host-resolved frozen review, with native 
     assert.match(fileSection.textContent,/original native capture recorded/);
     assert.equal(props(button(fileSection,'Review native act / decline / cancel…')).disabled,true);
   } finally {
+    const renderedText = view.container.textContent;
     await view.close();
-    window.__TAURI_INTERNALS__ = previous;
+    idle.restore(renderedText);
     document.getElementById = previousFind;
   }
 });
@@ -172,16 +173,16 @@ test('an unresolved arrival review disables other rows and standing selection an
     fileActEntries:{...first.run.fileActEntries,...second.run.fileActEntries}};
   const snapshot = {state:'ready',generation,threads:[],workflowRoot:{runs:[run]}};
   const calls = [],pending = Promise.withResolvers();
-  const previous = window.__TAURI_INTERNALS__,previousFind = document.getElementById;
+  const previousFind = document.getElementById;
   document.getElementById = id => document.body.querySelectorAll(node => node.getAttribute('id') === id)[0];
-  window.__TAURI_INTERNALS__ = {invoke:async (name,args) => {
+  const idle = installIdleNativeWaiting(async (name,args) => {
     calls.push([name,args]);
     if (name === 'host_status') return snapshot;
     if (name === 'decision_view') return {rows:[]};
     if (name === 'native_confirmation_content') return [];
     if (name === 'file_act_open_arrival') return pending.promise;
     throw Error(`Unexpected command: ${name}`);
-  }};
+  });
   const view = mount(App,{});
   let firstOperation;
   try {
@@ -207,8 +208,9 @@ test('an unresolved arrival review disables other rows and standing selection an
   } finally {
     pending.resolve(first.preview);
     if (firstOperation) await firstOperation;
+    const renderedText = view.container.textContent;
     await view.close();
-    window.__TAURI_INTERNALS__ = previous;
+    idle.restore(renderedText);
     document.getElementById = previousFind;
   }
 });
@@ -240,9 +242,9 @@ test('actual Rust arrival previews and capture records pass through the mounted 
     assert.deepEqual(result.capture.answers,preview.offer.answers);
     assert.equal(result.record.runId,preview.offer.answers.runId);
     assert.deepEqual(result.record.body.relations.arrivalAnswered,preview.offer.answers.arrival);
-    const calls = [],previous = window.__TAURI_INTERNALS__,previousFind = document.getElementById;
+    const calls = [],previousFind = document.getElementById;
     document.getElementById = id => document.body.querySelectorAll(node => node.getAttribute('id') === id)[0];
-    window.__TAURI_INTERNALS__ = {invoke:async (name,args) => {
+    const idle = installIdleNativeWaiting(async (name,args) => {
       calls.push([name,args]);
       if (name === 'host_status') return {state:'ready',generation:run.generation,threads:[],workflowRoot:{runs:[run]}};
       if (name === 'decision_view') return {rows:[]};
@@ -251,7 +253,7 @@ test('actual Rust arrival previews and capture records pass through the mounted 
       if (name === 'file_act_confirm') return result;
       if (name === 'file_act_read') return read;
       throw Error(`Unexpected command: ${name}`);
-    }};
+    });
     const view = mount(App,{});
     const actions = () => calls.filter(([name]) => name.startsWith('file_act_') || /answer|submit|conversation_send|steer/.test(name));
     try {
@@ -275,8 +277,9 @@ test('actual Rust arrival previews and capture records pass through the mounted 
       assert.match(section.textContent,/Recorded lapse history/);
       assert.equal(actions().length,3,'no supplier answer, submission or implicit capture is introduced');
     } finally {
+      const renderedText = view.container.textContent;
       await view.close();
-      window.__TAURI_INTERNALS__ = previous;
+      idle.restore(renderedText);
       document.getElementById = previousFind;
     }
   }

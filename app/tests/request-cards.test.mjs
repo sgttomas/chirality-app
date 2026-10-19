@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -216,8 +217,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   let custody=original,other=null,stale=null,currentOutcome=outcome;
   let commandSeen=false,refreshUnavailable=false;const calls=[];
   const snapshot=()=>({state:'ready',generation:(other??custody).generation,threads:withConversation?[{generation:g,threadId:'T',model:'synthetic',modelProvider:'synthetic',appRole:{standing:'unknown'}}]:[],homeRouting:{activeModeHomeClass:'account'},serverRequests:[other??stale??custody]});
-  const previous=window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
+  const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});
     if(command==='host_status'){const delayed=commandSeen&&afterCommandRead?await afterCommandRead(snapshot()):null;if(refreshUnavailable)throw Error('reconnect snapshot unavailable');return delayed??snapshot();}
     if(command==='decision_view')return {rows:[]};
@@ -233,7 +233,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
     if(currentOutcome==='unknown')return {replyWriteResult:'unknown'};
     custody={...custody,state:permission?'declined':'answered',replyWriteResult:'written',settlement:{kind:permission?'decline':'answer',origin:{class:'person-via-interaction'}}};
     return {replyWriteResult:'written',acknowledgment:'not-observed'};
-  }};
+  });
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const button=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
   const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send current question answers…');
@@ -250,7 +250,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
       async swapSource(next){other=next;await React.act(async()=>props(button('Read native login policy and account')).onClick());},
       async reconnect(){await React.act(()=>root.unmount());refreshUnavailable=false;root=createRoot(container);await render();},
       get commandSeen(){return commandSeen;}});
-  } finally {await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;}
+  } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
 
 test('a written native answer remains written when its observer refresh fails, without enabling a stale waiting reply',async()=>{
