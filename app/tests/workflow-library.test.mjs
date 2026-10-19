@@ -223,7 +223,10 @@ test('native review actions end with the host presentation while original contin
         // Deliver the native reply inside act and await the view's real hash too:
         // neither one timer tick nor an independent expected hash waits for both.
         await React.act(async()=>{nativeDigestRelease.resolve();await viewDigestComputed.promise;});
-        assert.equal(body().textContent,JSON.stringify(readablePaths(fresh.status),null,2),'complete current review stays visible');
+        const reading=article().querySelectorAll(e=>e.getAttribute('aria-label')==='Frozen workflow registration review')[0];
+        assert.ok(reading,'the current frozen presentation has a readable review');
+        assert.ok(reading.textContent.includes('Complete synthetic review'));
+        assert.equal(reading.querySelectorAll(e=>e.localName==='pre').at(-1).textContent,JSON.stringify(presentation,null,2),'the complete original presentation remains in its diagnostic report');
         const digest=await reviewDigest(presentation);assert.ok(article().textContent.includes(digest));
         assert.ok(article().textContent.includes(`Read the complete review below before choosing ${disposition==='re-confirmation'?'Re-confirm':'Register'}`),'fresh presentation retains the read-first action cue');
         const button=native(article());assert.ok(button);assert.equal(props(button).disabled,false);
