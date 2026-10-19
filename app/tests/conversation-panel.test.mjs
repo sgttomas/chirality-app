@@ -340,7 +340,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
   const calls = [];
   const unknownRole = {standing: 'unknown', reason: 'original App role not established in this App process'};
   const metadata = {thread: {id: 'stored', status: {type: 'notLoaded'}, agentRole: 'HELP_HUMAN'}};
-  const query = {factory_id: 1, query_id: 2, home: source.home, generation: source, method: 'thread/resume', params: {threadId: 'stored'}};
+  const query = {factory_id: 1, query_id: 2, home: source.home, generation: source, method: 'thread/resume', params: {threadId: 'stored', excludeTurns: true}};
   const existing = {...thread('existing', null), generation: source};
   let continueResponded = false;
   const interleave = outcome === 'delayed-source-choice' || outcome === 'delayed-chat-choice';
@@ -384,7 +384,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     const admitted = {generation: source, threadId: 'stored', status: {type: 'idle'}, appRole: unknownRole, nativeResumeObserved: true, resumeRequestRef: 'req:resume'};
     const dispatch = {generation: source, home: source.home, requestRef: 'req:resume', writeResult: 'written', outcome: 'response-observed-result', sourceCurrent: true, localQuery: query, activeAdmission: admitted};
     const result = {...snapshot.nativeHistory, selected: {...snapshot.nativeHistory.selected, state: 'resume-response-observed', resumeEligibilityCurrent: true,
-      resume: {thread: {...metadata.thread, status: {type: 'idle'}}}, streamResolutions: {'thread-state': {outcome: 'native-result-observed', query}}}, dispatches: [dispatch]};
+      resume: {thread: {...metadata.thread, status: {type: 'idle'}}}, streamResolutions: {'thread-state': {outcome: 'native-result-observed', query, revision: 2}}}, dispatches: [dispatch]};
     if (outcome === 'read-only') result.selected.state = 'indexed-read-only';
     if (outcome === 'ineligible') result.selected.resumeEligibilityCurrent = false;
     if (outcome === 'not-admitted') delete dispatch.activeAdmission;

@@ -1061,6 +1061,21 @@ generation and typed request identity and retains no answer content. It does
 not synthesize a register settlement, supplier acknowledgment or a new request.
 Reopening the view still reconstructs cards from the Host's actual register.
 
+**Continue-as message outcome.** The explicit handoff send has its own
+process-held attempt, bound to the admitted target, original Host, full
+generation and exact edited text. The attempt is reserved before dispatch;
+an in-flight writer or unavailable observation cannot establish that nothing
+was sent. The Host retains the original source before waiting, including the
+ordinary pending end-notice path. No-attempt, native error, confirmed native
+turn result and unknown remain distinct. A completely written request and its
+valid correlated turn result establish the send observation; view-refresh
+failure does not replace it. Only a settled producer proof of no attempt
+permits another explicit handoff send. Reading the outcome observes the same
+held attempt and never sends again. Receipt retention changes no notice
+composition, claim, settlement or carry-once rule; its existing written flag
+is not native acceptance. Handoffs remain transient; these observations
+restore no cold request, role or current-generation authority.
+
 **Attachment submission and observation refresh.** The ordered-attachment
 Send and Steer controls keep the original command outcome separate from a
 later failure to read the current Host view. A returned matching native
@@ -1109,6 +1124,17 @@ Pending navigation performs no Fork, Start, resume or message send. Native
 admission, role/supply publication and the current displayed selection remain
 separate; unknown role publication does not turn a valid native fork into a
 refusal. No native admission or same-role contract changes here.
+
+**Admitted Continue navigation.** A confirmed original resume keeps a minimal
+window-local navigation ticket when the following observation fails or has not
+yet shown its admitted row. A later current-source observation can complete
+that same selection only with the original exact query, positive resolution
+revision, history selection and new resume receipt still matching the actual
+operational conversation. A newer conversation choice, validated Start intent,
+home/source change or history operation supersedes the ticket, including when
+the final selected conversation happens to be the same. An unknown command
+result supplies no ticket. Reading never retries resume or sends a message;
+this transient navigation state restores no request or role authority.
 
 **Prior work after admitted Continue.** The opened conversation shows
 DEL-01-02's separate transient prior-work context. The host queues a bounded
