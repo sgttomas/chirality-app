@@ -438,6 +438,7 @@ checks:
 - app/tests/codex-controls.test.mjs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
+- app/tests/fork-admission.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/waiting-requests.test.mjs
