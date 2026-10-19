@@ -1,3 +1,4 @@
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -88,17 +89,17 @@ test('both actual App placements consume the same frozen Rust presentation and n
   // is computed here; this is no live native alert or Rust capture evidence.
   let rows = [{kind:'A15 complete review',digest,digestMethod:'sha-256 of the aac-offer-digest/0.1 canonical form',content:presentation,
     standing:'reading aid while a native confirmation is open; the host checks the binding at capture'}];
-  const calls = [],hashInputs = [],hashes = [],previous = window.__TAURI_INTERNALS__;
+  const calls = [],hashInputs = [],hashes = [];
   t.mock.timers.enable({apis:['setInterval']});
   t.mock.method(presentationSource,'reviewDigest',value => {hashInputs.push(value);const pending = reviewDigest(value);hashes.push(pending);return pending;});
-  window.__TAURI_INTERNALS__ = {invoke:async (command,args) => {
+  const idle = installIdleNativeWaiting(async (command,args) => {
     calls.push([command,args]);
     if (command === 'host_status') return {...source.host,workflowRoot:source.reviewed};
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return rows;
     assert.equal(command,'workflow_review_digest','only the existing read commands run');
     assert.equal(args.reviewRef,source.reviewed.activeReview);return {digest};
-  }};
+  });
   let view;
   try {
     view = await mount(App,{});
@@ -125,7 +126,11 @@ test('both actual App placements consume the same frozen Rust presentation and n
     assert.equal(canonicalJson(presentation),before);
     assert.equal(await reviewDigest(presentation),digest);
     assert.ok(calls.every(([command]) => ['host_status','decision_view','native_confirmation_content','workflow_review_digest'].includes(command)));
-  } finally {if (view) await view.close();window.__TAURI_INTERNALS__ = previous;}
+    idle.assertClean(view.container);
+  } finally {
+    const renderedText = view?.container.textContent ?? "";
+    try {if (view) await view.close();} finally {idle.restore(renderedText);}
+  }
 });
 
 test('native rendering requires the exact A15 kind and compatible entries; other content keeps its existing JSON view',async t => {
@@ -137,20 +142,23 @@ test('native rendering requires the exact A15 kind and compatible entries; other
     {kind:'A15 complete review',content:{entries:'unavailable',syntheticShapeProbe:'incompatible entries'}},
   ];
   const rows = await Promise.all(contents.map(async row => ({...row,digest:await reviewDigest(row.content)})));
-  const previous = window.__TAURI_INTERNALS__;
   t.mock.timers.enable({apis:['setInterval']});
-  window.__TAURI_INTERNALS__ = {invoke:async command => {
+  const idle = installIdleNativeWaiting(async command => {
     if (command === 'host_status') return {...source.host,workflowRoot:{...source.reviewed,reviews:[]}};
     if (command === 'decision_view') return {rows:[]};
     assert.equal(command,'native_confirmation_content');return rows;
-  }};
+  });
   let view;
   try {
     view = await mount(App,{});
     const open = labelled(view.container,'Content named by an open native confirmation');
     assert.ok(open);assert.equal(reviews(open).length,0);
     assert.deepEqual(nodes(open,'pre').map(node => node.textContent),rows.map(row => JSON.stringify(readablePaths(row.content),null,2)));
-  } finally {if (view) await view.close();window.__TAURI_INTERNALS__ = previous;}
+    idle.assertClean(view.container);
+  } finally {
+    const renderedText = view?.container.textContent ?? "";
+    try {if (view) await view.close();} finally {idle.restore(renderedText);}
+  }
 });
 
 test('source-grounded hand-built DS-2 and DS-8 variants retain full tuples, findings, limits, unknowns and literal text safely',async () => {
@@ -221,8 +229,8 @@ test('current review stays first and retained presentations stay labelled with d
   const source = actualReviewPacket(),current = source.reviewed.reviews[0];
   // UI-only retained owner wrapper around the actual frozen presentation.
   const retained = {...current,reference:'synthetic-retained-review-owner'};
-  const data = {...source.reviewed,reviews:[retained,current]},previous = window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__ = {invoke:async command => {assert.equal(command,'workflow_review_digest');return {unavailable:'Synthetic digest reader outside native host'};}};
+  const data = {...source.reviewed,reviews:[retained,current]};
+  const idle = installIdleNativeWaiting(async command => {assert.equal(command,'workflow_review_digest');return {unavailable:'Synthetic digest reader outside native host'};});
   let view;
   try {
     view = await mount(WorkflowRootPanel,{data,host:source.host,act:async () => {assert.fail('rendering sends no act');}});
@@ -230,5 +238,9 @@ test('current review stays first and retained presentations stay labelled with d
     assert.deepEqual(owners.map(owner => nodes(owner,'h3')[0].textContent),[`Current review · ${current.reference}`,`Retained review · ${retained.reference}`]);
     assert.equal(props(nodes(owners[0],'button').find(node => node.textContent.startsWith('Register this review'))).disabled,false);
     assert.equal(props(nodes(owners[1],'button').find(node => node.textContent.startsWith('Register this review'))).disabled,true);
-  } finally {if (view) await view.close();window.__TAURI_INTERNALS__ = previous;}
+    idle.assertClean(view.container);
+  } finally {
+    const renderedText = view?.container.textContent ?? "";
+    try {if (view) await view.close();} finally {idle.restore(renderedText);}
+  }
 });
