@@ -117,7 +117,7 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   assert.ok(!textarea(html).includes('disabled=""')&&!textarea(fallback).includes('disabled=""'),'editable once drafted or header-only');
 });
 
-test('the handoff message reads sent only after the send resolved; a refusal keeps the draft and allows another try',async()=>{
+test('the existing boolean send helper preserves its result and refusal presentation',async()=>{
   assert.deepEqual(await attemptSend(async()=>true,'hello'),{state:'sent'});
   assert.equal((await attemptSend(async()=>false,'hello')).state,'failed');
   const thrown=await attemptSend(async()=>{throw new Error('refused-not-sent(not-ready)');},'hello');
@@ -128,11 +128,9 @@ test('the handoff message reads sent only after the send resolved; a refusal kee
   assert.ok(!failedLine.includes('Sent once'),'a refused send is never reported as sent');
   assert.ok(h(SendOutcome,{outcome:{state:'sent'}}).includes('Sent once as an ordinary message'));
   assert.equal(h(SendOutcome,{outcome:{state:'unsent'}}),'');
-  // The panel takes its state from attemptSend's result, never before the send resolves.
-  const source=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
-  assert.ok(source.includes('void attemptSend(send, draft).then(setSending)')&&!/setSent\(true\)/.test(source));
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('mode: null })) !== undefined'),'the App reports a failed send as not sent');
+  // Continue-as now consumes the native owner's distinct outcomes. Its mounted
+  // App/producer join is checked in continue-as-send.test.mjs; this helper's
+  // existing boolean contract remains unchanged.
 });
 
 test('model and provider are exact strings: no capitalisation, autocorrect, spell-check or autofill (witness D-2)',()=>{

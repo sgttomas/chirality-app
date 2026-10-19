@@ -6242,11 +6242,20 @@ pub(crate) fn send_with_pending_notice_in_mode(
     person_text: &str,
     mode: Option<&str>,
 ) -> Option<NoticeSend> {
+    send_with_pending_notice_observed(root, generation, thread, person_text, mode, &mut |_| {})
+}
+/// Same ordinary notice route, with a trusted Rust receipt-retention callback.
+/// It runs after the existing Host factory returns and before any native wait.
+/// The callback neither composes text nor changes claim/settlement semantics.
+pub(crate) fn send_with_pending_notice_observed(
+    root: &std::sync::Mutex<WorkflowRootSession>, generation: &Value, thread: &str,
+    person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest),
+) -> Option<NoticeSend> {
     let pending = match pending_notice_run(root, generation, thread)? {
         Ok(run) => run,
-        Err(e) => return Some(NoticeSend { result: Err(e), written: false }),
+        Err(e) => return Some(NoticeSend { result: Err(e), written: false, source: None }),
     };
-    Some(pending.send_text(generation, person_text, mode))
+    Some(pending.send_text_observed(generation, person_text, mode, on_source))
 }
 /// Ordinary text without a mode (the tests' shorthand for `conversation_send_text`).
 #[cfg(test)]
@@ -6277,15 +6286,15 @@ pub(crate) enum PendingNotice {
     Reopened(std::sync::Arc<std::sync::Mutex<ReopenedEnd>>),
 }
 impl PendingNotice {
-    fn send_text(&self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
-        let busy = || NoticeSend { result: Err(NOTICE_RUN_BUSY.into()), written: false };
+    fn send_text_observed(&self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
+        let busy = || NoticeSend { result: Err(NOTICE_RUN_BUSY.into()), written: false, source: None };
         match self {
             Self::Run(run) => match run.try_lock() {
-                Ok(mut run) => run.send_end_notice_in_mode(generation, person_text, mode),
+                Ok(mut run) => run.send_end_notice_observed(generation, person_text, mode, on_source),
                 Err(_) => busy(),
             },
             Self::Reopened(end) => match end.try_lock() {
-                Ok(mut end) => end.send_end_notice_in_mode(generation, person_text, mode),
+                Ok(mut end) => end.send_end_notice_observed(generation, person_text, mode, on_source),
                 Err(_) => busy(),
             },
         }
@@ -6419,6 +6428,9 @@ impl ReopenedEnd {
         result
     }
     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
+        self.send_end_notice_observed(generation, person_text, mode, &mut |_| {})
+    }
+    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
         let claimed = (|| {
             if person_text.is_empty() {
                 return Err("text required".to_string());
@@ -6429,17 +6441,17 @@ impl ReopenedEnd {
                 .transpose()?;
             let thread = self.conversation.clone();
             let claim = self.claim_end_notice(generation, &thread)?;
-            let carriage = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref());
-            Ok((claim, carriage))
+            let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), on_source);
+            Ok((claim, carriage, source))
         })();
         match claimed {
             Err(e) => {
                 self.sync_notice_flag();
-                NoticeSend { result: Err(e), written: false }
+                NoticeSend { result: Err(e), written: false, source: None }
             }
-            Ok((claim, carriage)) => {
+            Ok((claim, carriage, source)) => {
                 let written = matches!(carriage, NoticeCarriage::Written { .. });
-                NoticeSend { result: self.settle_end_notice(claim, carriage), written }
+                NoticeSend { result: self.settle_end_notice(claim, carriage), written, source }
             }
         }
     }
@@ -6519,6 +6531,9 @@ pub(crate) enum NoticeCarriage {
 pub(crate) struct NoticeSend {
     pub(crate) result: Result<Value, String>,
     pub(crate) written: bool,
+    /// None only on a completed pre-dispatch validation/claim/begin refusal.
+    /// Some includes reserved-but-invalidated and partial/failed writes.
+    pub(crate) source: Option<crate::hosting::SourceRequest>,
 }
 /// The text carrier: [run-end line, the person's text], with the mode's
 /// `collaborationMode` when given, through the prepared-turn sender that
@@ -6528,7 +6543,8 @@ fn carry_notice_text(
     claim: &NoticeClaim,
     person_text: &str,
     mode: Option<&Value>,
-) -> NoticeCarriage {
+    on_source: &mut dyn FnMut(&crate::hosting::SourceRequest),
+) -> (NoticeCarriage, Option<crate::hosting::SourceRequest>) {
     let begun = {
         #[cfg(test)]
         let refused = NOTICE_REFUSED_BEFORE_WRITE.with(|v| v.replace(false));
@@ -6541,10 +6557,13 @@ fn carry_notice_text(
         }
     };
     let source = match begun {
-        Ok(source) if source.evidence()["actualWriteAttemptObserved"] == true => source,
-        Err(e) => return NoticeCarriage::NotWritten(e),
+        Err(e) => return (NoticeCarriage::NotWritten(e), None),
         Ok(source) => {
-            return NoticeCarriage::NotWritten(format!("no write attempt observed: {}", source.evidence()["noAttemptCause"]))
+            on_source(&source);
+            if source.evidence()["actualWriteAttemptObserved"] != true {
+                return (NoticeCarriage::NotWritten(format!("no write attempt observed: {}", source.evidence()["noAttemptCause"])), Some(source));
+            }
+            source
         }
     };
     let mut outcome;
@@ -6568,7 +6587,7 @@ fn carry_notice_text(
     } else {
         Err(format!("End notice turn outcome unavailable; not resent: {outcome}"))
     };
-    NoticeCarriage::Written { turn, outcome, result }
+    (NoticeCarriage::Written { turn, outcome, result }, Some(source))
 }
 // Test seam (V10 G-1): behave as if the Host refused the notice turn before
 // writing any frame, as its own validation and scope refusals do.
@@ -7580,18 +7599,21 @@ impl WorkflowRun {
     /// unchanged. The caller holds the run's lock throughout; nothing here
     /// takes the attachment list's lock.
     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
-        match self.claim_and_carry_text(generation, person_text, mode) {
+        self.send_end_notice_observed(generation, person_text, mode, &mut |_| {})
+    }
+    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
+        match self.claim_and_carry_text(generation, person_text, mode, on_source) {
             Err(e) => {
                 self.sync_notice_flag();
-                NoticeSend { result: Err(e), written: false }
+                NoticeSend { result: Err(e), written: false, source: None }
             }
-            Ok((claim, carriage)) => {
+            Ok((claim, carriage, source)) => {
                 let written = matches!(carriage, NoticeCarriage::Written { .. });
-                NoticeSend { result: self.settle_end_notice(claim, carriage), written }
+                NoticeSend { result: self.settle_end_notice(claim, carriage), written, source }
             }
         }
     }
-    fn claim_and_carry_text(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> Result<(NoticeClaim, NoticeCarriage), String> {
+    fn claim_and_carry_text(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> Result<(NoticeClaim, NoticeCarriage, Option<crate::hosting::SourceRequest>), String> {
         if !self.notice.awaiting_turn() || self.notice_held_by_start.is_some() {
             return Err(self.notice_not_claimable());
         }
@@ -7605,8 +7627,8 @@ impl WorkflowRun {
             .map(|mode| self.home.host.collaboration_mode_element(generation, &thread, mode))
             .transpose()?;
         let claim = self.claim_end_notice(generation, &thread)?;
-        let carriage = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref());
-        Ok((claim, carriage))
+        let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), on_source);
+        Ok((claim, carriage, source))
     }
     /// TC-2 / TX-5, first half: claim the pending notice for exactly one new
     /// turn of its conversation. Its record is published first (a failure
@@ -9949,7 +9971,12 @@ for line in sys.stdin:
         root.runs[&a].lock().unwrap().end_run(None,None).unwrap();
         let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(end["body"],json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
         let root=Mutex::new(root);
-        let sent=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("a notice is pending").unwrap();assert_eq!(sent["state"],"end notice and the person's text sent once");
+        let mut original=None;
+        let sent=send_with_pending_notice_observed(&root,&peer.generation,"thread","hello",None,&mut |source|original=Some(source.clone())).expect("a notice is pending");
+        let source=sent.source.as_ref().expect("notice result retains its actual source");
+        assert_eq!(source.request_ref(),original.as_ref().unwrap().request_ref(),"callback retained the original source before its finish wait");
+        assert!(matches!(peer.home.host.handoff_send_observation(source,&peer.generation,"thread","hello"),crate::hosting::HandoffSendObservation::Sent(_)));
+        let sent=sent.result.unwrap();assert_eq!(sent["state"],"end notice and the person's text sent once");
         let turn=last_turn_start(&peer);let notice=turn["params"]["input"][0]["text"].as_str().unwrap().to_owned();
         assert!(notice.starts_with("[Chirality] Workflow run ended: coordinated-knowledge-work revision ")&&notice.ends_with("ended by the person). No workflow is in force."),"{notice}");
         assert!(notice.contains(&a));assert_eq!(turn["params"]["input"][1]["text"],"hello");assert_eq!(peer.fixture.wr_files().len(),wr_before+1,"notice record published before the send");
@@ -9959,6 +9986,21 @@ for line in sys.stdin:
         let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
         assert_eq!(kinds,["run_opened","run_ended","supplied_guidance"],"R3 of the notice follows run_ended in the ended run's log");
         assert_eq!(log[2]["body"]["supplyForm"],"workflow run end notice (turn text)");assert_eq!(log[2]["body"]["adoption"],"unknown");
+    }
+    #[test]
+    fn handoff_notice_sources_survive_native_error_and_observation_loss(){
+        for mode in ["error","exit"] {
+            let peer=Peer::new();let (root,_)=ended_run(&peer);
+            peer.set_mode("turn-mode",mode);
+            let mut original=None;
+            let sent=send_with_pending_notice_observed(&root,&peer.generation,"thread","exact edited text",None,&mut |source|original=Some(source.clone())).unwrap();
+            let source=sent.source.as_ref().expect("every completed begin source survives native wait/learning/settlement errors");
+            assert_eq!(source.request_ref(),original.as_ref().unwrap().request_ref());
+            assert_eq!(source.write_attempt_observed(),Some(true));
+            let observed=peer.home.host.handoff_send_observation(source,&peer.generation,"thread","exact edited text");
+            assert!(if mode=="error" {matches!(observed,crate::hosting::HandoffSendObservation::NativeFailed(_))} else {matches!(observed,crate::hosting::HandoffSendObservation::Unknown(_))});
+            assert!(sent.result.is_err(),"the legacy notice result stays unchanged");
+        }
     }
     /// One selected text file in a new attachment list, with App custody.
     /// Returns (list, owner, list revision, selection refs, custody, file path).
@@ -10248,6 +10290,7 @@ for line in sys.stdin:
         let peer=Peer::new();let (root,a)=ended_run(&peer);
         let (wr_before,starts)=(peer.fixture.wr_files().len(),peer.turn_starts());
         let refused=send_with_pending_notice_in_mode(&root,&peer.generation,"thread","plan it",Some("plan")).expect("pending");
+        assert!(refused.source.is_none(),"completed mode validation refused before any native dispatch");
         assert!(!refused.written&&refused.result.unwrap_err().contains("plan mode not offered"));
         assert_eq!((peer.turn_starts(),peer.fixture.wr_files().len()),(starts,wr_before),"refused before the notice was touched");
         assert!(notice_state(&root,&a).starts_with("pending"));
@@ -12516,10 +12559,16 @@ for line in sys.stdin:
         wait(&||peer.turn_starts()==2,"the peer read the stalling turn and stopped reading");
         let (h,gg)=(host.clone(),g.clone());let large=std::thread::spawn(move||h.turn_start_text(&gg,&t3,&"x".repeat(1024*1024)));
         wait(&||reserved(true),"the large frame holds the writer");
-        let (shared,gg)=(root.clone(),g.clone());let notice=std::thread::spawn(move||send_with_pending_notice(&shared,&gg,"thread","hello").expect("notice pending"));
+        let original=Arc::new(Mutex::new(None));
+        let (shared,gg,captured)=(root.clone(),g.clone(),original.clone());let notice=std::thread::spawn(move||send_with_pending_notice_observed(&shared,&gg,"thread","hello",None,&mut |source|*captured.lock().unwrap()=Some(source.clone())).expect("notice pending"));
         wait(&||reserved(false),"the notice turn/start is accepted and queued, not written");
         host.stop_scoped(&g,"the person","Codex stop").unwrap();
-        let refused=notice.join().unwrap().unwrap_err();
+        let refused=notice.join().unwrap();
+        let source=refused.source.as_ref().expect("reserved then invalidated source survives NoticeCarriage::NotWritten");
+        assert_eq!(source.request_ref(),original.lock().unwrap().as_ref().unwrap().request_ref());
+        assert_eq!(source.write_attempt_observed(),Some(false));
+        assert!(matches!(host.handoff_send_observation(source,&g,"thread","hello"),crate::hosting::HandoffSendObservation::NotAttempted(_)));
+        let refused=refused.result.unwrap_err();
         assert!(refused.contains("no write attempt observed"),"the Host returned a source with no write attempt: {refused}");
         let _=(stall.join().unwrap(),large.join().unwrap());
         assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"),"never Sent");

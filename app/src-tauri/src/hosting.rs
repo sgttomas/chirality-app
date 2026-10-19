@@ -55,6 +55,9 @@ use attachment_custody::AttachmentCustody;
 pub(crate) mod auth_rpc;
 #[path = "oauth_control.rs"]
 mod oauth_control;
+#[path = "hosting_handoff_send.rs"]
+mod handoff_send;
+pub(crate) use handoff_send::HandoffSendObservation;
 // Host owns these pins; no Serde/Debug/Clone or JSON constructor.
 struct LoginSourcePin {
     generation: Value,
@@ -4145,6 +4148,7 @@ mod additive_guidance_transport_tests {
 
 #[cfg(test)]
 mod conversation_transport_tests {
+    mod handoff_send_tests { include!("hosting_handoff_send_tests.rs"); }
     mod manual_history_tests { include!("hosting_manual_history_tests.rs"); }
     mod observation_custody_tests { include!("hosting_observation_custody_tests.rs"); }
     mod role_observations_host_tests { include!("role_observations_host_tests.rs"); }

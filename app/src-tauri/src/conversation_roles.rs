@@ -10,6 +10,9 @@
 use crate::role_lifecycle::RoleInForce;
 use crate::role_supply::Role;
 use serde_json::{json, Value};
+#[path = "conversation_handoff_send.rs"]
+mod handoff_send;
+pub(crate) use handoff_send::{send_handoff, read_handoff_send};
 
 /// CA-2 request wording (PROPOSED in NIR U-NIR-9; chosen here). It names what
 /// the summary should cover and asks for nothing else.
@@ -48,7 +51,7 @@ fn not_sent(reason: &str) -> bool {
     reason.starts_with("refused-not-sent") || reason.starts_with("conversation selection is stale") || reason.starts_with("conversation is not loaded")
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Handoff {
     id: String,
     generation: Value,
@@ -60,6 +63,7 @@ struct Handoff {
     request: Value,
     started: Option<Value>,
     native_owner:Option<std::sync::Weak<crate::hosting::Host>>,
+    send_attempt: Option<handoff_send::Attempt>,
 }
 
 /// Frozen source of an actual admitted Continue-as handoff. No JSON constructor,
@@ -133,6 +137,7 @@ impl Handoffs {
             request: json!({"state":"sending"}),
             started: None,
             native_owner:None,
+            send_attempt:None,
         };
         let reserved = (handoff.id.clone(), handoff.request_text.clone());
         self.open.push(handoff);
@@ -222,7 +227,7 @@ impl Handoffs {
             };
             json!({"id":h.id,"generation":h.generation,"sourceThread":h.source_thread,"sourceRole":h.source_role,
                 "sourceRoleLabel":role_label(&h.source_role),"targetRole":h.target,"requestText":h.request_text,"request":h.request,
-                "header":header,"draft":draft,"draftText":text,"started":h.started,
+                "header":header,"draft":draft,"draftText":h.send_attempt.as_ref().map(|attempt|attempt.draft_text()).unwrap_or(&text),"started":h.started,"sendOutcome":handoff_send::view(h),
                 "standing":"Draft only: nothing is sent to the new conversation until you send it. The summary is the source agent's text, not supplied guidance."})
         }).collect::<Vec<_>>())
     }
