@@ -1001,6 +1001,17 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Workflow responses and draft observation (SQ-D D-2).** The workflow panel
+retains a returned native command value separately from later view-refresh or
+draft-observation failures. The displayed response and limits name the
+original command, request and source; a later source change does not retarget
+them. After Create draft or Refine returns, the panel attempts its existing
+draft observation once using the captured original context, even if the first
+view refresh failed. An unavailable observation leaves its cause alongside
+the original response. This neither retries the mutation nor infers that a
+generic native command error means no files were written. Existing native
+source checks and raw child return values remain unchanged.
+
 **Advisory before a proposed start (PR-1–PR-5 / CK-1).** The message's
 verified registered candidate receives the existing compatibility evaluation
 before the person chooses Start or End A and start B. The read uses the

@@ -520,7 +520,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -531,13 +531,40 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
   const [busy,setBusy]=useState(false);
-  const [message,setMessage]=useState("");
-  // Resolves to the host's result, or undefined when the command failed (the message shows why).
-  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{setBusy(true);try{const result=await act(command,workflowArguments(command,args,data,host,thread));setMessage(workflowActionMessage(command,result));
-    // An App-made draft is listed again by the host (WR SQ-D D-2).
-    if(command==="workflow_create_draft"||command==="workflow_refine_registered"){await act("workflow_observe_drafts",workflowArguments("workflow_observe_drafts",{},result?.context?result:{...data,activeLibrary:result?.library??data?.activeLibrary},host,thread)).catch(()=>undefined);}
-    return result;
-  }catch(e){setMessage(String(e));return undefined;}finally{setBusy(false);}};
+  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[]}>();
+  // Native results and later observation limits belong to the original press.
+  // Children receive the unchanged native value, including pre-fill results.
+  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
+    setBusy(true);
+    let request:Record<string,unknown>;
+    try{request=workflowArguments(command,args,data,host,thread);}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});setBusy(false);return undefined;}
+    const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
+    setOutcome({relation,message:"",limits:[]});
+    const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    // Capture this metadata request before awaiting the command or a new view.
+    let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
+    if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
+      try{draftRequest=command==="workflow_create_draft"?{context:structuredClone(request.context)}:workflowArguments("workflow_observe_drafts",{},data,host,thread);}
+      catch(error){draftRequestError=error;}
+    }
+    try{
+      const result=await act(command,request);
+      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result)}:old);
+      await observe(command);
+      // SQ-D D-2 stays one original-context read even if the view refresh failed.
+      if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
+        try{
+          if(!draftRequest)throw draftRequestError;
+          await act("workflow_observe_drafts",draftRequest);
+          await observe(`workflow_observe_drafts for ${command}`);
+        }catch(error){limit(`Draft observation (workflow_observe_drafts) after ${command} failed: ${String(error)}. The original command response is retained as reported.`);}
+      }
+      return result;
+    }catch(error){setOutcome(old=>old?.relation===relation?{...old,message:String(error)}:old);return undefined;}
+    finally{setBusy(false);}
+  };
   const conversations:Json[]=(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation));
   const entries:Json[]=data?.reviews??[];
   const orderedReviews=entries.filter(review=>review.reference===data?.activeReview).concat(entries.filter(review=>review.reference!==data?.activeReview));
@@ -653,7 +680,12 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
-    {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
+    {outcome&&<div aria-label="Workflow action response">
+      <p>Original workflow action: <code>{outcome.relation.command}</code> · source <code>{outcome.relation.source?.sourceRef??"not supplied"}</code>. Response and observation limits belong to this request.</p>
+      {outcome.message&&<p role="status" aria-label="Workflow command result" style={{whiteSpace:"pre-wrap"}}>{outcome.message}</p>}
+      {outcome.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
+      <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
+    </div>}
   </section>;
 }
 
@@ -1134,7 +1166,7 @@ export function App() {
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
-      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
+      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command,args)=>invoke<Json>(command,args)} observeView={refresh} />
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }} />
 
       <section>
