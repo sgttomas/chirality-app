@@ -7964,6 +7964,7 @@ mod workflow_root_tests {
     mod supply_dispatch_tests { use super::*; include!("workflow_supply_dispatch_tests.rs"); }
     mod library_entries_tests { use super::*; include!("workflow_library_entries_tests.rs"); }
     mod proposal_disclosure_tests { use super::*; include!("workflow_proposal_disclosure_tests.rs"); }
+    mod selected_chain_disclosure_tests { use super::*; include!("workflow_selected_chain_disclosure_tests.rs"); }
     mod action_result_tests { use super::*; include!("workflow_action_result_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
