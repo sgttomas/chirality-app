@@ -202,13 +202,25 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   </section>;
 }
 
-export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host: Json; refresh: () => Promise<Json>; threadKey: string; setThreadKey: (key: string) => void }) {
+type ContinueNavigation = { isCurrent: () => boolean; observe: () => Promise<Json> };
+type ContinueNavigationTicket = {
+  generation: Json; epoch: number; threadId: string; requestRef: string;
+  resolution: string; previousResolution: string | undefined; threadKey: string;
+  operation: number; navigation: ContinueNavigation;
+};
+
+export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureContinueNavigation }: {
+  host: Json; refresh: () => Promise<Json>; threadKey: string; setThreadKey: (key: string) => void;
+  captureContinueNavigation: (generation: Json) => ContinueNavigation;
+}) {
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [error, setError] = useState("");
+  const [continueNotice, setContinueNotice] = useState("");
+  const [pendingContinue, setPendingContinue] = useState<ContinueNavigationTicket | null>(null);
+  const operation = useRef(0);
+  const activeNavigation = useRef<ContinueNavigation | null>(null);
   const [direction, setDirection] = useState("desc");
-  // A source or chat choice rendered during the pending refresh supersedes its old snapshot.
-  const latest = useRef({ host, threadKey });
-  latest.current = { host, threadKey };
   const history = host?.nativeHistory;
   const selected = history?.selected;
   const generation = history?.generation;
@@ -216,47 +228,104 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host:
   const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
   const turnPage = historyPageBinding(host, "turns");
   const itemPage = historyPageBinding(host, "items");
+  const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
+  // Only identity/revision metadata is retained across an observer failure.
+  // The returned resume body, transcript and native role hints stay out of it.
+  const admissionTicket = (result: Json, priorRequests: Set<unknown>, navigation: ContinueNavigation, requestOperation: number): ContinueNavigationTicket | null => {
+    const resolution = result?.selected?.streamResolutions?.["thread-state"];
+    const query = resolution?.query;
+    const previous = selected?.streamResolutions?.["thread-state"];
+    const positive = (value: Json) => Number.isSafeInteger(value) && value > 0;
+    if (!positive(epoch) || !positive(resolution?.revision) || resolution.revision <= (previous?.revision ?? 0)
+      || resolution.outcome !== "native-result-observed" || !positive(query?.factory_id) || !positive(query?.query_id)
+      || query.home !== generation?.home || !same(query.generation, generation) || query.method !== "thread/resume"
+      || !query.params || Object.keys(query.params).length !== 2
+      || query.params.threadId !== selected?.threadId || query.params.excludeTurns !== true) return null;
+    const dispatch = (result?.dispatches ?? []).find((row: Json) => typeof row.requestRef === "string" && row.requestRef && !priorRequests.has(row.requestRef)
+      && row.writeResult === "written" && row.outcome === "response-observed-result" && row.sourceCurrent === true
+      && row.home === generation?.home && same(row.generation, generation) && same(row.localQuery, query));
+    const admitted = dispatch?.activeAdmission;
+    if (admitted?.nativeResumeObserved !== true || admitted.resumeRequestRef !== dispatch.requestRef
+      || typeof admitted.threadId !== "string" || !admitted.threadId || admitted.threadId !== selected?.threadId
+      || !admitted.generation || !same(admitted.generation, generation) || !same(result?.generation, generation)
+      || result?.home !== generation?.home || result?.selectionEpoch !== epoch || result?.selected?.threadId !== admitted.threadId
+      || result.selected.state !== "resume-response-observed" || result.selected.resumeEligibilityCurrent !== true) return null;
+    return { generation: { appSession: generation.appSession, home: generation.home, spawnCounter: generation.spawnCounter },
+      epoch, threadId: admitted.threadId, requestRef: dispatch.requestRef, resolution: JSON.stringify(resolution),
+      previousResolution: JSON.stringify(previous), threadKey, operation: requestOperation, navigation };
+  };
+  useEffect(() => {
+    // Check even while the command/observer is in flight. Once invalidated, a
+    // token cannot regain currency after an away-and-back source or UI choice.
+    activeNavigation.current?.isCurrent();
+    if (!pendingContinue) return;
+    const ticket = pendingContinue;
+    const currentHistory = host?.nativeHistory, currentSelected = currentHistory?.selected;
+    const cancel = () => {
+      setPendingContinue(null);
+      setContinueNotice("Continue admission was confirmed; a newer choice or changed source superseded its navigation. No automatic retry.");
+    };
+    if (ticket.operation !== operation.current || !ticket.navigation.isCurrent() || threadKey !== ticket.threadKey
+      || host?.state !== "ready" || host.generationClosed === true || !same(host.generation, ticket.generation)
+      || currentHistory?.state !== "history-receiving" || currentHistory.home !== ticket.generation.home
+      || !same(currentHistory.generation, ticket.generation) || currentHistory.selectionEpoch !== ticket.epoch
+      || currentSelected?.threadId !== ticket.threadId) { cancel(); return; }
+    const currentResolution = JSON.stringify(currentSelected.streamResolutions?.["thread-state"]);
+    if (currentResolution !== ticket.resolution) {
+      // A failed observation can leave the original pre-command view rendered.
+      // Any other query/revision supersedes it; it is never a stale fallback.
+      if (currentResolution !== ticket.previousResolution) cancel();
+      return;
+    }
+    if (currentSelected.state !== "resume-response-observed" || currentSelected.resumeEligibilityCurrent !== true) { cancel(); return; }
+    if (!(host.threads ?? []).some((row: Json) => row.threadId === ticket.threadId && same(row.generation, ticket.generation)
+      && row.nativeResumeObserved === true && row.resumeRequestRef === ticket.requestRef)) return;
+    setPendingContinue(null);
+    activeNavigation.current = null;
+    setContinueNotice("Continue admission confirmed; opened the matched conversation. No automatic resend.");
+    setError("");
+    setThreadKey(JSON.stringify([ticket.generation, ticket.threadId]));
+  });
   const run = async (action: string, cursor: string | null = null, reference: string | null = null, pagingDirection = direction) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const requestOperation = ++operation.current;
+    setPendingContinue(null);
+    const navigation = action === "continue" ? captureContinueNavigation(generation) : null;
+    activeNavigation.current = navigation;
+    setContinueNotice("");
     setBusy(true); setError("");
     const priorRequests = new Set((history?.dispatches ?? []).map((dispatch: Json) => dispatch.requestRef));
-    let result: Json;
-    try { result = await invoke("history_action", { generation, selectionEpoch: epoch, action, cursor, direction: pagingDirection, reference }); }
+    let ticket: ContinueNavigationTicket | null = null;
+    try {
+      const result: Json = await invoke("history_action", { generation, selectionEpoch: epoch, action, cursor, direction: pagingDirection, reference });
+      if (navigation) ticket = admissionTicket(result, priorRequests, navigation, requestOperation);
+    }
     catch (e) { setError(String(e)); }
     finally {
       try {
-        const refreshed = await refresh();
-        const current = latest.current.host === host ? refreshed : latest.current.host;
-        const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
-        const resolution = result?.selected?.streamResolutions?.["thread-state"];
-        const dispatch = (result?.dispatches ?? []).find((row: Json) => row.requestRef && !priorRequests.has(row.requestRef)
-          && row.writeResult === "written" && row.outcome === "response-observed-result" && row.sourceCurrent === true
-          && same(row.generation, generation) && same(row.localQuery, resolution?.query)
-          && row.localQuery?.method === "thread/resume" && row.localQuery?.params?.threadId === selected?.threadId);
-        const admitted = dispatch?.activeAdmission;
-        // Only a new matched Continue admission opens a chat; indexed pages remain read-only.
-        if (action === "continue" && latest.current.threadKey === threadKey && admitted?.nativeResumeObserved === true && admitted.resumeRequestRef === dispatch.requestRef
-          && typeof admitted.threadId === "string" && admitted.threadId && admitted.threadId === selected?.threadId
-          && admitted.generation && same(admitted.generation, generation) && same(result?.generation, generation)
-          && result?.selectionEpoch === epoch && result?.selected?.threadId === admitted.threadId
-          && result?.selected?.state === "resume-response-observed" && result?.selected?.resumeEligibilityCurrent === true
-          && resolution?.outcome === "native-result-observed" && current?.state === "ready" && same(current.generation, admitted.generation)
-          && same(current.nativeHistory?.generation, generation) && current.nativeHistory?.selectionEpoch === epoch
-          && current.nativeHistory?.selected?.threadId === admitted.threadId && current.nativeHistory.selected.state === "resume-response-observed"
-          && current.nativeHistory.selected.resumeEligibilityCurrent === true && same(current.nativeHistory.selected.streamResolutions?.["thread-state"], resolution)
-          && (current.threads ?? []).some((row: Json) => row.threadId === admitted.threadId && same(row.generation, admitted.generation)
-            && row.nativeResumeObserved === true && row.resumeRequestRef === dispatch.requestRef)) {
-          setThreadKey(JSON.stringify([admitted.generation, admitted.threadId]));
-        }
+        if (navigation) await navigation.observe();
+        else await refresh();
       } catch (e) { setError(String(e)); }
+      if (navigation) {
+        setPendingContinue(ticket);
+        setContinueNotice(ticket ? "Continue admission confirmed; waiting for its matched current conversation view. No automatic retry."
+          : "No matched Continue admission was returned. The conversation selection is retained; no automatic retry.");
+      }
+      busyRef.current = false;
       setBusy(false);
     }
   };
   const select = async (threadId: string) => {
-    if (!threadId) return;
+    if (!threadId || busyRef.current) return;
+    busyRef.current = true;
+    operation.current++;
+    activeNavigation.current = null;
+    setPendingContinue(null); setContinueNotice("");
     setBusy(true); setError("");
     try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } setBusy(false); }
+    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); }
   };
   const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span>
     {typeof page?.nextCursor === "string" && <button disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
@@ -290,6 +359,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey }: { host:
       {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.originalRoleSupply, null, 2)}</pre></details>}
     </>}
     {busy && <p>Waiting for native protocol response; no automatic retry.</p>}
+    {continueNotice && <p role="status">{continueNotice}</p>}
     {error && <p role="alert">{error}</p>}
     {(history?.receivingLimits ?? history?.limits ?? []).map((limit: string, index: number) => <p key={index}>{limit}</p>)}
     <details><summary>History dispatch and pending/error evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }, null, 2)}</pre></details>
@@ -875,6 +945,7 @@ export function App() {
   const { model, modelProvider, entryId } = conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice;
   const [startPending, setStartPending] = useState(false);
   const startPendingRef = useRef(false);
+  const continueStartRevision = useRef(0);
   const [homePending, setHomePending] = useState(false);
   const homePendingRef = useRef(false);
   const currentHost = useRef(host);
@@ -905,6 +976,33 @@ export function App() {
     return snapshot;
   }, []);
 
+  const captureContinueNavigation = (generation: Json): ContinueNavigation => {
+    const source = JSON.stringify(generation);
+    const mode = chooserHome.current.mode, epoch = chooserHome.current.epoch;
+    const choiceRevision = threadChoiceRevision.current, startRevision = continueStartRevision.current;
+    let current = true;
+    const isCurrent = () => {
+      const shown = currentHost.current;
+      current = current && !homePendingRef.current && !startPendingRef.current
+        && shown?.state === "ready" && shown.generationClosed !== true
+        && JSON.stringify(shown.generation) === source && shown.homeRouting?.activeModeHomeClass === mode
+        && chooserHome.current.epoch === epoch && threadChoiceRevision.current === choiceRevision
+        && continueStartRevision.current === startRevision;
+      return current;
+    };
+    return { isCurrent, observe: async () => {
+      // The same two observer reads as refresh, bounded to this original
+      // navigation's last-known source/intent. Shared refresh semantics stay put.
+      const snapshot: Json = await invoke("host_status");
+      if (isCurrent()) setHost(snapshot);
+      try {
+        const decision: Json = await invoke("decision_view");
+        if (isCurrent()) setView(decision);
+      } catch (e) { if (isCurrent()) setView({ error: String(e) }); }
+      return snapshot;
+    } };
+  };
+
   useEffect(() => {
     refresh();
     const t = setInterval(() => invoke("host_status").then(setHost).catch(e => setMessage(String(e))), 1000);
@@ -934,6 +1032,7 @@ export function App() {
         !submitted.model.trim() || !submitted.modelProvider.trim() || !(mode === "account" || mode === "api-key") ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
     const revision = editRevision.current;
+    continueStartRevision.current++;
     startPendingRef.current = true;
     setStartPending(true);
     try {
@@ -1188,7 +1287,7 @@ export function App() {
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })}
         readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })}
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
-      <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
+      <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} />
 
       <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
