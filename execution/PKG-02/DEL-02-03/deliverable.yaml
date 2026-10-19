@@ -435,11 +435,15 @@ code_paths:
 - app/src-tauri/src/checkpoint_recorder.rs
 - app/src-tauri/src/after_run_end.rs
 - app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/workflow_proposal_advisory.rs
+- app/src/RunOffers.tsx
 - app/src-tauri/src/records_index.rs
 - app/src/RunPanel.tsx
 - app/src/App.tsx
 - app/src-tauri/src/file_act_view.rs
 checks:
+- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
+- app/tests/proposed-run-disclosure.test.mjs
 - app/src-tauri/src/home_qualified_hot_run_tests.rs
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs

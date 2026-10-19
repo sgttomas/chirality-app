@@ -4462,6 +4462,9 @@ struct ProposedRevision {
     revision: crate::workflow_workspace::RegisteredRevision,
     library: std::sync::Arc<WorkflowLibraryContext>,
 }
+#[path = "workflow_proposal_advisory.rs"]
+mod proposal_advisory;
+pub(crate) use proposal_advisory::ProposalContext;
 struct WorkflowSelectionState {
     reference: String,
     selection: crate::workflow_workspace::Selection,
@@ -5926,6 +5929,14 @@ impl WorkflowRootSession {
         person_text: String,
         project: Option<&std::path::Path>,
     ) -> Result<String, String> {
+        self.start_proposed_with_context(view,home,generation,message,live,person_text,project,None)
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn start_proposed_with_context(
+        &mut self, view:&Value, home:std::sync::Arc<HomeSession>, generation:&Value,
+        message:&Value, live:Option<&str>, person_text:String, project:Option<&std::path::Path>,
+        expected:Option<&ProposalContext>,
+    ) -> Result<String,String> {
         let message = &crate::run_offers::ItemRef::from_value(message)?;
         let home_key = generation["home"].as_str().ok_or("Native home absent")?.to_owned();
         if view["home"] != home_key.as_str() || view["generation"] != *generation {
@@ -5956,6 +5967,9 @@ impl WorkflowRootSession {
             .try_lock()
             .map_err(|_| "Original library owner busy; nothing selected")?
             .store_copy(&found.identity);
+        if let Some(expected) = expected {
+            self.verify_disclosed_context(view,&home,generation,message,live,&named,&found,&store,expected)?;
+        }
         let chosen = self
             .resolve_registered(&crate::workflow_selection::Chat::in_home(&home, &thread), &found.revision, store)
             .map_err(|cause| format!("proposed workflow {}: {cause}; nothing selected or started", named.text()))?;
@@ -7949,6 +7963,7 @@ mod workflow_root_tests {
     mod file_act_arrival_tests { use super::*; include!("file_act_arrival_tests.rs"); }
     mod supply_dispatch_tests { use super::*; include!("workflow_supply_dispatch_tests.rs"); }
     mod library_entries_tests { use super::*; include!("workflow_library_entries_tests.rs"); }
+    mod proposal_disclosure_tests { use super::*; include!("workflow_proposal_disclosure_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
@@ -8698,7 +8713,7 @@ for line in sys.stdin:
             std::thread::sleep(Duration::from_millis(20));};
         assert!(view["items"].as_array().unwrap().iter().any(|r|r["native"]["id"]=="m1"),"the fixture's arrival reached the native view: {view}");
         assert!(view["serverRequests"].is_array(),"the record tick's view carries the server-request register (CE-4)");
-        let status=crate::host_tick::workflow_status(&workflows,&view,true);
+        let status=crate::host_tick::workflow_status(&workflows,&peer.home,&view,true);
         assert!(status["runs"].is_array());
         assert_eq!(kinds_for(&peer,&a),before,"host_status's workflow part records nothing");
         // The tick alone records the arrival (no host_status call anywhere in this test).
