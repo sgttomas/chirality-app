@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
-import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
+import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
 import { NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
@@ -71,7 +71,10 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
   return { threadId: row.threadId, requestRef: from.forkRequestRef };
 };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink }: { activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
+type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
+
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink }: { activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -82,6 +85,9 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   // (the host also refuses new turns once a stop is confirmed).
   const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");
   const [error, setError] = useState<string>("");
+  const [attachmentOutcome, setAttachmentOutcome] = useState<AttachmentOutcome | null>(null);
+  const attachmentView = useRef({ generation: host?.generation, threadKey });
+  attachmentView.current = { generation: host?.generation, threadKey };
   const generationKey = JSON.stringify(host?.generation);
   const currentThreads = (host?.threads ?? []).filter((thread: Json) => JSON.stringify(thread.generation) === generationKey);
   const selected = currentThreads.find((thread: Json) => JSON.stringify([thread.generation, thread.threadId]) === threadKey);
@@ -107,12 +113,24 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const attachmentText = async (expected: string | null) => {
     const selection = host?.attachmentSelections;
     if (!selected || !selection?.ownerRef || !(selection.selections ?? []).length || busy) return;
+    const request: AttachmentRequest = { generation: selected.generation, threadId: selected.threadId, expectedTurnId: expected, text, ownerRef: selection.ownerRef, listRevision: selection.listRevision, selectionRefs: selection.selections.map((row: Json) => row.selection.selectionRef) };
     setBusy(expected ? "steering with attachments" : "sending with attachments"); setError("");
+    setAttachmentOutcome(null);
+    let outcome: AttachmentOutcome;
     try {
-      await submitAttachments(selected.generation, selected.threadId, expected, text, selection.ownerRef, selection.listRevision, selection.selections.map((row: Json) => row.selection.selectionRef));
-      setText("");
-    } catch (e) { setError(String(e)); }
+      const nativeValue = await submitAttachments(request.generation, request.threadId, request.expectedTurnId, request.text, request.ownerRef, request.listRevision, request.selectionRefs);
+      // Fulfilment is the host's matching-ack contract. A later view read cannot
+      // change it, clear another conversation's draft or erase a newer edit.
+      outcome = { request, result: { acknowledged: true, nativeValue } };
+      if (JSON.stringify(attachmentView.current.generation) === JSON.stringify(request.generation) && attachmentView.current.threadKey === JSON.stringify([request.generation, request.threadId])) {
+        setText(current => current === request.text ? "" : current);
+      }
+    } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
+    setAttachmentOutcome(outcome);
+    try { await observeAttachmentView?.(request); }
+    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
     finally { setBusy(""); }
+    return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
   const interruptTurn = async () => {
     if (!selected || !live || ownBusy || alreadyRequested) return;
@@ -210,6 +228,17 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       <button disabled={host?.state !== "ready" || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
       <p>Every selected source is revalidated as one whole list. Source/custody/context failures retain the draft and evidence; no text-only fallback or automatic resend. Native acknowledgments remain separate from completion and provider uptake.</p>
       {host?.attachmentCustody?.state !== "opened" && <p>Attachment custody unavailable: {host?.attachmentCustody?.error}. Plain-text controls remain available.</p>}
+    </div>}
+    {attachmentOutcome && <div aria-label="Attachment submission outcome">
+      <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
+      {attachmentOutcome.result.acknowledged
+        ? <p role="status">Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.</p>
+        : <p role="alert">{String(attachmentOutcome.result.nativeError)} No automatic retry.</p>}
+      {attachmentOutcome.observationLimit && <p role="alert">Attachment view refresh unavailable for this original request: {attachmentOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      <details><summary>Original attachment request identity</summary>
+        <p>App session: {attachmentOutcome.request.generation?.appSession} · spawn: {attachmentOutcome.request.generation?.spawnCounter} · selection owner: {attachmentOutcome.request.ownerRef} · list revision: {attachmentOutcome.request.listRevision}.</p>
+        <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
+      </details>
     </div>}
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
@@ -652,7 +681,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -663,13 +692,40 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
   const [busy,setBusy]=useState(false);
-  const [message,setMessage]=useState("");
-  // Resolves to the host's result, or undefined when the command failed (the message shows why).
-  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{setBusy(true);try{const result=await act(command,workflowArguments(command,args,data,host,thread));setMessage(workflowActionMessage(command,result));
-    // An App-made draft is listed again by the host (WR SQ-D D-2).
-    if(command==="workflow_create_draft"||command==="workflow_refine_registered"){await act("workflow_observe_drafts",workflowArguments("workflow_observe_drafts",{},result?.context?result:{...data,activeLibrary:result?.library??data?.activeLibrary},host,thread)).catch(()=>undefined);}
-    return result;
-  }catch(e){setMessage(String(e));return undefined;}finally{setBusy(false);}};
+  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[]}>();
+  // Native results and later observation limits belong to the original press.
+  // Children receive the unchanged native value, including pre-fill results.
+  const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
+    setBusy(true);
+    let request:Record<string,unknown>;
+    try{request=workflowArguments(command,args,data,host,thread);}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});setBusy(false);return undefined;}
+    const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
+    setOutcome({relation,message:"",limits:[]});
+    const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    // Capture this metadata request before awaiting the command or a new view.
+    let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
+    if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
+      try{draftRequest=command==="workflow_create_draft"?{context:structuredClone(request.context)}:workflowArguments("workflow_observe_drafts",{},data,host,thread);}
+      catch(error){draftRequestError=error;}
+    }
+    try{
+      const result=await act(command,request);
+      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result)}:old);
+      await observe(command);
+      // SQ-D D-2 stays one original-context read even if the view refresh failed.
+      if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
+        try{
+          if(!draftRequest)throw draftRequestError;
+          await act("workflow_observe_drafts",draftRequest);
+          await observe(`workflow_observe_drafts for ${command}`);
+        }catch(error){limit(`Draft observation (workflow_observe_drafts) after ${command} failed: ${String(error)}. The original command response is retained as reported.`);}
+      }
+      return result;
+    }catch(error){setOutcome(old=>old?.relation===relation?{...old,message:String(error)}:old);return undefined;}
+    finally{setBusy(false);}
+  };
   const conversations:Json[]=(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation));
   const entries:Json[]=data?.reviews??[];
   const orderedReviews=entries.filter(review=>review.reference===data?.activeReview).concat(entries.filter(review=>review.reference!==data?.activeReview));
@@ -779,13 +835,23 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
       <button disabled={busy||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
         <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
+        {next&&run.home===host?.generation?.home&&<section aria-label="Selected workflow for the next run">
+          <p>Next selected workflow for conversation {run.conversation}: {next.identity?.kind??"kind not supplied"} <b>{next.identity?.name??"name not supplied"}</b> · {next.identity?.origin??"origin not supplied"} library “{next.identity?.source_root??"source root not supplied"}”, revision <code style={{overflowWrap:"anywhere"}}>{next.identity?.revision??"revision not supplied"}</code> ({next.identity?.revision_method??"revision method not supplied"}).</p>
+          <p>Holding library: {next.compatibility?.holdingLibrary??"not supplied"}.</p>
+          <ul><CompatibilityAdvisory entry={next.compatibility}/></ul>
+        </section>}
         <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name??"this chat’s selected workflow"}</button>
       </>}
       {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
-    {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
+    {outcome&&<div aria-label="Workflow action response">
+      <p>Original workflow action: <code>{outcome.relation.command}</code> · source <code>{outcome.relation.source?.sourceRef??"not supplied"}</code>. Response and observation limits belong to this request.</p>
+      {outcome.message&&<p role="status" aria-label="Workflow command result" style={{whiteSpace:"pre-wrap"}}>{outcome.message}</p>}
+      {outcome.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
+      <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
+    </div>}
   </section>;
 }
 
@@ -1397,7 +1463,7 @@ export function App() {
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
-      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
+      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command,args)=>invoke<Json>(command,args)} observeView={refresh} />
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }} />
 
       <section>
@@ -1460,10 +1526,19 @@ export function App() {
       }} steer={async (generation, threadId, expectedTurnId, text) => {
         await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
-        try {
-          await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
-          setMessage("Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.");
-        } finally { setHost(await invoke("host_status")); }
+        return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
+      }} observeAttachmentView={async request => {
+        const viewAtRead = currentHost.current;
+        const snapshot = await invoke<Json>("host_status");
+        // This read belongs to the original attachment request, not a Home or
+        // generation selected while its native response/read was pending.
+        if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
+          throw new Error("The current source changed; this original request's view was not applied");
+        }
+        if (currentHost.current !== viewAtRead) {
+          throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
+        }
+        setHost(snapshot);
       }} interrupt={async (generation, threadId, turnId) => {
         await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }} />

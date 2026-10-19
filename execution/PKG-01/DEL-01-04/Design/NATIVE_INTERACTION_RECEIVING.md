@@ -1087,6 +1087,17 @@ composition, claim, settlement or carry-once rule; its existing written flag
 is not native acceptance. Handoffs remain transient; these observations
 restore no cold request, role or current-generation authority.
 
+**Attachment submission and observation refresh.** The ordered-attachment
+Send and Steer controls keep the original command outcome separate from a
+later failure to read the current Host view. A returned matching native
+acknowledgment is handled by the composer even when that observation fails;
+a rejected command retains its reported error and text. Observation limits
+belong to the original generation, conversation, optional steering target
+and selected list, not a replacement source. A command error alone proves
+neither no attempt nor no native effect. Later acknowledgment on the original
+held source does not rewrite the earlier command outcome or resend anything.
+Carrier, custody, source and once-only notice checks remain unchanged.
+
 **Person-opened App-file arrival review (PD-5).** Eligible live single-file
 A4/A6/A7 arrival rows offer an explicit entry into the existing frozen file
 preview. The host resolves the original run and written arrival; the renderer
