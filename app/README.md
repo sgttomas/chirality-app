@@ -1078,8 +1078,12 @@ unavailable, retained raw evidence stays inspectable and prior readable rows and
 page buttons are withheld. Reading does not supply live status or reconstruct
 earlier checklist updates. **Continue selected conversation** separately requests native
 resume before permitting operational text input, requesting `excludeTurns:true`
-instead of deprecated full-history hydration. Its admitted conversation then
-loads the bounded prior-work context described in item 11. A failed context page
+instead of deprecated full-history hydration. Its confirmed admission can finish opening on a later successful source
+read when the immediate refresh fails or has not yet shown its row. A newer
+conversation choice, Start intent, home/source change or stored-history
+operation supersedes that pending navigation; an unknown result never opens a
+conversation merely because a later read lists it. Its admitted conversation
+then loads the bounded prior-work context described in item 11. A failed context page
 has an explicit retry that reads history without another resume or send. It keeps the conversation’s
 existing guidance/settings and does not resend automatically. Original App role
 evidence is shown only when retained in this process; a cold restart shows
