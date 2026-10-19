@@ -418,6 +418,8 @@ code_paths:
 - app/src/ConversationRoles.tsx
 - app/src/exactText.ts
 - app/src-tauri/src/conversation_roles.rs
+- app/src-tauri/src/conversation_handoff_send.rs
+- app/src-tauri/src/hosting_handoff_send.rs
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
@@ -428,6 +430,9 @@ checks:
 - app/tests/observer-attachment.test.mjs
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs
+- app/src-tauri/src/conversation_handoff_send_tests.rs
+- app/src-tauri/src/hosting_handoff_send_tests.rs
+- app/tests/continue-as-send.test.mjs
 - app/tests/codex-controls.test.mjs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs

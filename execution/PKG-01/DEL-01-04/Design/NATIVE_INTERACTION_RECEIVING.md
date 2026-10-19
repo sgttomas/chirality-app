@@ -1036,6 +1036,21 @@ generation and typed request identity and retains no answer content. It does
 not synthesize a register settlement, supplier acknowledgment or a new request.
 Reopening the view still reconstructs cards from the Host's actual register.
 
+**Continue-as message outcome.** The explicit handoff send has its own
+process-held attempt, bound to the admitted target, original Host, full
+generation and exact edited text. The attempt is reserved before dispatch;
+an in-flight writer or unavailable observation cannot establish that nothing
+was sent. The Host retains the original source before waiting, including the
+ordinary pending end-notice path. No-attempt, native error, confirmed native
+turn result and unknown remain distinct. A completely written request and its
+valid correlated turn result establish the send observation; view-refresh
+failure does not replace it. Only a settled producer proof of no attempt
+permits another explicit handoff send. Reading the outcome observes the same
+held attempt and never sends again. Receipt retention changes no notice
+composition, claim, settlement or carry-once rule; its existing written flag
+is not native acceptance. Handoffs remain transient; these observations
+restore no cold request, role or current-generation authority.
+
 **Person-opened App-file arrival review (PD-5).** Eligible live single-file
 A4/A6/A7 arrival rows offer an explicit entry into the existing frozen file
 preview. The host resolves the original run and written arrival; the renderer

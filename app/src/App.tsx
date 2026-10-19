@@ -7,7 +7,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
-import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus } from "./ConversationRoles";
+import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
@@ -55,7 +55,7 @@ const startedConversationKey = (response: Json): string | null => {
 
 const emptyConversationChoice = { model: "", modelProvider: "", entryId: "" };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, handoffSend, handoffRead }: { handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -157,7 +157,8 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
       start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id }); }}
-      send={async draft => { const started = handoff.started; if (!started) return false; return (await roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null })) !== undefined; }}
+      send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
+      read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
     {composers.clean.map((pending: Json) => <CleanTrialPanel key={`clean-trial:${pending.reference}`} pending={pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
@@ -1072,6 +1073,23 @@ export function App() {
       document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView?.();
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
   };
+  // Continue-as owns an original native attempt separately from observation.
+  // IPC/observer errors never become a claim that no submission was attempted.
+  const handoffAction = async (command: "continue_as_send" | "continue_as_send_read", args: Record<string, unknown>): Promise<HandoffSendOutcome> => {
+    let outcome: HandoffSendOutcome;
+    try { outcome = await invoke<HandoffSendOutcome>(command, args); }
+    catch (error) { outcome = { state: "unknown", reason: String(error) }; }
+    if (!outcome || !["unsent", "sending", "not-attempted", "sent", "native-failed", "unknown"].includes(outcome.state)) {
+      outcome = { state: "unknown", reason: "The original send observation was unavailable." };
+    }
+    setMessage(`Continue-as: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ""}`);
+    try { await refresh(); }
+    catch (error) {
+      outcome = { ...outcome, observationFailure: String(error) };
+      setMessage(`Continue-as: ${outcome.state}; view refresh failed: ${String(error)}`);
+    }
+    return outcome;
+  };
   const runAct: RunAct = async (command, args) => {
     try {
       const result = await invoke(command, args);
@@ -1172,7 +1190,7 @@ export function App() {
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 
-      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }

@@ -1148,6 +1148,16 @@ fn continue_as_dismiss(state: State<'_, AppState>, id: String) -> Result<(), Str
     state.continue_as.lock().unwrap().dismiss(&id)
 }
 
+#[tauri::command(async)]
+fn continue_as_send(state: State<'_, AppState>, id: String, text: String) -> Result<Value, String> {
+    conversation_roles::send_handoff(&state.continue_as, &state.homes, &state.workflows, &id, &text)
+}
+
+#[tauri::command(async)]
+fn continue_as_send_read(state: State<'_, AppState>, id: String) -> Result<Value, String> {
+    conversation_roles::read_handoff_send(&state.continue_as, &id)
+}
+
 /// NIR CA-4, ROLE F-1: "Fork (same role)".
 #[tauri::command(async)]
 fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: String) -> Result<Value, String> {
@@ -2200,6 +2210,8 @@ pub fn run() {
             conversation_interrupt,
             continue_as_begin,
             continue_as_dismiss,
+            continue_as_send,
+            continue_as_send_read,
             conversation_fork,
             set_person_name,
             workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
