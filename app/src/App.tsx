@@ -56,11 +56,28 @@ const startedConversationKey = (response: Json): string | null => {
 
 const emptyConversationChoice = { model: "", modelProvider: "", entryId: "" };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
+type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
+const sameForkGeneration = (a: Json, b: Json) => a?.appSession === b?.appSession && a?.home === b?.home && a?.spawnCounter === b?.spawnCounter;
+// The dedicated native command returns Host::thread_fork_finish's admitted row.
+// Role binding/publication standing is separate; no renderer field admits a
+// thread. Selection also requires this exact row in the actual Host snapshot.
+const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigation, "threadId" | "requestRef"> | null => {
+  const row = response?.thread, generation = row?.generation, from = row?.forkedFrom;
+  if (!response || Object.hasOwn(response, "error") || typeof generation?.appSession !== "string" || !generation.appSession ||
+      typeof generation?.home !== "string" || !generation.home || !Number.isSafeInteger(generation?.spawnCounter) || generation.spawnCounter <= 0 ||
+      !sameForkGeneration(generation, scope.generation) || typeof row?.threadId !== "string" || !row.threadId || row.threadId === scope.sourceThread ||
+      from?.threadId !== scope.sourceThread || from?.reportedForkedFromId !== scope.sourceThread || typeof from?.forkRequestRef !== "string" || !from.forkRequestRef) return null;
+  return { threadId: row.threadId, requestRef: from.forkRequestRef };
+};
+
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy, forkConversation }: { forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const [ownBusy, setBusy] = useState<string>("");
+  const [forkBusy, setForkBusy] = useState(false);
+  const forking = useRef(false);
   // While Start/Stop/Restart Codex runs, no text, steer or attachment send is offered
   // (the host also refuses new turns once a stop is confirmed).
   const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");
@@ -117,6 +134,14 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     try { const result = await runAct(command, args); if (result === undefined) setError(`${label} did not complete; see the message below.`); else after?.(result); return result; }
     finally { setBusy(""); }
   };
+  const forkSelected = async () => {
+    if (!selected || busy || forking.current) return;
+    if (!forkConversation) { setError("The original Fork handler is unavailable."); return; }
+    forking.current = true; setForkBusy(true); setError("");
+    try { await forkConversation(selected.generation, selected.threadId); }
+    catch (error) { setError(String(error)); }
+    finally { forking.current = false; setForkBusy(false); }
+  };
   const handoffs: Json[] = host?.continueAs ?? [];
   // WR TT-3a, TT-3b, TT-10: what the host pre-filled for the person to send.
   // Every send below happens only on the person's Send press.
@@ -148,12 +173,10 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       <option value="">Select a conversation</option>
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
-    {selected && <RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
+    {selected && <RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
-      fork={() => { void roleAct("forking", "conversation_fork", { generation: selected.generation, threadId: selected.threadId }, result => {
-        if (result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
-      }); }} />}
+      fork={() => { void forkSelected(); }} />}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
@@ -907,6 +930,7 @@ export function App() {
   const { model, modelProvider, entryId } = conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice;
   const [startPending, setStartPending] = useState(false);
   const startPendingRef = useRef(false);
+  const forkStartRevision = useRef(0);
   const [homePending, setHomePending] = useState(false);
   const homePendingRef = useRef(false);
   const currentHost = useRef(host);
@@ -917,6 +941,9 @@ export function App() {
   const [threadKey, updateThreadKey] = useState<string>("");
   const threadChoiceRevision = useRef(0);
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
+  const forkSequence = useRef(0);
+  const forkInFlight = useRef(false);
+  const [pendingFork, setPendingFork] = useState<ForkNavigation | null>(null);
   const roleInitialized = useRef(false);
   useEffect(() => {
     if (!roleInitialized.current && host?.roleSet?.available) {
@@ -966,6 +993,7 @@ export function App() {
         !submitted.model.trim() || !submitted.modelProvider.trim() || !(mode === "account" || mode === "api-key") ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
     const revision = editRevision.current;
+    forkStartRevision.current++;
     startPendingRef.current = true;
     setStartPending(true);
     try {
@@ -1105,6 +1133,53 @@ export function App() {
       document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView?.();
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
   };
+  const forkContextCurrent = (scope: ForkScope, snapshot: Json) =>
+    forkSequence.current === scope.sequence && threadChoiceRevision.current === scope.choiceRevision && chooserHome.current.epoch === scope.homeEpoch &&
+    forkStartRevision.current === scope.startRevision && !startPendingRef.current && !homePendingRef.current && snapshot?.state === "ready" && snapshot?.generationClosed !== true &&
+    snapshot?.homeRouting?.activeModeHomeClass === scope.modeHomeClass && sameForkGeneration(snapshot?.generation, scope.generation) &&
+    (snapshot?.threads ?? []).some((row: Json) => row.threadId === scope.sourceThread && sameForkGeneration(row.generation, scope.generation));
+  // Only an observed admitted row completes pending navigation. A read cannot
+  // replay Fork or replace the source/receipt supplied by the original command.
+  useEffect(() => {
+    if (!pendingFork) return;
+    if (!forkContextCurrent(pendingFork, host)) { setPendingFork(null); return; }
+    const row = (host?.threads ?? []).find((row: Json) => row.threadId === pendingFork.threadId && sameForkGeneration(row.generation, pendingFork.generation));
+    if (row?.forkedFrom?.threadId !== pendingFork.sourceThread || row?.forkedFrom?.reportedForkedFromId !== pendingFork.sourceThread || row?.forkedFrom?.forkRequestRef !== pendingFork.requestRef) return;
+    setPendingFork(null);
+    setThreadKey(JSON.stringify([pendingFork.generation, pendingFork.threadId]));
+  }, [host, pendingFork, threadKey, startPending, homePending]);
+  const forkViewRevision = threadChoiceRevision.current;
+  const forkConversation = async (generation: Json, sourceThread: string): Promise<void> => {
+    if (forkInFlight.current || forkViewRevision !== threadChoiceRevision.current || threadKey !== JSON.stringify([generation, sourceThread])) return;
+    const scope: ForkScope = { generation: { appSession: generation?.appSession, home: generation?.home, spawnCounter: generation?.spawnCounter }, sourceThread,
+      modeHomeClass: currentHost.current?.homeRouting?.activeModeHomeClass, choiceRevision: threadChoiceRevision.current, homeEpoch: chooserHome.current.epoch,
+      startRevision: forkStartRevision.current, sequence: forkSequence.current + 1 };
+    if (typeof scope.generation.appSession !== "string" || !scope.generation.appSession || typeof scope.generation.home !== "string" || !scope.generation.home || !Number.isSafeInteger(scope.generation.spawnCounter) || scope.generation.spawnCounter <= 0 ||
+        !["account", "api-key"].includes(scope.modeHomeClass)) return;
+    forkSequence.current = scope.sequence;
+    if (!forkContextCurrent(scope, currentHost.current)) return;
+    forkInFlight.current = true;
+    setPendingFork(null);
+    try {
+      const response = await invoke<Json>("conversation_fork", { generation: scope.generation, threadId: sourceThread });
+      const target = admittedForkTarget(response, scope);
+      if (!target) { setMessage("Fork admission is not confirmed; the current conversation is retained."); }
+      else {
+        const current = forkContextCurrent(scope, currentHost.current);
+        setMessage(`Fork ${target.threadId} was admitted as a same-role copy from conversation ${sourceThread} in the original ${scope.modeHomeClass} home. ${current ? "Reading its original source view." : "Navigation was superseded; no switch was made."} Record publication remains separate.`);
+        if (current) setPendingFork({ ...scope, ...target });
+      }
+    } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(`Fork outcome is not confirmed: ${String(error)}`); }
+    finally {
+      try {
+        const snapshot = await invoke("host_status");
+        // Ignore a response to an older intent/source; it cannot restore that
+        // home over a newer choice or make a stale fork current.
+        if (forkContextCurrent(scope, currentHost.current)) setHost(snapshot);
+      } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(previous => `${previous}; original source view refresh unavailable: ${String(error)}`); }
+      forkInFlight.current = false;
+    }
+  };
   const runAct: RunAct = async (command, args) => {
     try {
       const result = await invoke(command, args);
@@ -1222,7 +1297,7 @@ export function App() {
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} />
 
-      <ConversationPanel codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel forkConversation={forkConversation} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
