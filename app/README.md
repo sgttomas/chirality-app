@@ -704,7 +704,11 @@ implemented behavior and qualification limits.
     instructions or settings, and `deferGoalContinuation: true` so that a
     source goal starts no automatic turn in the fork that the person did not
     start. It admits the fork only when Codex reports a new thread
-    forked from the source; the fork inherits the source's role binding. Neither
+    forked from the source; the fork inherits the source's role binding. The
+    App opens that admitted fork only when its matching row is observed in
+    the original source view. A failed refresh leaves navigation pending for
+    a later read; it sends no second Fork. Newer conversation choices, Start
+    intents or home changes supersede that pending navigation. Neither
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
 
@@ -896,7 +900,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/file_act_arrival.rs`, `file_act_root.rs`, `act_control_file.rs`, `src/RunPanel.tsx` | Explicit live App-file arrival entry through the original run/declaration/source, frozen file preview, native confirmation and original run-log capture continuation; historical-only and unsupported contexts remain unavailable |
 | `src-tauri/src/host_tick.rs` | The host's own ticks (OI-008): a record tick receives native frames and records checkpoint observations, and a separate trial tick makes due trial reads, whether or not the interface polls; each tick is guarded and a failure is shown in `host_status`, which only reads |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
-| `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
+| `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx`, `src/App.tsx` | Source-bound navigation of admitted same-role Forks, Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src/NativeHistory.tsx`, `src/App.tsx`, `tests/native-history.test.mjs` | Source-bound readable stored turn summaries and the selected item page, shared native item bodies with retained raw source, and accepted-query paging regressions; reading and explicit Continue remain separate |
 | `src-tauri/src/runtime_session.rs`, `host_tick.rs`, `hosting_manual_history_tests.rs` (`history_bridge` tests) | Person-directed history reaches native activity once through its original accepted query and current source; rejected pages leave the activity projection and counters unchanged, with raw receipts and limits retained |
