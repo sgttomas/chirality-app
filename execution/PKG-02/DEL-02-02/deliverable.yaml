@@ -274,6 +274,8 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
+- app/tests/selected-chain-disclosure.test.mjs
 - app/src-tauri/src/workflow_proposal_disclosure_tests.rs
 - app/tests/proposed-run-disclosure.test.mjs
 - app/src-tauri/src/workflow_supply_dispatch_tests.rs

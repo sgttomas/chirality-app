@@ -1001,16 +1001,20 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
-**Advisory before a proposed start (PR-1–PR-5 / CK-1).** The message's
-verified registered candidate receives the existing compatibility evaluation
-before the person chooses Start or End A and start B. The read uses the
+**Advisory before a run choice (PR-1–PR-5 / CH-1 / CK-1).** A message's
+verified registered candidate and the chat's existing closed selection receive
+the compatibility evaluation before the person chooses Start or End A and
+start B. The selected successor's own report is shown beside its choice,
+separately from the current run's report. The read uses the
 original conversation's role evidence and names the unavailable environment
 observations; it neither selects nor prepares a run, stores a report or writes
 R14. Unknown, unsupported and unavailable evaluations leave the ordinary choice
-available. The press retains the displayed proposal's source, message, run and
-registered revision; the host rechecks that correspondence before the existing
-selection, preparation and once-only dispatch path. A changed proposal requires
-a fresh displayed choice rather than silently substituting another candidate.
+available. A proposal press retains its displayed source, message, run and
+registered revision; the host rechecks that correspondence. A direct selected
+successor keeps the existing source, generation, chat, history epoch, library
+and selection-reference checks. Both continue through their existing
+preparation and once-only dispatch paths. A changed displayed choice requires
+a fresh observation rather than substitution of another candidate.
 
 **Frozen registration review display (RB-2).** The App presents the existing
 host-frozen review through the same read-only view before native confirmation

@@ -221,6 +221,7 @@ pub(crate) fn workflow_status(workflows: &Mutex<WorkflowRootSession>, home:&Home
     let mut status = root.snapshot();
     // RN-3…RN-7: offers from agent messages observed live; display data only.
     status["offers"] = root.offers_for_home(view,home);
+    root.decorate_selected_compatibility(&mut status,view,home);
     // WR §3: the explicit App project can be opened as its own project library.
     status["projectLibraryAvailable"] = json!(project_library);
     // WR §4.2: trials, pre-filled messages, headers and labels (display only).

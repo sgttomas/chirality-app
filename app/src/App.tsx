@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
-import { ArrivalRecord, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
+import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
@@ -647,6 +647,11 @@ export function WorkflowRootPanel({ data, host, act, openFileAct, fileActBusy = 
       <button disabled={busy||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
         <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
+        {next&&run.home===host?.generation?.home&&<section aria-label="Selected workflow for the next run">
+          <p>Next selected workflow for conversation {run.conversation}: {next.identity?.kind??"kind not supplied"} <b>{next.identity?.name??"name not supplied"}</b> · {next.identity?.origin??"origin not supplied"} library “{next.identity?.source_root??"source root not supplied"}”, revision <code style={{overflowWrap:"anywhere"}}>{next.identity?.revision??"revision not supplied"}</code> ({next.identity?.revision_method??"revision method not supplied"}).</p>
+          <p>Holding library: {next.compatibility?.holdingLibrary??"not supplied"}.</p>
+          <ul><CompatibilityAdvisory entry={next.compatibility}/></ul>
+        </section>}
         <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name??"this chat’s selected workflow"}</button>
       </>}
       {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
