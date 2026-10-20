@@ -270,6 +270,7 @@ code_paths:
 - app/src-tauri/src/workflow_trials.rs
 - app/src-tauri/src/workflow_workspace.rs
 - app/src/TrialComposer.tsx
+- app/src/preparedMessages.ts
 - app/src/RunPanel.tsx
 - app/src/WorkflowDrafts.tsx
 - app/src/App.tsx
@@ -299,6 +300,7 @@ checks:
 - app/tests/clean-trial-restart.test.mjs
 - app/src-tauri/src/workflow_trials_tests.rs
 - app/tests/trials.test.mjs
+- app/tests/prepared-message-navigation.test.mjs
 - app/tests/workflow-drafts.test.mjs
 - app/src-tauri/src/workflow_library_tests.rs
 - app/src-tauri/src/workflow_library_entries_tests.rs

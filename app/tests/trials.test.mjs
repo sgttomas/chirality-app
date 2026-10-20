@@ -313,11 +313,17 @@ test('composers appear in the conversation they belong to',()=>{
   assert.match(auth,/Trial 4 of draft load-check — pre-filled, not sent/);
   assert.match(auth,/Trials started here: trial 4 of draft load-check \(delegated\)/);
   assert.match(auth,/New trial conversation: trial 4 of draft load-check/);
-  assert.equal((auth.match(/aria-label="Bring back composer"/g)??[]).length,1);
+  // Other owners stay mounted under hidden wrappers, preserving local edits.
+  // Count the visible wrappers rather than equating presence with visibility.
+  const visibleAuth=auth.replace(/<div hidden="">.*?<\/section><\/div>/gs,'');
+  assert.equal((auth.match(/aria-label="Bring back composer"/g)??[]).length,2,'both owners remain mounted');
+  assert.equal((visibleAuth.match(/aria-label="Bring back composer"/g)??[]).length,1);
   const other=panel('other');
   assert.match(other,/Trial 2 of draft load-check at content 0123 — not registered; not a workflow run · authoring conversation auth/);
   assert.doesNotMatch(other,/Trials started here/);
-  assert.equal((other.match(/aria-label="Trial composer"/g)??[]).length,1,'only the trial authored here');
+  const visibleOther=other.replace(/<div hidden="">.*?<\/section><\/div>/gs,'');
+  assert.equal((other.match(/aria-label="Trial composer"/g)??[]).length,2,'both owners remain mounted');
+  assert.equal((visibleOther.match(/aria-label="Trial composer"/g)??[]).length,1,'only the trial authored here is visible');
 });
 
 test('the review shows the last clean trial as information only; Register is enabled or disabled the same in all three readings (TT-13)',()=>{

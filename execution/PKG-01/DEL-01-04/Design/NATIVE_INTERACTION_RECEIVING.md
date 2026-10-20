@@ -1016,6 +1016,22 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Prepared-message navigation (AT-8; WR TT-3a, TT-10).** The workflow panel's
+explicit Open action uses the current host pending item and its original
+source/generation/render owner to reveal that exact existing composer after
+React commits. Delegated trials render under their original authoring
+reference; bring-backs under their original target. A locally edited Send
+target does not relocate the composer. Hidden composers retain their edits
+and send outcomes only while the same complete pending/source binding remains
+present. A missing, replaced, cold, closed or foreign source/owner, failed
+refresh or superseding navigation refuses rather than substituting a bare-ID
+match. Open performs an observation and UI navigation only; clean preparation
+continues to render globally before its new conversation exists. Workflow
+chat, authoring choice, global ordinary text and frozen confirmation content
+retain their independent state. WR's current implementation conditions and
+`app/tests/prepared-message-navigation.test.mjs` define the bounded receiving
+path and controlled frontend evidence; no native act or journey is implied.
+
 **Native waiting-menu navigation.** The macOS App menu uses the current
 person-answerable waiting groups, separately from the Dock's aggregate count.
 Each menu ID retains its original home class, full generation and optional

@@ -1001,6 +1001,48 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Current prepared-message handoffs (TT-3a, TT-3b, TT-10).** The workflow
+panel lists the host's current pending delegated trials and bring-backs with
+their source and original composer owner. **View prepared message in
+conversation ‹B›** opens that existing composer: a delegated trial belongs to
+`pending.authoring`, a bring-back to `pending.target`. The person's locally
+edited **Send to** choice is independent of this render owner. A clean
+preparation remains visible globally before a new conversation exists and
+supplies no existing-conversation navigation target. The operational
+conversation, Workflow chat, library inspection and authoring choice remain
+independent; inspecting a library or another chat's draft does not merge them.
+
+Open reads `host_status` once and revalidates the original pending reference
+or ID, immutable content/source/owner binding, opaque workflow source, active
+home and complete generation/thread tuple against the exact loaded target.
+Missing, replaced, cold, foreign-home or closed-generation references refuse
+with a reason; matching bare IDs provide no fallback. A failed read refuses.
+A newer observed view or user navigation, home operation, conversation start
+or new-conversation chooser edit supersedes an outstanding read. An older
+Open cannot replace a newer Open's notice. After React commits, a guarded ref
+reveals only the clicked pending composer's wrapper, once; a newer intent
+cannot later scroll or focus it. No prepare, retry, send, resume, workflow selection,
+authoring-default change, registration or record write follows from Open.
+The pending-trial note and the suppression of returned prefill text remain;
+command results do not supply current pending authority.
+
+Composers remain mounted while hidden by conversation navigation, preserving
+edited text, local Send target and pending/late send outcomes. Their React
+identity includes the full pending/source binding, rather than the bare ID.
+An unavailable send result stays unknown, and a later view-refresh failure
+does not replace the original acknowledgment or refusal with an observer error.
+Removal or replacement of that binding, or a source/home/generation change,
+retires the old component state; late outcomes cannot populate its successor.
+Changing observation notes or clean-start progress does not replace the
+original composer. This is process-memory UI state while the binding remains
+present, with no durable restoration. The ordinary text draft retains its
+existing global semantics, and frozen review/native-confirmation content is
+unchanged. `app/tests/prepared-message-navigation.test.mjs` exercises the
+mounted App join, clean-trial feedback, exact multi-composer reveal, source
+refusals and deferred races with controlled IPC. These are frontend checks;
+the dated native trial and walkthrough evidence retains its original scope,
+and this path supplies no new native journey, A15 or product qualification.
+
 **Workflow responses and draft observation (SQ-D D-2).** The workflow panel
 retains a returned native command value separately from later view-refresh or
 draft-observation failures. The displayed response and limits name the

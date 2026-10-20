@@ -23,7 +23,8 @@ import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
-import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, hostMessage } from "./TrialComposer";
+import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage } from "./TrialComposer";
+import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -73,8 +74,9 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
 
 type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
 type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
+type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink }: { activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -179,6 +181,21 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   };
   const workflowRoot = host?.workflowRoot;
   const composers = composersFor(workflowRoot, selected);
+  const prepared = preparedMessages(host);
+  const preparedNodes = useRef(new Map<string, HTMLDivElement>());
+  const handledReveal = useRef(0);
+  useEffect(() => {
+    if (!preparedReveal || handledReveal.current === preparedReveal.sequence) return;
+    handledReveal.current = preparedReveal.sequence;
+    const { item } = preparedReveal;
+    const node = preparedNodes.current.get(item.identity);
+    const shown = !!node && !node.hidden && !!findConversation(selected ? [selected] : [], item.owner)
+      && preparedMessageLimit(host, item) === null && preparedReveal.isCurrent();
+    // Refs identify the exact original composer after React has unhidden it.
+    // No transcript-bearing DOM ID or later poll can repeat this reveal.
+    if (shown) node.scrollIntoView?.({ block: "start" });
+    preparedReveal.finish(shown);
+  }, [preparedReveal, host, threadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const trialConversation = (workflowRoot?.trialConversations ?? []).find((row: Json) => selected && row?.threadId === selected.threadId);
   const trialsStartedHere = (workflowRoot?.trialsStartedHere ?? []).find((row: Json) => selected && row?.threadId === selected.threadId);
   // Keys of this section's direct children must differ from each other: the role
@@ -203,10 +220,12 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
-    {composers.clean.map((pending: Json) => <CleanTrialPanel key={`clean-trial:${pending.reference}`} pending={pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
-      modeHomeClass={host?.homeRouting?.activeModeHomeClass} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
-    {composers.delegated.map((pending: Json) => <DelegatedTrialComposer key={`trial:${selected?.threadId}:${pending.reference}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
-    {composers.bringBacks.map((pending: Json) => <BringBackComposer key={`bring-back:${selected?.threadId}:${pending.id}`} pending={pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready"} act={trialAct} />)}
+    {prepared.map(item => <div key={item.identity} ref={node => { if (node) preparedNodes.current.set(item.identity, node); else preparedNodes.current.delete(item.identity); }} hidden={item.kind === "delegated" ? !composers.delegated.includes(item.pending) : item.kind === "bring-back" ? !composers.bringBacks.includes(item.pending) : false}>
+      {item.kind === "clean" ? <CleanTrialPanel pending={item.pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
+        modeHomeClass={host?.homeRouting?.activeModeHomeClass} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
+        : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
+        : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
+    </div>)}
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
@@ -681,7 +700,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -771,6 +790,10 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
     <WorkflowDraftsView data={data?.drafts} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} conversations={conversations}
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
+    {openPreparedMessage && preparedMessages(host).filter(item => item.kind !== "clean").map(item => <p key={item.identity}>
+      <small>{item.kind === "delegated" ? `Trial ${item.pending.sequence} of draft ${item.pending.draftName}` : item.pending.trial ? "Trial feedback" : "Run feedback"} · prepared message. Source {data?.context?.sourceRef ?? "unavailable"} · {JSON.stringify(item.owner?.generation ?? null)}.</small>{" "}
+      <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ?? "unavailable"}</button>
+    </p>)}
     <label>New draft name, or in-place library entry name <input {...EXACT_TEXT} value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!context||!selected||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>{thread?"Create draft from this chat’s selected content":"Create draft from inspected content"}</button>
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} library={l.reference} rows={l.registered} busy={busy} chatAvailable={chatAvailable} act={action}/>)}
@@ -1089,6 +1112,60 @@ export function App() {
   const forkSequence = useRef(0);
   const forkInFlight = useRef(false);
   const [pendingFork, setPendingFork] = useState<ForkNavigation | null>(null);
+  const [preparedNotice, setPreparedNotice] = useState("");
+  const [preparedReveal, setPreparedReveal] = useState<PreparedComposerReveal | null>(null);
+  const preparedOpenSequence = useRef(0);
+  const preparedNavigation = useRef<{ check: () => string | null } | null>(null);
+  // Observe invalidation while an Open read is pending. Once refused, an
+  // away-and-back source or selection cannot revive the original click.
+  preparedNavigation.current?.check();
+  const openPreparedMessage = async (item: PreparedMessage): Promise<void> => {
+    const sequence = ++preparedOpenSequence.current;
+    setPreparedReveal(null);
+    threadChoiceRevision.current++;
+    const source = currentHost.current;
+    const choiceRevision = threadChoiceRevision.current, chooserRevision = editRevision.current;
+    const homeEpoch = chooserHome.current.epoch, startRevision = continueStartRevision.current;
+    let refusal: string | null = null;
+    const ticket = { check: (): string | null => {
+      if (!refusal) {
+        if (preparedNavigation.current !== ticket || threadChoiceRevision.current !== choiceRevision || editRevision.current !== chooserRevision
+          || chooserHome.current.epoch !== homeEpoch || continueStartRevision.current !== startRevision || homePendingRef.current || startPendingRef.current) refusal = "A newer navigation or conversation choice superseded this Open.";
+        else refusal = preparedMessageLimit(currentHost.current, item);
+      }
+      return refusal;
+    } };
+    preparedNavigation.current = ticket;
+    const sourceLabel = `${source?.workflowRoot?.context?.sourceRef ?? "source unavailable"}, conversation ${item.owner?.threadId ?? "unavailable"}, generation ${JSON.stringify(item.owner?.generation ?? null)}`;
+    const refuse = (reason: string) => { if (sequence === preparedOpenSequence.current) setPreparedNotice(`Prepared-message navigation refused: ${reason} (${sourceLabel})`); };
+    const initial = ticket.check();
+    if (initial) { refuse(initial); preparedNavigation.current = null; return; }
+    setPreparedNotice("Reading the original prepared message and composer conversation…");
+    try {
+      // A current-pending navigation is just one observation. In particular it
+      // never uses a prepare command's result or invokes a workflow operation.
+      const snapshot: Json = await invoke("host_status");
+      const limit = ticket.check() ?? (currentHost.current !== source ? "A newer host observation superseded this delayed read; open again from the current view." : null)
+        ?? preparedMessageLimit(snapshot, item);
+      if (limit) { refuse(limit); return; }
+      setHost(snapshot);
+      setThreadKey(conversationKey(findConversation(snapshot.threads, item.owner)));
+      const revealRevision = threadChoiceRevision.current;
+      const reveal: PreparedComposerReveal = { sequence, item,
+        isCurrent: () => sequence === preparedOpenSequence.current && threadChoiceRevision.current === revealRevision
+          && editRevision.current === chooserRevision && chooserHome.current.epoch === homeEpoch && continueStartRevision.current === startRevision
+          && !homePendingRef.current && !startPendingRef.current && preparedMessageLimit(currentHost.current, item) === null,
+        finish: shown => {
+          setPreparedReveal(current => current === reveal ? null : current);
+          if (sequence === preparedOpenSequence.current) {
+            if (shown) setPreparedNotice(`Prepared composer shown (${sourceLabel}). Opening sends nothing.`);
+            else refuse("The exact composer reveal was superseded or is no longer available.");
+          }
+        } };
+      setPreparedReveal(reveal);
+    } catch (error) { refuse(`The original view refresh failed: ${String(error)}. Open again from a current view.`); }
+    finally { if (preparedNavigation.current === ticket) preparedNavigation.current = null; }
+  };
   const roleInitialized = useRef(false);
   useEffect(() => {
     if (!roleInitialized.current && host?.roleSet?.available) {
@@ -1382,10 +1459,13 @@ export function App() {
   const trialRunAct: RunAct = async (command, args) => {
     try {
       const result = await invoke(command, args);
-      setMessage(`${command}: ${JSON.stringify(result).slice(0, 600)}`);
+      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
-    finally { await refresh(); }
+    finally {
+      try { await refresh(); }
+      catch (error) { setMessage(previous => `${previous}; trial view refresh unavailable: ${String(error)}. The original command outcome is unchanged.`); }
+    }
   };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
   const selectedThread: string | null = (host?.threads ?? []).find((t: Json) => JSON.stringify([t.generation, t.threadId]) === threadKey && JSON.stringify(t.generation) === JSON.stringify(host?.generation))?.threadId ?? null;
@@ -1463,7 +1543,8 @@ export function App() {
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
 
-      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command,args)=>invoke<Json>(command,args)} observeView={refresh} />
+      <WorkflowRootPanel data={host?.workflowRoot} host={host} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command,args)=>invoke<Json>(command,args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }} />
+      {preparedNotice && <p role="status">{preparedNotice}</p>}
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }} />
 
       <section>
@@ -1519,7 +1600,7 @@ export function App() {
         retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
       <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} />
 
-      <ConversationPanel activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
