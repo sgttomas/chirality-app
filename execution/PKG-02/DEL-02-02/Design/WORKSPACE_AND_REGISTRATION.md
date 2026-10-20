@@ -1031,6 +1031,11 @@ edited text, local Send target and pending/late send outcomes. Their React
 identity includes the full pending/source binding, rather than the bare ID.
 An unavailable send result stays unknown, and a later view-refresh failure
 does not replace the original acknowledgment or refusal with an observer error.
+A trial view-refresh limit has a separate notice identifying its original
+command, attempt, pending reference, source home/full generation and requested
+target. It never appends to a superseding global command result. A newer trial
+attempt replaces this notice; an older observation cannot rewrite it, including
+after a source change.
 Removal or replacement of that binding, or a source/home/generation change,
 retires the old component state; late outcomes cannot populate its successor.
 Changing observation notes or clean-start progress does not replace the

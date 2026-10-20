@@ -1075,6 +1075,8 @@ export function App() {
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const trialObservationSequence = useRef(0);
+  const [trialObservation, setTrialObservation] = useState<{ relation: { attempt: number; command: string; source: Json; reference: unknown; target: Json }; limit: string | null } | null>(null);
   const homeClass = host?.homeRouting?.activeModeHomeClass ?? null;
   const chooserHome = useRef({ mode: homeClass, epoch: 0 });
   if (chooserHome.current.mode !== homeClass) {
@@ -1457,6 +1459,14 @@ export function App() {
   };
   // As runAct, but a host error rejects with the host's message (trial sends show it as given).
   const trialRunAct: RunAct = async (command, args) => {
+    // Observer limits belong to this original trial attempt, independently of
+    // the shared command-result line. Equal result text is not equal custody.
+    const source = currentHost.current;
+    const relation = { attempt: ++trialObservationSequence.current, command,
+      source: structuredClone({ sourceRef: source?.workflowRoot?.context?.sourceRef ?? null, modeHomeClass: source?.homeRouting?.activeModeHomeClass ?? null, generation: source?.generation ?? null }),
+      reference: args.reference ?? args.id ?? null,
+      target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }) };
+    setTrialObservation({ relation, limit: null });
     try {
       const result = await invoke(command, args);
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
@@ -1464,7 +1474,7 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
     finally {
       try { await refresh(); }
-      catch (error) { setMessage(previous => `${previous}; trial view refresh unavailable: ${String(error)}. The original command outcome is unchanged.`); }
+      catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
     }
   };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
@@ -1682,6 +1692,11 @@ export function App() {
       )}
 
       <p>{message}</p>
+      {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
+        Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
+        source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
+        requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
+      </p>}
     </main>
   );
 }

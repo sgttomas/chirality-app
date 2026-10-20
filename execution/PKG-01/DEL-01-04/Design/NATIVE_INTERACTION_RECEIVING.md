@@ -1031,6 +1031,9 @@ chat, authoring choice, global ordinary text and frozen confirmation content
 retain their independent state. WR's current implementation conditions and
 `app/tests/prepared-message-navigation.test.mjs` define the bounded receiving
 path and controlled frontend evidence; no native act or journey is implied.
+Trial view-refresh failures retain their original command, attempt and source
+in a separate notice, without attaching them to another command's result or
+changing the local send outcome. A newer trial action replaces that notice.
 
 **Native waiting-menu navigation.** The macOS App menu uses the current
 person-answerable waiting groups, separately from the Dock's aggregate count.

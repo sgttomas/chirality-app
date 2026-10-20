@@ -12,7 +12,7 @@ const ref=id=>({generation:g,threadId:id});
 const thread=id=>({...ref(id),model:'reported',modelProvider:'configured',appRole:{standing:'app-observed',role:null},roleRelation:{kind:'start'},futureGuidanceNotices:[]});
 const pending=(over={})=>({reference:'trial:original',sequence:1,kind:'delegated',draftName:'method',location:'project',content:{value:'draft-bytes'},textIdentity:{value:'trial-bytes'},text:'Original trial text',message:'Original person message',authoring:ref('B'),workFolder:'.chirality/workflow-trials/test',state:'pre-filled',...over});
 const feedback=(over={})=>({id:'feedback:original',trial:'trial:clean',sequence:2,draftName:'method',run:null,target:ref('A'),source:{kind:'clean',generation:g,threadId:'B',turn:'trial-turn',standing:'read from original clean trial history'},prompt:'Original feedback prompt',transcript:'Original clean trial B outcome',textIdentity:{value:'feedback-bytes'},includeNative:false,shortenings:[],...over});
-const deferred=()=>{let resolve;return {promise:new Promise(yes=>{resolve=yes;}),resolve:v=>resolve(v)};};
+const deferred=()=>{let resolve,reject;return {promise:new Promise((yes,no)=>{resolve=yes;reject=no;}),resolve:v=>resolve(v),reject:e=>reject(e)};};
 const document=installMiniDom();
 const React=(await import('react')).default;
 const {createRoot}=await import('react-dom/client');
@@ -239,5 +239,44 @@ for(const outcome of ['acknowledged','refused'])test(`a late ${outcome} trial se
   if(outcome==='acknowledged'){assert.match(original.textContent,/Sent to conversation D/);assert.doesNotMatch(original.textContent,/refresh failure/);}
   else{assert.match(original.textContent,/Original send refused; message retained/);assert.match(original.textContent,/You can send it again/);}
   assert.match(ui.c.textContent,/view refresh unavailable/);
+ });
+});
+
+const startResult=c=>elements(c,'p').find(e=>e.textContent.startsWith('thread_start:'))?.textContent;
+for(const supersession of ['newer Start','workflow source','home'])test(`old trial observer failure keeps its original attribution after ${supersession}`,async()=>{
+ await mounted({send:async()=>({threadId:'D'})},async ui=>{
+  await ui.choose('B');const original=ui.composer();await ui.change(labelled(original,'select','Send to '),key('D'));await ui.editChoice();
+  const observation=ui.gate();await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);
+  if(supersession==='workflow source'){ui.account.workflowRoot.context.sourceRef='replacement-workflow-source';await ui.poll();}
+  if(supersession==='home'){await ui.press('Use api-key home');}
+  else await ui.press('Start thread');
+  const newer=startResult(ui.c),before=ui.calls.length;
+  if(supersession!=='home')assert.match(newer,/new-choice/);
+  await React.act(async()=>observation.reject(Error('Original trial observer rejected late')));
+  assert.equal(startResult(ui.c),newer,'old observation must not append to or replace the newer global result');
+  const limit=region(ui.c,'Trial view observation limit');assert.ok(limit,'the observer failure retains a separately identified original subject');
+  assert.match(limit.textContent,/workflow_trial_send/);assert.match(limit.textContent,/trial:original/);assert.match(limit.textContent,/attempt 1/);
+  assert.match(limit.textContent,/original-workflow-source/);assert.match(limit.textContent,/original-home/);assert.match(limit.textContent,/prepared-fixture/);assert.match(limit.textContent,/"spawnCounter":1/);assert.match(limit.textContent,/Original trial observer rejected late/);
+  assert.match(limit.textContent,/"threadId":"D"/,'the requested Send target is captured separately from the original render owner B');
+  assert.doesNotMatch(limit.textContent,/replacement-workflow-source|foreign-home|new-choice/);
+  if(supersession==='newer Start'){assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);}
+  if(supersession==='workflow source'){assert.notEqual(ui.composer(),original);assert.doesNotMatch(ui.composer().textContent,/Sent to conversation D/,'retired outcome cannot populate the same bare ID under the replacement source');}
+  assert.deepEqual(ui.calls.slice(before),[],'settling the observer never retries or sends');
+ });
+});
+
+test('older trial observation cannot relabel a newer overlapping trial attempt with the same command result',async()=>{
+ await mounted({trials:[pending(),pending({reference:'trial:second',sequence:2})],send:async()=>({threadId:'D'})},async ui=>{
+  await ui.choose('B');const composers=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Trial composer');assert.equal(composers.length,2);
+  for(const composer of composers)await ui.change(labelled(composer,'select','Send to '),key('D'));
+  const sends=composers.map(composer=>props(button(composer,'Send')).onClick),observation=ui.gate();
+  // Both explicit presses were queued while their distinct composers were
+  // enabled. Their command results happen to be identical; attempts are not.
+  await React.act(()=>{sends[0]();sends[1]();});
+  assert.equal(ui.calls.filter(c=>c.command==='workflow_trial_send').length,2);assert.match(composers[1].textContent,/Sent to conversation D/);
+  await React.act(async()=>observation.reject(Error('Older trial-only observer failure')));
+  assert.match(composers[0].textContent,/Sent to conversation D/);assert.match(composers[1].textContent,/Sent to conversation D/);
+  assert.equal(region(ui.c,'Trial view observation limit'),undefined,'the latest successful trial attempt has no old observer limit');
+  assert.doesNotMatch(ui.c.textContent,/Older trial-only observer failure/);
  });
 });
