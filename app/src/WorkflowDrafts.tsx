@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
+import { ConversationContext, conversationFromKey } from "./WorkflowContext";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The workflow draft list and its trials (DEL-02-02 WR §5.1, §5.5, §6 SQ-D,
@@ -237,7 +238,7 @@ export function CompareResult({ result }: { result: Json }) {
 }
 
 /** The hookless body of the drafts view: everything shown, every press. */
-export function WorkflowDraftsList({ data, workspace, pointerLimits, conversations = [], runs = [], pending = [], busy, act, state, update }: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update }) {
+export function WorkflowDraftsList({ data, workspace, pointerLimits, conversations = [], runs = [], pending = [], busy, act, state, update, contextHost, authoringContextLimit }: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update; contextHost?: Json; authoringContextLimit?: string | null }) {
   const drafts: Json[] = data?.drafts ?? [];
   const transitions: Json[] = data?.transitions ?? [];
   // Problems the host could not resolve are shown, never hidden (damaged trial
@@ -278,6 +279,9 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
     <button disabled={busy || !data} onClick={() => { void act("workflow_observe_drafts", {}); }}>Refresh draft list</button>
     <p><ConversationSelect label="Authoring conversation" conversations={conversations} value={state.authoring} setValue={authoring => update({ authoring })} disabled={busy} none="None chosen" />
       <small> The conversation that tries a draft with its agent, and the default place a trial is brought back to.</small></p>
+    <ConversationContext label="Authoring choice for new trials" host={contextHost} reference={conversationFromKey(state.authoring)} workflow limit={authoringContextLimit}
+      empty={!state.authoring ? "None chosen for new trials or default feedback." : undefined} />
+    <p><small>This choice supplies new-trial and feedback defaults; it does not identify who authored a draft or relocate a prepared composer.</small></p>
     {!workspace && <p role="note">No explicit App project is configured; open a library with the folder picker below.</p>}
     {!data && <p>Open a library to list its drafts.</p>}
     {data?.state && <p>{text(data.state)}</p>}
@@ -308,9 +312,12 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
   </section>;
 }
 
-export function WorkflowDraftsView(props: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct }) {
+export function WorkflowDraftsView(props: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; contextHost?: Json }) {
   const [state, setState] = useState<DraftsState>(initialDraftsState);
-  return <WorkflowDraftsList {...props} state={state} update={patch => setState(s => ({ ...s, ...patch }))} />;
+  const authoringSource = useRef<string | null>(null);
+  const currentSource = props.contextHost?.workflowRoot?.context?.sourceRef ?? null;
+  return <WorkflowDraftsList {...props} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
+    update={patch => { if (patch.authoring !== undefined) authoringSource.current = currentSource; setState(s => ({ ...s, ...patch })); }} />;
 }
 
 /** TT-13: the review's last clean trial line. Information only: it gates

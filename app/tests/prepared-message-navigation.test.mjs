@@ -26,19 +26,29 @@ const visible=e=>{for(let n=e;n;n=n.parentNode)if(props(n)?.hidden)return false;
 const button=(c,label)=>elements(c,'button').find(e=>e.textContent===label&&visible(e));
 const frozen={entries:[{name:'frozen-method',workflowText:'FROZEN\nreview text'}],standing:'Frozen reviewed bytes'};
 const ordinary='Global unsent text é / 家\n';
+const nativePath=path=>({encoding:'unix_bytes',bytes:[...new TextEncoder().encode(path)]});
+const fixedProject='/invented/Fixed App project / 家';
+const libraryPath='/invented/Opened user library / é';
 
 async function mounted(options,check){
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
  const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,active='account',nextRead,failRead=false;
- const account={state:'ready',generation:g,threads:['A','B','C','D'].map(thread),roleLimits:{account:{roles:[]}},workflowRoot:{
+ const account={state:'ready',generation:g,threads:['A','B','C','D'].map(thread),roleLimits:{account:{roles:[]}},
+ currentAppProjectContext:{reference:fixedProject,sourceCaption:'configured App directory',standing:'explicit frozen Root observation; no native/actor authority inferred'},currentAppProjectContextLimit:null,
+ attachmentSelections:{launchAppProjectObservation:{source:'explicit App launch CHIRALITY_WORKSPACE',nativeRoot:nativePath(fixedProject),associationStanding:'launch source only; no accepted REC context/persistent thread-project binding established by this picker'}},
+ workflowRoot:{
   context:{sourceRef:'original-workflow-source',generation:g,historyEpoch:1},projectLibraryAvailable:true,
   drafts:{drafts:[{name:'method',state:'draft',content:{value:'draft-bytes'},trials:[]}]},
   selections:[{sourceRef:'original-workflow-source',threadId:'C',selection:{reference:'choice-C',name:'C choice'}}],
-  libraries:[],reviews:[{reference:'review:frozen',status:{state:'under review',presentation:frozen}}],activeReview:'review:frozen',
+  libraries:[{reference:'library:opened',root:nativePath(libraryPath),origin:'user',sourceRoot:libraryPath,registered:[]}],activeLibrary:'library:opened',reviews:[{reference:'review:frozen',status:{state:'under review',presentation:frozen}}],activeReview:'review:frozen',
   pendingTrials:options.trials??[pending()],pendingBringBacks:options.feedback??[],
  }};
  const other={state:'ready',generation:{...g,home:'foreign-home'},threads:[{...thread('B'),generation:{...g,home:'foreign-home'}}],workflowRoot:{context:{sourceRef:'foreign-source',generation:{...g,home:'foreign-home'}},pendingTrials:[],pendingBringBacks:[]}};
- const snapshot=()=>structuredClone({...active==='account'?account:other,homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});
+ const snapshot=()=>{const home=active==='account'?account:other;return structuredClone({...home,
+  currentAppProjectContext:account.currentAppProjectContext,currentAppProjectContextLimit:account.currentAppProjectContextLimit,
+  attachmentSelections:account.attachmentSelections,
+  workflowRoot:{...home.workflowRoot,libraries:account.workflowRoot.libraries,activeLibrary:account.workflowRoot.activeLibrary},
+  homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});};
  const oldTimers={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
  const idle=installIdleNativeWaiting(async(command,args)=>{
@@ -278,5 +288,109 @@ test('older trial observation cannot relabel a newer overlapping trial attempt w
   assert.match(composers[0].textContent,/Sent to conversation D/);assert.match(composers[1].textContent,/Sent to conversation D/);
   assert.equal(region(ui.c,'Trial view observation limit'),undefined,'the latest successful trial attempt has no old observer limit');
   assert.doesNotMatch(ui.c.textContent,/Older trial-only observer failure/);
+ });
+});
+
+const working=c=>region(c,'Workflow working context');
+const contextText=(c,label)=>region(c,label)?.textContent??'';
+const ownerIn=c=>contextText(c,'Original composer owner');
+const assertChoice=(c,label,id)=>assert.match(contextText(c,label),new RegExp(`${label}: Conversation ${id}(?:Exact|$)`));
+
+test('working context keeps project/library, operational A, Workflow C, authoring B and prepared owner B distinct from local Send D',async()=>{
+ await mounted({},async ui=>{
+  assert.equal(contextText(ui.c,'Fixed App project display'),fixedProject,'the matching launch-native projection supplies a readable primary project folder');assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
+  assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(working(ui.c).parentNode),/Conversation B/);
+  const before=ui.calls.length;await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Retained edited working-context draft');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
+  assert.equal(ui.calls.length,before,'read-only context and selector rendering issues no RPC');assert.match(ownerIn(original.parentNode),/Conversation B/);assert.doesNotMatch(ownerIn(original.parentNode),/Conversation D/);ui.assertIndependent();
+  await ui.open();assert.equal(ui.composer(),original);assertChoice(ui.c,'Operational conversation viewed','B');assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');
+  assert.equal(props(elements(original,'textarea')[0]).value,'Retained edited working-context draft');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));ui.assertIndependent();
+  const afterOpen=ui.calls.length;await ui.choose('D');await ui.change(labelled(ui.c,'select','Workflow chat '),'A');await ui.change(labelled(ui.c,'select','Authoring conversation '),key('C'));
+  assertChoice(ui.c,'Operational conversation viewed','D');assertChoice(ui.c,'Workflow chat context','A');assertChoice(ui.c,'Authoring choice for new trials','C');assert.match(ownerIn(original.parentNode),/Conversation B/);
+  assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));assert.equal(ui.composer(),original);assert.equal(ui.calls.length,afterOpen);
+  await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assertChoice(ui.c,'Operational conversation viewed','D');assertChoice(ui.c,'Authoring choice for new trials','C');
+ });
+});
+
+test('opened library and fixed project remain Root observations through library edits, supplier closure and home changes',async()=>{
+ await mounted({},async ui=>{
+  await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Retained through read-only context changes');await ui.change(labelled(original,'select','Send to '),key('D'));
+  ui.account.workflowRoot.libraries.push({reference:'library:second',root:nativePath('/invented/Second project library'),origin:'project',sourceRoot:'/invented/Second project library',registered:[]});ui.account.workflowRoot.activeLibrary='library:second';await ui.poll();
+  assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');assert.equal(ui.composer(),original);
+  ui.account.generationClosed=true;await ui.poll();for(const label of ['Operational conversation viewed','Workflow chat context','Authoring choice for new trials'])assert.match(contextText(ui.c,label),/Unavailable/);
+  assert.match(ownerIn(original.parentNode),/Unavailable/);assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Retained through read-only context changes');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+  await ui.press('Use api-key home');assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);
+ });
+});
+
+for(const replacement of [{...g,home:'foreign-home'},{...g,spawnCounter:2}])test(`same bare B in ${replacement.home==='foreign-home'?'foreign home':'new generation'} supplies no current authoring or owner context`,async()=>{
+ await mounted({},async ui=>{
+  ui.account.threads=ui.account.threads.map(row=>row.threadId==='B'?{...row,generation:replacement}:row);await ui.poll();
+  assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Workflow chat context','C');assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);assert.match(ownerIn(working(ui.c).parentNode),/Unavailable/);
+  assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
+ });
+});
+
+test('new native generation qualifies old selector references instead of relabelling them to same-ID chats or calling them no-chat inspection',async()=>{
+ await mounted({},async ui=>{
+  const next={...g,spawnCounter:2};ui.account.generation=next;ui.account.workflowRoot.context.generation=next;ui.account.threads=ui.account.threads.map(row=>({...row,generation:next}));await ui.poll();
+  for(const label of ['Operational conversation viewed','Workflow chat context','Authoring choice for new trials'])assert.match(contextText(ui.c,label),/Unavailable/);
+  assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.match(ownerIn(working(ui.c).parentNode),/Unavailable/);
+  assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
+  await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+  await ui.change(labelled(ui.c,'select','Authoring conversation '),JSON.stringify([next,'B']));assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(working(ui.c).parentNode),/Unavailable/,'original pending owner is still the earlier generation');
+ });
+});
+
+test('workflow source loss qualifies its selectors while preserving independent operational, project and opened-library context',async()=>{
+ await mounted({},async ui=>{
+  ui.account.workflowRoot.context.sourceRef='replacement-workflow-source';await ui.poll();assertChoice(ui.c,'Operational conversation viewed','A');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);
+  assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
+  delete ui.account.workflowRoot.context.sourceRef;await ui.poll();await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+ });
+});
+
+test('unavailable project/library context is explicit and never inferred from availability, library, native cwd or another observation',async()=>{
+ await mounted({},async ui=>{
+  ui.account.currentAppProjectContext={reference:null,sourceCaption:'App project not established'};ui.account.currentAppProjectContextLimit='Original project association unavailable';
+  ui.account.threads[0].cwd='/invented/Native cwd must not become project';ui.account.workflowRoot.projectLibraryAvailable=true;await ui.poll();
+  assert.match(working(ui.c).textContent,/Fixed App projectUnavailable — Original project association unavailable/);assert.ok(working(ui.c).textContent.includes(libraryPath));assert.doesNotMatch(working(ui.c).textContent,/Native cwd must not become project/);
+  ui.account.currentAppProjectContext={reference:fixedProject,sourceCaption:'configured App directory'};ui.account.currentAppProjectContextLimit=null;ui.account.workflowRoot.activeLibrary='library:missing';await ui.poll();
+  assert.ok(working(ui.c).textContent.includes(fixedProject));assert.match(working(ui.c).textContent,/Opened workflow libraryUnavailable — active library reference/);
+  ui.account.workflowRoot.activeLibrary=null;await ui.poll();assert.match(working(ui.c).textContent,/No library opened/);assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');
+ });
+});
+
+test('clean composer context stays global and library inspection works before a native generation exists',async()=>{
+ await mounted({trials:[pending({kind:'clean'})]},async ui=>{
+  assert.match(ownerIn(region(ui.c,'New trial conversation').parentNode),/global clean composer; no conversation render owner/);assert.equal(button(ui.c,'View prepared message in conversation B'),undefined);
+  ui.account.state='absent';ui.account.generation=null;ui.account.workflowRoot.context.generation=null;ui.account.threads=[];await ui.poll();await ui.change(labelled(ui.c,'select','Workflow chat '),'');
+  assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.match(contextText(ui.c,'Operational conversation viewed'),/Unavailable/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
+ });
+});
+
+for(const route of ['source','home'])test(`returning original ${route} cannot resurrect a cleared Workflow chat label over the actual No-chat selector`,async()=>{
+ await mounted({},async ui=>{
+  const select=()=>labelled(ui.c,'select','Workflow chat ');assert.equal(props(select()).value,'C');assertChoice(ui.c,'Workflow chat context','C');
+  if(route==='source'){ui.account.workflowRoot.context.sourceRef='temporary-other-source';await ui.poll();ui.account.workflowRoot.context.sourceRef='original-workflow-source';await ui.poll();}
+  else{await ui.press('Use api-key home');await ui.press('Use account home');}
+  assert.equal(props(select()).value,'','existing selector semantics clear the chat on source/home change');
+  assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/,'a cleared prior chat is not the currently selected chat');
+  assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Workflow chat context: Conversation C|No chat — library inspection/,'retired choice is distinct from explicit No-chat inspection');
+  assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Authoring choice for new trials','B');
+  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
+  const before=ui.calls.length;await ui.change(select(),'');assert.equal(props(select()).value,'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.equal(ui.calls.length,before,'explicit local selection and summary add no RPC');
+ });
+});
+
+test('project folder display requires exact source correspondence and never decodes an opaque reference',async()=>{
+ await mounted({},async ui=>{
+  assert.equal(contextText(ui.c,'Fixed App project display'),fixedProject);
+  ui.account.attachmentSelections.launchAppProjectObservation.nativeRoot=nativePath('/invented/Unrelated launch observation');await ui.poll();
+  assert.match(contextText(ui.c,'Fixed App project display'),/folder display unavailable/);assert.doesNotMatch(contextText(ui.c,'Fixed App project display'),/Unrelated launch observation/);assert.ok(working(ui.c).textContent.includes(fixedProject),'the exact known Root reference remains inspectable');
+  delete ui.account.attachmentSelections;await ui.poll();assert.match(contextText(ui.c,'Fixed App project display'),/folder display unavailable/);
+  const native={bytes:[47,112,255],encoding:'unix_bytes'};ui.account.currentAppProjectContext.reference=JSON.stringify(native);
+  ui.account.attachmentSelections={launchAppProjectObservation:{source:'explicit App launch CHIRALITY_WORKSPACE',nativeRoot:native,associationStanding:'launch source only; no accepted REC binding'}};await ui.poll();
+  assert.match(contextText(ui.c,'Fixed App project display'),/path is not valid UTF-8/);assert.match(contextText(ui.c,'Fixed App project display'),/\\xff/);assert.doesNotMatch(contextText(ui.c,'Fixed App project display'),/"bytes"|"encoding"/);
+  ui.account.currentAppProjectContextLimit='Fixed project context unavailable';await ui.poll();assert.match(contextText(ui.c,'Fixed App project display'),/Unavailable — Fixed project context unavailable/);assert.doesNotMatch(contextText(ui.c,'Fixed App project display'),/\\xff/);
  });
 });

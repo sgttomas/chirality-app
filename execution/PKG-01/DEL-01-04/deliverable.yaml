@@ -415,6 +415,8 @@ code_paths:
 - app/src/NativeWaitingBridge.tsx
 - app/src/RunOffers.tsx
 - app/src/WorkflowDrafts.tsx
+- app/src/TrialComposer.tsx
+- app/src/WorkflowContext.tsx
 - app/src/CodexControls.tsx
 - app/src/RunPanel.tsx
 - app/src/ConversationRoles.tsx
@@ -425,6 +427,7 @@ code_paths:
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
+- app/tests/prepared-message-navigation.test.mjs
 - app/src-tauri/src/attachment_outcome_tests.rs
 - app/tests/attachment-outcome.test.mjs
 - app/src-tauri/src/file_act_arrival_tests.rs

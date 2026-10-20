@@ -1016,6 +1016,25 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Read-only authoring context.** The workflow controls distinguish the fixed
+Root project observation, opened Root library, operational conversation,
+Workflow chat or explicit library-only inspection, and current authoring choice
+for new trials/default feedback. The fixed project's opaque reference stays
+in exact-identity details. A readable project folder requires exact display
+correspondence with the existing native launch-root projection; otherwise its
+display limit remains explicit. This grants no accepted REC/native/actor
+association. Project and opened-library native paths use the existing display
+helper. Supplier closure does not invalidate independently supplied Root
+project/library observations. Conversation labels require their complete
+source/home/generation/thread context. A source-cleared Workflow chat stays a
+lost choice on source return until an explicit selector choice; the label
+cannot resurrect its prior bare ID over the actual empty selector.
+Prepared messages identify their original composer owner separately from the
+local editable Send target. No author attribution, RPC, implicit selection or
+additional action follows from these labels. WR's current implementation
+conditions and mounted prepared-message tests describe this presentation
+without changing the native evidence or qualification limits below.
+
 **Prepared-message navigation (AT-8; WR TT-3a, TT-10).** The workflow panel's
 explicit Open action uses the current host pending item and its original
 source/generation/render owner to reveal that exact existing composer after

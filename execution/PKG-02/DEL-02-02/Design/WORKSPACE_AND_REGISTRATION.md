@@ -1001,6 +1001,42 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Read-only workflow working context.** The workflow controls show the host's
+fixed `currentAppProjectContext` and its limit separately from the opened
+workflow library. The existing launch observation supplies a readable native
+project folder only when its exact path/tagged-identity projection equals the
+frozen project reference. Both producers receive the same launch workspace;
+this display correspondence grants no accepted REC/native/actor association.
+Otherwise the project caption and explicit folder-display limit are shown,
+with the exact opaque reference and standing in adjacent details. No project
+name or path is guessed or decoded from that reference.
+The opened library matches `activeLibrary` to one current Root library row,
+showing its origin and native-path display, with reference/source-root details.
+Neither the availability boolean, native conversation cwd nor the opened
+library supplies the fixed project. These Root observations remain readable
+independently of supplier closure or a home change when the host still supplies
+them; missing or ambiguous observations carry their own unavailable limits.
+
+The operational conversation is a read-only reference from App state. Workflow
+chat and authoring summaries stay beside their existing state owners and use
+the complete chosen source/home/generation/thread context. The Workflow chat
+summary also checks the actual selector: a cleared prior choice stays
+unavailable even after its source returns, distinct from explicitly choosing
+**No chat — library inspection**. The authoring choice supplies new-trial and
+feedback defaults; it identifies no draft's author. Each pending preparation
+shows its original render owner under the existing source checks; the editable
+**Send to** destination stays inside its composer and is never mirrored as a
+host fact. Clean composers stay global with no conversation render owner.
+Missing, foreign, closed and same-ID/new-generation conversation references
+remain unavailable without substituting another loaded thread.
+
+The labels perform no command, selection, navigation, default change or
+registration. Existing mounted composers, edited inputs, outcomes, global text
+and frozen review retain their prior lifetimes. The maintained mounted-App
+checks in `app/tests/prepared-message-navigation.test.mjs` cover these
+independent contexts and source-return cases with controlled host views; they
+add no native journey or qualification claim.
+
 **Current prepared-message handoffs (TT-3a, TT-3b, TT-10).** The workflow
 panel lists the host's current pending delegated trials and bring-backs with
 their source and original composer owner. **View prepared message in
