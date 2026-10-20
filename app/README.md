@@ -1376,12 +1376,19 @@ limits. Supplier carriage evidence remains source-bound; native GUI journeys,
 provider/model adoption and qualification remain separate. Delete or archive
 beside Fork waits on U-R13.
 
-The ask-first App quit (item 22a) and the startup SR-08 write are
-implemented but not witnessed natively, as are the startup RQ-06 endings. The Restart Codex question
+The ask-first App quit (item 22a), startup SR-08 write and startup RQ-06
+endings are implemented. On 2026-10-20, an owner-authorized native application-menu
+Quit was observed on a development bundle using App code `1127b8ce` and stock
+Codex 0.160.0. The only loaded conversation was idle, no waiting requests were
+displayed, and the composer was empty. The exact App and known supplier processes
+were absent in the following census; no signal or forced cleanup was used.
+This establishes the bounded idle Quit transition, not the live/unknown-work
+question, quit's durable final writes, SR-08 or RQ-06. Those remain unwitnessed natively.
+The Restart Codex question
 was witnessed natively once, on 2026-10-10, with nothing live: it listed nothing
 in force and showed its three buttons with Keep Codex running as the default.
 Restart Codex was pressed, and Cancel and Keep Codex running were not. The
-Stop Codex question, a stop with live work and quit remain unwitnessed.
+Stop Codex question and a stop with live work remain unwitnessed.
 
 A [first native App witness](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) was taken on 2026-10-10. It used an improvised
 debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
@@ -1396,9 +1403,10 @@ debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
   `wait` appeared as a collab call item, and an agent could reach only its own
   spawn tree.
 
-It qualifies nothing. Attachments and the run-end notice, workflow runs and A15,
-approval cards, delegation beyond that run, quit, the WebKit/Chromium matrix and a packaged
-build remain unwitnessed. It also found that an interrupted turn's running
+It qualifies nothing. That dated witness did not exercise attachments and the
+run-end notice, workflow runs and A15, approval cards, delegation beyond that
+run, quit, the WebKit/Chromium matrix or a packaged build. It also found that
+an interrupted turn's running
 command can still complete (see the note), and the bundle gap PKG §4.1 P-2/P-3 (since
 fixed: the default configuration declares the instruction and workflow
 resources).

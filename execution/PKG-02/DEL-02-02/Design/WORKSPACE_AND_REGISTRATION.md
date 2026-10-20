@@ -1045,8 +1045,24 @@ existing global semantics, and frozen review/native-confirmation content is
 unchanged. `app/tests/prepared-message-navigation.test.mjs` exercises the
 mounted App join, clean-trial feedback, exact multi-composer reveal, source
 refusals and deferred races with controlled IPC. These are frontend checks;
-the dated native trial and walkthrough evidence retains its original scope,
-and this path supplies no new native journey, A15 or product qualification.
+the dated native trial and walkthrough evidence retains its original scope.
+Those frontend checks supply no native journey, A15 or product qualification.
+
+On 2026-10-20, a development candidate built from App source `f51165ba` with
+stock Codex 0.160.0 exercised the unsent delegated handoff through native App
+controls. The App copied bundled candidate content into an unregistered draft
+and prepared a delegated trial for authoring conversation B while operational
+conversation A and Workflow chat C remained distinct. Open revealed B's original
+composer; after editing its person text and local Send target D, navigating to
+A and using the same current pending Open retained those edits, target D,
+Workflow C, authoring B and the ordinary global draft. The same pending
+reference and source/generation remained visible; all four conversations were
+idle and the displayed text-turn request count stayed zero. Preparation was
+admitted with delegation **not established**, not evidence of available or
+executed delegation. No message was sent and no workflow review or registration
+was performed. This witnesses the bounded native unsent delegated navigation
+only, not native bring-back, the stale/refusal matrix, a complete workflow-making
+journey, A15 or product qualification.
 
 **Workflow responses and draft observation (SQ-D D-2).** The workflow panel
 retains a returned native command value separately from later view-refresh or
