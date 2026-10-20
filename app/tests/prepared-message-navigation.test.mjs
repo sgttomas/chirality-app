@@ -83,6 +83,14 @@ async function mounted(options,check){
  });
  const track=call=>{if(call?.then){actions.add(call);call.then(()=>actions.delete(call),()=>actions.delete(call));}};
  const change=async(e,value)=>React.act(()=>{assert.ok(e);track(props(e).onChange({target:{value}}));});
+ // A native select emits change only when an available option changes value.
+ // Selecting its already-selected No-chat option cannot acknowledge lost state.
+ const pickWorkflowChat=async value=>{
+  const select=labelled(c,'select','Workflow chat ');assert.ok(select);assert.equal(!!props(select).disabled,false);
+  assert.ok(elements(select,'option').some(option=>props(option).value===value),'the chosen option must actually exist');
+  if(props(select).value===value)return false;
+  await change(select,value);return true;
+ };
  const press=async(label,within=c)=>React.act(()=>{const e=button(within,label);assert.ok(e,label);assert.equal(!!props(e).disabled,false,label);track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
@@ -100,8 +108,8 @@ async function mounted(options,check){
  try{
   await React.act(async()=>root.render(React.createElement(App)));
   await choose('A');await change(labelled(conversation(c),'textarea','Text '),ordinary);
-  await change(labelled(c,'select','Workflow chat '),'C');await change(labelled(c,'select','Authoring conversation '),key('B'));
-  await check({c,calls,account,selected,choose,change,press,poll,composer,assertIndependent,editChoice,model,track,
+  await pickWorkflowChat('C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+  await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,composer,assertIndependent,editChoice,model,track,
    gate:()=>{const gate=deferred();nextRead=gate;return gate;},fail:()=>{failRead=true;},snapshot,
    open:(id='B')=>press(`View prepared message in conversation ${id}`)});
   idle.assertClean(c);assert.deepEqual(unexpected,[]);
@@ -126,7 +134,7 @@ test('original explicit preparation uses current pending authority and preserves
 });
 
 test('library-only inspection and a different current authoring choice remain independent of prepared owner B',async()=>{
- await mounted({},async ui=>{await ui.change(labelled(ui.c,'select','Workflow chat '),'');await ui.change(labelled(ui.c,'select','Authoring conversation '),key('C'));await ui.open();assert.equal(ui.selected(),key('B'));assert.equal(props(labelled(ui.c,'select','Workflow chat ')).value,'');assert.equal(props(labelled(ui.c,'select','Authoring conversation ')).value,key('C'));});
+ await mounted({},async ui=>{await ui.pickWorkflowChat('');await ui.change(labelled(ui.c,'select','Authoring conversation '),key('C'));await ui.open();assert.equal(ui.selected(),key('B'));assert.equal(props(labelled(ui.c,'select','Workflow chat ')).value,'');assert.equal(props(labelled(ui.c,'select','Authoring conversation ')).value,key('C'));});
 });
 
 test('authoring A → explicit clean trial B → feedback A remains an unsent original composer with local Send target D',async()=>{
@@ -304,10 +312,10 @@ test('working context keeps project/library, operational A, Workflow C, authorin
   assert.equal(ui.calls.length,before,'read-only context and selector rendering issues no RPC');assert.match(ownerIn(original.parentNode),/Conversation B/);assert.doesNotMatch(ownerIn(original.parentNode),/Conversation D/);ui.assertIndependent();
   await ui.open();assert.equal(ui.composer(),original);assertChoice(ui.c,'Operational conversation viewed','B');assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');
   assert.equal(props(elements(original,'textarea')[0]).value,'Retained edited working-context draft');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));ui.assertIndependent();
-  const afterOpen=ui.calls.length;await ui.choose('D');await ui.change(labelled(ui.c,'select','Workflow chat '),'A');await ui.change(labelled(ui.c,'select','Authoring conversation '),key('C'));
+  const afterOpen=ui.calls.length;await ui.choose('D');await ui.pickWorkflowChat('A');await ui.change(labelled(ui.c,'select','Authoring conversation '),key('C'));
   assertChoice(ui.c,'Operational conversation viewed','D');assertChoice(ui.c,'Workflow chat context','A');assertChoice(ui.c,'Authoring choice for new trials','C');assert.match(ownerIn(original.parentNode),/Conversation B/);
   assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));assert.equal(ui.composer(),original);assert.equal(ui.calls.length,afterOpen);
-  await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assertChoice(ui.c,'Operational conversation viewed','D');assertChoice(ui.c,'Authoring choice for new trials','C');
+  await ui.pickWorkflowChat('');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assertChoice(ui.c,'Operational conversation viewed','D');assertChoice(ui.c,'Authoring choice for new trials','C');
  });
 });
 
@@ -336,7 +344,7 @@ test('new native generation qualifies old selector references instead of relabel
   for(const label of ['Operational conversation viewed','Workflow chat context','Authoring choice for new trials'])assert.match(contextText(ui.c,label),/Unavailable/);
   assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.match(ownerIn(working(ui.c).parentNode),/Unavailable/);
   assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
-  await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+  assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
   await ui.change(labelled(ui.c,'select','Authoring conversation '),JSON.stringify([next,'B']));assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(working(ui.c).parentNode),/Unavailable/,'original pending owner is still the earlier generation');
  });
 });
@@ -345,7 +353,7 @@ test('workflow source loss qualifies its selectors while preserving independent 
  await mounted({},async ui=>{
   ui.account.workflowRoot.context.sourceRef='replacement-workflow-source';await ui.poll();assertChoice(ui.c,'Operational conversation viewed','A');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);
   assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
-  delete ui.account.workflowRoot.context.sourceRef;await ui.poll();await ui.change(labelled(ui.c,'select','Workflow chat '),'');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+  delete ui.account.workflowRoot.context.sourceRef;await ui.poll();assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
  });
 });
 
@@ -363,7 +371,7 @@ test('unavailable project/library context is explicit and never inferred from av
 test('clean composer context stays global and library inspection works before a native generation exists',async()=>{
  await mounted({trials:[pending({kind:'clean'})]},async ui=>{
   assert.match(ownerIn(region(ui.c,'New trial conversation').parentNode),/global clean composer; no conversation render owner/);assert.equal(button(ui.c,'View prepared message in conversation B'),undefined);
-  ui.account.state='absent';ui.account.generation=null;ui.account.workflowRoot.context.generation=null;ui.account.threads=[];await ui.poll();await ui.change(labelled(ui.c,'select','Workflow chat '),'');
+  ui.account.state='absent';ui.account.generation=null;ui.account.workflowRoot.context.generation=null;ui.account.threads=[];await ui.poll();assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');
   assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.match(contextText(ui.c,'Operational conversation viewed'),/Unavailable/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
  });
 });
@@ -378,7 +386,9 @@ for(const route of ['source','home'])test(`returning original ${route} cannot re
   assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Workflow chat context: Conversation C|No chat — library inspection/,'retired choice is distinct from explicit No-chat inspection');
   assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Authoring choice for new trials','B');
   assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
-  const before=ui.calls.length;await ui.change(select(),'');assert.equal(props(select()).value,'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.equal(ui.calls.length,before,'explicit local selection and summary add no RPC');
+  await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Preserved through local No-chat acknowledgement');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
+  const before=ui.calls.length;assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');assert.equal(props(select()).value,'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.equal(ui.calls.length,before,'explicit local acknowledgement and summary add no RPC');
+  assert.equal(button(ui.c,'Use No chat — inspect library content'),undefined,'acknowledged local state needs no recovery action');assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Authoring choice for new trials','B');assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Preserved through local No-chat acknowledgement');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
  });
 });
 
@@ -392,5 +402,31 @@ test('project folder display requires exact source correspondence and never deco
   ui.account.attachmentSelections={launchAppProjectObservation:{source:'explicit App launch CHIRALITY_WORKSPACE',nativeRoot:native,associationStanding:'launch source only; no accepted REC binding'}};await ui.poll();
   assert.match(contextText(ui.c,'Fixed App project display'),/path is not valid UTF-8/);assert.match(contextText(ui.c,'Fixed App project display'),/\\xff/);assert.doesNotMatch(contextText(ui.c,'Fixed App project display'),/"bytes"|"encoding"/);
   ui.account.currentAppProjectContextLimit='Fixed project context unavailable';await ui.poll();assert.match(contextText(ui.c,'Fixed App project display'),/Unavailable — Fixed project context unavailable/);assert.doesNotMatch(contextText(ui.c,'Fixed App project display'),/\\xff/);
+ });
+});
+
+for(const reset of ['source','home','generation'])test(`lost Workflow chat after ${reset} reset supports direct local No-chat recovery with zero available chats`,async()=>{
+ await mounted({},async ui=>{
+  if(reset==='source'){ui.account.workflowRoot.context.sourceRef='new-workflow-source';ui.account.threads=[];await ui.poll();}
+  else if(reset==='home'){ui.other.threads=[];await ui.press('Use api-key home');}
+  else{const next={...g,spawnCounter:2};ui.account.generation=next;ui.account.workflowRoot.context.generation=next;ui.account.threads=[];await ui.poll();}
+  const select=labelled(ui.c,'select','Workflow chat ');
+  assert.equal(props(select).value,'');assert.deepEqual(elements(select,'option').map(option=>props(option).value),[''],'no unrelated chat is available as a workaround');
+  assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/);
+  assert.equal(await ui.pickWorkflowChat(''),false,'reselecting the same native option emits no change');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/,'unchanged-value selection cannot acknowledge the lost choice');
+  const before=ui.calls.length;await ui.press('Use No chat — inspect library content');
+  assert.equal(props(select).value,'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Conversation C|Unavailable/);
+  assert.equal(ui.calls.length,before,'the explicit recovery is a local acknowledgement only');assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
+ });
+});
+
+test('local No-chat acknowledgement preserves the current composer and its pending then late send outcome',async()=>{
+ const send=deferred();await mounted({send:()=>send.promise},async ui=>{
+  ui.account.workflowRoot.context.sourceRef='temporary-source';await ui.poll();ui.account.workflowRoot.context.sourceRef='original-workflow-source';await ui.poll();
+  await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Current composer edit');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);
+  const before=ui.calls.length;await ui.press('Use No chat — inspect library content');assert.equal(ui.calls.length,before,'acknowledgement issues no command');assert.equal(ui.composer(),original);assert.match(original.textContent,/Sending; waiting/);assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+  assertChoice(ui.c,'Operational conversation viewed','B');assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(original.parentNode),/Conversation B/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+  await React.act(async()=>send.resolve({threadId:'D'}));assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);assert.equal(props(elements(original,'textarea')[0]).value,'Current composer edit');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
  });
 });

@@ -1027,11 +1027,16 @@ association. Project and opened-library native paths use the existing display
 helper. Supplier closure does not invalidate independently supplied Root
 project/library observations. Conversation labels require their complete
 source/home/generation/thread context. A source-cleared Workflow chat stays a
-lost choice on source return until an explicit selector choice; the label
-cannot resurrect its prior bare ID over the actual empty selector.
+lost choice on source return until an explicit selector choice or local
+**Use No chat — inspect library content** acknowledgement; the label cannot
+resurrect its prior bare ID over the actual empty selector. The local action
+works when zero chats are available and the empty option is already selected,
+so recovery does not depend on an unchanged-value select event. It updates
+local inspection state only and cannot establish unavailable source context.
 Prepared messages identify their original composer owner separately from the
-local editable Send target. No author attribution, RPC, implicit selection or
-additional action follows from these labels. WR's current implementation
+local editable Send target. The labels remain passive; neither rendering them
+nor the explicit local No-chat acknowledgement invokes an RPC, workflow
+selection, author attribution or native action. WR's current implementation
 conditions and mounted prepared-message tests describe this presentation
 without changing the native evidence or qualification limits below.
 

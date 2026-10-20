@@ -1022,7 +1022,12 @@ chat and authoring summaries stay beside their existing state owners and use
 the complete chosen source/home/generation/thread context. The Workflow chat
 summary also checks the actual selector: a cleared prior choice stays
 unavailable even after its source returns, distinct from explicitly choosing
-**No chat — library inspection**. The authoring choice supplies new-trial and
+**No chat — library inspection**. When the cleared selector already has the
+empty No-chat value, **Use No chat — inspect library content** directly
+acknowledges local inspection without requiring a select change event or an
+intermediate chat. It remains reachable with zero available chats and updates
+only local choice/display state; unavailable source context stays unavailable.
+The authoring choice supplies new-trial and
 feedback defaults; it identifies no draft's author. Each pending preparation
 shows its original render owner under the existing source checks; the editable
 **Send to** destination stays inside its composer and is never mirrored as a
@@ -1031,8 +1036,9 @@ Missing, foreign, closed and same-ID/new-generation conversation references
 remain unavailable without substituting another loaded thread.
 
 The labels perform no command, selection, navigation, default change or
-registration. Existing mounted composers, edited inputs, outcomes, global text
-and frozen review retain their prior lifetimes. The maintained mounted-App
+registration. The explicit local No-chat acknowledgement likewise invokes no
+host command or workflow selection. Existing mounted composers, edited inputs,
+outcomes, global text and frozen review retain their prior lifetimes. The maintained mounted-App
 checks in `app/tests/prepared-message-navigation.test.mjs` cover these
 independent contexts and source-return cases with controlled host views; they
 add no native journey or qualification claim.

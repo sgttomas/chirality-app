@@ -712,6 +712,10 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   const chatChoiceLimit = chatChoice?.reference && chatChoice.reference.threadId !== thread
     ? "the previous Workflow chat choice was cleared; choose a chat or No chat explicitly"
     : chatChoice && chatChoice.source !== chatScope ? "the previous Workflow chat choice belongs to another source or generation; choose explicitly" : null;
+  const chooseWorkflowChat = (value: string) => {
+    setChatChoice({source:chatScope,reference:value ? {generation:host?.generation,threadId:value} : null});
+    setThread(value);
+  };
   // A source switch clears the local chat control; repeated bare thread IDs do not transfer it.
   useEffect(()=>setThread(""),[data?.context?.sourceRef,JSON.stringify(host?.generation)]);
   const context=workflowContext(data,host,thread);
@@ -786,7 +790,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       <ConversationContext label="Workflow chat context" host={host} reference={chatChoice?.reference ?? null} workflow
         empty={!thread ? "No chat — library inspection." : undefined} limit={chatChoiceLimit || workflowSourceLimit(host)} />
     </aside>
-    <label>Workflow chat <select value={thread} onChange={e=>{ const value=e.target.value; setChatChoice({source:chatScope,reference:value ? {generation:host?.generation,threadId:value} : null}); setThread(value); }} disabled={busy}><option value="">No chat — inspect library content</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
+    <label>Workflow chat <select value={thread} onChange={e=>chooseWorkflowChat(e.target.value)} disabled={busy}><option value="">No chat — inspect library content</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
+    {chatChoiceLimit && <button type="button" disabled={busy} onClick={()=>chooseWorkflowChat("")}>Use No chat — inspect library content</button>}
     <p>{thread ? "This chat keeps its own pending workflow selection. Started runs keep their own revision." : "Library browsing is shared. Inspection here selects no workflow for a new chat."}</p>
     <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
     <p>Bundle candidate content can be inspected or copied into a draft. It is not runnable as a shipped workflow; release registration remains pending.</p>
