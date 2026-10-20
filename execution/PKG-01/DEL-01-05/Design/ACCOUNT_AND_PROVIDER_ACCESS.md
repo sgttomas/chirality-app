@@ -950,8 +950,9 @@ consumes it is DEL-05-01's (pass-2 proposal R-0501-4; return file).
 
 ## 12. Qualification and substitution (REQ-007, OUT-004) — designed only
 
-No candidate exists, so nothing is qualified. The method: on a candidate,
-for each entry kind, run VC-A01…VC-A04 with the person; record pin and
+This section defines the qualification method; it does not establish a complete
+account/provider qualification result. On an identified candidate, for each
+entry kind, run VC-A01…VC-A04 with the person; record pin and
 distribution identity (HOSTING §7.1), the configured server (name, version,
 address), the provider definition, `wire_api`, the exchanges (recorded per
 HOSTING §9 with CR-2 redaction) and the result. Substitution (AC-008): the
@@ -1295,8 +1296,10 @@ Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
 
 ## Verification cases
 
-"Needs" says what each case requires. None can pass a VER criterion yet: no
-candidate exists.
+"Needs" says what each case requires. The "Runnable now?" entries record
+design-time case availability, not current candidate inventory or executed
+outcomes. This table establishes no complete qualification result; each VER
+criterion still requires its stated candidate evidence.
 
 | Case | Setup | Expected | Needs | Runnable now? | Serves |
 |---|---|---|---|---|---|
