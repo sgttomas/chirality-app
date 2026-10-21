@@ -472,7 +472,9 @@ implemented behavior and qualification limits.
     the current menu after the view is acknowledged. Cleanup failures retry
     cleanup without replaying navigation. These checks do not establish native
     menu interaction, other-platform outside-window coverage or person
-    qualification. Quit has not been witnessed natively.
+    qualification. A bounded idle application-menu Quit was witnessed natively
+    (see the native-observation summary below); its live/unknown-work question
+    and durable final writes remain unwitnessed.
 22b. **Recovery after a restart** (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22;
     §3.4 SR-09; §5 R-4, X-3…X-5). When a home's Codex is ready again (Start or
     Restart Codex, or the App's start after a relaunch), the host reads, on

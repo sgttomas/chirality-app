@@ -1143,6 +1143,38 @@ was performed. This witnesses the bounded native unsent delegated navigation
 only, not native bring-back, the stale/refusal matrix, a complete workflow-making
 journey, A15 or product qualification.
 
+**Bounded native create, clean trial and refinement.** On 2026-10-21 UTC, a
+development candidate built from App source `dd8fb0e1`, with stock Codex
+0.160.0 and `gpt-6.1-sol`, exercised three native turns. The first created a
+new unregistered single-file draft through the native file-edit tool. A
+completed file-change item and the App's refreshed valid draft corroborated
+the save; the actual trial preview showed the saved method. A deliberately
+chosen clean trial in a separate conversation received only `INPUT: pebble`
+as editable input and returned exactly `PEBBLE`. The App reported verbatim
+workflow supply. Bring back read that completed conversation's actual history,
+with native items excluded and no shortenings, and Open revealed its unsent
+composer in the original authoring conversation. The third turn supplied that
+transcript and refined only two prebound method lines. The completed native
+diff and a refreshed valid draft with a new content identity corroborated the
+exact edit. The original trial retained its earlier-version snapshot, link
+and history. Exactly three turns and two file-change operations were used.
+
+Both authoring final messages nevertheless reported the writes unconfirmed;
+the refinement message reported an empty tool result (`{}`). The discrepancy
+between that feedback and the completed items and saved drafts remains
+undiagnosed. Save claims here rely on the corroborating observations, not the
+agent's status sentence. Native answer writes and Codex request resolution
+were observed. The owner reported confirming the first; the controlling TASK
+did not observe or operate either native **Send answer** button, and the second
+confirmation's actor remains unknown. These tool permissions establish no A15
+or recorded human-act evidence. This older candidate supplies no witness of
+the later parented answer sheet or daily-workspace layout.
+
+This is one bounded create/trial/Bring-back/refine path, not VER-001 or
+VER-007 completion. It exercised no second trial, revised-method behavior,
+delegated execution, supporting file, Compare, human review, A15, registration
+or registered reuse, and establishes no product qualification.
+
 **Workflow responses and draft observation (SQ-D D-2).** The workflow panel
 retains a returned native command value separately from later view-refresh or
 draft-observation failures. The displayed response and limits name the
