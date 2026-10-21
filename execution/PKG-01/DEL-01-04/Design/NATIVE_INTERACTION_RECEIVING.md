@@ -1016,6 +1016,23 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Daily workspace receiving placement.** Conversation and workflow-making
+controls share the primary work area. Persistent secondary disclosures keep
+their children mounted; first-use conversation/access setup remains explicitly
+reachable and opens when needed. The waiting-request overview, native
+confirmation content, active act control and other-conversation request cards
+remain outside collapsed tools. Conversation-scoped cards stay with their
+original primary conversation. No request routing, reply/act meaning or source
+guard changes with this placement.
+
+Internal file-act links and explicit arrival review reveal the existing file
+panel's disclosure; original request navigation reveals its existing target.
+Prepared Open still reveals the exact original composer after commit with its
+full identity/intent guard. Disclosure navigation itself issues no RPC. Edits,
+local targets, outcomes, global text and frozen review retain their existing
+lifetimes. Mounted and browser-renderer fixtures verify this presentation;
+they supply no native App, supplier, model, person-act or qualification claim.
+
 **Read-only authoring context.** The workflow controls distinguish the fixed
 Root project observation, opened Root library, operational conversation,
 Workflow chat or explicit library-only inspection, and current authoring choice

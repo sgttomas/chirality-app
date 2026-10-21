@@ -32,6 +32,8 @@ const libraryPath='/invented/Opened user library / é';
 
 async function mounted(options,check){
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+ const previousGetById=document.getElementById;
+ document.getElementById=id=>c.querySelectorAll(node=>node.getAttribute('id')===id)[0]??null;
  const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,active='account',nextRead,failRead=false;
  const account={state:'ready',generation:g,threads:['A','B','C','D'].map(thread),roleLimits:{account:{roles:[]}},
  currentAppProjectContext:{reference:fixedProject,sourceCaption:'configured App directory',standing:'explicit frozen Root observation; no native/actor authority inferred'},currentAppProjectContextLimit:null,
@@ -62,6 +64,10 @@ async function mounted(options,check){
   if(command==='native_confirmation_content')return [{kind:'A15 complete review',digest:'fixture-digest',content:frozen}];
   if(command==='workflow_review_digest')return {digest:'fixture-digest'};
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
+  if(command==='open_waiting_requests'){
+   assert.ok(options.waiting,'waiting navigation only in its explicit source-bound case');
+   assert.deepEqual(args,options.waiting);active=args.modeHomeClass;return {...args,threadLoaded:args.threadId!==null};
+  }
   if(command==='thread_start'){if(options.startError)throw options.startError;account.threads.push(thread('new-choice'));return {startGeneration:g,result:{thread:{id:'new-choice'}}};}
   if(command==='workflow_trial_send'||command==='workflow_bring_back_send'){
    assert.ok(options.send,'send only in an explicit send-outcome case');return options.send(command,args);
@@ -91,7 +97,13 @@ async function mounted(options,check){
   if(props(select).value===value)return false;
   await change(select,value);return true;
  };
- const press=async(label,within=c)=>React.act(()=>{const e=button(within,label);assert.ok(e,label);assert.equal(!!props(e).disabled,false,label);track(props(e).onClick());});
+ const press=async(label,within=c)=>React.act(()=>{
+  const e=button(within,label);assert.ok(e,label);assert.equal(!!props(e).disabled,false,label);
+  // Expose an existing control through its native disclosure before pressing
+  // it. This never reveals a composer's hidden foreign render owner.
+  for(let parent=e.parentNode;parent;parent=parent.parentNode)if(parent.localName==='details'&&parent.getAttribute('class')==='workspace-disclosure')parent.open=true;
+  track(props(e).onClick());
+ });
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const choose=async id=>change(elements(conversation(c),'select')[0],key(id));
@@ -106,15 +118,18 @@ async function mounted(options,check){
   assert.match(c.textContent,/Frozen reviewed bytes/);
  };
  try{
+  options.beforeMount?.(account,other);
   await React.act(async()=>root.render(React.createElement(App)));
-  await choose('A');await change(labelled(conversation(c),'textarea','Text '),ordinary);
-  await pickWorkflowChat('C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+  if(options.initialize!==false){
+   await choose('A');await change(labelled(conversation(c),'textarea','Text '),ordinary);
+   await pickWorkflowChat('C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+  }
   await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,composer,assertIndependent,editChoice,model,track,
    gate:()=>{const gate=deferred();nextRead=gate;return gate;},fail:()=>{failRead=true;},snapshot,
    open:(id='B')=>press(`View prepared message in conversation ${id}`)});
   idle.assertClean(c);assert.deepEqual(unexpected,[]);
  }finally{
-  const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);assert.equal(timers.size,0);Object.assign(globalThis,oldTimers);
+  const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);assert.equal(timers.size,0);Object.assign(globalThis,oldTimers);document.getElementById=previousGetById;
  }
 }
 
@@ -428,5 +443,62 @@ test('local No-chat acknowledgement preserves the current composer and its pendi
   assertChoice(ui.c,'Operational conversation viewed','B');assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(original.parentNode),/Conversation B/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
   await React.act(async()=>send.resolve({threadId:'D'}));assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);assert.equal(props(elements(original,'textarea')[0]).value,'Current composer edit');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
   assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+ });
+});
+
+const byId=(c,id)=>c.querySelectorAll(e=>e.getAttribute('id')===id)[0];
+const disclosureOpen=e=>e.open??e.hasAttribute('open');
+const displayed=e=>{for(let n=e;n;n=n.parentNode){if(props(n)?.hidden)return false;if(n!==e&&n.localName==='details'&&!disclosureOpen(n))return false;}return true;};
+async function toggleDisclosure(c,id,open){await React.act(()=>{const e=byId(c,id);assert.equal(e?.localName,'details',id);e.open=open;});}
+async function followWorkspaceLink(c,label){
+ const anchor=elements(c,'a').find(e=>e.textContent===label);assert.ok(anchor,label);assert.ok(displayed(anchor),label);
+ const main=elements(c,'main')[0];await React.act(()=>props(main).onClick({target:anchor,currentTarget:main}));
+}
+
+test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and late outcomes through secondary disclosures and Open',async()=>{
+ const send=deferred();await mounted({send:()=>send.promise},async ui=>{
+  await followWorkspaceLink(ui.c,'New conversation');assert.equal(disclosureOpen(byId(ui.c,'workspace-start')),true);await ui.editChoice('Unsent new-conversation model');await toggleDisclosure(ui.c,'workspace-start',false);await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Edited daily-workspace message');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
+  const review=region(ui.c,'Content named by an open native confirmation');const tools=byId(ui.c,'workspace-tools');assert.ok(tools);const panels=tools.querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure');assert.ok(panels.length);
+  const filePanel=byId(ui.c,'file-acts');const name=elements(byId(ui.c,'workspace-evidence'),'input').find(e=>e.parentNode.textContent.startsWith('Your name on acts'));
+  await toggleDisclosure(ui.c,'workspace-files',true);const scope=labelled(filePanel,'input','Scope ');await ui.change(scope,'Unsent file-review scope');
+  await toggleDisclosure(ui.c,'workspace-evidence',true);await ui.change(name,'Unsent local name');const before=ui.calls.length;
+  for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
+  assert.equal(ui.calls.length,before,'disclosure navigation performs no RPC');assert.equal(ui.composer(),original);assert.equal(byId(ui.c,'file-acts'),filePanel);assert.equal(props(scope).value,'Unsent file-review scope','the secondary child retains its own local state');assert.equal(props(name).value,'Unsent local name');assert.equal(ui.model(),'Unsent new-conversation model');ui.assertIndependent();assert.ok(displayed(review),'native confirmation is outside secondary disclosures');
+  await followWorkspaceLink(ui.c,'More tools');await toggleDisclosure(ui.c,'workspace-records',true);
+  const reveal=[];original.parentNode.scrollIntoView=()=>{assert.ok(displayed(original));reveal.push(original);};await ui.open();
+  assert.deepEqual(reveal,[original]);assert.equal(ui.selected(),key('B'));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));ui.assertIndependent();
+  await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);const pendingCalls=ui.calls.length;
+  for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
+  assert.equal(ui.calls.length,pendingCalls);assert.equal(ui.composer(),original);assert.match(original.textContent,/Sending; waiting/);
+  await React.act(async()=>send.resolve({threadId:'D'}));assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));assert.equal(props(name).value,'Unsent local name');ui.assertIndependent();
+ });
+});
+
+for(const state of ['absent','ready'])test(`first use with Codex ${state} exposes choices and a real access/start route without supplier calls`,async()=>{
+ await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generation=state==='absent'?null:g;account.workflowRoot.context.generation=account.generation;account.threads=[];}},async ui=>{
+  const start=byId(ui.c,'workspace-start');assert.ok(displayed(start));for(const label of ['Model ','Configured Codex provider '])assert.ok(displayed(labelled(start,'input',label)));assert.ok(displayed(labelled(start,'select','Access entry ')));assert.ok(displayed(button(start,'Start thread')));
+  const connection=byId(ui.c,'workspace-connection');if(state==='absent'){assert.equal(disclosureOpen(connection),true,'connection setup is exposed before Codex is ready');assert.ok(displayed(button(ui.c,'Start Codex')));}
+  const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-connection',false);assert.equal(disclosureOpen(connection),false);await followWorkspaceLink(ui.c,'Set up access or start Codex');assert.equal(disclosureOpen(connection),true);assert.ok(displayed(button(ui.c,'Start Codex')));assert.equal(ui.calls.length,before,'setup navigation never starts a supplier');
+ });
+});
+
+test('file-act anchors reveal the same mounted secondary panel with no command or source selection',async()=>{
+ await mounted({},async ui=>{
+  const panel=byId(ui.c,'file-acts');assert.ok(panel);const disclosure=byId(ui.c,'workspace-files');assert.equal(disclosureOpen(disclosure),false);const before=ui.calls.length;
+  await followWorkspaceLink(ui.c,'Review a workspace draft file for a separate standing act');assert.equal(disclosureOpen(disclosure),true);assert.equal(byId(ui.c,'file-acts'),panel);assert.equal(ui.calls.length,before);ui.assertIndependent();
+ });
+});
+
+for(const threadId of ['B',null])test(`waiting ${threadId??'unnamed'} request stays outside collapsed tools and opens its exact original source`,async()=>{
+ const waiting={modeHomeClass:'account',generation:g,threadId};
+ await mounted({waiting,beforeMount:account=>{
+  account.waitingRequests={groups:[{...waiting,count:1}],sources:[{modeHomeClass:'account',state:'ready'}],coverage:'Controlled source fixture'};
+  account.serverRequests=[{recordKind:'server-request-entry',generation:g,requestIdentity:'daily-original-question',method:'item/tool/requestUserInput',classification:'known-answerable',originClass:'person-input',nativeParameters:{...(threadId?{threadId,turnId:'original-turn',itemId:'original-item'}:{}),isBlocking:false,questions:[{id:'q',header:'Scope',question:'Which supplied boundary?',isOther:false,isSecret:false,options:[{label:'Only supplied design',description:'Use the original source'}]}]},state:'outstanding',replyWriteResult:'not-attempted',acknowledgmentObservation:{status:'not-observed'}}];
+ }},async ui=>{
+  for(const panel of byId(ui.c,'workspace-tools').querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure'))panel.open=false;
+  const indicator=region(ui.c,'Requests waiting for your answer');assert.ok(displayed(indicator));assert.match(byId(ui.c,'other-requests').textContent,/Which supplied boundary/);assert.ok(displayed(byId(ui.c,'other-requests')));assert.ok(displayed(region(ui.c,'Content named by an open native confirmation')));
+  const before=ui.calls.length;await ui.press(`account · ${threadId?'conversation '+threadId:'no conversation named'}: 1`);
+  assert.deepEqual(ui.calls.slice(before).filter(call=>!['host_status','decision_view'].includes(call.command)),[{command:'open_waiting_requests',args:waiting}],'only the original exact group is opened, with no answer/resume/send');
+  assert.equal(ui.selected(),threadId?key(threadId):'');assert.ok(displayed(threadId?conversation(ui.c):byId(ui.c,'other-requests')));assert.equal(props(labelled(ui.c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(ui.c,'select','Authoring conversation ')).value,key('B'));
  });
 });

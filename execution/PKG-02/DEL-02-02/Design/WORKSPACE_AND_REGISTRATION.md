@@ -1001,6 +1001,43 @@ The original implementation allocation below locates the trial contributions and
 
 ## Current implementation conditions
 
+**Daily workspace presentation.** The operational conversation and existing
+workflow studio (context, drafts, trials, Compare, Bring back and frozen review)
+form the primary work area, side by side on a wide window and stacked on a
+narrow one. New-conversation model, provider, access-entry, role and Start
+controls retain their original state and handlers in a persistent disclosure.
+It is open for first use without existing conversations or while Codex is not
+ready; the navigation and setup summary remain directly reachable thereafter.
+Connection/access setup is exposed while Codex is not ready, with an explicit
+route from the new-conversation controls.
+
+History/recovery, file acts, records/Fleet, connectors/examination and host
+diagnostics are deliberately reachable secondary disclosures. Every disclosure
+keeps its children mounted while closed; collapsing or following a workspace
+link itself invokes no host command and changes no workflow, source, default,
+send target or draft lifetime. Existing source/generation retirements remain.
+The Fleet component and its attribution/derivation interface are unchanged.
+The waiting-request overview, native confirmation content, active act control
+and requests outside the selected conversation stay outside these secondary
+disclosures. Selected-conversation requests remain in the primary conversation.
+
+Prepared Open retains the existing source/intent checks and post-commit exact
+composer ref; the conversation remains exposed, and reveal spacing keeps that
+composer clear of sticky navigation. File-act anchors and an explicit arrival
+review expose the existing target's containing disclosure before scrolling.
+Request navigation still uses the original full source/group and reveals its
+existing target, without answering, resuming or substituting another thread.
+The operational/Workflow/authoring/render-owner choices, local Send target,
+ordinary global draft, pending/late outcomes and frozen review keep their
+independent state.
+
+Maintained mounted-App checks exercise disclosure lifetime, first-use routes,
+exact prepared reveal, file-act access and source-bound waiting navigation.
+A controlled production-renderer fixture was inspected at desktop and narrow
+viewports through T3 preview with a strict synthetic IPC peer. Those checks
+do not exercise a supplier, model, native App or person act, and do not turn
+the dated native evidence below into a witness for this new layout.
+
 **Read-only workflow working context.** The workflow controls show the host's
 fixed `currentAppProjectContext` and its limit separately from the opened
 workflow library. The existing launch observation supplies a readable native
