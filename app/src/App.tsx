@@ -26,6 +26,7 @@ import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
+import { DailyWorkspace, WorkspaceDisclosure, revealWorkspaceTarget } from "./DailyWorkspace";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -1089,7 +1090,7 @@ export function App() {
   const openArrivalFileAct: OpenArrivalFileAct = async (runRef, arrivalRecordId) => {
     await fileActPanel.current?.openArrival(runRef, arrivalRecordId);
     // Navigation follows this explicit click, never an arriving record or poll.
-    document.getElementById("file-acts")?.scrollIntoView?.({ block: "start" });
+    revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
   const [offer, setOffer] = useState<Json>(null);
@@ -1403,7 +1404,7 @@ export function App() {
       }
       const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
       setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
-      document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView?.();
+      revealWorkspaceTarget(current ? "conversation" : "other-requests");
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
   };
   const forkContextCurrent = (scope: ForkScope, snapshot: Json) =>
@@ -1548,176 +1549,202 @@ export function App() {
     setOffer(null);
   };
 
-  return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
-      <h1>Chirality App v4 — walking skeleton</h1>
-      <NativeWaitingBridge ready={!!host} report={setMessage}
-        checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
+  const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
+  return (<DailyWorkspace>
+        <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
+        <nav className="workspace-nav" aria-label="Workspace navigation">
+          <a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
+        </nav>
+        <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
-        const revision = threadChoiceRevision.current;
-        const homeEpoch = chooserHome.current.epoch;
-        const chooserRevision = editRevision.current;
-        const wasBusy = homePendingRef.current || startPendingRef.current;
-        return async group => {
-          if (wasBusy || homePendingRef.current || startPendingRef.current) {
-            setMessage("Waiting-request navigation refused while another home or conversation operation is pending; choose again from the current menu."); return;
-          }
-          if (revision !== threadChoiceRevision.current || homeEpoch !== chooserHome.current.epoch || chooserRevision !== editRevision.current) {
-            setMessage("Waiting-request navigation superseded by a newer home or conversation choice; choose again from the current menu."); return;
-          }
-          await openRequests(group);
-        };
-      }} />
-      <WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }} />
-      <NativeConfirmationContent />
-      <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
-      <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
-      <FileActPanel command={(name,args)=>invoke(name,args)} controlRef={fileActPanel} onBusyChange={setFileActBusy} />
+          const revision = threadChoiceRevision.current;
+          const homeEpoch = chooserHome.current.epoch;
+          const chooserRevision = editRevision.current;
+          const wasBusy = homePendingRef.current || startPendingRef.current;
+          return async (group) => {
+              if (wasBusy || homePendingRef.current || startPendingRef.current) {
+                  setMessage("Waiting-request navigation refused while another home or conversation operation is pending; choose again from the current menu.");
+                  return;
+              }
+              if (revision !== threadChoiceRevision.current || homeEpoch !== chooserHome.current.epoch || chooserRevision !== editRevision.current) {
+                  setMessage("Waiting-request navigation superseded by a newer home or conversation choice; choose again from the current menu.");
+                  return;
+              }
+              await openRequests(group);
+          };
+      }}/>
+        <WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/>
+        <NativeConfirmationContent />
+        {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
+            <h2>Act control: {offer.wording} ({offer.actKind})</h2>
+            <p>
+              {offer.subject.ref} · {offer.subject.contentIdentity.value}
+              <br />
+              Purpose: {offer.purpose} · Scope: {offer.scope} · {offer.answers.standing}
+            </p>
+            {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
+                <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
+                <b>{a.id}</b> {a.statement} — {a.consequences.join("; ")}
+              </label>))}
+            <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
+            <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
+          </section>)}
+        <div className="workspace-notices"><div id="other-requests">
+            {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
+            {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
+            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]}/>)}
+          </div>
 
-      <WorkflowRootPanel data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command,args)=>invoke<Json>(command,args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }} />
-      {preparedNotice && <p role="status">{preparedNotice}</p>}
-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }} />
-
-      <section>
-        <h2>Codex host</h2>
-        {host?.configurationProblem && <p>Configuration: {host.configurationProblem}</p>}
-        <p>
-          State: <b>{host?.state}</b> · generation {host?.generation ? JSON.stringify(host.generation) : "—"} · version{" "}
-          {host?.versionIdentity?.observedVersionLabel ?? "—"} · verification{" "}
-          {host?.verification ? JSON.stringify(host.verification) : "—"}
-        </p>
-        <p>Supplier standing: {host?.supplierStanding ?? "not started"}</p>
-        <p>
-          <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({model})} setModelProvider={modelProvider => reviseChoice({modelProvider})} />
-        </p>
-        <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({entryId:e.target.value})}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
-        <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
-        <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole}
-          setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }} />
-        <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p>
-        <SupplyStatus supply={host?.roleSupply} />
-        <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })} />
-        {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
-        <RecordsStorePanel store={host?.recordsStore} act={act} />
-        <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }} />
-        <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
-        <details><summary>Last native start selection in this home</summary><pre>{JSON.stringify(host?.accessSelection ?? null, null, 2)}</pre></details>
-        <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
-        <p>
-          <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending}>Start thread</button>
-        </p>
-        <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }} />
-        <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
-        <RecordsCapabilityBindings host={host} />
-
-        <h3>Expected network contacts</h3>
-        <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>
-        <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
-        <details>
-          <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
-          <pre>{JSON.stringify({ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }, null, 2)}</pre>
-        </details>
-      </section>
-
-      <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
-        try { await invoke(command, args); } finally { setHost(await invoke("host_status")); }
-      }} />
-
-      <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])}
-        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null}
-        nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
-        read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })}
-        readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })}
-        retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })} />
-      <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} />
-
-      <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
-        await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
-      }} checkPlanMode={async generation => {
-        try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
-      }} steer={async (generation, threadId, expectedTurnId, text) => {
-        await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
-      }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
-        return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
-      }} observeAttachmentView={async request => {
-        const viewAtRead = currentHost.current;
-        const snapshot = await invoke<Json>("host_status");
-        // This read belongs to the original attachment request, not a Home or
-        // generation selected while its native response/read was pending.
-        if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
-          throw new Error("The current source changed; this original request's view was not applied");
-        }
-        if (currentHost.current !== viewAtRead) {
-          throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
-        }
-        setHost(snapshot);
-      }} interrupt={async (generation, threadId, turnId) => {
-        await conversationAction("conversation_interrupt", { generation, threadId, turnId });
-      }} />
-
-      <section>
-        <h2>Native requests and execution</h2>
-        <p>Recovery initialization: {host?.recoveryInitialization?.state ?? "not-initialized"} · host configured: {String(host?.recoveryInitialization?.hostConfigured ?? false)}</p>
-        {(host?.recoveryInitialization?.historyLimits ?? []).map((limit: string) => <p role="alert" key={limit}>App history limit: {limit}</p>)}
-        <p>SQLite recovery ledger: {host?.recoveryInitialization?.database ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
-        <p>Legacy JSON Lines import location: {host?.recoveryInitialization?.path?.displayPath ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
-        {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. Native supplier processing is not blocked.</p>}
-        <p>Directory publication: {host?.recoveryInitialization?.directoryPublication ?? "not established"} · later persistence failure: {host?.recoveryPersistenceError ?? "none reported"}</p>
-        <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
-        <ObserverAttachment host={host} />
-        {(host?.nativeViewLimits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
-        <div id="other-requests">
-          <h3>Requests outside the selected conversation</h3>
-          <p>Requests of the selected conversation are shown beside it above. Select another conversation to answer its requests there.</p>
-          {hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]} />)}
-        </div>
-        <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
-        <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
-        <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
-      </section>
-
-      <ExternalObservationPanel data={host?.externalObservation} select={async () => {
-        try {
-          const result: Json = await invoke("select_external_observation");
-          setMessage(`External selection: ${result.selection?.state ?? "unknown"} ${result.selection?.stage ?? ""}`);
-        } catch (e) { setMessage(String(e)); }
-        setHost(await invoke("host_status"));
-      }} />
-
-      <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
-        try {
-          const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
-          setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
-        } finally { setHost(await invoke("host_status")); }
-      }} />
-
-      <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl} />
-
-      {offer && (
-        <section style={{ border: "1px solid #888", padding: 8 }}>
-          <h2>Act control: {offer.wording} ({offer.actKind})</h2>
-          <p>
-            {offer.subject.ref} · {offer.subject.contentIdentity.value}
-            <br />
-            Purpose: {offer.purpose} · Scope: {offer.scope} · {offer.answers.standing}
+  <p>{message}</p>
+        {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
+          Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
+          source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
+          requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
+        </p>}</div>
+        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
+          <h2>New conversation</h2>
+          <div className="workspace-start-fields"><p>
+            <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/>
           </p>
-          {offer.alternatives.map((a: Json) => (
-            <label key={a.id} style={{ display: "block" }}>
-              <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)} />{" "}
-              <b>{a.id}</b> {a.statement} — {a.consequences.join("; ")}
-            </label>
-          ))}
-          <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
-          <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
-        </section>
-      )}
+          <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
+          <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
+          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
+          <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
+          <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
+          <p>
+            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending}>Start thread</button>
+          </p>
+          <a href="#workspace-connection">Set up access or start Codex</a>
+        </WorkspaceDisclosure>
+        <div className="workspace-primary">
+          <div className="workspace-primary-column" aria-label="Conversation workspace">
+            <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
+          await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
+      }} checkPlanMode={async (generation) => {
+          try {
+              await invoke("collaboration_modes_read", { generation });
+          }
+          finally {
+              setHost(await invoke("host_status"));
+          }
+      }} steer={async (generation, threadId, expectedTurnId, text) => {
+          await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
+      }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
+          return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
+      }} observeAttachmentView={async (request) => {
+          const viewAtRead = currentHost.current;
+          const snapshot = await invoke<Json>("host_status");
+          // This read belongs to the original attachment request, not a Home or
+          // generation selected while its native response/read was pending.
+          if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
+              throw new Error("The current source changed; this original request's view was not applied");
+          }
+          if (currentHost.current !== viewAtRead) {
+              throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
+          }
+          setHost(snapshot);
+      }} interrupt={async (generation, threadId, turnId) => {
+          await conversationAction("conversation_interrupt", { generation, threadId, turnId });
+      }}/>
+            <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
+              <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
+          try {
+              await invoke(command, args);
+          }
+          finally {
+              setHost(await invoke("host_status"));
+          }
+      }}/>
+            </WorkspaceDisclosure>
+          </div>
+          <div id="workflow-studio" className="workspace-primary-column" aria-label="Workflow studio">
+            <WorkflowRootPanel data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+        {preparedNotice && <p role="status">{preparedNotice}</p>}
+          </div>
+        </div>
+        <section id="workspace-tools" className="workspace-tools" aria-label="Workspace tools">
+          <h2>Workspace tools</h2>
+          <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
+            <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }}/>
+  <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody">
+            <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
+        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-files" title="Files and standing acts" description="Review a saved App-side output and its original act context">
+            <FileActPanel command={(name, args) => invoke(name, args)} controlRef={fileActPanel} onBusyChange={setFileActBusy}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-records" title="Records and Fleet" description="Project records, capability bindings and cross-source records">
+            <RecordsStorePanel store={host?.recordsStore} act={act}/>
+          <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }}/>
+  <RecordsCapabilityBindings host={host}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-evidence" title="Connectors and examination" description="Supplied observations, connector routes and decision packages">
+            <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name, args) => invoke(name, args)}/>
+        <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes}/>
+  <ExternalObservationPanel data={host?.externalObservation} select={async () => {
+          try {
+              const result: Json = await invoke("select_external_observation");
+              setMessage(`External selection: ${result.selection?.state ?? "unknown"} ${result.selection?.stage ?? ""}`);
+          }
+          catch (e) {
+              setMessage(String(e));
+          }
+          setHost(await invoke("host_status"));
+      }}/>
 
-      <p>{message}</p>
-      {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
-        Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
-        source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
-        requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
-      </p>}
-    </main>
-  );
+        <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
+          try {
+              const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
+              setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
+          }
+          finally {
+              setHost(await invoke("host_status"));
+          }
+      }}/>
+  <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-diagnostics" title="Host diagnostics" description="Source identities, role supply, native envelopes and recovery details">
+            <section><h2>Codex host</h2>
+          {host?.configurationProblem && <p>Configuration: {host.configurationProblem}</p>}
+          <p>
+            State: <b>{host?.state}</b> · generation {host?.generation ? JSON.stringify(host.generation) : "—"} · version{" "}
+            {host?.versionIdentity?.observedVersionLabel ?? "—"} · verification{" "}
+            {host?.verification ? JSON.stringify(host.verification) : "—"}
+          </p>
+          <p>Supplier standing: {host?.supplierStanding ?? "not started"}</p>
+  <SupplyStatus supply={host?.roleSupply}/>
+          <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })}/>
+          {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
+  <details><summary>Last native start selection in this home</summary><pre>{JSON.stringify(host?.accessSelection ?? null, null, 2)}</pre></details>
+          <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
+  <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
+
+
+          <h3>Expected network contacts</h3>
+          <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>
+          <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
+          <details>
+            <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
+            <pre>{JSON.stringify({ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }, null, 2)}</pre>
+          </details></section>
+            <section>
+          <h2>Native requests and execution</h2>
+          <p>Recovery initialization: {host?.recoveryInitialization?.state ?? "not-initialized"} · host configured: {String(host?.recoveryInitialization?.hostConfigured ?? false)}</p>
+          {(host?.recoveryInitialization?.historyLimits ?? []).map((limit: string) => <p role="alert" key={limit}>App history limit: {limit}</p>)}
+          <p>SQLite recovery ledger: {host?.recoveryInitialization?.database ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
+          <p>Legacy JSON Lines import location: {host?.recoveryInitialization?.path?.displayPath ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
+          {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. Native supplier processing is not blocked.</p>}
+          <p>Directory publication: {host?.recoveryInitialization?.directoryPublication ?? "not established"} · later persistence failure: {host?.recoveryPersistenceError ?? "none reported"}</p>
+          <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
+          <ObserverAttachment host={host}/>
+          {(host?.nativeViewLimits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
+                  <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
+          <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
+          <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
+        </section>
+          </WorkspaceDisclosure>
+        </section>
+      </DailyWorkspace>);
 }

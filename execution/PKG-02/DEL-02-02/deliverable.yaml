@@ -275,6 +275,7 @@ code_paths:
 - app/src/WorkflowDrafts.tsx
 - app/src/WorkflowContext.tsx
 - app/src/App.tsx
+- app/src/DailyWorkspace.tsx
 checks:
 - app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
 - app/tests/selected-chain-disclosure.test.mjs
