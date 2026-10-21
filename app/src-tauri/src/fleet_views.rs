@@ -364,7 +364,8 @@ pub(super) fn derive(
             let id=text(&ret.record["body"]["workItem"]);
             if return_events(&active,"integration_recorded",id,ret.id()).is_some() { continue; }
             let item=items.iter().find(|i|i["itemId"]==id);
-            let brief_id=ret.record["body"]["brief"].as_str()
+            let return_brief=ret.record["body"]["brief"].as_str();
+            let brief_id=return_brief
                 .or_else(||item.and_then(|i|i["brief"].as_str()));
             let matching:Vec<_>=briefs.iter().filter(|b|b.record["undertaking"]==undertaking && b.record["body"]["workItem"]==id
                 && brief_id.is_some_and(|id|b.record["body"]["briefId"]==id)).collect();
@@ -374,6 +375,9 @@ pub(super) fn derive(
                 "inCurrentGraph":item.is_some(),"returnRef":ret.id(),"state":return_state(review),
                 "returnedBy":actor(&ret.record["body"]["returnedBy"]),"recordedBy":actor(&ret.record["recorder"]),
                 "examines":brief.map(|b|format!("{} (prepared the brief)",actor(&b.record["body"]["preparedBy"]))).unwrap_or("examiner not established".into()),
+                "examinesProvenance":{"basis":if return_brief.is_some(){"return-brief"}else{"current-graph-brief"},
+                    "briefId":brief_id,"referenceSource":if return_brief.is_some(){Some(sourced(ret))}else{item.map(|_|sourced(graph))},
+                    "briefSource":brief.map(sourced)},
                 "examiner":review.map(|r|actor(&r.record["body"]["reviewer"])),
                 "returned":ret.record["body"]["returned"],"evidence":ret.record["body"]["evidence"],
                 "sources":[sourced(ret),review.map(sourced),brief.map(sourced)]}));

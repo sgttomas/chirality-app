@@ -65,8 +65,14 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
         <b>{row.item}: {row.outcome}</b> — {row.state}
         <p>Returned by {row.returnedBy}; recorded by {row.recordedBy}. Who examines: {row.examines}.
           {row.examiner ? ` Recorded reviewer: ${row.examiner}.` : " No review recorded."}</p>
+        {row.examinesProvenance && <p>Brief preparer source: {row.examinesProvenance.basis === "return-brief"
+          ? `return's named brief ${row.examinesProvenance.briefId}.`
+          : row.examinesProvenance.briefId
+            ? `${view.currentGraphEstablished ? "current" : "last readable"} graph's brief ${row.examinesProvenance.briefId}${view.currentGraphEstablished ? "" : " (currentness unknown)"}; return does not name a brief.`
+            : `return does not name a brief; ${view.currentGraphEstablished ? "current" : "last readable"} graph has no brief for this item${view.currentGraphEstablished ? "" : " (currentness unknown)"}.`}
+          {row.examinesProvenance.briefId && !row.examinesProvenance.briefSource ? " No preparer established from the named brief." : ""}</p>}
         <p>Return: {row.returnRef}. Returned references: {row.returned.map((ref: Json) => ref.ref).join(", ")}.</p>
-        <details><summary>Return evidence and sources</summary><pre>{JSON.stringify({evidence: row.evidence, sources: row.sources}, null, 2)}</pre></details>
+        <details><summary>Return evidence and sources</summary><pre>{JSON.stringify({evidence: row.evidence, sources: row.sources, examinesProvenance: row.examinesProvenance}, null, 2)}</pre></details>
       </li>)}</ul>
       <h5>Selected work and waiting causes</h5>
       <ul>{view.waiting.map((row: Json) => <li key={row.item}>

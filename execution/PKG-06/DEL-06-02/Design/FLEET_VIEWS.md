@@ -276,8 +276,21 @@ identity or repairing derived package controls does not upgrade the imported
 rows' standing.
 
 FV-1 membership is per return, including multiple unintegrated returns on one
-item. A row keeps the preparer of the named brief as its examination owner;
-there is no executor fallback. Review and integration remain separate. Item
+item. Examination attribution uses the return's named brief first. When the
+return does not name a brief, it uses the current graph item's brief, so that
+attribution can change with the selected graph. The panel identifies which
+reference supplied the displayed preparer and explicitly says "return does not
+name a brief" on the current-graph route. When current graph standing is not
+established, both the named-brief and no-brief messages on that route say
+"last readable graph" and "currentness unknown", using the same standing as
+the graph heading. The explicit return-brief label is unaffected.
+`examinesProvenance` retains the
+selected brief identity, the return or graph record supplying the reference,
+and the resolved brief's source. An absent, invalid, mismatched or conflicting
+brief leaves the examiner unestablished; a named but unresolved return brief
+does not fall back to the graph's brief. There is no executor fallback. This
+exposes the existing attribution rule without deciding immutable historical
+review ownership versus current graph routing. Review and integration remain separate. Item
 needs use the current return's integration or an external-result record. Input
 and connector needs retain their observed content identity and source. Unknown
 need states take precedence over waiting, so an unresolved cause is not hidden

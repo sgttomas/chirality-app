@@ -92,6 +92,63 @@ test('actual native workspace reconstructs returns and waiting identically in se
   assert.match(html,/Reconstruction limits/);assert.match(html,/no dispatch observed/);
 });
 
+test('actual Rust brief attribution reaches each visible return row without changing preparer routing',()=>{
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','fleet_records::views::tests::fleet_views_native_adapter_examination_attribution_','--','--nocapture','--test-threads=1'],{
+    cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'},
+  });
+  assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const dto=marker=>{
+    const line=proc.stdout.split('\n').find(line=>line.includes(marker));assert.ok(line,marker);
+    return JSON.parse(line.slice(line.indexOf(marker)+marker.length));
+  };
+  const {before,after}=dto('FLEET_ATTRIBUTION_DTO:');
+  const limits=dto('FLEET_ATTRIBUTION_LIMITS_DTO:');
+  const visibleRow=(actual,reference)=>{
+    const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:actual,error:'',busy:false,refresh:()=>{}}));
+    const queue=html.split('<h5>Return-review queue')[1].split('<h5>Selected work and waiting causes')[0];
+    const row=queue.match(/<li>[\s\S]*?<\/li>/g).find(row=>row.includes(`Return: ${reference}.`));
+    assert.ok(row,`visible return ${reference}`);
+    return row.split('<details>')[0]; // Packet JSON in disclosure cannot satisfy display assertions.
+  };
+  for(const actual of [before,after]){
+    const named=visibleRow(actual,'fl:named-return');
+    assert.match(named,/Who examines: original preparer \(prepared the brief\)/);
+    assert.match(named,/Brief preparer source: return&#x27;s named brief brief:original\./);
+    assert.doesNotMatch(named,/return does not name a brief/);
+    assert.match(named,/awaiting review/);assert.match(named,/No review recorded/);
+  }
+  const oldGraph=visibleRow(before,'fl:optional-return'),newGraph=visibleRow(after,'fl:optional-return');
+  assert.match(oldGraph,/Who examines: original preparer \(prepared the brief\)/);
+  assert.match(oldGraph,/current graph&#x27;s brief brief:original; return does not name a brief/);
+  assert.match(newGraph,/Who examines: current preparer \(prepared the brief\)/);
+  assert.match(newGraph,/current graph&#x27;s brief brief:replacement; return does not name a brief/);
+  for(const [name,actual] of Object.entries(limits)){
+    const named=visibleRow(actual,'fl:named-return'),optional=visibleRow(actual,'fl:optional-return');
+    assert.match(named,/Brief preparer source: return&#x27;s named brief brief:named\./,name);
+    assert.doesNotMatch(named,/last readable graph|currentness unknown/,name);
+    if(name==='duplicate' || name==='duplicate-no-graph-brief')assert.equal(actual.workspace.undertakings[0].currentGraphEstablished,false,name);
+    if(name==='no-graph-brief' || name==='duplicate-no-graph-brief'){
+      if(name==='no-graph-brief')assert.match(named,/Who examines: named preparer \(prepared the brief\)/);
+      else assert.match(named,/Who examines: examiner not established/);
+      assert.match(optional,/Who examines: examiner not established/);
+      if(name==='no-graph-brief')assert.match(optional,/return does not name a brief; current graph has no brief for this item/);
+      else{
+        assert.match(optional,/return does not name a brief; last readable graph has no brief for this item \(currentness unknown\)/);
+        assert.doesNotMatch(optional,/current graph/);
+      }
+    }else{
+      assert.match(named,/Who examines: examiner not established/,name);
+      assert.match(named,/No preparer established from the named brief/,name);
+      assert.doesNotMatch(named,/Who examines: (?:current preparer|executor|conflicting preparer)/,name);
+      assert.match(optional,/Who examines: current preparer \(prepared the brief\)/,name);
+      if(name==='duplicate'){
+        assert.match(optional,/last readable graph&#x27;s brief brief:current \(currentness unknown\); return does not name a brief/);
+        assert.doesNotMatch(optional,/current graph/);
+      }else assert.match(optional,/current graph&#x27;s brief brief:current; return does not name a brief/,name);
+    }
+  }
+});
+
 test('qualified readiness and incomplete queues stay qualified in the rendered category and cause',()=>{
   const workspace={standing:'quoted fixture',graphIdentityMethod:'fixture',limits:[],undertakings:[{
     undertaking:'invented',graph:'fl:graph',revision:1,currentGraphEstablished:false,queueComplete:false,queue:[],notes:['incomplete source'],
