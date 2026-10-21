@@ -1306,7 +1306,15 @@ historical provenance, not an unresolved placement choice.
 
 **Recovery reads (CV-11…CV-15, CV-19, CV-22, SR-09; R-4, X-3…X-5).**
 Implemented in the Rust host (`hosting_recovery_reads.rs`,
-`execution_custody.rs`); not witnessed natively. The reads run on the host's
+`execution_custody.rs`). A bounded native development observation on 2026-10-21
+(`f1ea3a9d`, stock Codex 0.160.0) followed idle App Quit/relaunch: the new session
+reported the prior idle conversation accessible through `thread/read`. This is
+an App-observed accessibility read, not native authentication or operational
+admission. One separately admitted Continue exposed two completed turns through
+bounded prior-work pages; those pages restore no role, request or
+current-execution authority. The other CV/SR variants and limits below,
+live-work/request or window-loss handling, durable final writes and full
+qualification are not established by this observation. The reads run on the host's
 own Codex-read tick once the home's process is `ready`, and on the person's
 retry; each conversation is read once per ready generation, with the reads
 grouped per thread. `thread/turns/list` pages descending until the turn last
