@@ -518,3 +518,119 @@ test('idle native waiting startup reads no intent, performs no action and cleans
   await waitingPoll();
   assert.equal(idle.calls.length, callsAfterUnmount, 'an already queued waiting tick stops after effect cleanup');
 });
+
+const ordinaryModelLabel = 'Optional model identifier for next ordinary text turn ';
+const region = (container, label) => container.querySelectorAll(e => e.getAttribute('aria-label') === label)[0];
+const flush = () => new Promise(resolve => setImmediate(resolve));
+
+async function withOrdinarySend(check, native) {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const calls = []; let refreshFailure = false;
+  const snapshot = {...host, homeRouting: {activeModeHomeClass: 'account'}, planMode: {state: 'offered'},
+    threads: host.threads.map(row => ({...row, model: 'reported-original', modelProvider: 'original-provider'}))};
+  const idle = installIdleNativeWaiting(async (command, args) => {
+    calls.push({command, args});
+    if (command === 'host_status') {if (refreshFailure) throw Error('Original observer unavailable'); return snapshot;}
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    assert.equal(command, 'conversation_send_text', 'ordinary controls have one native command');
+    return native(args, () => {refreshFailure = true;});
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const panel = () => container.querySelectorAll(e => e.getAttribute('id') === 'conversation')[0];
+    await change(elements(panel(), 'select')[0], key('thread-a'));
+    await check({container, calls, panel, model: () => labelled(panel(), 'input', ordinaryModelLabel), text: () => elements(panel(), 'textarea')[0],
+      press: async label => React.act(async () => {props(button(panel(), label)).onClick(); await flush();})});
+  } finally {const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text);}
+}
+
+test('mounted App ordinary controls send only their exact explicit choice and full current target', async () => {
+  for (const [mode, label] of [[undefined, 'Send text'], ['plan', 'Send in plan mode (experimental)'], ['default', 'Send in default mode (carry out / leave plan mode)']]) {
+    for (const model of ['', 'exact-model/é']) await withOrdinarySend(async ui => {
+      await change(labelled(ui.container, 'input', 'Model '), 'new-conversation-only');
+      await change(ui.model(), model); await change(ui.text(), 'Exact ordinary text 家\n');
+      assert.equal(ui.calls.filter(c => c.command === 'conversation_send_text').length, 0, 'editing sends nothing');
+      await ui.press(label);
+      assert.deepEqual(ui.calls.filter(c => c.command === 'conversation_send_text'), [{command: 'conversation_send_text', args: {
+        generation: g, threadId: 'thread-a', text: 'Exact ordinary text 家\n', mode: mode ?? null, ...(model ? {model} : {}),
+      }}]);
+      assert.equal(props(ui.model()).value, ''); assert.equal(props(ui.text()).value, '');
+      assert.equal(props(labelled(ui.container, 'input', 'Model ')).value, 'new-conversation-only');
+      assert.match(region(ui.panel(), 'Ordinary text submission outcome').textContent, /Model adoption, execution and completion remain unestablished/);
+      assert.match(ui.panel().textContent, /this turn and subsequent native turns; clearing this field does not revert it/);
+      assert.match(ui.panel().textContent, /reported-original via original-provider/);
+    }, async () => ({result: {turn: {id: 'native-turn', status: 'inProgress', items: []}}}));
+  }
+});
+
+test('ordinary native result is immutable across observer failure, with refusal/unknown drafts retained', async () => {
+  for (const outcome of ['acknowledged', 'refused', 'unknown']) await withOrdinarySend(async ui => {
+    await change(ui.model(), 'unsent-explicit'); await change(ui.text(), 'Unsent ordinary draft');
+    await ui.press('Send text');
+    const shown = region(ui.panel(), 'Ordinary text submission outcome').textContent;
+    assert.match(shown, /Original ordinary text turn · conversation thread-a · Home h · App session s · spawn 1/);
+    assert.match(shown, /Ordinary text view refresh unavailable.*Original observer unavailable/);
+    if (outcome === 'acknowledged') {
+      assert.match(shown, /Native turn\/start response received/); assert.doesNotMatch(shown, /Original native/);
+      assert.equal(props(ui.model()).value, ''); assert.equal(props(ui.text()).value, '');
+    } else {
+      assert.match(shown, new RegExp(`Original native ${outcome}`));
+      assert.equal(props(ui.model()).value, 'unsent-explicit'); assert.equal(props(ui.text()).value, 'Unsent ordinary draft');
+    }
+    assert.equal(ui.calls.filter(c => c.command === 'conversation_send_text').length, 1, 'no retry, substitution or fallback');
+  }, async (_args, failRefresh) => {failRefresh(); if (outcome !== 'acknowledged') throw Error(`Original native ${outcome}`); return {result: {turn: {id: 'ack'}}};});
+});
+
+async function withOrdinaryPanel(check, send = noop, observeOrdinaryView = noop) {
+  const container = document.createElement('div'); const root = createRoot(container); document.body.appendChild(container);
+  const show = async (generation = g, threadId = 'thread-a', state = 'ready') => React.act(() => root.render(React.createElement(ConversationPanel, {
+    host: {...host, generation, state, threads: [{...thread(threadId, null), generation}]}, threadKey: JSON.stringify([generation, threadId]), setThreadKey: noop,
+    answer: noop, runAct: noop, send, observeOrdinaryView, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false,
+  })));
+  const model = () => labelled(container, 'input', ordinaryModelLabel), text = () => elements(container, 'textarea')[0];
+  try {await show(); await check({container, show, model, text, press: () => React.act(async () => {props(button(container, 'Send text')).onClick(); await flush();})});}
+  finally {await React.act(() => root.unmount()); document.body.removeChild(container);}
+}
+
+test('local ordinary model lifetime follows full conversation identity while the ordinary text draft stays global', async () => {
+  await withOrdinaryPanel(async ui => {
+    await change(ui.text(), 'One global ordinary text draft');
+    for (const [generation, id] of [[g, 'thread-b'], [{...g, home: 'foreign-home'}, 'thread-b'], [{...g, appSession: 'new-session'}, 'thread-b'], [{...g, spawnCounter: 2}, 'thread-b'], [g, 'thread-a']]) {
+      await change(ui.model(), 'previous-conversation-choice'); await ui.show(generation, id);
+      assert.equal(props(ui.model()).value, '', 'no previous full conversation choice is applied');
+      assert.equal(props(ui.text()).value, 'One global ordinary text draft');
+    }
+  });
+});
+
+test('late ordinary outcome cannot clear newer text/model, including away-and-back edits and targets', async () => {
+  for (const supersession of ['edits', 'conversation', 'home', 'generation', 'close', 'away-back']) {
+    const held = deferred(); const calls = [];
+    await withOrdinaryPanel(async ui => {
+      await change(ui.text(), 'original text'); await change(ui.model(), 'original-model');
+      await ui.press();
+      assert.deepEqual(calls, [[g, 'thread-a', 'original text', undefined, 'original-model']]);
+      if (supersession === 'edits') {
+        await change(ui.text(), 'temporary'); await change(ui.text(), 'original text');
+        await change(ui.model(), 'temporary'); await change(ui.model(), 'original-model');
+      } else {
+        if (supersession === 'away-back') {await ui.show(g, 'thread-b'); await ui.show();}
+        else if (supersession === 'conversation') await ui.show(g, 'thread-b');
+        else if (supersession === 'home') await ui.show({...g, home: 'another-home'});
+        else if (supersession === 'generation') await ui.show({...g, spawnCounter: 2});
+        else await ui.show(g, 'thread-a', 'stopped');
+        await change(ui.text(), 'newer text'); await change(ui.model(), 'newer-model');
+      }
+      await React.act(async () => {held.resolve({result: {turn: {id: 'original-native'}}}); await flush();});
+      assert.equal(props(ui.text()).value, supersession === 'edits' ? 'original text' : 'newer text');
+      assert.equal(props(ui.model()).value, supersession === 'edits' ? 'original-model' : 'newer-model');
+      const shown = region(ui.container, 'Ordinary text submission outcome').textContent;
+      assert.match(shown, /conversation thread-a · Home h · App session s · spawn 1/);
+      assert.match(shown, /requested model original-model/);
+      assert.match(shown, /Native turn\/start response received/);
+      assert.match(shown, /original observer failure/);
+      assert.equal(calls.length, 1);
+    }, async (...args) => {calls.push(args); return held.promise;}, async () => {throw Error('original observer failure');});
+  }
+});

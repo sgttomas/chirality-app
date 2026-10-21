@@ -3077,6 +3077,20 @@ validator it also compares their outcomes. These remain Design rehearsals.
 
 ## Current implementation conditions
 
+**Current ordinary-text requested model (R5).** The Host's source-correlated
+`appTurnStart.requestedContext` freezes the effective requested field at the
+actual write: a collaboration mode takes precedence over top-level `model`.
+For omitted overrides, only settled, ordered source requests in the same full
+conversation generation can supply inherited requested context; a refused
+request establishes no new accepted requested-model context, and
+unknown/late/order/source gaps remain `unknown`.
+The recorder consumes this frozen context without changing any native reported
+thread model. Per-turn `effective` still comes only from an observed reroute
+naming that turn, otherwise `unknown`; native acknowledgment and sticky protocol
+semantics establish no actual adoption. This uses the existing `model_turn`
+kind and schema. Invented-peer checks exercise the actual ordinary IPC, Host,
+host tick and validated RS writer during an active run.
+
 **Current standalone App-file observations.** `file_act_lapse.rs` records
 content observations for standing A4/A6/A7 file acts outside runs, through the
 existing project act-log writer and CE-10 body with no arrival or `when`.

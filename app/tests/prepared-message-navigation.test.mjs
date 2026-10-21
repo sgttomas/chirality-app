@@ -502,3 +502,18 @@ for(const threadId of ['B',null])test(`waiting ${threadId??'unnamed'} request st
   assert.equal(ui.selected(),threadId?key(threadId):'');assert.ok(displayed(threadId?conversation(ui.c):byId(ui.c,'other-requests')));assert.equal(props(labelled(ui.c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(ui.c,'select','Authoring conversation ')).value,key('B'));
  });
 });
+
+test('ordinary model choice stays local to its full conversation and never enters a prepared Send-to-D request',async()=>{
+ await mounted({send:async(command,args)=>{
+  assert.equal(command,'workflow_trial_send');assert.equal(args.threadId,'D');assert.equal(Object.hasOwn(args,'model'),false);return {threadId:'D'};
+ }},async ui=>{
+  await ui.change(labelled(conversation(ui.c),'input','Optional model identifier for next ordinary text turn '),'ordinary-A-model');
+  await ui.choose('B');
+  const model=()=>labelled(conversation(ui.c),'input','Optional model identifier for next ordinary text turn ');
+  assert.equal(props(model()).value,'');await ui.change(model(),'ordinary-B-model');
+  const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Prepared text for D');await ui.change(labelled(original,'select','Send to '),key('D'));
+  await ui.press('Send',original);
+  assert.equal(props(model()).value,'ordinary-B-model','a prepared send consumes no ordinary choice');
+  ui.assertIndependent();
+ });
+});

@@ -1016,6 +1016,26 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Current ordinary-text model choice (ACCESS I-3/CS-18/Q-11; TC-2,
+TC-4/TC-5).** An empty optional model identifier beside the ordinary text
+controls belongs to the actual full conversation reference (home, App session,
+spawn, thread), while the text remains the global ordinary draft. It applies
+only to ordinary Send text and plan/default text, including a pending end
+notice; other Send controls consume none of it. Empty omits the override and
+keeps the native choice. The UI states the pinned native persistence: an
+explicit choice affects this turn and subsequent turns; clearing the local
+field does not revert it. Mode composition puts the explicit choice in the
+mode's effective model field and retains effort/instruction semantics; missing
+ordered requested context refuses instead of resetting a stale model. The
+notice still precedes unchanged person text in one exact privately checked
+frame and remains governed by its existing once-only settlement. Immutable
+original command outcome and observer-refresh limits are displayed separately.
+Refusal/error/unknown retains unsent text and model without retry or
+substitution; supersession or a newer edit prevents a late clear. Reported
+model facts remain native observations; an acknowledgment proves neither
+adoption, execution nor a human act. Existing role/provider/home and run
+boundaries are unchanged.
+
 **Daily workspace receiving placement.** Conversation and workflow-making
 controls share the primary work area. Persistent secondary disclosures keep
 their children mounted; first-use conversation/access setup remains explicitly

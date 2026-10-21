@@ -392,6 +392,8 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/model_turn_recorder.rs
+- app/src-tauri/src/hosting.rs
 - app/src-tauri/src/file_act_arrival.rs
 - app/src-tauri/src/act_control_file.rs
 - app/src-tauri/src/file_act_root.rs
@@ -429,6 +431,9 @@ code_paths:
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
 checks:
+- app/src-tauri/src/model_turn_recorder_tests.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs
 - app/src-tauri/src/attachment_outcome_tests.rs
 - app/tests/attachment-outcome.test.mjs

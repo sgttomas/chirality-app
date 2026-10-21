@@ -180,3 +180,30 @@ fn requested_follows_the_apps_own_turn_start() {
     let bodies = recorder.observe(&View::new().started_by_app().turn("t1", 1, "completed").sent("t1", None).value(), &scope(1));
     assert_eq!(bodies[1]["requested"], "openai/gpt-x");
 }
+
+#[test]
+fn ordinary_source_context_is_consumed_without_inventing_native_adoption_or_late_inheritance() {
+    let mut view = View::new().started_by_app()
+        .turn("explicit", 1, "completed").sent("explicit", None)
+        .turn("omitted", 2, "completed").sent("omitted", None)
+        .turn("gap", 3, "completed").sent("gap", None)
+        .turn("mode", 4, "completed").sent("mode", Some("mode-effective"));
+    for (row, requested) in view.sent.iter_mut().zip(["ordinary-exact", "ordinary-exact", "unknown", "mode-effective"]) {
+        row["appTurnStart"]["requestedContext"] = json!({"requested":requested,"basis":"invented source-bound Host fixture"});
+    }
+    view.sent[0]["appTurnStart"]["model"] = json!("ordinary-exact");
+    // An unrelated newer report or other home's same bare native turn supplies
+    // no requested/actual model for these original source-bound turns.
+    view.threads[0]["model"] = json!("later-thread-report");
+    view.sent.push(json!({"generation":{"appSession":"session","home":"foreign","spawnCounter":1},"threadId":"thread","turnId":"gap","appTurnStart":{"requestedContext":{"requested":"foreign"}}}));
+    let mut recorder = ModelTurnRecorder::default();
+    let bodies = recorder.observe(&view.value(), &scope(1));
+    valid(&bodies);
+    let turns: Vec<_> = bodies.iter().filter(|b| b["scope"] == "turn").collect();
+    assert_eq!(turns.iter().map(|b| b["requested"].as_str().unwrap()).collect::<Vec<_>>(), ["ordinary-exact", "ordinary-exact", "unknown", "mode-effective"]);
+    assert!(turns.iter().all(|b| b["effective"] == "unknown"));
+    // A late source fact cannot rewrite the already-written unknown turn.
+    view.sent[2]["appTurnStart"]["requestedContext"]["requested"] = json!("late-model");
+    assert!(recorder.observe(&view.value(), &scope(1)).is_empty());
+    assert_eq!(turns[2]["requested"], "unknown", "written record retains its original unknown context");
+}
