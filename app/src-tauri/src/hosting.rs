@@ -4626,7 +4626,71 @@ mod conversation_transport_tests {
     fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
     fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
-    fn history_exchange(host:&Arc<Host>,query:&HistoryQuery,response:Option<Value>)->(HistoryDispatch,Value,Value) {let mut receipt=None;let(result,outbound)=exchange(host,response,vec![],||{let r=host.history_dispatch(query)?;let evidence=host.history_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(evidence)});(receipt.unwrap(),result.unwrap(),outbound)}
+    fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
+        history_exchange_observed(host, query, response, None, |_| {})
+    }
+    /// A gate controls scheduling only in the regression below. Completion is
+    /// bounded; a broken/missing peer fails rather than leaving a reader joined
+    /// forever. No supplier or product wait bound is changed by this fixture.
+    fn history_exchange_observed<F: FnOnce(&Value)>(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>,
+        peer_release: Option<Receiver<()>>, after_wait: F) -> (HistoryDispatch, Value, Value) {
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take(); let stdout = child.stdout.take().unwrap();
+        let scripted_reply = response.is_some();
+        let me = Arc::clone(host); let (done_tx, done_rx) = channel();
+        let worker = std::thread::spawn(move || {
+            let completed = (|| -> Result<Value, String> {
+                let mut line = String::new();
+                BufReader::new(stdout).read_line(&mut line).map_err(|e| format!("history peer read failed: {e}"))?;
+                let outbound: Value = serde_json::from_str(&line).map_err(|e| format!("history peer frame unavailable: {e}"))?;
+                if let Some(release) = peer_release {
+                    release.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer response gate was not released: {e}"))?;
+                }
+                if let Some(mut frame) = response {
+                    frame["id"] = outbound["id"].clone(); me.on_line(&serde_json::to_vec(&frame).unwrap(), &g());
+                }
+                Ok(outbound)
+            })();
+            let _ = done_tx.send(completed);
+        });
+        let result = (|| -> Result<(HistoryDispatch, Value, Value), String> {
+            let receipt = host.history_dispatch(query)?;
+            let evidence = host.history_wait(&receipt, Duration::from_millis(15))?;
+            after_wait(&evidence);
+            let outbound = done_rx.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer did not complete its scripted exchange: {e}"))??;
+            // The peer may have been scheduled after the short wait ended.
+            // Read its actual retained completion; the earlier clone stays
+            // pending. An intentionally absent reply keeps that timeout proof.
+            let evidence = if scripted_reply { host.history_dispatch_status(&receipt)? } else { evidence };
+            Ok((receipt, evidence, outbound))
+        })();
+        *host.stdin.lock().unwrap() = None;
+        if result.is_err() { let _ = child.kill(); }
+        assert!(child.wait().unwrap().success() || result.is_err(), "history peer exited unsuccessfully");
+        worker.join().expect("history peer worker panicked");
+        result.expect("history fixture exchange failed")
+    }
+    #[test]
+    fn history_bridge_scripted_reply_after_wait_uses_completed_source_evidence() {
+        let host = host(); let mut view = history_selected(); let query = view.read_metadata().unwrap();
+        let raw = json!({"result":{"thread":history_thread("notLoaded")}});
+        let (release_tx, release_rx) = channel(); let mut at_wait = Value::Null;
+        let (receipt, evidence, outbound) = history_exchange_observed(&host, &query, Some(raw.clone()), Some(release_rx), |observed| {
+            at_wait = observed.clone(); let _ = release_tx.send(());
+        });
+        assert_eq!(at_wait["outcome"], "pending", "the scripted reply was withheld through the actual wait");
+        assert_eq!(at_wait["waitingEnded"], true); assert!(at_wait["response"].is_null());
+        let current = host.history_dispatch_status(&receipt).unwrap();
+        let mut expected = raw; expected["id"] = outbound["id"].clone();
+        assert_eq!(current["response"], expected); assert_eq!(current["outcome"], "response-observed-result");
+        assert_eq!(evidence["outcome"], "response-observed-result", "the scripted-reply fixture must return the completed source, not the earlier pending snapshot");
+        assert_eq!(evidence["response"], expected); assert_eq!(evidence["sentFrame"], outbound);
+        assert_eq!(evidence["generation"], g()); assert_eq!(receipt.query(), &query);
+        assert_eq!(evidence["waitingEnded"], true, "late completion never erases the original timeout fact");
+        view.receive(&query, "conversation-home", &g(), &evidence["response"]["result"]).unwrap();
+        assert!(host.history_admit_resume(&view, &receipt).is_err());
+        assert_eq!(host.client_requests().len(), 1); assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(), 1);
+    }
     #[test]
     fn history_bridge_current_started_child_reaches_metadata_without_guidance_or_admission() {
         use crate::native_history::Direction;
