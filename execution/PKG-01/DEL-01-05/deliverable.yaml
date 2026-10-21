@@ -98,6 +98,8 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/model_turn_recorder.rs
+- app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/access_provider.rs
 - app/src-tauri/src/access_provider_tests.rs
@@ -108,6 +110,9 @@ code_paths:
 - app/supplier_checks/local_auth.py
 - app/supplier_checks/child_roles.py
 checks:
+- app/src-tauri/src/model_turn_recorder_tests.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting.rs
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/src-tauri/src/access_provider_tests.rs

@@ -1252,6 +1252,39 @@ assessment's recommendations 3–5):
 
 ## Current implementation conditions
 
+### Current ordinary-text model choice (I-3 / CS-18 / Q-11)
+
+The current conversation offers an empty optional model-identifier field for
+its next ordinary text Send, including plan/default text controls and the
+pending run-end notice composition. It changes neither access entry, provider,
+home nor fixed role and opens no run. The pinned 0.160.0 `TurnStartParams.model`
+contract applies the override to this turn **and subsequent turns**; the UI
+states that persistence. Empty omits the native override and keeps the existing
+native choice; clearing the local field promises no reversion. Resume still
+overrides nothing. New-conversation, Continue-as and clean-trial choices remain
+separate, as do attachments, steering and prepared messages.
+
+An explicit plan/default choice occupies `collaborationMode.settings.model`,
+which takes precedence over top-level `model`; existing effort, built-in mode
+instructions and mode semantics are preserved. With no explicit identifier,
+mode composition uses only established ordered, correlated requested context,
+or the current native thread report when no model change intervened. Unknown
+prior writes, an uncorrelated turn, late/concurrent order gaps or replaced
+source binding refuse that mode composition before sending, with a stated
+limit; they never substitute a stale thread-start model. A final prewrite check
+protects an inherited mode model while waiting for the writer.
+
+The Host retains the actual request and freezes requested context at dispatch.
+RS R5 receives that context separately from native thread reports and turn
+reroutes; an acknowledgment establishes neither adoption nor execution. The
+single local model choice is keyed to the actual home, App session, spawn and
+thread; ordinary text remains one global draft. Failure/unknown retains the
+unsent choice and text, with no resend or substitution. A late outcome cannot
+clear newer edits or a superseding conversation, and observer failure does not
+rewrite the native command outcome. Offline invented-peer IPC/Host/RS checks
+and mounted App tests establish carriage and receiving behavior, not model or
+supplier qualification.
+
 ### Current new-conversation chooser
 
 The ordinary Start form owns a new-conversation choice separately from the

@@ -19,15 +19,14 @@
 //! - a `model/rerouted` report received after its turn's entry was written is
 //!   recorded as a further entry for that turn; the earlier one is not rewritten.
 //!
-//! A turn's `requested` comes from the App's own `turn/start` for it, as the
-//! host correlated it: a `collaborationMode` turn asked for that mode's model;
-//! a plain turn carries no model and runs under the latest mode the App sent
-//! the conversation in the same Codex process, or else under the provider and
-//! model the App requested at thread start. A turn the App did not start, one
-//! after a mode sent in an earlier process, and a conversation the App did not
-//! start in this session have *unknown*. The destination class
-//! is DEL-01-05's mapping of the conversation's access entry (ACCESS-v0.2 §2),
-//! known only for the conversation the home last started; otherwise *unknown*.
+//! A turn's `requested` comes from the Host's original correlated request.
+//! Current sources freeze `requestedContext` at the actual write: the effective
+//! explicit model field, or conservative ordered accepted requested context for
+//! an omitted override. Unknown writes, late/order gaps and source changes stay
+//! unknown; no native reported thread model is optimistically changed. Older
+//! projections without this metadata retain their mode/thread-request limits.
+//! Destination class remains the conversation access-entry mapping (ACCESS §2),
+//! known only for the conversation the home last started; otherwise unknown.
 //!
 //! Recording is not a reaction: nothing here sends, asks or changes anything,
 //! and nothing is observed after the run's end.
@@ -100,18 +99,20 @@ impl ModelTurnRecorder {
         }
         turn.rerouted_to.iter().map(|to| self.turn_body(turn.ordinal, &turn.requested, Some(to))).collect()
     }
-    /// RS R5 *requested* for one turn, from the App's own `turn/start` as the
-    /// host correlated it: a `collaborationMode` turn asked for that mode's
-    /// model; a plain turn carries no model, so it runs under the latest mode
-    /// the App sent this conversation in the same Codex process (Codex keeps
-    /// it), or else the conversation's thread-start request. A turn the App did
-    /// not start, or one after a mode sent in an earlier process, is *unknown*.
+    /// RS R5 requested context, frozen by the actual Host sender. The fallback
+    /// below is only for older projections without source-bound context; it
+    /// retains their existing same-process mode/thread-request limits.
     fn turn_requested(&self, view: &Value, scope: &RunScope, turn: &str) -> String {
         let session = &view["generation"]["appSession"];
         let rows: Vec<&Value> = view["hostTurns"].as_array().into_iter().flatten()
             .filter(|t| t["threadId"] == scope.conversation && t["generation"]["appSession"] == *session && t["generation"]["home"] == scope.home && t["appTurnStart"].is_object())
             .collect();
         let Some(this) = rows.iter().find(|t| t["turnId"] == turn) else { return "unknown".into() };
+        // Production Host freezes this source-bound context at its actual write.
+        // Never recompute it from a later ACK, another source or a stale report.
+        if this["appTurnStart"]["requestedContext"].is_object() {
+            return this["appTurnStart"]["requestedContext"]["requested"].as_str().filter(|m| !m.is_empty()).unwrap_or("unknown").to_owned();
+        }
         if this["appTurnStart"]["collaborationMode"] == true {
             return destination(&Value::Null, &this["appTurnStart"]["model"]);
         }

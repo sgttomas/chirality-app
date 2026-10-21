@@ -1081,32 +1081,20 @@ fn continuation_context_action(state: State<'_, AppState>, generation: Value, th
 
 #[tauri::command(async)]
 fn conversation_send_text(
-    state: State<'_, AppState>,
-    generation: Value,
-    thread_id: String,
-    text: String,
-    mode: Option<String>,
+    state: State<'_, AppState>, generation: Value, thread_id: String,
+    text: String, mode: Option<String>, model: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    // WR TX-5 / SQ-END EN-2 / NIR TC-2: when a run in this conversation ended
-    // with no successor, this next turn carries its end notice first, exactly
-    // once, in plan or default mode as well (its collaborationMode unchanged).
-    if let Some(sent) = runtime_session::send_with_pending_notice_in_mode(&state.workflows, &generation, &thread_id, &text, mode.as_deref()) {
+    ordinary_send_text(&home, &state.workflows, &generation, &thread_id, &text, mode.as_deref(), model.as_deref())
+}
+/// Actual IPC consumer, also exercised with an invented native peer offline.
+fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+    // TC-2: one original ordered notice/person frame, with the same mode/model.
+    if let Some(sent) = runtime_session::send_with_pending_notice_model_observed(workflows, generation, thread, text, mode, model, &mut |_| {}) {
         return sent.result;
     }
-    if let Some(mode) = mode {
-        return runtime_session::send_conversation_text(
-            &home.host.snapshot(), &generation, &thread_id, &text,
-            |generation, thread, text| home.host.turn_start_text_mode(generation, thread, text, &mode),
-        );
-    }
-    runtime_session::send_conversation_text(
-        &home.host.snapshot(),
-        &generation,
-        &thread_id,
-        &text,
-        |generation, thread, text| home.host.turn_start_text(generation, thread, text),
-    )
+    runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, text,
+        |generation, thread, text| home.host.turn_start_ordinary_text(generation, thread, text, mode, model))
 }
 
 /// EX-2/EX-3 availability read for the plan-mode element.

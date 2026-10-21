@@ -6251,11 +6251,17 @@ pub(crate) fn send_with_pending_notice_observed(
     root: &std::sync::Mutex<WorkflowRootSession>, generation: &Value, thread: &str,
     person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest),
 ) -> Option<NoticeSend> {
+    send_with_pending_notice_model_observed(root, generation, thread, person_text, mode, None, on_source)
+}
+pub(crate) fn send_with_pending_notice_model_observed(
+    root: &std::sync::Mutex<WorkflowRootSession>, generation: &Value, thread: &str,
+    person_text: &str, mode: Option<&str>, model: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest),
+) -> Option<NoticeSend> {
     let pending = match pending_notice_run(root, generation, thread)? {
         Ok(run) => run,
         Err(e) => return Some(NoticeSend { result: Err(e), written: false, source: None }),
     };
-    Some(pending.send_text_observed(generation, person_text, mode, on_source))
+    Some(pending.send_text_observed(generation, person_text, mode, model, on_source))
 }
 /// Ordinary text without a mode (the tests' shorthand for `conversation_send_text`).
 #[cfg(test)]
@@ -6286,15 +6292,15 @@ pub(crate) enum PendingNotice {
     Reopened(std::sync::Arc<std::sync::Mutex<ReopenedEnd>>),
 }
 impl PendingNotice {
-    fn send_text_observed(&self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
+    fn send_text_observed(&self, generation: &Value, person_text: &str, mode: Option<&str>, model: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
         let busy = || NoticeSend { result: Err(NOTICE_RUN_BUSY.into()), written: false, source: None };
         match self {
             Self::Run(run) => match run.try_lock() {
-                Ok(mut run) => run.send_end_notice_observed(generation, person_text, mode, on_source),
+                Ok(mut run) => run.send_end_notice_observed(generation, person_text, mode, model, on_source),
                 Err(_) => busy(),
             },
             Self::Reopened(end) => match end.try_lock() {
-                Ok(mut end) => end.send_end_notice_observed(generation, person_text, mode, on_source),
+                Ok(mut end) => end.send_end_notice_observed(generation, person_text, mode, model, on_source),
                 Err(_) => busy(),
             },
         }
@@ -6428,20 +6434,20 @@ impl ReopenedEnd {
         result
     }
     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
-        self.send_end_notice_observed(generation, person_text, mode, &mut |_| {})
+        self.send_end_notice_observed(generation, person_text, mode, None, &mut |_| {})
     }
-    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
+    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, model: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
         let claimed = (|| {
             if person_text.is_empty() {
                 return Err("text required".to_string());
             }
             current_conversation(&self.home.host.snapshot(), generation, &self.conversation)?;
             let element = mode
-                .map(|mode| self.home.host.collaboration_mode_element(generation, &self.conversation, mode))
+                .map(|mode| self.home.host.collaboration_mode_element_with_model(generation, &self.conversation, mode, model))
                 .transpose()?;
             let thread = self.conversation.clone();
             let claim = self.claim_end_notice(generation, &thread)?;
-            let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), on_source);
+            let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), model, on_source);
             Ok((claim, carriage, source))
         })();
         match claimed {
@@ -6543,6 +6549,7 @@ fn carry_notice_text(
     claim: &NoticeClaim,
     person_text: &str,
     mode: Option<&Value>,
+    model: Option<&str>,
     on_source: &mut dyn FnMut(&crate::hosting::SourceRequest),
 ) -> (NoticeCarriage, Option<crate::hosting::SourceRequest>) {
     let begun = {
@@ -6553,7 +6560,7 @@ fn carry_notice_text(
         if refused {
             Err("test seam: Host refused before any frame was written".to_string())
         } else {
-            host.turn_start_prepared_run_text_mode(&claim.generation, &claim.notice, person_text, &claim.client_id, mode)
+            host.turn_start_prepared_notice_model(&claim.generation, &claim.notice, person_text, &claim.client_id, mode, model)
         }
     };
     let source = match begun {
@@ -6568,7 +6575,7 @@ fn carry_notice_text(
     };
     let mut outcome;
     let mut turn = None;
-    match host.turn_start_prepared_finish_mode(&source, &claim.notice, person_text, &claim.client_id, mode, std::time::Duration::from_secs(20)) {
+    match host.turn_start_prepared_notice_finish_model(&source, &claim.notice, person_text, &claim.client_id, mode, model, std::time::Duration::from_secs(20)) {
         Ok(native) => {
             turn = Some(native.turn_id().to_owned());
             let boundary = crate::workflow_learning_pointers::retain(&claim.held, host, claim.home_class.as_deref(), &native, &claim.notice, &claim.original, &claim.client_id);
@@ -7599,10 +7606,10 @@ impl WorkflowRun {
     /// unchanged. The caller holds the run's lock throughout; nothing here
     /// takes the attachment list's lock.
     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
-        self.send_end_notice_observed(generation, person_text, mode, &mut |_| {})
+        self.send_end_notice_observed(generation, person_text, mode, None, &mut |_| {})
     }
-    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
-        match self.claim_and_carry_text(generation, person_text, mode, on_source) {
+    fn send_end_notice_observed(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, model: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> NoticeSend {
+        match self.claim_and_carry_text(generation, person_text, mode, model, on_source) {
             Err(e) => {
                 self.sync_notice_flag();
                 NoticeSend { result: Err(e), written: false, source: None }
@@ -7613,7 +7620,7 @@ impl WorkflowRun {
             }
         }
     }
-    fn claim_and_carry_text(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> Result<(NoticeClaim, NoticeCarriage, Option<crate::hosting::SourceRequest>), String> {
+    fn claim_and_carry_text(&mut self, generation: &Value, person_text: &str, mode: Option<&str>, model: Option<&str>, on_source: &mut dyn FnMut(&crate::hosting::SourceRequest)) -> Result<(NoticeClaim, NoticeCarriage, Option<crate::hosting::SourceRequest>), String> {
         if !self.notice.awaiting_turn() || self.notice_held_by_start.is_some() {
             return Err(self.notice_not_claimable());
         }
@@ -7624,10 +7631,10 @@ impl WorkflowRun {
         }
         // A mode that cannot be sent is refused before the notice is touched.
         let element = mode
-            .map(|mode| self.home.host.collaboration_mode_element(generation, &thread, mode))
+            .map(|mode| self.home.host.collaboration_mode_element_with_model(generation, &thread, mode, model))
             .transpose()?;
         let claim = self.claim_end_notice(generation, &thread)?;
-        let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), on_source);
+        let (carriage, source) = carry_notice_text(&self.home.host, &claim, person_text, element.as_ref(), model, on_source);
         Ok((claim, carriage, source))
     }
     /// TC-2 / TX-5, first half: claim the pending notice for exactly one new
@@ -8505,6 +8512,53 @@ for line in sys.stdin:
         // Every entry was validated by the RS writer (W-1); the log reads complete.
         assert!(peer.fixture.rs_entries().iter().all(|e|e["formatVersion"].is_string()));
     }
+    #[test]
+    fn ordinary_model_active_run_records_requested_stickiness_and_native_actual_separately() {
+        let peer = Peer::new(); peer.set_mode("notify-mode", "ended");
+        let mut root = peer.registered(); let run = open_run(&peer, &mut root, "thread");
+        let workflows = Mutex::new(root); let homes = Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let bodies = || rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "model_turn" && e["body"]["scope"] == "turn").map(|e| e["body"].clone()).collect::<Vec<_>>();
+        let until = |count: usize| {
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while bodies().len() < count && std::time::Instant::now() < deadline { crate::host_tick::tick(&homes, &workflows); std::thread::sleep(Duration::from_millis(10)); }
+            assert_eq!(bodies().len(), count);
+        };
+        until(1);
+        peer.home.host.collaboration_modes_read(&peer.generation).unwrap();
+        let before = peer.home.host.snapshot()["threads"].clone();
+        for (index, mode, model, expected) in [
+            (2, None, Some("ordinary-choice"), "ordinary-choice"),
+            (3, None, None, "ordinary-choice"),
+            (4, Some("plan"), None, "ordinary-choice"),
+            (5, Some("default"), Some("mode-choice"), "mode-choice"),
+            (6, None, None, "mode-choice"),
+        ] {
+            peer.set_mode("turn-id", &format!("turn-{index}"));
+            if index == 5 { peer.set_mode("notify-mode", "reroute"); } else { peer.set_mode("notify-mode", "ended"); }
+            crate::ordinary_send_text(&peer.home, &workflows, &peer.generation, "thread", "ordinary person text", mode, model).unwrap();
+            until(index);
+            assert_eq!(bodies()[index - 1]["requested"], expected);
+            assert_eq!(bodies()[index - 1]["effective"], if index == 5 { "fixture-safe-model" } else { "unknown" });
+            if let Some(mode) = mode {
+                let frame = last_turn_start(&peer);
+                assert_eq!(frame["params"]["collaborationMode"]["mode"], mode);
+                assert_eq!(frame["params"]["collaborationMode"]["settings"]["model"], expected, "blank mode cannot reset a stale thread report");
+            }
+        }
+        // A correlated refusal has no turn and cannot propagate its model.
+        peer.set_mode("turn-mode", "error");
+        assert!(crate::ordinary_send_text(&peer.home, &workflows, &peer.generation, "thread", "refused", None, Some("refused-choice")).is_err());
+        peer.set_mode("turn-mode", ""); peer.set_mode("turn-id", "turn-7"); peer.set_mode("notify-mode", "ended");
+        crate::ordinary_send_text(&peer.home, &workflows, &peer.generation, "thread", "after refusal", Some("default"), None).unwrap();
+        until(7);
+        assert_eq!(bodies()[6]["requested"], "mode-choice");
+        assert_eq!(peer.home.host.snapshot()["threads"], before);
+        for _ in 0..2 { crate::host_tick::tick(&homes, &workflows); }
+        assert_eq!(bodies().len(), 7, "no duplicate R5 records");
+        assert_eq!(workflows.lock().unwrap().runs.len(), 1, "model change opens no run");
+        assert!(peer.fixture.rs_entries().iter().all(|e| e["formatVersion"].is_string()), "actual writer validated saved records");
+    }
+
     struct NativeDeliveryRecordsStore(PathBuf);
     impl NativeDeliveryRecordsStore {
         fn new() -> Self {
@@ -10283,6 +10337,71 @@ for line in sys.stdin:
         let sent=submit().unwrap();assert_eq!(sent["endNotice"]["state"],"sent once with the next ordinary turn");
         assert_eq!(notice_frames(&peer),1,"carried exactly once, by the attachment turn");
     }
+    #[test]
+    fn ordinary_model_ipc_consumer_carries_plain_plan_default_and_pending_notice() {
+        let schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+        let mut turn_schema = schema.clone();
+        turn_schema["$ref"] = json!("#/definitions/v2/TurnStartParams");
+        let validator = jsonschema::options().offline().build(&turn_schema).unwrap();
+        assert!(schema["definitions"]["v2"]["TurnStartParams"]["properties"]["model"]["description"].as_str().unwrap().contains("subsequent turns"));
+        for notice in [false, true] {
+            for mode in [None, Some("plan"), Some("default")] {
+                for model in [None, Some(""), Some("chosen-ordinary-model")] {
+                    let peer = Peer::new();
+                    let root = if notice { ended_run(&peer).0 } else { Mutex::new(peer.registered()) };
+                    if mode.is_some() { peer.home.host.collaboration_modes_read(&peer.generation).unwrap(); }
+                    let starts = peer.turn_starts();
+                    let before = peer.home.host.snapshot()["threads"].clone();
+                    let result = crate::ordinary_send_text(&peer.home, &root, &peer.generation, "thread", "Exact é / 家\ntext", mode, model).unwrap();
+                    let frame = last_turn_start(&peer);
+                    validator.validate(&frame["params"]).unwrap();
+                    assert_eq!(peer.turn_starts(), starts + 1, "one original frame, no new run or resend");
+                    let input = frame["params"]["input"].as_array().unwrap();
+                    assert_eq!(input.len(), if notice { 2 } else { 1 });
+                    assert_eq!(input.last().unwrap()["text"], "Exact é / 家\ntext");
+                    if notice {
+                        assert!(input[0]["text"].as_str().unwrap().starts_with("[Chirality] Workflow run ended:"));
+                        assert_eq!(result["state"], "end notice and the person's text sent once");
+                        assert!(send_with_pending_notice(&root, &peer.generation, "thread", "later").is_none());
+                        assert_eq!(notice_frames(&peer), 1);
+                    }
+                    let explicit = model.filter(|m| !m.is_empty());
+                    if let Some(mode) = mode {
+                        assert_eq!(frame["params"]["collaborationMode"], json!({"mode":mode,"settings":{"model":explicit.unwrap_or("fixture-model"),"reasoning_effort":null,"developer_instructions":null}}));
+                        assert!(frame["params"].get("model").is_none());
+                    } else {
+                        assert!(frame["params"].get("collaborationMode").is_none());
+                        assert_eq!(frame["params"].get("model").and_then(Value::as_str), explicit);
+                    }
+                    assert_eq!(peer.home.host.snapshot()["threads"], before, "a native acknowledgment never changes reported model/provider/role");
+                    for field in ["modelProvider", "developerInstructions", "effort", "approvalPolicy", "sandboxPolicy", "config"] {
+                        assert!(frame["params"].get(field).is_none(), "no unrelated override {field}");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn ordinary_model_reopened_notice_uses_the_same_exact_model_carrier_once() {
+        let peer = Peer::new(); let mut root = peer.registered(); let run = open_run(&peer, &mut root, "thread");
+        drop(root);
+        let mut fresh = WorkflowRootSession::default();
+        fresh.end_recorded_run(&peer.fixture.root, &run, "thread", false, Some(peer.home.clone())).unwrap();
+        assert!(fresh.reopened_end(&run).is_some());
+        let workflows = Mutex::new(fresh);
+        peer.home.host.collaboration_modes_read(&peer.generation).unwrap();
+        let before = peer.turn_starts();
+        crate::ordinary_send_text(&peer.home, &workflows, &peer.generation, "thread", "after reopened end", Some("default"), Some("reopened-choice")).unwrap();
+        let frame = last_turn_start(&peer);
+        assert_eq!(frame["params"]["collaborationMode"]["settings"]["model"], "reopened-choice");
+        assert_eq!(frame["params"]["input"].as_array().unwrap().len(), 2);
+        assert!(frame["params"]["input"][0]["text"].as_str().unwrap().starts_with("[Chirality] Workflow run ended:"));
+        assert_eq!(frame["params"]["input"][1]["text"], "after reopened end");
+        assert_eq!(peer.turn_starts(), before + 1);
+        assert!(send_with_pending_notice(&workflows, &peer.generation, "thread", "later").is_none());
+    }
+
     // NIR TC-2 with TC-4/TC-5: a plan/default mode turn carries the pending notice first, with
     // its collaborationMode unchanged, once; the requested mode is recorded as for any mode turn.
     // A mode refused before anything is sent leaves the notice pending and publishes nothing.

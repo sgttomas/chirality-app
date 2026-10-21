@@ -76,12 +76,23 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
 
 type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
 type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
+type OrdinaryTextRequest = { generation: Json; threadId: string; text: string; mode?: "plan" | "default"; model?: string };
+type OrdinaryTextOutcome = { request: OrdinaryTextRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
+// Model choice has one local lifetime, keyed to the actual full conversation.
+// Ordinary text intentionally remains one global draft across conversations.
+const ordinaryConversationRef = (generation: Json, thread: string | undefined) => thread && generation
+  ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
+  const textRevision = useRef(0);
+  const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", revision: 0 });
+  const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
+  const ordinaryPending = useRef(false);
+  const ordinaryView = useRef({ owner: "", epoch: 0, ready: false });
   const [ownBusy, setBusy] = useState<string>("");
   const [forkBusy, setForkBusy] = useState(false);
   const forking = useRef(false);
@@ -95,17 +106,42 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const generationKey = JSON.stringify(host?.generation);
   const currentThreads = (host?.threads ?? []).filter((thread: Json) => JSON.stringify(thread.generation) === generationKey);
   const selected = currentThreads.find((thread: Json) => JSON.stringify([thread.generation, thread.threadId]) === threadKey);
+  const ordinaryOwner = ordinaryConversationRef(selected?.generation, selected?.threadId);
+  const sourceReady = host?.state === "ready" && host?.generationClosed !== true;
+  if (ordinaryView.current.owner !== ordinaryOwner || ordinaryView.current.ready !== sourceReady) {
+    ordinaryView.current = { owner: ordinaryOwner, epoch: ordinaryView.current.epoch + 1, ready: sourceReady };
+  }
+  useEffect(() => {
+    setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", revision: current.revision + 1 });
+  }, [ordinaryOwner]);
+  const ordinaryModelValue = ordinaryModel.owner === ordinaryOwner ? ordinaryModel.value : "";
   const liveTurns = (host?.conversationTurns ?? []).filter((turn: Json) => selected && JSON.stringify(turn.generation) === generationKey && turn.threadId === selected.threadId && turn.nativeTurn?.status === "inProgress" && !turn.observationEnded && !turn.terminalEventObserved);
   const live = liveTurns.find((turn: Json) => turn.turnId === turnId);
   const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
   const steeringTarget = steering?.target && JSON.stringify(steering.target.generation) === generationKey && steering.target.threadId === selected?.threadId ? steering.target : null;
   const alreadyRequested = (host?.turnInterruptRequests ?? []).some((request: Json) => live && JSON.stringify(request.binding?.generation) === generationKey && request.binding?.threadId === live.threadId && request.binding?.turnId === live.turnId && (request.clientRequest?.outcome === "response-observed-result" || (request.clientRequest?.outcome === "pending" && request.clientRequest?.writeResult === "written")));
   const sendText = async (mode?: "plan" | "default") => {
-    if (!selected || !text || busy) return;
-    setBusy(mode ? `sending in ${mode} mode` : "sending"); setError("");
-    try { await send(selected.generation, selected.threadId, text, mode); setText(""); }
-    catch (e) { setError(String(e)); }
-    finally { setBusy(""); }
+    if (!selected || !text || busy || ordinaryPending.current || !sourceReady) return;
+    const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId: selected.threadId, text,
+      ...(mode ? { mode } : {}), ...(ordinaryModelValue ? { model: ordinaryModelValue } : {}) };
+    const view = ordinaryView.current, revision = textRevision.current, choice = ordinaryModel;
+    const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
+    ordinaryPending.current = true;
+    setBusy(mode ? `sending in ${mode} mode` : "sending"); setError(""); setOrdinaryOutcome(null);
+    let outcome: OrdinaryTextOutcome;
+    try {
+      const nativeValue = await send(request.generation, request.threadId, request.text, request.mode, request.model);
+      outcome = { request, result: { acknowledged: true, nativeValue } };
+      if (isCurrent()) {
+        if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
+        setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
+          ? { ...current, value: "", revision: current.revision + 1 } : current);
+      }
+    } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
+    setOrdinaryOutcome(outcome);
+    try { await observeOrdinaryView?.(request, isCurrent); }
+    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: String(error) }); }
+    finally { ordinaryPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
     if (!selected || !steeringTarget || !text || busy) return;
@@ -239,13 +275,23 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
       {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
-    <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
-    <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
+    <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
+    <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
+      onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
+    <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
+    <button disabled={!sourceReady || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
       ready={host?.state === "ready"} busy={!!busy} hasText={!!text}
       check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
-    <p>Text is sent unchanged to the selected native conversation. Its role, model and provider remain the conversation's existing settings.</p>
+    <p>Text is sent unchanged to the selected native conversation. Its role, access entry, provider and home remain the conversation's existing settings; a model choice opens no new run.</p>
+    {ordinaryOutcome && <div aria-label="Ordinary text submission outcome">
+      <p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"}.</p>
+      {ordinaryOutcome.result.acknowledged
+        ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
+        : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
+      {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+    </div>}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
       <button disabled={host?.state !== "ready" || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
       <button disabled={host?.state !== "ready" || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
@@ -1321,12 +1367,23 @@ export function App() {
     }
   };
 
-  const conversationAction = async (command: "conversation_send_text" | "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>) => {
+  const ordinarySend = (generation: Json, threadId: string, text: string, mode?: "plan" | "default", model?: string) =>
+    invoke<Json>("conversation_send_text", { generation, threadId, text, mode: mode ?? null, ...(model ? { model } : {}) });
+  const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
+    const viewAtRead = currentHost.current;
+    if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
+    const snapshot = await invoke<Json>("host_status");
+    if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
+      throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
+    }
+    setHost(snapshot);
+  };
+  const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>) => {
     let failed = false;
     let failure: unknown;
     try {
       await invoke(command, args);
-      setMessage(command === "conversation_send_text" ? "Native turn/start response received; outcomes remain as observed below." : command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events." : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment.");
+      setMessage(command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events." : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment.");
     } catch (e) { failed = true; failure = e; setMessage(`${command}: ${String(e)}`); }
     try { setHost(await invoke("host_status")); }
     catch (e) { setMessage(`${command}: ${failed ? "request failed" : "native response received"}; view refresh failed: ${String(e)}`); }
@@ -1618,9 +1675,7 @@ export function App() {
         </WorkspaceDisclosure>
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
-            <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={async (generation, threadId, text, mode) => {
-          await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
-      }} checkPlanMode={async (generation) => {
+            <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           try {
               await invoke("collaboration_modes_read", { generation });
           }

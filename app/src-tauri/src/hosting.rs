@@ -290,6 +290,9 @@ struct SourceEvidence {
     write_attempt_in_progress: bool,
     attempt_position: Option<u64>,
     response_position: Option<u64>,
+    /// Frozen at the actual frame write; never recomputed from a late reply.
+    turn_model_cut: u64,
+    turn_model_context: Value,
     observation_base: Value,
     source_limit: Option<String>,
     auth_projection: bool,
@@ -1835,6 +1838,13 @@ impl Host {
         self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
+        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None)
+    }
+    fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
+        let guard = inherited_mode.then(|| params["collaborationMode"]["settings"]["model"].clone());
+        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref())
+    }
+    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>)->Result<SourceRequest,String>{
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         let (tx, rx) = channel();
@@ -1873,7 +1883,7 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,records_project,private_config});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,records_project,private_config});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -1909,7 +1919,16 @@ impl Host {
                     let state=Self::oauth_scope(&i,original)?;
                     if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.as_ref()!=Some(&json!(id)){return Err("original OAuth cancel control ended before final dispatch; no replacement write".into());}
                 }
-                i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);
+                let cut = i.receipt_position;
+                let context = if method == "turn/start" {
+                    let thread = frame["params"]["threadId"].as_str().unwrap_or_default();
+                    if let Some(expected) = ordinary_model_guard {
+                        let current = Self::ordinary_mode_model(&i, thread)?;
+                        if expected != &json!(current) { return Err("ordinary model context changed before write; nothing sent".into()); }
+                    }
+                    Self::turn_requested_context(&i, &frame["params"], cut)
+                } else { Value::Null };
+                i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
@@ -2454,7 +2473,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -2482,7 +2501,9 @@ impl Host {
             Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
             let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}
             let key=prepared.source.request_id().to_string();let index=i.source_requests[&key].index;let sender=i.source_requests.get_mut(&key).unwrap().reserved_sender.take().ok_or("reserved RPC already consumed")?;
-            i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.source_pipe=Some((bound.epoch,bound.identity));i.pending.insert(key.clone(),(index,sender));
+            let cut = i.receipt_position;
+            let context = Self::turn_requested_context(&i, &prepared.source.frame["params"], cut);
+            i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&key).unwrap();e.turn_model_cut=cut;e.turn_model_context=context;e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.source_pipe=Some((bound.epoch,bound.identity));i.pending.insert(key.clone(),(index,sender));
             if frame["method"]=="turn/start"{let pos=i.receipt_position;i.turn_request_threads.insert(key.clone(),(generation.clone(),frame["params"]["threadId"].as_str().unwrap().into(),pos));}
             *state="attempted";drop(state);drop(i);drop(gate);drop(source_lock);
             let written=Self::write_complete(&mut bound.file,&bytes);drop(bound);drop(serial);
@@ -2765,10 +2786,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
 
     fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>)->Result<Value,String>{
+        Self::prepared_run_turn_params_model(generation, prepared, person_text, client_id, mode, None)
+    }
+    fn prepared_run_turn_params_model(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>)->Result<Value,String>{
         crate::recovery::generation_ref(generation)?;
         if &prepared.scope().generation!=generation||generation["home"]!=prepared.scope().home{return Err("prepared turn full generation/home differs from original run scope".into());}
         let mut params=prepared.turn_params(person_text,client_id)?;
-        if let Some(mode)=mode{params["collaborationMode"]=mode.clone();}
+        Self::apply_ordinary_model(&mut params, mode, model);
         Self::validate_native_result("TurnStartParams",&params)?;
         Ok(params)
     }
@@ -2784,14 +2808,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let params=Self::prepared_run_turn_params(generation,prepared,person_text,client_id,mode)?;
         self.request_begin_scoped("turn/start",params,json!({"kind":"person-directed"}),false,Some(generation))
     }
+    pub(crate) fn turn_start_prepared_notice_model(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>)->Result<SourceRequest,String>{
+        let params=Self::prepared_run_turn_params_model(generation,prepared,person_text,client_id,mode,model)?;
+        self.request_begin_ordinary(generation, params, mode.is_some() && model.is_none_or(str::is_empty))
+    }
     /// Root retains the original prepared/person/client tuple and genuine source on every
     /// error/unknown result. No generic evidence JSON can admit a native turn through this API.
     pub(crate) fn turn_start_prepared_finish<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
         self.turn_start_prepared_finish_mode(source,prepared,person_text,client_id,None,wait)
     }
     pub(crate) fn turn_start_prepared_finish_mode<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
+        self.turn_start_prepared_notice_finish_model(source, prepared, person_text, client_id, mode, None, wait)
+    }
+    pub(crate) fn turn_start_prepared_notice_finish_model<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
         self.check_source(source)?;
-        let expected=Self::prepared_run_turn_params(source.generation(),prepared,person_text,client_id,mode)?;
+        let expected=Self::prepared_run_turn_params_model(source.generation(),prepared,person_text,client_id,mode,model)?;
         if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
         self.wait_source_response(source,wait)?;
         let i=self.inner.0.lock().unwrap();
@@ -3293,23 +3324,31 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         i.delegation_readings.iter().filter(|r| r["key"]["generation"] == i.generation).cloned().collect()
     }
 
-    /// PS-1/PS-2/PS-5: plain text with an explicit collaboration mode. The mode
-    /// settings carry the conversation's reported model and reasoning effort
-    /// (null when Codex reported none) and null developer instructions, so
-    /// Codex's built-in mode text applies and role guidance is not set aside.
-    /// Codex keeps the mode on later turns until another is sent.
-    pub fn turn_start_text_mode(&self, generation: &Value, thread_id: &str, text: &str, mode: &str) -> Result<Value, String> {
-        let element = self.collaboration_mode_element(generation, thread_id, mode)?;
+    /// ACCESS I-3/CS-18: an optional explicit model for ordinary text only.
+    /// Native 0.160 keeps the override for subsequent turns. No provider,
+    /// role, policy or reported thread-model mutation is made here.
+    pub(crate) fn turn_start_ordinary_text(&self, generation: &Value, thread_id: &str, text: &str, mode: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+        let model = model.filter(|m| !m.is_empty());
+        let element = mode.map(|mode| self.collaboration_mode_element_with_model(generation, thread_id, mode, model)).transpose()?;
         let mut params = Self::text_turn_params(thread_id, text)?;
-        params["collaborationMode"] = element.clone();
+        Self::apply_ordinary_model(&mut params, element.as_ref(), model);
         Self::validate_native_result("TurnStartParams", &params)?;
-        let response = self.conversation_operation("turn/start", generation, params, Duration::from_secs(20));
-        if let Err(e) = &response {
-            // Refused before any write: no mode was requested.
-            if e.contains("refused-not-sent") || e.contains("conversation-not-loaded") { return response; }
+        let response = self.conversation_operation_guarded("turn/start", generation, params, Duration::from_secs(20), Some(mode.is_some() && model.is_none()));
+        if let Some(element) = element {
+            if !response.as_ref().is_err_and(|e| e.contains("refused-not-sent") || e.contains("conversation-not-loaded")) {
+                self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(Clone::clone));
+            }
         }
-        self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(Clone::clone));
         response
+    }
+    pub fn turn_start_text_mode(&self, generation: &Value, thread_id: &str, text: &str, mode: &str) -> Result<Value, String> {
+        self.turn_start_ordinary_text(generation, thread_id, text, Some(mode), None)
+    }
+    fn apply_ordinary_model(params: &mut Value, mode: Option<&Value>, model: Option<&str>) {
+        if let Some(mode) = mode {
+            params["collaborationMode"] = mode.clone();
+            if let Some(model) = model.filter(|m| !m.is_empty()) { params["collaborationMode"]["settings"]["model"] = json!(model); }
+        } else if let Some(model) = model.filter(|m| !m.is_empty()) { params["model"] = json!(model); }
     }
 
     /// TC-4/TC-5: the `collaborationMode` element a plan/default mode turn of
@@ -3318,13 +3357,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// instructions. Refused, before anything is sent, when plan mode is not
     /// offered or the conversation has no model.
     pub(crate) fn collaboration_mode_element(&self, generation: &Value, thread_id: &str, mode: &str) -> Result<Value, String> {
+        self.collaboration_mode_element_with_model(generation, thread_id, mode, None)
+    }
+    pub(crate) fn collaboration_mode_element_with_model(&self, generation: &Value, thread_id: &str, mode: &str, model: Option<&str>) -> Result<Value, String> {
         if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
         let i = self.inner.0.lock().unwrap();
         if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
         if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
         let thread = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id);
-        let model = thread.and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
-        let Some(model) = model else { return Err("not started — no model selected".into()); };
+        let model = match model.filter(|m| !m.is_empty()) {
+            Some(model) => model.to_owned(),
+            None => Self::ordinary_mode_model(&i, thread_id)?,
+        };
         let effort = thread.map(|t| t["reasoningEffort"].clone()).filter(|e| e.as_str().is_some_and(|s| !s.is_empty())).unwrap_or(Value::Null);
         Ok(json!({"mode":mode,"settings":{"model":model,"reasoning_effort":effort,"developer_instructions":null}}))
     }
@@ -3347,9 +3391,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
 
     fn conversation_operation(&self, method: &str, generation: &Value, params: Value, wait: Duration) -> Result<Value, String> {
+        self.conversation_operation_guarded(method, generation, params, wait, None)
+    }
+    fn conversation_operation_guarded(&self, method: &str, generation: &Value, params: Value, wait: Duration, ordinary: Option<bool>) -> Result<Value, String> {
         crate::recovery::generation_ref(generation)?;
         let steering_target = if method == "turn/steer" { Some(params.clone()) } else { None };
-        let response = self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation))?;
+        let response = match ordinary {
+            Some(inherited_mode) => { let source = self.request_begin_ordinary(generation, params, inherited_mode)?; self.wait_source_response(&source, wait)? },
+            None => self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation))?,
+        };
         #[cfg(test)]
         if let Some(hook) = self.before_turn_result.lock().unwrap().take() { hook(); }
         let i = self.inner.0.lock().unwrap();
@@ -3377,15 +3427,80 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             && matches!(turn["status"].as_str(), Some("inProgress" | "completed" | "interrupted" | "failed"))
     }
 
-    /// HOSTING §8.3 / RS R5: what the App's own `turn/start` for this turn
-    /// asked for, from the request it sent (read only): a `collaborationMode`
-    /// turn carries that mode's model; a plain turn carries none.
-    fn note_turn_request(i: &mut Inner, key: &str, generation: &Value, thread: &str, turn: &Value) {
-        let Some(mode) = i.source_requests.get(key).map(|e| e.request.frame["params"]["collaborationMode"].clone()) else { return };
-        let sent = if mode.is_object() { json!({"collaborationMode":true,"model":mode["settings"]["model"]}) } else { json!({"collaborationMode":false}) };
-        if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == *turn) {
-            entry["appTurnStart"] = sent;
+    /// The effective requested field of the actual frame. A mode takes native
+    /// precedence; a top-level model never masquerades as a mode change.
+    fn frame_requested_model(params: &Value) -> Option<&str> {
+        let value = if params["collaborationMode"].is_object() { &params["collaborationMode"]["settings"]["model"] } else { &params["model"] };
+        value.as_str().filter(|m| !m.is_empty())
+    }
+    /// Requested context only, never actual adoption. Every attempted prior
+    /// turn must have a complete, correlated, settled response before `cut`.
+    /// A model-bearing request must itself have followed earlier responses.
+    /// Unknown writes, external turns and concurrent/order gaps yield a limit.
+    fn inherited_requested_model(i: &Inner, thread: &str, cut: u64) -> Result<Option<String>, String> {
+        let mut prior: Vec<_> = i.source_requests.values().filter(|e| e.request.generation == i.generation && e.request.frame["method"] == "turn/start" && e.request.frame["params"]["threadId"] == thread && e.attempt_position.is_some()).collect();
+        prior.sort_by_key(|e| e.attempt_position);
+        let mut latest = None;
+        let mut receipts = Vec::new();
+        let mut latest_model_receipt = None;
+        let mut turn_ids = Vec::new();
+        for e in prior {
+            let response = e.response.as_ref().ok_or("a prior turn outcome is unknown")?;
+            let position = e.response_position.filter(|p| *p <= cut).ok_or("a prior turn response/order was unavailable at dispatch")?;
+            if !e.written || e.write_attempt_in_progress || e.write_error.is_some() || e.source_limit.is_some() || response["id"] != e.request.frame["id"] || response.get("method").is_some() || e.source_pipe.is_none_or(|(epoch, _)| epoch != i.attachment_pipe_epoch) {
+                return Err("a prior turn's full source/write binding is unavailable".into());
+            }
+            if response.get("error").is_some() {
+                // Deferred attachment settlement can retain an unknown error
+                // without source_limit; validate its original envelope here.
+                let mut refusal = e.observation_base.clone();
+                Self::completed_client_response(&mut refusal, Some(response), Some(position))
+                    .map_err(|error| format!("a prior turn error envelope is unavailable ({error}); outcome remains unknown"))?;
+                receipts.push(position); continue;
+            }
+            Self::validate_native_result("TurnStartResponse", &response["result"]).map_err(|_| "a prior turn result shape is unavailable")?;
+            turn_ids.push(response["result"]["turn"]["id"].clone());
+            if let Some(model) = Self::frame_requested_model(&e.request.frame["params"]) {
+                latest = Some(if receipts.iter().all(|p| *p <= e.turn_model_cut) { Ok(model.to_owned()) } else { Err("model requests have no established native acceptance order".to_string()) });
+                latest_model_receipt = Some(position);
+            } else if latest_model_receipt.is_some_and(|p| p > e.turn_model_cut) {
+                latest = Some(Err("a later omitted turn preceded the model request's acceptance; requested context stays unknown".into()));
+            }
+            receipts.push(position);
         }
+        if i.conversation_turns.iter().any(|t| t["generation"] == i.generation && t["threadId"] == thread && !turn_ids.contains(&t["turnId"])) {
+            return Err("a native turn has no correlated App request; requested context is unknown".into());
+        }
+        latest.transpose()
+    }
+    fn ordinary_mode_model(i: &Inner, thread: &str) -> Result<String, String> {
+        let known = Self::inherited_requested_model(i, thread, i.receipt_position)
+            .map_err(|e| format!("not started — current requested model context unknown ({e}); enter an explicit ordinary model identifier"))?;
+        known.or_else(|| i.threads.iter().rev().find(|t| t["generation"] == i.generation && t["threadId"] == thread).and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned))
+            .ok_or_else(|| "not started — no model selected".into())
+    }
+    fn turn_requested_context(i: &Inner, params: &Value, cut: u64) -> Value {
+        if let Some(model) = Self::frame_requested_model(params) { return json!({"requested":model,"basis":"actual explicit effective request field; native adoption unestablished"}); }
+        let thread = params["threadId"].as_str().unwrap_or_default();
+        match Self::inherited_requested_model(i, thread, cut) {
+            Ok(Some(model)) => json!({"requested":model,"basis":"omitted override after ordered correlated accepted request; native adoption unestablished"}),
+            Ok(None) => {
+                let requested = i.threads.iter().rev().find(|t| t["generation"] == i.generation && t["threadId"] == thread && t["requestedDestination"]["source"] == "person-selected").map(|t| &t["requestedDestination"]);
+                match requested.and_then(|r| r["model"].as_str().filter(|m| !m.is_empty()).map(|model| r["modelProvider"].as_str().filter(|p| !p.is_empty()).map(|p| format!("{p}/{model}")).unwrap_or_else(|| model.into()))) {
+                    Some(model) => json!({"requested":model,"basis":"original explicit thread-start request in this generation"}),
+                    None => json!({"requested":"unknown","limit":"no original model request in this generation"}),
+                }
+            }
+            Err(limit) => json!({"requested":"unknown","limit":limit}),
+        }
+    }
+    /// Source-correlated requested metadata, independent of reported facts.
+    fn note_turn_request(i: &mut Inner, key: &str, generation: &Value, thread: &str, turn: &Value) {
+        let Some(e) = i.source_requests.get(key) else { return };
+        let params = &e.request.frame["params"];
+        let mut sent = json!({"collaborationMode":params["collaborationMode"].is_object(),"requestRef":e.request.request_ref,"requestedContext":e.turn_model_context});
+        if let Some(model) = Self::frame_requested_model(params) { sent["model"] = json!(model); }
+        if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == *turn) { entry["appTurnStart"] = sent; }
     }
     fn remember_turn(i: &mut Inner, generation: &Value, thread: &str, native: &Value, source: &str, position: u64) {
         if !Self::native_turn_shape(native) { return; }
@@ -4339,11 +4454,11 @@ mod conversation_transport_tests {
         // RS R5 requested per turn (review finding on #1302): each turn the App
         // started records whether its turn/start carried a mode's model.
         let started=|id:&str|host.snapshot()["conversationTurns"].as_array().unwrap().iter().find(|t|t["turnId"]==id).unwrap()["appTurnStart"].clone();
-        assert_eq!(started("turn"),json!({"collaborationMode":true,"model":"selected"}));
-        assert_eq!(started("turn2"),json!({"collaborationMode":true,"model":"selected"}));
+        assert_eq!(started("turn")["collaborationMode"],true);assert_eq!(started("turn")["model"],"selected");assert_eq!(started("turn")["requestedContext"]["requested"],"selected");
+        assert_eq!(started("turn2")["collaborationMode"],true);assert_eq!(started("turn2")["model"],"selected");
         let (_,outbound)=exchange(&host,Some(json!({"result":{"turn":{"id":"turn3","status":"inProgress","items":[],"itemsView":"full"}}})),vec![],||host.turn_start_text(&g(),"thread","plain"));
         assert!(outbound["params"].get("collaborationMode").is_none(),"a plain turn carries no model");
-        assert_eq!(started("turn3"),json!({"collaborationMode":false}));
+        assert_eq!(started("turn3")["collaborationMode"],false);assert!(started("turn3").get("model").is_none());assert_eq!(started("turn3")["requestedContext"]["requested"],"selected");
         host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
         assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
         // The conversation's reported effort is kept, not reset.
@@ -4357,6 +4472,64 @@ mod conversation_transport_tests {
         assert!(host.snapshot()["requestedModes"].as_array().unwrap().iter().all(|r|r["threadId"]!="unknown-thread"));
     }
     #[test]
+    fn ordinary_model_request_context_preserves_unknown_late_order_and_source_limits() {
+        let host = host();
+        host.inner.0.lock().unwrap().declared_capabilities = Some(json!({"experimentalApi":true}));
+        exchange(&host, Some(json!({"result":{"data":[{"name":"Plan","mode":"plan"}]}})), vec![], || host.collaboration_modes_read(&g())).0.unwrap();
+        let mut held = None;
+        exchange(&host, None, vec![], || {
+            let source = host.request_begin_ordinary(&g(), json!({"threadId":"thread","input":[{"type":"text","text":"original","text_elements":[]}],"model":"late-model"}), false)?;
+            held = Some(source); Ok(Value::Null)
+        }).0.unwrap();
+        assert!(host.collaboration_mode_element(&g(), "thread", "plan").unwrap_err().contains("context unknown"));
+        let mut omitted = turn("completed"); omitted["id"] = json!("omitted");
+        exchange(&host, Some(json!({"result":{"turn":omitted}})), vec![], || host.turn_start_ordinary_text(&g(), "thread", "later text", None, None)).0.unwrap();
+        let frozen = host.snapshot()["conversationTurns"][0]["appTurnStart"].clone();
+        assert_eq!(frozen["requestedContext"]["requested"], "unknown");
+        let source = held.unwrap();
+        host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"turn":turn("completed")}})).unwrap(), &g());
+        assert_eq!(host.snapshot()["conversationTurns"][0]["appTurnStart"], frozen, "late reply cannot rewrite the later turn's original requested context");
+        assert!(host.collaboration_mode_element(&g(), "thread", "default").unwrap_err().contains("context unknown"), "late acceptance cannot bridge the order gap");
+        // A fresh explicit choice made after both correlated outcomes establishes
+        // requested order, without changing the reported thread model.
+        let mut fresh = turn("completed"); fresh["id"] = json!("fresh");
+        exchange(&host, Some(json!({"result":{"turn":fresh}})), vec![], || host.turn_start_ordinary_text(&g(), "thread", "fresh text", None, Some("fresh-model"))).0.unwrap();
+        assert_eq!(host.collaboration_mode_element(&g(), "thread", "plan").unwrap()["settings"]["model"], "fresh-model");
+        assert_eq!(host.snapshot()["threads"][0]["model"], "selected");
+        host.inner.0.lock().unwrap().attachment_pipe_epoch += 1;
+        assert!(host.collaboration_mode_element(&g(), "thread", "plan").is_err(), "replaced pipe cannot supply current requested context");
+    }
+
+    #[test]
+    fn ordinary_model_inherited_mode_rechecks_context_after_actual_writer_wait() {
+        let host = host();
+        host.inner.0.lock().unwrap().declared_capabilities = Some(json!({"experimentalApi":true}));
+        exchange(&host, Some(json!({"result":{"data":[{"name":"Plan","mode":"plan"}]}})), vec![], || host.collaboration_modes_read(&g())).0.unwrap();
+        exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], || host.turn_start_ordinary_text(&g(), "thread", "original", None, Some("kept-model"))).0.unwrap();
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let serial = host.frame_write.lock().unwrap();
+        let before = host.client_requests().len();
+        let writes = host.inner.0.lock().unwrap().send_position;
+        let h = host.clone();
+        let pending = std::thread::spawn(move || h.turn_start_ordinary_text(&g(), "thread", "original queued text", Some("plan"), None));
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while host.inner.0.lock().unwrap().source_requests.len() == before {
+            assert!(std::time::Instant::now() < deadline); std::thread::sleep(Duration::from_millis(2));
+        }
+        let mut external = turn("inProgress"); external["id"] = json!("uncorrelated-external");
+        host.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"thread","turn":external}})).unwrap(), &g());
+        drop(serial);
+        assert!(pending.join().unwrap().unwrap_err().contains("context unknown"));
+        assert_eq!(host.inner.0.lock().unwrap().send_position, writes, "no frame attempt after inherited context was lost");
+        let i = host.inner.0.lock().unwrap();
+        let source = i.source_requests.values().find(|e| e.request.frame["params"]["input"][0]["text"] == "original queued text").unwrap();
+        assert_eq!(source.request.frame["params"]["collaborationMode"]["settings"]["model"], "kept-model");
+        assert!(source.attempt_position.is_none()); drop(i);
+        *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+    }
+
+    #[test]
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {
         let host=host();let text="exact text\n\né / 家";
         let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],Host::text_turn_params("thread",text).unwrap());let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
@@ -4365,12 +4538,12 @@ mod conversation_transport_tests {
     }
     #[test]
     fn foreign_closed_unknown_thread_and_unknown_turn_are_not_registered_or_written() {
-        let host=host();for foreign in [json!(1),json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1}),json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2})] {assert!(host.turn_start_text(&foreign,"thread","text").is_err());}
-        assert!(host.turn_start_text(&g(),"unknown","text").unwrap_err().contains("conversation-not-loaded"));assert_eq!(host.turn_interrupt(&g(),"thread","unknown","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_start_text(&g(),"thread","text").is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+        let host=host();for foreign in [json!(1),json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1}),json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2})] {assert!(host.turn_start_text(&foreign,"thread","text").is_err());assert!(host.turn_start_ordinary_text(&foreign,"thread","text",None,Some("explicit-model")).is_err());}
+        assert!(host.turn_start_text(&g(),"unknown","text").unwrap_err().contains("conversation-not-loaded"));assert!(host.turn_start_ordinary_text(&g(),"unknown","text",None,Some("explicit-model")).is_err());assert_eq!(host.turn_interrupt(&g(),"thread","unknown","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_start_text(&g(),"thread","text").is_err());assert!(host.turn_start_ordinary_text(&g(),"thread","text",None,Some("explicit-model")).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);
     }
     #[test]
     fn native_error_failed_write_and_wait_limit_keep_distinct_evidence_and_late_response() {
-        let host=host();let error=json!({"code":-32600,"message":"invented refusal","data":{"native":"kept"}});let (result,_)=exchange(&host,Some(json!({"error":error})),vec![],||host.turn_start_text(&g(),"thread","text"));assert!(result.unwrap_err().contains("native error"));assert_eq!(host.journal().last().unwrap()["frame"]["error"],error);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-error");assert_eq!(host.snapshot()["conversationTurns"],json!([]));
+        let host=host();let error=json!({"code":-32600,"message":"invented refusal","data":{"native":"kept"}});let (result,_)=exchange(&host,Some(json!({"error":error})),vec![],||host.turn_start_ordinary_text(&g(),"thread","text",None,Some("refused-model")));assert!(result.unwrap_err().contains("native error"));assert_eq!(host.journal().last().unwrap()["frame"]["error"],error);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-error");assert_eq!(host.snapshot()["conversationTurns"],json!([]));
         install_broken_test_input(&host);assert!(host.turn_start_text(&g(),"thread","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[1]["outcome"],"unknown-no-response");assert_eq!(host.client_requests()[1]["writeResult"],"write-failed");
         let (result,outbound)=exchange(&host,None,vec![],||host.conversation_operation("turn/start",&g(),Host::text_turn_params("thread","late text").unwrap(),Duration::from_millis(15)));assert!(result.unwrap_err().contains("wait limit"));assert_eq!(host.client_requests()[2]["outcome"],"pending");assert_eq!(host.client_requests()[2]["waitingEnded"],true);
         host.on_line(&serde_json::to_vec(&json!({"id":outbound["id"],"result":{"turn":turn("inProgress")}})).unwrap(),&g());assert_eq!(host.client_requests()[2]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
@@ -4603,6 +4776,87 @@ mod conversation_transport_tests {
             std::fs::remove_dir_all(root).unwrap();
         }
     }
+    #[test]
+    fn ordinary_model_deferred_attachment_error_preserves_unknown_requested_context() {
+        for (case, reply, settled_refusal) in [
+            ("valid-refusal", json!({"error":{"code":-32000,"message":"invented attachment refusal"}}), true),
+            ("missing-code", json!({"error":{"message":"invented malformed refusal"}}), false),
+            ("missing-message", json!({"error":{"code":-32000}}), false),
+            ("mixed-result-error", json!({"error":{"code":-32000,"message":"invented contradiction"},"result":{"turn":complete_turn()}}), false),
+        ] {
+            let host = host(); let (root, owner, selections) = attachment_fixture();
+            host.inner.0.lock().unwrap().declared_capabilities = Some(json!({"experimentalApi":true}));
+            exchange(&host, Some(json!({"result":{"data":[{"name":"Plan","mode":"plan"}]}})), vec![], || host.collaboration_modes_read(&g())).0.unwrap();
+            exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], || host.turn_start_ordinary_text(&g(), "thread", "choose original model", None, Some("M1"))).0.unwrap();
+            let reported = host.snapshot()["threads"].clone();
+
+            // Actual backpressure holds the attachment write open. Its reply
+            // therefore takes on_line's deferred branch before full settlement.
+            let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            *host.stdin.lock().unwrap() = child.stdin.take(); let stdout = child.stdout.take().unwrap();
+            let packet = Arc::new(host.prepare_attachment_turn(owner.clone(), &g(), "thread", None, &"x".repeat(4 * 1024 * 1024), &selections).unwrap());
+            let (first_tx, first_rx) = channel(); let (go_tx, go_rx) = channel();
+            let reader = std::thread::spawn(move || {
+                let mut input = BufReader::new(stdout); let mut bytes = vec![0; 512]; input.read_exact(&mut bytes).unwrap();
+                first_tx.send(()).unwrap(); go_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                input.read_until(b'\n', &mut bytes).unwrap(); serde_json::from_slice::<Value>(&bytes).unwrap()
+            });
+            let sender = host.clone(); let original = packet.clone();
+            let writer = std::thread::spawn(move || sender.dispatch_attachment_turn(&original));
+            first_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+            let mut response = reply; response["id"] = packet.source().request_id().clone();
+            host.on_line(&serde_json::to_vec(&response).unwrap(), &g());
+            assert_eq!(packet.source().evidence()["writeAttemptInProgress"], true, "{case}: actual deferred reply");
+            go_tx.send(()).unwrap(); let outbound = reader.join().unwrap(); writer.join().unwrap().unwrap();
+            assert_eq!(outbound, *packet.source().attempted_frame());
+            assert_eq!(packet.source().evidence()["response"], response, "original malformed envelope is retained");
+            *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+            {
+                let inner = host.inner.0.lock().unwrap();
+                let evidence = &inner.source_requests[&packet.source().request_id().to_string()];
+                assert!(evidence.written && !evidence.write_attempt_in_progress && evidence.source_limit.is_none());
+                assert_eq!(inner.client_requests[evidence.index]["outcome"], if settled_refusal { "response-observed-error" } else { "unknown-no-response" });
+                assert_eq!(evidence.attachment.as_ref().unwrap().limit.is_some(), !settled_refusal);
+            }
+
+            let mode = host.collaboration_mode_element(&g(), "thread", "plan");
+            let mut native = turn("completed"); native["id"] = json!("after-attachment");
+            let (sent, plain) = exchange(&host, Some(json!({"result":{"turn":native.clone()}})), vec![], || host.turn_start_ordinary_text(&g(), "thread", "ordinary after attachment", None, None));
+            sent.unwrap(); assert!(plain["params"].get("model").is_none());
+            for method in ["item/started", "item/completed"] {
+                host.on_line(&serde_json::to_vec(&json!({"method":method,"params":{"threadId":"thread","turnId":"after-attachment","item":{"id":"after-user","type":"userMessage","content":[]}}})).unwrap(), &g());
+            }
+            host.on_line(&serde_json::to_vec(&json!({"method":"turn/completed","params":{"threadId":"thread","turn":native}})).unwrap(), &g());
+            let observation = host.observe(&g(), 0);
+            let mut runtime = crate::runtime_session::RuntimeSession::default();
+            let mut view = runtime.receive(&observation)["nativeView"].clone();
+            // Same actual source metadata join consumed by the host record tick.
+            view["hostTurns"] = observation["snapshot"]["conversationTurns"].clone();
+            view["hostThreads"] = observation["snapshot"]["threads"].clone();
+            let bodies = crate::model_turn_recorder::ModelTurnRecorder::default().observe(&view, &crate::model_turn_recorder::RunScope {
+                home: "conversation-home", conversation: "thread", start: crate::run_offers::RunStart::At(0), start_spawn: 1,
+            });
+            let recorded = bodies.iter().find(|body| body["scope"] == "turn").expect("actual received ordinary turn reaches the R5 recorder");
+            let schema: Value = serde_json::from_str(include_str!("../schemas/RS_RECORD.schema.json")).unwrap();
+            jsonschema::options().offline().build(&schema["$defs"]["modelTurn"]).unwrap().validate(recorded).unwrap();
+            let context = host.snapshot()["conversationTurns"].as_array().unwrap().iter().find(|turn| turn["turnId"] == "after-attachment").unwrap()["appTurnStart"]["requestedContext"].clone();
+            assert_eq!(host.snapshot()["threads"], reported, "no reported-model mutation");
+            std::fs::remove_dir_all(root).unwrap();
+            let expected = if settled_refusal { "M1" } else { "unknown" };
+            assert_eq!(json!({"modeRefused":mode.is_err(),"requested":context["requested"],"recordedRequested":recorded["requested"]}),
+                json!({"modeRefused":!settled_refusal,"requested":expected,"recordedRequested":expected}), "{case}: unknown attachment settlement cannot be treated as a refusal for ordinary inheritance");
+            assert_eq!(recorded["effective"], "unknown", "no actual adoption inferred");
+            if settled_refusal {
+                assert_eq!(mode.unwrap()["settings"]["model"], "M1");
+            } else {
+                assert!(mode.unwrap_err().contains("context unknown"));
+                let requests = host.client_requests().len();
+                no_attachment_write(&host, || assert!(host.turn_start_ordinary_text(&g(), "thread", "blocked blank mode", Some("plan"), None).unwrap_err().contains("context unknown")));
+                assert_eq!(host.client_requests().len(), requests, "unknown context refuses before native request registration");
+            }
+        }
+    }
+
     #[test]
     fn attachment_positive_finish_reply_before_complete_write_is_not_positive_until_completion() {
         let host=host();let(root,owner,selections)=attachment_fixture();
