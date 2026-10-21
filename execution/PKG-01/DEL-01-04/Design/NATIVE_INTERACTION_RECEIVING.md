@@ -1104,6 +1104,23 @@ than a dead or retargeted link. Item details remain separate from whether the
 row can be reached in this activity view. The activity row's link back to the
 original typed request card is unchanged.
 
+**Native answer confirmation parent.** The native request-answer command uses
+the window of its invoking webview, never a main-window or focus lookup. On
+the main thread it validates and caches both public native handles before
+parenting this Warning confirmation. An unavailable handle refuses before any
+dialog or reply; there is no unparented fallback. The full statement, three
+buttons and default **Don't send** remain unchanged. Only exact **Send answer**
+continues, after rechecking that original window and the existing original
+home, full generation, typed request and actor context. Cancellation sends
+nothing; an unavailable original window after confirmation also prevents a
+reply. This changes no tool-permission or reserved-act meaning.
+
+`app/src-tauri/src/native_request_answer_tests.rs` checks the source, answer,
+parent-failure and outcome boundaries with synthetic inputs. The macOS
+production compile and used-library dispatch trace support the parent carry;
+they do not witness native sheet visibility, CUA targeting, destruction while
+the sheet is open, callback shutdown or other-platform runtime behavior.
+
 **Answer command and observation refresh.** The request card keeps the native
 answer command's outcome separate from a subsequent failure to refresh custody.
 A reported local write with acknowledgment not observed is not a refusal; a

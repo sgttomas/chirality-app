@@ -340,6 +340,7 @@ dependencies = [
  "jsonschema",
  "libc",
  "pulldown-cmark",
+ "raw-window-handle",
  "rusqlite",
  "serde",
  "serde_json",

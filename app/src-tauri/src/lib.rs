@@ -48,6 +48,7 @@ pub mod native_history;
 pub mod role_lifecycle;
 pub mod role_observations;
 pub mod native_requests;
+mod native_request_answer;
 pub mod receiving;
 pub mod recorder;
 pub mod records;
@@ -1314,48 +1315,26 @@ fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSessi
 /// No actor, origin, rule name or error path is exposed to the webview.
 #[tauri::command(async)]
 fn answer_native_request(
-    app: tauri::AppHandle,
+    window: tauri::Window,
     state: State<'_, AppState>,
     generation: Value,
     request_id: Value,
     answer: Value,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    let (snapshot, context) = current_actor_context_for(&state, &home);
-    let actor = runtime_session::actor_reference(
-        context["displayName"].as_str(),
-        context["osAccount"].as_str(),
-        context["codexAccount"].as_str(),
-    );
-    let preview =
-        runtime_session::answer_preview(&snapshot, &generation, &request_id, &answer, &actor)?;
-    // Owner's three-button layout: Return chooses "Don't send"; an abort maps
-    // to "Cancel"; only the middle "Send answer" sends. A statement too long for
-    // the alert names the preview by digest while the App shows it whole.
-    use act_control::native_statement::{self as ns, DONT_SEND, SEND_ANSWER};
-    let statement = ns::request_answer_statement(&preview)?;
-    let result = ns::showing_in_app(statement.in_app.as_ref(), || {
-        app.dialog()
-            .message(statement.text.clone())
-            .title("Chirality — answer native request")
-            .kind(MessageDialogKind::Warning)
-            .buttons(ns::act_buttons(DONT_SEND, SEND_ANSWER))
-            .blocking_show_with_result()
-    });
-    if !ns::chose(&result, SEND_ANSWER) {
-        return Ok(json!({"state":"dismissed","replyWriteResult":"not-attempted"}));
-    }
-    let (snapshot, current) = current_actor_context_for(&state, &home);
-    if current != context {
-        return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
-    }
-    runtime_session::answer_preview(&snapshot, &generation, &request_id, &answer, &actor)?;
-    home.host.answer_server_request(
+    native_request_answer::answer(
         &generation,
         &request_id,
         &answer,
-        "person-via-interaction",
-        Some(&actor),
+        || current_actor_context_for(&state, &home),
+        |statement| native_request_answer::confirm(&window, statement),
+        |actor| home.host.answer_server_request(
+            &generation,
+            &request_id,
+            &answer,
+            "person-via-interaction",
+            Some(actor),
+        ),
     )
 }
 
