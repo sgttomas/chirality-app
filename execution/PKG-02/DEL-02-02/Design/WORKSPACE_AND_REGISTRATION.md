@@ -975,9 +975,17 @@ Actual native publication and source-bound supply witnesses remain distinct
 from schema/envelope joins. Historical records do not recreate native-owner
 check authority; unknown project has no fallback, and retry of pending record
 publication does not resend the turn. These WR §16.8/RS §13.6a limits govern
-current consumers. A conforming registered-selection native workflow witness
-remains unsupplied; the earlier development-selection delivery is not that
-witness (TT-1/TX-1).
+current consumers. A bounded native development observation on 2026-10-21
+(`f1ea3a9d`, stock Codex 0.160.0) used a current registered selection: native
+turn-start was acknowledged and one response separately completed. A native
+page check bound to the original source reported verified supply, with its WR
+check published and R3 recorded. The run remained open. Current App registration
+was observed after the owner's report; no agent-observed native human
+confirmation or authentication is claimed. Supply establishes neither model
+adoption nor environment compatibility. The full workflow-making journey, SC3
+failure matrix, lifecycle and qualification witnesses remain unsupplied by this
+observation. The earlier development-selection delivery retains its historical
+scope and supplies no registered-selection standing (TT-1/TX-1).
 
 ## 17. Implementation plan for trials (CC-WR-TRIALS)
 
