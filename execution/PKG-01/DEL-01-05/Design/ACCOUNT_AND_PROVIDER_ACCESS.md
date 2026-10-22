@@ -820,8 +820,9 @@ H-key's threads stay readable from H-key; the App does not delete the home
    nothing retried (I-2).
 4. Never a key in a provider definition (CR-8). Re-read → §5.3.
 
-The maintained contract fixture writes one existing provider's endpoint per
-case, with `reloadUserConfig: false` and no loaded threads. It observed the
+The original five-case `stock_linked_config_write_contract` fixture writes one
+existing provider's endpoint per case, with `reloadUserConfig: false` and no
+loaded threads. It observed the
 literal key path `model_providers."fixture.dot".base_url` addressing the single
 provider ID `fixture.dot`, preserving its sibling providers and other settings.
 This establishes that quoted segment at the selected pin, not arbitrary key-path
@@ -833,6 +834,37 @@ type reflected the key path in its native diagnostic. That one negative control
 establishes no general nonreflection or implemented App privacy guarantee.
 The fixture keeps native diagnostics and automatic notification metadata private,
 with fixed public failure text. These automated invented writes are not the person's I-2 act.
+
+The separate opt-in `stock_linked_provider_creation_contract` observed stock
+0.160.0 accepting one `replace` edit at literal key path
+`model_providers."fixture.new"`, after an actual read proved the single ID
+`fixture.new` absent from both the enabled user layer and effective map. The
+request carried only the invented `name`, `base_url`, `wire_api: "responses"`
+and `requires_openai_auth: false` object, the explicit canonical target and that
+same file's actual native version. Its acknowledgement and reread agreed on the
+new version and literal ID: the user/file row contained exactly that object,
+while the effective row also materialized supplier defaults. Sibling providers,
+selected provider/model and all other configuration semantics were preserved.
+
+The fresh-version existing-ID control accepted a whole-object replacement of
+that same ID. Thus this tested `replace` operation supplies no create-only or
+name-collision protection. The stale control first observed absence, then a
+controlled external same-ID insertion and its new native version; one write at
+the old version returned `configVersionConflict` and preserved the external
+definition. That is version-conflict evidence, not a provider-name collision
+oracle. A malformed whole definition was refused; independent filesystem and
+native reread observations confirmed unchanged state. Its diagnostic reflected
+the provider ID; one invented negative control establishes no general
+nonreflection or App privacy guarantee. All raw exchanges stay private.
+
+These are isolated supplier observations, not an implemented Add receiver or
+permission to overwrite an existing provider. Before a future Add depends on
+this operation, its receiving path still needs fresh source-bound absence in
+the relevant user/effective maps, the same-file native version and explicit Add
+intent, together with the applicable current-source continuation. This does not
+establish universal arbitrary-writer exclusion, writer provenance, filesystem
+CAS or an atomic target/profile commit. The current endpoint receiver remains
+endpoint-only; person I-2/U-R3 consumption, qualification and release remain open.
 
 **Q-9 New conversation (K-3).** `no-selection`; if the project has a last
 explicit choice, `offer-shown` (CS-3). The model list per entry: for
@@ -1239,6 +1271,11 @@ so nothing was rerun). A
   receiving symlink's inode, type and raw target survived, but the regular
   target's inode was replaced. Target mode was preserved in these fixtures;
   the normal-ID case retained comments/layout apart from the edited value.
+  The separate absent-provider creation and fresh-version existing-ID
+  whole-object replacement cases also preserved the receiving link while
+  replacing the regular target inode and preserving mode. The absent case
+  retained its complete preexisting byte prefix and comments, with a new table
+  appended; this is an observation of that case, not general byte preservation.
   This is no general byte-preservation, native-lock or postwrite-admission claim.
   The current desktop/shared `Reference::current` in
   `app/src-tauri/src/desktop_startup.rs` rejects a changed device/inode even when
