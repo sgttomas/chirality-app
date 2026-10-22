@@ -2146,7 +2146,7 @@
           "heading": "### 5.4 Conversation selection (K-3; one per App conversation)"
         }
       ],
-      "sha256": "sha256:348c253010c3add0386315482e3a94a4273561ebfefa60a4a4a86dd6aa85d526"
+      "sha256": "sha256:3adf9e06d1d7b38ece5dd02ffeae8f205b3bc1dd620dc564070394216b7a322c"
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
@@ -2179,7 +2179,7 @@
     {
       "role": "condition_manifest",
       "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
-      "sha256": "sha256:aa97e5a6439dee1cf78b65a1614c43840515471eb2905f33dcabf77b27bfd186"
+      "sha256": "sha256:86e6ceeca1b3f235ba29d46c46bab92b5ce10c17d3a94252e9762b15ba241833"
     }
   ],
   "historical_provenance": [
