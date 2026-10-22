@@ -44,6 +44,7 @@ mod distribution_store;
 mod distribution_s1;
 pub mod home_resources;
 mod desktop_startup;
+mod desktop_setup_confirmation;
 pub mod native_items;
 pub mod native_history;
 pub mod role_lifecycle;
@@ -197,18 +198,10 @@ fn desktop_setup_preview(state: State<'_, AppState>, shared_paths: [Value; 3], p
     result
 }
 #[tauri::command(async)]
-fn desktop_setup_prepare(app: tauri::AppHandle, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
+fn desktop_setup_prepare(window: tauri::Window, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
-    let statement = controller.try_lock().map_err(|_|"Desktop setup busy")?.preview_statement(&preview_token)?;
-    let content = json!({"effects":statement});
-    let statement = act_control::native_statement::whole_or_in_app("Desktop setup", "desktop setup effects", statement, &content,
-        |digest|format!("Prepare the NEW account home and save the pending request. Complete directory/link effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only."));
-    let mut refused = None;
-    if !confirm_choice(&app, "Desktop setup — next launch only", statement, "Leave setup unchanged", "Prepare home and save for next launch", &mut refused) {
-        return refused.map_or_else(||Ok(json!({"state":"cancelled; no setup paths or saved request changed"})), Err);
-    }
-    let result = controller.try_lock().map_err(|_|"Desktop setup busy after native question; preview again")?.prepare_and_save(&preview_token);
-    result
+    desktop_setup_confirmation::prepare(&controller, &preview_token,
+        |statement| desktop_setup_confirmation::confirm(&window, statement))
 }
 
 /// Person-requested metadata read. No Root guard spans Host/queue observation,

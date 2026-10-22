@@ -231,6 +231,18 @@ or start a conversation. H-key setup and native sign-in retain their existing
 separate controls; desktop setup adds no account/provider default or new access
 mode qualification.
 
+Setup's native confirmation is attached to the actual IPC-invoking App window,
+with both successful native handles checked/cached on the main thread before
+parenting. The callback-based Info dialog keeps **Leave setup unchanged** as
+the default; Cancel, close and any nonexact result cannot save. The exact
+**Prepare home and save for next launch** result revalidates that same original
+window before the frozen preview/token and existing source/custody checks reach
+the real prepare/save event. Complete effects and any named in-App digest
+content stay frozen while pending, without holding the setup controller lock.
+Known presentation/result failures remain errors, distinct from cancel where
+the plugin exposes the distinction. This source route supplies no actual
+native sheet-consumption or account acceptance witness.
+
 The decision record's mechanism M-A, **observed to work at 0.158.0** (OBS-2
 O-6 M1: a second home whose `config.toml` is a symbolic link to the first's
 reads the first's values, the user layer is named by the second home's path,

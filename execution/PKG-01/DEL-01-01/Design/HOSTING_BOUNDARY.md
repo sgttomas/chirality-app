@@ -475,6 +475,21 @@ person's native action uses the create-only `OwnedHomePlan` and saves only a
 pending request. An absent project is explicit. Saving never replaces the live
 Root tuple, quits, restarts, signs in or starts a conversation.
 
+The setup command receives its actual invoking `tauri::Window` from IPC.
+`desktop_setup_confirmation.rs` caches both successful window and display
+handles on the main thread before supplying the dialog parent; it has no
+label/focus lookup or unparented fallback. It presents an Info confirmation
+titled **Desktop setup — next launch only** through the callback API; only the
+async worker waits. **Leave setup unchanged** is the default, with the exact
+**Prepare home and save for next launch** action and Cancel. Only that exact
+affirmative rechecks the same original window, then the frozen preview/token
+and the existing preparation source/custody conditions before saving. The whole
+reviewed effects, or their named in-App content/digest, remain available while
+confirmation is pending. Known dispatch/handle/result failures return errors;
+an opaque plugin Cancel authorizes nothing and establishes no failure cause.
+Source and injected fixtures do not establish actual native sheet reachability,
+latency, acceptance or qualification.
+
 A fresh process checks receiving/source identity, types, aliases and namespace
 relationships before binding one HostConfig/project/home/bootstrap tuple for
 records, attachments, recovery and capabilities. It retains nonblocking inode
