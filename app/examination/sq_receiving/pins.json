@@ -12,8 +12,8 @@
     "app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "app/examination/sq_receiving/worker.py": "67421a4b42d78bb79921b9f7620a473e6ee0662d66848e8c0abf1ca379fbe806",
     "app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
-    "app/examination/support_identity/canonical-pins.v1.json": "fbcaae0a7766db58a467aad124a8e3febcfc3c5c99fa50bc352fbeba8cc72a6f",
-    "app/examination/support_identity/canonical.py": "ab709ff1aefd8926a049d63377be93a8bc6fbaeec27ec3e5b7b89f9ca0decff9",
+    "app/examination/support_identity/canonical-pins.v1.json": "04060f689c4865944c34ae6144b96420cec41b5c2ba561dabba472f826c75cd8",
+    "app/examination/support_identity/canonical.py": "2f286a9824feb7cec4e2a2e67b0ee9df5e411014b64442949bd85972dc30f34e",
     "app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
     "app/examination/support_identity/support_identity.py": "9ee17f994a5ecd5073039cc3984155641452aef28def35030783f903caf924b7",
     "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": "23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
@@ -46,6 +46,6 @@
     "execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6",
     "execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
     "app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
-    "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "aa97e5a6439dee1cf78b65a1614c43840515471eb2905f33dcabf77b27bfd186"
+    "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json": "86e6ceeca1b3f235ba29d46c46bab92b5ce10c17d3a94252e9762b15ba241833"
   }
 }
