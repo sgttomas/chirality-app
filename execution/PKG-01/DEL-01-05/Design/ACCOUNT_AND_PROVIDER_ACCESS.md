@@ -157,7 +157,7 @@ the App). An agent may ask the person in conversation; nothing more.
 | ID | Exchange | Supplier → receiver | Condition of use | When the exchange fails |
 |---|---|---|---|---|
 | I-1 | Codex account methods: `account/read`, `account/login/start`, `account/login/cancel`, `account/logout`, `configRequirements/read`; notifications `account/login/completed`, `account/updated`, `modelProvider/authRecoveryStarted`/`Completed` (all stable, `observed-in-generated-types`) | Codex → DEL-01-05, carried by DEL-01-01 S-4 | `ready(g)` of the home's child (HOSTING §4.1) | A request with no response is *unknown* (HOSTING H10); the entry goes to `unknown` and is re-read after the next `ready`; nothing is retried automatically that carries a credential (CR-6) |
-| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every write (HOSTING §6.8 row; H9) | Version conflict → the write is not retried; the person sees both values and decides. `configWarning` notifications are shown with their path |
+| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. Continuing the held source binding after native target replacement remains unresolved (F-A3; U-R3) | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
 | I-3 | Conversation start: explicit `modelProvider` and `model` on `thread/start`; per-turn `model` on `turn/start` | DEL-01-05 → DEL-01-01 S-4 | A selection exists (§5.4) | Error response → `start-failed`, no other entry tried (NS-1) |
 | I-4 | Destination class of the chosen entry | DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5 | Per conversation | The class is never inferred from an address; with no selection there is no class (HOSTING §8.3; LOOP N-OPEN-1 closure, applied here by analogy) |
 | I-5 | Access state snapshot and the conversation's selection state (schemas `access.state`, `access.conversation-selection`) | DEL-01-05 → DEL-01-04 (conversation start display, K-3) | On change | A display without a snapshot shows "access state unknown", never a default |
@@ -761,11 +761,30 @@ H-key's threads stay readable from H-key; the App does not delete the home
    configuration**, which their other Codex clients also read (K-1).
 3. `config/batchWrite {edits: [model_providers.<id>.*], filePath: <the
    person's configuration file, resolved>, expectedVersion: <from Q-1 step
-   4>}`. Writing through the explicit target path keeps the link intact
-   (VC-A11 shows the hazard of writing at the link path). `okOverridden` →
+   4>}`. Bind that layer's file to the same canonical target/object, rather
+   than selecting a version by matching text or a client-computed hash.
+   The maintained 0.160.0 fixture observed the receiving link surviving an
+   explicit-target write while the target inode was replaced (F-A3).
+   Resolve the held-source continuation condition in U-R3 before implementing
+   this product writer; a resolved path is a point-in-time observation.
+   `okOverridden` →
    the overriding layer and effective value are shown. Version conflict →
    nothing retried (I-2).
 4. Never a key in a provider definition (CR-8). Re-read → §5.3.
+
+The maintained contract fixture writes one existing provider's endpoint per
+case, with `reloadUserConfig: false` and no loaded threads. It observed the
+literal key path `model_providers."fixture.dot".base_url` addressing the single
+provider ID `fixture.dot`, preserving its sibling providers and other settings.
+This establishes that quoted segment at the selected pin, not arbitrary key-path
+escaping, whole-definition editing or loaded-thread reload behavior. A controlled
+CLI override returned `okOverridden` with its layer/effective-value metadata and
+remained effective on reread; a genuine read-version/external-edit/write-version
+conflict was refused without retry or write effects. An invented invalid endpoint
+type reflected the key path in its native diagnostic. That one negative control
+establishes no general nonreflection or implemented App privacy guarantee.
+The fixture keeps native diagnostics and automatic notification metadata private,
+with fixed public failure text. These automated invented writes are not the person's I-2 act.
 
 **Q-9 New conversation (K-3).** `no-selection`; if the project has a last
 explicit choice, `offer-shown` (CS-3). The model list per entry: for
@@ -1164,9 +1183,25 @@ so nothing was rerun). A
 - **F-A3 Writes through a linked configuration.** A write that replaces the
   file at the link path breaks the link silently; writes therefore pass the
   resolved target as `filePath`, and the link is checked after each write
-  (VC-A11). OBS-2 confirmed reads through the link and that no case wrote
-  through it; how Codex writes (in place or by replacement) is still not
-  observed.
+  (VC-A11).
+  The opt-in maintained `app/src-tauri/tests/config_write_contract.rs` observed
+  stock 0.160.0 reading the linked user layer, then accepting an endpoint-only
+  write to that same canonical target using the layer's actual native version.
+  Its schema-valid response and reread agreed on the new version/value. The
+  receiving symlink's inode, type and raw target survived, but the regular
+  target's inode was replaced. Target mode was preserved in these fixtures;
+  the normal-ID case retained comments/layout apart from the edited value.
+  This is no general byte-preservation, native-lock or postwrite-admission claim.
+  The current desktop/shared `Reference::current` in
+  `app/src-tauri/src/desktop_startup.rs` rejects a changed device/inode even when
+  the path and receiving link survive. That is a next interface condition for
+  a future product writer, not an existing App writer defect: U-R3 stays open
+  until the receiving continuation is established. This proof does not rebind
+  Root/profile/source identities, relink, weaken those checks or implement a
+  product transaction. OBS-2's 0.158.0 linked reads and absence of writes remain
+  historical facts. The fixture is automated invented configuration under
+  deny-all-network isolation, not an App/person act, account/server result,
+  start-up traffic qualification, acceptance or release.
 - **F-A4 Gateway OAuth would open a browser by itself.** The handshake
   capability `explicitGatewayOauth` replaces "automatic browser
   authorization"; the App declares it true (join to HOSTING §4.2 step 4).
@@ -1444,7 +1479,7 @@ Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
 | U-A14 | Whether Codex follows a linked global `AGENTS.md` and a linked `skills/` (only `config.toml` was observed through a link) | A later observation (credential-free) | Before role supply implementation (with DEL-02-04) | Linked as R18-6 says; `instructionSources` and `skills/list` show the outcome at run time |
 | U-A15 | Whether `experimentalFeature/list` lists `plugins` | A later observation | Before K-12 implementation | `config/read` and the observed default are used |
 | U-A16 | *Closed:* the four triggers are recorded in ASSESSMENT_SIWC.md and copied into §20 | — | — | — |
-| U-R3 (record) | Writes through the link | A later observation | Before configuration-write implementation | `filePath` to the target |
+| U-R3 (record; OPEN) | Continuing a held shared-source binding after native target replacement | App receiving implementation, with independent scrutiny | Before configuration-write implementation | The maintained 0.160.0 fixture observed explicit-target writes preserving the receiving link but replacing the target inode (F-A3). Resolve continuation against current source-identity checks; no silent rebind, relink or implicit-config fallback |
 
 ## Verification cases
 

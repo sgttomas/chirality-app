@@ -1008,6 +1008,67 @@ python3 supplier_checks/test_local_auth.py
 python3 supplier_checks/local_auth.py --codex "$CHIRALITY_CODEX_BIN"
 ```
 
+The macOS-only [linked configuration write contract](src-tauri/tests/config_write_contract.rs)
+is ignored by default, including ordinary full-suite runs. It calls the actual
+`OwnedHomePlan` seam and stock 0.160.0 stdio RPC using only invented providers.
+Before running, receive a **new owned, physical, private `/private/tmp` stock
+input root** from the input owner: complete vendor layout, the authenticated
+134311083-byte archive, and `input-binding.json` with the handed-off SHA256.
+The binding supplies root path/device/inode, `nativeBinary` and `archive`
+path/inode/size/SHA256, and the input owner's retained `vendorTree` warrant.
+The fixture validates the bound root and stock file identities/hashes; it reuses
+the full-vendor/provenance warrant without another archive inventory or download.
+An absent flag/input fails explicitly before supplier lookup or home creation.
+
+Use a new private build home and target, copying only an approved prepared
+Cargo registry into its new `cargo-home/registry`; never share a writable cache
+or target or use a personal Codex home. With `CONTRACT_BUILD_ROOT` naming that
+prepared physical directory and its empty `os-home`, `codex-home`, `tmp` and
+`target` children, run from `app/`:
+
+```sh
+env -i PATH="$RUST_1971_BIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+  HOME="$CONTRACT_BUILD_ROOT/os-home" CODEX_HOME="$CONTRACT_BUILD_ROOT/codex-home" \
+  TMPDIR="$CONTRACT_BUILD_ROOT/tmp" CARGO_HOME="$CONTRACT_BUILD_ROOT/cargo-home" \
+  CARGO_TARGET_DIR="$CONTRACT_BUILD_ROOT/target" CARGO_NET_OFFLINE=true \
+  CHIRALITY_SKIP_CODEX=1 \
+  CHIRALITY_CONFIG_WRITE_CONTRACT=stock-0.160-invented-only \
+  CHIRALITY_CONFIG_WRITE_INPUT="$NEW_STOCK_ROOT" \
+  CHIRALITY_CONFIG_WRITE_BINDING_SHA256="$HANDED_OFF_BINDING_SHA256" \
+  cargo test --offline --locked --manifest-path src-tauri/Cargo.toml \
+    --test config_write_contract stock_linked_config_write_contract \
+    -- --ignored --exact --nocapture --test-threads=1
+```
+
+For offline compilation only, use the same private environment, omit the three
+`CHIRALITY_CONFIG_WRITE_*` input/opt-in assignments, and replace the test-name
+and following arguments with `--no-run`. This compiles only the selected
+integration fixture and its library dependency. Optional
+`CHIRALITY_CONFIG_WRITE_CASES=endpoint` or `remaining` selects a bounded subset;
+the default is `all`, and unselected cases establish no result.
+
+Every case uses a fresh root with fresh HOME/CODEX_HOME/TMPDIR/cwd/XDG locations
+and a cleared child environment with only those locations, fixed system PATH
+and `LC_ALL=C`. `sandbox-exec` denies all network, child creation, `/Users`
+reads and writes outside that case; unsupported isolation stops without fallback.
+Only initialize/initialized, config/read and one versioned, explicit-target
+config/batchWrite per case are sent; no account, model, thread, listener or App
+is used. Unknown outcomes are inspected without replay. EOF and bounded cleanup
+retain the original process-group identity until reaping. All raw exchanges,
+diagnostics and effects stay in the reported private root: automatic native
+notifications can include OS metadata. Public failure text is fixed.
+
+The observations cover an endpoint edit, a real stale version, a controlled CLI
+override, one invalid-value diagnostic and a quoted dotted provider ID. The
+receiving link survived successful writes, while the target inode was replaced;
+current desktop/shared identity checks therefore still need a receiving
+continuation before a product writer can depend on this result (ACCESS F-A3,
+U-R3). The supplier cases also populated the fresh linked skills directory;
+the observation does not establish when within the case that happened. These
+are isolated native contract effects, not App/person configuration acts,
+loaded-thread reload behavior, account/server or start-up traffic qualification,
+an implemented privacy guarantee, acceptance or release.
+
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture
 failure/recovery, ordering, namespace and provenance negatives. With no supplier
