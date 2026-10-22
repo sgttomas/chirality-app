@@ -45,8 +45,15 @@ A document owner may work through connected sections while the coordinator integ
 A useful standing assignment says, in substance: “Own this scope through repairs. Make completed units available to this reviewer with their exact versions. Continue the next natural unit while review proceeds, within the agreed ready-work limit. Escalate these defined changes or blockers; ordinary steps are already authorized.” This is an example, not another required template.
 
 Arrange the independent reviewer before expanding production where review is required. Size the ready queue to actual review capacity. Preserve the owner through findings instead of transferring the material to whoever is free. Account for dispatched work and inspect actual returns through the host's
-completion mechanism. Do not mistake a queued message for execution or a
-completed turn for delivery of all its contributions. Keep a recovery note only
+completion mechanism. Where that mechanism does not reach the coordinator, as
+when a contributor working in a separate conversation finishes without notifying
+anyone, the assignment names a return route that does: for example, a short
+message into the coordinator's conversation giving the exact version, the checks
+performed and any open choices. A scheduled check that runs independently of any
+one session is a backstop for a missed return, not the primary route; a timer
+that lives only inside the coordinator's session is no backstop. Do not mistake a
+queued message for execution or a completed turn for delivery of all its
+contributions. Keep a recovery note only
 when the undertaking's current artifacts and conversation are insufficient.
 
 
@@ -83,7 +90,7 @@ Integrate compatible checked contributions with the necessary preimages and scop
 
 At a stalled or aging item, locate the next useful result and the person or operation that releases it. Then establish:
 
-1. **Was the next task actually dispatched?** A completed turn followed by a queued message may leave an owner waiting while the coordinator believes work continues.
+1. **Was the next task actually dispatched, and could its return reach the coordinator?** A completed turn followed by a queued message may leave an owner waiting while the coordinator believes work continues. A finished return delivered where the coordinator is not watching looks like silence from both sides.
 2. **What actually ran or exists?** Inspect the last operation, saved or reported partial work, and available session/error state. Work may exist before a narrative handoff; absence of a file does not prove inactivity.
 3. **Where is the elapsed time going?** Distinguish source reasoning, tool execution, preparation, review waiting, and integration waiting. State uncertainty where the host exposes no diagnosis.
 
