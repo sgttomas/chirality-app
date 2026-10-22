@@ -198,10 +198,17 @@ fn desktop_setup_preview(state: State<'_, AppState>, shared_paths: [Value; 3], p
     result
 }
 #[tauri::command(async)]
+fn desktop_setup_project_preview(state: State<'_, AppState>, project_path: Option<Value>) -> Result<Value, String> {
+    let controller = desktop_controller(&state)?;
+    let result = controller.try_lock().map_err(|_|"Desktop setup busy; retry explicitly")?
+        .preview_project(project_path.map(desktop_startup::explicit_path).transpose()?);
+    result
+}
+#[tauri::command(async)]
 fn desktop_setup_prepare(window: tauri::Window, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
     desktop_setup_confirmation::prepare(&controller, &preview_token,
-        |statement| desktop_setup_confirmation::confirm(&window, statement))
+        |statement, action| desktop_setup_confirmation::confirm(&window, statement, action))
 }
 
 /// Person-requested metadata read. No Root guard spans Host/queue observation,
@@ -2240,7 +2247,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            desktop_setup_pick, desktop_setup_preview, desktop_setup_prepare,
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_project_preview, desktop_setup_prepare,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,

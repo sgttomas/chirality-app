@@ -231,11 +231,29 @@ or start a conversation. H-key setup and native sign-in retain their existing
 separate controls; desktop setup adds no account/provider default or new access
 mode qualification.
 
+Once saved-desktop startup has actually admitted an account home H with held
+App-data/profile/home custody, the person can explicitly keep H and choose only
+the next launch's project Q or no project (§5.4.1). Environment, setup-only,
+refused, stale and merely pending sources cannot supply this operation, and
+the renderer cannot nominate a home/shared/supplier replacement. The native
+preview derives those unchanged references from the held admission; its save
+changes only the existing request's project field. No home, link, credential or
+new account is created, migrated, prepared or relinked. Source/project identity,
+type, alias, namespace and custody checks remain; noncolliding missing/broken
+resource limits do not become a new start veto. The preview also pins the
+admitted pending-file baseline, so supersession or external replacement refuses
+without overwriting a different pending plan. Another retained-project change
+requires consuming that pending request on a new launch. Saving does not adopt
+the pending source or rebind active H/P, records, attachments, recovery,
+capabilities, model choices or prepared messages. Fresh startup binds H/Q or
+H/absence through the existing resolver and consumers.
+
 Setup's native confirmation is attached to the actual IPC-invoking App window,
 with both successful native handles checked/cached on the main thread before
 parenting. The callback-based Info dialog keeps **Leave setup unchanged** as
 the default; Cancel, close and any nonexact result cannot save. The exact
-**Prepare home and save for next launch** result revalidates that same original
+trusted preview-kind action (**Prepare home and save for next launch**, or
+**Save project for next launch** when retaining H) revalidates that same original
 window before the frozen preview/token and existing source/custody checks reach
 the real prepare/save event. Complete effects and any named in-App digest
 content stay frozen while pending, without holding the setup controller lock.

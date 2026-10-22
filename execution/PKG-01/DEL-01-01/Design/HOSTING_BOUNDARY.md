@@ -470,10 +470,26 @@ bounded `desktop-startup/request.json` under Tauri's actual resolved App-data
 root. The request stores native location/object references and the explicit
 unqualified owner-use bundled-supplier selection, not credentials, account or
 model/provider choices, qualification, admission receipts or lock ownership.
-Setup previews the new account directory and three link effects, then the
+New-home setup previews the new account directory and three link effects, then the
 person's native action uses the create-only `OwnedHomePlan` and saves only a
 pending request. An absent project is explicit. Saving never replaces the live
 Root tuple, quits, restarts, signs in or starts a conversation.
+
+A separate project-only preview can keep the account admitted by this process's
+saved-desktop startup. Its source is the private admission with actual held,
+rechecked App-data/profile/home custody, not a renderer home, view state,
+environment input or merely saved/pending request. It derives the original
+account/shared/supplier references from that admission and changes only the
+project reference to an explicitly chosen directory or absence in the existing
+request format. It creates no home, links or credential, and does not prepare
+or relink the retained home. Ordinary noncolliding missing/broken resources keep
+their existing limits. The preview binds to the original admitted source and
+the protected pending file's identity/exact bytes; source drift, lost custody,
+superseded preview or pending-file replacement refuses. A differing pending
+plan must be launched before another retained-project change; it is neither
+adopted nor silently overwritten by retaining the active home. A fresh process
+consumes the retained H with Q or no project through the same frozen consumers;
+the running H/P and its current choices remain unchanged until then.
 
 The setup command receives its actual invoking `tauri::Window` from IPC.
 `desktop_setup_confirmation.rs` caches both successful window and display
@@ -481,7 +497,8 @@ handles on the main thread before supplying the dialog parent; it has no
 label/focus lookup or unparented fallback. It presents an Info confirmation
 titled **Desktop setup — next launch only** through the callback API; only the
 async worker waits. **Leave setup unchanged** is the default, with the exact
-**Prepare home and save for next launch** action and Cancel. Only that exact
+preview-kind action (**Prepare home and save for next launch** for a new home,
+**Save project for next launch** when retaining) and Cancel. Only that exact
 affirmative rechecks the same original window, then the frozen preview/token
 and the existing preparation source/custody conditions before saving. The whole
 reviewed effects, or their named in-App content/digest, remain available while

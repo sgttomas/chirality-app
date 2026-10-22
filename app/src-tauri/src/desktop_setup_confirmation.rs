@@ -10,6 +10,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogKind, MessageDialogResult};
 
 const TITLE: &str = "Desktop setup — next launch only";
 const LEAVE: &str = "Leave setup unchanged";
+#[cfg(test)]
 const PREPARE: &str = "Prepare home and save for next launch";
 
 /// Shared by the actual command and injected-confirmation fixtures. No controller
@@ -18,12 +19,15 @@ const PREPARE: &str = "Prepare home and save for next launch";
 pub(crate) fn prepare(
     controller: &Mutex<DesktopSetup>,
     preview_token: &str,
-    confirm: impl FnOnce(&ns::NativeStatement) -> Result<MessageDialogResult, String>,
+    confirm: impl FnOnce(&ns::NativeStatement, &str) -> Result<MessageDialogResult, String>,
 ) -> Result<Value, String> {
-    let effects = controller
-        .try_lock()
-        .map_err(|_| "Desktop setup busy")?
-        .preview_statement(preview_token)?;
+    let (effects, action) = {
+        let controller = controller.try_lock().map_err(|_| "Desktop setup busy")?;
+        (
+            controller.preview_statement(preview_token)?,
+            controller.preview_action(preview_token)?,
+        )
+    };
     let content = json!({"effects":effects});
     let statement = ns::whole_or_in_app(
         "Desktop setup",
@@ -31,11 +35,11 @@ pub(crate) fn prepare(
         effects.clone(),
         &content,
         |digest| {
-            format!("Prepare the NEW account home and save the pending request. Complete directory/link effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only.")
+            format!("{action}. Complete reviewed effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only.")
         },
     )?;
-    let result = ns::showing_in_app(statement.in_app.as_ref(), || confirm(&statement))?;
-    if !ns::chose(&result, PREPARE) {
+    let result = ns::showing_in_app(statement.in_app.as_ref(), || confirm(&statement, action))?;
+    if !ns::chose(&result, action) {
         // The plugin also maps opaque backend Cancel to the cancel label; that
         // result grants no authority and cannot support a failure diagnosis.
         return Ok(json!({"state":"cancelled; no setup paths or saved request changed"}));
@@ -43,7 +47,9 @@ pub(crate) fn prepare(
     let mut controller = controller
         .try_lock()
         .map_err(|_| "Desktop setup busy after native question; preview again")?;
-    if controller.preview_statement(preview_token)? != effects {
+    if controller.preview_statement(preview_token)? != effects
+        || controller.preview_action(preview_token)? != action
+    {
         return Err("Desktop setup effects changed during confirmation; review again".into());
     }
     controller.prepare_and_save(preview_token)
@@ -82,8 +88,9 @@ fn with_checked_parent<T>(
 fn result_in_parent(
     original: &(impl HasWindowHandle + HasDisplayHandle),
     result: MessageDialogResult,
+    action: &str,
 ) -> Result<MessageDialogResult, String> {
-    if ns::chose(&result, PREPARE) {
+    if ns::chose(&result, action) {
         with_checked_parent(original, |_| ())?;
     }
     Ok(result)
@@ -101,25 +108,27 @@ fn receive_result(
 pub(crate) fn confirm(
     invoking: &tauri::Window,
     statement: &ns::NativeStatement,
+    action: &str,
 ) -> Result<MessageDialogResult, String> {
     let (send, receive) = mpsc::channel();
     let window = invoking.clone();
     let text = statement.text.clone();
+    let action = action.to_owned();
     invoking.run_on_main_thread(move || {
         let callback_send = send.clone();
         let callback_window = window.clone();
         let shown = with_checked_parent(&window, |parent| {
             window.dialog().message(text).title(TITLE).kind(MessageDialogKind::Info)
-                .buttons(ns::act_buttons(LEAVE, PREPARE)).parent(parent)
+                .buttons(ns::act_buttons(LEAVE, &action)).parent(parent)
                 .show_with_result(move |result| {
-                    if !ns::chose(&result, PREPARE) {
+                    if !ns::chose(&result, &action) {
                         let _ = callback_send.send(Ok(result));
                         return;
                     }
                     let original = callback_window.clone();
                     let failure = callback_send.clone();
                     if callback_window.run_on_main_thread(move || {
-                        let _ = callback_send.send(result_in_parent(&original, result));
+                        let _ = callback_send.send(result_in_parent(&original, result, &action));
                     }).is_err() {
                         let _ = failure.send(Err("Invoking App window could not be revalidated; desktop setup confirmation refused".into()));
                     }
@@ -149,6 +158,41 @@ mod tests {
         home: PathBuf,
     }
     impl Fixture {
+        fn admitted_project() -> Self {
+            let mut f = Self::new(false);
+            f.controller
+                .lock()
+                .unwrap()
+                .prepare_and_save(&f.token)
+                .unwrap();
+            let mut fresh = DesktopSetup::new(
+                Ok(f.data.clone()),
+                Ok(f.root.join("invented-bundle-resources")),
+            );
+            let old = std::mem::replace(
+                &mut f.controller,
+                Mutex::new(DesktopSetup::new(
+                    Err("unused fixture placeholder".into()),
+                    Err("unused".into()),
+                )),
+            );
+            drop(old);
+            let launch = fresh.resolve(None, true, || {
+                crate::runtime_session::allocate_fresh_probe(&f.root)
+            });
+            assert!(
+                fresh
+                    .admit_root(launch, Ok(f.data.clone()))
+                    .allow_operational
+            );
+            let project = f.root.join("explicit-next-project");
+            std::fs::create_dir(&project).unwrap();
+            let preview = fresh.preview_project(Some(project)).unwrap();
+            f.token = preview["token"].as_str().unwrap().into();
+            f.home = PathBuf::from(preview["accountHome"].as_str().unwrap());
+            f.controller = Mutex::new(fresh);
+            f
+        }
         fn new(long: bool) -> Self {
             let root = std::env::temp_dir()
                 .canonicalize()
@@ -283,7 +327,89 @@ mod tests {
             assert!(parent.window_handle().is_ok() && parent.display_handle().is_ok());
             pending();
         })?;
-        result_in_parent(original, result)
+        result_in_parent(original, result, PREPARE)
+    }
+
+    #[test]
+    fn retained_project_native_wait_refuses_external_pending_supersession() {
+        use std::os::unix::fs::PermissionsExt;
+        let f = Fixture::admitted_project();
+        std::thread::scope(|scope| {
+            let (ready_send, ready_receive) = mpsc::channel();
+            let (resume_send, resume_receive) = mpsc::channel();
+            let fixture = &f;
+            let worker = scope.spawn(move || {
+                let original = HandleFixture::valid();
+                prepare(&fixture.controller, &fixture.token, |statement, action| {
+                    with_checked_parent(&original, |_| ())?;
+                    assert_eq!(action, "Save project for next launch");
+                    assert!(!statement.text.contains("Create NEW"));
+                    ready_send.send(()).unwrap();
+                    resume_receive.recv_timeout(Duration::from_secs(5)).unwrap();
+                    result_in_parent(
+                        &original,
+                        MessageDialogResult::Custom(action.into()),
+                        action,
+                    )
+                })
+            });
+            ready_receive.recv_timeout(Duration::from_secs(5)).unwrap();
+            assert!(f.controller.try_lock().is_ok());
+            let bytes = std::fs::read(f.profile()).unwrap();
+            std::fs::rename(f.profile(), f.root.join("original-private-request")).unwrap();
+            std::fs::write(f.profile(), &bytes).unwrap();
+            std::fs::set_permissions(f.profile(), std::fs::Permissions::from_mode(0o600)).unwrap();
+            resume_send.send(()).unwrap();
+            assert!(worker
+                .join()
+                .unwrap()
+                .unwrap_err()
+                .contains("Pending desktop request"));
+            assert_eq!(std::fs::read(f.profile()).unwrap(), bytes);
+            assert_eq!(f.home_count(), 1);
+        });
+    }
+
+    #[test]
+    fn retained_project_confirmation_uses_its_exact_action_and_original_parent() {
+        for outcome in ["default", "new-home-action", "destroyed", "affirmative"] {
+            let f = Fixture::admitted_project();
+            let original = HandleFixture::valid();
+            let before = std::fs::read(f.profile()).unwrap();
+            let result = prepare(&f.controller, &f.token, |statement, action| {
+                assert_eq!(action, "Save project for next launch");
+                assert!(!statement.text.contains("Create NEW"));
+                with_checked_parent(&original, |_| ())?;
+                let result = match outcome {
+                    "default" => MessageDialogResult::Custom(LEAVE.into()),
+                    "new-home-action" => MessageDialogResult::Custom(PREPARE.into()),
+                    "destroyed" => {
+                        original.window_available.set(false);
+                        MessageDialogResult::Custom(action.into())
+                    }
+                    _ => MessageDialogResult::Custom(action.into()),
+                };
+                result_in_parent(&original, result, action)
+            });
+            match outcome {
+                "affirmative" => {
+                    assert_eq!(result.unwrap()["pending"]["kind"], "retain-account-project");
+                    assert_ne!(std::fs::read(f.profile()).unwrap(), before);
+                }
+                "destroyed" => {
+                    assert!(result.is_err());
+                    assert_eq!(std::fs::read(f.profile()).unwrap(), before);
+                }
+                _ => {
+                    assert!(result.unwrap()["state"]
+                        .as_str()
+                        .unwrap()
+                        .contains("cancelled"));
+                    assert_eq!(std::fs::read(f.profile()).unwrap(), before);
+                }
+            }
+            assert_eq!(f.home_count(), 1);
+        }
     }
 
     #[test]
@@ -319,7 +445,7 @@ mod tests {
                 original.display_available.set(false);
             }
             let presented = Cell::new(false);
-            let error = prepare(&f.controller, &f.token, |_| {
+            let error = prepare(&f.controller, &f.token, |_, _| {
                 injected_confirmation(&original, affirmative(), || presented.set(true))
             })
             .unwrap_err();
@@ -335,7 +461,7 @@ mod tests {
             let f = Fixture::new(false);
             let original = HandleFixture::valid();
             let replacement = HandleFixture::valid();
-            let error = prepare(&f.controller, &f.token, |_| {
+            let error = prepare(&f.controller, &f.token, |_, _| {
                 injected_confirmation(&original, affirmative(), || {
                     if missing == "window" {
                         original.window_available.set(false);
@@ -387,7 +513,7 @@ mod tests {
         for result in results {
             let f = Fixture::new(false);
             let original = HandleFixture::valid();
-            let outcome = prepare(&f.controller, &f.token, |_| {
+            let outcome = prepare(&f.controller, &f.token, |_, _| {
                 injected_confirmation(&original, result, || {})
             })
             .unwrap();
@@ -405,7 +531,7 @@ mod tests {
         let f = Fixture::new(false);
         let original = HandleFixture::valid();
         let initial = f.controller.lock().unwrap().view()["launch"].clone();
-        let result = prepare(&f.controller, &f.token, |_| {
+        let result = prepare(&f.controller, &f.token, |_, _| {
             injected_confirmation(&original, affirmative(), || f.assert_unsaved())
         })
         .unwrap();
@@ -425,7 +551,7 @@ mod tests {
         }
         assert!(!f.home.join("auth.json").exists());
         let saved = std::fs::read(f.profile()).unwrap();
-        assert!(prepare(&f.controller, &f.token, |_| panic!(
+        assert!(prepare(&f.controller, &f.token, |_, _| panic!(
             "consumed token presented again"
         ))
         .is_err());
@@ -447,7 +573,7 @@ mod tests {
             }
             let homes_before = f.home_count();
             let original = HandleFixture::valid();
-            let result = prepare(&f.controller, &f.token, |_| {
+            let result = prepare(&f.controller, &f.token, |_, _| {
                 injected_confirmation(&original, affirmative(), || match mutation {
                     "token" => {
                         f.controller
@@ -485,14 +611,14 @@ mod tests {
     fn busy_controller_and_known_presentation_or_result_failures_remain_errors() {
         let f = Fixture::new(false);
         let held = f.controller.lock().unwrap();
-        assert!(prepare(&f.controller, &f.token, |_| panic!(
+        assert!(prepare(&f.controller, &f.token, |_, _| panic!(
             "busy controller presented"
         ))
         .unwrap_err()
         .contains("busy"));
         drop(held);
         for disconnected in [false, true] {
-            let error = prepare(&f.controller, &f.token, |_| {
+            let error = prepare(&f.controller, &f.token, |_, _| {
                 if !disconnected {
                     return Err("invented main-thread presentation dispatch failed".into());
                 }
@@ -510,7 +636,7 @@ mod tests {
         }
         let held = RefCell::new(None);
         let original = HandleFixture::valid();
-        let error = prepare(&f.controller, &f.token, |_| {
+        let error = prepare(&f.controller, &f.token, |_, _| {
             injected_confirmation(&original, affirmative(), || {
                 *held.borrow_mut() = Some(f.controller.lock().unwrap());
             })
@@ -538,7 +664,7 @@ mod tests {
             let fixture = &f;
             let worker = scope.spawn(move || {
                 let original = HandleFixture::valid();
-                prepare(&fixture.controller, &fixture.token, |statement| {
+                prepare(&fixture.controller, &fixture.token, |statement, _| {
                     with_checked_parent(&original, |_| ())?;
                     let content = statement
                         .in_app
@@ -550,7 +676,7 @@ mod tests {
                     let result = resume_receive
                         .recv_timeout(Duration::from_secs(5))
                         .map_err(|e| e.to_string())?;
-                    result_in_parent(&original, result)
+                    result_in_parent(&original, result, PREPARE)
                 })
             });
             let (native, digest) = ready_receive.recv_timeout(Duration::from_secs(5)).unwrap();

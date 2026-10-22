@@ -270,6 +270,43 @@ struct ReceivingSource {
     file: File,
     reference: Reference,
 }
+/// Native entry metadata only: do not follow a receiving link or read content.
+/// A stable missing/broken/conflicting entry remains its admitted source limit.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ReceivingEntry {
+    Missing,
+    Present {
+        object: ObjectRef,
+        file_type: std::fs::FileType,
+        link: Option<PathBuf>,
+    },
+}
+impl ReceivingEntry {
+    fn observe(path: &Path) -> Result<Self, String> {
+        let meta = match std::fs::symlink_metadata(path) {
+            Ok(meta) => meta,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self::Missing),
+            Err(e) => return Err(format!("receiving entry metadata unavailable: {e}")),
+        };
+        let object = ObjectRef::of(&meta);
+        let file_type = meta.file_type();
+        let link = if meta.file_type().is_symlink() {
+            Some(std::fs::read_link(path).map_err(|e| format!("receiving link unavailable: {e}"))?)
+        } else {
+            None
+        };
+        let current = std::fs::symlink_metadata(path)
+            .map_err(|e| format!("receiving entry changed during observation: {e}"))?;
+        if ObjectRef::of(&current) != object || current.file_type() != file_type {
+            return Err("receiving entry replaced during observation".into());
+        }
+        Ok(Self::Present {
+            object,
+            file_type,
+            link,
+        })
+    }
+}
 impl ReceivingSource {
     fn open(reference: &Reference) -> Result<Self, String> {
         let path = reference.current(true)?;
@@ -306,6 +343,17 @@ impl ReceivingSource {
             return Err("receiving descriptor identity changed".into());
         }
         Ok(())
+    }
+    fn entries(&self) -> Result<[ReceivingEntry; 3], String> {
+        self.recheck()?;
+        let home = self.reference.location.path()?;
+        let entries = [
+            ReceivingEntry::observe(&home.join("config.toml"))?,
+            ReceivingEntry::observe(&home.join("AGENTS.md"))?,
+            ReceivingEntry::observe(&home.join("skills"))?,
+        ];
+        self.recheck()?;
+        Ok(entries)
     }
 }
 impl Drop for ReceivingSource {
@@ -345,7 +393,23 @@ fn protected_directory(path: &Path) -> Result<(), String> {
     }
     Ok(())
 }
-fn read_profile(path: &Path) -> Result<RequestedInputs, String> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ProfileBaseline {
+    object: ObjectRef,
+    digest: String,
+}
+#[derive(Clone)]
+struct LoadedProfile {
+    baseline: ProfileBaseline,
+    request: RequestedInputs,
+}
+struct AdmittedDesktop {
+    profile: LoadedProfile,
+    // An unavailable initial observation disables retaining, not home startup.
+    // This native snapshot is never persisted as an admission/profile claim.
+    receiving_entries: Result<[ReceivingEntry; 3], String>,
+}
+fn read_profile_bytes(path: &Path) -> Result<(Vec<u8>, ProfileBaseline), String> {
     storage::check_path(path)?;
     let file = OpenOptions::new()
         .read(true)
@@ -376,6 +440,15 @@ fn read_profile(path: &Path) -> Result<RequestedInputs, String> {
     {
         return Err("desktop request source replaced during read".into());
     }
+    let baseline = ProfileBaseline {
+        object: ObjectRef::of(&current),
+        digest: crate::util::sha256_hex(&bytes),
+    };
+    Ok((bytes, baseline))
+}
+#[cfg(test)]
+fn read_profile(path: &Path) -> Result<RequestedInputs, String> {
+    let (bytes, _) = read_profile_bytes(path)?;
     serde_json::from_slice(&bytes)
         .map_err(|e| format!("desktop request is incomplete or invalid: {e}"))
 }
@@ -468,8 +541,16 @@ impl Launch {
     }
 }
 
+enum PreviewKind {
+    NewHome,
+    RetainProject {
+        admission: Arc<AdmittedDesktop>,
+        request: RequestedInputs,
+    },
+}
 struct Preview {
     token: String,
+    kind: PreviewKind,
     account: PathBuf,
     shared: SharedResourceTargets,
     project: Option<PathBuf>,
@@ -483,6 +564,8 @@ pub(crate) struct DesktopSetup {
     profile_directory: Option<DirectoryLease>,
     receiving: Option<ReceivingSource>,
     requested: Option<RequestedInputs>,
+    loaded_profile: Option<LoadedProfile>,
+    admitted: Option<Arc<AdmittedDesktop>>,
     preview: Option<Preview>,
     pub(crate) launch_state: Value,
     pending: Value,
@@ -497,6 +580,8 @@ impl DesktopSetup {
             profile_directory: None,
             receiving: None,
             requested: None,
+            loaded_profile: None,
+            admitted: None,
             preview: None,
             launch_state: json!({"state":"setup-required","reason":"No explicit desktop request saved"}),
             pending: Value::Null,
@@ -507,6 +592,7 @@ impl DesktopSetup {
         launch: Launch,
         environment_data: Result<PathBuf, String>,
     ) -> RootInputs {
+        self.admitted = None;
         if launch.source == "explicit environment (exclusive)" {
             // Preserve the complete legacy route, including its independently
             // configured records override when App-data itself is unavailable.
@@ -522,21 +608,39 @@ impl DesktopSetup {
                 || self.profile_directory.is_none()
                 || self.receiving.is_none()
                 || self.requested.is_none()
+                || self.loaded_profile.is_none()
             {
                 return Err("desktop held source admission unavailable".to_string());
             }
             self.recheck()?;
-            self.data.clone()
+            let (_, current) =
+                read_profile_bytes(&self.data.as_ref().map_err(Clone::clone)?.join(PROFILE))?;
+            if current != self.loaded_profile.as_ref().unwrap().baseline {
+                return Err("Pending desktop request changed before Root admission".into());
+            }
+            let receiving_entries = self.receiving.as_ref().unwrap().entries();
+            // A resource-observation limit does not veto startup. Lost held
+            // source/custody still refuses operational admission independently.
+            self.recheck()?;
+            self.data.clone().map(|data| (data, receiving_entries))
         })();
         match admitted {
-            Ok(data) => RootInputs {
-                launch,
-                data: Ok(data),
-                allow_operational: true,
-            },
+            Ok((data, receiving_entries)) => {
+                self.admitted = Some(Arc::new(AdmittedDesktop {
+                    profile: self.loaded_profile.clone().unwrap(),
+                    receiving_entries,
+                }));
+                RootInputs {
+                    launch,
+                    data: Ok(data),
+                    allow_operational: true,
+                }
+            }
             Err(reason) => {
                 self.receiving = None;
                 self.requested = None;
+                self.loaded_profile = None;
+                self.admitted = None;
                 self.launch_state = json!({"state":"setup-required","reason":reason,"operationalData":"not admitted; setup-only local input capability retained"});
                 RootInputs {
                     launch: Launch::setup(reason.clone()),
@@ -552,6 +656,8 @@ impl DesktopSetup {
         is_dev: bool,
         probe: impl FnOnce() -> Result<PathBuf, String>,
     ) -> Launch {
+        self.admitted = None;
+        self.loaded_profile = None;
         if let Some(launch) = environment {
             self.launch_state = json!({"state":"environment","reason":launch.host_config.as_ref().err(),"standing":"Environment inputs are exclusive, including errors; saved desktop requests are not read"});
             return launch;
@@ -564,6 +670,8 @@ impl DesktopSetup {
             Err(reason) => {
                 self.receiving = None;
                 self.requested = None;
+                self.loaded_profile = None;
+                self.admitted = None;
                 self.launch_state = json!({"state":"setup-required","reason":reason});
                 Launch::setup(reason)
             }
@@ -688,7 +796,13 @@ impl DesktopSetup {
             return Err("No explicit desktop request saved".into());
         }
         self.acquire()?;
-        let mut requested = read_profile(&data.join(PROFILE))?;
+        let (bytes, baseline) = read_profile_bytes(&data.join(PROFILE))?;
+        let mut requested: RequestedInputs = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("desktop request is incomplete or invalid: {e}"))?;
+        self.loaded_profile = Some(LoadedProfile {
+            baseline,
+            request: requested.clone(),
+        });
         let (account, shared, workspace) = self.validate(&requested)?;
         // A reference explicitly absent at setup can become available (CL-6).
         // Freeze its actual object for this launch's later source checks; this
@@ -821,7 +935,87 @@ impl DesktopSetup {
                 resource_view(&plan)
             })
             .transpose();
-        json!({"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
+        let retain = match self.retained_source() {
+            Ok(_) => {
+                json!({"available":true,"accountHome":self.requested.as_ref().and_then(|r|r.account.location.path().ok()).map(|p|p.display().to_string())})
+            }
+            Err(reason) => json!({"available":false,"reason":reason}),
+        };
+        json!({"retainProject":retain,"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
+    }
+    fn retained_source(&self) -> Result<Arc<AdmittedDesktop>, String> {
+        let admission = self.admitted.as_ref().ok_or("Retaining an account requires this process's admitted saved-desktop source; no environment, pending or setup-only adoption")?;
+        self.check_retained(admission)?;
+        Ok(admission.clone())
+    }
+    fn check_retained(&self, admission: &Arc<AdmittedDesktop>) -> Result<(), String> {
+        if !self
+            .admitted
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, admission))
+            || self.lease.is_none()
+            || self.profile_directory.is_none()
+            || self.receiving.is_none()
+            || self.requested.is_none()
+        {
+            return Err("Original admitted desktop source is no longer held".into());
+        }
+        self.recheck()?;
+        let admitted_entries = admission.receiving_entries.as_ref().map_err(Clone::clone)?;
+        if self.receiving.as_ref().unwrap().entries()? != *admitted_entries {
+            return Err("Admitted receiving entries changed or were replaced; retained project save refused".into());
+        }
+        let data = self.data.as_ref().map_err(Clone::clone)?;
+        let (_, current) = read_profile_bytes(&data.join(PROFILE))?;
+        if current != admission.profile.baseline {
+            return Err("Pending desktop request changed or was replaced; launch that request before another retained project change".into());
+        }
+        Ok(())
+    }
+    pub fn preview_project(&mut self, project: Option<PathBuf>) -> Result<Value, String> {
+        let admission = self.retained_source()?;
+        let active = self
+            .requested
+            .as_ref()
+            .ok_or("Admitted desktop request unavailable")?;
+        let (account, shared, _) = self.validate(active)?;
+        self.relationships(&account, &shared, project.as_deref())?;
+        let project_ref = project
+            .as_ref()
+            .map(|p| Reference::observe(p))
+            .transpose()?;
+        let mut request = admission.profile.request.clone();
+        request.project = project_ref.clone();
+        self.validate(&request)?;
+        let plan = OwnedHomePlan::new(
+            self.data.as_ref().map_err(Clone::clone)?.clone(),
+            account.clone(),
+            HomeClass::Account,
+            Some(shared.clone()),
+        )?;
+        let token = crate::util::opaque_id("desktop-project-preview-")?;
+        let result = json!({"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
+        self.preview = Some(Preview {
+            token,
+            kind: PreviewKind::RetainProject { admission, request },
+            account,
+            shared,
+            project,
+            source_refs: active.shared.clone(),
+            project_ref,
+        });
+        Ok(result)
+    }
+    pub fn preview_action(&self, token: &str) -> Result<&'static str, String> {
+        let preview = self
+            .preview
+            .as_ref()
+            .filter(|p| p.token == token)
+            .ok_or("Setup preview changed; review the effects again")?;
+        Ok(match preview.kind {
+            PreviewKind::NewHome => "Prepare home and save for next launch",
+            PreviewKind::RetainProject { .. } => "Save project for next launch",
+        })
     }
     pub fn preview_statement(&self, token: &str) -> Result<String, String> {
         let preview = self
@@ -829,6 +1023,10 @@ impl DesktopSetup {
             .as_ref()
             .filter(|p| p.token == token)
             .ok_or("Setup preview changed; review the effects again")?;
+        if let PreviewKind::RetainProject { admission, .. } = &preview.kind {
+            self.check_retained(admission)?;
+            return Ok(format!("Retain the currently admitted App-owned account directory: {}\nProject on next launch: {}\nKeep its exact shared references and supplier selection.\nCreate no home, link or credential; no re-preparation or relink.\nSave a pending project request only. Current workspace, account/home, records, attachments, recovery, model choices and prepared messages stay unchanged. No automatic quit/restart/login/conversation.", preview.account.display(), preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())));
+        }
         Ok(format!("Create NEW App-owned account directory: {}\nCreate links (no content copy or credential import):\nconfig.toml → {}\nAGENTS.md → {}\nskills → {}\nProject for next launch: {}\nSave a private pending request in {}.\nSupplier: {} ({SUPPLIER}); unqualified owner-use development.\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",preview.account.display(),preview.shared.config_toml.display(),preview.shared.global_agents_md.display(),preview.shared.skills.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display(),self.resources.as_ref().map_err(Clone::clone)?.join("codex/bin/codex").display()))
     }
     /// Paths originate in explicit person input or a native picker. This preview
@@ -860,7 +1058,7 @@ impl DesktopSetup {
             Some(shared.clone()),
         )?;
         let token = crate::util::opaque_id("desktop-preview-")?;
-        let effects = json!({"token":token,"accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
+        let effects = json!({"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
         let source_refs = [
             &shared.config_toml,
             &shared.global_agents_md,
@@ -877,6 +1075,7 @@ impl DesktopSetup {
             .transpose()?;
         self.preview = Some(Preview {
             token,
+            kind: PreviewKind::NewHome,
             account,
             shared,
             project,
@@ -893,6 +1092,27 @@ impl DesktopSetup {
             .ok_or("Preview the directory/link effects first")?;
         if preview.token != token {
             return Err("setup preview changed; review the effects again".into());
+        }
+        if let PreviewKind::RetainProject { admission, request } = &preview.kind {
+            self.check_retained(admission)?;
+            for reference in &preview.source_refs {
+                reference.current(false)?;
+            }
+            if let Some(reference) = &preview.project_ref {
+                reference.current(true)?;
+            }
+            self.validate(request)?;
+            self.check_retained(admission)?;
+            let data = self.data.as_ref().map_err(Clone::clone)?;
+            write_profile(&data.join(PROFILE), request)?;
+            let plan = OwnedHomePlan::new(
+                data.clone(),
+                preview.account.clone(),
+                HomeClass::Account,
+                Some(preview.shared.clone()),
+            )?;
+            self.pending = json!({"state":"saved-for-next-launch","kind":"retain-account-project","accountHome":preview.account.display().to_string(),"project":preview.project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"Pending project request only; retained account directory and links were not prepared or changed; all active Root owners and choices remain unchanged"});
+            return Ok(self.view());
         }
         self.acquire()?;
         self.recheck_storage()?;
@@ -1053,6 +1273,661 @@ mod tests {
         fn drop(&mut self) {
             records_store::use_store_for_test(None);
             let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[test]
+    fn retained_project_receiving_entry_drift_during_confirmation_refuses_without_rebinding() {
+        let previous_store = records_store::current();
+        let mut incorrectly_accepted = Vec::new();
+        for name in ["config.toml", "AGENTS.md", "skills"] {
+            for replacement in [
+                "same-target-link",
+                "different-target-link",
+                "ordinary-file",
+                "missing",
+            ] {
+                let f = Fixture::new();
+                let q = f.root.join("explicit-next-project");
+                std::fs::create_dir(&q).unwrap();
+                let mut setup = f.setup();
+                let saved = f.prepare(&mut setup, true);
+                drop(setup);
+                let h = PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap());
+                let mut active = f.setup();
+                let launch = f.resolve(&mut active);
+                let RootInputs {
+                    launch,
+                    data,
+                    allow_operational,
+                } = active.admit_root(launch, Ok(f.data.clone()));
+                assert!(allow_operational);
+                let desktop = Arc::new(Mutex::new(active));
+                let (state, home) =
+                    crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
+                crate::initialize_startup_consumers(
+                    &state,
+                    &home,
+                    data,
+                    allow_operational,
+                    true,
+                    Some(f.data.join("records")),
+                    None,
+                    f.shared.clone().map(Some),
+                );
+                let original_home = state.homes.lock().unwrap().active();
+                let original_bootstrap = state
+                    .home_bootstrap
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .clone();
+                let original_namespaces = state
+                    .native_namespaces
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .clone();
+                let original_context = state.project_context.view();
+                let original_attachments = state
+                    .attachment_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .snapshot();
+                let original_recovery = home.recovery_startup.lock().unwrap().snapshot();
+                let original_choices = home
+                    .access_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .map(|s| s.snapshot());
+                let original_records = records_store::current().unwrap().root;
+                let original_request = std::fs::read(f.data.join(PROFILE)).unwrap();
+                let preview = desktop.lock().unwrap().preview_project(Some(q)).unwrap();
+                let token = preview["token"].as_str().unwrap().to_owned();
+                let (result, available_after_change) = std::thread::scope(|scope| {
+                    let (ready_send, ready_receive) = std::sync::mpsc::channel();
+                    let (resume_send, resume_receive) = std::sync::mpsc::channel();
+                    let controller = desktop.clone();
+                    let worker = scope.spawn(move || {
+                        crate::desktop_setup_confirmation::prepare(
+                            &controller,
+                            &token,
+                            |_, action| {
+                                assert_eq!(action, "Save project for next launch");
+                                ready_send.send(()).unwrap();
+                                resume_receive
+                                    .recv_timeout(std::time::Duration::from_secs(5))
+                                    .unwrap();
+                                Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                                    action.into(),
+                                ))
+                            },
+                        )
+                    });
+                    ready_receive
+                        .recv_timeout(std::time::Duration::from_secs(5))
+                        .unwrap();
+                    let receiving = h.join(name);
+                    let target = std::fs::read_link(&receiving).unwrap();
+                    // Retain the old inode so same-target replacement cannot be
+                    // mistaken for filesystem inode reuse in this fixture.
+                    std::fs::rename(&receiving, h.join(format!("fixture-original-{name}")))
+                        .unwrap();
+                    match replacement {
+                        "same-target-link" => {
+                            std::os::unix::fs::symlink(target, &receiving).unwrap()
+                        }
+                        "different-target-link" => std::os::unix::fs::symlink(
+                            f.root.join("invented-other-target"),
+                            &receiving,
+                        )
+                        .unwrap(),
+                        "ordinary-file" => {
+                            std::fs::write(&receiving, b"invented receiving conflict; never read")
+                                .unwrap()
+                        }
+                        "missing" => {}
+                        _ => unreachable!(),
+                    }
+                    let available =
+                        desktop.lock().unwrap().view()["retainProject"]["available"].clone();
+                    resume_send.send(()).unwrap();
+                    (worker.join().unwrap(), available)
+                });
+                match result {
+                    Ok(_) => incorrectly_accepted.push(format!("{name}: {replacement}")),
+                    Err(reason) => {
+                        assert!(reason.contains("receiving"), "{reason}");
+                        assert_eq!(available_after_change, false);
+                        assert!(desktop.lock().unwrap().preview_project(None).is_err());
+                        assert_eq!(
+                            std::fs::read(f.data.join(PROFILE)).unwrap(),
+                            original_request
+                        );
+                    }
+                }
+                assert!(Arc::ptr_eq(
+                    &original_home,
+                    &state.homes.lock().unwrap().active()
+                ));
+                assert!(Arc::ptr_eq(
+                    &original_bootstrap,
+                    state.home_bootstrap.lock().unwrap().as_ref().unwrap()
+                ));
+                assert!(Arc::ptr_eq(
+                    &original_namespaces,
+                    state.native_namespaces.lock().unwrap().as_ref().unwrap()
+                ));
+                assert_eq!(state.workspace.as_deref(), Some(f.project.as_path()));
+                assert_eq!(home.host_config.as_ref().unwrap().cwd, f.project);
+                assert_eq!(state.project_context.view(), original_context);
+                assert_eq!(
+                    state
+                        .attachment_selection
+                        .lock()
+                        .unwrap()
+                        .as_ref()
+                        .unwrap()
+                        .snapshot(),
+                    original_attachments
+                );
+                assert_eq!(
+                    home.recovery_startup.lock().unwrap().snapshot(),
+                    original_recovery
+                );
+                assert_eq!(
+                    home.access_selection
+                        .lock()
+                        .unwrap()
+                        .as_ref()
+                        .map(|s| s.snapshot()),
+                    original_choices
+                );
+                assert_eq!(records_store::current().unwrap().root, original_records);
+                assert_eq!(
+                    std::fs::read_dir(f.data.join("account-homes"))
+                        .unwrap()
+                        .count(),
+                    1
+                );
+            }
+        }
+        records_store::configure(previous_store);
+        assert!(
+            incorrectly_accepted.is_empty(),
+            "receiving replacements incorrectly saved: {incorrectly_accepted:?}"
+        );
+    }
+
+    #[test]
+    fn retained_project_stable_receiving_resource_limits_remain_available_and_unchanged() {
+        let f = Fixture::new();
+        std::fs::remove_file(&f.shared[0]).unwrap();
+        let mut setup = f.setup();
+        let saved = f.prepare(&mut setup, true);
+        drop(setup);
+        let h = PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap());
+        // All are initial source limits: dangling expected config link, missing
+        // AGENTS entry, and a divergent dangling skills link. None is repaired.
+        std::fs::remove_file(h.join("AGENTS.md")).unwrap();
+        std::fs::remove_file(h.join("skills")).unwrap();
+        let other = f.root.join("explicitly-unavailable-invented-skills");
+        std::os::unix::fs::symlink(&other, h.join("skills")).unwrap();
+        let before = serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap();
+        let config_inode =
+            ObjectRef::of(&std::fs::symlink_metadata(h.join("config.toml")).unwrap());
+        let skills_inode = ObjectRef::of(&std::fs::symlink_metadata(h.join("skills")).unwrap());
+        let mut active = f.setup();
+        let launch = f.resolve(&mut active);
+        assert!(
+            active
+                .admit_root(launch, Ok(f.data.clone()))
+                .allow_operational
+        );
+        assert_eq!(active.view()["retainProject"]["available"], true);
+        let preview = active.preview_project(None).unwrap();
+        let result = crate::desktop_setup_confirmation::prepare(
+            &Mutex::new(active),
+            preview["token"].as_str().unwrap(),
+            |_, action| {
+                assert_eq!(action, "Save project for next launch");
+                Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                    action.into(),
+                ))
+            },
+        )
+        .unwrap();
+        assert_eq!(result["pending"]["kind"], "retain-account-project");
+        let mut expected = before;
+        expected["project"] = Value::Null;
+        assert_eq!(
+            serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap(),
+            expected
+        );
+        assert_eq!(
+            ObjectRef::of(&std::fs::symlink_metadata(h.join("config.toml")).unwrap()),
+            config_inode
+        );
+        assert_eq!(
+            std::fs::read_link(h.join("config.toml")).unwrap(),
+            f.shared[0]
+        );
+        assert!(!f.shared[0].exists());
+        assert!(std::fs::symlink_metadata(h.join("AGENTS.md")).is_err());
+        assert_eq!(
+            ObjectRef::of(&std::fs::symlink_metadata(h.join("skills")).unwrap()),
+            skills_inode
+        );
+        assert_eq!(std::fs::read_link(h.join("skills")).unwrap(), other);
+        assert!(!other.exists());
+        assert_eq!(
+            std::fs::read_dir(f.data.join("account-homes"))
+                .unwrap()
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn retained_project_preserves_absent_source_reference_and_broken_link_without_repreparing() {
+        let f = Fixture::new();
+        std::fs::remove_file(&f.shared[0]).unwrap();
+        let mut setup = f.setup();
+        let saved = f.prepare(&mut setup, true);
+        drop(setup);
+        let h = PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap());
+        std::fs::write(
+            &f.shared[0],
+            b"invented resource appeared after explicit absent reference",
+        )
+        .unwrap();
+        std::fs::remove_file(h.join("AGENTS.md")).unwrap();
+        std::fs::write(h.join("AGENTS.md"), b"invented divergent receiving file").unwrap();
+        let original = ObjectRef::of(&std::fs::symlink_metadata(h.join("AGENTS.md")).unwrap());
+        let before = serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap();
+        assert!(before["shared"][0]["object"].is_null());
+        let mut active = f.setup();
+        let launch = f.resolve(&mut active);
+        assert!(
+            active
+                .admit_root(launch, Ok(f.data.clone()))
+                .allow_operational
+        );
+        assert!(active.requested.as_ref().unwrap().shared[0]
+            .object
+            .is_some());
+        let preview = active.preview_project(None).unwrap();
+        active
+            .prepare_and_save(preview["token"].as_str().unwrap())
+            .unwrap();
+        let mut expected = before;
+        expected["project"] = Value::Null;
+        assert_eq!(
+            serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap(),
+            expected
+        );
+        assert_eq!(
+            ObjectRef::of(&std::fs::symlink_metadata(h.join("AGENTS.md")).unwrap()),
+            original
+        );
+        assert!(!std::fs::symlink_metadata(h.join("AGENTS.md"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(
+            std::fs::read_dir(f.data.join("account-homes"))
+                .unwrap()
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn retained_project_joined_real_consumers_keep_h_and_change_only_next_project() {
+        let previous_store = records_store::current();
+        for with_project in [true, false] {
+            let f = Fixture::new();
+            let q = f.root.join("explicit-next-project");
+            std::fs::create_dir(&q).unwrap();
+            let mut setup = f.setup();
+            let saved = f.prepare(&mut setup, true);
+            drop(setup);
+            let h = PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap());
+            let before_request =
+                serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap();
+            let links = || {
+                ["config.toml", "AGENTS.md", "skills"].map(|name| {
+                    let path = h.join(name);
+                    let m = std::fs::symlink_metadata(&path).unwrap();
+                    (ObjectRef::of(&m), std::fs::read_link(path).ok())
+                })
+            };
+            let original_links = links();
+            let home_count = || {
+                std::fs::read_dir(f.data.join("account-homes"))
+                    .unwrap()
+                    .count()
+            };
+            let mut active = f.setup();
+            let launch = f.resolve(&mut active);
+            assert!(
+                active.preview_project(Some(q.clone())).is_err(),
+                "resolve alone is not Root admission"
+            );
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = active.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let desktop = Arc::new(Mutex::new(active));
+            let (state, home) = crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            let original_home = state.homes.lock().unwrap().active();
+            let original_bootstrap = state
+                .home_bootstrap
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let original_namespaces = state
+                .native_namespaces
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let context = state.project_context.view();
+            let attachments = state
+                .attachment_selection
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .snapshot();
+            let recovery = home.recovery_startup.lock().unwrap().snapshot();
+            let choices = home
+                .access_selection
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map(|s| s.snapshot());
+            let records_root = records_store::current().unwrap().root;
+            let target = with_project.then(|| q.clone());
+            let preview = desktop
+                .lock()
+                .unwrap()
+                .preview_project(target.clone())
+                .unwrap();
+            assert_eq!(preview["affirmative"], "Save project for next launch");
+            assert!(!desktop
+                .lock()
+                .unwrap()
+                .preview_statement(preview["token"].as_str().unwrap())
+                .unwrap()
+                .contains("Create NEW"));
+            let result = crate::desktop_setup_confirmation::prepare(
+                &desktop,
+                preview["token"].as_str().unwrap(),
+                |_, action| {
+                    assert_eq!(action, "Save project for next launch");
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        action.into(),
+                    ))
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                result["pending"]["accountHome"],
+                saved["pending"]["accountHome"]
+            );
+            assert_eq!(links(), original_links);
+            assert_eq!(home_count(), 1);
+            let mut expected = before_request.clone();
+            expected["project"] =
+                serde_json::to_value(target.as_ref().map(|p| Reference::observe(p).unwrap()))
+                    .unwrap();
+            assert_eq!(
+                serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap(),
+                expected
+            );
+            assert!(Arc::ptr_eq(
+                &original_home,
+                &state.homes.lock().unwrap().active()
+            ));
+            assert!(Arc::ptr_eq(
+                &original_bootstrap,
+                state.home_bootstrap.lock().unwrap().as_ref().unwrap()
+            ));
+            assert!(Arc::ptr_eq(
+                &original_namespaces,
+                state.native_namespaces.lock().unwrap().as_ref().unwrap()
+            ));
+            assert_eq!(state.workspace.as_deref(), Some(f.project.as_path()));
+            assert_eq!(home.host_config.as_ref().unwrap().cwd, f.project);
+            assert_eq!(state.project_context.view(), context);
+            assert_eq!(
+                state
+                    .attachment_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .snapshot(),
+                attachments
+            );
+            assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+            assert_eq!(
+                home.access_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .map(|s| s.snapshot()),
+                choices
+            );
+            assert_eq!(records_store::current().unwrap().root, records_root);
+            assert!(desktop.lock().unwrap().recheck_active().is_ok());
+            assert!(desktop
+                .lock()
+                .unwrap()
+                .preview_project(None)
+                .unwrap_err()
+                .contains("Pending desktop request"));
+            drop((
+                state,
+                home,
+                desktop,
+                original_home,
+                original_bootstrap,
+                original_namespaces,
+            ));
+
+            let mut fresh = f.setup();
+            let launch = f.resolve(&mut fresh);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = fresh.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let cfg = launch.host_config.as_ref().unwrap();
+            assert_eq!(cfg.codex_home, h);
+            assert_eq!(cfg.cwd, target.clone().unwrap_or(f.data.clone()));
+            assert_eq!(cfg.records_project, with_project);
+            let (next, next_home) =
+                crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
+            crate::initialize_startup_consumers(
+                &next,
+                &next_home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            assert_eq!(next.workspace, target);
+            assert_eq!(next_home.host_config.as_ref().unwrap().codex_home, h);
+            next.home_bootstrap
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .validate_binding(HomeClass::Account, next_home.host_config.as_ref().unwrap())
+                .unwrap();
+            assert!(next.native_namespaces.lock().unwrap().is_ok());
+            assert_eq!(
+                next.app_user_data_root.lock().unwrap().as_ref().unwrap(),
+                &f.data
+            );
+            assert_eq!(
+                next_home
+                    .attachment_custody
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .root(),
+                f.data
+            );
+            assert_eq!(
+                next.attachment_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .snapshot()["launchAppProjectObservation"]["nativeRoot"],
+                target
+                    .as_ref()
+                    .map(|p| native_path_identity(p))
+                    .unwrap_or(Value::Null)
+            );
+            assert_eq!(next_home.host.snapshot()["state"], "absent");
+            assert!(next_home.host.snapshot()["generation"].is_null());
+            assert_eq!(links(), original_links);
+            assert_eq!(home_count(), 1);
+            assert!(!h.join("auth.json").exists());
+        }
+        records_store::configure(previous_store);
+    }
+
+    #[test]
+    fn retained_project_requires_admission_and_refuses_stale_or_superseded_sources() {
+        for case in [
+            "setup-only",
+            "pending-only",
+            "refused",
+            "environment",
+            "home",
+            "shared",
+            "old-project",
+            "next-project",
+            "custody",
+            "disk-replaced",
+            "new-pending",
+            "overlap",
+        ] {
+            let f = Fixture::new();
+            let q = f.root.join("Q");
+            std::fs::create_dir(&q).unwrap();
+            let mut setup = f.setup();
+            if case == "setup-only" {
+                assert!(setup.preview_project(Some(q)).is_err());
+                continue;
+            }
+            let saved = f.prepare(&mut setup, true);
+            if case == "pending-only" {
+                setup.launch_state = json!({"state":"saved-request"});
+                assert!(setup.preview_project(Some(q)).is_err());
+                continue;
+            }
+            if case == "refused" {
+                let mut refused = f.setup();
+                let launch =
+                    refused.resolve(None, true, || panic!("contending owner must not bind"));
+                assert!(
+                    !refused
+                        .admit_root(launch, Ok(f.data.clone()))
+                        .allow_operational
+                );
+                assert!(refused.preview_project(Some(q)).is_err());
+                continue;
+            }
+            drop(setup);
+            let mut active = f.setup();
+            let env = if case == "environment" {
+                crate::explicit_environment_launch(
+                    |key| (key == "CHIRALITY_CODEX_BIN").then(|| "/invented/bin/codex".into()),
+                    &Ok(f.data.clone()),
+                    &Ok(f.resources.clone()),
+                    true,
+                    || panic!("incomplete environment"),
+                )
+            } else {
+                None
+            };
+            let launch = active.resolve(env, true, || f.probe());
+            active.admit_root(launch, Ok(f.data.clone()));
+            if case == "environment" {
+                assert!(active.preview_project(Some(q)).is_err());
+                continue;
+            }
+            let h = PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap());
+            if case == "overlap" {
+                assert!(active.preview_project(Some(h)).is_err());
+                continue;
+            }
+            let preview = active.preview_project(Some(q.clone())).unwrap();
+            let token = preview["token"].as_str().unwrap();
+            match case {
+                "home" => {
+                    std::fs::rename(&h, h.with_extension("old")).unwrap();
+                    std::fs::create_dir(&h).unwrap();
+                }
+                "shared" => {
+                    std::fs::rename(&f.shared[0], f.shared[0].with_extension("old")).unwrap();
+                    std::fs::write(&f.shared[0], b"replacement fixture").unwrap();
+                }
+                "old-project" => {
+                    std::fs::rename(&f.project, f.project.with_extension("old")).unwrap();
+                    std::fs::create_dir(&f.project).unwrap();
+                }
+                "next-project" => {
+                    std::fs::rename(&q, q.with_extension("old")).unwrap();
+                    std::fs::create_dir(&q).unwrap();
+                }
+                "custody" => {
+                    std::fs::rename(f.data.join("desktop-startup"), f.data.join("old-profile"))
+                        .unwrap();
+                    protected_directory(&f.data.join("desktop-startup")).unwrap();
+                }
+                "disk-replaced" => {
+                    let request = read_profile(&f.data.join(PROFILE)).unwrap();
+                    write_profile(&f.data.join(PROFILE), &request).unwrap();
+                }
+                "new-pending" => {
+                    f.prepare(&mut active, false);
+                }
+                _ => unreachable!(),
+            }
+            let before = std::fs::read(f.data.join(PROFILE)).ok();
+            assert!(active.prepare_and_save(token).is_err(), "{case}");
+            assert_eq!(std::fs::read(f.data.join(PROFILE)).ok(), before, "{case}");
         }
     }
 
@@ -1858,9 +2733,45 @@ mod tests {
             true,
             || panic!("environment fixture does not execute a supplier"),
         );
+        let keep = Fixture::new();
+        let mut setup = keep.setup();
+        keep.prepare(&mut setup, true);
+        drop(setup);
+        let mut active = keep.setup();
+        let launch = keep.resolve(&mut active);
+        assert!(
+            active
+                .admit_root(launch, Ok(keep.data.clone()))
+                .allow_operational
+        );
+        let retain_initial = active.view();
+        let q = keep.root.join("explicit-project-Q");
+        std::fs::create_dir(&q).unwrap();
+        let retain_preview = active.preview_project(Some(q.clone())).unwrap();
+        let retain_saved = active
+            .prepare_and_save(retain_preview["token"].as_str().unwrap())
+            .unwrap();
+        let conflict = active.view();
+        let superseded = active
+            .prepare_and_save(retain_preview["token"].as_str().unwrap())
+            .unwrap_err();
+        drop(active);
+        let mut fresh_q = keep.setup();
+        let launch = keep.resolve(&mut fresh_q);
+        assert!(
+            fresh_q
+                .admit_root(launch, Ok(keep.data.clone()))
+                .allow_operational
+        );
+        let q_view = fresh_q.view();
+        let none_preview = fresh_q.preview_project(None).unwrap();
+        let none_saved = fresh_q
+            .prepare_and_save(none_preview["token"].as_str().unwrap())
+            .unwrap();
+        let retained = json!({"initial":retain_initial,"preview":retain_preview,"saved":retain_saved,"conflict":conflict,"supersededError":superseded,"freshQ":q_view,"nonePreview":none_preview,"noneSaved":none_saved,"project":native_path_identity(&q),"currentProject":native_path_identity(&keep.project)});
         println!(
             "DESKTOP_SETUP_PACKETS={}",
-            json!({"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
+            json!({"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
         );
     }
 
