@@ -157,7 +157,7 @@ the App). An agent may ask the person in conversation; nothing more.
 | ID | Exchange | Supplier → receiver | Condition of use | When the exchange fails |
 |---|---|---|---|---|
 | I-1 | Codex account methods: `account/read`, `account/login/start`, `account/login/cancel`, `account/logout`, `configRequirements/read`; notifications `account/login/completed`, `account/updated`, `modelProvider/authRecoveryStarted`/`Completed` (all stable, `observed-in-generated-types`) | Codex → DEL-01-05, carried by DEL-01-01 S-4 | `ready(g)` of the home's child (HOSTING §4.1) | A request with no response is *unknown* (HOSTING H10); the entry goes to `unknown` and is re-read after the next `ready`; nothing is retried automatically that carries a credential (CR-6) |
-| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. Continuing the held source binding after native target replacement remains unresolved (F-A3; U-R3) | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
+| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. The private reviewed-current-object continuation core has no product-writer or person/native confirmation wiring (F-A3; U-R3) | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
 | I-3 | Conversation start: explicit `modelProvider` and `model` on `thread/start`; per-turn `model` on `turn/start` | DEL-01-05 → DEL-01-01 S-4 | A selection exists (§5.4) | Error response → `start-failed`, no other entry tried (NS-1) |
 | I-4 | Destination class of the chosen entry | DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5 | Per conversation | The class is never inferred from an address; with no selection there is no class (HOSTING §8.3; LOOP N-OPEN-1 closure, applied here by analogy) |
 | I-5 | Access state snapshot and the conversation's selection state (schemas `access.state`, `access.conversation-selection`) | DEL-01-05 → DEL-01-04 (conversation start display, K-3) | On change | A display without a snapshot shows "access state unknown", never a default |
@@ -767,6 +767,8 @@ H-key's threads stay readable from H-key; the App does not delete the home
    explicit-target write while the target inode was replaced (F-A3).
    Resolve the held-source continuation condition in U-R3 before implementing
    this product writer; a resolved path is a point-in-time observation.
+   The private F-A3 core exercises separate explicit candidate review with
+   injected decisions; it supplies no Q-8 UI, write consumer or person's act.
    `okOverridden` →
    the overriding layer and effective value are shown. Version conflict →
    nothing retried (I-2).
@@ -1194,11 +1196,43 @@ so nothing was rerun). A
   This is no general byte-preservation, native-lock or postwrite-admission claim.
   The current desktop/shared `Reference::current` in
   `app/src-tauri/src/desktop_startup.rs` rejects a changed device/inode even when
-  the path and receiving link survive. That is a next interface condition for
-  a future product writer, not an existing App writer defect: U-R3 stays open
-  until the receiving continuation is established. This proof does not rebind
-  Root/profile/source identities, relink, weaken those checks or implement a
-  product transaction. OBS-2's 0.158.0 linked reads and absence of writes remain
+  the path and receiving link survive. The private
+  `config_resource_continuation.rs` core separately implements explicit
+  reviewed-current-object readmission from an actually held admitted
+  saved-desktop account. It captures the old descriptor/profile/receiving
+  identities before intended replacement, then requires a genuine scoped
+  private `config/read`, the same canonical user-layer target/native version,
+  and a held new descriptor. Native facts do not authorize acceptance: a
+  separate injected explicit review must accept the exact current candidate.
+  Cancellation, nonexact, stale or unknown decisions cannot publish.
+
+  Only the config shared-reference identity and corresponding protected
+  request/profile baseline advance; all other fields, receiving links and
+  active H/P, home/bootstrap/namespace/records/attachment/recovery/access/model/
+  composer owners remain unchanged. Original source guards continue to refuse
+  unaccepted objects. Source, target, receiving-entry or sibling drift, lost
+  custody and pending-plan supersession refuse. Stable initial unrelated
+  missing/broken resources are not newly forbidden.
+
+  This is expected-state comparison under participating-App custody, not
+  causal native-writer provenance, arbitrary-writer exclusion, filesystem CAS
+  or an atomic target/profile commit. An indistinguishable checked external
+  object may be explicitly accepted prospectively; a different object after
+  candidate capture (even identical bytes on a new inode) refuses. Publication
+  checks the exact published bytes/object and source/candidate again before
+  memory continuation. Partial/error/uncertain publication stays unknown:
+  no rollback, token replay or memory promotion; a fresh later admission is
+  separate and cannot retroactively establish transaction success.
+
+  There is no public IPC/UI/editor/config-write consumer or native person
+  confirmation for this core. Its injected fixture decisions are not person
+  witnesses. U-R3 remains open for that product integration and scrutiny;
+  this source work does not close Q-8/I-2, supplier/App qualification or release.
+  Raw configuration and native versions retire with the private request/review
+  lifetime on completion/error/supersession, without persistence, public
+  fingerprints or an OS-erasure guarantee. The stock contract proof itself
+  does not rebind Root/profile/source identities, relink, weaken checks or
+  perform a product transaction. OBS-2's 0.158.0 linked reads and absence of writes remain
   historical facts. The fixture is automated invented configuration under
   deny-all-network isolation, not an App/person act, account/server result,
   start-up traffic qualification, acceptance or release.
@@ -1479,7 +1513,7 @@ Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
 | U-A14 | Whether Codex follows a linked global `AGENTS.md` and a linked `skills/` (only `config.toml` was observed through a link) | A later observation (credential-free) | Before role supply implementation (with DEL-02-04) | Linked as R18-6 says; `instructionSources` and `skills/list` show the outcome at run time |
 | U-A15 | Whether `experimentalFeature/list` lists `plugins` | A later observation | Before K-12 implementation | `config/read` and the observed default are used |
 | U-A16 | *Closed:* the four triggers are recorded in ASSESSMENT_SIWC.md and copied into §20 | — | — | — |
-| U-R3 (record; OPEN) | Continuing a held shared-source binding after native target replacement | App receiving implementation, with independent scrutiny | Before configuration-write implementation | The maintained 0.160.0 fixture observed explicit-target writes preserving the receiving link but replacing the target inode (F-A3). Resolve continuation against current source-identity checks; no silent rebind, relink or implicit-config fallback |
+| U-R3 (record; OPEN) | Continuing a held shared-source binding after native target replacement | App receiving implementation, with independent scrutiny | Before configuration-write implementation | The private F-A3 core implements injected explicit reviewed-current-object readmission under held saved-desktop custody; real person/native confirmation and product-writer integration remain unimplemented. The 0.160.0 fixture's preserved link/replaced target observation supplies no provenance or atomicity guarantee; no silent rebind, relink or implicit-config fallback |
 
 ## Verification cases
 

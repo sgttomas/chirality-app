@@ -40,10 +40,15 @@ const PROVIDER_FIELDS: &[&str] = &[
     "supports_standalone_web_search",
 ];
 const OBSERVATION_LIMIT: &str = "Configured provider observation unavailable; private values and diagnostics withheld. Manual explicit choices remain independent and Start requires a fresh private reading.";
-struct PrivateConfigReading {
-    source: SourceRequest,
-    cwd: String,
-    config: Value,
+pub(super) struct PrivateConfigReading {
+    pub(super) source: SourceRequest,
+    pub(super) cwd: String,
+    pub(super) config: Value,
+}
+pub(super) enum PrivateConfigPurpose {
+    Admission,
+    Observation,
+    ConfigContinuation,
 }
 
 // Publication is deliberately stricter than private operation eligibility.
@@ -594,7 +599,7 @@ impl Host {
         if cwd.is_empty() || provider.trim().is_empty() || model.trim().is_empty() {
             return Err(unavailable());
         }
-        let reading = self.private_provider_config_read(generation, cwd, wait, false)?;
+        let reading = self.private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Admission)?;
         classify(&reading.config, entry, provider)?;
         let proof = ProviderAdmission {
             source: reading.source,
@@ -614,12 +619,12 @@ impl Host {
         )?;
         Ok(proof)
     }
-    fn private_provider_config_read(
+    pub(super) fn private_provider_config_read(
         &self,
         generation: &Value,
         cwd: &str,
         wait: Duration,
-        person: bool,
+        purpose: PrivateConfigPurpose,
     ) -> Result<PrivateConfigReading, String> {
         crate::recovery::generation_ref(generation).map_err(|_| unavailable())?;
         if cwd.is_empty() {
@@ -629,10 +634,10 @@ impl Host {
             .request_begin_with_access_offer(
                 "config/read",
                 json!({"cwd":cwd,"includeLayers":true}),
-                if person {
-                    json!({"kind":"person-directed","name":"configured-provider-observation"})
-                } else {
-                    json!({"kind":"app-rule","name":"access-provider-admission"})
+                match purpose {
+                    PrivateConfigPurpose::Observation => json!({"kind":"person-directed","name":"configured-provider-observation"}),
+                    PrivateConfigPurpose::Admission => json!({"kind":"app-rule","name":"access-provider-admission"}),
+                    PrivateConfigPurpose::ConfigContinuation => json!({"kind":"app-rule","name":"private-config-current-object-observation"}),
                 },
                 false,
                 Some(generation),
@@ -685,7 +690,7 @@ impl Host {
         wait: Duration,
     ) -> Result<Value, String> {
         let read = self
-            .private_provider_config_read(generation, cwd, wait, true)
+            .private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Observation)
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         self.check_provider_read(&self.inner.0.lock().unwrap(), &read.source, cwd)
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
@@ -710,7 +715,7 @@ impl Host {
             .map(|(_, revision)| json!(revision))
             .unwrap_or(Value::Null)
     }
-    fn check_provider_read(
+    pub(super) fn check_provider_read(
         &self,
         i: &Inner,
         source: &SourceRequest,
@@ -906,6 +911,6 @@ impl Host {
 }
 
 #[cfg(all(test, unix))]
-mod tests {
+pub(super) mod tests {
     include!("access_provider_tests.rs");
 }

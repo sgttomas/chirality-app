@@ -269,6 +269,8 @@ struct Inner {
 #[path = "access_provider.rs"]
 mod access_provider;
 pub(crate) use access_provider::ProviderAdmission;
+#[path = "config_resource_continuation.rs"]
+pub(crate) mod config_resource_continuation;
 
 // Non-deserializable capabilities issued only by the actual Host sender.
 #[derive(Clone)]

@@ -491,6 +491,41 @@ adopted nor silently overwritten by retaining the active home. A fresh process
 consumes the retained H with Q or no project through the same frozen consumers;
 the running H/P and its current choices remain unchanged until then.
 
+The private `config_resource_continuation.rs` core can readmit the checked
+current object in the existing shared config slot. Its Root adapter requires
+this process's actually admitted saved-desktop account, held App-data/profile/
+home custody, the original protected profile and receiving entries, and an old
+target descriptor captured before intended replacement. A genuine correlated,
+schema-validated private `config/read` must then identify the same full home/
+generation, effective cwd and canonical user-layer target with its native
+version. A separate injected review must explicitly accept that exact candidate;
+an ACK, reread, cancellation, unknown result or stale decision cannot do so.
+There is no public command, UI, editor or product config writer for this core.
+Injected fixture acceptance is not a person's act or native-consumption proof.
+
+Only the config reference and corresponding protected profile baseline advance.
+The request format, other references, receiving links, H/P and all active
+HomeSession/bootstrap/namespace/records/attachment/recovery/access/composer
+owners and choices stay unchanged. Prior previews/candidates are invalidated.
+The original `Reference::current` guards every unaccepted target. Pending-plan
+supersession, receiving/sibling drift, lost custody, changed target state or a
+superseded private read refuses continuation. Stable initial missing/broken
+unrelated resources retain their existing limits.
+
+This is explicit current-object readmission, not native-writer provenance.
+An externally supplied object indistinguishable from the checked candidate may
+be explicitly accepted with that prospective standing; replacement after
+candidate capture, including identical bytes on another inode, refuses.
+Comparison is bounded under participating-App custody: directory flocks do not
+exclude arbitrary writers, and the profile's rename is neither filesystem CAS
+nor an atomic target/profile commit. Publication validates first, inspects the
+exact published bytes/object, and rechecks candidate/source before in-memory
+continuation. An uncertain publication blocks continuation without rollback,
+token replay or memory promotion; fresh later admission is a separate fact.
+Native config/version material remains private and transient, with no secret
+fingerprint persisted and no OS-erasure claim. Real person/native confirmation
+and product-writer wiring remain future work under ACCESS I-2/Q-8/U-R3.
+
 The setup command receives its actual invoking `tauri::Window` from IPC.
 `desktop_setup_confirmation.rs` caches both successful window and display
 handles on the main thread before supplying the dialog parent; it has no

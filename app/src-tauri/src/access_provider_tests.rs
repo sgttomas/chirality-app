@@ -5,13 +5,143 @@ use std::{
     sync::Arc,
 };
 const CANARY: &str = "INVENTED_PRIVATE_PROVIDER_CANARY_481";
-struct Peer {
-    host: Arc<Host>,
+pub(crate) struct Peer {
+    pub(crate) host: Arc<Host>,
     child: Child,
     wire: BufReader<ChildStdout>,
-    g: Value,
+    pub(crate) g: Value,
 }
 impl Peer {
+    pub(crate) fn continuation_frame(&mut self) -> Value {
+        use std::os::fd::AsRawFd;
+        let descriptor = self.wire.get_ref().as_raw_fd();
+        let flags = unsafe { libc::fcntl(descriptor, libc::F_GETFL) };
+        assert!(flags >= 0);
+        assert_eq!(
+            unsafe { libc::fcntl(descriptor, libc::F_SETFL, flags | libc::O_NONBLOCK) },
+            0
+        );
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        let mut line = String::new();
+        loop {
+            match self.wire.read_line(&mut line) {
+                Ok(0) => panic!("invented Peer closed before expected config/read"),
+                Ok(_) if line.ends_with('\n') => return serde_json::from_str(&line).unwrap(),
+                Ok(_) => {}
+                Err(e)
+                    if matches!(
+                        e.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+                    ) => {}
+                Err(_) => panic!("invented Peer frame unavailable"),
+            }
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            assert!(
+                !remaining.is_zero(),
+                "invented config/read frame unavailable within fixture bound"
+            );
+            let mut fd = libc::pollfd {
+                fd: descriptor,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            assert!(
+                unsafe { libc::poll(&mut fd, 1, remaining.as_millis().max(1) as i32) } > 0,
+                "invented Peer frame timed out"
+            );
+        }
+    }
+    pub(crate) fn continuation_private_taps(&self) {
+        self.safe();
+        let packet = json!({"snapshot":self.host.snapshot(),"journal":self.host.journal(),"replies":self.host.kept_replies().1,"recovery":self.host.recorded_recovery_entries()});
+        for marker in [
+            CANARY,
+            "INVENTED_NATIVE_VERSION_PRIVATE_52",
+            "native-invented-version",
+        ] {
+            assert!(!packet.to_string().contains(marker));
+        }
+        let entries = self
+            .host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .map(|entry| {
+                (
+                    entry.request.clone(),
+                    entry.private_config,
+                    entry.response.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        for (request, private, response) in entries {
+            assert_eq!(
+                request.frame["method"], "config/read",
+                "continuation dispatches no model/thread/start"
+            );
+            assert!(private);
+            let evidence = request.evidence();
+            for marker in [
+                CANARY,
+                "INVENTED_NATIVE_VERSION_PRIVATE_52",
+                "native-invented-version",
+            ] {
+                assert!(!evidence.to_string().contains(marker));
+            }
+            assert!(response
+                .as_ref()
+                .is_none_or(|r| r.get("result").is_none() || r["privateConfigWithheld"] == true));
+        }
+    }
+    pub(crate) fn supersede_config_generation(&self) {
+        self.host.inner.0.lock().unwrap().generation["spawnCounter"] = json!(2);
+    }
+    pub(crate) fn unanswered_config_read(&self) -> Arc<Mutex<Option<SourceRequest>>> {
+        let receipt = Arc::new(Mutex::new(None));
+        let save = receipt.clone();
+        *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |_, source| {
+            *save.lock().unwrap() = Some(source.clone());
+        }));
+        receipt
+    }
+    pub(crate) fn config_read_error(&self) {
+        *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(|host, source| {
+            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":{"private":CANARY}}})).unwrap(),source.generation())
+        }));
+    }
+    pub(crate) fn for_config_continuation(host: Arc<Host>, home: &std::path::Path) -> Self {
+        let home = format!(
+            "app-home:{}",
+            sha256_hex(home.as_os_str().as_encoded_bytes())
+        );
+        let session = host.inner.0.lock().unwrap().app_session.clone();
+        let g = json!({"appSession":if session.is_empty(){"synthetic-continuation"}else{&session},"home":home,"spawnCounter":1});
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.generation = g.clone();
+            i.state = "ready".into();
+            i.home = home;
+            i.supplier_standing = Some("invented Peer only; no native supplier".into());
+        }
+        let mut child = Command::new("/bin/cat")
+            .env_clear()
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let wire = BufReader::new(child.stdout.take().unwrap());
+        Self {
+            host,
+            child,
+            wire,
+            g,
+        }
+    }
     fn new(home: &str) -> Self {
         Self::with_ledger(home, None)
     }
@@ -44,12 +174,12 @@ impl Peer {
             g,
         }
     }
-    fn frame(&mut self) -> Value {
+    pub(crate) fn frame(&mut self) -> Value {
         let mut s = String::new();
         self.wire.read_line(&mut s).unwrap();
         serde_json::from_str(&s).unwrap()
     }
-    fn answer(&self, result: Value) {
+    pub(crate) fn answer(&self, result: Value) {
         *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
             host.on_line(
                 &serde_json::to_vec(&json!({"id":source.request_id(),"result":result})).unwrap(),
@@ -72,7 +202,7 @@ impl Peer {
             Duration::from_millis(30),
         )
     }
-    fn safe(&self) {
+    pub(crate) fn safe(&self) {
         assert!(!self.host.snapshot().to_string().contains(CANARY));
         assert!(!self.host.kept_replies().1.contains(CANARY));
         assert!(!self

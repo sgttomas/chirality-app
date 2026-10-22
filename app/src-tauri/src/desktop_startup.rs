@@ -69,7 +69,7 @@ impl ObjectRef {
         }
     }
 }
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Reference {
     location: NativePath,
@@ -129,7 +129,7 @@ impl Reference {
         Ok(path)
     }
 }
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct RequestedInputs {
     version: u8,
@@ -409,6 +409,91 @@ struct AdmittedDesktop {
     // This native snapshot is never persisted as an admission/profile claim.
     receiving_entries: Result<[ReceivingEntry; 3], String>,
 }
+
+// These capabilities never have a renderer/profile constructor. The old file
+// descriptor is retained across replacement; a pathname alone is insufficient.
+pub(crate) struct ConfigSlotPreflight {
+    admission: Arc<AdmittedDesktop>,
+    epoch: String,
+    old: ConfigObject,
+    siblings: [(Reference, ReceivingEntry); 2],
+}
+pub(crate) struct ConfigObject {
+    file: File,
+    reference: Reference,
+    state: ConfigObjectState,
+}
+#[derive(PartialEq, Eq)]
+struct ConfigObjectState {
+    object: ObjectRef,
+    size: u64,
+    modified: (i64, i64),
+    changed: (i64, i64),
+    mode: u32,
+}
+impl ConfigObjectState {
+    fn of(meta: &std::fs::Metadata) -> Result<Self, String> {
+        if !meta.is_file() || meta.nlink() != 1 || meta.uid() != unsafe { libc::geteuid() } {
+            return Err(
+                "Config continuation requires an owned, singly linked regular target".into(),
+            );
+        }
+        Ok(Self {
+            object: ObjectRef::of(meta),
+            size: meta.len(),
+            modified: (meta.mtime(), meta.mtime_nsec()),
+            changed: (meta.ctime(), meta.ctime_nsec()),
+            mode: meta.mode(),
+        })
+    }
+}
+impl ConfigObject {
+    fn open(reference: Reference) -> Result<Self, String> {
+        let path = reference.location.path()?;
+        if path != reference.resolved.path()? {
+            return Err("Config continuation requires the exact canonical target reference".into());
+        }
+        storage::check_path(&path)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(&path)
+            .map_err(|_| "Config target descriptor unavailable")?;
+        let state = ConfigObjectState::of(
+            &file
+                .metadata()
+                .map_err(|_| "Config target descriptor unavailable")?,
+        )?;
+        let object = Self {
+            file,
+            reference,
+            state,
+        };
+        object.check()?;
+        Ok(object)
+    }
+    pub(crate) fn path(&self) -> Result<PathBuf, String> {
+        self.reference.resolved.path()
+    }
+    pub(crate) fn check(&self) -> Result<(), String> {
+        self.reference.current(false)?;
+        let path = self.path()?;
+        let now =
+            std::fs::symlink_metadata(&path).map_err(|_| "Config current object unavailable")?;
+        if ConfigObjectState::of(&now)? != self.state
+            || ConfigObjectState::of(
+                &self
+                    .file
+                    .metadata()
+                    .map_err(|_| "Config held object unavailable")?,
+            )? != self.state
+        {
+            return Err("Config checked current object changed".into());
+        }
+        Ok(())
+    }
+}
+
 fn read_profile_bytes(path: &Path) -> Result<(Vec<u8>, ProfileBaseline), String> {
     storage::check_path(path)?;
     let file = OpenOptions::new()
@@ -569,6 +654,10 @@ pub(crate) struct DesktopSetup {
     preview: Option<Preview>,
     pub(crate) launch_state: Value,
     pending: Value,
+    config_epoch: Option<String>,
+    config_publication_unknown: bool,
+    #[cfg(test)]
+    after_config_publication: Option<Box<dyn FnOnce() + Send>>,
 }
 impl DesktopSetup {
     pub fn new(data: Result<PathBuf, String>, resources: Result<PathBuf, String>) -> Self {
@@ -585,6 +674,10 @@ impl DesktopSetup {
             preview: None,
             launch_state: json!({"state":"setup-required","reason":"No explicit desktop request saved"}),
             pending: Value::Null,
+            config_epoch: None,
+            config_publication_unknown: false,
+            #[cfg(test)]
+            after_config_publication: None,
         }
     }
     pub fn admit_root(
@@ -903,6 +996,7 @@ impl DesktopSetup {
         Ok(())
     }
     pub fn recheck(&self) -> Result<(), String> {
+        if self.config_publication_unknown { return Err("Config request publication outcome unknown; fresh admission required".into()); }
         self.recheck_storage()?;
         if let Some(source) = &self.receiving {
             source.recheck()?;
@@ -972,7 +1066,225 @@ impl DesktopSetup {
         }
         Ok(())
     }
+    pub(crate) fn begin_config_continuation(
+        &mut self,
+        config: &HostConfig,
+    ) -> Result<ConfigSlotPreflight, String> {
+        if self.config_publication_unknown {
+            return Err(
+                "Previous config publication outcome unknown; fresh launch required".into(),
+            );
+        }
+        let admission = self.retained_source()?;
+        let active = self
+            .requested
+            .as_ref()
+            .ok_or("Admitted desktop source absent")?;
+        let expected_cwd = active
+            .project
+            .as_ref()
+            .map(|p| p.location.path())
+            .transpose()?
+            .unwrap_or(self.data.as_ref().map_err(Clone::clone)?.clone());
+        if config.codex_home != active.account.location.path()? || config.cwd != expected_cwd {
+            return Err("Actual account/cwd differs from admitted desktop source".into());
+        }
+        let old = ConfigObject::open(active.shared[0].clone())?;
+        // This private seam is limited to the existing linked config slot.
+        let entries = admission.receiving_entries.as_ref().map_err(Clone::clone)?;
+        if !matches!(&entries[0], ReceivingEntry::Present { file_type, link:Some(_), .. } if file_type.is_symlink())
+        {
+            return Err("Admitted linked config slot unavailable".into());
+        }
+        let epoch = crate::util::opaque_id("config-slot-epoch-")?;
+        self.config_epoch = Some(epoch.clone());
+        self.preview = None;
+        let siblings = [1, 2]
+            .map(|index| {
+                let path = active.shared[index].location.path()?;
+                Ok((Reference::observe(&path)?, ReceivingEntry::observe(&path)?))
+            })
+            .into_iter()
+            .collect::<Result<Vec<_>, String>>()?
+            .try_into()
+            .unwrap();
+        Ok(ConfigSlotPreflight {
+            admission,
+            epoch,
+            old,
+            siblings,
+        })
+    }
+    fn check_config_original(
+        &self,
+        preflight: &ConfigSlotPreflight,
+        candidate: &ConfigObject,
+    ) -> Result<RequestedInputs, String> {
+        if self.config_publication_unknown
+            || self.lease.is_none()
+            || self.profile_directory.is_none()
+            || self.config_epoch.as_ref() != Some(&preflight.epoch)
+            || !self
+                .admitted
+                .as_ref()
+                .is_some_and(|a| Arc::ptr_eq(a, &preflight.admission))
+        {
+            return Err("Config continuation superseded or unavailable".into());
+        }
+        self.recheck_storage()?;
+        let receiving = self.receiving.as_ref().ok_or("Receiving custody absent")?;
+        if receiving.entries()?
+            != *preflight
+                .admission
+                .receiving_entries
+                .as_ref()
+                .map_err(Clone::clone)?
+        {
+            return Err("Original receiving entries changed".into());
+        }
+        // The unlinked old descriptor still pins its inode. Its link count and
+        // ctime may change as a normal consequence of atomic target replacement.
+        if ObjectRef::of(
+            &preflight
+                .old
+                .file
+                .metadata()
+                .map_err(|_| "Old descriptor unavailable")?,
+        ) != preflight.old.state.object
+        {
+            return Err("Old config descriptor differs".into());
+        }
+        if candidate.reference.location != preflight.old.reference.location
+            || candidate.reference.resolved != preflight.old.reference.resolved
+        {
+            return Err("Candidate target path differs".into());
+        }
+        let data = self.data.as_ref().map_err(Clone::clone)?;
+        if read_profile_bytes(&data.join(PROFILE))?.1 != preflight.admission.profile.baseline {
+            return Err("Original/pending profile superseded".into());
+        }
+        candidate.check()?;
+        let mut active = self
+            .requested
+            .as_ref()
+            .ok_or("Active source absent")?
+            .clone();
+        for (index, (reference, entry)) in preflight.siblings.iter().enumerate() {
+            let path = active.shared[index + 1].location.path()?;
+            if Reference::observe(&path)? != *reference || ReceivingEntry::observe(&path)? != *entry
+            {
+                return Err("Sibling shared resource changed".into());
+            }
+        }
+        active.shared[0] = candidate.reference.clone();
+        self.validate(&active)?; // Every sibling, namespace and relationship stays guarded.
+        let mut request = preflight.admission.profile.request.clone();
+        request.shared[0] = candidate.reference.clone();
+        self.validate(&request)?;
+        Ok(request)
+    }
+    pub(crate) fn observe_config_candidate(
+        &self,
+        preflight: &ConfigSlotPreflight,
+    ) -> Result<ConfigObject, String> {
+        let reference = Reference::observe(&preflight.old.path()?)?;
+        let candidate = ConfigObject::open(reference)?;
+        self.check_config_original(preflight, &candidate)?;
+        Ok(candidate)
+    }
+    pub(crate) fn check_config_candidate(
+        &self,
+        preflight: &ConfigSlotPreflight,
+        candidate: &ConfigObject,
+    ) -> Result<(), String> {
+        self.check_config_original(preflight, candidate).map(|_| ())
+    }
+    pub(crate) fn publish_config_continuation(
+        &mut self,
+        preflight: ConfigSlotPreflight,
+        candidate: ConfigObject,
+        source_current: impl Fn() -> Result<(), String>,
+    ) -> Result<(), String> {
+        let request = self.check_config_original(&preflight, &candidate)?;
+        let expected =
+            serde_json::to_vec_pretty(&request).map_err(|_| "Config request encoding failed")?;
+        source_current()?;
+        self.check_config_original(&preflight, &candidate)?;
+        let path = self.data.as_ref().map_err(Clone::clone)?.join(PROFILE);
+        // From this point a failure is an explicit uncertain publication. No
+        // rollback or memory promotion, even if later bytes appear favourable.
+        self.config_publication_unknown = true;
+        self.preview = None;
+        let published = (|| {
+            write_profile(&path, &request)?;
+            #[cfg(test)]
+            if let Some(hook) = self.after_config_publication.take() {
+                hook();
+            }
+            let (bytes, baseline) = read_profile_bytes(&path)?;
+            if bytes != expected {
+                return Err("Published config request bytes differ".into());
+            }
+            self.recheck_storage()?;
+            if self.lease.is_none()
+                || self.profile_directory.is_none()
+                || self.config_epoch.as_ref() != Some(&preflight.epoch)
+                || !self
+                    .admitted
+                    .as_ref()
+                    .is_some_and(|a| Arc::ptr_eq(a, &preflight.admission))
+                || self
+                    .receiving
+                    .as_ref()
+                    .ok_or("Receiving custody absent")?
+                    .entries()?
+                    != *preflight
+                        .admission
+                        .receiving_entries
+                        .as_ref()
+                        .map_err(Clone::clone)?
+            {
+                return Err("Original source changed during publication".into());
+            }
+            candidate.check()?;
+            let mut active = self
+                .requested
+                .as_ref()
+                .ok_or("Active source absent")?
+                .clone();
+            for (index, (reference, entry)) in preflight.siblings.iter().enumerate() {
+                let path = active.shared[index + 1].location.path()?;
+                if Reference::observe(&path)? != *reference
+                    || ReceivingEntry::observe(&path)? != *entry
+                {
+                    return Err("Sibling shared resource changed during publication".into());
+                }
+            }
+            active.shared[0] = candidate.reference.clone();
+            self.validate(&active)?;
+            self.validate(&request)?;
+            source_current()?;
+            // Check the exact published object again, including inode and bytes.
+            let (bytes, again) = read_profile_bytes(&path)?;
+            if bytes != expected || again != baseline {
+                return Err("Published request superseded".into());
+            }
+            candidate.check()?;
+            Ok((active, LoadedProfile { baseline, request }))
+        })();
+        let (active,profile) = published.map_err(|_:String|"Config request publication outcome unknown; no in-memory continuation; fresh admission is a separate observation")?;
+        self.requested = Some(active);
+        self.loaded_profile = Some(profile.clone());
+        self.admitted = Some(Arc::new(AdmittedDesktop {
+            profile,
+            receiving_entries: preflight.admission.receiving_entries.clone(),
+        }));
+        self.config_epoch = None;
+        self.config_publication_unknown = false;
+        Ok(())
+    }
     pub fn preview_project(&mut self, project: Option<PathBuf>) -> Result<Value, String> {
+        self.config_epoch = None;
         let admission = self.retained_source()?;
         let active = self
             .requested
@@ -1037,6 +1349,7 @@ impl DesktopSetup {
         project: Option<PathBuf>,
         supplier: &str,
     ) -> Result<Value, String> {
+        self.config_epoch = None;
         if supplier != SUPPLIER {
             return Err("explicit owner-use development supplier selection required".into());
         }
@@ -1268,6 +1581,68 @@ mod tests {
         fn resolve(&self, setup: &mut DesktopSetup) -> Launch {
             setup.resolve(None, true, || self.probe())
         }
+        fn continuation(
+            &self,
+        ) -> (
+            Arc<Mutex<DesktopSetup>>,
+            crate::AppState,
+            Arc<runtime_session::HomeSession>,
+            crate::hosting::config_resource_continuation::TestPeer,
+        ) {
+            let mut setup = self.setup();
+            self.prepare(&mut setup, true);
+            drop(setup);
+            self.admitted_continuation()
+        }
+        fn admitted_continuation(
+            &self,
+        ) -> (
+            Arc<Mutex<DesktopSetup>>,
+            crate::AppState,
+            Arc<runtime_session::HomeSession>,
+            crate::hosting::config_resource_continuation::TestPeer,
+        ) {
+            let mut setup = self.setup();
+            let mut launch = self.resolve(&mut setup);
+            launch.host_config.as_mut().unwrap().wait_limit = std::time::Duration::from_millis(30);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = setup.admit_root(launch, Ok(self.data.clone()));
+            assert!(allow_operational);
+            let desktop = Arc::new(Mutex::new(setup));
+            let (state, home) = crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(self.data.join("records")),
+                None,
+                self.shared.clone().map(Some),
+            );
+            let peer = crate::hosting::config_resource_continuation::TestPeer::for_config_continuation(
+                home.host.clone(),
+                &home.host_config.as_ref().unwrap().codex_home,
+            );
+            (desktop, state, home, peer)
+        }
+        fn replace_config(&self) {
+            let replacement = self
+                .root
+                .join(crate::util::opaque_id("replacement-").unwrap());
+            std::fs::write(
+                &replacement,
+                b"invented config object, no actual configuration",
+            )
+            .unwrap();
+            std::fs::rename(replacement, &self.shared[0]).unwrap();
+        }
+        fn private_config(&self) -> Value {
+            json!({"config":{"developer_instructions":"INVENTED_PRIVATE_PROVIDER_CANARY_481","model_providers":{"private":{"experimental_bearer_token":"INVENTED_PRIVATE_PROVIDER_CANARY_481"}}},"origins":{},"layers":[{"name":{"type":"user","file":self.shared[0]},"config":{},"version":"INVENTED_NATIVE_VERSION_PRIVATE_52","disabledReason":null}]})
+        }
     }
     impl Drop for Fixture {
         fn drop(&mut self) {
@@ -1276,6 +1651,703 @@ mod tests {
         }
     }
 
+    #[test]
+    fn config_continuation_acceptance_is_one_shot_and_prior_tokens_do_not_admit() {
+        let f = Fixture::new();
+        let (desktop, state, home, mut peer) = f.continuation();
+        let preview = desktop.lock().unwrap().preview_project(None).unwrap();
+        let token = preview["token"].as_str().unwrap();
+        let first = crate::begin_config_resource_continuation(&state).unwrap();
+        assert!(desktop.lock().unwrap().preview_statement(token).is_err());
+        let pending = crate::begin_config_resource_continuation(&state).unwrap();
+        f.replace_config();
+        peer.answer(f.private_config());
+        assert!(
+            crate::complete_config_resource_continuation(&state, first, |_| panic!(
+                "superseded preflight"
+            ))
+            .is_err()
+        );
+        let mut old_acceptance = None;
+        assert!(
+            crate::complete_config_resource_continuation(&state, pending, |candidate| {
+                old_acceptance = Some(candidate.accept_checked_current_object());
+                Ok(Some(candidate.accept_checked_current_object()))
+            })
+            .unwrap()
+        );
+        assert_eq!(peer.continuation_frame()["method"], "config/read");
+        let pending = crate::begin_config_resource_continuation(&state).unwrap();
+        f.replace_config();
+        let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+        assert!(
+            crate::complete_config_resource_continuation(&state, pending, |_| Ok(
+                old_acceptance.take()
+            ))
+            .is_err()
+        );
+        assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+        assert_eq!(peer.continuation_frame()["method"], "config/read");
+        peer.continuation_private_taps();
+        assert!(state.validate_home_source(&home).is_err());
+        // An unaccepted replacement cannot mint its own new preflight.
+        assert!(crate::begin_config_resource_continuation(&state).is_err());
+    }
+
+    #[test]
+    fn config_continuation_native_layer_scope_and_private_wait_fail_closed() {
+        for case in [
+            "missing-layers",
+            "different-target",
+            "receiving-alias",
+            "duplicate-user",
+            "disabled-user",
+            "missing-version",
+            "oversize-version",
+            "malformed",
+            "error",
+            "timeout-late",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let pending = crate::begin_config_resource_continuation(&state).unwrap();
+            f.replace_config();
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let original = desktop.lock().unwrap().requested.clone().unwrap();
+            let mut reply = f.private_config();
+            let mut delayed = None;
+            match case {
+                "missing-layers" => reply
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("layers")
+                    .map(|_| ())
+                    .unwrap(),
+                "different-target" => reply["layers"][0]["name"]["file"] = json!(f.shared[1]),
+                "receiving-alias" => {
+                    reply["layers"][0]["name"]["file"] = json!(home
+                        .host_config
+                        .as_ref()
+                        .unwrap()
+                        .codex_home
+                        .join("config.toml"))
+                }
+                "duplicate-user" => {
+                    let layer = reply["layers"][0].clone();
+                    reply["layers"].as_array_mut().unwrap().push(layer);
+                }
+                "disabled-user" => {
+                    reply["layers"][0]["disabledReason"] =
+                        json!("INVENTED_PRIVATE_PROVIDER_CANARY_481")
+                }
+                "missing-version" => {
+                    reply["layers"][0]
+                        .as_object_mut()
+                        .unwrap()
+                        .remove("version");
+                }
+                "oversize-version" => reply["layers"][0]["version"] = json!("v".repeat(4097)),
+                "malformed" => reply["config"] = Value::Null,
+                "error" => peer.config_read_error(),
+                "timeout-late" => delayed = Some(peer.unanswered_config_read()),
+                _ => unreachable!(),
+            }
+            if case != "error" && case != "timeout-late" {
+                peer.answer(reply.clone());
+            }
+            let result = crate::complete_config_resource_continuation(&state, pending, |_| {
+                panic!("{case}: invalid private observation reached review")
+            });
+            let error = result.unwrap_err();
+            assert!(!error.contains("INVENTED_"));
+            assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+            assert_eq!(
+                desktop.lock().unwrap().requested.as_ref().unwrap(),
+                &original
+            );
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            if let Some(delayed) = delayed {
+                let source = delayed.lock().unwrap().take().unwrap();
+                peer.host.native_frame_for_test(
+                    source.generation(),
+                    &json!({"id":source.request_id(),"result":reply}),
+                );
+                assert!(!source
+                    .evidence()
+                    .to_string()
+                    .contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
+            }
+            peer.continuation_private_taps();
+            assert!(!desktop
+                .lock()
+                .unwrap()
+                .view()
+                .to_string()
+                .contains("INVENTED_NATIVE_VERSION_PRIVATE_52"));
+            assert!(!json!(peer.host.journal())
+                .to_string()
+                .contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
+        }
+    }
+
+    #[test]
+    fn config_continuation_requires_actual_admission_and_preserves_stable_unavailable_siblings() {
+        for case in [
+            "setup-only",
+            "resolve-only",
+            "pending-plan",
+            "foreign-config",
+            "missing-agents",
+            "broken-skills",
+        ] {
+            let f = Fixture::new();
+            let mut setup = f.setup();
+            let invented = HostConfig::new(
+                f.root.join("never-executed"),
+                f.root.join("not-admitted"),
+                f.root.join("probe"),
+                f.project.clone(),
+            );
+            if case == "setup-only" {
+                assert!(setup.begin_config_continuation(&invented).is_err());
+                continue;
+            }
+            let saved = f.prepare(&mut setup, true);
+            drop(setup);
+            if case == "resolve-only" {
+                let mut setup = f.setup();
+                let launch = f.resolve(&mut setup);
+                assert!(setup
+                    .begin_config_continuation(launch.host_config.as_ref().unwrap())
+                    .is_err());
+                continue;
+            }
+            if case == "missing-agents" {
+                std::fs::remove_file(&f.shared[1]).unwrap();
+            }
+            if case == "broken-skills" {
+                let path =
+                    PathBuf::from(saved["pending"]["accountHome"].as_str().unwrap()).join("skills");
+                std::fs::remove_file(&path).unwrap();
+                std::os::unix::fs::symlink(f.root.join("explicitly-unavailable-skills"), path)
+                    .unwrap();
+            }
+            let (desktop, state, home, mut peer) = f.admitted_continuation();
+            if case == "foreign-config" {
+                assert!(desktop
+                    .lock()
+                    .unwrap()
+                    .begin_config_continuation(&invented)
+                    .is_err());
+                state.validate_home_source(&home).unwrap();
+                continue;
+            }
+            if case == "pending-plan" {
+                let preview = desktop.lock().unwrap().preview_project(None).unwrap();
+                desktop
+                    .lock()
+                    .unwrap()
+                    .prepare_and_save(preview["token"].as_str().unwrap())
+                    .unwrap();
+                assert!(crate::begin_config_resource_continuation(&state).is_err());
+                continue;
+            }
+            let entries = desktop
+                .lock()
+                .unwrap()
+                .receiving
+                .as_ref()
+                .unwrap()
+                .entries()
+                .unwrap();
+            let pending = crate::begin_config_resource_continuation(&state).unwrap();
+            f.replace_config();
+            peer.answer(f.private_config());
+            assert!(
+                crate::complete_config_resource_continuation(&state, pending, |c| Ok(Some(
+                    c.accept_checked_current_object()
+                )))
+                .unwrap()
+            );
+            assert_eq!(
+                desktop
+                    .lock()
+                    .unwrap()
+                    .receiving
+                    .as_ref()
+                    .unwrap()
+                    .entries()
+                    .unwrap(),
+                entries
+            );
+            assert!(desktop.lock().unwrap().preview_project(None).is_ok());
+            state.validate_home_source(&home).unwrap();
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            peer.continuation_private_taps();
+        }
+    }
+
+    #[test]
+    fn config_continuation_review_drift_and_supersession_refuse_without_publication() {
+        for case in [
+            "cancel",
+            "nonexact",
+            "review-error",
+            "same-bytes-new-inode",
+            "in-place-change",
+            "config-link",
+            "agents-link",
+            "skills-link",
+            "missing-config",
+            "target-alias",
+            "hardlink",
+            "profile-same-bytes",
+            "pending-plan",
+            "lost-home-custody",
+            "lost-profile-custody",
+            "lost-app-custody",
+            "sibling-missing",
+            "sibling-replaced",
+            "preview-superseded",
+            "read-revision",
+            "generation",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let pending = crate::begin_config_resource_continuation(&state).unwrap();
+            f.replace_config();
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let original = desktop.lock().unwrap().requested.clone().unwrap();
+            let bootstrap = state
+                .home_bootstrap
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let attachment = home
+                .attachment_custody
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let context = state.project_context.view();
+            let recovery = home.recovery_startup.lock().unwrap().snapshot();
+            peer.answer(f.private_config());
+            let mut expected_profile = before.0.clone();
+            let result =
+                crate::complete_config_resource_continuation(&state, pending, |candidate| {
+                    match case {
+                        "cancel" => return Ok(None),
+                        "nonexact" => return Ok(Some(candidate.nonexact_for_test())),
+                        "review-error" => return Err(()),
+                        "same-bytes-new-inode" => f.replace_config(),
+                        "in-place-change" => {
+                            std::fs::write(&f.shared[0], b"different invented current bytes")
+                                .unwrap()
+                        }
+                        "config-link" | "agents-link" | "skills-link" => {
+                            let name = match case {
+                                "config-link" => "config.toml",
+                                "agents-link" => "AGENTS.md",
+                                _ => "skills",
+                            };
+                            let path = home.host_config.as_ref().unwrap().codex_home.join(name);
+                            let target = std::fs::read_link(&path).unwrap();
+                            std::fs::remove_file(&path).unwrap();
+                            std::os::unix::fs::symlink(target, path).unwrap();
+                        }
+                        "missing-config" => std::fs::remove_file(&f.shared[0]).unwrap(),
+                        "target-alias" => {
+                            let elsewhere = f.root.join("different-target");
+                            std::fs::rename(&f.shared[0], &elsewhere).unwrap();
+                            std::os::unix::fs::symlink(elsewhere, &f.shared[0]).unwrap();
+                        }
+                        "hardlink" => {
+                            std::fs::hard_link(&f.shared[0], f.root.join("hard-alias")).unwrap()
+                        }
+                        "profile-same-bytes" => {
+                            let replacement = f.root.join("profile-replacement");
+                            std::fs::write(&replacement, &before.0).unwrap();
+                            std::fs::set_permissions(
+                                &replacement,
+                                std::fs::Permissions::from_mode(0o600),
+                            )
+                            .unwrap();
+                            std::fs::rename(replacement, f.data.join(PROFILE)).unwrap();
+                        }
+                        "pending-plan" => {
+                            let mut request = read_profile(&f.data.join(PROFILE)).unwrap();
+                            request.project = None;
+                            write_profile(&f.data.join(PROFILE), &request).unwrap();
+                            expected_profile = std::fs::read(f.data.join(PROFILE)).unwrap();
+                        }
+                        "lost-home-custody" => {
+                            desktop.lock().unwrap().receiving.take();
+                        }
+                        "lost-profile-custody" => {
+                            desktop.lock().unwrap().profile_directory.take();
+                        }
+                        "lost-app-custody" => {
+                            desktop.lock().unwrap().lease.take();
+                        }
+                        "sibling-missing" => std::fs::remove_file(&f.shared[1]).unwrap(),
+                        "sibling-replaced" => {
+                            let path = f.root.join("agents-replacement");
+                            std::fs::write(&path, b"invented guidance replacement").unwrap();
+                            std::fs::rename(path, &f.shared[1]).unwrap();
+                        }
+                        "preview-superseded" => {
+                            assert!(desktop.lock().unwrap().preview_project(None).is_err());
+                        }
+                        "read-revision" => {
+                            peer.host
+                                .configured_provider_read_within(
+                                    &peer.g,
+                                    f.project.to_str().unwrap(),
+                                    &Value::Null,
+                                    std::time::Duration::from_millis(30),
+                                )
+                                .unwrap();
+                        }
+                        "generation" => peer.supersede_config_generation(),
+                        _ => unreachable!(),
+                    }
+                    Ok(Some(candidate.accept_checked_current_object()))
+                });
+            if case == "cancel" {
+                assert_eq!(result.unwrap(), false);
+            } else {
+                assert!(result.is_err(), "{case} unexpectedly accepted");
+            }
+            assert_eq!(
+                std::fs::read(f.data.join(PROFILE)).unwrap(),
+                expected_profile,
+                "{case}: no unintended profile write"
+            );
+            assert_eq!(
+                desktop.lock().unwrap().requested.as_ref().unwrap(),
+                &original,
+                "{case}: no memory promotion"
+            );
+            assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+            assert!(Arc::ptr_eq(
+                state.home_bootstrap.lock().unwrap().as_ref().unwrap(),
+                &bootstrap
+            ));
+            assert!(Arc::ptr_eq(
+                home.attachment_custody.lock().unwrap().as_ref().unwrap(),
+                &attachment
+            ));
+            assert_eq!(state.project_context.view(), context);
+            assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            if case == "read-revision" {
+                assert_eq!(peer.continuation_frame()["method"], "config/read");
+            }
+            peer.continuation_private_taps();
+        }
+    }
+
+    #[test]
+    fn config_continuation_unknown_publication_never_promotes_or_recovers_by_token() {
+        for case in [
+            "target-after-publication",
+            "profile-after-publication",
+            "source-after-publication",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let old = desktop.lock().unwrap().requested.clone().unwrap();
+            let pending = crate::begin_config_resource_continuation(&state).unwrap();
+            f.replace_config();
+            peer.answer(f.private_config());
+            let config = f.shared[0].clone();
+            let profile = f.data.join(PROFILE);
+            let path = f.root.join("publication-drift");
+            desktop.lock().unwrap().after_config_publication = Some(Box::new(move || match case {
+                "target-after-publication" => {
+                    std::fs::write(&path, b"unreviewed invented object").unwrap();
+                    std::fs::rename(&path, &config).unwrap();
+                }
+                "profile-after-publication" => {
+                    let mut requested = read_profile(&profile).unwrap();
+                    requested.project = None;
+                    write_profile(&profile, &requested).unwrap();
+                }
+                "source-after-publication" => {}
+                _ => unreachable!(),
+            }));
+            if case == "source-after-publication" {
+                // Use a genuine new scoped private read to supersede the receipt
+                // during publication, without killing/restarting any process.
+                let host = home.host.clone();
+                let generation = peer.g.clone();
+                let cwd = f.project.to_str().unwrap().to_owned();
+                desktop.lock().unwrap().after_config_publication = Some(Box::new(move || {
+                    host.configured_provider_read_within(
+                        &generation,
+                        &cwd,
+                        &Value::Null,
+                        std::time::Duration::from_millis(30),
+                    )
+                    .unwrap();
+                }));
+            }
+            let result = crate::complete_config_resource_continuation(&state, pending, |c| {
+                Ok(Some(c.accept_checked_current_object()))
+            });
+            assert!(
+                result
+                    .unwrap_err()
+                    .starts_with("Config request publication outcome unknown;"),
+                "{case}"
+            );
+            assert_eq!(desktop.lock().unwrap().requested.as_ref().unwrap(), &old);
+            assert!(desktop.lock().unwrap().config_publication_unknown);
+            assert!(state.validate_home_source(&home).is_err());
+            assert!(crate::begin_config_resource_continuation(&state).is_err());
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            if case == "source-after-publication" {
+                assert_eq!(peer.continuation_frame()["method"], "config/read");
+            }
+            peer.continuation_private_taps();
+        }
+    }
+
+    #[test]
+    fn config_continuation_joined_private_read_publication_retained_and_fresh_consumers() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        f.prepare(&mut setup, true);
+        drop(setup);
+        let mut active = f.setup();
+        let launch = f.resolve(&mut active);
+        let RootInputs {
+            launch,
+            data,
+            allow_operational,
+        } = active.admit_root(launch, Ok(f.data.clone()));
+        assert!(allow_operational);
+        let desktop = Arc::new(Mutex::new(active));
+        let (state, home) = crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
+        crate::initialize_startup_consumers(
+            &state,
+            &home,
+            data,
+            allow_operational,
+            true,
+            Some(f.data.join("records")),
+            None,
+            f.shared.clone().map(Some),
+        );
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        let mut peer =
+            crate::hosting::config_resource_continuation::TestPeer::for_config_continuation(
+                home.host.clone(),
+                &h,
+            );
+        let old_request =
+            serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap();
+        let old_ref = desktop.lock().unwrap().requested.as_ref().unwrap().shared[0].clone();
+        let links = desktop
+            .lock()
+            .unwrap()
+            .receiving
+            .as_ref()
+            .unwrap()
+            .entries()
+            .unwrap();
+        let bootstrap = state
+            .home_bootstrap
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let namespaces = state
+            .native_namespaces
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let custody = home
+            .attachment_custody
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let recovery = home.recovery_startup.lock().unwrap().snapshot();
+        let context = state.project_context.view();
+        let attachments = state
+            .attachment_selection
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .snapshot();
+        let mut selection = crate::access::ConversationSelection::new_explicit(
+            "invented-conversation",
+            Some("invented-project"),
+        )
+        .unwrap();
+        selection
+            .choose("local-provider", "manual-provider", "manual-model", false)
+            .unwrap();
+        *home.access_selection.lock().unwrap() = Some(selection);
+        let choice = home
+            .access_selection
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .snapshot();
+        let records = records_store::current().unwrap().root;
+        let pending = crate::begin_config_resource_continuation(&state).unwrap();
+        let replacement = f.root.join("replacement");
+        std::fs::write(
+            &replacement,
+            b"invented replacement, never parsed by desktop",
+        )
+        .unwrap();
+        std::fs::rename(replacement, &f.shared[0]).unwrap();
+        assert!(old_ref.current(false).is_err());
+        assert!(state.validate_home_source(&home).is_err());
+        let private = json!({"config":{"developer_instructions":"INVENTED_PRIVATE_PROVIDER_CANARY_481"},"origins":{},"layers":[{"name":{"type":"user","file":f.shared[0]},"config":{},"version":"native-invented-version","disabledReason":null}]});
+        peer.answer(private);
+        let continued =
+            crate::complete_config_resource_continuation(&state, pending, |candidate| {
+                assert_eq!(candidate.private_reading().1, "native-invented-version");
+                assert_eq!(
+                    candidate.private_reading().0["config"]["developer_instructions"],
+                    "INVENTED_PRIVATE_PROVIDER_CANARY_481"
+                );
+                assert!(desktop.try_lock().is_ok(), "review holds no desktop lock");
+                Ok(Some(candidate.accept_checked_current_object()))
+            })
+            .unwrap();
+        assert!(continued);
+        let wire = peer.continuation_frame();
+        assert_eq!(wire["method"], "config/read");
+        assert_eq!(wire["params"]["cwd"], f.project.to_str().unwrap());
+        assert_eq!(wire["params"]["includeLayers"], true);
+        peer.continuation_private_taps();
+        assert!(home.host.snapshot()["conversations"]
+            .as_array()
+            .is_none_or(|v| v.is_empty()));
+        state.validate_home_source(&home).unwrap();
+        let now_request =
+            serde_json::to_value(read_profile(&f.data.join(PROFILE)).unwrap()).unwrap();
+        let mut expected = old_request;
+        expected["shared"][0] = now_request["shared"][0].clone();
+        assert_eq!(now_request, expected);
+        assert_ne!(
+            now_request["shared"][0]["object"],
+            serde_json::to_value(old_ref.object.clone()).unwrap()
+        );
+        let assert_owners = || {
+            assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+            assert!(Arc::ptr_eq(
+                state.home_bootstrap.lock().unwrap().as_ref().unwrap(),
+                &bootstrap
+            ));
+            assert!(Arc::ptr_eq(
+                state.native_namespaces.lock().unwrap().as_ref().unwrap(),
+                &namespaces
+            ));
+            assert!(Arc::ptr_eq(
+                home.attachment_custody.lock().unwrap().as_ref().unwrap(),
+                &custody
+            ));
+            assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+            assert_eq!(state.project_context.view(), context);
+            assert_eq!(
+                state
+                    .attachment_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .snapshot(),
+                attachments
+            );
+            assert_eq!(
+                home.access_selection
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .snapshot(),
+                choice
+            );
+            assert_eq!(records_store::current().unwrap().root, records);
+            assert_eq!(
+                desktop
+                    .lock()
+                    .unwrap()
+                    .receiving
+                    .as_ref()
+                    .unwrap()
+                    .entries()
+                    .unwrap(),
+                links
+            );
+        };
+        assert_owners();
+        let preview = desktop
+            .lock()
+            .unwrap()
+            .preview_project(Some(f.project.clone()))
+            .unwrap();
+        assert_eq!(preview["accountHome"], h.to_str().unwrap());
+        // Preview success exercises genuine retained-source guards. Do not save
+        // a second pending plan: fresh admission below consumes the exact config
+        // continuation request with H/P unchanged.
+        assert_owners();
+        drop(peer);
+        drop(home);
+        drop(state);
+        drop(desktop);
+        let mut fresh = f.setup();
+        let launch = f.resolve(&mut fresh);
+        let RootInputs {
+            launch,
+            data,
+            allow_operational,
+        } = fresh.admit_root(launch, Ok(f.data.clone()));
+        assert!(allow_operational);
+        assert_eq!(launch.shared_paths[0].as_ref(), Some(&f.shared[0]));
+        assert_eq!(launch.workspace.as_ref(), Some(&f.project));
+        let (state, home) =
+            crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
+        crate::initialize_startup_consumers(
+            &state,
+            &home,
+            data,
+            allow_operational,
+            true,
+            Some(f.data.join("records")),
+            None,
+            f.shared.clone().map(Some),
+        );
+        assert_eq!(home.host_config.as_ref().unwrap().codex_home, h);
+        state.validate_home_source(&home).unwrap();
+        state
+            .native_namespaces
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .guard_app_root(&f.data)
+            .unwrap();
+        assert!(state.instructions_root.lock().unwrap().is_ok());
+        assert!(home.attachment_custody.lock().unwrap().is_ok());
+        assert_eq!(state.workspace.as_ref(), Some(&f.project));
+    }
     #[test]
     fn retained_project_receiving_entry_drift_during_confirmation_refuses_without_rebinding() {
         let previous_store = records_store::current();

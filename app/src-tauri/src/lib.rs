@@ -150,6 +150,101 @@ impl AppState {
     }
 }
 
+// Private transaction only: no Tauri command, UI/editor or config-write entry.
+// Begin must precede an intended target replacement. A later native ACK/read
+// alone cannot adopt it; complete requires a separate exact-candidate review.
+struct PendingConfigResource {
+    home: Arc<runtime_session::HomeSession>,
+    generation: Value,
+    cwd: String,
+    slot: desktop_startup::ConfigSlotPreflight,
+}
+fn begin_config_resource_continuation(state: &AppState) -> Result<PendingConfigResource, String> {
+    let home = state.homes.lock().unwrap().active();
+    if home.class() != home_resources::HomeClass::Account {
+        return Err("Config continuation requires the admitted account source".into());
+    }
+    state.validate_home_source(&home)?;
+    let config = home.host_config.as_ref().map_err(Clone::clone)?;
+    let generation = home.host.snapshot()["generation"].clone();
+    let expected_home = format!(
+        "app-home:{}",
+        util::sha256_hex(config.codex_home.as_os_str().as_encoded_bytes())
+    );
+    recovery::generation_ref(&generation)?;
+    if generation["home"] != expected_home {
+        return Err("Config continuation generation/home differs".into());
+    }
+    let cwd = config
+        .cwd
+        .to_str()
+        .ok_or("Config continuation requires lossless native JSON cwd")?
+        .to_owned();
+    let slot = state
+        .desktop_setup
+        .as_ref()
+        .ok_or("No admitted saved-desktop source")?
+        .try_lock()
+        .map_err(|_| "Desktop source busy")?
+        .begin_config_continuation(config)?;
+    Ok(PendingConfigResource {
+        home,
+        generation,
+        cwd,
+        slot,
+    })
+}
+fn complete_config_resource_continuation(
+    state: &AppState,
+    pending: PendingConfigResource,
+    review: impl FnOnce(
+        &hosting::config_resource_continuation::Candidate,
+    ) -> Result<
+        Option<hosting::config_resource_continuation::ReviewedCurrentObject>,
+        (),
+    >,
+) -> Result<bool, String> {
+    let desktop = state
+        .desktop_setup
+        .as_ref()
+        .ok_or("No admitted saved-desktop source")?;
+    let context = || {
+        if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &pending.home)
+            || pending.home.host.snapshot()["generation"] != pending.generation
+        {
+            return Err("Original account/generation superseded".into());
+        }
+        let config = pending.home.host_config.as_ref().map_err(Clone::clone)?;
+        if config.cwd.to_str() != Some(&pending.cwd) {
+            return Err("Original effective cwd differs".into());
+        }
+        state
+            .home_bootstrap
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map_err(Clone::clone)?
+            .validate_binding(home_resources::HomeClass::Account, config)
+    };
+    let wait = pending
+        .home
+        .host_config
+        .as_ref()
+        .map_err(Clone::clone)?
+        .wait_limit
+        .min(std::time::Duration::from_secs(10));
+    hosting::config_resource_continuation::complete(
+        desktop,
+        pending.slot,
+        &pending.home.host,
+        &pending.generation,
+        &pending.cwd,
+        wait,
+        context,
+        review,
+    )
+}
+
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> Result<PathBuf,String> {
     runtime_session::allocate_fresh_probe(&std::env::temp_dir())
