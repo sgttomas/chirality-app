@@ -1033,3 +1033,463 @@ fn stock_linked_config_write_contract() {
     }
     eprintln!("selected contract observations retained privately; unselected cases were NOT RUN; no App/person/qualification claim");
 }
+
+// Separate creation observations. The original five-case entry and helpers above
+// retain their existing behavior; no whole-definition warrant is inferred from them.
+const CREATION_ID: &str = "fixture.new";
+const CREATION_KEY: &str = "model_providers.\"fixture.new\"";
+fn creation_definition() -> Value {
+    json!({"name":"Invented new anonymous provider","base_url":"http://fixture-new.invalid/v1","wire_api":"responses","requires_openai_auth":false})
+}
+fn creation_user_layer<'a>(read: &'a Value, case: &Case) -> Result<&'a Value> {
+    layer_version(read, case)?; // Unique, enabled user file; same canonical target AND object.
+    read["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["name"]["type"] == "user" && l["name"]["profile"].is_null())
+        .ok_or_else(|| "creation user layer unavailable".into())
+}
+fn creation_absent(read: &Value, case: &Case) -> Result<()> {
+    let layer = creation_user_layer(read, case)?;
+    for map in [
+        &layer["config"]["model_providers"],
+        &read["config"]["model_providers"],
+    ] {
+        require(
+            map.as_object()
+                .is_some_and(|m| !m.contains_key(CREATION_ID)),
+            "literal creation ID not proven absent from both native user and effective maps",
+        )?;
+    }
+    Ok(())
+}
+fn creation_entry(path: &Path, content: bool) -> Value {
+    // Failure evidence must survive a changed type or invalid TOML. Never follow
+    // a substituted target symlink, including after a lost write acknowledgement.
+    let observed = (|| -> Result<Value> {
+        let m = io(fs::symlink_metadata(path))?;
+        let mut out = json!({"dev":m.dev(),"inode":m.ino(),"mode":m.mode(),"uid":m.uid(),"gid":m.gid(),"nlink":m.nlink(),
+            "type":if m.file_type().is_symlink(){"symlink"}else if m.is_file(){"regular"}else if m.is_dir(){"directory"}else{"other"}});
+        if m.file_type().is_symlink() {
+            out["rawTarget"] = json!(io(fs::read_link(path))?);
+        }
+        if content && m.is_file() {
+            let mut f = io(OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NOFOLLOW)
+                .open(path))?;
+            let held = io(f.metadata())?;
+            require(
+                (held.dev(), held.ino()) == (m.dev(), m.ino()),
+                "target changed during effect observation",
+            )?;
+            let mut bytes = Vec::new();
+            io(f.read_to_end(&mut bytes))?;
+            out["bytes"] =
+                json!(String::from_utf8(bytes).map_err(|_| "target encoding unavailable")?);
+            out["semantics"] = match toml::from_str::<toml::Value>(out["bytes"].as_str().unwrap()) {
+                Ok(value) => json!(value),
+                Err(e) => json!({"tomlObservationError":e.to_string()}),
+            };
+        }
+        Ok(out)
+    })();
+    observed.unwrap_or_else(|e| json!({"observationUnavailable":e}))
+}
+fn creation_state(case: &Case) -> Value {
+    json!({"link":creation_entry(&case.plan.native_path().join("config.toml"),false),"target":creation_entry(&case.target,true)})
+}
+struct CreationAttempt {
+    reply: Result<Value>,
+    after: Value,
+    reread: Result<Value>,
+}
+fn creation_attempt(
+    case: &Case,
+    native: &mut Native,
+    version: &str,
+    value: Value,
+) -> Result<CreationAttempt> {
+    let params = write_params(case, version, CREATION_KEY, value)?;
+    let reply = native.send("config/batchWrite", params); // Exactly one attempt; no retry or rollback.
+    let after = creation_state(case);
+    save(&case.root.join("after-write.json"), &after)?;
+    let reread = native.read(case);
+    save(
+        &case.root.join("attempt.json"),
+        &json!({"reply":match &reply {Ok(v)=>json!({"frame":v}),Err(e)=>json!({"unknown":e})},
+        "reread":match &reread {Ok(v)=>json!({"response":v}),Err(e)=>json!({"unavailable":e})},"writeAttempts":1,"replay":false}),
+    )?;
+    Ok(CreationAttempt {
+        reply,
+        after,
+        reread,
+    })
+}
+fn creation_matches(
+    before: &Value,
+    after: &Value,
+    first: &Value,
+    reread: &Value,
+    case: &Case,
+    definition: &Value,
+) -> Result<()> {
+    require(
+        before["link"] == after["link"] && after["link"]["type"] == "symlink",
+        "creation changed receiving link identity/type/raw destination",
+    )?;
+    require(
+        after["target"]["type"] == "regular",
+        "creation target is no longer regular",
+    )?;
+    let mut expected_file = before["target"]["semantics"].clone();
+    expected_file["model_providers"][CREATION_ID] = definition.clone();
+    require(
+        after["target"]["semantics"] == expected_file,
+        "whole-object edit changed siblings, selection/model or unrelated file semantics",
+    )?;
+    let mut expected_user = creation_user_layer(first, case)?["config"].clone();
+    expected_user["model_providers"][CREATION_ID] = definition.clone();
+    require(
+        creation_user_layer(reread, case)?["config"] == expected_user,
+        "native user layer did not report the exact literal ID/full requested object",
+    )?;
+    // Config/read materializes supplier-default fields in effective provider rows.
+    // Derive that shape from the same read's anonymous four-field sibling, then
+    // require the ENTIRE effective config, including every other row, to agree.
+    let mut expected_effective = first["config"].clone();
+    let mut row = first["config"]["model_providers"]["fixture_normal"].clone();
+    require(
+        row.is_object(),
+        "effective sibling/default shape unavailable",
+    )?;
+    for (key, value) in definition
+        .as_object()
+        .ok_or("definition is not an object")?
+    {
+        row[key] = value.clone();
+    }
+    expected_effective["model_providers"][CREATION_ID] = row;
+    require(
+        reread["config"] == expected_effective,
+        "effective full definition/defaults or other configuration differs",
+    )
+}
+fn creation_case(
+    input: &Input,
+    proof: &Path,
+    name: &str,
+    observe: impl FnOnce(&Case, &mut Native) -> Result<Value>,
+) -> Result<()> {
+    creation_seeded_case(input, proof, name, None, observe)
+}
+fn creation_seeded_case(
+    input: &Input,
+    proof: &Path,
+    name: &str,
+    seed: Option<Value>,
+    observe: impl FnOnce(&Case, &mut Native) -> Result<Value>,
+) -> Result<()> {
+    let case = Case::new(proof, name)?;
+    if let Some(seed) = seed {
+        creation_fixture_insert(&case, &seed)?;
+    }
+    save(&case.root.join("prepared.json"), &creation_state(&case))?;
+    let mut native = Native::open(input, &case, &[])?;
+    let outcome = native
+        .initialize()
+        .and_then(|()| observe(&case, &mut native));
+    let after = save(
+        &case.root.join("final-filesystem.json"),
+        &creation_state(&case),
+    );
+    let recorded = match &outcome {
+        Ok(effects) => save(&case.root.join("effects.json"), effects),
+        Err(e) => save(
+            &case.root.join("obstacle.json"),
+            &json!({"condition":e,"replay":false}),
+        ),
+    };
+    let cleanup = native.close();
+    outcome.map(|_| ()).and(after).and(recorded).and(cleanup)
+}
+fn creation_fixture_insert(case: &Case, definition: &Value) -> Result<()> {
+    // Controlled fixture actor only. Append one known four-field definition;
+    // retain the existing selected provider/model, bytes and target object.
+    require(
+        case.plan.resolved_config_write_target()? == case.target,
+        "fixture insert target changed",
+    )?;
+    require(
+        definition.as_object().is_some_and(|m| m.len() == 4)
+            && definition["requires_openai_auth"] == false,
+        "fixture seed shape differs",
+    )?;
+    let addition = format!("\n[model_providers.\"fixture.new\"]\nname = {}\nbase_url = {}\nwire_api = {}\nrequires_openai_auth = false\n",
+        serde_json::to_string(&definition["name"]).map_err(|e|e.to_string())?,
+        serde_json::to_string(&definition["base_url"]).map_err(|e|e.to_string())?,
+        serde_json::to_string(&definition["wire_api"]).map_err(|e|e.to_string())?);
+    io(OpenOptions::new()
+        .append(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(&case.target))?
+    .write_all(addition.as_bytes())
+    .map_err(|e| e.to_string())
+}
+fn creation_external_definition() -> Value {
+    json!({"name":"Invented external existing provider","base_url":"http://fixture-external.invalid/v1","wire_api":"responses","requires_openai_auth":false})
+}
+fn creation_has_error_tag(value: &Value, tag: &str) -> bool {
+    match value {
+        Value::String(s) => s == tag,
+        Value::Array(a) => a.iter().any(|v| creation_has_error_tag(v, tag)),
+        Value::Object(o) => o.values().any(|v| creation_has_error_tag(v, tag)),
+        _ => false,
+    }
+}
+fn provider_creation_stale(input: &Input, proof: &Path) -> Result<()> {
+    creation_case(input, proof, "creation-stale-collision", |case, native| {
+        let first = native.read(case)?;
+        creation_absent(&first, case)?;
+        let v1 = layer_version(&first, case)?;
+        let before = creation_state(case);
+        let external_definition = creation_external_definition();
+        creation_fixture_insert(case, &external_definition)?;
+        let external = creation_state(case);
+        save(&case.root.join("external-edit.json"), &external)?;
+        require(
+            before["target"]["inode"] == external["target"]["inode"],
+            "controlled external edit unexpectedly replaced target",
+        )?;
+        let changed = native.read(case)?;
+        let v_external = layer_version(&changed, case)?;
+        require(
+            v_external != v1,
+            "controlled insertion did not produce a distinct native version",
+        )?;
+        creation_matches(
+            &before,
+            &external,
+            &first,
+            &changed,
+            case,
+            &external_definition,
+        )?;
+        save(&case.root.join("before-write.json"), &external)?;
+        let attempt = creation_attempt(case, native, &v1, creation_definition())?;
+        let reply = attempt.reply?;
+        let error = error_frame(&reply)?;
+        require(
+            error["code"] == -32600
+                && creation_has_error_tag(&error["data"], "configVersionConflict"),
+            "genuine stale-version error tag unestablished; no collision inference",
+        )?;
+        require(
+            external == attempt.after,
+            "stale write changed the external definition or other file/link effects",
+        )?;
+        let reread = attempt.reread?;
+        require(
+            layer_version(&reread, case)? == v_external
+                && reread["config"] == changed["config"]
+                && creation_user_layer(&reread, case)?["config"]
+                    == creation_user_layer(&changed, case)?["config"],
+            "stale reread did not preserve external definition/configuration",
+        )?;
+        Ok(
+            json!({"status":"actual-stale-version-conflict","nativeError":error,"nativeVersionAbsentRead":v1,"nativeVersionControlledInsertion":v_external,
+            "absenceBeforeExternalInsert":true,"sameIdExternallyCreated":true,"externalDefinition":external_definition,"externalDefinitionAndOtherEffectsPreserved":true,
+            "writeAttempts":1,"retry":false,"limit":"version conflict only, not a provider-name collision oracle or universal arbitrary-writer exclusion"}),
+        )
+    })
+}
+fn provider_creation_existing(input: &Input, proof: &Path) -> Result<()> {
+    creation_seeded_case(
+        input,
+        proof,
+        "creation-existing-fresh",
+        Some(creation_external_definition()),
+        |case, native| {
+            let first = native.read(case)?;
+            let version = layer_version(&first, case)?;
+            let layer = creation_user_layer(&first, case)?;
+            require(
+                layer["config"]["model_providers"][CREATION_ID] == creation_external_definition()
+                    && first["config"]["model_providers"]
+                        .get(CREATION_ID)
+                        .is_some(),
+                "same literal provider ID not already present at fresh native read",
+            )?;
+            let before = creation_state(case);
+            save(&case.root.join("before-write.json"), &before)?;
+            let definition = creation_definition();
+            let attempt = creation_attempt(case, native, &version, definition.clone())?;
+            let reply = attempt.reply?;
+            let reread = attempt.reread?;
+            if reply.get("error").is_some() {
+                let error = error_frame(&reply)?;
+                require(
+                    before == attempt.after,
+                    "existing-ID refusal changed filesystem effects",
+                )?;
+                require(
+                    reread["config"] == first["config"],
+                    "existing-ID refusal changed effective config",
+                )?;
+                return Ok(
+                    json!({"status":"actual-existing-id-refusal","nativeError":error,"sameIdPresentAtFreshRead":true,"effectsUnchanged":true,
+                "writeAttempts":1,"retry":false,"limit":"one native refusal, not a universal create-if-absent protection"}),
+                );
+            }
+            let result = accepted_write(&reply, case)?;
+            creation_matches(&before, &attempt.after, &first, &reread, case, &definition)?;
+            require(
+                result["version"] == layer_version(&reread, case)? && result["version"] != version,
+                "existing-ID write/reread versions differ",
+            )?;
+            require(
+                result["status"] == "ok" && result["overriddenMetadata"].is_null(),
+                "existing-ID control unexpectedly overridden",
+            )?;
+            Ok(
+                json!({"status":"actual-existing-id-replaced","sameIdPresentAtFreshRead":true,"writeResponse":result,"oldDefinition":creation_external_definition(),"newDefinition":definition,
+            "siblingsSelectionModelAndOtherSettingsPreserved":true,"receivingLinkUnchanged":true,"targetInodeReplaced":before["target"]["inode"]!=attempt.after["target"]["inode"],"writeAttempts":1,"retry":false,
+            "limit":"replace accepts an existing ID at its fresh version; not create-only protection or product overwrite permission"}),
+            )
+        },
+    )
+}
+fn provider_creation_malformed(input: &Input, proof: &Path) -> Result<()> {
+    const MARKER: &str = "INVENTED_CREATION_VALUE_A9";
+    creation_case(
+        input,
+        proof,
+        "creation-malformed-INVENTED_CREATION_PATH_A9",
+        |case, native| {
+            let first = native.read(case)?;
+            creation_absent(&first, case)?;
+            let version = layer_version(&first, case)?;
+            let before = creation_state(case);
+            save(&case.root.join("before-write.json"), &before)?;
+            let mut malformed = creation_definition();
+            malformed["name"] = json!(MARKER);
+            malformed["wire_api"] = json!(17); // Malformed field inside the one complete object.
+            let attempt = creation_attempt(case, native, &version, malformed)?;
+            let reply = attempt.reply?;
+            let error = error_frame(&reply)?;
+            let error_text = serde_json::to_string(error).map_err(|e| e.to_string())?;
+            let error_facts = json!({"nativeError":error,"errorReflectsValueMarker":error_text.contains(MARKER),
+            "errorReflectsPathMarker":error_text.contains("INVENTED_CREATION_PATH_A9"),
+            "errorReflectsFullTarget":error_text.contains(case.target.to_str().ok_or("target encoding")?),
+            "errorReflectsProviderId":error_text.contains(CREATION_ID),"fileAndLinkUnchanged":before==attempt.after});
+            save(&case.root.join("diagnostic-reflection.json"), &error_facts)?;
+            // Inspect actual state independently; an error alone proves no absence of effects.
+            require(
+                before == attempt.after,
+                "malformed-definition error had changed filesystem effects; no retry/rollback",
+            )?;
+            let reread = attempt.reread?;
+            creation_absent(&reread, case)?;
+            require(
+                reread["config"] == first["config"] && layer_version(&reread, case)? == version,
+                "malformed definition changed actual reread",
+            )?;
+            Ok(
+                json!({"status":"actual-malformed-whole-definition-refused","reflection":error_facts,"actualRereadUnchanged":true,"writeAttempts":1,"retry":false,
+            "publicSummary":"Provider creation was refused; native diagnostic withheld.","limit":"one invented-only error reflection observation, no general nonreflection or implemented App privacy guarantee"}),
+            )
+        },
+    )
+}
+fn provider_creation_positive(input: &Input, proof: &Path) -> Result<()> {
+    creation_case(input, proof, "absent-replace", |case, native| {
+        let first = native.read(case)?;
+        creation_absent(&first, case)?;
+        let v1 = layer_version(&first, case)?;
+        let before = creation_state(case);
+        save(&case.root.join("before-write.json"), &before)?;
+        require(
+            before["target"]["semantics"]["model_providers"]
+                .as_object()
+                .is_some_and(|m| !m.contains_key(CREATION_ID)),
+            "fixture file did not prove literal ID absent",
+        )?;
+        let definition = creation_definition();
+        let attempt = creation_attempt(case, native, &v1, definition.clone())?;
+        let reply = attempt.reply?;
+        let reread = attempt.reread?;
+        if reply.get("error").is_some() {
+            error_frame(&reply)?;
+            save(
+                &case.root.join("refusal.json"),
+                &json!({"nativeError":reply["error"],"fileUnchanged":before==attempt.after,"actualReread":reread,"upsertAttempted":false}),
+            )?;
+            return Err("whole-definition replace genuinely refused; no creation warrant or same-case fallback".into());
+        }
+        let result = accepted_write(&reply, case)?;
+        creation_matches(&before, &attempt.after, &first, &reread, case, &definition)?;
+        let v2 = layer_version(&reread, case)?;
+        require(
+            result["version"] == v2 && v2 != v1,
+            "creation acknowledgement and actual reread versions differ",
+        )?;
+        require(
+            result["status"] == "ok" && result["overriddenMetadata"].is_null(),
+            "creation baseline unexpectedly overridden",
+        )?;
+        Ok(
+            json!({"status":"actual-absent-provider-created","userAndEffectiveAbsenceBefore":true,"exactQuotedProviderId":CREATION_ID,"keyPath":CREATION_KEY,"requestedObject":definition,
+            "writeResponse":result,"nativeVersionBefore":v1,"nativeVersionAfter":v2,"receivingLinkUnchanged":true,"targetInodeReplaced":before["target"]["inode"]!=attempt.after["target"]["inode"],
+            "targetModeBefore":before["target"]["mode"],"targetModeAfter":attempt.after["target"]["mode"],"siblingsSelectionModelAndOtherSettingsPreserved":true,"writeAttempts":1,"replay":false,
+            "limit":"supplier contract only; no App adoption, create-only primitive, person act, provenance, filesystem CAS or atomic target/profile commit"}),
+        )
+    })
+}
+
+#[test]
+#[ignore = "actual provider creation supplier case: separate opt-in plus bound input; never ordinary CI"]
+fn stock_linked_provider_creation_contract() {
+    require(
+        std::env::var("CHIRALITY_PROVIDER_CREATION_CONTRACT").as_deref()
+            == Ok("stock-0.160-invented-only"),
+        "NOT RUN: set CHIRALITY_PROVIDER_CREATION_CONTRACT=stock-0.160-invented-only explicitly",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let selection =
+        std::env::var("CHIRALITY_PROVIDER_CREATION_CASES").unwrap_or_else(|_| "all".into());
+    require(
+        matches!(
+            selection.as_str(),
+            "all" | "positive" | "remaining" | "existing-and-malformed"
+        ),
+        "NOT RUN: creation cases must be all, positive, remaining or existing-and-malformed",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let input = Input::guarded().unwrap_or_else(|e| panic!("{e}"));
+    let proof = fresh_root().expect("private provider-creation proof root");
+    eprintln!(
+        "private provider-creation contract root: {}; cases={selection}",
+        proof.display()
+    );
+    save(&proof.join("input.json"),&json!({"root":input.root,"binary":input.binary,"binarySha256":BINARY_SHA,"archiveSha256":ARCHIVE_SHA,"bindingRoot":input.binding["root"],"vendorWarrant":input.binding["vendorTree"],
+        "limit":"reused authenticated immutable fullvendor warrant; no inventory, version probe, App, account, server, model or person act"})).unwrap();
+    let result: Result<()> = (|| {
+        if matches!(selection.as_str(), "all" | "positive") {
+            provider_creation_positive(&input, &proof)?;
+        }
+        if selection != "positive" {
+            if selection != "existing-and-malformed" {
+                provider_creation_stale(&input, &proof)?;
+            }
+            provider_creation_existing(&input, &proof)?;
+            provider_creation_malformed(&input, &proof)?;
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        save(&proof.join("obstacle.json"),&json!({"condition":e,"result":"creation contract unestablished; inspect owned effects; never replay"})).unwrap();
+        panic!("provider-creation contract unestablished; private diagnostic withheld");
+    }
+    eprintln!("selected provider-creation observations retained privately; no product/person/qualification claim");
+}

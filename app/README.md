@@ -1069,6 +1069,47 @@ are isolated native contract effects, not App/person configuration acts,
 loaded-thread reload behavior, account/server or start-up traffic qualification,
 an implemented privacy guarantee, acceptance or release.
 
+The separate ignored `stock_linked_provider_creation_contract` uses the same
+immutable input guard and fresh private build/case isolation. It adds its own
+opt-in flag, so enabling the original five-case entry alone does not enable
+creation. With a newly prepared `CONTRACT_BUILD_ROOT` as above, run from `app/`:
+
+```sh
+env -i PATH="$RUST_1971_BIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+  HOME="$CONTRACT_BUILD_ROOT/os-home" CODEX_HOME="$CONTRACT_BUILD_ROOT/codex-home" \
+  TMPDIR="$CONTRACT_BUILD_ROOT/tmp" CARGO_HOME="$CONTRACT_BUILD_ROOT/cargo-home" \
+  CARGO_TARGET_DIR="$CONTRACT_BUILD_ROOT/target" CARGO_NET_OFFLINE=true \
+  CHIRALITY_SKIP_CODEX=1 \
+  CHIRALITY_PROVIDER_CREATION_CONTRACT=stock-0.160-invented-only \
+  CHIRALITY_CONFIG_WRITE_CONTRACT=stock-0.160-invented-only \
+  CHIRALITY_CONFIG_WRITE_INPUT="$NEW_STOCK_ROOT" \
+  CHIRALITY_CONFIG_WRITE_BINDING_SHA256="$HANDED_OFF_BINDING_SHA256" \
+  cargo test --offline --locked --manifest-path src-tauri/Cargo.toml \
+    --test config_write_contract stock_linked_provider_creation_contract \
+    -- --ignored --exact --nocapture --test-threads=1
+```
+
+`CHIRALITY_PROVIDER_CREATION_CASES` defaults to `all` (four fresh cases, one
+write each). `positive`, `remaining`, or `existing-and-malformed` selects only
+those cases; unselected cases establish no result. No case retries a write.
+Missing opt-in/input fails before supplier lookup or case-home creation.
+Compilation alone uses the earlier `--no-run` route without the opt-in/input
+assignments. The original five-case entry is not run by this invocation.
+
+The actual absent-ID case created the single quoted dotted ID with the exact
+four-field definition in the user layer and supplier defaults in the effective
+row. The real stale-version control preserved an external same-ID insertion;
+the existing-ID fresh-version control accepted replacement, demonstrating no
+create-only protection in this operation. The malformed-object control was
+refused with independently unchanged file/link/reread state. Successful writes
+preserved the receiving link but replaced the target inode; target mode was
+preserved. The absent case retained its preexisting byte prefix/comments with
+a table appended, without establishing general byte preservation. Raw versions,
+paths, diagnostics and notifications remain private. These observations neither
+implement Add nor establish person intent, App source admission, writer
+provenance, arbitrary-writer exclusion, filesystem CAS, an atomic target/profile
+commit or qualification. Current Q-8/F-A3 receiving limits still apply.
+
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture
 failure/recovery, ordering, namespace and provenance negatives. With no supplier
