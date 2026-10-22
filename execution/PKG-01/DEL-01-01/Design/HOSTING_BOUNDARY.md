@@ -456,6 +456,49 @@ or restart names the home it applies to.
 
 ### 4.2 Operating sequence: start
 
+**Current input supply.** Root accepts either the complete explicit native
+environment route or an explicit desktop request, never a field merge. Any
+startup environment input (supplier binary/home, workspace, key/shared paths,
+development assertion/opt-in or successor selection) selects the environment
+route, including incomplete or invalid inputs and their existing errors. It
+does not fall back to a saved account or project. The initial skeleton's
+environment-only comment expressed explicit inputs and no private built-in
+path; the desktop adapter supplies a second explicit source.
+
+Without those environment inputs, `desktop_startup.rs` reads only the private,
+bounded `desktop-startup/request.json` under Tauri's actual resolved App-data
+root. The request stores native location/object references and the explicit
+unqualified owner-use bundled-supplier selection, not credentials, account or
+model/provider choices, qualification, admission receipts or lock ownership.
+Setup previews the new account directory and three link effects, then the
+person's native action uses the create-only `OwnedHomePlan` and saves only a
+pending request. An absent project is explicit. Saving never replaces the live
+Root tuple, quits, restarts, signs in or starts a conversation.
+
+A fresh process checks receiving/source identity, types, aliases and namespace
+relationships before binding one HostConfig/project/home/bootstrap tuple for
+records, attachments, recovery and capabilities. It retains nonblocking inode
+locks on the actual App-data/profile directories and the receiving home,
+rechecking descriptor/path identity; no replaceable lock file or serialized
+claim supplies custody. Contention, stale receiving/source identity, an
+incomplete request or overlap returns setup with **no operational App-data,
+project or home admission**, including no records-override escape. The local
+setup controller keeps its separate protected input/save capability. These
+leases exclude participating binders; arbitrary third-party/environment
+clients that do not take them are not claimed excluded. The environment route
+does not acquire desktop leases.
+
+An explicitly supplied but absent/unavailable shared resource remains a source
+limit (ACCESS §5.5 CL-2/CL-5 and Q-1), not a home-start veto or an own-config
+fallback. Its existing namespace-dependent persistence features can remain
+unavailable. Reference validation reads metadata/paths, never native credential
+or configuration contents, and establishes no native discovery proof. The
+debug owner-use route names exactly the bundled `codex/bin/codex`, retains the
+existing label/generated-reference/binary-assertion checks and reports
+`unverified-development`; byte identity is not authenticated qualification.
+Desktop input cannot enable a synthetic anchor or development fallback in the
+compiled production successor, whose installed-custody refusal is unchanged.
+
 1. **Resolve** the supplier distribution the App candidate declares as its
    pinned supplier, and the launcher (U-17; location is a packaging concern,
    DEL-01-06).

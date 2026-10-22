@@ -201,6 +201,36 @@ closure, R12-7, reasons the same way for hosts).
 
 ## 3. Codex homes
 
+**Current desktop setup.** With no explicit startup environment route, the App
+shows setup until the person has prepared a new account home and saved an
+explicit request. The native setup previews a fresh directory under the actual
+resolved App-data `account-homes/` root, the config/AGENTS/skills links and the
+private pending-request location. Each shared path is supplied by the person;
+there is no discovery or import of `~/.codex`, auth, tokens or configuration
+contents, existing-home adoption, relink or silent own-config fallback. Native
+file/folder pickers preserve lossless path references; a person may type an
+absolute path to an absent target. This metadata observation is distinct from
+Codex's later discovery/content reads. CL-2/CL-5/CL-6 and Q-1 remain applicable:
+an explicit missing target is shown, while the home may start and affected
+namespace/persistence features report their limits.
+
+The saved request contains only nonsecret location/object references, an
+explicit project or its absence, and unqualified bundled owner-use supplier
+selection. It stores no sign-in/account identity, credentials, model/provider
+choice or trust receipt. Before the next launch binds operational consumers,
+Root revalidates the receiving home and source relationships and holds actual
+App-data/profile/home inode leases. A replacement, overlap, incomplete request
+or competing participating owner returns setup without operational Root data;
+the protected setup controller remains separate. This makes no exclusion claim
+for third-party/environment clients that do not participate in the lease
+protocol. Explicit environment startup remains exclusive, including errors.
+Preparation/save applies on the next process launch and preserves the current
+account/home, project, recovery, records, attachment selections, model/provider
+choice and prepared composers. It does not quit/restart, sign in, select a model
+or start a conversation. H-key setup and native sign-in retain their existing
+separate controls; desktop setup adds no account/provider default or new access
+mode qualification.
+
 The decision record's mechanism M-A, **observed to work at 0.158.0** (OBS-2
 O-6 M1: a second home whose `config.toml` is a symbolic link to the first's
 reads the first's values, the user layer is named by the second home's path,

@@ -51,6 +51,29 @@ The product label is Chirality App v4 (development candidate), version 0.0.0,
 identifier dev.chirality.app-v4.skeleton. No microphone usage string is requested.
 The production identifier and minimum OS decisions remain with their owners.
 
+When an authorized owner later opens this debug bundle without startup
+environment inputs, **Desktop setup** supplies the missing explicit inputs.
+Choose the three shared resource references and an explicit project or no
+project, then explicitly select the unqualified bundled supplier. Review the
+new App-data account directory, link and private request effects before the
+native **Prepare home and save for next launch** action. No credentials are
+imported and no existing home is adopted. An explicitly absent shared target is
+shown as unavailable; it is not silently copied or replaced by own config.
+The controls show the exact bundled `Contents/Resources/codex/bin/codex` source
+as resolved by Tauri. This owner-use development selection retains the existing
+label/generated-reference/binary assertion checks and cannot confer supplier
+qualification or weaken the production successor's installed-custody refusal.
+
+Save affects the next process launch only. The current workspace/home,
+records/recovery, attachments, model choice and prepared composers remain in
+place. Quit normally when ready and open again; setup performs no automatic
+quit, restart, sign-in or conversation start. Fresh startup revalidates the
+private request and actual source identities/relationships, then holds
+nonblocking App-data/profile/home inode leases. Invalid or competing sources
+return setup with no operational Root-data admission. The full explicit
+environment route remains exclusive, including incomplete/invalid inputs.
+This describes source behavior, not an actual Finder/install/launch witness.
+
 A physical P0–P4 candidate remains unsigned and unqualified. The ordinary route
 does not package the compiled attested S3 closure; the separate attested-reference
 route below supplies its mapping. Installed custody and the actual H3B package

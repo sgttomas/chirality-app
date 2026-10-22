@@ -1051,6 +1051,37 @@ relative to the project.
 
 ## Run the development App
 
+An owner-use debug bundle can obtain explicit inputs through **Desktop setup**
+when no startup environment inputs are present. Choose the three shared
+config.toml, AGENTS.md and skills references (an absolute absent-target path is
+allowed), explicitly choose a project or **No project**, and explicitly select
+the bundled unqualified development supplier. **Review setup effects** shows
+the new App-owned account directory, links and private request path under the
+actual resolved Tauri App-data root. **Prepare home and save for next launch**
+opens the native question and performs create-only preparation; it imports no
+credentials and adopts no existing home. Missing/broken resources remain shown
+without a silent configuration fallback; dependent persistence features can be
+unavailable.
+
+The saved request is pending only. Quit normally when ready and launch again;
+saving does not quit/restart or change the active project, home, account/model
+choices, recovery, attachments or prepared text. A fresh launch revalidates the
+requested sources and takes nonblocking, process-held App-data/profile/home
+inode leases before operational consumers bind. A missing/invalid request,
+replacement, overlap or custody conflict returns to setup without operational
+Root data. These leases coordinate participating App binders, not arbitrary
+third-party clients. Setup persists only nonsecret native references and the
+explicit unqualified supplier selection in private bounded atomic storage.
+It never saves credentials, model/provider choices, trust or a claimed lease.
+The exact bundled supplier path and standing are shown; matching label,
+generated reference and binary bytes do not authenticate or qualify it.
+
+The existing environment route below remains complete and exclusive. Any
+startup supplier/home/project/key/shared/development input selects it, even if
+incomplete or invalid; there is no fallback or field merge from saved desktop
+requests. A compiled production successor continues to refuse without its
+installed-custody issuer, regardless of a desktop development selection.
+
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,

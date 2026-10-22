@@ -43,6 +43,7 @@ pub mod distribution_semantics;
 mod distribution_store;
 mod distribution_s1;
 pub mod home_resources;
+mod desktop_startup;
 pub mod native_items;
 pub mod native_history;
 pub mod role_lifecycle;
@@ -100,6 +101,7 @@ use tauri::{Manager, State};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 pub struct AppState {
+    desktop_setup: Option<Arc<Mutex<desktop_startup::DesktopSetup>>>,
     compiled_development_selection: Value,
     connector_sources: Mutex<connector_source::Session>,
     connector_drafts: Mutex<connector_materialization::Registry>,
@@ -138,6 +140,7 @@ pub struct AppState {
 
 impl AppState {
     fn validate_home_source(&self,home:&runtime_session::HomeSession)->Result<(),String>{
+        if let Some(desktop) = &self.desktop_setup { desktop.try_lock().map_err(|_|"Desktop setup busy; no new start")?.recheck_active()?; }
         match &*self.home_bootstrap.lock().unwrap(){
             Ok(set)=>set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?),
             Err(_) if home.class()==home_resources::HomeClass::Account=>Ok(()),
@@ -151,22 +154,61 @@ fn probe_home() -> Result<PathBuf,String> {
     runtime_session::allocate_fresh_probe(&std::env::temp_dir())
 }
 
-/// Configuration comes only from the environment; no path is built in (owner rule).
+/// Complete explicit environment route; no private supplier/home path is built in.
+/// Desktop requests are a separate exclusive source, resolved before Root binding.
 pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    let bin = std::env::var_os("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
+    host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
+}
+
+fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
+    let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
-    let home = std::env::var_os("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
+    let home = input("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
     let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
-    let mut cfg = HostConfig::new(bin.into(), home.into(), probe_home()?, cwd);
+    let mut cfg = HostConfig::new(bin.into(), home.into(), probe()?, cwd);
     cfg.records_project=workspace.is_some();
-    cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
-    cfg.allow_unverified_dev = std::env::var("CHIRALITY_ALLOW_UNVERIFIED")
-        .map(|v| v == "1")
-        .unwrap_or(false);
+    cfg.expected_sha256 = input("CHIRALITY_CODEX_EXPECTED_SHA256").and_then(|v|v.into_string().ok());
+    cfg.allow_unverified_dev = input("CHIRALITY_ALLOW_UNVERIFIED").is_some_and(|v|v == "1");
     Ok(cfg)
+}
+
+fn desktop_controller(state: &AppState) -> Result<Arc<Mutex<desktop_startup::DesktopSetup>>, String> {
+    state.desktop_setup.clone().ok_or("Desktop setup controller unavailable".into())
+}
+#[tauri::command(async)]
+fn desktop_setup_pick(app: tauri::AppHandle, kind: String) -> Result<Value, String> {
+    let file = match kind.as_str() {
+        "config" => app.dialog().file().set_title("Choose the explicit shared config.toml reference").blocking_pick_file(),
+        "agents" => app.dialog().file().set_title("Choose the explicit shared AGENTS.md reference").blocking_pick_file(),
+        "skills" => app.dialog().file().set_title("Choose the explicit shared skills directory reference").blocking_pick_folder(),
+        "project" => app.dialog().file().set_title("Choose the project for the next App launch").blocking_pick_folder(),
+        _ => return Err("Unknown desktop setup location".into()),
+    };
+    file.map(|file|file.into_path().map(|path|json!({"displayPath":path.display().to_string(),"nativePath":attachments::native_path_identity(&path)})).map_err(|e|format!("Selected location is not a native filesystem path: {e}"))).transpose().map(|p|p.unwrap_or(Value::Null))
+}
+#[tauri::command(async)]
+fn desktop_setup_preview(state: State<'_, AppState>, shared_paths: [Value; 3], project_path: Option<Value>, supplier_selection: String) -> Result<Value, String> {
+    let [config, agents, skills] = shared_paths.map(desktop_startup::explicit_path);
+    let controller = desktop_controller(&state)?;
+    let result = controller.try_lock().map_err(|_|"Desktop setup busy; retry explicitly")?.preview([config?, agents?, skills?], project_path.map(desktop_startup::explicit_path).transpose()?, &supplier_selection);
+    result
+}
+#[tauri::command(async)]
+fn desktop_setup_prepare(app: tauri::AppHandle, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
+    let controller = desktop_controller(&state)?;
+    let statement = controller.try_lock().map_err(|_|"Desktop setup busy")?.preview_statement(&preview_token)?;
+    let content = json!({"effects":statement});
+    let statement = act_control::native_statement::whole_or_in_app("Desktop setup", "desktop setup effects", statement, &content,
+        |digest|format!("Prepare the NEW account home and save the pending request. Complete directory/link effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only."));
+    let mut refused = None;
+    if !confirm_choice(&app, "Desktop setup — next launch only", statement, "Leave setup unchanged", "Prepare home and save for next launch", &mut refused) {
+        return refused.map_or_else(||Ok(json!({"state":"cancelled; no setup paths or saved request changed"})), Err);
+    }
+    let result = controller.try_lock().map_err(|_|"Desktop setup busy after native question; preview again")?.prepare_and_save(&preview_token);
+    result
 }
 
 /// Person-requested metadata read. No Root guard spans Host/queue observation,
@@ -229,6 +271,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
+    s["desktopSetup"] = state.desktop_setup.as_ref().map(|d|d.lock().unwrap().view()).unwrap_or(Value::Null);
     // Native commands and the per-home Rust tick reconcile private receipts.
     // Status projects the last received history; polling does not write role
     // observations or admit a genuinely late native outcome.
@@ -260,6 +303,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["nativeNamespaces"] = match &*state.native_namespaces.lock().unwrap(){Ok(binding)=>binding.snapshot(),Err(error)=>json!({"state":"storage namespace closure unavailable","limit":error,"ordinaryNativeOperations":"independent of persistence availability"})};
     s["keyNamespaceAdmission"] = state.key_namespace_admission.lock().unwrap().clone();
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
+    if state.root_home_inputs["source"].as_str().is_some_and(|source|source != "explicit Root native environment path inputs") {
+        s["attachmentSelections"]["launchAppProjectObservation"]["source"] = state.root_home_inputs["source"].clone();
+    }
     {
         let homes = state.homes.lock().unwrap();
         s["homeRouting"] = homes.snapshot();
@@ -1933,9 +1979,176 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+fn explicit_environment_launch(
+    input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
+    probe: impl FnOnce()->Result<PathBuf,String>,
+) -> Option<desktop_startup::Launch> {
+    const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
+    if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
+    let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
+        host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
+            if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
+                cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
+            }
+            Ok(cfg)
+        })
+    } else {
+        (|| {
+            let resources = resources.as_ref().map_err(Clone::clone)?.clone();
+            let data = data.as_ref().map_err(Clone::clone)?.clone();
+            let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
+            Ok(hosting::successor::production_config(resources, home, probe()?, workspace.clone().unwrap_or(data)))
+        })()
+    };
+    let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
+    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+    Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
+}
+
+fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
+    let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
+    let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
+    let project = runtime_session::freeze_configured_project(workspace.as_deref());
+    let project_context_limit = project.as_ref().err().cloned();
+    let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
+    let home = Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),host_config.clone()).expect("account entry"));
+    let state = AppState {
+        desktop_setup: Some(desktop),
+        compiled_development_selection: compiled_selection,
+        connector_sources: Mutex::new(connector_source::Session::default()),
+        connector_drafts: Mutex::new(connector_materialization::Registry::default()),
+        act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
+        workflows: Mutex::new(runtime_session::WorkflowRootSession::default()),
+        file_acts: Mutex::new(file_act_root::FileActRoot::default()),
+        file_act_lapses: Mutex::new(file_act_lapse::Observer::default()),
+        decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
+        workspace: workspace.clone(),
+        person_name: Mutex::new(None),
+        instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
+        app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
+        external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
+        trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
+        attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
+        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
+        native_links: Mutex::new(native_conversation_links::Session::default()),
+        project_context, project_context_limit,
+        homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
+        home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
+        native_namespaces: Mutex::new(namespaces.unwrap_or_else(||Err("Root native namespace bindings not initialized".into()))),
+        key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
+        key_setup: Mutex::new(()),
+        root_home_inputs: json!({"source":source,"keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
+        codex_stop_gate: Mutex::new(()),
+        codex_stops: Mutex::new(Vec::new()),
+        continue_as: Mutex::new(conversation_roles::Handoffs::default()),
+        app_quit: app_quit::AppQuit::default(),
+    };
+    (state, home)
+}
+
+/// One actual consumer join for admitted launch inputs. Desktop refusal gives
+/// every operational consumer an unavailable data root, including records
+/// overrides; the setup controller retains its separate local save capability.
+fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::HomeSession>, data: Result<PathBuf,String>, allow_operational: bool, is_dev: bool, records_override: Option<PathBuf>, key_path: Option<PathBuf>, shared_paths: [Option<PathBuf>; 3]) {
+    let workspace = state.workspace.clone();
+    let host_config = home.host_config.clone();
+    let host = &home.host;
+    // RS §13.8: the App's records store, configured once before any
+    // record is read or written; a store that cannot be used refuses
+    // recording visibly, with no fallback. Opening the project gives it
+    // its identity once (`.chirality/project.json`).
+    {
+        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+
+        records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        if let Some(ws) = workspace.as_ref() {
+            if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
+        }
+    }
+    // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
+    // App data folder, outside every project.
+    if let Ok(data) = data.as_ref() { capture_seal::install(data); installation::install(data); }
+    home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
+    if state.home_bootstrap.lock().unwrap().is_err() { *state.home_bootstrap.lock().unwrap() = (|| {
+        let data=data.as_ref().map_err(Clone::clone)?;
+        let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
+        runtime_session::freeze_root_home_descriptors(data,cfg,key_path.clone(),shared_paths.clone()).map(Arc::new)
+    })(); }
+    // Startup owns this separate writer continuation. Neither decision
+    // view reads nor host/status polling invokes the writer.
+    if let Some(ws) = state.workspace.as_ref() {
+        let mut control = state.act.lock().unwrap();
+        *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
+    }
+    *state.app_user_data_root.lock().unwrap() = data.clone();
+    // RS §13.9 (owner U-STORE-4): the agents' read-only records
+    // capability in the current project. Each read is recorded in the
+    // project's records store folder; the App-wide read log an earlier
+    // build kept in App data stays there unchanged and is shown.
+    if let Some(ws) = state.workspace.as_ref() {
+        let capability = records_access::RecordsCapability::new(ws).map(|capability| match data.as_ref() {
+            Ok(data) => capability.with_legacy_read_log(&data.join("runtime").join("records-reads.jsonl")),
+            Err(_) => capability,
+        });
+        match capability {
+            Ok(capability) => home.host.configure_records_capability_with_context(Arc::new(capability), state.project_context.clone()),
+            Err(reason) => home.host.records_capability_unavailable(reason),
+        }
+    }
+    // WR §3: App-kept draft bases live in the App data folder.
+    if let Ok(data) = data.as_ref() { state.workflows.lock().unwrap().set_app_user_data(data.clone()); }
+    // Current account/probe protection is independent of a bad new key
+    // candidate; do not create/adopt K or replace an existing L binding.
+    let namespaces=if state.native_namespaces.lock().unwrap().is_ok() { state.native_namespaces.lock().unwrap().clone() } else { (|| {
+        let data=data.as_ref().map_err(Clone::clone)?;
+        let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
+        runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
+    })() };
+    *state.native_namespaces.lock().unwrap()=namespaces.clone();
+    let namespace_authority=namespaces.clone().map(hosting::attachment_custody::NamespaceAuthority::new);
+    if let Ok(cfg) = &home.host_config {
+        if cfg.distribution.is_some() {
+            let store = (|| {
+                let data = data.as_ref().map_err(Clone::clone)?;
+                let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
+                let store=match cfg.distribution.as_ref().unwrap() {
+                    hosting::successor::Distribution::Production { resources } => {
+                        let selected=distribution_preflight::selection::Selected::production(&resources.join("distribution-reference"))?;
+                        crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)
+                    },
+                    // A supplied development tree is compared with the same compiled
+                    // selection; an unresolvable closure is reported, never trusted.
+                    hosting::successor::Distribution::Development { .. } => hosting::successor::development_reference_root()
+                        .and_then(|root|distribution_preflight::selection::Selected::production(&root))
+                        .and_then(|selected|crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)),
+                }?;
+                crate::distribution_store::Store::with_authority(store,namespace_authority.clone()?)
+            })();
+            host.configure_distribution_store(store);
+        }
+    }
+    *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_shared(data,namespace_authority.clone()?).map(Arc::new));
+    home.recovery_startup.lock().unwrap().initialize_with_namespaces(
+        &host,
+        data.as_deref().map_err(String::as_str),
+        host_config
+            .as_ref()
+            .ok()
+            .map(|cfg| cfg.codex_home.as_path()),
+        namespaces,
+    );
+    let root = data.clone().and_then(|data| {
+        let root = data.join("instructions");
+        runtime_session::seed_instructions(&root)?;
+        Ok(root)
+    });
+    *state.instructions_root.lock().unwrap() = root;
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let workspace = std::env::var_os("CHIRALITY_WORKSPACE").map(PathBuf::from);
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
@@ -1955,153 +2168,21 @@ pub fn run() {
             let _ = window.minimize();
         })
         .setup(move |app| {
-    let host_config = if tauri::is_dev() || !cfg!(feature = "distribution-successor") {
-        host_config_from_env(workspace.as_ref()).and_then(|mut cfg| {
-            if tauri::is_dev() && std::env::var("CHIRALITY_DISTRIBUTION_SUCCESSOR").as_deref() == Ok("1") {
-                cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
-            }
-            Ok(cfg)
-        })
-    } else {
-        (|| {
-            let resources = app.path().resource_dir().map_err(|e|e.to_string())?;
-            let data = app.path().app_data_dir().map_err(|e|e.to_string())?;
-            let home = std::env::var_os("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            Ok(hosting::successor::production_config(resources, home, probe_home()?, workspace.clone().unwrap_or(data)))
-        })()
-    };
-    let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
-    let project = runtime_session::freeze_configured_project(workspace.as_deref());
-    let project_context_limit = project.as_ref().err().cloned();
-    let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
-    let home = Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),host_config.clone()).expect("account entry"));
-    let key_path = std::env::var_os("CHIRALITY_KEY_HOME").map(PathBuf::from);
-    let shared_paths = ["CHIRALITY_SHARED_CONFIG","CHIRALITY_SHARED_AGENTS","CHIRALITY_SHARED_SKILLS"].map(|key|std::env::var_os(key).map(PathBuf::from));
-    let state = AppState {
-        compiled_development_selection: compiled_development_selection::observe_startup(|| app.path().resource_dir().map_err(|e| e.to_string())),
-        connector_sources: Mutex::new(connector_source::Session::default()),
-        connector_drafts: Mutex::new(connector_materialization::Registry::default()),
-        act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
-        workflows: Mutex::new(runtime_session::WorkflowRootSession::default()),
-        file_acts: Mutex::new(file_act_root::FileActRoot::default()),
-        file_act_lapses: Mutex::new(file_act_lapse::Observer::default()),
-        decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
-        workspace: workspace.clone(),
-        person_name: Mutex::new(None),
-        instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
-        app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
-        external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
-        trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
-        attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
-        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
-        native_links: Mutex::new(native_conversation_links::Session::default()),
-        project_context, project_context_limit,
-        homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
-        home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
-        native_namespaces: Mutex::new(Err("Root native namespace bindings not initialized".into())),
-        key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
-        key_setup: Mutex::new(()),
-        root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
-        codex_stop_gate: Mutex::new(()),
-        codex_stops: Mutex::new(Vec::new()),
-        continue_as: Mutex::new(conversation_roles::Handoffs::default()),
-        app_quit: app_quit::AppQuit::default(),
-    };
+    let data = app.path().app_data_dir().map_err(|e| e.to_string());
+    let resources = app.path().resource_dir().map_err(|e|e.to_string());
+    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
+    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
+    let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
+    let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let host_config = launch.host_config.clone();
+    let key_path = launch.key_path.clone();
+    let shared_paths = launch.shared_paths.clone();
+    let desktop = Arc::new(Mutex::new(desktop));
+    let (state, home) = freeze_startup_state(launch, desktop.clone(), compiled_development_selection::observe_startup(|| resources.clone()));
     let host = Arc::clone(&home.host);
             app.manage(state);
             app.manage(Mutex::new(native_waiting::Registry::default()));
-            let data = app.path().app_data_dir().map_err(|e| e.to_string());
-            // RS §13.8: the App's records store, configured once before any
-            // record is read or written; a store that cannot be used refuses
-            // recording visibly, with no fallback. Opening the project gives it
-            // its identity once (`.chirality/project.json`).
-            {
-                let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
-
-                records_store::configure(records_store::for_app(std::env::var_os(records_store::OVERRIDE_ENV).filter(|p| !p.is_empty()).map(PathBuf::from), data.as_deref().map_err(Clone::clone), tauri::is_dev(), workspace.as_deref(), &codex_homes));
-                if let Some(ws) = workspace.as_ref() {
-                    if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
-                }
-            }
-            // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
-            // App data folder, outside every project.
-            if let Ok(data) = data.as_ref() { capture_seal::install(data); installation::install(data); }
-            let state = app.state::<AppState>();
-            home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
-            *state.home_bootstrap.lock().unwrap() = (|| {
-                let data=data.as_ref().map_err(Clone::clone)?;
-                let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
-                runtime_session::freeze_root_home_descriptors(data,cfg,key_path.clone(),shared_paths.clone()).map(Arc::new)
-            })();
-            // Startup owns this separate writer continuation. Neither decision
-            // view reads nor host/status polling invokes the writer.
-            if let Some(ws) = state.workspace.as_ref() {
-                let mut control = state.act.lock().unwrap();
-                *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
-            }
-            *state.app_user_data_root.lock().unwrap() = data.clone();
-            // RS §13.9 (owner U-STORE-4): the agents' read-only records
-            // capability in the current project. Each read is recorded in the
-            // project's records store folder; the App-wide read log an earlier
-            // build kept in App data stays there unchanged and is shown.
-            if let Some(ws) = state.workspace.as_ref() {
-                let capability = records_access::RecordsCapability::new(ws).map(|capability| match data.as_ref() {
-                    Ok(data) => capability.with_legacy_read_log(&data.join("runtime").join("records-reads.jsonl")),
-                    Err(_) => capability,
-                });
-                match capability {
-                    Ok(capability) => home.host.configure_records_capability_with_context(Arc::new(capability), state.project_context.clone()),
-                    Err(reason) => home.host.records_capability_unavailable(reason),
-                }
-            }
-            // WR §3: App-kept draft bases live in the App data folder.
-            if let Ok(data) = data.as_ref() { state.workflows.lock().unwrap().set_app_user_data(data.clone()); }
-            // Current account/probe protection is independent of a bad new key
-            // candidate; do not create/adopt K or replace an existing L binding.
-            let namespaces=(|| {
-                let data=data.as_ref().map_err(Clone::clone)?;
-                let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
-                runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
-            })();
-            *state.native_namespaces.lock().unwrap()=namespaces.clone();
-            let namespace_authority=namespaces.clone().map(hosting::attachment_custody::NamespaceAuthority::new);
-            if let Ok(cfg) = &home.host_config {
-                if cfg.distribution.is_some() {
-                    let store = (|| {
-                        let data = data.as_ref().map_err(Clone::clone)?;
-                        let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
-                        let store=match cfg.distribution.as_ref().unwrap() {
-                            hosting::successor::Distribution::Production { resources } => {
-                                let selected=distribution_preflight::selection::Selected::production(&resources.join("distribution-reference"))?;
-                                crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)
-                            },
-                            // A supplied development tree is compared with the same compiled
-                            // selection; an unresolvable closure is reported, never trusted.
-                            hosting::successor::Distribution::Development { .. } => hosting::successor::development_reference_root()
-                                .and_then(|root|distribution_preflight::selection::Selected::production(&root))
-                                .and_then(|selected|crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)),
-                        }?;
-                        crate::distribution_store::Store::with_authority(store,namespace_authority.clone()?)
-                    })();
-                    host.configure_distribution_store(store);
-                }
-            }
-            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_shared(data,namespace_authority.clone()?).map(Arc::new));
-            home.recovery_startup.lock().unwrap().initialize_with_namespaces(
-                &host,
-                data.as_deref().map_err(String::as_str),
-                host_config
-                    .as_ref()
-                    .ok()
-                    .map(|cfg| cfg.codex_home.as_path()),
-                namespaces,
-            );
-            let root = data.clone().and_then(|data| {
-                let root = data.join("instructions");
-                runtime_session::seed_instructions(&root)?;
-                Ok(root)
-            });
-            *state.instructions_root.lock().unwrap() = root;
+            initialize_startup_consumers(&app.state::<AppState>(), &home, data.clone(), allow_operational, tauri::is_dev(), std::env::var_os(records_store::OVERRIDE_ENV).filter(|p|!p.is_empty()).map(PathBuf::from), key_path, shared_paths);
             // OI-008: the host keeps its own records on its own tick, whether or
             // not the web view polls host_status.
             {
@@ -2157,7 +2238,7 @@ pub fn run() {
                         &recovery,
                         data.as_deref().map_err(String::as_str),
                         Some(&cfg.codex_home),
-                        || h.start(&cfg, "app-startup"),
+                        || { desktop.lock().map_err(|_|"Desktop custody unavailable")?.recheck_active()?; h.start(&cfg, "app-startup") },
                     );
                 });
             }
@@ -2166,6 +2247,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_prepare,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,
@@ -2257,7 +2339,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
@@ -2342,7 +2424,10 @@ mod bundle_resources_tests {
                     "{}: resource read not declared in bundle.resources: {code}", path.display());
             }
         }
-        assert!(reads >= 4, "the known resource reads were scanned: {reads}");
+        // Instruction root, workflow root and the shared startup resource root.
+        // Startup now passes that same resolved root to compiled selection,
+        // instead of resolving it a second time in the observer callback.
+        assert!(reads >= 3, "the known resource reads were scanned: {reads}");
     }
 }
 

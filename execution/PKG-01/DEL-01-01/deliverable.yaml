@@ -90,6 +90,8 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/src/lib.rs
+- app/src-tauri/src/desktop_startup.rs
 - app/src-tauri/src/hosting_observer_journal.rs
 - app/src-tauri/src/hosting_observer_rebuild.rs
 - app/supplier_checks/recorded_replay.py
@@ -99,6 +101,8 @@ code_paths:
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/model_turn_recorder.rs
 checks:
+- app/src-tauri/src/desktop_startup.rs
+- app/tests/desktop-setup.test.mjs
 - app/src-tauri/src/hosting_observer_journal.rs
 - app/src-tauri/src/hosting_observer_journal_tests.rs
 - app/src-tauri/src/hosting_observer_rebuild_tests.rs

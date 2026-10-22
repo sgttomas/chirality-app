@@ -27,6 +27,7 @@ import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFo
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, revealWorkspaceTarget } from "./DailyWorkspace";
+import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -1612,6 +1613,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           <a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
         </nav>
+        <DesktopSetupPanel view={host?.desktopSetup}/>
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
           const revision = threadChoiceRevision.current;
