@@ -49,6 +49,7 @@ pub(super) enum PrivateConfigPurpose {
     Admission,
     Observation,
     ConfigContinuation,
+    EndpointOffer,
 }
 
 // Publication is deliberately stricter than private operation eligibility.
@@ -369,6 +370,37 @@ fn project_configured_providers(
     Ok(view)
 }
 
+/// An edit offer reuses the public predicate and requires the same user-layer
+/// definition. Neither this metadata nor its token is Start authority.
+pub(super) fn endpoint_offer_fields(
+    read: &PrivateConfigReading,
+    project: &Value,
+    id: &str,
+    draft: &str,
+    token: &str,
+    layer: &Value,
+) -> Result<Value, String> {
+    let rows = project_configured_providers(read, project)?;
+    let row = rows["rows"]
+        .as_array()
+        .and_then(|rows| rows.iter().find(|row| row["id"] == id))
+        .ok_or_else(|| OBSERVATION_LIMIT.to_owned())?;
+    let effective = &read.config["config"]["model_providers"][id];
+    if effective.is_null()
+        || layer["config"]["model_providers"][id] != *effective
+        || public_endpoint(&json!(draft)).is_none()
+    {
+        return Err(OBSERVATION_LIMIT.into());
+    }
+    let view = json!({"token":token,"providerId":id,"label":row["label"],"currentEndpoint":row["endpoint"],"proposedEndpoint":draft,"wireApi":"responses","scope":rows["scope"],"standing":"Configured metadata only; endpoint editing does not choose a provider/model or establish server reachability"});
+    let reflections =
+        PrivateReflections::new(&read.config).map_err(|_| OBSERVATION_LIMIT.to_owned())?;
+    if reflections.excludes_value(&view) {
+        return Err(OBSERVATION_LIMIT.into());
+    }
+    Ok(view)
+}
+
 /// Native errors can quote credential values. Public consumers keep outcome only.
 pub(super) fn withheld(frame: &Value) -> Value {
     let mut safe = json!({"privateConfigWithheld":true});
@@ -638,6 +670,7 @@ impl Host {
                     PrivateConfigPurpose::Observation => json!({"kind":"person-directed","name":"configured-provider-observation"}),
                     PrivateConfigPurpose::Admission => json!({"kind":"app-rule","name":"access-provider-admission"}),
                     PrivateConfigPurpose::ConfigContinuation => json!({"kind":"app-rule","name":"private-config-current-object-observation"}),
+                    PrivateConfigPurpose::EndpointOffer => json!({"kind":"person-directed","name":"provider-endpoint-offer"}),
                 },
                 false,
                 Some(generation),

@@ -1165,6 +1165,7 @@ export function App() {
   const choiceRef = useRef(conversationChoice);
   const reviseChoice = (patch: Partial<typeof emptyConversationChoice>) => {
     if (Object.hasOwn(patch, "modelProvider") || Object.hasOwn(patch, "entryId")) providerRowChoice.current = null;
+    expireEndpointPreview();
     editRevision.current++;
     const previous = choiceRef.current.homeEpoch === chooserHome.current.epoch ? choiceRef.current : emptyConversationChoice;
     const next = { ...previous, ...patch, homeEpoch: chooserHome.current.epoch };
@@ -1180,6 +1181,30 @@ export function App() {
   const homePendingRef = useRef(false);
   const currentHost = useRef(host);
   currentHost.current = host;
+  const endpointRevision = useRef(0);
+  const endpointOperation = useRef(0);
+  const endpointMounted = useRef(true);
+  const endpointBackendObserved = useRef(false);
+  const endpointBusyRef = useRef(false);
+  const [endpointBusy, setEndpointBusy] = useState(false);
+  const [endpointEditor, setEndpointEditor] = useState<Json>(null);
+  const endpointEditorRef = useRef<Json>(null);
+  const updateEndpointEditor = (next: Json) => { endpointEditorRef.current = next; setEndpointEditor(next); };
+  const expireEndpointPreview = () => {
+    endpointRevision.current++;
+    const current = endpointEditorRef.current;
+    if (current) updateEndpointEditor({ ...current, offer: null, message: "Review this endpoint draft again before saving." });
+    if (endpointBackendObserved.current) void invoke("provider_endpoint_discard").catch(() => {});
+  };
+  useEffect(() => {
+    endpointMounted.current = true;
+    return () => { endpointMounted.current = false; endpointRevision.current++; if (endpointBackendObserved.current) void invoke("provider_endpoint_discard").catch(() => {}); };
+  }, []);
+  useEffect(() => {
+    if (host?.providerEndpointEdit && !endpointBackendObserved.current) {
+      endpointBackendObserved.current = true; void invoke("provider_endpoint_discard").catch(() => {});
+    }
+  }, [!!host?.providerEndpointEdit]);
   // HomeSession's effective cwd is frozen with its actual source. The project
   // view and full generation are observed here; the read returns that exact cwd.
   const providerSource = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null]);
@@ -1187,6 +1212,72 @@ export function App() {
     && providerObservation.source === providerSource(host) && providerObservation.epoch === chooserHome.current.epoch
     && providerObservation.sequence === providerReadSequence.current
     && providerObservation.packet.scope.readRevision === host?.configuredProviderReadRevision;
+  const endpointSourceCurrent = (editor: Json) => !!editor && editor.source === providerSource(currentHost.current)
+    && editor.epoch === chooserHome.current.epoch && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
+    && currentHost.current?.homeRouting?.activeModeHomeClass === "account" && !homePendingRef.current && !startPendingRef.current;
+  useEffect(() => {
+    const editor = endpointEditorRef.current;
+    if (editor && !endpointSourceCurrent(editor)) { expireEndpointPreview(); updateEndpointEditor(null); }
+  }, [providerSource(host), homeClass, host?.state, host?.generationClosed, chooserHome.current.epoch]);
+  const openEndpointEditor = (row: Json) => {
+    if (!providerObservationCurrent || currentHost.current?.providerEndpointEdit?.available !== true || endpointBusyRef.current || providerReadPending.current || startPendingRef.current || homePendingRef.current) return;
+    expireEndpointPreview();
+    updateEndpointEditor({ id: row.id, endpoint: row.endpoint, source: providerSource(currentHost.current), epoch: chooserHome.current.epoch, offer: null, message: "Only this existing provider's endpoint can be edited." });
+  };
+  const endpointUrl = (value: unknown) => {
+    if (typeof value !== "string" || value.length > 2048 || !/^[\x21-\x7e]+$/.test(value) || /[@?#\\%]/.test(value)) return false;
+    try { const parsed = new URL(value); return ["http:", "https:"].includes(parsed.protocol) && !!parsed.hostname
+      && !parsed.username && !parsed.password && !parsed.search && !parsed.hash && (parsed.href === value || parsed.href === `${value}/`)
+      && /^[A-Za-z0-9._~/-]*$/.test(parsed.pathname); } catch { return false; }
+  };
+  const reviewEndpoint = async () => {
+    const editor = endpointEditorRef.current;
+    if (!endpointSourceCurrent(editor) || currentHost.current?.providerEndpointEdit?.available !== true || endpointBusyRef.current || providerReadPending.current || !endpointUrl(editor.endpoint)) return;
+    const revision = endpointRevision.current, operation = ++endpointOperation.current;
+    const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.id === editor.id;
+    endpointBusyRef.current = true; setEndpointBusy(true);
+    updateEndpointEditor({ ...editor, offer: null, message: "Reading an edit-specific offer…" });
+    try {
+      const epoch: unknown = await invoke("provider_endpoint_discard");
+      if (!current()) return;
+      if (typeof epoch !== "string" || !epoch) throw Error("Unavailable endpoint checkpoint");
+      const packet: Json = await invoke("provider_endpoint_offer", { generation: currentHost.current.generation, providerId: editor.id, endpoint: editor.endpoint, epoch });
+      if (!current()) return;
+      if (typeof packet?.token !== "string" || packet.providerId !== editor.id || packet.label !== "Configured local provider"
+        || packet.proposedEndpoint !== editor.endpoint || !endpointUrl(packet.currentEndpoint) || packet.wireApi !== "responses"
+        || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
+        || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null)
+        || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Unavailable endpoint offer");
+      const latest: Json = await invoke("host_status");
+      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
+      setHost(latest);
+      updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
+    } catch {
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
+    } finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
+  };
+  const saveEndpoint = async () => {
+    const editor = endpointEditorRef.current;
+    if (!endpointSourceCurrent(editor) || !editor.offer || endpointBusyRef.current || providerReadPending.current) return;
+    const revision = endpointRevision.current, operation = ++endpointOperation.current;
+    const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.id === editor.id;
+    endpointBusyRef.current = true; setEndpointBusy(true);
+    try {
+      const outcome: Json = await invoke("provider_endpoint_save", { token: editor.offer.token });
+      if (!current()) return;
+      const messages: Record<string, string> = {
+        "not-sent": "No endpoint write was sent.",
+        "refused-not-sent": "Endpoint change refused before a write was sent.",
+        "unknown": "Endpoint write outcome unknown. No automatic retry or source continuation.",
+        "write-observed-source-unconfirmed": "Write observed; the current source has not been continued. No automatic retry.",
+        "overridden": "Write observed with an override reported; the current source has not been continued.",
+        "continued": "Endpoint write and current source continuation observed. Current choices and drafts stay unchanged.",
+      };
+      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
+      const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
+    finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
+  };
   const configuredRowChoiceStale = () => {
     const selected = providerRowChoice.current, choice = choiceRef.current, source = currentHost.current;
     return !!selected && choice.modelProvider === selected.id && choice.entryId === "local-provider"
@@ -1197,12 +1288,13 @@ export function App() {
   const rowChoiceStale = configuredRowChoiceStale();
   const readConfiguredProviders = async () => {
     const original = currentHost.current;
-    if (providerReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready"
+    if (endpointBusyRef.current || providerReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready"
       || original?.generationClosed || original?.homeRouting?.activeModeHomeClass !== "account") return;
     const source = providerSource(original), epoch = chooserHome.current.epoch, sequence = ++providerReadSequence.current;
     const current = () => sequence === providerReadSequence.current && epoch === chooserHome.current.epoch
       && source === providerSource(currentHost.current) && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
       && !startPendingRef.current && !homePendingRef.current;
+    expireEndpointPreview();
     providerReadPending.current = true; setProviderReading(true); setProviderObservation(null); setProviderObservationMessage("");
     try {
       const packet: Json = await invoke("read_configured_providers", { generation: original.generation, modeHomeClass: "account" });
@@ -1376,9 +1468,10 @@ export function App() {
     const mode = source?.homeRouting?.activeModeHomeClass;
     const submitted = choiceRef.current;
     const epoch = chooserHome.current.epoch;
-    if (startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
+    if (endpointBusyRef.current || startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
         !submitted.model.trim() || !submitted.modelProvider.trim() || !(mode === "account" || mode === "api-key") ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
+    expireEndpointPreview();
     const revision = editRevision.current;
     forkStartRevision.current++;
     continueStartRevision.current++;
@@ -1733,7 +1826,7 @@ export function App() {
             <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/>
           </p>
           <div aria-label="Configured local providers">
-            <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending}
+            <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
               onClick={readConfiguredProviders}>Read configured local providers</button>
             <p>Explicit metadata read for the selected account home and current project scope. This does not probe servers, list models, authenticate, or admit Start.</p>
             {!providerObservationCurrent && !providerReading && <p>No current configured-provider observation. Read explicitly, or use the independent manual fields.</p>}
@@ -1742,20 +1835,37 @@ export function App() {
               <p>Observed source: Home {providerObservation.packet.scope.generation.home} · App session {providerObservation.packet.scope.generation.appSession} · spawn {providerObservation.packet.scope.generation.spawnCounter} · working folder {providerObservation.packet.scope.cwd}.</p>
               <ul>{providerObservation.packet.rows.map((row: Json) => <li key={row.id}>
                 Configured local provider {row.id} · {row.endpoint} · Responses{" "}
-                <button disabled={providerReading || startPending || homePending} onClick={() => chooseConfiguredProvider(row.id)}>Choose provider {row.id}</button>
+                <button disabled={providerReading || startPending || homePending || endpointBusy} onClick={() => chooseConfiguredProvider(row.id)}>Choose provider {row.id}</button>{" "}
+                <button disabled={providerReading || startPending || homePending || endpointBusy || host?.providerEndpointEdit?.available !== true} onClick={() => openEndpointEditor(row)}>Edit endpoint {row.id}</button>
               </li>)}</ul>
               <p>{providerObservation.packet.rows.length ? "Choosing a row changes only this new conversation's provider and access entry; choose its model separately." : "No publishable local-provider metadata was established."}</p>
               <p>{providerObservation.packet.limit}</p>
             </>}
+            {providerObservationCurrent && host?.providerEndpointEdit?.available !== true && <p>Endpoint editing is unavailable for this source. Manual conversation choices remain independent.</p>}
+            {endpointEditor && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider endpoint editor">
+              <p>Configured local provider {endpointEditor.id}. Endpoint only; this does not choose a provider/model or start a conversation.</p>
+              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={event => {
+                expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: event.target.value, offer: null, message: "Review this endpoint draft before saving." });
+              }}/></label>
+              <button disabled={endpointBusy || providerReading || host?.providerEndpointEdit?.available !== true || !endpointUrl(endpointEditor.endpoint)} onClick={reviewEndpoint}>Review endpoint change</button>
+              {endpointEditor.offer && <>
+                <p>Selected account source: {endpointEditor.offer.scope.generation.home} · working folder {endpointEditor.offer.scope.cwd}</p>
+                <p>Current endpoint: {endpointEditor.offer.currentEndpoint}</p><p>Proposed endpoint: {endpointEditor.offer.proposedEndpoint}</p>
+                <p>This changes your shared Codex configuration, which other Codex clients also read. Existing conversations are not reloaded.</p>
+                <button disabled={endpointBusy || providerReading} onClick={saveEndpoint}>Save endpoint…</button>
+              </>}
+              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
+              <p role="status">{endpointEditor.message}</p>
+            </section>}
             {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
           </div>
           <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
           <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
-          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
+          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || rowChoiceStale}>Start thread</button>
+            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || endpointBusy || rowChoiceStale}>Start thread</button>
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>

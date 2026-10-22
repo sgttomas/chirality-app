@@ -498,10 +498,14 @@ home custody, the original protected profile and receiving entries, and an old
 target descriptor captured before intended replacement. A genuine correlated,
 schema-validated private `config/read` must then identify the same full home/
 generation, effective cwd and canonical user-layer target with its native
-version. A separate injected review must explicitly accept that exact candidate;
+version. A separate review must explicitly accept that exact candidate;
 an ACK, reread, cancellation, unknown result or stale decision cannot do so.
-There is no public command, UI, editor or product config writer for this core.
-Injected fixture acceptance is not a person's act or native-consumption proof.
+The endpoint-only receiver consumes it through a fresh private user-layer offer,
+one confirmed typed write and a separate current-object confirmation. It admits
+the canonical layer path or exactly the held receiving H/config.toml spelling
+after link/descriptor checks around the actual read, without rewriting native
+frames. No other alias, hardlink or implicit target is accepted. Injected fixture
+acceptance is not a person's act or native-consumption proof.
 
 Only the config reference and corresponding protected profile baseline advance.
 The request format, other references, receiving links, H/P and all active
@@ -523,8 +527,17 @@ exact published bytes/object, and rechecks candidate/source before in-memory
 continuation. An uncertain publication blocks continuation without rollback,
 token replay or memory promotion; fresh later admission is a separate fact.
 Native config/version material remains private and transient, with no secret
-fingerprint persisted and no OS-erasure claim. Real person/native confirmation
-and product-writer wiring remain future work under ACCESS I-2/Q-8/U-R3.
+fingerprint persisted and no OS-erasure claim. The endpoint writer reduces its
+parameters before SourceRequest construction and its complete native outcomes
+before public evidence/journal/REC/record/replay taps. Only its private typed
+context can send config/batchWrite; generic configuration writes refuse.
+The actual IPC window supplies both parent handles for two separate Info
+questions, with main-thread presentation/revalidation and worker-only waiting.
+Default/cancel/nonexact answers authorize nothing; a postwrite cancellation
+does not undo or deny an observed write. Native error/timeout/source loss or
+uncertainty triggers no retry, rollback, reload or automatic continuation.
+Actual person/native consumption and qualification remain unverified under
+ACCESS I-2/Q-8/U-R3.
 
 The setup command receives its actual invoking `tauri::Window` from IPC.
 `desktop_setup_confirmation.rs` caches both successful window and display

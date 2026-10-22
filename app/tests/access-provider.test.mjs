@@ -66,6 +66,7 @@ async function mountedChooser(native, handler, check, extra={}) {
   if(command==='host_status')return structuredClone(snapshot);
   if(command==='decision_view')return {rows:[]};
   if(command==='native_confirmation_content')return [];
+  if(command==='provider_endpoint_discard' && handler.endpointCleanup!==true)return null;
   return handler(command,args,{get snapshot(){return snapshot;},setSnapshot});
  });
  const intervals=new Map(),previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};let timer=0;
@@ -216,5 +217,103 @@ test('pending Start and pending observation reject retained opposite-action call
   await React.act(async()=>{await oldRead();});assert.equal(calls.filter(call=>call.command==='read_configured_providers').length,1);
   await React.act(async()=>{releaseStart();await start;});
   assert.match(c.textContent,/outcome unknown/);assert.equal(props(button(c,'Start thread')).disabled,false);
+ });}finally{await native.close();}
+});
+
+async function endpointPeer(mode='ok') {
+ const directory=mkdtempSync(`${out}/endpoint-`);let sequence=0,ended=false,output='';
+ const child=spawn('cargo',['test','--offline','--locked','--lib','access_provider_endpoint_mounted_join','--','--test-threads=1'],{cwd:new URL('src-tauri/',app),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CARGO_NET_OFFLINE:'true',CHIRALITY_ENDPOINT_JOIN:directory,CHIRALITY_ENDPOINT_MODE:mode},stdio:['ignore','pipe','pipe']});
+ child.stdout.on('data',data=>output+=data);child.stderr.on('data',data=>output+=data);
+ const exited=new Promise(resolve=>child.on('close',code=>{ended=true;resolve(code);}));
+ const read=async name=>{const deadline=Date.now()+120000;while(!existsSync(`${directory}/${name}`)){assert.equal(ended,false,output);assert.ok(Date.now()<deadline,`endpoint fixture timeout ${name}`);await new Promise(resolve=>setTimeout(resolve,5));}const packet=JSON.parse(readFileSync(`${directory}/${name}`,'utf8'));assert.doesNotMatch(JSON.stringify(packet),/INVENTED_PRIVATE/);return packet;};
+ const send=(command,args)=>{const id=sequence++;writeFileSync(`${directory}/input.tmp`,JSON.stringify({command,args}));renameSync(`${directory}/input.tmp`,`${directory}/command-${id}.json`);return id;};
+ return {initial:await read('ready.json'),async call(command,args){return read(`response-${send(command,args)}.json`);},async close(){if(!ended)send('finish',{});assert.equal(await exited,0,output);rmSync(directory,{recursive:true});}};
+}
+const endpointHandler = native => Object.assign(async(command,args,view) => {
+ assert.ok(['read_configured_providers','provider_endpoint_offer','provider_endpoint_save','provider_endpoint_discard','thread_start'].includes(command),command);
+ const packet=await native.call(command,args);if(command!=='provider_endpoint_discard')view.setSnapshot({...view.snapshot,...packet.host,roleSet:view.snapshot.roleSet,roleLimits:view.snapshot.roleLimits});
+ if(!packet.response.ok)throw Error(packet.response.error);return packet.response.value;
+},{endpointCleanup:true});
+const endpointRequests = snapshot => snapshot.clientRequests.filter(r=>r.method==='config/batchWrite');
+
+test('actual private endpoint offer/write/two decisions join mounted editor and fresh Root consumers without choosing or starting',async()=>{
+ const native=await endpointPeer();
+ try {await mountedChooser(native,endpointHandler(native),async(c,calls,view)=>{
+  const model=labelled(c,'input','Model '),provider=labelled(c,'input','Configured Codex provider ');
+  await change(model,'person-model');await change(provider,'manual-provider');await change(labelled(c,'select','Access entry '),'local-provider');
+  const conversation=c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
+  await change(labelled(conversation,'textarea','Text '),'Unsent endpoint fixture quartz');
+  assert.equal(calls.filter(call=>call.command==='provider_endpoint_offer').length,0);
+  await press(c,'Read configured local providers');await press(c,'Edit endpoint fixture.dot');
+  assert.equal(calls.filter(call=>call.command==='provider_endpoint_offer').length,0,'opening the draft does not read native configuration');
+  await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');
+  await press(c,'Review endpoint change');
+  assert.equal(calls.filter(call=>call.command==='provider_endpoint_offer').length,1);
+  assert.equal(endpointRequests(view.snapshot).length,0);
+  assert.match(region(c,'Provider endpoint editor').textContent,/Current endpoint: https:\/\/example.invalid\/old/);
+  await press(c,'Save endpoint…');
+  assert.equal(endpointRequests(view.snapshot).length,1);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,3);
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
+  assert.match(region(c,'Provider endpoint editor').textContent,/current source continuation observed/);
+  assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'manual-provider');assert.equal(props(labelled(c,'select','Access entry ')).value,'local-provider');
+  assert.equal(props(labelled(conversation,'textarea','Text ')).value,'Unsent endpoint fixture quartz');assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE/);
+  await change(labelled(c,'input','Configured Codex provider '),'fixture.dot');await press(c,'Start thread');
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,4,'explicit later Start reads current configuration again');
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,1);assert.equal(endpointRequests(view.snapshot).length,1);
+ });}finally{await native.close();}
+});
+
+for(const mode of ['cancel-before','cancel-after','error','timeout','override','ack-link-missing','ack-target-missing','override-link-missing','override-reread-timeout','override-reread-error'])test(`mounted endpoint ${mode} preserves choices and honest outcome without replay`,async()=>{
+ const native=await endpointPeer(mode);
+ try {await mountedChooser(native,endpointHandler(native),async(c,calls,view)=>{
+  await change(labelled(c,'input','Model '),'person-model');await change(labelled(c,'input','Configured Codex provider '),'manual-provider');
+  await press(c,'Read configured local providers');await press(c,'Edit endpoint fixture.dot');await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');await press(c,'Review endpoint change');await press(c,'Save endpoint…');
+  assert.equal(endpointRequests(view.snapshot).length,mode==='cancel-before'?0:1);
+  const text=region(c,'Provider endpoint editor').textContent;
+  assert.match(text,mode==='cancel-before'?/No endpoint write was sent/:mode==='override'||mode.startsWith('override-')?/override reported/:mode==='cancel-after'||mode.startsWith('ack-')?/source has not been continued/:/outcome unknown/);
+  if(mode==='override'||mode.startsWith('override-'))assert.match(text,/source has not been continued/);
+  assert.equal(button(c,'Save endpoint…'),undefined);assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'manual-provider');
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE/);
+ });}finally{await native.close();}
+});
+
+test('late actual endpoint offer cannot survive newer chooser input or erase its value',async()=>{
+ const native=await endpointPeer();let release,offered,waiting;
+ const held=new Promise(resolve=>release=resolve),started=new Promise(resolve=>waiting=resolve);
+ const base=endpointHandler(native);
+ const handler=Object.assign(async(command,args,view)=>{const result=await base(command,args,view);if(command==='provider_endpoint_offer'){offered=result;waiting();await held;}return result;},{endpointCleanup:true});
+ try{await mountedChooser(native,handler,async(c,calls,view)=>{
+  await press(c,'Read configured local providers');await press(c,'Edit endpoint fixture.dot');await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');
+  let pending;await React.act(async()=>{pending=props(button(c,'Review endpoint change')).onClick();await started;});
+  await change(labelled(c,'input','Model '),'newer-person-model');
+  await React.act(async()=>{release();await pending;});
+  assert.equal(button(c,'Save endpoint…'),undefined);assert.equal(props(labelled(c,'input','Model ')).value,'newer-person-model');
+  assert.equal(props(labelled(c,'input','Endpoint URL ')).value,'https://example.invalid/new');
+  const replay=await native.call('provider_endpoint_save',{token:offered.token});assert.equal(replay.response.ok,false);assert.equal(endpointRequests(replay.host).length,0);
+ });}finally{release();await native.close();}
+});
+
+test('endpoint editor cannot transfer a pending row or callback across chooser away/back',async()=>{
+ const native=await endpointPeer();
+ try{await mountedChooser(native,endpointHandler(native),async(c,calls,view)=>{
+  await press(c,'Read configured local providers');await press(c,'Edit endpoint fixture.dot');await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');await press(c,'Review endpoint change');
+  const old=view.snapshot;
+  view.setSnapshot({...old,homeRouting:{...old.homeRouting,activeModeHomeClass:'api-key'}});await view.refresh();
+  view.setSnapshot(old);await view.refresh();
+  assert.equal(region(c,'Provider endpoint editor'),undefined);assert.equal(button(c,'Save endpoint…'),undefined);
+  assert.equal(endpointRequests(view.snapshot).length,0);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
+ });}finally{await native.close();}
+});
+
+test('continued endpoint source does not admit Start from its offer or reread when the next actual private configuration is credentialed',async()=>{
+ const native=await endpointPeer('start-credentialed');
+ try{await mountedChooser(native,endpointHandler(native),async(c,calls,view)=>{
+  await change(labelled(c,'input','Model '),'person-model');await change(labelled(c,'input','Configured Codex provider '),'fixture.dot');await change(labelled(c,'select','Access entry '),'local-provider');
+  await press(c,'Read configured local providers');await press(c,'Edit endpoint fixture.dot');await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');await press(c,'Review endpoint change');await press(c,'Save endpoint…');
+  assert.match(region(c,'Provider endpoint editor').textContent,/current source continuation observed/);
+  await press(c,'Start thread');
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,4);
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
+  assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'fixture.dot');assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE/);
  });}finally{await native.close();}
 });

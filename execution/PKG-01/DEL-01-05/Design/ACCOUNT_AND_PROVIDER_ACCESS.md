@@ -157,7 +157,7 @@ the App). An agent may ask the person in conversation; nothing more.
 | ID | Exchange | Supplier → receiver | Condition of use | When the exchange fails |
 |---|---|---|---|---|
 | I-1 | Codex account methods: `account/read`, `account/login/start`, `account/login/cancel`, `account/logout`, `configRequirements/read`; notifications `account/login/completed`, `account/updated`, `modelProvider/authRecoveryStarted`/`Completed` (all stable, `observed-in-generated-types`) | Codex → DEL-01-05, carried by DEL-01-01 S-4 | `ready(g)` of the home's child (HOSTING §4.1) | A request with no response is *unknown* (HOSTING H10); the entry goes to `unknown` and is re-read after the next `ready`; nothing is retried automatically that carries a credential (CR-6) |
-| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. The private reviewed-current-object continuation core has no product-writer or person/native confirmation wiring (F-A3; U-R3) | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
+| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. The endpoint-only receiver uses fresh private offers, one versioned write and separate original-window write/current-object decisions (F-A3; U-R3); actual person/native consumption remains unverified | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
 | I-3 | Conversation start: explicit `modelProvider` and `model` on `thread/start`; per-turn `model` on `turn/start` | DEL-01-05 → DEL-01-01 S-4 | A selection exists (§5.4) | Error response → `start-failed`, no other entry tried (NS-1) |
 | I-4 | Destination class of the chosen entry | DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5 | Per conversation | The class is never inferred from an address; with no selection there is no class (HOSTING §8.3; LOOP N-OPEN-1 closure, applied here by analogy) |
 | I-5 | Access state snapshot and the conversation's selection state (schemas `access.state`, `access.conversation-selection`) | DEL-01-05 → DEL-01-04 (conversation start display, K-3) | On change | A display without a snapshot shows "access state unknown", never a default |
@@ -543,6 +543,50 @@ classification and refusal behavior. Invented-Peer and mounted checks exercise
 the source/privacy/choice/fresh-read join; they establish no actual server,
 native account, substitution or qualification result.
 
+An existing publishable row also offers **Edit endpoint**. Opening its draft
+performs no native read and chooses nothing. **Review endpoint change** obtains
+a fresh private offer for the actually held admitted saved-desktop account,
+full generation and effective cwd. The definition must already exist in the
+identified user layer and match the eligible effective definition; a project/
+session-only provider is unavailable. Only its `base_url` may change. The draft
+uses the same bounded endpoint/publication predicate, including whole-response
+known-private reflection exclusion; native versions, layers, paths, overrides
+and diagnostics are not returned as public configuration data.
+
+Saving requires two separate Info confirmations on the actual IPC-invoking
+window, with both successful handles checked on the main thread. **Leave
+endpoint unchanged** is the prewrite default; only **Write endpoint change**
+permits one explicit canonical-target, native-version-conditioned
+`config/batchWrite`, with one quoted-ID endpoint replacement and
+`reloadUserConfig:false`. A genuine private ACK and reread establish observations,
+not acceptance. **Do not continue source** is the separate postwrite default;
+only **Continue using this configuration**, with the same original window and
+current candidate/source rechecked, can invoke F-A3 readmission. The full
+allowlisted effects or matching named in-App content remain available during
+each question. No unparented or renderer-Boolean acceptance path exists.
+
+The reread must report the intended endpoint and native version at the checked
+target. Private comparisons require the other reported effective/user-layer
+settings to remain unchanged; no private values or fingerprints are published.
+This is not byte preservation or writer provenance. Cancel before sending
+means no App write; cancel after an observed write leaves the source unconfirmed.
+An override is reported only as a fixed status, with its metadata withheld.
+Error, timeout, source loss, uncertain write or publication never triggers
+retry, rollback or synthetic acceptance. Current source guards keep an
+unconfirmed configuration unavailable for new guarded operations.
+
+Edit offers are one-shot and bound to actual home/source/read revision,
+protected profile/receiving custody and editor epoch. Actual home changes
+(including away/back), newer configuration reads, new ordinary Start and
+explicit draft/input invalidation retire their authority. Late failures cannot
+erase newer input or attach an old outcome to another source. Editing changes
+neither provider/model/role choices nor TEXT, prepared messages, loaded threads,
+Root project or other owners. Manual choices remain independent and Start
+still performs its fresh private admission. This adds no add/remove/rename,
+credential entry, server/model/capability probe or general configuration editor.
+Source/mounted injected decisions do not establish a person's act, actual
+native sheet consumption, endpoint availability, qualification or release.
+
 #### Current native provider admission
 
 Ordinary Start, Continue as and a clean trial share the current Rust start
@@ -765,10 +809,12 @@ H-key's threads stay readable from H-key; the App does not delete the home
    than selecting a version by matching text or a client-computed hash.
    The maintained 0.160.0 fixture observed the receiving link surviving an
    explicit-target write while the target inode was replaced (F-A3).
-   Resolve the held-source continuation condition in U-R3 before implementing
-   this product writer; a resolved path is a point-in-time observation.
-   The private F-A3 core exercises separate explicit candidate review with
-   injected decisions; it supplies no Q-8 UI, write consumer or person's act.
+   A resolved path is a point-in-time observation; U-R3 retains the actual
+   native/person consumption and candidate-bound qualification condition.
+   The current receiver implements only an existing eligible user-layer
+   provider's endpoint edit through the F-A3 core and two native decisions.
+   Add/remove/rename, credentials and the other Q-8 editor operations remain
+   outside this implementation. Injected decisions are not a person's act.
    `okOverridden` →
    the overriding layer and effective value are shown. Version conflict →
    nothing retried (I-2).
@@ -1224,15 +1270,29 @@ so nothing was rerun). A
   no rollback, token replay or memory promotion; a fresh later admission is
   separate and cannot retroactively establish transaction success.
 
-  There is no public IPC/UI/editor/config-write consumer or native person
-  confirmation for this core. Its injected fixture decisions are not person
-  witnesses. U-R3 remains open for that product integration and scrutiny;
-  this source work does not close Q-8/I-2, supplier/App qualification or release.
+  The endpoint-only receiver now consumes this core through explicit row
+  editing, a fresh private user-layer offer, typed private batchWrite, and
+  separate original-window write/current-source confirmations (§5.4). It
+  accepts the canonical user-layer spelling or exactly the held receiving
+  H/config.toml link after checking that link and target descriptor around the
+  real read; no other alias or native-frame rewrite is accepted. Request
+  parameters and reply/error/override bodies are reduced before public taps;
+  actual method/ID/write outcomes and separate server-request duties survive.
+  Generic unconfirmed configuration writes are refused. Its injected fixture
+  decisions are not person witnesses. U-R3 remains open for actual native/person
+  consumption and candidate-bound scrutiny; source fixtures do not close
+  Q-8/I-2 qualification or release.
   Raw configuration and native versions retire with the private request/review
   lifetime on completion/error/supersession, without persistence, public
-  fingerprints or an OS-erasure guarantee. The stock contract proof itself
-  does not rebind Root/profile/source identities, relink, weaken checks or
-  perform a product transaction. OBS-2's 0.158.0 linked reads and absence of writes remain
+  fingerprints or an OS-erasure guarantee.
+  Unused offers have a finite private lifetime. Superseded/expired native waits
+  release private operation authority without accepting anything; only their
+  allowlisted effects remain available until the actual question callback ends.
+  One public question gate prevents stacking endpoint confirmations. This does
+  not make expiry a person's cancel or a zero-filesystem-effects witness.
+  The stock contract proof itself does not rebind Root/profile/source identities,
+  relink, weaken checks or perform a product transaction. OBS-2's 0.158.0 linked
+  reads and absence of writes remain
   historical facts. The fixture is automated invented configuration under
   deny-all-network isolation, not an App/person act, account/server result,
   start-up traffic qualification, acceptance or release.
@@ -1513,7 +1573,7 @@ Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
 | U-A14 | Whether Codex follows a linked global `AGENTS.md` and a linked `skills/` (only `config.toml` was observed through a link) | A later observation (credential-free) | Before role supply implementation (with DEL-02-04) | Linked as R18-6 says; `instructionSources` and `skills/list` show the outcome at run time |
 | U-A15 | Whether `experimentalFeature/list` lists `plugins` | A later observation | Before K-12 implementation | `config/read` and the observed default are used |
 | U-A16 | *Closed:* the four triggers are recorded in ASSESSMENT_SIWC.md and copied into §20 | — | — | — |
-| U-R3 (record; OPEN) | Continuing a held shared-source binding after native target replacement | App receiving implementation, with independent scrutiny | Before configuration-write implementation | The private F-A3 core implements injected explicit reviewed-current-object readmission under held saved-desktop custody; real person/native confirmation and product-writer integration remain unimplemented. The 0.160.0 fixture's preserved link/replaced target observation supplies no provenance or atomicity guarantee; no silent rebind, relink or implicit-config fallback |
+| U-R3 (record; OPEN) | Continuing a held shared-source binding after native target replacement | App receiving implementation, with independent scrutiny | Before configuration-write implementation | The endpoint-only receiver joins fresh private offers/versioned writes and two original-window confirmations to F-A3 under held saved-desktop custody. Actual native/person consumption and candidate-bound qualification remain unverified. The 0.160.0 fixture's preserved link/replaced target observation supplies no provenance or atomicity guarantee; no silent rebind, relink or implicit-config fallback |
 
 ## Verification cases
 

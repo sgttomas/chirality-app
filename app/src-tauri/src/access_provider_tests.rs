@@ -5,6 +5,29 @@ use std::{
     sync::Arc,
 };
 const CANARY: &str = "INVENTED_PRIVATE_PROVIDER_CANARY_481";
+#[test]
+fn access_provider_endpoint_generic_write_cannot_mint_private_context_or_send() {
+    let peer = Peer::new("invented-home");
+    for method in ["config/batchWrite", "config/value/write"] {
+        assert!(peer
+            .host
+            .request(
+                method,
+                json!({"expectedVersion":CANARY,"filePath":CANARY,"edits":[]}),
+                json!({"kind":"person-directed"})
+            )
+            .is_err());
+    }
+    assert_eq!(
+        peer.host.snapshot()["clientRequests"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    peer.safe();
+}
+
 pub(crate) struct Peer {
     pub(crate) host: Arc<Host>,
     child: Child,
@@ -12,6 +35,173 @@ pub(crate) struct Peer {
     pub(crate) g: Value,
 }
 impl Peer {
+    pub(crate) fn endpoint_credentialed_start(&self) {
+        let mut definition = local();
+        definition["experimental_bearer_token"] = json!(CANARY);
+        self.answer(config(json!({"fixture.dot":definition})));
+    }
+    pub(crate) fn endpoint_wire_count(&self) -> usize {
+        self.host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .filter(|e| e.written)
+            .count()
+    }
+    pub(crate) fn endpoint_replies(
+        &self,
+        target: std::path::PathBuf,
+        layer: std::path::PathBuf,
+        id: &str,
+        endpoint: &str,
+    ) {
+        self.endpoint_replies_mode(target, layer, id, endpoint, "ok");
+    }
+    pub(crate) fn endpoint_replies_mode(
+        &self,
+        target: std::path::PathBuf,
+        layer: std::path::PathBuf,
+        id: &str,
+        endpoint: &str,
+        mode: &str,
+    ) {
+        let id = id.to_owned();
+        let endpoint = endpoint.to_owned();
+        let mode = mode.to_owned();
+        let changed = Arc::new(Mutex::new(false));
+        *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
+            if source.attempted_frame()["method"] == "config/read"
+                && *changed.lock().unwrap()
+            {
+                if mode == "override-reread-timeout" {
+                    return;
+                }
+                if mode == "override-reread-error" {
+                    host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":{"nested":CANARY}}})).unwrap(),source.generation());
+                    return;
+                }
+            }
+            let mut response = if source.attempted_frame()["method"] == "config/batchWrite" {
+                let next = target.with_file_name("invented-native-replacement");
+                std::fs::write(&next, b"invented peer target effect, no supplier").unwrap();
+                std::fs::rename(next, &target).unwrap();
+                *changed.lock().unwrap() = true;
+                if mode == "error" {
+                    host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":{"nested":CANARY}}})).unwrap(),source.generation());
+                    return;
+                }
+                if mode == "timeout" {
+                    return;
+                }
+                if mode == "closed" {
+                    host.inner.0.lock().unwrap().generation["spawnCounter"] = json!(2);
+                }
+                if mode == "collision" {
+                    host.inner.0.lock().unwrap().declared_capabilities =
+                        Some(json!({"experimentalApi":true}));
+                    host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"method":"currentTime/read","params":{}})).unwrap(),source.generation());
+                }
+                let overridden = mode == "override" || mode.starts_with("override-");
+                json!({"filePath":target,"version":CANARY,"status":if overridden{"okOverridden"}else{"ok"},"overriddenMetadata":if overridden{json!({"message":CANARY,"effectiveValue":{"private":CANARY},"overridingLayer":{"name":{"type":"user","file":layer},"version":CANARY}})}else{Value::Null}})
+            } else {
+                let mut definition = local();
+                definition["base_url"] = json!(if *changed.lock().unwrap() {
+                    endpoint.as_str()
+                } else {
+                    "https://example.invalid/old"
+                });
+                let definitions = json!({id.clone():definition,"credentialed":{"name":"not offered","experimental_bearer_token":CANARY}});
+                json!({"config":{"model_providers":definitions,"developer_instructions":CANARY},"origins":{},"layers":[{"name":{"type":"user","file":layer},"config":{"model_providers":definitions},"version":if *changed.lock().unwrap(){CANARY}else{"INVENTED_PRIVATE_OLD_VERSION"}}]})
+            };
+            if source.attempted_frame()["method"] == "config/read" {
+                if mode == "session-only" {
+                    response["layers"][0]["config"] = json!({});
+                }
+                if mode == "definition-mismatch" {
+                    response["layers"][0]["config"]["model_providers"][&id]["name"] =
+                        json!("different user-layer name");
+                }
+                if *changed.lock().unwrap() && mode == "sibling-settings" {
+                    response["config"]["developer_instructions"] =
+                        json!("OTHER_INVENTED_PRIVATE_SETTING");
+                }
+                if *changed.lock().unwrap() && mode == "reread-version" {
+                    response["layers"][0]["version"] = json!("DIFFERENT_PRIVATE_NATIVE_VERSION");
+                }
+            }
+            let write = source.attempted_frame()["method"] == "config/batchWrite";
+            if write && mode == "invalid-ack-target" {
+                response["filePath"] = json!(CANARY);
+            }
+            if write && mode == "invalid-ack-shape" {
+                response["status"] = json!(CANARY);
+            }
+            host.on_line(
+                &serde_json::to_vec(&json!({"id":if write && mode == "unmatched-ack" {json!(999999)} else {source.request_id().clone()},"result":response})).unwrap(),
+                source.generation(),
+            );
+            // The real private ACK has arrived before this controlled drift.
+            // No source/generation or reply bytes are rewritten to cause it.
+            if write {
+                match mode.as_str() {
+                    "ack-target-missing" => std::fs::remove_file(&target).unwrap(),
+                    "ack-link-missing" | "override-link-missing" => std::fs::remove_file(&layer).unwrap(),
+                    "ack-link-replaced" => {
+                        std::fs::remove_file(&layer).unwrap();
+                        std::os::unix::fs::symlink(&target, &layer).unwrap();
+                    }
+                    _ => {}
+                }
+            }
+            assert!(!source.attempted_frame().to_string().contains(CANARY));
+            assert!(!source.evidence().to_string().contains(CANARY));
+            assert!(!host.snapshot().to_string().contains(CANARY));
+            assert!(!host.kept_replies().1.contains(CANARY));
+        }));
+    }
+    pub(crate) fn endpoint_late_reply(&self) {
+        let request = self
+            .host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .find(|e| e.request.frame["method"] == "config/batchWrite")
+            .unwrap()
+            .request
+            .clone();
+        self.host.on_line(&serde_json::to_vec(&json!({"id":request.request_id(),"result":{"filePath":CANARY,"version":CANARY,"status":"okOverridden","overriddenMetadata":{"message":CANARY,"effectiveValue":CANARY}}})).unwrap(),request.generation());
+    }
+    pub(crate) fn endpoint_private_taps(&self) {
+        self.safe();
+        let entries = self
+            .host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .map(|e| e.request.clone())
+            .collect::<Vec<_>>();
+        for entry in entries {
+            let value = entry.evidence();
+            assert!(!value.to_string().contains(CANARY));
+            assert!(!value.to_string().contains("INVENTED_PRIVATE_OLD_VERSION"));
+            if entry.attempted_frame()["method"] == "config/batchWrite" {
+                assert_eq!(
+                    entry.attempted_frame()["params"],
+                    json!({"privateEndpointWriteWithheld":true})
+                );
+            }
+        }
+        assert!(!json!(self.host.journal()).to_string().contains(CANARY));
+    }
     pub(crate) fn continuation_frame(&mut self) -> Value {
         use std::os::fd::AsRawFd;
         let descriptor = self.wire.get_ref().as_raw_fd();

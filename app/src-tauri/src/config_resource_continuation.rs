@@ -39,6 +39,9 @@ impl Candidate {
     pub(crate) fn private_reading(&self) -> (&Value, &str) {
         (&self.reading.config, &self.native_version)
     }
+    pub(super) fn private_source(&self) -> &PrivateConfigReading {
+        &self.reading
+    }
     #[cfg(test)]
     pub(crate) fn nonexact_for_test(&self) -> ReviewedCurrentObject {
         ReviewedCurrentObject {
@@ -47,33 +50,41 @@ impl Candidate {
     }
 }
 
-fn user_version(read: &Value, target: &Path) -> Result<String, ()> {
+pub(super) fn user_layer<'a>(
+    read: &'a Value,
+    target: &Path,
+    receiving: &Path,
+) -> Result<&'a Value, ()> {
     let layers = read.get("layers").and_then(Value::as_array).ok_or(())?;
     if layers.len() > 128 {
         return Err(());
     }
-    let mut version = None;
+    let mut selected = None;
     for layer in layers {
-        if layer["name"]["type"] != "user" || !layer["name"]["profile"].is_null() {
+        if layer["name"]["type"] != "user" {
             continue;
         }
+        if !layer["name"]["profile"].is_null() {
+            return Err(());
+        }
         let file = Path::new(layer["name"]["file"].as_str().ok_or(())?);
-        // Accept only this canonical target, not a matching string/hash version
-        // selected from another layer or an alias of the same inode.
-        if file != target
+        // Exact canonical target or the one expected receiving spelling from
+        // the held admission. The caller checks its original link/target FD
+        // before/after the genuine read; no other alias or frame rewrite.
+        if (file.as_os_str() != target.as_os_str() && file.as_os_str() != receiving.as_os_str())
             || std::fs::canonicalize(file).map_err(|_| ())? != target
             || !layer["disabledReason"].is_null()
-            || version.is_some()
+            || selected.is_some()
         {
             return Err(());
         }
-        let value = layer["version"]
+        layer["version"]
             .as_str()
             .filter(|v| !v.is_empty() && v.len() <= 4096)
             .ok_or(())?;
-        version = Some(value.to_owned());
+        selected = Some(layer);
     }
-    version.ok_or(())
+    selected.ok_or(())
 }
 
 fn current(host: &Host, read: &PrivateConfigReading) -> Result<(), String> {
@@ -117,8 +128,13 @@ pub(crate) fn complete(
         .map_err(|_| refused())?
         .check_config_candidate(&preflight, &object)
         .map_err(|_| refused())?;
-    let native_version = user_version(&reading.config, &object.path().map_err(|_| refused())?)
-        .map_err(|_| refused())?;
+    let layer = user_layer(
+        &reading.config,
+        &object.path().map_err(|_| refused())?,
+        &preflight.receiving_config().map_err(|_| refused())?,
+    )
+    .map_err(|_| refused())?;
+    let native_version = layer["version"].as_str().ok_or_else(refused)?.to_owned();
     let candidate = Candidate {
         token: crate::util::opaque_id("config-current-object-").map_err(|_| refused())?,
         reading,

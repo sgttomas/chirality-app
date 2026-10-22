@@ -271,6 +271,8 @@ mod access_provider;
 pub(crate) use access_provider::ProviderAdmission;
 #[path = "config_resource_continuation.rs"]
 pub(crate) mod config_resource_continuation;
+#[path = "provider_endpoint.rs"]
+pub(crate) mod provider_endpoint;
 
 // Non-deserializable capabilities issued only by the actual Host sender.
 #[derive(Clone)]
@@ -1840,17 +1842,21 @@ impl Host {
         self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
-        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None)
+        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None)
     }
     fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
         let guard = inherited_mode.then(|| params["collaborationMode"]["settings"]["model"].clone());
-        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref())
+        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None)
     }
-    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>)->Result<SourceRequest,String>{
+    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::EndpointWrite<'_>>)->Result<SourceRequest,String>{
+        if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require the confirmed typed endpoint operation; generic route refused".into());}
+        if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
+        if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
+        if let Some(write)=endpoint_write {write.check(self,&i)?;}
         if cce_intent.is_some() && i.cce_offer.is_some(){return Err("one offered start per generation; no replacement".into())}
         let ok_state = if handshake {i.state=="handshaking"} else {i.state=="ready"};
         if !ok_state {
@@ -1872,7 +1878,7 @@ impl Host {
         }
         i.next_id+=1;let id=i.next_id;
         let raw_frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
-        let(frame,auth_projection)=auth_rpc::project_frame(&raw_frame,Some(method));
+        let(frame,auth_projection)=if endpoint_write.is_some(){(json!({"jsonrpc":"2.0","id":id,"method":method,"params":{"privateEndpointWriteWithheld":true}}),true)}else{auth_rpc::project_frame(&raw_frame,Some(method))};
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
@@ -1906,16 +1912,18 @@ impl Host {
             i.aa_capture=Some(core);
         }
         drop(i);
-        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential{
+        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential||endpoint_write.is_some(){
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
             // Source IO has bounded work and holds neither Inner nor the
             // attachment/Stop gate. Recheck cheap context/receipt custody below.
             if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
+            if let Some(write)=endpoint_write {write.before_write()?;}
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&frame["params"])?;}
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -3617,19 +3625,20 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Some(raw)=parsed.as_ref(){Self::oauth_admit(&mut i,generation,next_receipt,raw,auth_shape);}
         let known_account_channel=i.account_channels.contains(generation);
         let known_private_config_channel=i.private_config_channels.contains(generation);
+        let known_private_endpoint_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&e.request.frame["method"]=="config/batchWrite");
         // Client and server ID spaces are independent. A valid server request
         // sharing a client ID retains its actual method/params and reply duty.
-        let private_config=correlated_method.as_deref()==Some("config/read")&&parsed.as_ref().is_some_and(|f|
+        let private_config=matches!(correlated_method.as_deref(),Some("config/read"|"config/batchWrite"))&&parsed.as_ref().is_some_and(|f|
             (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
             &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
         let unattributed_private_config=known_private_config_channel&&parsed.as_ref().is_some_and(|f|{
-            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read"))
+            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
         });
         let (frame,projected)=match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
             auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
         },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)};
         let private_config_frame=private_config.then(||frame.clone());
-        let frame=if private_config{access_provider::withheld(&frame)}else{frame};
+        let frame=if private_config{if correlated_method.as_deref()==Some("config/batchWrite"){provider_endpoint::withheld(&frame)}else{access_provider::withheld(&frame)}}else{frame};
         let projection_label=if private_config{Some("private provider configuration outcome projection; not original bytes")}else if known_private_config_channel&&projected{Some("private source diagnostic projection; not original bytes")}else if projected{Some("sensitive account projection; not original bytes")}else{None};
         // NPTD §7.1 delegation reads: their result bodies (whole model
         // catalogues, whole configurations) are never journalled.

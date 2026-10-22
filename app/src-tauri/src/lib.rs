@@ -45,6 +45,7 @@ mod distribution_s1;
 pub mod home_resources;
 mod desktop_startup;
 mod desktop_setup_confirmation;
+mod provider_endpoint_confirmation;
 pub mod native_items;
 pub mod native_history;
 pub mod role_lifecycle;
@@ -103,6 +104,8 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 pub struct AppState {
     desktop_setup: Option<Arc<Mutex<desktop_startup::DesktopSetup>>>,
+    // Short metadata sections only; no Host IO/native callback while held.
+    endpoint_edits: Arc<Mutex<hosting::provider_endpoint::Controller>>,
     compiled_development_selection: Value,
     connector_sources: Mutex<connector_source::Session>,
     connector_drafts: Mutex<connector_materialization::Registry>,
@@ -150,7 +153,7 @@ impl AppState {
     }
 }
 
-// Private transaction only: no Tauri command, UI/editor or config-write entry.
+// Private source transaction, reused by the typed endpoint command below.
 // Begin must precede an intended target replacement. A later native ACK/read
 // alone cannot adopt it; complete requires a separate exact-candidate review.
 struct PendingConfigResource {
@@ -158,6 +161,7 @@ struct PendingConfigResource {
     generation: Value,
     cwd: String,
     slot: desktop_startup::ConfigSlotPreflight,
+    endpoint_epoch: String,
 }
 fn begin_config_resource_continuation(state: &AppState) -> Result<PendingConfigResource, String> {
     let home = state.homes.lock().unwrap().active();
@@ -192,6 +196,12 @@ fn begin_config_resource_continuation(state: &AppState) -> Result<PendingConfigR
         generation,
         cwd,
         slot,
+        endpoint_epoch: state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Endpoint controller busy")?
+            .epoch
+            .clone(),
     })
 }
 fn complete_config_resource_continuation(
@@ -209,6 +219,15 @@ fn complete_config_resource_continuation(
         .as_ref()
         .ok_or("No admitted saved-desktop source")?;
     let context = || {
+        if state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Endpoint controller busy")?
+            .epoch
+            != pending.endpoint_epoch
+        {
+            return Err("Endpoint source epoch superseded".into());
+        }
         if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &pending.home)
             || pending.home.host.snapshot()["generation"] != pending.generation
         {
@@ -274,6 +293,200 @@ fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Op
 fn desktop_controller(state: &AppState) -> Result<Arc<Mutex<desktop_startup::DesktopSetup>>, String> {
     state.desktop_setup.clone().ok_or("Desktop setup controller unavailable".into())
 }
+
+fn invalidate_endpoint_edits(state: &AppState) -> Result<(), String> {
+    endpoint_checkpoint(state).map(|_| ())
+}
+fn endpoint_checkpoint(state: &AppState) -> Result<String, String> {
+    let mut controller = state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Endpoint controller busy")?;
+    controller.invalidate()?;
+    Ok(controller.epoch.clone())
+}
+#[tauri::command]
+fn provider_endpoint_discard(state: State<'_, AppState>) -> Result<String, String> {
+    endpoint_checkpoint(&state)
+}
+fn endpoint_offer_result(
+    state: &AppState,
+    generation: &Value,
+    id: &str,
+    endpoint: &str,
+    expected_epoch: &str,
+) -> Result<Value, String> {
+    let epoch = {
+        let mut controller = state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Endpoint controller busy")?;
+        // A delayed IPC offer must not revive a draft after a newer input or
+        // source invalidation, even if that invalidation ran before this task.
+        if controller.epoch != expected_epoch || expected_epoch.is_empty() {
+            return Err("Endpoint offer superseded".into());
+        }
+        controller.invalidate()?;
+        if controller.saving.is_some() {
+            return Err("An endpoint change is pending; no second offer".into());
+        }
+        controller.epoch.clone()
+    };
+    if state.homes.lock().unwrap().active().host.snapshot()["generation"] != *generation {
+        return Err("Endpoint source unavailable".into());
+    }
+    let offer = hosting::provider_endpoint::offer(state, id, endpoint)?;
+    let view = offer.view();
+    let mut controller = state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Endpoint controller busy")?;
+    if controller.epoch != epoch || offer.epoch() != epoch {
+        return Err("Endpoint offer superseded".into());
+    }
+    controller.offer = Some(offer);
+    drop(controller);
+    hosting::provider_endpoint::expire_offer(
+        &state.endpoint_edits,
+        view["token"].as_str().ok_or("Endpoint token unavailable")?,
+        hosting::provider_endpoint::OFFER_LIFETIME,
+    )?;
+    Ok(view)
+}
+#[tauri::command(async)]
+fn provider_endpoint_offer(
+    state: State<'_, AppState>,
+    generation: Value,
+    provider_id: String,
+    endpoint: String,
+    epoch: String,
+) -> Result<Value, String> {
+    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch)
+        .map_err(|_| "Endpoint edit unavailable; private values and diagnostics withheld".into())
+}
+fn endpoint_save_result(
+    state: &AppState,
+    token: &str,
+    before: impl FnOnce(&Value) -> Result<tauri_plugin_dialog::MessageDialogResult, String>,
+    after: impl FnOnce(
+        &hosting::config_resource_continuation::Candidate,
+        &Value,
+    ) -> Result<
+        Option<hosting::config_resource_continuation::ReviewedCurrentObject>,
+        (),
+    >,
+) -> Result<Value, String> {
+    let offer = {
+        let mut controller = state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Endpoint controller busy")?;
+        if controller.saving.is_some()
+            || controller
+                .offer
+                .as_ref()
+                .is_none_or(|o| o.view()["token"] != token)
+        {
+            return Err("Original endpoint offer unavailable or superseded".into());
+        }
+        controller.saving = Some(token.into());
+        controller.offer.take().unwrap()
+    };
+    let result = hosting::provider_endpoint::save(state, offer, before, after);
+    if let Ok(mut controller) = state.endpoint_edits.lock() {
+        if controller.saving.as_deref() == Some(token) {
+            controller.saving = None;
+        }
+    }
+    result
+}
+fn endpoint_question_current(state: &AppState, epoch: &str, scope: &Value) -> Result<(), String> {
+    if state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Endpoint controller busy")?
+        .epoch
+        != epoch
+    {
+        return Err("Endpoint operation superseded".into());
+    }
+    let home = state
+        .homes
+        .try_lock()
+        .map_err(|_| "Home source busy")?
+        .active();
+    let snapshot = home.host.snapshot();
+    let cwd = home
+        .host_config
+        .as_ref()
+        .map_err(Clone::clone)?
+        .cwd
+        .to_str()
+        .ok_or("Native cwd unavailable")?
+        .to_owned();
+    if home.class() != home_resources::HomeClass::Account
+        || snapshot["generation"] != scope["generation"]
+        || snapshot["state"] != "ready"
+        || snapshot["generationClosed"] == true
+        || scope["cwd"] != cwd
+        || home
+            .host
+            .configured_provider_revision(&scope["generation"], &cwd)
+            != scope["readRevision"]
+    {
+        return Err("Original endpoint observation superseded or unavailable".into());
+    }
+    Ok(())
+}
+#[tauri::command(async)]
+fn provider_endpoint_save(
+    window: tauri::Window,
+    state: State<'_, AppState>,
+    token: String,
+) -> Result<Value, String> {
+    let epoch = state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Endpoint controller busy")?
+        .epoch
+        .clone();
+    let remaining = state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Endpoint controller busy")?
+        .offer
+        .as_ref()
+        .ok_or("Endpoint offer unavailable")?
+        .remaining();
+    endpoint_save_result(
+        &state,
+        &token,
+        |effects| {
+            provider_endpoint_confirmation::confirm(&window, effects, false, remaining, || {
+                endpoint_question_current(&state, &epoch, &effects["scope"])
+            })
+        },
+        |candidate, effects| {
+            let choice = provider_endpoint_confirmation::confirm(
+                &window,
+                effects,
+                true,
+                hosting::provider_endpoint::OFFER_LIFETIME,
+                || endpoint_question_current(&state, &epoch, &effects["scope"]),
+            )
+            .map_err(|_| ())?;
+            Ok(act_control::native_statement::chose(
+                &choice,
+                provider_endpoint_confirmation::CONTINUE_ACTION,
+            )
+            .then(|| candidate.accept_checked_current_object()))
+        },
+    )
+    .map_err(|_| {
+        "Endpoint change unavailable; no automatic retry; inspect the current edit status".into()
+    })
+}
+
 #[tauri::command(async)]
 fn desktop_setup_pick(app: tauri::AppHandle, kind: String) -> Result<Value, String> {
     let file = match kind.as_str() {
@@ -350,6 +563,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     let mut runtime = home.runtime.lock().unwrap();
     let (observation, received) = runtime.receive_native(&home.host);
     let mut s = observation["snapshot"].clone();
+    if let Ok(mut edits)=state.endpoint_edits.lock(){edits.retire_source(&home,&s["generation"],s["state"]=="ready"&&s["generationClosed"]!=true);}
     for (key, value) in received.as_object().unwrap() {
         s[key] = value.clone();
     }
@@ -367,6 +581,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
     s["desktopSetup"] = state.desktop_setup.as_ref().map(|d|d.lock().unwrap().view()).unwrap_or(Value::Null);
+    s["providerEndpointEdit"]=json!({"available":home.class()==home_resources::HomeClass::Account&&home.host_config.as_ref().ok().is_some_and(|cfg|state.desktop_setup.as_ref().is_some_and(|d|d.lock().unwrap().endpoint_source_available(cfg))),"standing":"Source metadata only; a fresh private user-layer offer and two explicit native decisions remain required"});
     // Native commands and the per-home Rust tick reconcile private receipts.
     // Status projects the last received history; polling does not write role
     // observations or admit a genuinely late native outcome.
@@ -693,7 +908,8 @@ fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,
     let class=home_class(&mode_home_class)?;
     let mut homes=state.homes.lock().unwrap();
     homes.activate(class)?;
-    Ok(homes.snapshot())
+    let view=homes.snapshot();drop(homes);invalidate_endpoint_edits(&state)?;
+    Ok(view)
 }
 #[tauri::command]
 fn open_waiting_requests(state: State<'_, AppState>, mode_home_class: String, generation: Value, thread_id: Value) -> Result<Value, String> {
@@ -711,6 +927,7 @@ fn read_home_access(state:State<'_,AppState>,generation:Value,mode_home_class:St
 
 #[tauri::command(async)]
 fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    invalidate_endpoint_edits(&state)?;
     // Only the currently selected actual account source; no caller cwd/home,
     // alternate-home fallback, configuration write, model or capability read.
     let refused = || "Configured provider observation unavailable; original account source or scope changed; private diagnostic withheld".to_owned();
@@ -832,6 +1049,7 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
     let root = state.app_user_data_root.lock().unwrap().clone();
@@ -1085,6 +1303,7 @@ fn start_conversation(
 }
 #[allow(clippy::too_many_arguments)]
 fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,model_provider:String,entry_id:String,mode_home_class:&str,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+    invalidate_endpoint_edits(state)?;
     let home = state.homes.lock().unwrap().entry(home_class(mode_home_class)?)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
@@ -2133,6 +2352,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
     let home = Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),host_config.clone()).expect("account entry"));
     let state = AppState {
         desktop_setup: Some(desktop),
+        endpoint_edits:Arc::new(Mutex::new(Default::default())),
         compiled_development_selection: compiled_selection,
         connector_sources: Mutex::new(connector_source::Session::default()),
         connector_drafts: Mutex::new(connector_materialization::Registry::default()),
@@ -2381,7 +2601,7 @@ pub fn run() {
             claim_native_waiting_intent,
             checkpoint_native_waiting_ui,
             finish_native_waiting_intent,
-            read_home_access, read_configured_providers,
+            read_home_access, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,
@@ -2456,7 +2676,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

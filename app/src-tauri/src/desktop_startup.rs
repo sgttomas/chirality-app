@@ -418,6 +418,22 @@ pub(crate) struct ConfigSlotPreflight {
     old: ConfigObject,
     siblings: [(Reference, ReceivingEntry); 2],
 }
+impl ConfigSlotPreflight {
+    pub(crate) fn target(&self) -> Result<PathBuf, String> {
+        self.old.path()
+    }
+    pub(crate) fn receiving_config(&self) -> Result<PathBuf, String> {
+        Ok(self
+            .admission
+            .profile
+            .request
+            .account
+            .location
+            .path()?
+            .join("config.toml"))
+    }
+}
+
 pub(crate) struct ConfigObject {
     file: File,
     reference: Reference,
@@ -656,6 +672,7 @@ pub(crate) struct DesktopSetup {
     pending: Value,
     config_epoch: Option<String>,
     config_publication_unknown: bool,
+    config_edit_unconfirmed: bool,
     #[cfg(test)]
     after_config_publication: Option<Box<dyn FnOnce() + Send>>,
 }
@@ -676,6 +693,7 @@ impl DesktopSetup {
             pending: Value::Null,
             config_epoch: None,
             config_publication_unknown: false,
+            config_edit_unconfirmed: false,
             #[cfg(test)]
             after_config_publication: None,
         }
@@ -1007,6 +1025,7 @@ impl DesktopSetup {
         Ok(())
     }
     pub fn recheck_active(&self) -> Result<(), String> {
+        if self.config_edit_unconfirmed { return Err("Endpoint write may have changed configuration; current source has not been continued".into()); }
         if self.requested.is_some() {
             self.recheck()?;
         }
@@ -1096,6 +1115,12 @@ impl DesktopSetup {
         {
             return Err("Admitted linked config slot unavailable".into());
         }
+        if std::fs::canonicalize(config.codex_home.join("config.toml"))
+            .map_err(|_| "Receiving config target unavailable")?
+            != old.path()?
+        {
+            return Err("Receiving config does not identify the held shared target".into());
+        }
         let epoch = crate::util::opaque_id("config-slot-epoch-")?;
         self.config_epoch = Some(epoch.clone());
         self.preview = None;
@@ -1114,6 +1139,41 @@ impl DesktopSetup {
             old,
             siblings,
         })
+    }
+    pub(crate) fn endpoint_source_available(&self, config: &HostConfig) -> bool {
+        (|| -> Result<(), String> {
+            if self.config_edit_unconfirmed {
+                return Err("Endpoint source unconfirmed".into());
+            }
+            self.retained_source()?;
+            let active = self.requested.as_ref().ok_or("No admitted request")?;
+            if config.cwd.to_str().is_none()
+                || config.codex_home != active.account.location.path()?
+                || config.cwd
+                    != active
+                        .project
+                        .as_ref()
+                        .map(|p| p.location.path())
+                        .transpose()?
+                        .unwrap_or(self.data.as_ref().map_err(Clone::clone)?.clone())
+            {
+                return Err("Actual source differs".into());
+            }
+            let object = ConfigObject::open(active.shared[0].clone())?;
+            if object.path()?.to_str().is_none()
+                || !std::fs::symlink_metadata(config.codex_home.join("config.toml"))
+                    .map_err(|_| "Receiving config unavailable")?
+                    .file_type()
+                    .is_symlink()
+                || std::fs::canonicalize(config.codex_home.join("config.toml"))
+                    .map_err(|_| "Receiving target unavailable")?
+                    != object.path()?
+            {
+                return Err("Receiving config source unavailable".into());
+            }
+            Ok(())
+        })()
+        .is_ok()
     }
     fn check_config_original(
         &self,
@@ -1142,6 +1202,7 @@ impl DesktopSetup {
         {
             return Err("Original receiving entries changed".into());
         }
+        if std::fs::canonicalize(preflight.receiving_config()?).map_err(|_|"Receiving target unavailable")?!=candidate.path()? {return Err("Receiving configuration target differs".into());}
         // The unlinked old descriptor still pins its inode. Its link count and
         // ctime may change as a normal consequence of atomic target replacement.
         if ObjectRef::of(
@@ -1191,6 +1252,15 @@ impl DesktopSetup {
         let candidate = ConfigObject::open(reference)?;
         self.check_config_original(preflight, &candidate)?;
         Ok(candidate)
+    }
+    pub(crate) fn check_endpoint_before_write(&self, preflight:&ConfigSlotPreflight)->Result<(),String> {
+        if self.config_edit_unconfirmed { return Err("Previous endpoint write remains unconfirmed".into()); }
+        self.check_config_original(preflight,&preflight.old).map(|_|())
+    }
+    pub(crate) fn endpoint_write_attempt(&mut self, preflight:&ConfigSlotPreflight)->Result<(),String> {
+        self.check_endpoint_before_write(preflight)?;
+        self.config_edit_unconfirmed=true;
+        Ok(())
     }
     pub(crate) fn check_config_candidate(
         &self,
@@ -1281,6 +1351,7 @@ impl DesktopSetup {
         }));
         self.config_epoch = None;
         self.config_publication_unknown = false;
+        self.config_edit_unconfirmed = false;
         Ok(())
     }
     pub fn preview_project(&mut self, project: Option<PathBuf>) -> Result<Value, String> {
@@ -1643,6 +1714,33 @@ mod tests {
         fn private_config(&self) -> Value {
             json!({"config":{"developer_instructions":"INVENTED_PRIVATE_PROVIDER_CANARY_481","model_providers":{"private":{"experimental_bearer_token":"INVENTED_PRIVATE_PROVIDER_CANARY_481"}}},"origins":{},"layers":[{"name":{"type":"user","file":self.shared[0]},"config":{},"version":"INVENTED_NATIVE_VERSION_PRIVATE_52","disabledReason":null}]})
         }
+        fn public_endpoint_records_safe(&self) {
+            fn inspect(path: &Path) {
+                if !path.exists() {
+                    return;
+                }
+                for entry in std::fs::read_dir(path).unwrap() {
+                    let path = entry.unwrap().path();
+                    let meta = std::fs::symlink_metadata(&path).unwrap();
+                    assert!(!meta.file_type().is_symlink());
+                    if meta.is_dir() {
+                        inspect(&path);
+                    } else {
+                        let bytes = std::fs::read(&path).unwrap();
+                        for marker in [
+                            b"INVENTED_PRIVATE_PROVIDER_CANARY_481".as_slice(),
+                            b"INVENTED_PRIVATE_OLD_VERSION".as_slice(),
+                        ] {
+                            assert!(
+                                !bytes.windows(marker.len()).any(|w| w == marker),
+                                "private native material reached an actual public record file"
+                            );
+                        }
+                    }
+                }
+            }
+            inspect(&self.data.join("records"));
+        }
     }
     impl Drop for Fixture {
         fn drop(&mut self) {
@@ -1651,6 +1749,815 @@ mod tests {
         }
     }
 
+    #[test]
+    fn access_provider_endpoint_delayed_offer_cannot_overwrite_newer_input_checkpoint() {
+        let f = Fixture::new();
+        let (desktop, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.endpoint_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.dot",
+            "https://example.invalid/new",
+        );
+        let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+        let old = crate::endpoint_checkpoint(&state).unwrap();
+        let newer = crate::endpoint_checkpoint(&state).unwrap();
+        let view = crate::endpoint_offer_result(
+            &state,
+            &peer.g,
+            "fixture.dot",
+            "https://example.invalid/new",
+            &newer,
+        )
+        .unwrap();
+        let epoch = state.endpoint_edits.lock().unwrap().epoch.clone();
+        let reads = peer.endpoint_wire_count();
+        assert!(crate::endpoint_offer_result(
+            &state,
+            &peer.g,
+            "fixture.dot",
+            "https://example.invalid/old",
+            &old
+        )
+        .is_err());
+        let controller = state.endpoint_edits.lock().unwrap();
+        assert_eq!(controller.epoch, epoch);
+        assert_eq!(controller.offer.as_ref().unwrap().view(), view);
+        drop(controller);
+        assert_eq!(peer.endpoint_wire_count(), reads);
+        assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+        assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+        state.validate_home_source(&home).unwrap();
+        assert!(desktop.lock().unwrap().requested.is_some());
+        peer.endpoint_private_taps();
+        f.public_endpoint_records_safe();
+    }
+    #[test]
+    fn access_provider_endpoint_private_unused_offer_expires_without_write_or_replay() {
+        let f = Fixture::new();
+        let (desktop, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.endpoint_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.dot",
+            "https://example.invalid/new",
+        );
+        let view = crate::endpoint_offer_result(
+            &state,
+            &peer.g,
+            "fixture.dot",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        let token = view["token"].as_str().unwrap();
+        crate::hosting::provider_endpoint::expire_offer(
+            &state.endpoint_edits,
+            token,
+            std::time::Duration::from_millis(10),
+        )
+        .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        while state.endpoint_edits.lock().unwrap().offer.is_some() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        assert!(crate::endpoint_save_result(
+            &state,
+            token,
+            |_| panic!("expired offer"),
+            |_, _| panic!("expired offer")
+        )
+        .is_err());
+        assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+        assert_eq!(peer.endpoint_wire_count(), 1);
+        state.validate_home_source(&home).unwrap();
+        assert!(desktop.lock().unwrap().requested.is_some());
+        peer.endpoint_private_taps();
+        f.public_endpoint_records_safe();
+    }
+
+    #[test]
+    fn access_provider_endpoint_offer_scope_and_both_decision_supersession_refuse() {
+        for mode in [
+            "input",
+            "new-read",
+            "new-offer",
+            "pre-window-error",
+            "post-window-error",
+            "post-input",
+            "post-target",
+            "session-only",
+            "definition-mismatch",
+            "sibling-settings",
+            "reread-version",
+            "reflected-draft",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.endpoint_replies_mode(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.dot",
+                "https://example.invalid/new",
+                mode,
+            );
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let original = desktop.lock().unwrap().requested.clone().unwrap();
+            let endpoint = if mode == "reflected-draft" {
+                "https://example.invalid/INVENTED_PRIVATE_PROVIDER_CANARY_481"
+            } else {
+                "https://example.invalid/new"
+            };
+            let offered = crate::endpoint_offer_result(
+                &state, &peer.g, "fixture.dot", endpoint,
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            );
+            if matches!(
+                mode,
+                "session-only" | "definition-mismatch" | "reflected-draft"
+            ) {
+                assert!(offered.is_err(), "{mode}");
+                assert!(state.endpoint_edits.lock().unwrap().offer.is_none());
+            } else {
+                let token = offered.unwrap()["token"].as_str().unwrap().to_owned();
+                let before_called = std::cell::Cell::new(false);
+                let result = crate::endpoint_save_result(
+                    &state,
+                    &token,
+                    |_| {
+                        before_called.set(true);
+                        match mode {
+                            "input" => crate::invalidate_endpoint_edits(&state).unwrap(),
+                            "new-read" => {
+                                home.host
+                                    .configured_provider_read_within(
+                                        &peer.g,
+                                        f.project.to_str().unwrap(),
+                                        &state.project_context.view(),
+                                        std::time::Duration::from_millis(30),
+                                    )
+                                    .unwrap();
+                            }
+                            "new-offer" => {
+                                assert!(crate::endpoint_offer_result(
+                                    &state,
+                                    &peer.g,
+                                    "fixture.dot",
+                                    "https://example.invalid/other",
+                                    &crate::endpoint_checkpoint(&state).unwrap(),
+                                )
+                                .is_err());
+                            }
+                            "pre-window-error" => {
+                                return Err("invented original-window failure".into())
+                            }
+                            _ => {}
+                        }
+                        Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                            crate::hosting::provider_endpoint::WRITE_ACTION.into(),
+                        ))
+                    },
+                    |candidate, _| {
+                        match mode {
+                            "post-window-error" => return Err(()),
+                            "post-input" => crate::invalidate_endpoint_edits(&state).unwrap(),
+                            "post-target" => f.replace_config(),
+                            "sibling-settings" | "reread-version" => {
+                                panic!("different reread cannot reach source decision")
+                            }
+                            _ => {}
+                        }
+                        Ok(Some(candidate.accept_checked_current_object()))
+                    },
+                );
+                assert!(before_called.get(), "{mode}: actual first decision was not reached");
+                if matches!(
+                    mode,
+                    "input" | "new-read" | "new-offer" | "pre-window-error"
+                ) {
+                    assert!(result.is_err(), "{mode}");
+                } else {
+                    assert_eq!(
+                        result.unwrap()["state"],
+                        "write-observed-source-unconfirmed",
+                        "{mode}"
+                    );
+                }
+                assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+                assert!(crate::endpoint_save_result(
+                    &state,
+                    &token,
+                    |_| panic!("spent token"),
+                    |_, _| panic!("spent token")
+                )
+                .is_err());
+            }
+            assert_eq!(
+                read_profile_bytes(&f.data.join(PROFILE)).unwrap(),
+                before,
+                "{mode}"
+            );
+            assert_eq!(
+                desktop.lock().unwrap().requested.as_ref().unwrap(),
+                &original
+            );
+            let count = peer.endpoint_wire_count();
+            for _ in 0..count {
+                let frame = peer.continuation_frame();
+                assert!(matches!(
+                    frame["method"].as_str(),
+                    Some("config/read" | "config/batchWrite")
+                ));
+            }
+            peer.endpoint_private_taps();
+            f.public_endpoint_records_safe();
+        }
+    }
+
+    #[test]
+    fn access_provider_endpoint_mounted_join() {
+        let Ok(directory) = std::env::var("CHIRALITY_ENDPOINT_JOIN") else {
+            return;
+        };
+        let directory = PathBuf::from(directory);
+        let mode = std::env::var("CHIRALITY_ENDPOINT_MODE").unwrap_or_else(|_| "ok".into());
+        let f = Fixture::new();
+        let (desktop, state, home, mut peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.endpoint_replies_mode(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.dot",
+            "https://example.invalid/new",
+            &mode,
+        );
+        let generation = peer.g.clone();
+        let host_view = || {
+            let mut view = home.host.snapshot();
+            view["homeRouting"] = state.homes.lock().unwrap().snapshot();
+            view["providerEndpointEdit"] = json!({"available":desktop.lock().unwrap().endpoint_source_available(home.host_config.as_ref().unwrap())});
+            view["currentAppProjectContext"] = state.project_context.view();
+            view["configuredProviderReadRevision"] = home
+                .host
+                .configured_provider_revision(&generation, f.project.to_str().unwrap());
+            view
+        };
+        let write = |name: &str, value: &Value| {
+            assert!(!value.to_string().contains("INVENTED_PRIVATE"));
+            let tmp = directory.join("output.tmp");
+            std::fs::write(&tmp, serde_json::to_vec(value).unwrap()).unwrap();
+            std::fs::rename(tmp, directory.join(name)).unwrap();
+        };
+        write("ready.json", &host_view());
+        let mut sequence = 0;
+        let mut continued = false;
+        loop {
+            let path = directory.join(format!("command-{sequence}.json"));
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+            while !path.exists() {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "mounted endpoint fixture deadline"
+                );
+                std::thread::sleep(std::time::Duration::from_millis(3));
+            }
+            let command: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            let args = &command["args"];
+            if command["command"] == "finish" {
+                break;
+            }
+            let result = match command["command"].as_str().unwrap() {
+                "read_configured_providers" => {
+                    crate::invalidate_endpoint_edits(&state).unwrap();
+                    home.host.configured_provider_read_within(
+                        &peer.g,
+                        f.project.to_str().unwrap(),
+                        &state.project_context.view(),
+                        std::time::Duration::from_millis(30),
+                    )
+                }
+                "provider_endpoint_offer" => crate::endpoint_offer_result(
+                    &state,
+                    &args["generation"],
+                    args["providerId"].as_str().unwrap(),
+                    args["endpoint"].as_str().unwrap(),
+                    args["epoch"].as_str().unwrap_or(""),
+                ),
+                "provider_endpoint_discard" => {
+                    crate::endpoint_checkpoint(&state).map(Value::String)
+                }
+                "provider_endpoint_save" => crate::endpoint_save_result(
+                    &state,
+                    args["token"].as_str().unwrap(),
+                    |_| {
+                        Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                            if mode == "cancel-before" {
+                                "Leave endpoint unchanged"
+                            } else {
+                                crate::hosting::provider_endpoint::WRITE_ACTION
+                            }
+                            .into(),
+                        ))
+                    },
+                    |candidate, _| {
+                        if mode == "cancel-after" {
+                            Ok(None)
+                        } else {
+                            Ok(Some(candidate.accept_checked_current_object()))
+                        }
+                    },
+                ),
+                "thread_start" => {
+                    crate::invalidate_endpoint_edits(&state).unwrap();
+                    if mode == "start-credentialed" {
+                        peer.endpoint_credentialed_start();
+                    }
+                    state
+                        .validate_home_source(&home)
+                        .and_then(|_| {
+                            home.host.provider_admission_read_within(
+                                &peer.g,
+                                f.project.to_str().unwrap(),
+                                args["entryId"].as_str().unwrap(),
+                                args["modelProvider"].as_str().unwrap(),
+                                args["model"].as_str().unwrap(),
+                                std::time::Duration::from_millis(30),
+                            )
+                        })
+                        .and_then(|proof| {
+                            home.host.thread_start_with_access_dispatch(
+                                &proof,
+                                "invented explicit instruction",
+                            )
+                        })
+                        .map(|source| source.evidence())
+                }
+                _ => panic!("unallocated mounted command"),
+            };
+            if let Ok(ref value) = result {
+                if value["state"] == "continued" {
+                    continued = true;
+                }
+            }
+            peer.endpoint_private_taps();
+            f.public_endpoint_records_safe();
+            let packet = json!({"response":match result{Ok(value)=>json!({"ok":true,"value":value}),Err(_)=>json!({"ok":false,"error":"Endpoint operation unavailable; private diagnostics withheld"})},"host":host_view()});
+            write(&format!("response-{sequence}.json"), &packet);
+            sequence += 1;
+        }
+        // Assert actual wire methods privately; raw native versions never enter
+        // the mounted/public packet or its evidence.
+        let count = peer.endpoint_wire_count();
+        let mut seen = 0;
+        while seen < count {
+            let frame = peer.continuation_frame();
+            if frame.get("method").is_none() {
+                assert!(frame["result"]["currentTimeAt"].as_u64().is_some());
+                continue;
+            }
+            assert!(matches!(
+                frame["method"].as_str(),
+                Some("config/read" | "config/batchWrite" | "thread/start")
+            ));
+            seen += 1;
+        }
+        drop(peer);
+        drop(home);
+        drop(state);
+        drop(desktop);
+        if continued {
+            let mut setup = f.setup();
+            let launch = f.resolve(&mut setup);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = setup.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let (state, home) =
+                crate::freeze_startup_state(launch, Arc::new(Mutex::new(setup)), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            state.validate_home_source(&home).unwrap();
+            assert_eq!(home.host_config.as_ref().unwrap().codex_home, h);
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+        }
+    }
+
+    #[test]
+    fn access_provider_endpoint_private_outcomes_keep_effects_unknown_and_id_spaces_distinct() {
+        for mode in [
+            "error",
+            "timeout",
+            "closed",
+            "override",
+            "collision",
+            "cancel-before",
+            "cancel-after",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.endpoint_replies_mode(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.dot",
+                "https://example.invalid/new",
+                mode,
+            );
+            let profile = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let old = desktop.lock().unwrap().requested.clone().unwrap();
+            let offer = crate::hosting::provider_endpoint::offer(
+                &state,
+                "fixture.dot",
+                "https://example.invalid/new",
+            )
+            .unwrap();
+            let outcome = crate::hosting::provider_endpoint::save(
+                &state,
+                offer,
+                |_| {
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        if mode == "cancel-before" {
+                            "Leave endpoint unchanged"
+                        } else {
+                            crate::hosting::provider_endpoint::WRITE_ACTION
+                        }
+                        .into(),
+                    ))
+                },
+                |candidate, _| {
+                    if mode == "collision" {
+                        Ok(Some(candidate.accept_checked_current_object()))
+                    } else if mode == "cancel-after" {
+                        Ok(None)
+                    } else {
+                        panic!("{mode} cannot authorize postwrite continuation")
+                    }
+                },
+            )
+            .unwrap();
+            let expected = match mode {
+                "collision" => "continued",
+                "override" => "overridden",
+                "cancel-before" => "not-sent",
+                "cancel-after" => "write-observed-source-unconfirmed",
+                _ => "unknown",
+            };
+            assert_eq!(outcome["state"], expected, "{mode}");
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            if mode != "cancel-before" {
+                let write = peer.continuation_frame();
+                assert_eq!(write["method"], "config/batchWrite");
+                if mode == "collision" {
+                    let answer = peer.continuation_frame();
+                    assert_eq!(answer["id"], write["id"]);
+                    assert!(answer["result"]["currentTimeAt"].as_u64().is_some());
+                }
+            }
+            if matches!(mode, "override" | "collision" | "cancel-after") {
+                assert_eq!(peer.continuation_frame()["method"], "config/read");
+            }
+            if matches!(mode, "timeout" | "closed") {
+                peer.endpoint_late_reply();
+            }
+            if mode != "collision" {
+                assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), profile);
+                assert_eq!(desktop.lock().unwrap().requested.as_ref().unwrap(), &old);
+            }
+            if mode == "cancel-before" {
+                state.validate_home_source(&home).unwrap();
+            } else if mode != "collision" {
+                assert!(state.validate_home_source(&home).is_err());
+            }
+            assert!(!outcome.to_string().contains("INVENTED_PRIVATE"));
+            peer.endpoint_private_taps();
+            f.public_endpoint_records_safe();
+        }
+    }
+
+    #[test]
+    fn access_provider_endpoint_observed_ack_survives_target_or_receiving_loss() {
+        for mode in [
+            "ack-link-missing",
+            "ack-target-missing",
+            "ack-link-replaced",
+            "override-link-missing",
+        ] {
+            endpoint_post_ack_failure(
+                mode,
+                if mode.starts_with("override-") {
+                    "overridden"
+                } else {
+                    "write-observed-source-unconfirmed"
+                },
+                2,
+            );
+        }
+    }
+
+    #[test]
+    fn access_provider_endpoint_observed_override_survives_failed_private_reread() {
+        for mode in ["override-reread-timeout", "override-reread-error"] {
+            endpoint_post_ack_failure(mode, "overridden", 3);
+        }
+    }
+
+    #[test]
+    fn access_provider_endpoint_unvalidated_ack_remains_unknown() {
+        for mode in ["unmatched-ack", "invalid-ack-target", "invalid-ack-shape"] {
+            endpoint_post_ack_failure(mode, "unknown", 2);
+        }
+    }
+
+    fn endpoint_post_ack_failure(mode: &str, expected: &str, requests: usize) {
+        let f = Fixture::new();
+        let (desktop, state, home, mut peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.endpoint_replies_mode(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.dot",
+            "https://example.invalid/new",
+            mode,
+        );
+        let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+        let original = desktop.lock().unwrap().requested.clone().unwrap();
+        let bootstrap = state
+            .home_bootstrap
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let namespaces = state
+            .native_namespaces
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let custody = home
+            .attachment_custody
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let recovery = home.recovery_startup.lock().unwrap().snapshot();
+        let view = crate::endpoint_offer_result(
+            &state,
+            &peer.g,
+            "fixture.dot",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        let token = view["token"].as_str().unwrap();
+        let decisions = std::cell::Cell::new(0);
+        let result = crate::endpoint_save_result(
+            &state,
+            token,
+            |_| {
+                decisions.set(decisions.get() + 1);
+                Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                    crate::hosting::provider_endpoint::WRITE_ACTION.into(),
+                ))
+            },
+            |_, _| panic!("{mode}: failed post-ACK source cannot reach acceptance"),
+        );
+        assert!(
+            result.is_ok(),
+            "{mode}: validated write facts escaped as a generic command error: {result:?}"
+        );
+        let outcome = result.unwrap();
+        assert_eq!(
+            outcome["state"], expected,
+            "{mode}: validated write/override fact lost"
+        );
+        assert_eq!(decisions.get(), 1);
+        assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+        assert!(crate::endpoint_save_result(
+            &state,
+            token,
+            |_| panic!("spent token"),
+            |_, _| panic!("spent token")
+        )
+        .is_err());
+        assert_eq!(
+            peer.endpoint_wire_count(),
+            requests,
+            "{mode}: unexpected retry/read/write"
+        );
+        for position in 0..requests {
+            assert_eq!(
+                peer.continuation_frame()["method"],
+                if position == 1 {
+                    "config/batchWrite"
+                } else {
+                    "config/read"
+                }
+            );
+        }
+        assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+        assert_eq!(
+            desktop.lock().unwrap().requested.as_ref().unwrap(),
+            &original
+        );
+        assert!(state.validate_home_source(&home).is_err());
+        assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+        assert!(Arc::ptr_eq(
+            state.home_bootstrap.lock().unwrap().as_ref().unwrap(),
+            &bootstrap
+        ));
+        assert!(Arc::ptr_eq(
+            state.native_namespaces.lock().unwrap().as_ref().unwrap(),
+            &namespaces
+        ));
+        assert!(Arc::ptr_eq(
+            home.attachment_custody.lock().unwrap().as_ref().unwrap(),
+            &custody
+        ));
+        assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+        assert_eq!(state.workspace.as_ref(), Some(&f.project));
+        assert!(!outcome.to_string().contains("INVENTED_PRIVATE"));
+        assert!(!outcome.to_string().contains(f.shared[0].to_str().unwrap()));
+        peer.endpoint_private_taps();
+        f.public_endpoint_records_safe();
+    }
+    #[test]
+    fn access_provider_endpoint_private_writer_checked_link_and_real_consumers() {
+        for receiving_alias in [false, true] {
+            let f = Fixture::new();
+            let (desktop, state, home, mut peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            let layer = if receiving_alias {
+                h.join("config.toml")
+            } else {
+                f.shared[0].clone()
+            };
+            peer.endpoint_replies(
+                f.shared[0].clone(),
+                layer.clone(),
+                "fixture.dot",
+                "https://example.invalid/new",
+            );
+            let original = read_profile(&f.data.join(PROFILE)).unwrap();
+            let links = desktop
+                .lock()
+                .unwrap()
+                .receiving
+                .as_ref()
+                .unwrap()
+                .entries()
+                .unwrap();
+            let bootstrap = state
+                .home_bootstrap
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let namespaces = state
+                .native_namespaces
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let custody = home
+                .attachment_custody
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let recovery = home.recovery_startup.lock().unwrap().snapshot();
+            let offer = crate::hosting::provider_endpoint::offer(
+                &state,
+                "fixture.dot",
+                "https://example.invalid/new",
+            )
+            .unwrap();
+            assert!(!offer.view().to_string().contains("INVENTED_PRIVATE"));
+            let outcome = crate::hosting::provider_endpoint::save(
+                &state,
+                offer,
+                |effects| {
+                    assert_eq!(effects["currentEndpoint"], "https://example.invalid/old");
+                    assert!(desktop.try_lock().is_ok());
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        crate::hosting::provider_endpoint::WRITE_ACTION.into(),
+                    ))
+                },
+                |candidate, effects| {
+                    assert_eq!(
+                        candidate.private_reading().0["layers"][0]["name"]["file"],
+                        json!(layer),
+                        "the native spelling was not rewritten"
+                    );
+                    assert!(
+                        state.validate_home_source(&home).is_err(),
+                        "ACK alone cannot continue source"
+                    );
+                    assert_eq!(effects["currentEndpoint"], "https://example.invalid/new");
+                    assert!(desktop.try_lock().is_ok());
+                    Ok(Some(candidate.accept_checked_current_object()))
+                },
+            )
+            .unwrap();
+            assert_eq!(outcome["state"], "continued");
+            let read = peer.continuation_frame();
+            assert_eq!(read["method"], "config/read");
+            let write = peer.continuation_frame();
+            assert_eq!(write["method"], "config/batchWrite");
+            assert_eq!(
+                write["params"],
+                json!({"edits":[{"keyPath":"model_providers.\"fixture.dot\".base_url","value":"https://example.invalid/new","mergeStrategy":"replace"}],"filePath":f.shared[0],"expectedVersion":"INVENTED_PRIVATE_OLD_VERSION","reloadUserConfig":false})
+            );
+            assert_eq!(peer.continuation_frame()["method"], "config/read");
+            peer.endpoint_private_taps();
+            f.public_endpoint_records_safe();
+            state.validate_home_source(&home).unwrap();
+            assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+            assert!(Arc::ptr_eq(
+                state.home_bootstrap.lock().unwrap().as_ref().unwrap(),
+                &bootstrap
+            ));
+            assert!(Arc::ptr_eq(
+                state.native_namespaces.lock().unwrap().as_ref().unwrap(),
+                &namespaces
+            ));
+            assert!(Arc::ptr_eq(
+                home.attachment_custody.lock().unwrap().as_ref().unwrap(),
+                &custody
+            ));
+            assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+            assert_eq!(
+                desktop
+                    .lock()
+                    .unwrap()
+                    .receiving
+                    .as_ref()
+                    .unwrap()
+                    .entries()
+                    .unwrap(),
+                links
+            );
+            let mut expected = original;
+            let current = read_profile(&f.data.join(PROFILE)).unwrap();
+            expected.shared[0] = current.shared[0].clone();
+            assert_eq!(expected, current);
+            assert!(desktop
+                .lock()
+                .unwrap()
+                .preview_project(Some(f.project.clone()))
+                .is_ok());
+            drop(peer);
+            drop(home);
+            drop(state);
+            drop(desktop);
+            drop(custody);
+            drop(bootstrap);
+            drop(namespaces);
+            let mut fresh = f.setup();
+            let launch = f.resolve(&mut fresh);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = fresh.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let (state, home) =
+                crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            state.validate_home_source(&home).unwrap();
+            assert_eq!(home.host_config.as_ref().unwrap().codex_home, h);
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+            assert!(home.attachment_custody.lock().unwrap().is_ok());
+        }
+    }
     #[test]
     fn config_continuation_acceptance_is_one_shot_and_prior_tokens_do_not_admit() {
         let f = Fixture::new();
@@ -1699,7 +2606,8 @@ mod tests {
         for case in [
             "missing-layers",
             "different-target",
-            "receiving-alias",
+            "foreign-alias",
+            "receiving-dot-spelling",
             "duplicate-user",
             "disabled-user",
             "missing-version",
@@ -1724,13 +2632,25 @@ mod tests {
                     .map(|_| ())
                     .unwrap(),
                 "different-target" => reply["layers"][0]["name"]["file"] = json!(f.shared[1]),
-                "receiving-alias" => {
-                    reply["layers"][0]["name"]["file"] = json!(home
+                "foreign-alias" => {
+                    let alias = f.root.join("unapproved-alias");
+                    std::os::unix::fs::symlink(&f.shared[0], &alias).unwrap();
+                    reply["layers"][0]["name"]["file"] = json!(alias);
+                }
+                "receiving-dot-spelling" => {
+                    let expected = home
                         .host_config
                         .as_ref()
                         .unwrap()
                         .codex_home
-                        .join("config.toml"))
+                        .join("config.toml");
+                    let spelling = format!(
+                        "{}/./config.toml",
+                        home.host_config.as_ref().unwrap().codex_home.display()
+                    );
+                    assert_ne!(Path::new(&spelling).as_os_str(), expected.as_os_str());
+                    assert_eq!(std::fs::canonicalize(&spelling).unwrap(), f.shared[0]);
+                    reply["layers"][0]["name"]["file"] = json!(spelling);
                 }
                 "duplicate-user" => {
                     let layer = reply["layers"][0].clone();
@@ -1789,7 +2709,6 @@ mod tests {
                 .contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
         }
     }
-
     #[test]
     fn config_continuation_requires_actual_admission_and_preserves_stable_unavailable_siblings() {
         for case in [
