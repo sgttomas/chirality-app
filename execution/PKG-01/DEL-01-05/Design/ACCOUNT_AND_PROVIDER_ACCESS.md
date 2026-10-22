@@ -484,6 +484,65 @@ because the App always sends both explicitly on `thread/start` (CS-8), the
 configured default never selects a conversation's model. `Model.isDefault`
 from `model/list` may be shown as Codex's own label, never preselected.
 
+#### Current ordinary configured-provider observation
+
+The ordinary new-conversation form offers **Read configured local providers**
+only on the currently selected account home. It never reads automatically at
+boot or after navigation. The native command checks the actual HomeSession,
+full generation and held source before and after one private `config/read`;
+its cwd is the same frozen effective cwd used by ordinary Start, with the
+actual Root project context. The renderer supplies no home or cwd. No
+configuration write, credential-store/environment/file read, sign-in, server
+probe, model list or capability request is involved. This is configured
+metadata at an observation cut, not a configuration lock, authentication,
+reachability, model/capability availability or Start authority.
+
+Public projection is a separate predicate from private operation eligibility.
+It publishes only the exact configured ID (1–64 ASCII characters, initial
+letter, then letters/digits/dot/underscore/hyphen), a fixed generated label,
+the actual reported HTTP(S) endpoint and fixed validated Responses wire API.
+It never publishes the definition's name/description, origins, layers,
+credential channels, catalog contents or native diagnostic. Endpoint display
+requires at most 2048 printable ASCII bytes, a valid parsed host/port, no
+userinfo/query/fragment/backslash/percent-encoded data, and only URI-unreserved
+ASCII plus slash in the path. Raw and canonical interpretations must agree
+(apart from an implicit trailing slash); no stripped or normalized derivative
+is shown as the original endpoint. Definitions or values outside this display
+contract are withheld with fixed aggregate limits, while the existing manual
+fields and private Start classification remain independent.
+
+Before rows are selected, the whole validated private response is scanned for
+recognized credential/control scalars, including separate credentialed
+providers, nested auth/gateway/AWS channels, header/environment/query values,
+and credential components of URLs. Bounded temporary matching material covers
+the source-known raw, JSON-decoded, canonical and recognized auth-prefix/URL
+forms. Proposed public IDs, endpoints, scope and fixed labels are declined if
+they reflect a known private value; short values are not ignored. Unknown
+sensitive/provider shapes and traversal/normalization budget limits make the
+projection unavailable with a fixed message. This matching material is retired
+with the private read, never persisted, exported as a fingerprint or cached on
+Host; no OS memory-erasure guarantee is made. This is a finite source-known
+reflection contract. Grammar does not detect every hidden, unreported or
+covert secret in otherwise accepted metadata, and no credential-absence or
+credential-store claim is made by a public row.
+
+The DTO's trusted source/generation/cwd/project and generated read revision are
+observation metadata, never a ProviderAdmission or native control pointer.
+Only an explicit row choice changes this ordinary chooser's provider and
+`local-provider` entry; it leaves the model, role, global TEXT, existing chats
+and prepared composers unchanged. A home epoch (including away and back),
+restart, project/source change, newer read revision, unavailable source or late
+response retires row eligibility and retained callbacks. A stale row-derived
+choice must be read/chosen again or explicitly edited through the manual
+fields. Read failure cannot erase newer input, restore old rows or veto a
+separately explicit manual choice. The UI avoids overlapping Read/Start
+presses; a competing native read still invalidates an older Start receipt at
+the existing dispatch check, whose finalization cannot leave Starting stranded.
+Start always obtains a fresh private reading and retains its existing
+classification and refusal behavior. Invented-Peer and mounted checks exercise
+the source/privacy/choice/fresh-read join; they establish no actual server,
+native account, substitution or qualification result.
+
 #### Current native provider admission
 
 Ordinary Start, Continue as and a clean trial share the current Rust start

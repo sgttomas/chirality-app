@@ -1155,9 +1155,16 @@ export function App() {
     chooserHome.current = { mode: homeClass, epoch: chooserHome.current.epoch + 1 };
   }
   const editRevision = useRef(0);
+  const providerReadSequence = useRef(0);
+  const providerReadPending = useRef(false);
+  const [providerReading, setProviderReading] = useState(false);
+  const [providerObservation, setProviderObservation] = useState<{ packet: Json; source: string; epoch: number; sequence: number } | null>(null);
+  const [providerObservationMessage, setProviderObservationMessage] = useState("");
+  const providerRowChoice = useRef<{ id: string; source: string; epoch: number; sequence: number; revision: string } | null>(null);
   const [conversationChoice, setConversationChoice] = useState({ ...emptyConversationChoice, homeEpoch: 0 });
   const choiceRef = useRef(conversationChoice);
   const reviseChoice = (patch: Partial<typeof emptyConversationChoice>) => {
+    if (Object.hasOwn(patch, "modelProvider") || Object.hasOwn(patch, "entryId")) providerRowChoice.current = null;
     editRevision.current++;
     const previous = choiceRef.current.homeEpoch === chooserHome.current.epoch ? choiceRef.current : emptyConversationChoice;
     const next = { ...previous, ...patch, homeEpoch: chooserHome.current.epoch };
@@ -1173,6 +1180,66 @@ export function App() {
   const homePendingRef = useRef(false);
   const currentHost = useRef(host);
   currentHost.current = host;
+  // HomeSession's effective cwd is frozen with its actual source. The project
+  // view and full generation are observed here; the read returns that exact cwd.
+  const providerSource = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null]);
+  const providerObservationCurrent = !!providerObservation && host?.state === "ready" && !host?.generationClosed && homeClass === "account"
+    && providerObservation.source === providerSource(host) && providerObservation.epoch === chooserHome.current.epoch
+    && providerObservation.sequence === providerReadSequence.current
+    && providerObservation.packet.scope.readRevision === host?.configuredProviderReadRevision;
+  const configuredRowChoiceStale = () => {
+    const selected = providerRowChoice.current, choice = choiceRef.current, source = currentHost.current;
+    return !!selected && choice.modelProvider === selected.id && choice.entryId === "local-provider"
+      && (source?.state !== "ready" || source?.generationClosed || selected.source !== providerSource(source)
+        || selected.epoch !== chooserHome.current.epoch || selected.sequence !== providerReadSequence.current
+        || selected.revision !== source?.configuredProviderReadRevision);
+  };
+  const rowChoiceStale = configuredRowChoiceStale();
+  const readConfiguredProviders = async () => {
+    const original = currentHost.current;
+    if (providerReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready"
+      || original?.generationClosed || original?.homeRouting?.activeModeHomeClass !== "account") return;
+    const source = providerSource(original), epoch = chooserHome.current.epoch, sequence = ++providerReadSequence.current;
+    const current = () => sequence === providerReadSequence.current && epoch === chooserHome.current.epoch
+      && source === providerSource(currentHost.current) && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
+      && !startPendingRef.current && !homePendingRef.current;
+    providerReadPending.current = true; setProviderReading(true); setProviderObservation(null); setProviderObservationMessage("");
+    try {
+      const packet: Json = await invoke("read_configured_providers", { generation: original.generation, modeHomeClass: "account" });
+      if (!current()) return;
+      const valid = packet?.state === "observed" && packet?.schema === "ConfigReadResponse" && Array.isArray(packet.rows)
+        && packet.scope?.modeHomeClass === "account" && JSON.stringify(packet.scope.generation) === JSON.stringify(original.generation)
+        && JSON.stringify(packet.scope.projectContext) === JSON.stringify(original.currentAppProjectContext ?? null)
+        && typeof packet.scope.cwd === "string" && typeof packet.scope.readRevision === "string"
+        && ["Some configured definitions or metadata were withheld; no private names, values or diagnostics are offered",
+          "Configured metadata only; not authentication, reachability, model/capability availability or Start authority"].includes(packet.limit)
+        && packet.rows.every((row: Json) => typeof row.id === "string" && /^[A-Za-z][A-Za-z0-9._-]{0,63}$/.test(row.id)
+          && row.label === "Configured local provider" && typeof row.endpoint === "string" && row.wireApi === "responses");
+      if (!valid) throw Error("unavailable projection");
+      const latest: Json = await invoke("host_status");
+      if (!current() || providerSource(latest) !== source || latest?.state !== "ready" || latest?.generationClosed
+        || latest?.configuredProviderReadRevision !== packet.scope.readRevision
+        || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
+          && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
+      setHost(latest);
+      setProviderObservation({ packet, source, epoch, sequence });
+    } catch {
+      if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
+    } finally {
+      providerReadPending.current = false; setProviderReading(false);
+    }
+  };
+  const chooseConfiguredProvider = (id: string) => {
+    const source = currentHost.current;
+    if (!providerObservation || source?.state !== "ready" || source?.generationClosed || providerObservation.source !== providerSource(source)
+      || providerObservation.epoch !== chooserHome.current.epoch || providerObservation.sequence !== providerReadSequence.current
+      || providerObservation.packet.scope.readRevision !== source?.configuredProviderReadRevision
+      || providerReadPending.current || startPendingRef.current || homePendingRef.current
+      || !providerObservation.packet.rows.some((row: Json) => row.id === id)) return;
+    reviseChoice({ modelProvider: id, entryId: "local-provider" });
+    providerRowChoice.current = { id, source: providerObservation.source, epoch: providerObservation.epoch,
+      sequence: providerObservation.sequence, revision: providerObservation.packet.scope.readRevision };
+  };
   const entryCompatible = (homeClass === "account" || homeClass === "api-key") && startEntries(host).some(entry => entry.value === entryId);
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
@@ -1309,7 +1376,7 @@ export function App() {
     const mode = source?.homeRouting?.activeModeHomeClass;
     const submitted = choiceRef.current;
     const epoch = chooserHome.current.epoch;
-    if (startPendingRef.current || homePendingRef.current || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
+    if (startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
         !submitted.model.trim() || !submitted.modelProvider.trim() || !(mode === "account" || mode === "api-key") ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
     const revision = editRevision.current;
@@ -1665,13 +1732,30 @@ export function App() {
           <div className="workspace-start-fields"><p>
             <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/>
           </p>
+          <div aria-label="Configured local providers">
+            <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending}
+              onClick={readConfiguredProviders}>Read configured local providers</button>
+            <p>Explicit metadata read for the selected account home and current project scope. This does not probe servers, list models, authenticate, or admit Start.</p>
+            {!providerObservationCurrent && !providerReading && <p>No current configured-provider observation. Read explicitly, or use the independent manual fields.</p>}
+            {providerObservationMessage && <p role="status">{providerObservationMessage}</p>}
+            {providerObservationCurrent && <>
+              <p>Observed source: Home {providerObservation.packet.scope.generation.home} · App session {providerObservation.packet.scope.generation.appSession} · spawn {providerObservation.packet.scope.generation.spawnCounter} · working folder {providerObservation.packet.scope.cwd}.</p>
+              <ul>{providerObservation.packet.rows.map((row: Json) => <li key={row.id}>
+                Configured local provider {row.id} · {row.endpoint} · Responses{" "}
+                <button disabled={providerReading || startPending || homePending} onClick={() => chooseConfiguredProvider(row.id)}>Choose provider {row.id}</button>
+              </li>)}</ul>
+              <p>{providerObservation.packet.rows.length ? "Choosing a row changes only this new conversation's provider and access entry; choose its model separately." : "No publishable local-provider metadata was established."}</p>
+              <p>{providerObservation.packet.limit}</p>
+            </>}
+            {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
+          </div>
           <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
           <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending}>Start thread</button>
+            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || rowChoiceStale}>Start thread</button>
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>

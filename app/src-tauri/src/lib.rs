@@ -327,6 +327,10 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
+    s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
+        home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+            .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
+    } else { Value::Null };
 
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
@@ -608,6 +612,24 @@ fn read_home_access(state:State<'_,AppState>,generation:Value,mode_home_class:St
     let result=runtime_session::read_native_home_access(&home,&generation);
     state.validate_home_source(&home)?;
     result
+}
+
+#[tauri::command(async)]
+fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    // Only the currently selected actual account source; no caller cwd/home,
+    // alternate-home fallback, configuration write, model or capability read.
+    let refused = || "Configured provider observation unavailable; original account source or scope changed; private diagnostic withheld".to_owned();
+    let home=state.homes.lock().unwrap().active();
+    if mode_home_class!="account" || home.class()!=home_resources::HomeClass::Account || home.host.snapshot()["generation"]!=generation {return Err(refused());}
+    state.validate_home_source(&home).map_err(|_|refused())?;
+    let cwd=home.host_config.as_ref().map_err(|_|refused())?.cwd.to_str().ok_or_else(refused)?.to_owned();
+    let project=state.project_context.view();
+    let view=home.host.configured_provider_read(&generation,&cwd,&project)?;
+    state.validate_home_source(&home).map_err(|_|refused())?;
+    let active=state.homes.lock().unwrap().active();
+    if !Arc::ptr_eq(&active,&home) || home.host.snapshot()["generation"]!=generation || state.project_context.view()!=project
+        || home.host.configured_provider_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
+    Ok(view)
 }
 
 #[tauri::command(async)]
@@ -2264,7 +2286,7 @@ pub fn run() {
             claim_native_waiting_intent,
             checkpoint_native_waiting_ui,
             finish_native_waiting_intent,
-            read_home_access,
+            read_home_access, read_configured_providers,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,

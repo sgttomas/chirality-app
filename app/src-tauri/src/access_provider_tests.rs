@@ -94,6 +94,611 @@ fn config(defs: Value) -> Value {
 fn local() -> Value {
     json!({"name":"invented anonymous","base_url":"https://example.invalid/v1","wire_api":"responses","requires_openai_auth":false,"env_key":null,"auth":null,"aws":null,"gateway_oauth":null,"experimental_bearer_token":null,"http_headers":null,"env_http_headers":null,"query_params":null})
 }
+fn project_scope() -> Value {
+    json!({"reference":"/invented/work","sourceCaption":"explicit fixture project","standing":"frozen fixture source"})
+}
+#[test]
+fn access_provider_configured_observation_mounted_join() {
+    let Ok(directory) = std::env::var("CHIRALITY_PROVIDER_JOIN") else {
+        return;
+    };
+    let directory = std::path::PathBuf::from(directory);
+    let root = std::env::temp_dir().join(opaque_id("provider-join-invented-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+        root: root.join("records"),
+        placement: crate::records_store::Placement::Test,
+        limits: vec![],
+    })));
+    let mut peer = Peer::with_ledger("invented-account", Some(root.join("recovery.jsonl")));
+    let host_view = |peer: &Peer| {
+        let mut view = peer.host.snapshot();
+        view["homeRouting"] = json!({"activeModeHomeClass":"account"});
+        view["currentAppProjectContext"] = project_scope();
+        view["configuredProviderReadRevision"] = peer
+            .host
+            .configured_provider_revision(&peer.g, "/invented/work");
+        view
+    };
+    let write = |name: &str, value: &Value| {
+        assert!(!value.to_string().contains(CANARY));
+        assert!(!value.to_string().contains("RowSecret37"));
+        let temporary = directory.join(format!("{name}.tmp"));
+        std::fs::write(&temporary, serde_json::to_vec(value).unwrap()).unwrap();
+        std::fs::rename(temporary, directory.join(name)).unwrap();
+    };
+    write("ready.json", &host_view(&peer));
+    for sequence in 0..32 {
+        let path = directory.join(format!("command-{sequence}.json"));
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        while !path.exists() {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "mounted fixture command timed out"
+            );
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let bytes = std::fs::read(path).unwrap();
+        assert!(bytes.len() <= 4096);
+        let command: Value = serde_json::from_slice(&bytes).unwrap();
+        if command["command"] == "finish" {
+            break;
+        }
+        let mut credentialed = local();
+        credentialed["experimental_bearer_token"] = json!("RowSecret37");
+        peer.answer(config(
+            json!({"anonymous":local(),"credentialed":credentialed}),
+        ));
+        let result = match command["command"].as_str().unwrap() {
+            "read_configured_providers" => {
+                assert_eq!(command["args"]["generation"], peer.g);
+                assert_eq!(command["args"]["modeHomeClass"], "account");
+                let view = inventory(&peer);
+                assert_eq!(peer.frame()["method"], "config/read");
+                view
+            }
+            "thread_start" => {
+                let args = &command["args"];
+                assert_eq!(args["modeHomeClass"], "account");
+                if std::env::var("CHIRALITY_PROVIDER_JOIN_CHANGE").as_deref() == Ok("credentialed")
+                {
+                    let mut changed = local();
+                    changed["experimental_bearer_token"] = json!(CANARY);
+                    peer.answer(config(json!({"anonymous":changed})));
+                }
+                // Same Peer/source as listing, actual fresh private Start read;
+                // UI-selected provider/model/entry pass unchanged, never DTO proof.
+                let admission = peer.host.provider_admission_read_within(
+                    &peer.g,
+                    "/invented/work",
+                    args["entryId"].as_str().unwrap(),
+                    args["modelProvider"].as_str().unwrap(),
+                    args["model"].as_str().unwrap(),
+                    Duration::from_millis(30),
+                );
+                assert_eq!(peer.frame()["method"], "config/read");
+                match admission {
+                    Err(error) => Err(error),
+                    Ok(proof) => {
+                        let receipt = peer
+                            .host
+                            .thread_start_with_access_dispatch(&proof, "invented explicit guidance")
+                            .unwrap();
+                        let frame = peer.frame();
+                        assert_eq!(frame["method"], "thread/start");
+                        assert_eq!(frame["params"]["modelProvider"], args["modelProvider"]);
+                        assert_eq!(frame["params"]["model"], args["model"]);
+                        assert_eq!(receipt.evidence()["writeResult"], "written");
+                        // The invented peer supplies no native start acknowledgment.
+                        Err("Invented peer: exact thread/start written; outcome unknown; no automatic retry".into())
+                    }
+                }
+            }
+            _ => panic!("unexpected fixture command"),
+        };
+        peer.safe();
+        let response = match result {
+            Ok(value) => json!({"ok":true,"value":value}),
+            Err(error) => json!({"ok":false,"error":error}),
+        };
+        write(
+            &format!("response-{sequence}.json"),
+            &json!({"response":response,"host":host_view(&peer),"recordedRecovery":peer.host.recorded_recovery_entries()}),
+        );
+    }
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    std::fs::remove_dir_all(root).unwrap();
+}
+fn inventory(peer: &Peer) -> Result<Value, String> {
+    peer.host.configured_provider_read_within(
+        &peer.g,
+        "/invented/work",
+        &project_scope(),
+        Duration::from_millis(30),
+    )
+}
+#[test]
+fn access_provider_configured_projection_joins_private_read_and_fresh_start() {
+    let mut peer = Peer::new("account");
+    let mut credentialed = local();
+    credentialed["experimental_bearer_token"] = json!("PrivateToken91");
+    peer.answer(config(
+        json!({"anonymous":local(),"credentialed":credentialed}),
+    ));
+    let view = inventory(&peer).unwrap();
+    assert_eq!(
+        view["rows"],
+        json!([{"id":"anonymous","label":"Configured local provider","endpoint":"https://example.invalid/v1","wireApi":"responses"}])
+    );
+    assert_eq!(view["scope"]["generation"], peer.g);
+    assert_eq!(view["scope"]["projectContext"], project_scope());
+    assert_eq!(
+        view["scope"]["readRevision"],
+        peer.host
+            .configured_provider_revision(&peer.g, "/invented/work")
+    );
+    assert!(!view.to_string().contains("PrivateToken91"));
+    assert_eq!(peer.frame()["method"], "config/read");
+    assert_eq!(
+        peer.host.snapshot()["clientRequests"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    // Listing supplied no proof. A fresh actual Start reads the changed current
+    // definition and refuses before thread/start; the old displayed row cannot admit it.
+    let mut changed = local();
+    changed["experimental_bearer_token"] = json!(CANARY);
+    peer.answer(config(json!({"anonymous":changed})));
+    assert!(peer.read("local-provider", "anonymous").is_err());
+    assert_eq!(peer.frame()["method"], "config/read");
+    assert_eq!(
+        peer.host.snapshot()["clientRequests"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    peer.answer(config(json!({"anonymous":local()})));
+    let proof = peer.read("local-provider", "anonymous").unwrap();
+    assert_eq!(peer.frame()["method"], "config/read");
+    peer.host
+        .thread_start_with_access_dispatch(&proof, "invented explicit guidance")
+        .unwrap();
+    assert_eq!(peer.frame()["method"], "thread/start");
+    peer.safe();
+}
+#[test]
+fn access_provider_configured_projection_excludes_all_source_known_reflections_and_short_values() {
+    for secret in [CANARY, "RowSecret37", "q", ""] {
+        for reflection in [
+            "id",
+            "name",
+            "endpoint-path",
+            "endpoint-fragment",
+            "encoded-path",
+        ] {
+            let mut peer = Peer::new("account");
+            let mut reflected = local();
+            let id = if reflection == "id" {
+                secret
+            } else {
+                "reflected"
+            };
+            match reflection {
+                "name" => reflected["name"] = json!(secret),
+                "endpoint-path" => {
+                    reflected["base_url"] = json!(format!("https://example.invalid/v1/{secret}"))
+                }
+                "endpoint-fragment" => {
+                    reflected["base_url"] = json!(format!("https://example.invalid/v1#{secret}"))
+                }
+                "encoded-path" => {
+                    reflected["base_url"] = json!(format!(
+                        "https://example.invalid/v1/{}",
+                        secret
+                            .bytes()
+                            .map(|b| format!("%{b:02X}"))
+                            .collect::<String>()
+                    ))
+                }
+                _ => {}
+            }
+            let mut credentialed = local();
+            credentialed["experimental_bearer_token"] = json!(secret);
+            peer.answer(config(
+                json!({id:reflected,"independent":local(),"credentialed":credentialed}),
+            ));
+            let view = inventory(&peer);
+            if let Ok(view) = view {
+                assert!(!view.to_string().contains(secret), "{reflection}");
+                let rows = view["rows"].as_array().unwrap();
+                assert!(rows.iter().any(|row| row["id"] == "independent"));
+                if reflection != "name" {
+                    assert!(!rows.iter().any(|row| row["id"] == id));
+                }
+                assert!(rows
+                    .iter()
+                    .all(|row| row["label"] == "Configured local provider"));
+            }
+            assert_eq!(peer.frame()["method"], "config/read");
+            peer.safe();
+        }
+    }
+}
+#[test]
+fn access_provider_configured_projection_unknown_shapes_and_budgets_are_fixed_unavailable() {
+    for mutation in [
+        "unknown",
+        "null",
+        "untyped",
+        "nested-array",
+        "depth",
+        "nodes",
+        "bytes",
+        "basic",
+        "encoded",
+        "auth-url",
+    ] {
+        let mut peer = Peer::new("account");
+        let credentialed = local();
+        let mut response = config(json!({"independent":local(),"credentialed":credentialed}));
+        match mutation {
+            "unknown" => {
+                response["config"]["model_providers"]["credentialed"]["new-private-role"] =
+                    json!(CANARY)
+            }
+            "null" => response["config"]["model_providers"] = Value::Null,
+            "untyped" => {
+                response["config"]["model_providers"]["credentialed"]["auth"] = json!(CANARY)
+            }
+            "nested-array" => {
+                response["config"]["model_providers"]["credentialed"]["auth"] =
+                    json!({"secret":[CANARY]})
+            }
+            "depth" => {
+                let mut value = json!(CANARY);
+                for _ in 0..26 {
+                    value = json!({"nested":value});
+                }
+                response["extra"] = value;
+            }
+            "nodes" => response["extra"] = json!(vec![Value::Null; 4100]),
+            "bytes" => response["extra"] = json!("x".repeat(262_145)),
+            "basic" => {
+                response["config"]["model_providers"]["credentialed"]["http_headers"] =
+                    json!({"Authorization":format!("Basic {CANARY}")})
+            }
+            "encoded" => {
+                response["config"]["model_providers"]["credentialed"]["auth"] =
+                    json!({"token":format!("Bearer \"{CANARY}\"")})
+            }
+            "auth-url" => {
+                response["extra"] =
+                    json!({"authUrl":format!("https://example.invalid/login?token={CANARY}")})
+            }
+            _ => unreachable!(),
+        }
+        peer.answer(response);
+        let view = inventory(&peer);
+        if matches!(mutation, "encoded" | "auth-url") {
+            let view = view.unwrap();
+            assert!(!view.to_string().contains(CANARY));
+            assert!(view["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|row| row["id"] == "independent"));
+        } else {
+            assert_eq!(view.unwrap_err(), OBSERVATION_LIMIT);
+        }
+        assert_eq!(peer.frame()["method"], "config/read");
+        peer.safe();
+    }
+}
+#[test]
+fn access_provider_configured_projection_scans_nested_and_filtered_url_channels_before_rows() {
+    for channel in [
+        "auth",
+        "gateway",
+        "aws",
+        "headers",
+        "env",
+        "query",
+        "url-user",
+        "url-query",
+        "url-fragment",
+        "json-bearer",
+        "canonical-host",
+    ] {
+        let mut peer = Peer::new("account");
+        let secret = "RowSecret37";
+        let mut reflected = local();
+        if channel == "canonical-host" {
+            reflected["base_url"] = json!("https://rowsecret37.invalid/v1");
+        }
+        let mut response =
+            config(json!({secret:local(),"reflected":reflected,"independent":local()}));
+        let extra = match channel {
+            "auth" => json!({"auth":{"nested":{"token":secret}}}),
+            "gateway" => json!({"gateway_oauth":{"nested":{"clientSecret":secret}}}),
+            "aws" => json!({"aws":{"secretAccessKey":secret}}),
+            "headers" => json!({"headers":{"Authorization":format!("Bearer {secret}")}}),
+            "env" => json!({"env":{"UNRECOGNIZED_NAME":secret}}),
+            "query" => json!({"query_params":{"untyped":secret}}),
+            "url-user" => json!({"base_url":format!("https://{secret}@example.invalid/v1")}),
+            "url-query" => {
+                json!({"model_catalog_url":format!("https://example.invalid/models?untyped={secret}")})
+            }
+            "url-fragment" => json!({"base_url":format!("https://example.invalid/v1#{secret}")}),
+            "json-bearer" => json!({"token":format!("Bearer \"{secret}\"")}),
+            "canonical-host" => json!({"token":secret}),
+            _ => unreachable!(),
+        };
+        response["layers"] = json!([{"name":"invented-layer","version":"invented","config":extra}]);
+        // Put arbitrary validated-response data outside typed layers metadata;
+        // ConfigReadResponse allows additional private fields, still scanned.
+        let extra = response["layers"][0]["config"].clone();
+        response.as_object_mut().unwrap().remove("layers");
+        response["extra"] = extra;
+        peer.answer(response);
+        let view = inventory(&peer).unwrap();
+        assert!(!view
+            .to_string()
+            .to_ascii_lowercase()
+            .contains(&secret.to_ascii_lowercase()));
+        assert!(view["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["id"] == "independent"));
+        assert!(!view["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["id"] == secret));
+        if channel == "canonical-host" {
+            assert!(!view["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|r| r["id"] == "reflected"));
+        }
+        peer.frame();
+        peer.safe();
+    }
+}
+#[test]
+fn access_provider_configured_display_declines_do_not_restrict_private_operation_identifiers() {
+    for (id,endpoint,publish) in [
+        ("Provider.UPPER_42-name".to_owned(),"https://example.invalid/v1".to_owned(),true),
+        ("p".repeat(64),"http://example.invalid/".to_owned(),true),
+        ("1provider".to_owned(),"https://example.invalid/v1".to_owned(),false),
+        ("private id with spaces".to_owned(),"https://example.invalid/v1".to_owned(),false),
+        ("p".repeat(65),"https://example.invalid/v1".to_owned(),false),
+        ("non-ascii-é".to_owned(),"https://example.invalid/v1".to_owned(),false),
+        ("provider".to_owned(),"https://example.invalid/v1#private-fragment".to_owned(),false),
+        ("provider".to_owned(),"https://example.invalid/%70rivate".to_owned(),false),
+        ("provider".to_owned(),"https://example.invalid/a/../v1".to_owned(),false),
+        ("provider".to_owned(),"https://EXAMPLE.invalid/v1".to_owned(),false),
+        ("provider".to_owned(),format!("https://example.invalid/{}","x".repeat(2048)),false),
+    ] {
+        let mut peer=Peer::new("account"); let mut definition=local();definition["base_url"]=json!(endpoint);
+        peer.answer(config(json!({id.clone():definition})));
+        let view=inventory(&peer).unwrap();peer.frame();
+        assert_eq!(view["rows"].as_array().unwrap().len(),usize::from(publish));
+        if publish {assert_eq!(view["rows"][0]["id"],id);assert_eq!(view["rows"][0]["endpoint"],endpoint);}
+        // No display predicate was added to the original private Start policy.
+        assert!(peer.read("local-provider",&id).is_ok());peer.frame();peer.safe();
+    }
+}
+#[test]
+fn access_provider_configured_projection_errors_late_and_exact_source_mismatches_stay_private() {
+    for mode in [
+        "error",
+        "malformed",
+        "wrong-id",
+        "method",
+        "timeout",
+        "closed",
+        "generation",
+        "revision",
+        "cwd",
+        "receipt",
+        "pipe",
+        "write",
+    ] {
+        let mut peer = Peer::new("account");
+        *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
+            let frame = match mode {
+                "error" => {
+                    json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":CANARY}})
+                }
+                "malformed" => json!({"id":source.request_id(),"result":{"config":CANARY}}),
+                "wrong-id" => json!({"id":900000,"result":config(json!({"independent":local()}))}),
+                "method" => {
+                    json!({"id":source.request_id(),"method":"invented/bad","result":config(json!({"independent":local()}))})
+                }
+                _ => {
+                    json!({"id":source.request_id(),"result":config(json!({"independent":local()}))})
+                }
+            };
+            if mode != "timeout" {
+                host.on_line(&serde_json::to_vec(&frame).unwrap(), source.generation());
+            }
+            if mode == "revision" {
+                host.request_begin_scoped(
+                    "config/read",
+                    json!({"cwd":"/invented/work","includeLayers":false}),
+                    json!({"kind":"synthetic competing reader"}),
+                    false,
+                    Some(source.generation()),
+                )
+                .unwrap();
+            }
+            let mut i = host.inner.0.lock().unwrap();
+            match mode {
+                "closed" => {
+                    Host::close_generation(&mut i);
+                }
+                "generation" => i.generation["spawnCounter"] = json!(2),
+                "cwd" => {
+                    i.source_requests
+                        .get_mut(&source.request_id().to_string())
+                        .unwrap()
+                        .request
+                        .frame["params"]["cwd"] = json!("/invented/other")
+                }
+                "receipt" => i
+                    .source_requests
+                    .get_mut(&source.request_id().to_string())
+                    .unwrap()
+                    .request
+                    .request_ref
+                    .push_str("-replaced"),
+                "pipe" => i.attachment_pipe_epoch += 1,
+                "write" => {
+                    i.source_requests
+                        .get_mut(&source.request_id().to_string())
+                        .unwrap()
+                        .write_error = Some("invented write conflict".into())
+                }
+                _ => {}
+            }
+        }));
+        assert_eq!(inventory(&peer).unwrap_err(), OBSERVATION_LIMIT, "{mode}");
+        let read = peer.frame();
+        assert_eq!(read["method"], "config/read");
+        if mode == "revision" {
+            assert_eq!(peer.frame()["method"], "config/read");
+        }
+        peer.host.on_line(
+            &serde_json::to_vec(&json!({"id":read["id"],"result":config(json!({"late":local()}))}))
+                .unwrap(),
+            &peer.g,
+        );
+        peer.safe();
+        let i = peer.host.inner.0.lock().unwrap();
+        let e = i.source_requests.get(&read["id"].to_string()).unwrap();
+        assert!(
+            e.request.receiver.lock().unwrap().try_recv().is_err()
+                || e.response
+                    .as_ref()
+                    .is_some_and(|r| r["privateConfigWithheld"] == true)
+        );
+        assert!(!i
+            .client_requests
+            .iter()
+            .any(|r| r["method"] == "thread/start"));
+    }
+}
+#[test]
+fn access_provider_configured_read_supersedes_claimed_start_without_stranding_selection() {
+    let mut peer = Peer::new("account");
+    peer.answer(config(json!({"anonymous":local()})));
+    let proof = peer.read("local-provider", "anonymous").unwrap();
+    peer.frame();
+    let mut selected = crate::access::ConversationSelection::new_explicit(
+        "invented-attempt",
+        Some("/invented/work"),
+    )
+    .unwrap();
+    selected
+        .choose("local-provider", "anonymous", "chosen-model", false)
+        .unwrap();
+    selected.start_params(&peer.g, "account", false).unwrap();
+    let mut slot = None;
+    crate::runtime_session::claim_start(&mut slot, selected, || Ok("invented-supply".into()))
+        .unwrap();
+    assert_eq!(slot.as_ref().unwrap().snapshot()["state"], "starting");
+    let view = inventory(&peer).unwrap();
+    peer.frame();
+    assert_eq!(view["rows"][0]["id"], "anonymous");
+    let result = peer
+        .host
+        .thread_start_with_access_dispatch(&proof, "invented explicit guidance")
+        .map(|_| Value::Null);
+    assert!(result.is_err());
+    assert!(crate::runtime_session::finalize_start_attempt(
+        slot.as_mut().unwrap(),
+        "invented-attempt",
+        &peer.g,
+        &peer.g,
+        result
+    )
+    .is_err());
+    assert_eq!(slot.as_ref().unwrap().snapshot()["state"], "start-failed");
+    assert_eq!(
+        peer.host.snapshot()["clientRequests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["method"] == "thread/start")
+            .count(),
+        0
+    );
+    peer.safe();
+}
+#[test]
+fn access_provider_private_admission_does_not_declassify_reflected_metadata() {
+    // The genuine private read may establish Start eligibility while arbitrary
+    // metadata still repeats a private value. This is not a public display DTO.
+    for reflection in [
+        "id",
+        "name",
+        "endpoint-path",
+        "endpoint-fragment",
+        "encoded-path",
+    ] {
+        let mut peer = Peer::new("account");
+        let mut definition = local();
+        let provider = if reflection == "id" {
+            CANARY
+        } else {
+            "anonymous"
+        };
+        match reflection {
+            "id" => {}
+            "name" => definition["name"] = json!(CANARY),
+            "endpoint-path" => {
+                definition["base_url"] = json!(format!("https://example.invalid/v1/{CANARY}"))
+            }
+            "endpoint-fragment" => {
+                definition["base_url"] = json!(format!("https://example.invalid/v1#{CANARY}"))
+            }
+            "encoded-path" => {
+                let encoded: String = CANARY.bytes().map(|b| format!("%{b:02X}")).collect();
+                definition["base_url"] = json!(format!("https://example.invalid/v1/{encoded}"));
+            }
+            _ => unreachable!(),
+        }
+        let mut credentialed = local();
+        credentialed["experimental_bearer_token"] = json!(CANARY);
+        let result =
+            config(json!({provider: definition, "separate-credentialed-entry": credentialed}));
+        peer.answer(result);
+        let proof = peer.read("local-provider", provider).unwrap();
+        assert_eq!(proof.provider, provider);
+        let frame = peer.frame();
+        assert_eq!(frame["method"], "config/read");
+        assert_eq!(
+            frame["params"],
+            json!({"cwd":"/invented/work","includeLayers":true})
+        );
+        assert!(!proof.source.evidence().to_string().contains(CANARY));
+        peer.safe();
+        assert_eq!(
+            peer.host.snapshot()["clientRequests"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        // No listing/selection/model request or native thread/start is sent.
+    }
+}
 #[test]
 fn access_provider_mislabeling_unknown_and_credential_elements_refuse_before_start() {
     let mut peer = Peer::new("account");
