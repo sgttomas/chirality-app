@@ -4,33 +4,13 @@ description: Use when related contributions must become one usable knowledge-wor
 ---
 # Coordinated knowledge work
 
-This method addresses a recurring failure: capable contributors produce substantial work, yet the intended user still cannot use the result. It applies to engineering documentation, research, technical review, and similar undertakings. Use specialized workflows for their subject requirements; do not stack duplicate procedures. If work is already underway, enter at the unfinished decision with its existing evidence rather than restarting this sequence.
-
-Keep purpose and continuity with the person, own integration, produce useful
-contributions, and obtain independent scrutiny where warranted. These are
-responsibilities, not a staffing chart. HELP_HUMAN, HELPS_HUMANS, WORKING_ITEMS
-and TASK describe contributions that may serve the undertaking; one session can
-carry the work without delegation. TASK, when assigned, remains a bounded
-executor and does not delegate. The agent working with the person retains
-Agent 0's responsibilities. Authority comes from the assignment and host.
-
-Use one coordinator for a shared result. That role must release work and resolve interfaces; it should not become an approval stop above every operation. Add another manager only where a separate undertaking can deliver a meaningful result across a clear boundary.
-
 ## 1. Establish the consequential premises through a usable path
 
-Name the intended consumer, the result they must be able to use, and the conditions that establish delivery. Bind the source basis, permitted transformations, uncertainty treatment, write boundaries, and decisions reserved for others. Use the existing brief; do not create another form simply to contain these facts. Prioritize reserved choices by what they unlock: present each as a concrete choice with its consequence, and do not make approval of an internal work graph a routine human decision.
-
-Choose an early unit that can travel all the way from authoritative input through production, required review, integration, and actual consumption. Include the interfaces or assumptions most likely to invalidate dependent work. A document section with a continued table may be more revealing than several easy pages; a decision-ready argument may be more revealing than a collection of research notes. Use an authorized test destination when actual publication requires a later decision. A bounded disposable experiment is appropriate when it resolves consequential uncertainty more cheaply.
-
-**Do not expand work that depends on an unproved consequential premise merely because its private components are passing.** Identify what still prevents the first result becoming usable and resolve that obstruction. Independent branches can continue. Once the path works, reuse it; revisit only the assumptions and interfaces affected by material changes.
-
-In a reader undertaking reported by one reviewer, implementations passed their shared cases, but independent review of the test corpus probed omitted cases and exposed gaps. More implementation against unresolved interpretations would extend those defects. Resolve the governing interpretation within authority, pin it with a shared case every affected contributor must pass, then expand. Checking the shared basis complements the early consuming path; neither establishes the other.
-
-Place cheap, established checks where a defect is introduced. In the motivating corpus, fourteen table JSON defects escaped earlier reviews although a retained schema validator could detect them. Run that validator when generating or admitting the representation. It establishes structural validity; source comparison must still establish that the content and relationships are faithful.
+Agent 0 will explore the deliverables and their dependencies to map out a path of work that can be delegated to Type 1 and Type 2 agents.
 
 ## 2. Keep ownership through production, repair and integration
 
-Own a coherent document, system, or inquiry through production, findings, repair, and integration, whether doing the work directly or assigning it to a contributor. Name the input basis, deliverables, write boundary, review route, ordinary decisions they may make, and conditions requiring escalation or a stop. Their first useful return should be a substantive output or a precise obstacle—not a request for permission to perform the next ordinary step.
+Each manager Type 1 agent will own a coherent document, system, or inquiry through production, findings, repair, and integration, whether doing the work directly or assigning it to a contributor. Agent 0 must name the input basis, deliverables, write boundary, review route, ordinary decisions they may make, and conditions requiring escalation or a stop. The manager agent's first useful return should be a substantive output or a precise obstacle—not a request for permission to perform the next ordinary step.
 
 If satisfying an expectation would require removing, narrowing, or bypassing an existing check, pause that affected change and expose the conflict. Establish the requirement and authority for any change to the check; a newly passing result does not justify weakened assurance. Continue unaffected work. Dropping a source qualifier so a table fits its schema is not a representation fix: preserve the meaning and change the representation or expose its limitation.
 
@@ -44,25 +24,7 @@ A document owner may work through connected sections while the coordinator integ
 
 A useful standing assignment says, in substance: “Own this scope through repairs. Make completed units available to this reviewer with their exact versions. Continue the next natural unit while review proceeds, within the agreed ready-work limit. Escalate these defined changes or blockers; ordinary steps are already authorized.” This is an example, not another required template.
 
-Arrange the independent reviewer before expanding production where review is required. Size the ready queue to actual review capacity. Preserve the owner through findings instead of transferring the material to whoever is free. Account for dispatched work and inspect actual returns through the host's
-completion mechanism. Where that mechanism does not reach the coordinator, as
-when a contributor working in a separate conversation finishes without notifying
-anyone, the assignment names a return route that does: for example, a short
-message into the coordinator's conversation giving the exact version, the checks
-performed and any open choices. A scheduled check that runs independently of any
-one session is a backstop for a missed return, not the primary route; a timer
-that lives only inside the coordinator's session is no backstop. Do not mistake a
-queued message for execution or a completed turn for delivery of all its
-contributions. Keep a recovery note only
-when the undertaking's current artifacts and conversation are insufficient.
-
-
-Keep concurrent writes disjoint and shared changes under one integration authority. Renewal transfers logical responsibility and valid evidence; it does not justify repeating completed work. Models, staffing, and tools are assignment choices. Independence is an opportunity to make progress concurrently. Do not hold
-independent work behind an unresolved branch. Arrange ownership, shared writes,
-resources and review capacity so useful work can proceed without avoidable
-waiting. Choose delegation and concurrency for their contribution to the result.
-A dependency graph exposes declared relationships; missing edges do not prove
-independence. Check relevant interfaces and shared state before relying on it.
+Keep concurrent writes disjoint and shared changes under one integration authority. Renewal transfers logical responsibility and valid evidence; it does not justify repeating completed work. Models, staffing, and tools are assignment choices. Independence is an opportunity to make progress concurrently. 
 
 ## 3. Move a reviewed contribution into use without restarting its review
 
@@ -76,16 +38,6 @@ For every ready contribution, ask **which claim remains unestablished**. Separat
 
 These are different warrants, not three compulsory approval rounds. A renderer or matching hash cannot establish source meaning. Conversely, a copied, unchanged table does not need another cell-by-cell source reading merely because it moved into the deliverable. Combine compatible placement and integration checks where the governing requirements permit.
 
-Where several contributions are checked against one shared fixture, specification, or test set, their agreement establishes consistency with that basis, not its soundness or coverage. Give a consequential shared basis its own check, including what it leaves untested.
-
-Before relying on a return, establish its exact output/version, completed scope, applicable basis and decisions, checks actually performed, and remaining findings or uncertainty. Verify consequential claims against the output and evidence; obtain identifiers and figures from their source at record-writing time. Reuse valid warrants. Repeat tests or derive results independently when requirements, risk, contradictions, or invalidated evidence justify it.
-
-Return a finding with the affected claim, supporting evidence, and consequence. The owner repairs it; the reviewer who raised it normally confirms the repair and affected dependencies. Use a fresh reviewer for a concrete competence, independence, or assumption problem, not routinely to certify another reviewer.
-
-In the corpus run, a group with completed technical review waited while a later reviewer rebuilt a mechanical checker. The needed assertions eventually executed in less than a second. The remedy was to inspect and reuse the existing checker, add any genuinely missing assertions, and return the actual result. Independent assessment did not require independent invention of the plumbing.
-
-Integrate compatible checked contributions with the necessary preimages and scope protections. Keep executed changes distinct from confirmed outcomes. Where an actual-state check is required, do not claim completion before it returns; do not require a separate approval for every unchanged intermediate fact.
-
 ## 4. Diagnose the waiting before adding people, tools, or interruptions
 
 At a stalled or aging item, locate the next useful result and the person or operation that releases it. Then establish:
@@ -94,38 +46,12 @@ At a stalled or aging item, locate the next useful result and the person or oper
 2. **What actually ran or exists?** Inspect the last operation, saved or reported partial work, and available session/error state. Work may exist before a narrative handoff; absence of a file does not prove inactivity.
 3. **Where is the elapsed time going?** Distinguish source reasoning, tool execution, preparation, review waiting, and integration waiting. State uncertainty where the host exposes no diagnosis.
 
-Ask one focused question if needed, allowing for the actual workload. Avoid repeated probes or interruptions that reconstruct context without releasing work. If dispatch or tool use is wrong, correct it. If the actor cannot continue, transfer the unfinished responsibility at a known boundary, preserve its evidence, and use disjoint successor writes where old job state is unknown. Continue unaffected work; do not turn one silent actor into a claim that the entire undertaking is blocked.
-
-Act on the observed constraint. If frozen output is aging, supply review or integration capacity before adding more producers. If reviewers have no useful input, fix the production or input problem. If the next shared write is mechanical, use a tool instead of commissioning another reasoning project. Report independently usable results and material gaps; RUNNING, acknowledgments, file counts, and busy rosters are not throughput.
-
-Supporting work needs a route back to delivery. Before extending a tool, inventory, or process, name the obstruction it removes, the smallest useful intervention, and the checkpoint at which its value will be reassessed. Report its progress separately from delivery. If a narrow validator becomes a general framework while usable output waits, reconsider that expansion within authority or bring the tradeoff to its decision owner. Use assignment-specific time budgets where helpful; they trigger judgment rather than automatic abandonment.
-
 Agent 0 should intervene when the undertaking's purpose, tradeoffs, or management approach need correction. Repeatedly asking Agent 1 to ask Agent 2 for another update is evidence that the arrangement needs attention, not a substitute for fixing it.
 
 ## 5. Correct shared mistakes once, then verify adoption
 
-A coordinator's error can spread farther than one contributor's error. State the basis of consequential rulings and invite challenges grounded in sources or actual behavior. Findings that span owners or implicate a shared premise return to the coordinator for one shared resolution within authority before conflicting repairs spread. Address a confirmed shared blocker promptly; do not wait for every review to finish. Reserved choices still belong to their decision owner.
-
-Update the governing source and communicate the correction, superseded decision and affected work through the undertaking's existing change record. Different owners may need different implementations of the same disposition. The decision remains open to new evidence. **Sending the correction does not establish that the returned result contains it.** Check adoption in the actual result before relying on it.
-
-For example, a reader can pass its local tests while still implementing a rule withdrawn after dispatch. Repeating those tests alone will not prove adoption. Inspect the affected behavior or change, repair it, and check the corresponding case. Retain unrelated valid evidence.
-
-Give shared inputs explicit versions and adoption boundaries. Owners can prepare a successor while others complete valid work against the current version. If a change invalidates that work's warrant, stop or isolate the affected reliance rather than continuing merely for version stability. Each return names the basis actually used; results from different bases are not silently treated as comparable evidence.
-
 Before ordering a repair, establish which actual artifact supports the finding. A stale preview or flattened extraction can manufacture an apparent discrepancy. If that representation is itself a required consumer output, repair it; otherwise correct the finding and preserve the valid result. Trace affected dependencies, not just changed file hashes.
 
 ## 6. Finish when the authorized conditions are established
-
-Before adding a closure activity, name the agreed condition still unestablished and why the existing evidence does not establish it. If there is no such condition, the activity is optional improvement or additional scope. Do not make it a hidden completion gate.
-
-Completed components alone do not establish an assembled whole. Verify any uncovered relationships—coverage, references, ordering, interfaces, conflicting claims, and actual use. Where current evidence already covers them, use it. A blanket final review of valid reviews adds no warrant simply by occurring last.
-
-The final corpus had heterogeneous object metadata. Establishing usable source-to-output traceability mattered; perfecting a universal logical-object taxonomy did not automatically follow from that requirement. The handoff declared the counting limitation while retaining the existing content, representation, and navigation checks. Missing required content would have demanded repair; inconvenient bookkeeping alone did not authorize an expanding project.
-
-Distinguish genuine residual uncertainty from unfinished required work. Uncertainty is compatible with completion only where the authorized outcome permits it. Cost does not convert a missing requirement into uncertainty, and agent checking does not confer human acceptance.
-
-Deliver the usable locations, checked scope and basis, limitations, and remaining decisions. Preserve the result with proportionate checkpoints and identify local-only recovery dependencies. Keep a pending human decision's reviewed bytes, and any handoff, at a stable path or immutable ref, and verify the link after branch or worktree changes. Slow transport need not stop independent work once its snapshot is fixed. At interruption, preserve prepared versus executed changes, pending checks, applicable decisions, and known or unknown jobs. Inspect an executed write whose confirmation was lost; never replay it merely to obtain a cleaner receipt.
-
-Locally added redundant controls can be combined or retired within authority. Required conditions and gates remain with their decision owner. The stopping rule is the agreed result supported by adequate evidence—not exhaustion of every improvement an agent can imagine.
 
 See [the experience record and application notes](REVIEW-NOTES.md) for evidence limits, counterexamples, and a proposed pilot. They add no execution gates. This workflow remains subject to the assignment's authority and governing requirements.
