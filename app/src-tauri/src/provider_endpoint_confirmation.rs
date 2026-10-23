@@ -9,14 +9,34 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogKind, MessageDialogResult};
 
 pub(crate) const CONTINUE_ACTION: &str = "Continue using this configuration";
 const LIMIT: &str = "Original App window could not confirm the endpoint operation";
+#[derive(Clone, Copy)]
+enum Kind {
+    Endpoint,
+    Add,
+}
+#[cfg(test)]
 fn statement(effects: &Value, post: bool) -> Result<ns::NativeStatement, String> {
-    let text = if post {
+    statement_kind(effects, post, Kind::Endpoint)
+}
+fn statement_kind(effects: &Value, post: bool, kind: Kind) -> Result<ns::NativeStatement, String> {
+    let text = if matches!(kind, Kind::Add) {
+        let name = serde_json::to_string(effects["submittedName"].as_str().ok_or(LIMIT)?)
+            .map_err(|_| LIMIT)?;
+        let effects=format!("Submitted ID: {}\nSubmitted name (quoted data): {}\nEndpoint: {}\nAnonymous Responses definition (requires_openai_auth: false).",effects["providerId"].as_str().ok_or(LIMIT)?,name,effects["endpoint"].as_str().ok_or(LIMIT)?);
+        if post {
+            format!("Provider addition write observed.\n{effects}\nA fresh private reading matched the submitted definition. Continue using this checked configuration for future actions?\nCurrent conversations, project, choices and drafts stay unchanged; no existing conversation is reloaded.")
+        } else {
+            format!("Add one configured local provider.\n{effects}\nWrite this one definition to your shared Codex configuration, which other Codex clients also read.\nThis does not choose or start a provider/model, or reload existing conversations.")
+        }
+    } else if post {
         format!("Endpoint write observed for configured local provider {}.\nA fresh configuration reading reports endpoint: {}\nContinue using this checked configuration for future actions?\nOther private settings are withheld. Current conversations, project, choices and drafts stay unchanged; existing conversations are not reloaded.",effects["providerId"].as_str().ok_or(LIMIT)?,effects["currentEndpoint"].as_str().ok_or(LIMIT)?)
     } else {
         format!("Change endpoint for configured local provider {}.\nCurrent endpoint: {}\nProposed endpoint: {}\nWrite this one endpoint to your shared Codex configuration, which other Codex clients also read.\nThis does not choose or start a provider/model, or reload existing conversations.",effects["providerId"].as_str().ok_or(LIMIT)?,effects["currentEndpoint"].as_str().ok_or(LIMIT)?,effects["proposedEndpoint"].as_str().ok_or(LIMIT)?)
     };
     let title = if post {
         "Continue with checked configuration"
+    } else if matches!(kind, Kind::Add) {
+        "Add configured local provider"
     } else {
         "Change configured provider endpoint"
     };
@@ -30,11 +50,15 @@ fn statement(effects: &Value, post: bool) -> Result<ns::NativeStatement, String>
     let content = json!({"effects":text});
     ns::whole_or_in_app(
         title,
-        "provider endpoint effects",
+        if matches!(kind, Kind::Add) {
+            "provider Add effects"
+        } else {
+            "provider endpoint effects"
+        },
         text,
         &content,
         |digest| {
-            format!("Review the complete provider endpoint effects shown in the App under Content named by an open native confirmation. sha-256: {digest}")
+            format!("Review the complete {} effects shown in the App under Content named by an open native confirmation. sha-256: {digest}",if matches!(kind,Kind::Add){"provider Add"}else{"provider endpoint"})
         },
     )
 }
@@ -137,15 +161,16 @@ fn current_result(
         }
     }
 }
-pub(crate) fn confirm(
+fn confirm_kind(
     invoking: &tauri::Window,
     effects: &Value,
     post: bool,
     limit: std::time::Duration,
     current: impl Fn() -> Result<(), String>,
+    kind: Kind,
 ) -> Result<MessageDialogResult, String> {
     current()?;
-    let statement = statement(effects, post)?;
+    let statement = statement_kind(effects, post, kind)?;
     let invoking = invoking.clone();
     let receive = public_presentation(statement, move |statement| {
         let (send, receive) = mpsc::channel();
@@ -153,16 +178,22 @@ pub(crate) fn confirm(
         let text = statement.text.clone();
         let title = if post {
             "Continue with checked configuration"
+        } else if matches!(kind, Kind::Add) {
+            "Add configured local provider"
         } else {
             "Change configured provider endpoint"
         };
         let action = if post {
             CONTINUE_ACTION
+        } else if matches!(kind, Kind::Add) {
+            crate::hosting::provider_create::WRITE_ACTION
         } else {
             crate::hosting::provider_endpoint::WRITE_ACTION
         };
         let leave = if post {
             "Do not continue source"
+        } else if matches!(kind, Kind::Add) {
+            "Leave providers unchanged"
         } else {
             "Leave endpoint unchanged"
         };
@@ -205,10 +236,78 @@ pub(crate) fn confirm(
     current_result(receive, current, limit)
 }
 
+pub(crate) fn confirm(
+    invoking: &tauri::Window,
+    effects: &Value,
+    post: bool,
+    limit: std::time::Duration,
+    current: impl Fn() -> Result<(), String>,
+) -> Result<MessageDialogResult, String> {
+    confirm_kind(invoking, effects, post, limit, current, Kind::Endpoint)
+}
+pub(crate) fn confirm_add(
+    invoking: &tauri::Window,
+    effects: &Value,
+    post: bool,
+    limit: std::time::Duration,
+    current: impl Fn() -> Result<(), String>,
+) -> Result<MessageDialogResult, String> {
+    confirm_kind(invoking, effects, post, limit, current, Kind::Add)
+}
+
+/// The Add prewrite reread/queue can outlive its affirmative callback. Check
+/// BOTH handles on the SAME original window again outside Host/controller
+/// guards. This is a handle check only, never another choice or acceptance.
+pub(crate) fn recheck_original(invoking: &tauri::Window) -> Result<(), String> {
+    let (send, receive) = mpsc::channel();
+    let original = invoking.clone();
+    invoking
+        .run_on_main_thread(move || {
+            let _ = send.send(checked(&original, |_| ()));
+        })
+        .map_err(|_| LIMIT)?;
+    receive
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .map_err(|_| LIMIT.to_owned())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use raw_window_handle::{RawDisplayHandle, RawWindowHandle, WebDisplayHandle, WebWindowHandle};
+    #[test]
+    fn access_provider_create_confirmation_quotes_only_submitted_name_and_same_parent_rules() {
+        let name = "  Data \\\"quoted\\\" name \\ exact  ";
+        let effects = json!({"providerId":"fixture.new","submittedName":name,"endpoint":"https://example.invalid/new","scope":{"generation":{"home":"invented-home"},"cwd":"/invented/work"}});
+        for post in [false, true] {
+            let s = statement_kind(&effects, post, Kind::Add).unwrap();
+            assert!(s.text.contains(&serde_json::to_string(name).unwrap()));
+            let action = if post {
+                CONTINUE_ACTION
+            } else {
+                crate::hosting::provider_create::WRITE_ACTION
+            };
+            for (window, display) in [(false, true), (true, false), (false, false)] {
+                let h = Handles { window, display };
+                assert!(checked(&h, |_| panic!("missing parent")).is_err());
+                assert!(
+                    result_in_original(&h, MessageDialogResult::Custom(action.into()), action)
+                        .is_err()
+                );
+            }
+            for choice in [
+                "Leave providers unchanged",
+                "Do not continue source",
+                "Add local provider ",
+                "Write endpoint change",
+            ] {
+                assert!(!ns::chose(
+                    &MessageDialogResult::Custom(choice.into()),
+                    action
+                ));
+            }
+        }
+    }
     struct Handles {
         window: bool,
         display: bool,

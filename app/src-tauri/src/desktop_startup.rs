@@ -1750,6 +1750,953 @@ mod tests {
     }
 
     #[test]
+    fn access_provider_create_mounted_join() {
+        let Ok(directory) = std::env::var("CHIRALITY_CREATE_JOIN") else {
+            return;
+        };
+        let directory = PathBuf::from(directory);
+        let mode = std::env::var("CHIRALITY_CREATE_MODE").unwrap_or_else(|_| "ok".into());
+        let f = Fixture::new();
+        let (desktop, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        let frames = peer.create_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.new",
+            &mode,
+        );
+        let host_view = || {
+            let mut view = home.host.snapshot();
+            view["homeRouting"] = json!({"activeModeHomeClass":"account"});
+            view["currentAppProjectContext"] = state.project_context.view();
+            view["configuredProviderReadRevision"] = home
+                .host
+                .configured_provider_revision(&peer.g, f.project.to_str().unwrap());
+            let available = desktop
+                .lock()
+                .unwrap()
+                .endpoint_source_available(home.host_config.as_ref().unwrap());
+            view["providerEndpointEdit"] = json!({"available":available});
+            view["providerCreate"] = json!({"available":available});
+            view
+        };
+        let write = |name: &str, value: &Value| {
+            let tmp = directory.join("output.tmp");
+            std::fs::write(&tmp, serde_json::to_vec(value).unwrap()).unwrap();
+            std::fs::rename(tmp, directory.join(name)).unwrap();
+        };
+        write("ready.json", &host_view());
+        let mut sequence = 0;
+        let mut continued = false;
+        loop {
+            let path = directory.join(format!("command-{sequence}.json"));
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+            while !path.exists() {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "owned Create fixture deadline"
+                );
+                std::thread::sleep(std::time::Duration::from_millis(3));
+            }
+            let command: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            if command["command"] == "finish" {
+                break;
+            }
+            let args = &command["args"];
+            let result = match command["command"].as_str().unwrap() {
+                "provider_create_discard" | "provider_endpoint_discard" => {
+                    crate::endpoint_checkpoint(&state).map(Value::String)
+                }
+                "provider_create_offer" => crate::create_offer_result(
+                    &state,
+                    &args["generation"],
+                    args["providerId"].as_str().unwrap(),
+                    args["name"].as_str().unwrap(),
+                    args["endpoint"].as_str().unwrap(),
+                    args["epoch"].as_str().unwrap_or(""),
+                ),
+                "provider_create_save" => crate::create_save_result(
+                    &state,
+                    args["token"].as_str().unwrap(),
+                    || Ok(()),
+                    |_| {
+                        if mode == "pre-window-error" {
+                            return Err("invented original window failure".into());
+                        }
+                        Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                            if mode == "cancel-before" {
+                                "Leave providers unchanged"
+                            } else if mode == "nonexact" {
+                                "Add local provider "
+                            } else {
+                                crate::hosting::provider_create::WRITE_ACTION
+                            }
+                            .into(),
+                        ))
+                    },
+                    |candidate, _| {
+                        if mode == "post-window-error" {
+                            return Err(());
+                        }
+                        Ok(if mode == "cancel-after" {
+                            None
+                        } else {
+                            Some(candidate.accept_checked_current_object())
+                        })
+                    },
+                ),
+                "read_configured_providers" => {
+                    crate::invalidate_endpoint_edits(&state).unwrap();
+                    state.validate_home_source(&home).and_then(|_| {
+                        home.host.configured_provider_read_within(
+                            &peer.g,
+                            f.project.to_str().unwrap(),
+                            &state.project_context.view(),
+                            std::time::Duration::from_millis(30),
+                        )
+                    })
+                }
+                "thread_start" => state
+                    .validate_home_source(&home)
+                    .and_then(|_| {
+                        home.host.provider_admission_read_within(
+                            &peer.g,
+                            f.project.to_str().unwrap(),
+                            args["entryId"].as_str().unwrap_or(""),
+                            args["modelProvider"].as_str().unwrap_or(""),
+                            args["model"].as_str().unwrap_or(""),
+                            std::time::Duration::from_millis(30),
+                        )
+                    })
+                    .and_then(|proof| {
+                        home.host.thread_start_with_access_dispatch(
+                            &proof,
+                            "invented explicit instructions",
+                        )
+                    })
+                    .map(|source| source.evidence()),
+                _ => panic!("unallocated Create fixture command"),
+            };
+            if result.as_ref().is_ok_and(|v| v["state"] == "continued") {
+                continued = true;
+            }
+            peer.create_private_taps();
+            f.public_endpoint_records_safe();
+            let packet = json!({"response":match result{Ok(value)=>json!({"ok":true,"value":value}),Err(_)=>json!({"ok":false,"error":"Provider Add unavailable; private diagnostics withheld"})},"host":host_view()});
+            assert!(!packet.to_string().contains("INVENTED_PRIVATE"));
+            write(&format!("response-{sequence}.json"), &packet);
+            sequence += 1;
+        }
+        assert_eq!(
+            frames
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|f| f["method"] == "config/batchWrite")
+                .count(),
+            if continued
+                || matches!(
+                    mode.as_str(),
+                    "cancel-after"
+                        | "write-error"
+                        | "write-timeout"
+                        | "overridden"
+                        | "override-reread-timeout"
+                        | "post-window-error"
+                )
+            {
+                1
+            } else {
+                0
+            }
+        );
+        peer.retire_create_fixture();
+        drop(frames);
+        drop(peer);
+        drop(home);
+        drop(state);
+        drop(desktop);
+        if continued {
+            let mut setup = f.setup();
+            let launch = f.resolve(&mut setup);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = setup.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let (state, home) =
+                crate::freeze_startup_state(launch, Arc::new(Mutex::new(setup)), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            state.validate_home_source(&home).unwrap();
+            assert_eq!(home.host_config.as_ref().unwrap().codex_home, h);
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+        }
+    }
+
+    #[test]
+    fn access_provider_create_original_window_rechecked_after_reread_and_at_commit() {
+        for fail_on in [1, 2, 3] {
+            let f = Fixture::new();
+            let (_, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.create_replies(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.new",
+                "ok",
+            );
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let view = crate::create_offer_result(
+                &state,
+                &peer.g,
+                "fixture.new",
+                "Submitted name",
+                "https://example.invalid/new",
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            )
+            .unwrap();
+            let checks = std::cell::Cell::new(0);
+            let result = crate::create_save_result(
+                &state,
+                view["token"].as_str().unwrap(),
+                || {
+                    checks.set(checks.get() + 1);
+                    assert_eq!(
+                        peer.endpoint_wire_count(),
+                        2,
+                        "the same-source fresh reread must precede the window recheck"
+                    );
+                    if checks.get() == fail_on {
+                        Err("invented original window destroyed".into())
+                    } else {
+                        Ok(())
+                    }
+                },
+                |_| {
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        crate::hosting::provider_create::WRITE_ACTION.into(),
+                    ))
+                },
+                |_, _| panic!("destroyed original window cannot authorize source"),
+            )
+            .unwrap();
+            assert_eq!(result["state"], "refused-not-sent");
+            assert_eq!(checks.get(), fail_on);
+            assert_eq!(peer.endpoint_wire_count(), 2);
+            assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+            state.validate_home_source(&home).unwrap();
+            assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+            peer.create_private_taps();
+            peer.retire_create_fixture();
+        }
+    }
+
+    fn create_ack_source_loss(mode: &str, expected: &str) {
+        let f = Fixture::new();
+        let (desktop, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        let frames = peer.create_replies(f.shared[0].clone(), h.join("config.toml"), "fixture.new", mode);
+        let profile = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+        let requested = desktop.lock().unwrap().requested.clone();
+        let receiving = desktop.lock().unwrap().receiving.as_ref().unwrap().entries().unwrap();
+        let bootstrap = state.home_bootstrap.lock().unwrap().as_ref().unwrap().clone();
+        let namespaces = state.native_namespaces.lock().unwrap().as_ref().unwrap().clone();
+        let attachments = home.attachment_custody.lock().unwrap().as_ref().unwrap().clone();
+        let recovery = home.recovery_startup.lock().unwrap().snapshot();
+        let selection = home.access_selection.lock().unwrap().as_ref().map(|s| s.canonical_record());
+        let view = crate::create_offer_result(&state, &peer.g, "fixture.new", "Submitted name", "https://example.invalid/new", &crate::endpoint_checkpoint(&state).unwrap()).unwrap();
+        let result = crate::create_save_result(&state, view["token"].as_str().unwrap(), || Ok(()), |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::hosting::provider_create::WRITE_ACTION.into())), |_, _| panic!("lost source cannot reach candidate acceptance")).unwrap();
+        // All wire effects and receipt assertions precede the outcome assertion
+        // so the original broken implementation proves this exact interval.
+        let wire = frames.lock().unwrap();
+        assert_eq!(wire.len(), 3, "no post-ACK read or retry: {mode}");
+        assert_eq!(wire.iter().filter(|f| f["method"] == "config/batchWrite").count(), 1);
+        assert_eq!(wire.iter().filter(|f| f["method"] == "config/read").count(), 2);
+        assert!(wire.iter().all(|f| f["method"] != "thread/start"));
+        drop(wire);
+        assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), profile);
+        assert_eq!(desktop.lock().unwrap().requested, requested);
+        assert_eq!(desktop.lock().unwrap().receiving.as_ref().unwrap().entries().unwrap(), receiving);
+        assert!(state.validate_home_source(&home).is_err(), "unaccepted replacement stays stale");
+        assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+        assert!(Arc::ptr_eq(state.home_bootstrap.lock().unwrap().as_ref().unwrap(), &bootstrap));
+        assert!(Arc::ptr_eq(state.native_namespaces.lock().unwrap().as_ref().unwrap(), &namespaces));
+        assert!(Arc::ptr_eq(home.attachment_custody.lock().unwrap().as_ref().unwrap(), &attachments));
+        assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+        assert_eq!(home.access_selection.lock().unwrap().as_ref().map(|s| s.canonical_record()), selection);
+        assert_eq!(state.workspace.as_ref(), Some(&f.project));
+        assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+        assert!(crate::create_save_result(&state, view["token"].as_str().unwrap(), || Ok(()), |_| panic!("spent token"), |_, _| panic!("spent token")).is_err());
+        peer.create_private_taps();
+        f.public_endpoint_records_safe();
+        peer.retire_create_fixture();
+        assert_eq!(result["state"], expected, "{mode}");
+    }
+    #[test]
+    fn access_provider_create_ack_close_retains_fact() { create_ack_source_loss("ack-close", "write-observed-source-unconfirmed"); }
+    #[test]
+    fn access_provider_create_ack_detach_retains_fact() { create_ack_source_loss("ack-detach", "write-observed-source-unconfirmed"); }
+    #[test]
+    fn access_provider_create_ack_override_close_retains_fact() { create_ack_source_loss("override-ack-close", "overridden"); }
+    #[test]
+    fn access_provider_create_ack_override_detach_retains_fact() { create_ack_source_loss("override-ack-detach", "overridden"); }
+    #[test]
+    fn access_provider_create_ack_unestablished_is_not_promoted() {
+        for mode in ["ack-after-close", "ack-after-detach", "malformed-ack", "unmatched-ack", "wrong-target-ack"] {
+            create_ack_source_loss(mode, "unknown");
+        }
+    }
+
+    #[test]
+    fn access_provider_create_notification_metadata_is_private() {
+        let f = Fixture::new();
+        let (desktop, state, home, mut peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.create_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.new",
+            "notification-reflection",
+        );
+        let view = crate::create_offer_result(
+            &state,
+            &peer.g,
+            "fixture.new",
+            "Submitted name",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            crate::create_save_result(
+                &state,
+                view["token"].as_str().unwrap(),
+                || Ok(()),
+                |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                    crate::hosting::provider_create::WRITE_ACTION.into()
+                )),
+                |candidate, _| Ok(Some(candidate.accept_checked_current_object()))
+            )
+            .unwrap()["state"],
+            "continued"
+        );
+        assert!(desktop.lock().unwrap().requested.is_some());
+        peer.create_diagnostic_and_collision_probe();
+        peer.create_private_taps();
+        f.public_endpoint_records_safe();
+        peer.retire_create_fixture();
+    }
+
+    #[test]
+    fn access_provider_create_wait_drift_and_expiry_cannot_write_or_promote() {
+        for mode in [
+            "pre-epoch",
+            "pre-generation",
+            "pre-profile",
+            "pre-pending",
+            "pre-link",
+            "pre-target",
+            "pre-custody",
+            "pre-endpoint",
+            "post-epoch",
+            "post-profile",
+            "post-target",
+            "post-window",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.create_replies(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.new",
+                "ok",
+            );
+            let view = crate::create_offer_result(
+                &state,
+                &peer.g,
+                "fixture.new",
+                "Submitted name",
+                "https://example.invalid/new",
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            )
+            .unwrap();
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let mutate_profile = || {
+                write_profile(
+                    &f.data.join(PROFILE),
+                    &read_profile(&f.data.join(PROFILE)).unwrap(),
+                )
+                .unwrap()
+            };
+            let mut baseline_after = before.clone();
+            let result = crate::create_save_result(
+                &state,
+                view["token"].as_str().unwrap(),
+                || Ok(()),
+                |_| {
+                    match mode {
+                        "pre-epoch" => crate::invalidate_endpoint_edits(&state).unwrap(),
+                        "pre-generation" => peer.supersede_config_generation(),
+                        "pre-profile" => mutate_profile(),
+                        "pre-pending" => {
+                            let preview = desktop.lock().unwrap().preview_project(None).unwrap();
+                            desktop
+                                .lock()
+                                .unwrap()
+                                .prepare_and_save(preview["token"].as_str().unwrap())
+                                .unwrap();
+                            baseline_after = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+                        }
+                        "pre-link" => {
+                            std::fs::remove_file(h.join("config.toml")).unwrap();
+                            std::os::unix::fs::symlink(&f.shared[0], h.join("config.toml"))
+                                .unwrap();
+                        }
+                        "pre-target" => f.replace_config(),
+                        "pre-custody" => {
+                            std::fs::rename(&h, f.root.join("old-held-home")).unwrap();
+                            std::fs::create_dir(&h).unwrap();
+                        }
+                        "pre-endpoint" => {
+                            assert!(crate::endpoint_offer_result(
+                                &state,
+                                &peer.g,
+                                "fixture.dot",
+                                "https://example.invalid/new",
+                                &crate::endpoint_checkpoint(&state).unwrap()
+                            )
+                            .is_err());
+                        }
+                        _ => {}
+                    }
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        crate::hosting::provider_create::WRITE_ACTION.into(),
+                    ))
+                },
+                |candidate, _| {
+                    match mode {
+                        "post-epoch" => crate::invalidate_endpoint_edits(&state).unwrap(),
+                        "post-profile" => mutate_profile(),
+                        "post-target" => f.replace_config(),
+                        "post-window" => return Err(()),
+                        _ => panic!("{mode} reached acceptance"),
+                    }
+                    Ok(Some(candidate.accept_checked_current_object()))
+                },
+            );
+            if mode.starts_with("pre-") {
+                assert!(result.is_err(), "{mode}");
+                assert_eq!(peer.endpoint_wire_count(), 1);
+            } else {
+                assert_eq!(
+                    result.unwrap()["state"],
+                    "write-observed-source-unconfirmed",
+                    "{mode}"
+                );
+                assert_eq!(peer.endpoint_wire_count(), 4);
+            }
+            // An intentional competing pending plan is preserved, never overwritten.
+            assert_eq!(
+                read_profile_bytes(&f.data.join(PROFILE)).unwrap().0,
+                baseline_after.0
+            );
+            assert!(state.endpoint_edits.lock().unwrap().saving.is_none());
+            assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+            peer.create_private_taps();
+            f.public_endpoint_records_safe();
+            peer.retire_create_fixture();
+        }
+        let f = Fixture::new();
+        let (_, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.create_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.new",
+            "ok",
+        );
+        let view = crate::create_offer_result(
+            &state,
+            &peer.g,
+            "fixture.new",
+            "Submitted name",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        let token = view["token"].as_str().unwrap();
+        crate::hosting::provider_endpoint::expire_create_offer(
+            &state.endpoint_edits,
+            token,
+            std::time::Duration::from_millis(10),
+        )
+        .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        while state.endpoint_edits.lock().unwrap().create_offer.is_some() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        assert!(crate::create_save_result(
+            &state,
+            token,
+            || Ok(()),
+            |_| panic!("expired"),
+            |_, _| panic!("expired")
+        )
+        .is_err());
+        assert_eq!(peer.endpoint_wire_count(), 1);
+        peer.retire_create_fixture();
+    }
+
+    #[test]
+    fn access_provider_create_collision_schema_version_and_reported_defaults_fail_closed() {
+        for mode in [
+            "user-collision",
+            "effective-collision",
+            "missing-user-map",
+            "malformed-effective-map",
+            "late-collision",
+            "stale-version",
+            "missing-default",
+            "native-name-drift",
+            "other-settings",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.create_replies(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.new",
+                mode,
+            );
+            let before = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let view = crate::create_offer_result(
+                &state,
+                &peer.g,
+                "fixture.new",
+                "Submitted name",
+                "https://example.invalid/new",
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            );
+            if matches!(
+                mode,
+                "user-collision"
+                    | "effective-collision"
+                    | "missing-user-map"
+                    | "malformed-effective-map"
+            ) {
+                assert!(view.is_err(), "{mode}");
+                assert_eq!(peer.endpoint_wire_count(), 1);
+            } else {
+                let view = view.unwrap();
+                let result = crate::create_save_result(
+                    &state,
+                    view["token"].as_str().unwrap(),
+                    || Ok(()),
+                    |_| {
+                        Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                            crate::hosting::provider_create::WRITE_ACTION.into(),
+                        ))
+                    },
+                    |_, _| panic!("{mode} cannot reach acceptance"),
+                );
+                if matches!(mode, "late-collision" | "stale-version") {
+                    assert!(result.is_err(), "{mode}");
+                    assert_eq!(peer.endpoint_wire_count(), 2);
+                } else {
+                    assert_eq!(
+                        result.unwrap()["state"],
+                        "write-observed-source-unconfirmed",
+                        "{mode}"
+                    );
+                    assert_eq!(peer.endpoint_wire_count(), 4);
+                    assert!(state.validate_home_source(&home).is_err());
+                }
+            }
+            assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), before);
+            assert!(desktop.lock().unwrap().requested.is_some());
+            peer.create_private_taps();
+            f.public_endpoint_records_safe();
+            peer.retire_create_fixture();
+        }
+    }
+
+    #[test]
+    fn access_provider_create_draft_bounds_reserved_id_and_cross_intent_tokens_refuse() {
+        for (id, name, url) in [
+            ("openai", "Name", "https://example.invalid/new"),
+            ("1bad", "Name", "https://example.invalid/new"),
+            ("fixture.new", "   ", "https://example.invalid/new"),
+            ("fixture.new", "line\nname", "https://example.invalid/new"),
+            ("fixture.new", "é", "https://example.invalid/new"),
+            (
+                "fixture.new",
+                "Name",
+                "https://user:private@example.invalid/new",
+            ),
+            ("fixture.new", "Name", "https://example.invalid/%61"),
+        ] {
+            let f = Fixture::new();
+            let (_, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.create_replies(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.new",
+                "ok",
+            );
+            assert!(crate::create_offer_result(
+                &state,
+                &peer.g,
+                id,
+                name,
+                url,
+                &crate::endpoint_checkpoint(&state).unwrap()
+            )
+            .is_err());
+            assert_eq!(peer.endpoint_wire_count(), 1);
+            state.validate_home_source(&home).unwrap();
+            peer.create_private_taps();
+            peer.retire_create_fixture();
+        }
+        let f = Fixture::new();
+        let (_, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.create_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.new",
+            "ok",
+        );
+        let view = crate::create_offer_result(
+            &state,
+            &peer.g,
+            "fixture.new",
+            "Submitted name",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        let token = view["token"].as_str().unwrap();
+        assert!(crate::endpoint_save_result(
+            &state,
+            token,
+            |_| panic!("wrong intent"),
+            |_, _| panic!("wrong intent")
+        )
+        .is_err());
+        assert_eq!(
+            crate::create_save_result(
+                &state,
+                token,
+                || Ok(()),
+                |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                    crate::hosting::provider_endpoint::WRITE_ACTION.into()
+                )),
+                |_, _| panic!("nonexact Add action")
+            )
+            .unwrap()["state"],
+            "not-sent"
+        );
+        assert_eq!(peer.endpoint_wire_count(), 1);
+        peer.retire_create_fixture();
+        let f = Fixture::new();
+        let (_, state, home, peer) = f.continuation();
+        let h = home.host_config.as_ref().unwrap().codex_home.clone();
+        peer.endpoint_replies(
+            f.shared[0].clone(),
+            h.join("config.toml"),
+            "fixture.dot",
+            "https://example.invalid/new",
+        );
+        let view = crate::endpoint_offer_result(
+            &state,
+            &peer.g,
+            "fixture.dot",
+            "https://example.invalid/new",
+            &crate::endpoint_checkpoint(&state).unwrap(),
+        )
+        .unwrap();
+        assert!(crate::create_save_result(
+            &state,
+            view["token"].as_str().unwrap(),
+            || Ok(()),
+            |_| panic!("wrong intent"),
+            |_, _| panic!("wrong intent")
+        )
+        .is_err());
+        assert_eq!(peer.endpoint_wire_count(), 1);
+    }
+
+    #[test]
+    fn access_provider_create_private_draft_reflection_and_unknown_auth_refuse() {
+        for mode in [
+            "name-reflection",
+            "id-reflection",
+            "url-reflection",
+            "unknown-auth",
+        ] {
+            let f = Fixture::new();
+            let (desktop, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            peer.create_replies(
+                f.shared[0].clone(),
+                h.join("config.toml"),
+                "fixture.new",
+                mode,
+            );
+            let old = read_profile_bytes(&f.data.join(PROFILE)).unwrap();
+            let id = if mode == "id-reflection" {
+                "INVENTED_PRIVATE_PROVIDER_CANARY_481"
+            } else {
+                "fixture.new"
+            };
+            let name = if mode == "name-reflection" {
+                "INVENTED_PRIVATE_PROVIDER_CANARY_481"
+            } else {
+                "Explicit new name"
+            };
+            let url = if mode == "url-reflection" {
+                "https://example.invalid/INVENTED_PRIVATE_PROVIDER_CANARY_481"
+            } else {
+                "https://example.invalid/new"
+            };
+            let offer = crate::create_offer_result(
+                &state,
+                &peer.g,
+                id,
+                name,
+                url,
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            );
+            if mode == "unknown-auth" {
+                let view = offer.unwrap();
+                let result = crate::create_save_result(
+                    &state,
+                    view["token"].as_str().unwrap(),
+                    || Ok(()),
+                    |_| {
+                        Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                            crate::hosting::provider_create::WRITE_ACTION.into(),
+                        ))
+                    },
+                    |_, _| panic!("unknown auth cannot reach acceptance"),
+                )
+                .unwrap();
+                assert_eq!(result["state"], "write-observed-source-unconfirmed");
+                assert!(state.validate_home_source(&home).is_err());
+                assert_eq!(peer.endpoint_wire_count(), 4);
+            } else {
+                assert!(offer.is_err());
+                assert!(!offer.unwrap_err().contains("INVENTED_PRIVATE"));
+                assert_eq!(peer.endpoint_wire_count(), 1);
+                state.validate_home_source(&home).unwrap();
+            }
+            assert_eq!(read_profile_bytes(&f.data.join(PROFILE)).unwrap(), old);
+            assert!(desktop.lock().unwrap().requested.is_some());
+            peer.create_private_taps();
+            f.public_endpoint_records_safe();
+            peer.retire_create_fixture();
+        }
+    }
+
+    #[test]
+    fn access_provider_create_private_write_readmission_and_fresh_consumers() {
+        for receiving_alias in [false, true] {
+            let f = Fixture::new();
+            let (desktop, state, home, peer) = f.continuation();
+            let h = home.host_config.as_ref().unwrap().codex_home.clone();
+            let layer = if receiving_alias {
+                h.join("config.toml")
+            } else {
+                f.shared[0].clone()
+            };
+            let frames =
+                peer.create_replies(f.shared[0].clone(), layer.clone(), "fixture.new", "ok");
+            let before = read_profile(&f.data.join(PROFILE)).unwrap();
+            let receiving = desktop
+                .lock()
+                .unwrap()
+                .receiving
+                .as_ref()
+                .unwrap()
+                .entries()
+                .unwrap();
+            let bootstrap = state
+                .home_bootstrap
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let namespaces = state
+                .native_namespaces
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let custody = home
+                .attachment_custody
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone();
+            let recovery = home.recovery_startup.lock().unwrap().snapshot();
+            let name = "Person's \\\"quoted\\\" name \\ exact";
+            let view = crate::create_offer_result(
+                &state,
+                &peer.g,
+                "fixture.new",
+                name,
+                "https://example.invalid/new",
+                &crate::endpoint_checkpoint(&state).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(view["submittedName"], name);
+            assert!(!view.to_string().contains("INVENTED_PRIVATE"));
+            let result = crate::create_save_result(
+                &state,
+                view["token"].as_str().unwrap(),
+                || Ok(()),
+                |review| {
+                    assert_eq!(review, &view);
+                    assert!(desktop.try_lock().is_ok());
+                    Ok(tauri_plugin_dialog::MessageDialogResult::Custom(
+                        crate::hosting::provider_create::WRITE_ACTION.into(),
+                    ))
+                },
+                |candidate, review| {
+                    assert_eq!(review["submittedName"], name);
+                    assert_eq!(
+                        candidate.private_reading().0["layers"][0]["name"]["file"],
+                        json!(layer)
+                    );
+                    assert!(
+                        state.validate_home_source(&home).is_err(),
+                        "ACK cannot continue old source"
+                    );
+                    assert!(desktop.try_lock().is_ok());
+                    Ok(Some(candidate.accept_checked_current_object()))
+                },
+            )
+            .unwrap();
+            assert_eq!(result["state"], "continued");
+            state.validate_home_source(&home).unwrap();
+            let observed = home
+                .host
+                .configured_provider_read_within(
+                    &peer.g,
+                    f.project.to_str().unwrap(),
+                    &state.project_context.view(),
+                    std::time::Duration::from_millis(30),
+                )
+                .unwrap();
+            assert_eq!(observed["rows"].as_array().unwrap().len(), 1);
+            assert_eq!(observed["rows"][0]["id"], "fixture.new");
+            assert_eq!(observed["rows"][0]["label"], "Configured local provider");
+            assert!(!observed.to_string().contains(name));
+            let wire = frames.lock().unwrap();
+            assert_eq!(wire.len(), 5);
+            assert_eq!(
+                wire.iter()
+                    .filter(|f| f["method"] == "config/batchWrite")
+                    .count(),
+                1
+            );
+            assert!(wire
+                .iter()
+                .all(|f| f["method"] == "config/read" || f["method"] == "config/batchWrite"));
+            assert_eq!(wire[2]["params"]["edits"][0]["value"]["name"], name);
+            drop(wire);
+            assert!(Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home));
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+            assert!(Arc::ptr_eq(
+                state.home_bootstrap.lock().unwrap().as_ref().unwrap(),
+                &bootstrap
+            ));
+            assert!(Arc::ptr_eq(
+                state.native_namespaces.lock().unwrap().as_ref().unwrap(),
+                &namespaces
+            ));
+            assert!(Arc::ptr_eq(
+                home.attachment_custody.lock().unwrap().as_ref().unwrap(),
+                &custody
+            ));
+            assert_eq!(home.recovery_startup.lock().unwrap().snapshot(), recovery);
+            assert_eq!(
+                desktop
+                    .lock()
+                    .unwrap()
+                    .receiving
+                    .as_ref()
+                    .unwrap()
+                    .entries()
+                    .unwrap(),
+                receiving
+            );
+            let mut expected = before;
+            let current = read_profile(&f.data.join(PROFILE)).unwrap();
+            expected.shared[0] = current.shared[0].clone();
+            assert_eq!(expected, current);
+            let project = desktop
+                .lock()
+                .unwrap()
+                .preview_project(Some(f.project.clone()))
+                .unwrap();
+            assert_eq!(project["accountHome"], json!(h));
+            desktop
+                .lock()
+                .unwrap()
+                .prepare_and_save(project["token"].as_str().unwrap())
+                .unwrap();
+            peer.create_private_taps();
+            f.public_endpoint_records_safe();
+            peer.retire_create_fixture();
+            drop(frames);
+            drop(peer);
+            drop(home);
+            drop(state);
+            drop(desktop);
+            let mut setup = f.setup();
+            let launch = f.resolve(&mut setup);
+            let RootInputs {
+                launch,
+                data,
+                allow_operational,
+            } = setup.admit_root(launch, Ok(f.data.clone()));
+            assert!(allow_operational);
+            let (state, home) =
+                crate::freeze_startup_state(launch, Arc::new(Mutex::new(setup)), Value::Null);
+            crate::initialize_startup_consumers(
+                &state,
+                &home,
+                data,
+                allow_operational,
+                true,
+                Some(f.data.join("records")),
+                None,
+                f.shared.clone().map(Some),
+            );
+            state.validate_home_source(&home).unwrap();
+            assert_eq!(home.host_config.as_ref().unwrap().codex_home, h);
+            assert_eq!(state.workspace.as_ref(), Some(&f.project));
+        }
+    }
+    #[test]
     fn access_provider_endpoint_delayed_offer_cannot_overwrite_newer_input_checkpoint() {
         let f = Fixture::new();
         let (desktop, state, home, peer) = f.continuation();

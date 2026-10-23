@@ -35,6 +35,306 @@ pub(crate) struct Peer {
     pub(crate) g: Value,
 }
 impl Peer {
+    pub(crate) fn create_private_taps(&self) {
+        self.safe();
+        let entries = self
+            .host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .map(|e| e.request.clone())
+            .collect::<Vec<_>>();
+        let mut values = vec![
+            self.host.snapshot(),
+            json!(self.host.journal()),
+            json!(self.host.kept_replies().1),
+            json!(self.host.recorded_recovery_entries()),
+        ];
+        for entry in entries {
+            if entry.attempted_frame()["method"] == "config/batchWrite" {
+                assert_eq!(
+                    entry.attempted_frame()["params"],
+                    json!({"privateProviderCreateWithheld":true})
+                );
+            }
+            values.push(entry.evidence());
+        }
+        for value in values {
+            let text = value.to_string();
+            for private in [CANARY, "INVENTED_PRIVATE_ADD_", "native name never public"] {
+                assert!(!text.contains(private));
+            }
+        }
+    }
+    pub(crate) fn retire_create_fixture(&self) {
+        self.host.before_provider_wait.lock().unwrap().take();
+    }
+    pub(crate) fn create_diagnostic_and_collision_probe(&mut self) {
+        for method in [
+            "configWarning",
+            "warning",
+            "guardianWarning",
+            "deprecationNotice",
+            "windows/worldWritableWarning",
+        ] {
+            self.host.on_line(&serde_json::to_vec(&json!({"method":method,"params":{"summary":CANARY,"message":CANARY,"path":CANARY,"nested":{"default":CANARY}}})).unwrap(),&self.g);
+        }
+        let original = self
+            .host
+            .inner
+            .0
+            .lock()
+            .unwrap()
+            .source_requests
+            .values()
+            .find(|e| e.request.frame["params"]["privateProviderCreateWithheld"] == true)
+            .unwrap()
+            .request
+            .clone();
+        self.host.inner.0.lock().unwrap().declared_capabilities =
+            Some(json!({"experimentalApi":true}));
+        self.host.on_line(
+            &serde_json::to_vec(
+                &json!({"id":original.request_id(),"method":"currentTime/read","params":{}}),
+            )
+            .unwrap(),
+            &self.g,
+        );
+        let reply = self.continuation_frame();
+        assert_eq!(reply["id"], *original.request_id());
+        assert!(reply["result"]["currentTimeAt"].as_u64().is_some());
+        self.supersede_config_generation();
+        self.host.on_line(
+            &serde_json::to_vec(
+                &json!({"method":"configWarning","params":{"summary":CANARY,"path":CANARY}}),
+            )
+            .unwrap(),
+            &self.g,
+        );
+        self.host.on_line(&serde_json::to_vec(&json!({"id":original.request_id(),"result":{"status":"okOverridden","filePath":CANARY,"version":CANARY,"overriddenMetadata":{"message":CANARY,"effectiveValue":CANARY}}})).unwrap(),&self.g);
+        self.create_private_taps();
+    }
+    pub(crate) fn create_replies(
+        &self,
+        target: PathBuf,
+        layer: PathBuf,
+        id: &str,
+        mode: &str,
+    ) -> Arc<Mutex<Vec<Value>>> {
+        use std::os::fd::{AsRawFd, FromRawFd};
+        let descriptor =
+            unsafe { libc::fcntl(self.wire.get_ref().as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+        assert!(descriptor >= 0);
+        let file = unsafe { std::fs::File::from_raw_fd(descriptor) };
+        let flags = unsafe { libc::fcntl(descriptor, libc::F_GETFL) };
+        assert_eq!(
+            unsafe { libc::fcntl(descriptor, libc::F_SETFL, flags | libc::O_NONBLOCK) },
+            0
+        );
+        let wire = Mutex::new(BufReader::new(file));
+        let frames = Arc::new(Mutex::new(Vec::new()));
+        let captured = frames.clone();
+        let id = id.to_owned();
+        let mode = mode.to_owned();
+        let user = Mutex::new(
+            json!({"model_provider":"old-choice","model":"old-model","model_providers":{"credentialed":{"name":"native name never public","base_url":"https://example.invalid/private","wire_api":"responses","requires_openai_auth":false,"experimental_bearer_token":CANARY}}}),
+        );
+        let changed = Mutex::new(false);
+        let reads = Mutex::new(0usize);
+        *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
+            if source.write_attempt_observed()==Some(false) { return; }
+            // Consume the actual private wire frame, not a DTO or a mirrored
+            // desired payload, before applying the controlled fixture effect.
+            let frame = loop {
+                let mut line = String::new();
+                let deadline = std::time::Instant::now() + Duration::from_secs(2);
+                loop {
+                    match wire.lock().unwrap().read_line(&mut line) {
+                        Ok(n) if n > 0 && line.ends_with('\n') => break,
+                        Ok(0) => panic!("owned Add Peer closed"),
+                        Ok(_) => {}
+                        Err(e)
+                            if matches!(
+                                e.kind(),
+                                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+                            ) => {}
+                        Err(_) => panic!("owned Add wire unavailable"),
+                    }
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "owned Add wire deadline"
+                    );
+                    let mut fd = libc::pollfd {
+                        fd: descriptor,
+                        events: libc::POLLIN,
+                        revents: 0,
+                    };
+                    assert!(unsafe { libc::poll(&mut fd, 1, 100) } > 0);
+                }
+                let frame: Value = serde_json::from_str(&line).unwrap();
+                captured.lock().unwrap().push(frame.clone());
+                if frame.get("method").is_none() {
+                    assert!(frame["result"]["currentTimeAt"].as_u64().is_some());
+                    continue;
+                }
+                assert_eq!(frame["id"], *source.request_id());
+                assert_eq!(frame["method"], source.attempted_frame()["method"]);
+                break frame;
+            };
+            let mut config = user.lock().unwrap();
+            let mut changed = changed.lock().unwrap();
+            let result = if frame["method"] == "config/batchWrite" {
+                assert_eq!(
+                    source.attempted_frame()["params"],
+                    json!({"privateProviderCreateWithheld":true})
+                );
+                assert_eq!(frame["params"]["filePath"], json!(target));
+                assert_eq!(
+                    frame["params"]["expectedVersion"],
+                    "INVENTED_PRIVATE_ADD_V1"
+                );
+                assert_eq!(frame["params"]["reloadUserConfig"], false);
+                let edits = frame["params"]["edits"].as_array().unwrap();
+                assert_eq!(edits.len(), 1);
+                assert_eq!(
+                    edits[0]["keyPath"],
+                    format!("model_providers.{}", serde_json::to_string(&id).unwrap())
+                );
+                assert_eq!(edits[0]["mergeStrategy"], "replace");
+                let value = &edits[0]["value"];
+                assert_eq!(value.as_object().unwrap().len(), 4);
+                assert_eq!(value["wire_api"], "responses");
+                assert_eq!(value["requires_openai_auth"], false);
+                assert!(!config["model_providers"]
+                    .as_object()
+                    .unwrap()
+                    .contains_key(&id));
+                config["model_providers"][&id] = value.clone();
+                let temp = target.with_file_name("invented-add-native-replacement");
+                std::fs::write(&temp, serde_json::to_vec(&*config).unwrap()).unwrap();
+                std::fs::rename(temp, &target).unwrap();
+                *changed = true;
+                if mode == "write-timeout" {
+                    return;
+                }
+                if mode == "write-error" {
+                    host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":CANARY}})).unwrap(),source.generation());
+                    return;
+                }
+                json!({"status":if mode=="overridden"||mode.starts_with("override-"){"okOverridden"}else{"ok"},"filePath":target,"version":"INVENTED_PRIVATE_ADD_V2","overriddenMetadata":if mode=="overridden"||mode.starts_with("override-"){json!({"message":CANARY,"effectiveValue":CANARY,"overridingLayer":{"name":{"type":"user","file":layer},"version":CANARY}})}else{Value::Null}})
+            } else {
+                assert_eq!(frame["method"], "config/read");
+                assert_eq!(frame["params"]["includeLayers"], true);
+                let mut read_number = reads.lock().unwrap();
+                *read_number += 1;
+                if *changed && mode == "override-reread-timeout" {
+                    return;
+                }
+                let mut effective = config.clone();
+                if mode == "user-collision" {
+                    effective["model_providers"][&id] = json!({"name":"existing","base_url":"https://example.invalid/existing","wire_api":"responses","requires_openai_auth":false});
+                }
+                for definition in effective["model_providers"]
+                    .as_object_mut()
+                    .unwrap()
+                    .values_mut()
+                {
+                    // Invented reported expanded roles, not production default
+                    // synthesis or a claim that this executes the supplier.
+                    let mut row = local();
+                    for field in PROVIDER_FIELDS {
+                        if row.get(*field).is_none() {
+                            row[*field] = Value::Null;
+                        }
+                    }
+                    row["supports_websockets"] = json!(false);
+                    row["supports_standalone_web_search"] = json!(false);
+                    for (key, value) in definition.as_object().unwrap() {
+                        row[key] = value.clone();
+                    }
+                    *definition = row;
+                }
+                effective["developer_instructions"] = json!(CANARY);
+                if mode == "unknown-auth" && *changed {
+                    effective["model_providers"][&id]["new_unknown_auth"] = json!(CANARY);
+                }
+                if mode == "start-credentialed" && *read_number >= 5 {
+                    effective["model_providers"][&id]["experimental_bearer_token"] = json!(CANARY);
+                }
+                if mode == "effective-collision" || mode == "late-collision" && *read_number == 2 {
+                    effective["model_providers"][&id] = local();
+                }
+                if mode == "missing-default" && *changed {
+                    effective["model_providers"][&id]
+                        .as_object_mut()
+                        .unwrap()
+                        .remove("request_max_retries");
+                }
+                if mode == "native-name-drift" && *changed {
+                    effective["model_providers"][&id]["name"] = json!("different native name");
+                }
+                if mode == "other-settings" && *changed {
+                    effective["model"] = json!("unrequested-model-change");
+                }
+                let mut user_read = config.clone();
+                if mode == "user-collision" {
+                    user_read["model_providers"][&id] = json!({"name":"existing"});
+                }
+                if mode == "missing-user-map" {
+                    user_read.as_object_mut().unwrap().remove("model_providers");
+                }
+                if mode == "malformed-effective-map" {
+                    effective["model_providers"] = Value::Null;
+                }
+                json!({"config":effective,"origins":{},"layers":[{"name":{"type":"user","file":layer},"config":user_read,"version":if mode=="stale-version" && *read_number==2 {"INVENTED_PRIVATE_ADD_CHANGED_VERSION"}else if *changed{"INVENTED_PRIVATE_ADD_V2"}else{"INVENTED_PRIVATE_ADD_V1"}}]})
+            };
+            let writing = frame["method"] == "config/batchWrite";
+            let detach = |host: &Host| {
+                let _gate = host.attachment_gate.lock().unwrap();
+                host.inner.0.lock().unwrap().attachment_pipe_epoch += 1;
+                *host.stdin.lock().unwrap() = None;
+            };
+            if writing && mode == "ack-after-close" {
+                Host::close_generation(&mut host.inner.0.lock().unwrap());
+            }
+            if writing && mode == "ack-after-detach" { detach(host); }
+            let mut reply = json!({"id":source.request_id(),"result":result});
+            if writing {
+                match mode.as_str() {
+                    "malformed-ack" => { reply["result"]["status"] = json!(CANARY); }
+                    "unmatched-ack" => { reply["id"] = json!(999999); }
+                    "wrong-target-ack" => { reply["result"]["filePath"] = json!(CANARY); }
+                    _ => {}
+                }
+            }
+            host.on_line(&serde_json::to_vec(&reply).unwrap(), source.generation());
+            if writing && matches!(mode.as_str(), "ack-close"|"override-ack-close"|"ack-detach"|"override-ack-detach") {
+                // The real receiver has already settled the original receipt
+                // and queued its private reply. Lose eligibility only AFTER it.
+                let evidence = source.evidence();
+                assert_eq!(evidence["outcome"], "response-observed-result");
+                assert_eq!(evidence["writeResult"], "written");
+                assert_eq!(evidence["sourceCurrent"], true);
+                assert!(evidence["lastClientObservation"]["responseReceiptPosition"].as_u64().is_some());
+                if mode.ends_with("close") {
+                    Host::close_generation(&mut host.inner.0.lock().unwrap());
+                } else { detach(host); }
+            }
+            if mode == "notification-reflection" && frame["method"] == "config/batchWrite" {
+                host.on_line(&serde_json::to_vec(&json!({"method":"configWarning","params":{"summary":CANARY,"details":CANARY,"path":CANARY,"range":null}})).unwrap(),source.generation());
+            }
+            assert!(!host.snapshot().to_string().contains(CANARY));
+            assert!(!source.evidence().to_string().contains(CANARY));
+            assert!(!source
+                .evidence()
+                .to_string()
+                .contains("INVENTED_PRIVATE_ADD_"));
+        }));
+        frames
+    }
     pub(crate) fn endpoint_credentialed_start(&self) {
         let mut definition = local();
         definition["experimental_bearer_token"] = json!(CANARY);

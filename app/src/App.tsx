@@ -1193,7 +1193,7 @@ export function App() {
   const expireEndpointPreview = () => {
     endpointRevision.current++;
     const current = endpointEditorRef.current;
-    if (current) updateEndpointEditor({ ...current, offer: null, message: "Review this endpoint draft again before saving." });
+    if (current) updateEndpointEditor({ ...current, offer: null, message: current.kind === "add" ? "Review this provider draft again before adding." : "Review this endpoint draft again before saving." });
     if (endpointBackendObserved.current) void invoke("provider_endpoint_discard").catch(() => {});
   };
   useEffect(() => {
@@ -1222,7 +1222,7 @@ export function App() {
   const openEndpointEditor = (row: Json) => {
     if (!providerObservationCurrent || currentHost.current?.providerEndpointEdit?.available !== true || endpointBusyRef.current || providerReadPending.current || startPendingRef.current || homePendingRef.current) return;
     expireEndpointPreview();
-    updateEndpointEditor({ id: row.id, endpoint: row.endpoint, source: providerSource(currentHost.current), epoch: chooserHome.current.epoch, offer: null, message: "Only this existing provider's endpoint can be edited." });
+    updateEndpointEditor({ kind: "endpoint", id: row.id, endpoint: row.endpoint, source: providerSource(currentHost.current), epoch: chooserHome.current.epoch, offer: null, message: "Only this existing provider's endpoint can be edited." });
   };
   const endpointUrl = (value: unknown) => {
     if (typeof value !== "string" || value.length > 2048 || !/^[\x21-\x7e]+$/.test(value) || /[@?#\\%]/.test(value)) return false;
@@ -1232,7 +1232,7 @@ export function App() {
   };
   const reviewEndpoint = async () => {
     const editor = endpointEditorRef.current;
-    if (!endpointSourceCurrent(editor) || currentHost.current?.providerEndpointEdit?.available !== true || endpointBusyRef.current || providerReadPending.current || !endpointUrl(editor.endpoint)) return;
+    if (editor?.kind === "add" || !endpointSourceCurrent(editor) || currentHost.current?.providerEndpointEdit?.available !== true || endpointBusyRef.current || providerReadPending.current || !endpointUrl(editor.endpoint)) return;
     const revision = endpointRevision.current, operation = ++endpointOperation.current;
     const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.id === editor.id;
     endpointBusyRef.current = true; setEndpointBusy(true);
@@ -1258,7 +1258,7 @@ export function App() {
   };
   const saveEndpoint = async () => {
     const editor = endpointEditorRef.current;
-    if (!endpointSourceCurrent(editor) || !editor.offer || endpointBusyRef.current || providerReadPending.current) return;
+    if (editor?.kind === "add" || !endpointSourceCurrent(editor) || !editor.offer || endpointBusyRef.current || providerReadPending.current) return;
     const revision = endpointRevision.current, operation = ++endpointOperation.current;
     const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.id === editor.id;
     endpointBusyRef.current = true; setEndpointBusy(true);
@@ -1276,6 +1276,60 @@ export function App() {
       updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
       const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
+    finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
+  };
+  const openProviderCreate = () => {
+    if (currentHost.current?.providerCreate?.available !== true || currentHost.current?.state !== "ready" || currentHost.current?.generationClosed
+      || currentHost.current?.homeRouting?.activeModeHomeClass !== "account" || endpointBusyRef.current || providerReadPending.current || startPendingRef.current || homePendingRef.current) return;
+    expireEndpointPreview();
+    updateEndpointEditor({ kind: "add", id: "", name: "", endpoint: "", source: providerSource(currentHost.current), epoch: chooserHome.current.epoch, offer: null, message: "Add one anonymous Responses definition. This draft does not choose a provider or model." });
+  };
+  const createDraftValid = (editor: Json) => typeof editor?.id === "string" && /^[A-Za-z][A-Za-z0-9._-]{0,63}$/.test(editor.id) && editor.id !== "openai"
+    && typeof editor.name === "string" && editor.name.length >= 1 && editor.name.length <= 128 && /^[\x20-\x7e]+$/.test(editor.name) && /[^ ]/.test(editor.name) && endpointUrl(editor.endpoint);
+  const reviewProviderCreate = async () => {
+    const editor = endpointEditorRef.current;
+    if (editor?.kind !== "add" || !endpointSourceCurrent(editor) || !createDraftValid(editor) || currentHost.current?.providerCreate?.available !== true || endpointBusyRef.current || providerReadPending.current) return;
+    const revision = endpointRevision.current, operation = ++endpointOperation.current;
+    const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.kind === "add";
+    endpointBusyRef.current = true; setEndpointBusy(true); updateEndpointEditor({ ...editor, offer: null, message: "Reading an Add-specific absence and version offer…" });
+    try {
+      const epoch: unknown = await invoke("provider_create_discard");
+      if (!current()) return;
+      if (typeof epoch !== "string" || !epoch) throw Error("Add checkpoint unavailable");
+      const packet: Json = await invoke("provider_create_offer", { generation: currentHost.current.generation, providerId: editor.id, name: editor.name, endpoint: editor.endpoint, epoch });
+      if (!current()) return;
+      if (packet?.kind !== "add-provider" || typeof packet.token !== "string" || packet.providerId !== editor.id || packet.submittedName !== editor.name || packet.endpoint !== editor.endpoint
+        || packet.wireApi !== "responses" || packet.requiresOpenaiAuth !== false || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
+        || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null) || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Add offer unavailable");
+      const latest: Json = await invoke("host_status");
+      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
+      setHost(latest); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
+    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
+    finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
+  };
+  const saveProviderCreate = async () => {
+    const editor = endpointEditorRef.current;
+    if (editor?.kind !== "add" || !endpointSourceCurrent(editor) || !editor.offer || endpointBusyRef.current || providerReadPending.current) return;
+    const revision = endpointRevision.current, operation = ++endpointOperation.current;
+    const current = () => endpointMounted.current && revision === endpointRevision.current && endpointSourceCurrent(editor) && endpointEditorRef.current?.kind === "add";
+    endpointBusyRef.current = true; setEndpointBusy(true);
+    try {
+      const outcome: Json = await invoke("provider_create_save", { token: editor.offer.token });
+      if (!current()) return;
+      const messages: Record<string, string> = {
+        "not-sent": "No provider write was sent.", "refused-not-sent": "Provider Add refused before a write was sent.",
+        "unknown": "Provider Add write outcome unknown. No automatic retry or source continuation.",
+        "write-observed-source-unconfirmed": "Provider addition write observed; the current source has not been continued. No automatic retry.",
+        "overridden": "Provider addition write observed with an override reported; the current source has not been continued.",
+        "continued": "Provider addition write and current source continuation observed. Read configured providers to see current rows. Your provider/model choice is unchanged.",
+      };
+      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
+      // A refresh cannot revoke the factual save outcome already received.
+      // Its failure also cannot attach an old outcome to a newer editor/source.
+      try {
+        const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+      } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
+    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; no automatic retry. Private diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const configuredRowChoiceStale = () => {
@@ -1842,7 +1896,24 @@ export function App() {
               <p>{providerObservation.packet.limit}</p>
             </>}
             {providerObservationCurrent && host?.providerEndpointEdit?.available !== true && <p>Endpoint editing is unavailable for this source. Manual conversation choices remain independent.</p>}
-            {endpointEditor && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider endpoint editor">
+            <button disabled={endpointBusy || providerReading || startPending || homePending || host?.providerCreate?.available !== true} onClick={openProviderCreate}>Add local provider…</button>
+            {endpointEditor?.kind === "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider Add editor">
+              <p>Add exactly one absent provider ID to the shared Codex configuration. Existing choices, models and drafts stay unchanged.</p>
+              <label>Provider ID <input value={endpointEditor.id} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, id: e.target.value }); }} /></label>
+              <label>Submitted name <input value={endpointEditor.name} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, name: e.target.value }); }} /></label>
+              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: e.target.value }); }} /></label>
+              <button disabled={endpointBusy || providerReading || host?.providerCreate?.available !== true || !createDraftValid(endpointEditor)} onClick={reviewProviderCreate}>Review provider Add</button>
+              {endpointEditor.offer && <div aria-label="Provider Add review">
+                <p>Submitted ID: <code>{endpointEditor.offer.providerId}</code></p>
+                <p>Submitted name (quoted data): <code>{JSON.stringify(endpointEditor.offer.submittedName)}</code></p>
+                <p>Endpoint: <code>{endpointEditor.offer.endpoint}</code></p>
+                <p>Anonymous Responses definition; requires_openai_auth: false. Other Codex clients also read this shared configuration.</p>
+                <button disabled={endpointBusy || providerReading} onClick={saveProviderCreate}>Add provider…</button>
+              </div>}
+              <p role="status">{endpointEditor.message}</p>
+              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close provider Add</button>
+            </section>}
+            {endpointEditor && endpointEditor.kind !== "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider endpoint editor">
               <p>Configured local provider {endpointEditor.id}. Endpoint only; this does not choose a provider/model or start a conversation.</p>
               <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={event => {
                 expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: event.target.value, offer: null, message: "Review this endpoint draft before saving." });

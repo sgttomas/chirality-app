@@ -400,6 +400,149 @@ fn endpoint_save_result(
     }
     result
 }
+fn create_offer_result(
+    state: &AppState,
+    generation: &Value,
+    id: &str,
+    name: &str,
+    endpoint: &str,
+    expected_epoch: &str,
+) -> Result<Value, String> {
+    let epoch = {
+        let mut c = state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Provider controller unavailable")?;
+        if c.epoch != expected_epoch || expected_epoch.is_empty() {
+            return Err("Provider Add superseded".into());
+        }
+        c.invalidate()?;
+        if c.saving.is_some() {
+            return Err("A provider write is pending".into());
+        }
+        c.epoch.clone()
+    };
+    if state.homes.lock().unwrap().active().host.snapshot()["generation"] != *generation {
+        return Err("Provider source unavailable".into());
+    }
+    let offer = hosting::provider_create::offer(state, id, name, endpoint)?;
+    let view = offer.view();
+    let mut c = state
+        .endpoint_edits
+        .lock()
+        .map_err(|_| "Provider controller unavailable")?;
+    if c.epoch != epoch || offer.epoch() != epoch {
+        return Err("Provider Add superseded".into());
+    }
+    c.create_offer = Some(offer);
+    drop(c);
+    hosting::provider_endpoint::expire_create_offer(
+        &state.endpoint_edits,
+        view["token"].as_str().ok_or("Add token unavailable")?,
+        hosting::provider_endpoint::OFFER_LIFETIME,
+    )?;
+    Ok(view)
+}
+fn create_save_result(
+    state: &AppState,
+    token: &str,
+    window_current: impl Fn() -> Result<(), String>,
+    before: impl FnOnce(&Value) -> Result<tauri_plugin_dialog::MessageDialogResult, String>,
+    after: impl FnOnce(
+        &hosting::config_resource_continuation::Candidate,
+        &Value,
+    ) -> Result<
+        Option<hosting::config_resource_continuation::ReviewedCurrentObject>,
+        (),
+    >,
+) -> Result<Value, String> {
+    let offer = {
+        let mut c = state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Provider controller unavailable")?;
+        if c.saving.is_some()
+            || c.create_offer
+                .as_ref()
+                .is_none_or(|o| o.view()["token"] != token)
+        {
+            return Err("Original Add offer unavailable or superseded".into());
+        }
+        c.saving = Some(token.into());
+        c.create_offer.take().unwrap()
+    };
+    let result = hosting::provider_create::save(state, offer, window_current, before, after);
+    if let Ok(mut c) = state.endpoint_edits.lock() {
+        if c.saving.as_deref() == Some(token) {
+            c.saving = None;
+        }
+    }
+    result
+}
+#[tauri::command]
+fn provider_create_discard(state: State<'_, AppState>) -> Result<String, String> {
+    endpoint_checkpoint(&state)
+}
+#[tauri::command(async)]
+fn provider_create_offer(
+    state: State<'_, AppState>,
+    generation: Value,
+    provider_id: String,
+    name: String,
+    endpoint: String,
+    epoch: String,
+) -> Result<Value, String> {
+    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch)
+        .map_err(|_| "Provider Add unavailable; private values and diagnostics withheld".into())
+}
+#[tauri::command(async)]
+fn provider_create_save(
+    window: tauri::Window,
+    state: State<'_, AppState>,
+    token: String,
+) -> Result<Value, String> {
+    let (epoch, remaining) = {
+        let c = state
+            .endpoint_edits
+            .lock()
+            .map_err(|_| "Provider controller unavailable")?;
+        (
+            c.epoch.clone(),
+            c.create_offer
+                .as_ref()
+                .ok_or("Add offer unavailable")?
+                .remaining(),
+        )
+    };
+    create_save_result(
+        &state,
+        &token,
+        || provider_endpoint_confirmation::recheck_original(&window),
+        |effects| {
+            provider_endpoint_confirmation::confirm_add(&window, effects, false, remaining, || {
+                endpoint_question_current(&state, &epoch, &effects["scope"])
+            })
+        },
+        |candidate, effects| {
+            let choice = provider_endpoint_confirmation::confirm_add(
+                &window,
+                effects,
+                true,
+                hosting::provider_endpoint::OFFER_LIFETIME,
+                || endpoint_question_current(&state, &epoch, &effects["scope"]),
+            )
+            .map_err(|_| ())?;
+            Ok(act_control::native_statement::chose(
+                &choice,
+                provider_endpoint_confirmation::CONTINUE_ACTION,
+            )
+            .then(|| candidate.accept_checked_current_object()))
+        },
+    )
+    .map_err(|_| {
+        "Provider Add unavailable; no automatic retry; private diagnostics withheld".into()
+    })
+}
 fn endpoint_question_current(state: &AppState, epoch: &str, scope: &Value) -> Result<(), String> {
     if state
         .endpoint_edits
@@ -582,6 +725,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
     s["desktopSetup"] = state.desktop_setup.as_ref().map(|d|d.lock().unwrap().view()).unwrap_or(Value::Null);
     s["providerEndpointEdit"]=json!({"available":home.class()==home_resources::HomeClass::Account&&home.host_config.as_ref().ok().is_some_and(|cfg|state.desktop_setup.as_ref().is_some_and(|d|d.lock().unwrap().endpoint_source_available(cfg))),"standing":"Source metadata only; a fresh private user-layer offer and two explicit native decisions remain required"});
+    s["providerCreate"]=json!({"available":s["providerEndpointEdit"]["available"],"standing":"Source metadata only; fresh private absence/version proof and two native decisions remain required"});
     // Native commands and the per-home Rust tick reconcile private receipts.
     // Status projects the last received history; polling does not write role
     // observations or admit a genuinely late native outcome.
@@ -2601,7 +2745,7 @@ pub fn run() {
             claim_native_waiting_intent,
             checkpoint_native_waiting_ui,
             finish_native_waiting_intent,
-            read_home_access, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard,
+            read_home_access, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard, provider_create_offer, provider_create_save, provider_create_discard,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,

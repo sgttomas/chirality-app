@@ -60,14 +60,15 @@ async function joinedPeer(changed='credentialed') {
 async function mountedChooser(native, handler, check, extra={}) {
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const calls=[];
  let snapshot={...native.initial,...extra,roleLimits:{account:{roles:[]}},roleSet:{available:true,defaultRole:'HELP_HUMAN',roles:[{name:'HELP_HUMAN',meaning:'fixture role',default_for_new_chat:true}]}};
- const setSnapshot=value=>{snapshot=value;};
+ let statusFailures=0;
+ const setSnapshot=value=>{snapshot=value;},failNextStatus=()=>{statusFailures++;};
  const idle=installIdleNativeWaiting(async(command,args)=>{
   calls.push({command,args:structuredClone(args)});
-  if(command==='host_status')return structuredClone(snapshot);
+  if(command==='host_status'){if(statusFailures){statusFailures--;throw Error('INVENTED_PRIVATE_STATUS_DIAGNOSTIC');}return structuredClone(snapshot);}
   if(command==='decision_view')return {rows:[]};
   if(command==='native_confirmation_content')return [];
   if(command==='provider_endpoint_discard' && handler.endpointCleanup!==true)return null;
-  return handler(command,args,{get snapshot(){return snapshot;},setSnapshot});
+  return handler(command,args,{get snapshot(){return snapshot;},setSnapshot,failNextStatus});
  });
  const intervals=new Map(),previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};let timer=0;
  globalThis.setInterval=fn=>{intervals.set(++timer,fn);return timer;};globalThis.clearInterval=id=>intervals.delete(id);
@@ -315,5 +316,143 @@ test('continued endpoint source does not admit Start from its offer or reread wh
   assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,4);
   assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
   assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'fixture.dot');assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE/);
+ });}finally{await native.close();}
+});
+
+async function createPeer(mode='ok') {
+ const directory=mkdtempSync(`${out}/create-`);let sequence=0,ended=false,output='';
+ const child=spawn('cargo',['test','--offline','--locked','--lib','access_provider_create_mounted_join','--','--test-threads=1'],{cwd:new URL('src-tauri/',app),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CARGO_NET_OFFLINE:'true',CHIRALITY_CREATE_JOIN:directory,CHIRALITY_CREATE_MODE:mode},stdio:['ignore','pipe','pipe']});
+ child.stdout.on('data',data=>output+=data);child.stderr.on('data',data=>output+=data);
+ const exited=new Promise(resolve=>child.on('close',code=>{ended=true;resolve(code);}));
+ const read=async name=>{const deadline=Date.now()+120000;while(!existsSync(`${directory}/${name}`)){assert.equal(ended,false,output);assert.ok(Date.now()<deadline,`Create fixture timeout ${name}`);await new Promise(resolve=>setTimeout(resolve,5));}const packet=JSON.parse(readFileSync(`${directory}/${name}`,'utf8'));assert.doesNotMatch(JSON.stringify(packet),/INVENTED_PRIVATE/);return packet;};
+ const send=(command,args)=>{const id=sequence++;writeFileSync(`${directory}/input.tmp`,JSON.stringify({command,args}));renameSync(`${directory}/input.tmp`,`${directory}/command-${id}.json`);return id;};
+ return {initial:await read('ready.json'),async call(command,args){return read(`response-${send(command,args)}.json`);},async close(){if(!ended)send('finish',{});assert.equal(await exited,0,output);rmSync(directory,{recursive:true});}};
+}
+const createHandler = native => Object.assign(async(command,args,view) => {
+ assert.ok(['read_configured_providers','provider_create_offer','provider_create_save','provider_create_discard','provider_endpoint_discard','thread_start'].includes(command),command);
+ const packet=await native.call(command,args);if(!command.endsWith('_discard'))view.setSnapshot({...view.snapshot,...packet.host,roleSet:view.snapshot.roleSet,roleLimits:view.snapshot.roleLimits});
+ if(!packet.response.ok)throw Error(packet.response.error);return packet.response.value;
+},{endpointCleanup:true});
+async function fillCreate(c,name='  Explicit "quoted" name \\ exact  '){
+ await press(c,'Add local provider…');await change(labelled(c,'input','Provider ID '),'fixture.new');await change(labelled(c,'input','Submitted name '),name);await change(labelled(c,'input','Endpoint URL '),'https://example.invalid/new');return name;
+}
+test('actual Add draft has no native read/choice; exact private offer and two decisions reach current/fresh consumers and a genuine fixed-label row',async()=>{
+ const native=await createPeer();
+ try{await mountedChooser(native,createHandler(native),async(c,calls,view)=>{
+  await change(labelled(c,'input','Model '),'person-model');await change(labelled(c,'input','Configured Codex provider '),'manual-provider');
+  const name=await fillCreate(c);
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,0);assert.equal(calls.filter(r=>r.command==='provider_create_offer').length,0);
+  await press(c,'Review provider Add');assert.ok(region(c,'Provider Add review').textContent.includes(JSON.stringify(name)));
+  assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'manual-provider');
+  await press(c,'Add provider…');assert.match(region(c,'Provider Add editor').textContent,/source continuation observed/);
+  assert.equal(endpointRequests(view.snapshot).length,1);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
+  assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'manual-provider');
+  assert.equal(button(c,'Choose provider fixture.new'),undefined,'draft is never a synthetic row');
+  await press(c,'Read configured local providers');assert.ok(button(c,'Choose provider fixture.new'));assert.doesNotMatch(region(c,'Configured local providers').textContent,/native name never public|INVENTED_PRIVATE/);
+  await press(c,'Choose provider fixture.new');assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'fixture.new');
+  assert.equal(props(labelled(c,'select','Access entry ')).value,'local-provider');
+  await press(c,'Review provider Add');assert.match(region(c,'Provider Add editor').textContent,/absence or safe review could not be established/);assert.equal(endpointRequests(view.snapshot).length,1,'fresh existing-ID version must not authorize an upsert');
+ });}finally{await native.close();}
+});
+for(const mode of ['cancel-before','cancel-after','nonexact','write-error','write-timeout','overridden','override-reread-timeout','pre-window-error','post-window-error'])test(`actual mounted Add ${mode} cannot retry or erase choices`,async()=>{
+ const native=await createPeer(mode);
+ try{await mountedChooser(native,createHandler(native),async(c,calls,view)=>{
+  await change(labelled(c,'input','Model '),'retained-model');await change(labelled(c,'input','Configured Codex provider '),'retained-provider');await fillCreate(c);await press(c,'Review provider Add');await press(c,'Add provider…');
+  const text=region(c,'Provider Add editor').textContent;
+  assert.match(text,['cancel-before','nonexact'].includes(mode)?/No provider write was sent/:mode==='pre-window-error'?/Add unavailable/:mode.startsWith('override')?/override reported/:['write-error','write-timeout'].includes(mode)?/outcome unknown/:/source has not been continued/);
+  if(mode.startsWith('override'))assert.match(text,/source has not been continued/);
+  assert.equal(endpointRequests(view.snapshot).length,['cancel-before','nonexact','pre-window-error'].includes(mode)?0:1);
+  assert.equal(button(c,'Add provider…'),undefined);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);
+  assert.equal(props(labelled(c,'input','Model ')).value,'retained-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'retained-provider');assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE|native name never public/);
+ });}finally{await native.close();}
+});
+for(const [mode,expected] of [['ok',/source continuation observed/],['overridden',/override reported/],['cancel-after',/source has not been continued/]])test(`actual Add ${mode} fact survives status refresh failure with owned choices`,async()=>{
+ const native=await createPeer(mode),g=native.initial.generation,key=id=>JSON.stringify([g,id]);
+ const thread=id=>({generation:g,threadId:id,model:'reported',modelProvider:'configured',appRole:{standing:'app-observed',role:null},roleRelation:{kind:'start'},futureGuidanceNotices:[]});
+ const extra={threads:['A','B','C','D'].map(thread),workflowRoot:{context:{sourceRef:'refresh-workflow-source',generation:g,historyEpoch:1},projectLibraryAvailable:true,drafts:{drafts:[]},pendingTrials:[{reference:'trial:refresh',sequence:1,kind:'delegated',draftName:'method',location:'project',content:{value:'draft-bytes'},textIdentity:{value:'trial-bytes'},text:'Refresh original trial',message:'Original message',authoring:{generation:g,threadId:'B'},workFolder:'.chirality/workflow-trials/refresh',state:'pre-filled'}]}};
+ let offered,outcome;const base=createHandler(native),handler=Object.assign(async(command,args,view)=>{
+  const result=await base(command,args,view);view.setSnapshot({...view.snapshot,...extra});
+  if(command==='provider_create_offer')offered=result;
+  if(command==='provider_create_save'){outcome=result;view.failNextStatus();}
+  return result;
+ },{endpointCleanup:true});
+ try{await mountedChooser(native,handler,async(c,calls,view)=>{
+  const conversation=()=>c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0],choose=id=>change(nodes(conversation(),'select')[0],key(id));
+  await choose('A');await change(labelled(conversation(),'textarea','Text '),'Refresh unsent TEXT');
+  await change(labelled(c,'select','Workflow chat '),'C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+  await choose('B');const original=region(c,'Trial composer');await change(nodes(original,'textarea')[0],'Refresh B edit');await change(labelled(original,'select','Send to '),key('D'));await choose('A');
+  await change(labelled(conversation(),'input','Optional model identifier for next ordinary text turn '),'ordinary-A-refresh');
+  await change(labelled(c,'input','Model '),'refresh-model');await change(labelled(c,'input','Configured Codex provider '),'refresh-provider');
+  const roles=()=>nodes(c,'input').filter(n=>props(n).name==='start-thread-role').map(n=>[props(n).value,props(n).checked]);
+  const role=roles();
+  await fillCreate(c);await press(c,'Review provider Add');await press(c,'Add provider…');
+  const text=region(c,'Provider Add editor').textContent;
+  assert.equal(outcome.state,mode==='ok'?'continued':mode==='overridden'?'overridden':'write-observed-source-unconfirmed');
+  assert.equal(endpointRequests(view.snapshot).length,1);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,3);
+  assert.equal(calls.filter(r=>r.command==='provider_create_save').length,1);assert.equal(button(c,'Add provider…'),undefined);
+  assert.equal(!!props(button(c,'Close provider Add')).disabled,false);
+  assert.equal(props(labelled(c,'input','Provider ID ')).value,'fixture.new');assert.equal(props(labelled(c,'input','Submitted name ')).value,'  Explicit "quoted" name \\ exact  ');assert.equal(props(labelled(c,'input','Endpoint URL ')).value,'https://example.invalid/new');
+  assert.equal(props(labelled(c,'input','Model ')).value,'refresh-model');assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'refresh-provider');assert.deepEqual(roles(),role);
+  assert.equal(props(nodes(conversation(),'select')[0]).value,key('A'));assert.equal(props(labelled(c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(c,'select','Authoring conversation ')).value,key('B'));
+  assert.equal(props(labelled(conversation(),'textarea','Text ')).value,'Refresh unsent TEXT');assert.equal(props(labelled(conversation(),'input','Optional model identifier for next ordinary text turn ')).value,'ordinary-A-refresh');
+  await press(c,'View prepared message in conversation B');assert.equal(region(c,'Trial composer'),original);assert.equal(props(nodes(original,'textarea')[0]).value,'Refresh B edit');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+  const replay=await native.call('provider_create_save',{token:offered.token});assert.equal(replay.response.ok,false);assert.equal(endpointRequests(replay.host).length,1);assert.equal(replay.host.clientRequests.filter(r=>r.method==='config/read').length,3);
+  assert.equal(calls.filter(r=>r.command==='thread_start').length,0);assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE|native name never public/);
+  assert.match(text,expected);
+ },extra);}finally{await native.close();}
+});
+test('fresh Start after actual Add rereads current private configuration and refuses newly credentialed definition',async()=>{
+ const native=await createPeer('start-credentialed');
+ try{await mountedChooser(native,createHandler(native),async(c,calls,view)=>{
+  await change(labelled(c,'input','Model '),'person-model');await fillCreate(c);await press(c,'Review provider Add');await press(c,'Add provider…');await press(c,'Read configured local providers');await press(c,'Choose provider fixture.new');await press(c,'Start thread');
+  assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='config/read').length,5);assert.equal(view.snapshot.clientRequests.filter(r=>r.method==='thread/start').length,0);assert.equal(props(labelled(c,'input','Model ')).value,'person-model');assert.equal(button(c,'Starting…'),undefined);await change(labelled(c,'input','Configured Codex provider '),'fixture.new');assert.equal(props(button(c,'Start thread')).disabled,false);
+ });}finally{await native.close();}
+});
+
+test('actual Add retains A-C-B-D prepared owners, global TEXT and ordinary model override',async()=>{
+ const native=await createPeer(),g=native.initial.generation,key=id=>JSON.stringify([g,id]);
+ const thread=id=>({generation:g,threadId:id,model:'reported',modelProvider:'configured',appRole:{standing:'app-observed',role:null},roleRelation:{kind:'start'},futureGuidanceNotices:[]});
+ const extra={threads:['A','B','C','D'].map(thread),workflowRoot:{context:{sourceRef:'original-workflow-source',generation:g,historyEpoch:1},projectLibraryAvailable:true,drafts:{drafts:[]},pendingTrials:[{reference:'trial:original',sequence:1,kind:'delegated',draftName:'method',location:'project',content:{value:'draft-bytes'},textIdentity:{value:'trial-bytes'},text:'Original trial text',message:'Original message',authoring:{generation:g,threadId:'B'},workFolder:'.chirality/workflow-trials/test',state:'pre-filled'}]}};
+ const base=createHandler(native),handler=Object.assign(async(command,args,view)=>{const result=await base(command,args,view);view.setSnapshot({...view.snapshot,...extra});return result;},{endpointCleanup:true});
+ try{await mountedChooser(native,handler,async(c,calls)=>{
+  const conversation=()=>c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0],choose=id=>change(nodes(conversation(),'select')[0],key(id));
+  await choose('A');await change(labelled(conversation(),'textarea','Text '),'Owned invented unsent TEXT');await change(labelled(conversation(),'input','Optional model identifier for next ordinary text turn '),'ordinary-A-only');
+  await change(labelled(c,'select','Workflow chat '),'C');await change(labelled(c,'select','Authoring conversation '),key('B'));await change(labelled(c,'input','Model '),'new-person-model');
+  await choose('B');const original=region(c,'Trial composer');await change(nodes(original,'textarea')[0],'Original B edit');await change(labelled(original,'select','Send to '),key('D'));await choose('A');
+  await change(labelled(conversation(),'input','Optional model identifier for next ordinary text turn '),'ordinary-A-only');
+  assert.equal(props(labelled(conversation(),'input','Optional model identifier for next ordinary text turn ')).value,'ordinary-A-only','ordinary owner precondition before Add');
+  await fillCreate(c);await press(c,'Review provider Add');await press(c,'Add provider…');
+  assert.equal(props(nodes(conversation(),'select')[0]).value,key('A'));assert.equal(props(labelled(c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(c,'select','Authoring conversation ')).value,key('B'));
+  assert.equal(props(labelled(conversation(),'textarea','Text ')).value,'Owned invented unsent TEXT');assert.equal(props(labelled(conversation(),'input','Optional model identifier for next ordinary text turn ')).value,'ordinary-A-only');assert.equal(props(labelled(c,'input','Model ')).value,'new-person-model');
+  await press(c,'View prepared message in conversation B');assert.equal(region(c,'Trial composer'),original);assert.equal(props(nodes(original,'textarea')[0]).value,'Original B edit');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+  assert.equal(calls.filter(x=>x.command==='thread_start').length,0);
+ },extra);}finally{await native.close();}
+});
+test('late Add offer cannot erase a newer exact name or authorize its spent token',async()=>{
+ const native=await createPeer();let release,packet,ready;
+ const gate=new Promise(r=>release=r),started=new Promise(r=>ready=r),base=createHandler(native);
+ const handler=Object.assign(async(command,args,view)=>{const result=await base(command,args,view);if(command==='provider_create_offer'){packet=result;ready();await gate;}return result;},{endpointCleanup:true});
+ try{await mountedChooser(native,handler,async(c,calls,view)=>{
+  await fillCreate(c);let pending;await React.act(async()=>{pending=props(button(c,'Review provider Add')).onClick();await started;});
+  await change(labelled(c,'input','Submitted name '),'  New exact name  ');await React.act(async()=>{release();await pending;});
+  assert.equal(button(c,'Add provider…'),undefined);assert.equal(props(labelled(c,'input','Submitted name ')).value,'  New exact name  ');
+  const replay=await native.call('provider_create_save',{token:packet.token});assert.equal(replay.response.ok,false);assert.equal(endpointRequests(replay.host).length,0);
+ });}finally{release();await native.close();}
+});
+test('Add away/back retires actual offer and invalid draft syntax performs no native read',async()=>{
+ const native=await createPeer();let offered;const base=createHandler(native),handler=Object.assign(async(command,args,view)=>{const result=await base(command,args,view);if(command==='provider_create_offer')offered=result;return result;},{endpointCleanup:true});
+ try{await mountedChooser(native,handler,async(c,calls,view)=>{
+  await fillCreate(c);for(const invalid of ['','   ','name\nline','nonASCII é','x'.repeat(129)]){await change(labelled(c,'input','Submitted name '),invalid);assert.equal(props(button(c,'Review provider Add')).disabled,true);}
+  assert.equal(view.snapshot.clientRequests.length,0);await change(labelled(c,'input','Submitted name '),'Explicit safe name');await change(labelled(c,'input','Provider ID '),'openai');assert.equal(props(button(c,'Review provider Add')).disabled,true);await change(labelled(c,'input','Provider ID '),'fixture.new');await press(c,'Review provider Add');
+  const old=view.snapshot;view.setSnapshot({...old,homeRouting:{...old.homeRouting,activeModeHomeClass:'api-key'}});await view.refresh();view.setSnapshot(old);await view.refresh();
+  assert.equal(region(c,'Provider Add editor'),undefined);const replay=await native.call('provider_create_save',{token:offered.token});assert.equal(replay.response.ok,false);assert.equal(endpointRequests(replay.host).length,0);
+ });}finally{await native.close();}
+});
+
+test('actual private Add diagnostic projection reaches the mounted consumer without native metadata',async()=>{
+ const native=await createPeer('notification-reflection');
+ try{await mountedChooser(native,createHandler(native),async(c,calls,view)=>{
+  await fillCreate(c);await press(c,'Review provider Add');await press(c,'Add provider…');
+  assert.match(region(c,'Provider Add editor').textContent,/source continuation observed/);assert.equal(endpointRequests(view.snapshot).length,1);assert.doesNotMatch(JSON.stringify(view.snapshot),/INVENTED_PRIVATE|native name never public/);assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE|native name never public/);
  });}finally{await native.close();}
 });

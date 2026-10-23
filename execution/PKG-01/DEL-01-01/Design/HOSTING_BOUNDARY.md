@@ -500,8 +500,15 @@ schema-validated private `config/read` must then identify the same full home/
 generation, effective cwd and canonical user-layer target with its native
 version. A separate review must explicitly accept that exact candidate;
 an ACK, reread, cancellation, unknown result or stale decision cannot do so.
-The endpoint-only receiver consumes it through a fresh private user-layer offer,
-one confirmed typed write and a separate current-object confirmation. It admits
+The endpoint and absent-ID anonymous-provider Add receivers consume it through
+separate fresh private user-layer offers, one confirmed typed write and a
+separate current-object confirmation. Add requires actual user/effective absence
+and an unchanged same-version prewrite reread; its whole-definition permit is
+separate from the endpoint permit. Both share one config-slot epoch and question
+gate. Native replace is not create-only, and no native name becomes public review
+data: Add reviews only the exact validated, reflection-checked submitted name,
+quoted as data. Known write/override facts survive later continuation failures.
+The receivers admit
 the canonical layer path or exactly the held receiving H/config.toml spelling
 after link/descriptor checks around the actual read, without rewriting native
 frames. No other alias, hardlink or implicit target is accepted. Injected fixture

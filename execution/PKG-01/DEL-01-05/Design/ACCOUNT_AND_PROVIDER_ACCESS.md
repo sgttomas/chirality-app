@@ -157,7 +157,7 @@ the App). An agent may ask the person in conversation; nothing more.
 | ID | Exchange | Supplier → receiver | Condition of use | When the exchange fails |
 |---|---|---|---|---|
 | I-1 | Codex account methods: `account/read`, `account/login/start`, `account/login/cancel`, `account/logout`, `configRequirements/read`; notifications `account/login/completed`, `account/updated`, `modelProvider/authRecoveryStarted`/`Completed` (all stable, `observed-in-generated-types`) | Codex → DEL-01-05, carried by DEL-01-01 S-4 | `ready(g)` of the home's child (HOSTING §4.1) | A request with no response is *unknown* (HOSTING H10); the entry goes to `unknown` and is re-read after the next `ready`; nothing is retried automatically that carries a credential (CR-6) |
-| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. The endpoint-only receiver uses fresh private offers, one versioned write and separate original-window write/current-object decisions (F-A3; U-R3); actual person/native consumption remains unverified | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path |
+| I-2 | Codex configuration: `config/read {includeLayers: true}` (origins, layer versions), person-directed `config/batchWrite` with explicit `filePath` and `expectedVersion` (stable) | Codex ↔ DEL-01-05 | Person's act for every product write (HOSTING §6.8 row; H9); the read layer must identify the resolved target. The endpoint and Add receivers use separate fresh private offers, one versioned write and separate original-window write/current-object decisions (F-A3; U-R3); actual person/native consumption remains unverified | Version conflict → the write is not retried; the person sees both values and decides. An acknowledgement alone establishes neither the effective value nor continued source admission. `configWarning` notifications are shown with their path where publication is established; the current private Add source instead exposes only a fixed diagnostic observation, with its body/path withheld |
 | I-3 | Conversation start: explicit `modelProvider` and `model` on `thread/start`; per-turn `model` on `turn/start` | DEL-01-05 → DEL-01-01 S-4 | A selection exists (§5.4) | Error response → `start-failed`, no other entry tried (NS-1) |
 | I-4 | Destination class of the chosen entry | DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5 | Per conversation | The class is never inferred from an address; with no selection there is no class (HOSTING §8.3; LOOP N-OPEN-1 closure, applied here by analogy) |
 | I-5 | Access state snapshot and the conversation's selection state (schemas `access.state`, `access.conversation-selection`) | DEL-01-05 → DEL-01-04 (conversation start display, K-3) | On change | A display without a snapshot shows "access state unknown", never a default |
@@ -587,6 +587,56 @@ credential entry, server/model/capability probe or general configuration editor.
 Source/mounted injected decisions do not establish a person's act, actual
 native sheet consumption, endpoint availability, qualification or release.
 
+**Add one anonymous Responses provider.** Opening Add creates only an empty
+local ID/name/endpoint draft. Explicit Review obtains a separate private Add
+offer from the held admitted saved-desktop account, full generation, effective
+cwd, protected profile, receiving entries and target descriptor. Both the
+enabled unique user-layer map and effective map must establish the exact ID's
+absence; missing or untyped maps are unknown. The existing ID/URL publication
+rules apply, with exactly `openai` reserved. No ID is normalized or substituted.
+
+The name in an Add review is exclusively the exact explicitly submitted current
+draft: 1–128 printable ASCII bytes, including at least one nonspace byte, without
+trimming. It is shown quoted/escaped as submitted data in the immutable review
+and native question. Native definition names, descriptions and diagnostics
+remain private; later name equality is checked privately. The whole-response
+ephemeral sensitive-value exclusion covers the entire review, including this
+name, ID, endpoint and trusted scope, before credentialed definitions can be
+filtered away. Unknown or over-budget sensitive shapes withhold the offer.
+This is finite source-known reflection exclusion, not a universal credential,
+covert-secret or person-authorship proof. Rows retain their fixed generated label.
+
+Add shares the config-slot epoch, one-shot ownership, expiry and public-question
+gate with Edit. The original IPC window and both successful parent handles are
+checked on the main thread for each separate Info decision. The prewrite default
+is **Leave providers unchanged**; only **Add local provider** permits one typed
+write. Its sole quoted-ID `replace` edit contains exactly the submitted `name`,
+`base_url`, `wire_api:"responses"` and `requires_openai_auth:false`, with the
+canonical target, actual same-file native version and `reloadUserConfig:false`.
+A fresh private prewrite reading must equal the reviewed response/version;
+collision or drift requires a new explicit review, never an implicit rebase.
+The stock operation is not create-only, filesystem CAS or arbitrary-writer
+exclusion. Request bodies and ACK/error/override metadata remain private before
+public taps, while actual method/ID/outcome and server-request duties survive.
+Schema-named diagnostic notifications on the private Add source retain their
+actual method and a fixed withheld-body observation, including late/closed
+frames. No warning path or RPC cause is inferred; control events and independent
+server-request duties keep their existing handling.
+
+The private postwrite reading must report the exact user object and an expanded
+effective definition with complete known role/auth coverage and strict existing
+local-provider eligibility. No native defaults are synthesized into a reading.
+Removing only the new ID must leave all other effective/user settings unchanged.
+ACK/reread facts cannot accept the source: the separate original-window current-
+object decision and unchanged F-A3 publication/readback guards still apply.
+Validated write/override facts survive later failures; the source stays
+unconfirmed without acceptance, retry or rollback. The visible row comes only
+from a genuine current-source projection after continuation and an explicit
+Read; the draft never becomes a synthetic row or a selection. H/P, active owners,
+models, roles, choices, TEXT and prepared composers stay unchanged. Fresh Start
+remains independent. Injected fixtures establish neither the person's I-2 act
+nor U-R3 native consumption, qualification, acceptance or release.
+
 #### Current native provider admission
 
 Ordinary Start, Continue as and a clean trial share the current Rust start
@@ -811,9 +861,10 @@ H-key's threads stay readable from H-key; the App does not delete the home
    explicit-target write while the target inode was replaced (F-A3).
    A resolved path is a point-in-time observation; U-R3 retains the actual
    native/person consumption and candidate-bound qualification condition.
-   The current receiver implements only an existing eligible user-layer
-   provider's endpoint edit through the F-A3 core and two native decisions.
-   Add/remove/rename, credentials and the other Q-8 editor operations remain
+   The current receiver implements an existing eligible user-layer provider's
+   endpoint edit and one absent-ID anonymous Responses addition through the
+   F-A3 core and two native decisions (§5.4). Remove/rename, credentials and
+   the other Q-8 editor operations remain
    outside this implementation. Injected decisions are not a person's act.
    `okOverridden` →
    the overriding layer and effective value are shown. Version conflict →

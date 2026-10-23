@@ -5,18 +5,28 @@ use super::{
     config_resource_continuation as continuation, *,
 };
 use crate::{AppState, PendingConfigResource};
+use std::path::Path;
 use tauri_plugin_dialog::MessageDialogResult;
 
 pub(crate) const WRITE_ACTION: &str = "Write endpoint change";
 pub(crate) const OFFER_LIFETIME: Duration = Duration::from_secs(300);
-pub(crate) fn expire_offer(
+fn arm_expiry(
     controller: &Arc<Mutex<Controller>>,
     token: &str,
     wait: Duration,
+    create: bool,
 ) -> Result<(), String> {
     let receiver = {
         let mut c = controller.lock().map_err(|_| LIMIT)?;
-        if let Some(offer) = c.offer.as_mut().filter(|o| o.view["token"] == token) {
+        if create {
+            if let Some(offer) = c
+                .create_offer
+                .as_mut()
+                .filter(|o| o.view()["token"] == token)
+            {
+                offer.expires = std::time::Instant::now() + wait;
+            }
+        } else if let Some(offer) = c.offer.as_mut().filter(|o| o.view["token"] == token) {
             offer.expires = std::time::Instant::now() + wait;
         }
         if c.expiry_signal.is_none() {
@@ -42,11 +52,19 @@ pub(crate) fn expire_offer(
                     if c.offer
                         .as_ref()
                         .is_some_and(|o| o.expires <= std::time::Instant::now())
+                        || c.create_offer
+                            .as_ref()
+                            .is_some_and(|o| o.expires <= std::time::Instant::now())
                     {
                         let _ = c.invalidate();
                         c.offer = None;
                     }
-                    c.offer.as_ref().map(|o| o.expires)
+                    c.offer
+                        .as_ref()
+                        .map(|o| o.expires)
+                        .into_iter()
+                        .chain(c.create_offer.as_ref().map(|o| o.expires))
+                        .min()
                 };
                 match deadline {
                     Some(deadline) => match receive
@@ -66,6 +84,7 @@ pub(crate) fn expire_offer(
                 if let Ok(mut c) = controller.lock() {
                     c.expiry_signal = None;
                     c.offer = None;
+                    c.create_offer = None;
                 }
                 LIMIT.to_owned()
             })?;
@@ -75,10 +94,25 @@ pub(crate) fn expire_offer(
     }
     Ok(())
 }
+pub(crate) fn expire_offer(
+    controller: &Arc<Mutex<Controller>>,
+    token: &str,
+    wait: Duration,
+) -> Result<(), String> {
+    arm_expiry(controller, token, wait, false)
+}
+pub(crate) fn expire_create_offer(
+    controller: &Arc<Mutex<Controller>>,
+    token: &str,
+    wait: Duration,
+) -> Result<(), String> {
+    arm_expiry(controller, token, wait, true)
+}
 #[derive(Default)]
 pub(crate) struct Controller {
     pub(crate) epoch: String,
     pub(crate) offer: Option<Offer>,
+    pub(crate) create_offer: Option<super::provider_create::Offer>,
     pub(crate) saving: Option<String>,
     expiry_signal: Option<std::sync::mpsc::SyncSender<()>>,
 }
@@ -86,6 +120,7 @@ impl Controller {
     pub(crate) fn invalidate(&mut self) -> Result<(), String> {
         self.epoch = opaque_id("endpoint-source-epoch-").map_err(|_| LIMIT)?;
         self.offer = None;
+        self.create_offer = None;
         Ok(())
     }
     pub(crate) fn retire_source(
@@ -96,7 +131,11 @@ impl Controller {
     ) {
         if self.offer.as_ref().is_some_and(|o| {
             !ready || !Arc::ptr_eq(home, &o.pending.home) || o.pending.generation != *generation
-        }) {
+        }) || self
+            .create_offer
+            .as_ref()
+            .is_some_and(|o| o.source_differs(home, generation, ready))
+        {
             let _ = self.invalidate();
             self.offer = None;
         }
@@ -124,9 +163,71 @@ pub(super) struct EndpointWrite<'a> {
     offer: &'a Offer,
     state: &'a AppState,
 }
-enum WriteFailure {
+// Each arm borrows a separately sealed intent; there is no generic public
+// payload/private-flag constructor. The existing transport receives only this.
+pub(super) enum PrivateWrite<'a> {
+    Endpoint(&'a EndpointWrite<'a>),
+    Create(&'a super::provider_create::CreateWrite<'a>),
+}
+impl PrivateWrite<'_> {
+    pub(super) fn params(&self) -> Value {
+        match self {
+            Self::Endpoint(w) => w.params(),
+            Self::Create(w) => w.params(),
+        }
+    }
+    pub(super) fn check(&self, host: &Host, inner: &Inner) -> Result<(), String> {
+        match self {
+            Self::Endpoint(w) => w.check(host, inner),
+            Self::Create(w) => w.check(host, inner),
+        }
+    }
+    pub(super) fn before_write(&self) -> Result<(), String> {
+        match self {
+            Self::Endpoint(w) => w.before_write(),
+            Self::Create(w) => w.before_write(),
+        }
+    }
+    pub(super) fn mark_attempt(&self) -> Result<(), String> {
+        match self {
+            Self::Endpoint(w) => w.mark_attempt(),
+            Self::Create(w) => w.mark_attempt(),
+        }
+    }
+    pub(super) fn pending(&self) -> &PendingConfigResource {
+        match self {
+            Self::Endpoint(w) => &w.offer.pending,
+            Self::Create(w) => w.pending(),
+        }
+    }
+    pub(super) fn cwd(&self) -> &str {
+        &self.pending().cwd
+    }
+    fn target(&self) -> &Path {
+        match self {
+            Self::Endpoint(w) => &w.offer.target,
+            Self::Create(w) => w.target(),
+        }
+    }
+    fn initiator(&self) -> &str {
+        match self {
+            Self::Endpoint(_) => "provider-endpoint-change",
+            Self::Create(_) => "provider-create",
+        }
+    }
+    pub(super) fn public_params(&self) -> Value {
+        match self {
+            Self::Endpoint(_) => json!({"privateEndpointWriteWithheld":true}),
+            Self::Create(_) => json!({"privateProviderCreateWithheld":true}),
+        }
+    }
+}
+pub(super) enum WriteFailure {
     NotSent,
     Unknown,
+    // Original completed write and matching ACK validated, but no continuing
+    // source eligibility. This carries fixed facts only, never native metadata.
+    ObservedSourceUnavailable { overridden: bool },
 }
 impl EndpointWrite<'_> {
     pub(super) fn params(&self) -> Value {
@@ -161,11 +262,8 @@ impl EndpointWrite<'_> {
             .endpoint_write_attempt(&self.offer.pending.slot)
             .map_err(|_| LIMIT.to_owned())
     }
-    pub(super) fn cwd(&self) -> &str {
-        &self.offer.pending.cwd
-    }
 }
-fn context(state: &AppState, pending: &PendingConfigResource) -> Result<(), String> {
+pub(super) fn context(state: &AppState, pending: &PendingConfigResource) -> Result<(), String> {
     if state.endpoint_edits.lock().map_err(|_| LIMIT)?.epoch != pending.endpoint_epoch {
         return Err(LIMIT.into());
     }
@@ -296,7 +394,12 @@ pub(crate) fn save(
         offer: &offer,
         state,
     };
-    let reply = match offer.pending.home.host.endpoint_write(&write) {
+    let reply = match offer
+        .pending
+        .home
+        .host
+        .provider_write(&PrivateWrite::Endpoint(&write))
+    {
         Ok(reply) => reply,
         Err(WriteFailure::NotSent) => {
             return Ok(
@@ -307,6 +410,9 @@ pub(crate) fn save(
             return Ok(
                 json!({"state":"unknown","message":"Endpoint write outcome unknown; no retry or source continuation"}),
             )
+        }
+        Err(WriteFailure::ObservedSourceUnavailable { overridden }) => {
+            return Ok(json!({"state":if overridden {"overridden"} else {"write-observed-source-unconfirmed"},"message":"Write observed; the current source has not been continued; no retry"}));
         }
     };
     let status = reply["status"].as_str().ok_or(LIMIT)?.to_owned();
@@ -395,7 +501,7 @@ pub(crate) fn save(
 }
 
 impl Host {
-    fn endpoint_write(&self, write: &EndpointWrite<'_>) -> Result<Value, WriteFailure> {
+    pub(super) fn provider_write(&self, write: &PrivateWrite<'_>) -> Result<Value, WriteFailure> {
         write.before_write().map_err(|_| WriteFailure::NotSent)?;
         let params = write.params();
         Self::validate_native_result("ConfigBatchWriteParams", &params)
@@ -404,9 +510,9 @@ impl Host {
             .request_begin_with_access_offer_guarded(
                 "config/batchWrite",
                 params,
-                json!({"kind":"person-directed","name":"provider-endpoint-change"}),
+                json!({"kind":"person-directed","name":write.initiator()}),
                 false,
-                Some(&write.offer.pending.generation),
+                Some(&write.pending().generation),
                 false,
                 None,
                 None,
@@ -431,8 +537,7 @@ impl Host {
         }
         let received = source.receiver.lock().unwrap().recv_timeout(
             write
-                .offer
-                .pending
+                .pending()
                 .home
                 .host_config
                 .as_ref()
@@ -456,10 +561,11 @@ impl Host {
             .source_requests
             .get(&source.request_id().to_string())
             .ok_or(WriteFailure::Unknown)?;
-        if inner.generation != *source.generation()
-            || inner.state != "ready"
-            || inner.server_requests.is_closed(source.generation())
-            || e.request.request_ref() != source.request_ref()
+        if e.request.request_ref() != source.request_ref()
+            || e.request.generation() != source.generation()
+            || e.request.attempted_frame() != source.attempted_frame()
+            || source.attempted_frame()["method"] != "config/batchWrite"
+            || source.attempted_frame()["params"] != write.public_params()
             || !e.private_config
             || !e.written
             || e.write_error.is_some()
@@ -467,17 +573,27 @@ impl Host {
             || e.write_attempt_in_progress
             || e.response_position
                 .is_none_or(|position| position <= e.turn_model_cut)
-            || e.source_pipe
-                .is_none_or(|(epoch, _)| epoch != inner.attachment_pipe_epoch)
+            || e.private_write_reply_pipe.is_none()
+            || e.private_write_reply_pipe != e.source_pipe
         {
             return Err(WriteFailure::Unknown);
         }
         if result["version"]
             .as_str()
             .is_none_or(|s| s.is_empty() || s.len() > 4096)
-            || result["filePath"].as_str() != write.offer.target.to_str()
+            || result["filePath"].as_str() != write.target().to_str()
         {
             return Err(WriteFailure::Unknown);
+        }
+        // Receipt-time original pipe/source standing establishes only this
+        // validated ACK fact. Current eligibility independently gates ALL later
+        // reads, candidate review and publication, even if the source recovers.
+        if inner.generation != *source.generation()
+            || inner.state != "ready"
+            || inner.server_requests.is_closed(source.generation())
+            || self.capture_pipe(&inner).ok().map(|bound| (bound.epoch, bound.identity)) != e.source_pipe
+        {
+            return Err(WriteFailure::ObservedSourceUnavailable { overridden: result["status"] == "okOverridden" });
         }
         Ok(result.clone())
     }

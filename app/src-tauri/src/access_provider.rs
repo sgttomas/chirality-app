@@ -50,6 +50,7 @@ pub(super) enum PrivateConfigPurpose {
     Observation,
     ConfigContinuation,
     EndpointOffer,
+    CreateOffer,
 }
 
 // Publication is deliberately stricter than private operation eligibility.
@@ -401,6 +402,83 @@ pub(super) fn endpoint_offer_fields(
     Ok(view)
 }
 
+/// Explicit draft data has its own publication basis. Never insert it into a
+/// native reading or release the native definition's name as review text.
+pub(super) fn create_offer_fields(
+    read: &PrivateConfigReading,
+    project: &Value,
+    id: &str,
+    name: &str,
+    endpoint: &str,
+    token: &str,
+    layer: &Value,
+    reported: bool,
+) -> Result<Value, String> {
+    let fail = || OBSERVATION_LIMIT.to_owned();
+    if !public_id(id)
+        || id == "openai"
+        || !(1..=128).contains(&name.len())
+        || !name.bytes().all(|b| (32..=126).contains(&b))
+        || !name.bytes().any(|b| b != b' ')
+        || public_endpoint(&json!(endpoint)).is_none()
+    {
+        return Err(fail());
+    }
+    // This scans the whole response before credentialed entries are filtered.
+    let projection = project_configured_providers(read, project)?;
+    let effective = read.config["config"]["model_providers"]
+        .as_object()
+        .ok_or_else(fail)?;
+    let user = layer["config"]["model_providers"]
+        .as_object()
+        .ok_or_else(fail)?;
+    if reported {
+        let literal = json!({"name":name,"base_url":endpoint,"wire_api":"responses","requires_openai_auth":false});
+        let definition = effective
+            .get(id)
+            .and_then(Value::as_object)
+            .ok_or_else(fail)?;
+        // Full reported role coverage is required for the untyped expanded
+        // definition. No missing auth/default fields are synthesized here.
+        if user.get(id) != Some(&literal)
+            || PROVIDER_FIELDS
+                .iter()
+                .any(|key| !definition.contains_key(*key))
+            || literal
+                .as_object()
+                .unwrap()
+                .iter()
+                .any(|(key, value)| definition.get(key) != Some(value))
+            || classify(&read.config, "local-provider", id).is_err()
+            || ["model_catalog_url", "env_key_instructions"]
+                .iter()
+                .any(|key| !definition[*key].is_null())
+            || ["http_headers", "env_http_headers", "query_params"]
+                .iter()
+                .any(|key| {
+                    !definition[*key].is_null()
+                        && definition[*key].as_object().is_none_or(|m| !m.is_empty())
+                })
+            || !projection["rows"].as_array().is_some_and(|rows| {
+                rows.iter()
+                    .any(|row| row["id"] == id && row["endpoint"] == endpoint)
+            })
+        {
+            return Err(fail());
+        }
+    } else if effective.contains_key(id) || user.contains_key(id) {
+        return Err(fail());
+    }
+    let view = json!({"kind":"add-provider","token":token,"providerId":id,"submittedName":name,"endpoint":endpoint,"wireApi":"responses","requiresOpenaiAuth":false,"scope":projection["scope"],"standing":"Explicit submitted data only; one anonymous Responses definition. No provider/model choice, reachability, credential or Start authority."});
+    if PrivateReflections::new(&read.config)
+        .map_err(|_| fail())?
+        .excludes_value(&view)
+    {
+        return Err(fail());
+    }
+    Ok(view)
+}
+
 /// Native errors can quote credential values. Public consumers keep outcome only.
 pub(super) fn withheld(frame: &Value) -> Value {
     let mut safe = json!({"privateConfigWithheld":true});
@@ -671,6 +749,7 @@ impl Host {
                     PrivateConfigPurpose::Admission => json!({"kind":"app-rule","name":"access-provider-admission"}),
                     PrivateConfigPurpose::ConfigContinuation => json!({"kind":"app-rule","name":"private-config-current-object-observation"}),
                     PrivateConfigPurpose::EndpointOffer => json!({"kind":"person-directed","name":"provider-endpoint-offer"}),
+                    PrivateConfigPurpose::CreateOffer => json!({"kind":"person-directed","name":"provider-create-offer"}),
                 },
                 false,
                 Some(generation),
