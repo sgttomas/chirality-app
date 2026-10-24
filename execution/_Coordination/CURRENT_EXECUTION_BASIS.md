@@ -11,7 +11,7 @@ and product commitments. The stable [manual index](../../../../docs/alignment-ma
 is the discovery entry for the management manual; its moving targets are not
 automatic adoption authority. The applicable sections and instruction files are
 also named in DEL-10-01 through DEL-10-04. Consolidated v9 resolves at
-`5d00723cd8dcd95e85716d1004c3a75d65a5d338`, including the approved clarifications
+`4c9351d36b03926c494e4d034693b89513a3078d`, including the approved clarifications
 on reckoning, judgment and instruction sourcing. A content-bound consumer uses the
 corresponding revision rather than assuming the current index still names the
 same bytes. This creates no reading log or per-session approval requirement.
