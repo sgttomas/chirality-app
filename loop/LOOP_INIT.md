@@ -6,17 +6,6 @@ Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
 Design and dependency conditions. Consult `docs/PRD.md` and its companions for
 requirements and interfaces involved in this slice, not as a compulsory census.
 
-Use this course of knowledge work as a heuristic, not a prescribed path:
-
-Problem Statement → Requirements → Objectives → Production → Evaluation →
-Assessment → Implementation → Verification → Validation → Integration →
-Reflection → Iteration → Resolution.
-
-It creates no additional stages, artifacts, reviews, approvals, or completion
-conditions. Enter where the work currently stands and revisit activities as
-evidence requires. Work within the given scope and authority; resolve against
-the agreed outcome and adequate supporting evidence.
-
 From the repository root:
 
 ```sh
