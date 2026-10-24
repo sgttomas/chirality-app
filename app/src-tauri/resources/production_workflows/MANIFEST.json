@@ -4,12 +4,12 @@
   "standing": "production bundle candidate; not a published release",
   "historical_shipped_revisions": [],
   "recognize_v3": false,
-  "source_revision": "f4b044e54d347d9bb97db9775a4f4ae0b03e5ec1",
+  "source_revision": "cfc5dea42bc7bd437919b0ebdbc43640f3822e75",
   "packages": [
     {
       "name": "coordinated-knowledge-work",
       "revision_method": "chirality.app.workflow-package.sha256/v1",
-      "revision": "e89da6e5994007d4697fca6d4a97c8c7a445c603104406c01e4d613b3078deae",
+      "revision": "b33431762688024ec6a75736c3f6f1a79839643398b4d2f2fc4d389e73f862c0",
       "source_root": "chirality-root",
       "source_path": "workflows/coordinated-knowledge-work",
       "files": [
@@ -20,8 +20,8 @@
         },
         {
           "path": "WORKFLOW.md",
-          "bytes": 8438,
-          "sha256": "7337732540b35aac26d0f4a5c3660ab07b746752cb37923c87fbdb2f837f91c9"
+          "bytes": 6563,
+          "sha256": "0488a744eb163fc633e1ae356de1955a58e9ca1f6396ef6b028c2e8ffad75355"
         }
       ]
     }
