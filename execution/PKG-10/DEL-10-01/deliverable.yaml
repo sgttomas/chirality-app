@@ -49,13 +49,6 @@ needs:
     Target description — TargetName: Approved v4 coordination and lifecycle policy; TargetRefID: APP-V4-_COORDINATION;
     TargetLocation: projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md'
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: external:ROOT-FIELD-BOOK
-  condition: Use Field Book v2 for the manual application account, limited to relevant practice and actual
-    receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#field-book.
-    Identify the resolved edition/revision where exact content matters. A later index change does not
-    automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
-    runs.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 - from: external:ROOT-PROJECT-MANAGEMENT-MANUAL
   condition: Use Consolidated v9 for the manual application account, limited to relevant practice and
     actual receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#project-management-manual.
@@ -63,12 +56,13 @@ needs:
     automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
     runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: external:ROOT-AGENT-USER-MANUAL
-  condition: Use Agent User Manual v4 for the manual application account, limited to relevant practice
-    and actual receiving use. Discover it at the repository-relative docs/alignment-manual/README.md#agent-user-manual.
-    Identify the resolved edition/revision where exact content matters. A later index change does not
-    automatically amend the selected basis. Earlier editions and hashes remain the inputs of their historical
-    runs.
+- from: external:ROOT-REPOSITORY-INSTRUCTIONS
+  condition: Use current repository practice for the manual application account, limited to relevant
+    practice and actual receiving use. It is carried by the repository-relative AGENTS.md, agents/AGENT_*.md,
+    tools/deliverables/README.md, .agents/skills/chirality-change/SKILL.md and the loop entry
+    projects/chirality-app-v4/loop/LOOP_INIT.md. Identify the resolved revision where exact content matters.
+    Earlier manual editions and hashes, including the Agent User Manual retired by the owner on 2026-10-23,
+    remain the inputs of their historical runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 - from: doc:execution/_Coordination/CURRENT_EXECUTION_BASIS.md
   condition: 'Use the owning selection/adoption record and scope to bind actual manual and method edition/content

@@ -18,9 +18,12 @@ new human checkpoints.
 
 D-12 originally proposed retaining the decomposition/execution structure and
 guiding work graphs through the Project Management manual according to the
-Agent User Manual. Later owner direction A/C makes the three manuals core
-working governance. Accepted HTML decisions 01 and 07 select focused
-responsibility/contract renewal and staged coexistence. U4 expressly permits
+Agent User Manual. Later owner direction A/C made the three manuals core
+working governance. On 2026-10-23 the owner retired the Field Book and the
+Agent User Manual; the Project Management manual remains, and current
+repository practice is carried by the repository instruction files.
+Accepted HTML decisions 01 and 07 select focused responsibility/contract
+renewal and staged coexistence. U4 expressly permits
 decomposition and project definition with open matters carried forward.
 
 The human governs the undertaking. Root hosts shared ideas, methods and
@@ -42,11 +45,11 @@ scope by U4; their records remain unchanged.
   actual executing state distinct. An accepted graph's scope and currency
   matter; do not infer a universal cross-program graph from project graphs.
 - **V4-OPS-03** Use the four roles, with teams, subagents or solitary work as
-  the undertaking needs (Field Book §2). The SWB Piping Designer is a
-  domain-specific application expression of an agent with research workflows
+  the undertaking needs (Consolidated v9 §3.1 and §§4.1–4.2). The SWB
+  Piping Designer is a domain-specific application expression of an agent with research workflows
   and tools, not an added standing role (U3).
 - **V4-OPS-04** Use Conceptual, FEED, 30%, 60%, 90% and 100% as development
-  positions, not percentages of effort (Field Book §1). The accepted
+  positions, not percentages of effort (Consolidated v9 ch. 7). The accepted
   composite supplies the basis for decomposition; subsequent selected-method
   confirmations and product/lifecycle decisions retain their own subjects.
 
@@ -54,25 +57,26 @@ scope by U4; their records remain unchanged.
 
 <a id="current-manual-guidance"></a>
 
-Current discovery starts at [the manual index](../../../docs/alignment-manual/README.md):
-[management manual](../../../docs/alignment-manual/README.md#project-management-manual),
-[Field Book](../../../docs/alignment-manual/README.md#field-book), and
-[operational guide](../../../docs/alignment-manual/README.md#agent-user-manual).
-For forward development under the owner's efficiency-reset direction, the selected
-editions are Consolidated v9, Field Book v2 and Agent User Manual v4. They replace
-retired development record procedures, not the accepted product requirements.
+Current discovery starts at the
+[management manual](../../../docs/alignment-manual/README.md#project-management-manual)
+entry of [the manual index](../../../docs/alignment-manual/README.md).
+Current repository practice is carried by Root `AGENTS.md`, the role files in
+`agents/`, the selected workflow and the project loop entry. For forward
+development under the owner's efficiency-reset direction, the selected edition
+is Consolidated v9. The Field Book and Agent User Manual were retired by the
+owner on 2026-10-23. This guidance replaces retired development record
+procedures, not the accepted product requirements.
 A stable pointer supports discovery; the actual selected edition/revision supports
 reliance. Later pointer changes do not automatically adopt a different method.
 The original seed and frozen acceptance records retain their earlier editions.
 No claim is made that the owner examined every byte of the new prose.
 
 
-- **V4-OPS-10** Apply the Project Management manual, Field Book and Chirality
-  Agent User Manual as core working governance through the methods selected
-  for the actual undertaking. The Field Book supplies the compact route;
-  consult the Consolidated manual's relevant reasoning and the User Manual's
-  repository application as needed. Supply enough context for sophisticated
-  concurrent and successive work without silently loading unrelated methods.
+- **V4-OPS-10** Apply the Project Management manual as method reasoning, and
+  the repository instruction files as current repository practice, through
+  the methods selected for the actual undertaking. Supply enough context
+  for sophisticated concurrent and successive work without silently loading
+  unrelated methods.
 - **V4-OPS-11** **Identified editions.** Record the actual manual editions,
   source revisions and methods selected for each undertaking and adopt changed
   editions deliberately. The historical seed/research basis used Field Book v1,

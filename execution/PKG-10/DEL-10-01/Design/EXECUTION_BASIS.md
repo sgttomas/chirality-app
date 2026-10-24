@@ -3,14 +3,16 @@
 ## Forward manual application
 
 For current development, use the owner-directed selection in
-`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`: Consolidated v9,
-Field Book v2 and Agent User Manual v4. The repository manual index provides
-stable discovery links. The detailed edition/hash account below preserves the
-original definition run; it does not reinstate retired lifecycle, receipt or
+`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`: Consolidated v9 for
+method reasoning and the repository instruction files (Root `AGENTS.md`, the
+role files, the selected workflow and the loop entry) for current practice. The
+owner retired the Field Book and the Agent User Manual on 2026-10-23. The
+repository manual index provides stable discovery for the management manual.
+The detailed edition/hash account below preserves the original definition run; it does not reinstate retired lifecycle, receipt or
 work-graph maintenance duties. Its frozen prototype input set remains a
 historical reproduction, not a current-manual loader. Reproduce `eb1_check.py`
 and `make_input_set.py` only in the [archived source tree](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4),
-where their original Coordination inputs still exist. The new editions guide
+where their original Coordination inputs still exist. Current guidance shapes
 practice without changing the product's accepted output obligations.
 
 
@@ -225,16 +227,16 @@ supplied record states it.
 
 ## 5. Developmental positions (OUT-002; REQ-004; AC-004)
 
-- **SETTLED.** Field Book §1 defines Conceptual, FEED, 30%, 60%, 90% and
-  100% by what each establishes. "Percentage labels describe development
-  positions. They do not measure effort, code, or tasks completed. … Parts of
-  a project may occupy different positions." V4-OPS-04 says the same.
+- **SETTLED.** Consolidated v9 ch. 7 describes the Conceptual, FEED, 30%,
+  60%, 90% and delivery positions by what each establishes. "They are not
+  percentages of code, effort, cost or tasks completed. Different parts of a
+  project can occupy different positions" (§7.1). V4-OPS-04 says the same.
 - **States: the project's position.** The 30% gate is complete (B-7). Work
-  toward 60% is under way. Field Book §1: 60% needs "Developed design and
-  interfaces; an execution route for which further structural changes are no
-  longer anticipated". The human assesses it (LOOP_INIT; Field Book §1: "The
-  human decides whether to advance, qualify, redirect, or require further
-  work"). No supplied record shows it assessed.
+  toward 60% is under way. Consolidated v9 §7.4: the 60% position "concerns
+  whether consequential design and integration premises are established well
+  enough to expand dependent production". The human assesses it (LOOP_INIT;
+  v9 §7.4: "The person decides the gate"). No supplied record shows it
+  assessed.
 - **Steering toward 60% (states).**
   - The originating session was held off (B-7).
   - The first undertaking toward 60% records its scope choice in
@@ -256,12 +258,12 @@ supplied record states it.
 
 | Practice or mechanism | Purpose kept | Actual treatment | Departure? | Record |
 |---|---|---|---|---|
-| Field Book as route, Consolidated by reasoning, User Manual for repository application | Proportionate, sourced practice | Applied; LOOP_INIT names the sections | No | V4-OPS-10; LOOP_INIT "Manual-led v4 practice" |
+| Consolidated by reasoning, repository instruction files for current practice | Proportionate, sourced practice | Applied; the Field Book and Agent User Manual were retired by the owner on 2026-10-23 | No | V4-OPS-10; Root `AGENTS.md` |
 | D-12's "manuals guide work graphs" | Manual-led practice | Directions A/C make the manuals core working governance | Superseded, already decided | OPERATING_METHOD §1 (the direction text is in the acceptance's `DECISION_BRIEF.html`) |
 | Root-first precedence hierarchy (original seed) | Clear authority | Human direction governs; Root location gives no precedence | Superseded, already decided | V4-OPS-12; A/C and HTML-D01 (accepted under J, B-1) |
 | Thin-loop-file default | A light project entry | Not mandatory | Already decided | V4-OPS-14 |
 | Seed carry/port wording for SOW-125–129 | Preserve required behaviour | Old client, registry and UI code are optional reuse candidates; the wording stays in the seed | Already decided | B-2 `DIRECTION.md` "Settled treatment applied" |
-| Dated App-v3 entry pointers in the manuals (User Manual §14) | Correct project entry | App v4 enters by its own `init/` and LOOP_INIT | Already treated | LOOP_INIT: "Their examples and dated App-v3 entry pointers are not v4 product requirements or automatic adoption of another project's controls." LOOP_INIT's v4 text was written at the owner's request under the tranche manifest's `m2_gate` (B-19). No record shows the owner reviewed the resulting text |
+| Dated App-v3 entry pointers in the manuals (User Manual §14, retired 2026-10-23) | Correct project entry | App v4 enters by its own `init/` and LOOP_INIT | Already treated | LOOP_INIT: "Their examples and dated App-v3 entry pointers are not v4 product requirements or automatic adoption of another project's controls." LOOP_INIT's v4 text was written at the owner's request under the tranche manifest's `m2_gate` (B-19). No record shows the owner reviewed the resulting text |
 | Per-manual-rule features, a copied corpus, a new precedence tree | — | Excluded | Already decided | PKG-10 package exclusions; V4-OPS-12/13 |
 | MEMORY files | A local run index | Excluded at setup ("no … unsolicited MEMORY file"); LOOP_INIT §5 adds terse entries prospectively | No conflict ("does not retroactively add MEMORY work to the completed setup undertaking") | `_COORDINATION.md`; LOOP_INIT §5 |
 | Legacy four-document kit; semantic-lensing pipeline; schedules and estimates | — | Not selected | Already decided at setup | `_COORDINATION.md` "Accepted rules" |
@@ -293,7 +295,7 @@ supplied record states it.
 | VER-001 | Follow each B-row to its record; check actor, subject and limits | RR-EB1 (EB-v0.1): `eb1/EB1_COMPARISON.md` |
 | VER-002 | `prototype/eb1_check.py` P-1…P-4. After a read, run it in `--post-dispatch` mode. In default mode, M-2 fails on every input-set item changed since the read, which is intended, not a regression | PASS at freeze (mode named in `RUN/OWNERS/O-E.md`) |
 | VER-003 | Walk §4 as an arriving reader | RR-EB1 Q6: all MATCH |
-| VER-004 | §5 compared with Field Book §1, Consolidated §1.7, User Manual §5 | Field Book §1 checked by O-E. RV3 spot-checked M §1.7 and U §5 (no conflict apart from the DAG timing, now repaired). O-E's own record of M §1.7 and U §5 is open |
+| VER-004 | §5 compared with Consolidated v9 ch. 7 and §1.7 and Root `AGENTS.md` "Working cycle" | Earlier: Field Book §1 checked by O-E; RV3 spot-checked M §1.7 and U §5 (no conflict apart from the DAG timing, now repaired). Those checks used the since-retired Field Book and User Manual; the comparison against v9 ch. 7 and `AGENTS.md` is open |
 | VER-005 | §6 compared with the three manuals and V4-OPS-10…13 | Rows sourced; per-row manual-section comparison open |
 | VER-006 | Positive cases B-5, B-11, B-16 (actor ≠ recorder, custody kept); negative cases in §2.1 | RR-EB1 Q4 and Q7 (see the comparison on K7.d) |
 | VER-007 | §7 against the nine scope rows and DEP-006 | Open |

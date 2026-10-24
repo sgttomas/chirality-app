@@ -2,16 +2,17 @@
 
 ## Current manual selection
 
-The owner requested re-authoring the manuals and updating App v4's pointers.
-Forward development uses the current method expressed in Consolidated v9,
-Field Book v2 and Agent User Manual v4, subject to current steering and product
-commitments. The stable [manual index](../../../../docs/alignment-manual/README.md)
-is the discovery entry; its moving targets are not automatic adoption authority.
-The edition paths and applicable sections are also named in DEL-10-01 through
-DEL-10-04. Consolidated v9 and Agent User Manual v4 resolve at
+The owner requested re-authoring the manuals and updating App v4's pointers,
+and on 2026-10-23 retired the Field Book and the Agent User Manual. Forward
+development uses the method reasoning in Consolidated v9 and the current
+repository practice carried by Root `AGENTS.md`, the role files in `agents/`,
+the selected workflow and the project loop entry, subject to current steering
+and product commitments. The stable [manual index](../../../../docs/alignment-manual/README.md)
+is the discovery entry for the management manual; its moving targets are not
+automatic adoption authority. The applicable sections and instruction files are
+also named in DEL-10-01 through DEL-10-04. Consolidated v9 resolves at
 `5d00723cd8dcd95e85716d1004c3a75d65a5d338`, including the approved clarifications
-on reckoning, judgment and instruction sourcing. Field Book v2 remains at
-`22dd62a7f04b6f4f4f9cab3cd3183d57c06cd569`. A content-bound consumer uses the
+on reckoning, judgment and instruction sourcing. A content-bound consumer uses the
 corresponding revision rather than assuming the current index still names the
 same bytes. This creates no reading log or per-session approval requirement.
 
