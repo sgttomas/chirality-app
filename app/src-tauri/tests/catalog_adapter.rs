@@ -71,10 +71,10 @@ fn schema_checks_precede_domain_and_basis_lineage_is_incomparable() {
 fn maintained_resources_match_identified_source_bytes() {
     use sha2::{Digest, Sha256};
     let manifest = value("manifest.json");
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(4).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
     for item in manifest.as_array().unwrap() {
         let bytes = fixture(item["file"].as_str().unwrap());
-        let source = std::fs::read(root.join(item["source"].as_str().unwrap())).unwrap();
+        let source = std::fs::read(root.join(item["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project"))).unwrap();
         assert_eq!(bytes, source, "source drift: {}", item["source"]);
         assert_eq!(format!("{:x}", Sha256::digest(&bytes)), item["sha256"].as_str().unwrap());
     }

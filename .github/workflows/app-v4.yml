@@ -107,6 +107,7 @@ jobs:
             cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
           else
             cargo test --locked --manifest-path src-tauri/Cargo.toml \
+              --test attachments --test catalog_adapter --test external_trace --test swbpipe_receiving \
               --test act_storage --test recovery_startup --test access_integration \
               --test policy_standing --test decision_standing --test record_semantics --test record_relations \
               --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation -- --test-threads=1

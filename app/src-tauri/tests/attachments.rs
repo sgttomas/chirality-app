@@ -375,7 +375,7 @@ fn full_canonical_validation_accepts_all_valid_fixtures_and_refuses_each_invalid
 fn embedded_assets_match_canonical_sources_and_produced_input_matches_actual_supplier_schema() {
     let manifest = fixture("manifest.json");
     let cargo = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let repo = cargo.ancestors().nth(4).unwrap();
+    let repo = cargo.ancestors().nth(2).unwrap();
     for row in manifest.as_array().unwrap() {
         let asset = std::fs::read(
             cargo
@@ -386,7 +386,7 @@ fn embedded_assets_match_canonical_sources_and_produced_input_matches_actual_sup
         assert_eq!(independent_hash(&asset), row["sha256"]);
         assert_eq!(
             asset,
-            std::fs::read(repo.join(row["source"].as_str().unwrap())).unwrap()
+            std::fs::read(repo.join(row["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project"))).unwrap()
         );
     }
     let mut schema: Value = serde_json::from_str(include_str!(

@@ -248,10 +248,17 @@ fn p3_production_binding_matches_current_guidance_and_sources() {
     assert_eq!(binding["roleSet"]["sha256"], sha256_hex(BUNDLED_ROLE_SET));
     let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap();
     for source in binding["sources"].as_array().unwrap() {
-        let bytes = std::fs::read(repo.join(source["repositoryPath"].as_str().unwrap())).unwrap();
+        // Preserve the original binding identity; resolve its historical locator
+        // against the independently rooted App project.
+        let relative = source["repositoryPath"]
+            .as_str()
+            .unwrap()
+            .strip_prefix("projects/chirality-app-v4/")
+            .expect("source binding must name this App project");
+        let bytes = std::fs::read(repo.join(relative)).unwrap();
         let input = if source.get("selectors").is_some() {
             documentary_input(&bytes, &source["selectors"]).unwrap()
         } else {
