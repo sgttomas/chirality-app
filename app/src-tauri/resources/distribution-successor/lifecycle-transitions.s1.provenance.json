@@ -1,0 +1,11 @@
+{
+  "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
+  "origin": {
+    "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+    "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
+  },
+  "maintained": {
+    "path": "lifecycle-transitions.s1.json",
+    "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+  }
+}

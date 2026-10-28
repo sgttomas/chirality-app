@@ -1,0 +1,54 @@
+{
+  "source_revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8",
+  "method": "Read-only SHA-256 comparison; no consumer/browser/scanner execution",
+  "guards": {
+    "SQ_PINS": {
+      "source_count": 41,
+      "different_sources": []
+    },
+    "B7_PINS": {
+      "source_count": 46,
+      "different_sources": []
+    },
+    "S4_LT09_PINS": {
+      "source_count": 35,
+      "different_sources": [
+        {
+          "path": "app/src-tauri/src/hosting.rs",
+          "selected_sha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9",
+          "current_sha256": "ad0f738d8656f489a3039fbec64aa1369e56925a4ac0f012066c30db3248b45d"
+        },
+        {
+          "path": "app/src-tauri/src/lib.rs",
+          "selected_sha256": "068c3039d446b8d341c8c3e5dac60937b7cc11b0746276da6babd751b90872f2",
+          "current_sha256": "5f6b5d0e818856c8699ab1341dde7e3b6358bbbde2868a922556d11feb49c79b"
+        },
+        {
+          "path": "app/src-tauri/src/runtime_session.rs",
+          "selected_sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97",
+          "current_sha256": "de0dfab5abeed13c1bf8a8ede3f0a1ec7144517766df14f95db3c408c10eef8e"
+        }
+      ]
+    },
+    "S4_TERMINAL_PINS": {
+      "source_count": 38,
+      "different_sources": [
+        {
+          "path": "app/src-tauri/src/hosting.rs",
+          "selected_sha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9",
+          "current_sha256": "ad0f738d8656f489a3039fbec64aa1369e56925a4ac0f012066c30db3248b45d"
+        },
+        {
+          "path": "app/src-tauri/src/lib.rs",
+          "selected_sha256": "068c3039d446b8d341c8c3e5dac60937b7cc11b0746276da6babd751b90872f2",
+          "current_sha256": "5f6b5d0e818856c8699ab1341dde7e3b6358bbbde2868a922556d11feb49c79b"
+        },
+        {
+          "path": "app/src-tauri/src/runtime_session.rs",
+          "selected_sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97",
+          "current_sha256": "de0dfab5abeed13c1bf8a8ede3f0a1ec7144517766df14f95db3c408c10eef8e"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:external-dispatch-record",
+  "title": "External dispatch record built from one observed native item (DEL-03-03 ADAPTER-v0.6 §4.6, §5.1; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2). What the App records, for DEL-04-03 R7 (with R11 and R13 references), from one native item it observed on either native path: an MCP tool call (N-MCP) or a command run by Codex (N-CLI). Property names are Chirality's semantic labels. Supplier item fields are consumed as observed supplier facts (ADAPTER §3.5) and are not re-used as names here; no host wire field is selected.",
+  "type": "object",
+  "required": ["record_kind", "path", "correlation", "native_reference", "request_kind", "operation", "native_status", "outcome", "evidence_limits", "observed_at"],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {"const": "external_dispatch"},
+    "path": {"enum": ["N-MCP", "N-CLI"]},
+    "correlation": {
+      "type": "object",
+      "required": ["thread", "turn", "native_item"],
+      "additionalProperties": false,
+      "properties": {
+        "thread": {"type": "string", "minLength": 1},
+        "turn": {"type": "string", "minLength": 1},
+        "native_item": {"type": "string", "minLength": 1}
+      }
+    },
+    "native_reference": {
+      "description": "ADAPTER §4.1: what Codex invoked. N-MCP: server and tool. N-CLI: the configured command form it matched.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server": {"type": "string", "minLength": 1},
+        "tool": {"type": "string", "minLength": 1},
+        "command_form": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["server", "tool"], "not": {"required": ["command_form"]}},
+        {"required": ["command_form"], "not": {"required": ["server"]}}
+      ]
+    },
+    "request_kind": {"enum": ["discovery", "read", "examination", "host_check", "submission", "observation", "change_call", "unrecognized"], "description": "'change_call': a change entry called outside the proposal route, with no proposal identity (OM-2)."},
+    "operation": {
+      "description": "NM-1: the catalog operation identity and version via the host-supplied mapping, or not established (NM-2).",
+      "oneOf": [
+        {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/operation_ref"},
+        {
+          "type": "object",
+          "required": ["not_established"],
+          "additionalProperties": false,
+          "properties": {"not_established": {"enum": ["no_mapping", "catalog_unreadable", "exposure_unagreed", "not_a_catalog_operation"]}}
+        }
+      ]
+    },
+    "edition": {"type": "string", "minLength": 1},
+    "requested_mode": {"enum": ["propose", "apply_directly"]},
+    "proposal_identity": {"type": "string", "minLength": 1},
+    "proposal_minted_by": {"enum": ["proposer", "host", "not_observed"], "description": "P §3.5 PM-1: who minted the proposal identity, as the submission or the host document shows it (V18-3 m-14); 'not_observed' for an observation by identity."},
+    "relied_on_basis_check": {"enum": ["observed_in_prior_read", "cited_basis_not_observed", "not_applicable"]},
+    "native_status": {"enum": ["in_progress", "completed", "failed", "declined", "interrupted"]},
+    "native_source": {
+      "description": "N-CLI (R14-4; OBS-1b): the item's source at item/started and at item/completed. OM-1 reads the start-time source; at 0.158.0 on the local route it changed from 'agent' to 'unifiedExecStartup' within one item.",
+      "type": "object",
+      "required": ["at_start"],
+      "additionalProperties": false,
+      "properties": {
+        "at_start": {"enum": ["agent", "userShell", "unifiedExecStartup", "unifiedExecInteraction"]},
+        "at_completion": {"enum": ["agent", "userShell", "unifiedExecStartup", "unifiedExecInteraction"]}
+      }
+    },
+    "transport": {
+      "description": "Transport facts only (M-1): an exit status or a supplier-reported failure never is an outcome.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exit_status": {"type": ["integer", "null"]},
+        "supplier_error": {"type": "string", "minLength": 1},
+        "duration_ms": {"type": ["integer", "null"]}
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["value", "reporter"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {"enum": [
+          "success", "unavailable", "not_permitted", "channel_not_enabled", "not_exposed_on_this_surface", "error",
+          "queued", "refused_invalid", "refused_stale", "refused_not_permitted", "refused_identity_conflict",
+          "recorded_state", "not_known_to_host", "applied", "application_error",
+          "endpoint_unavailable", "not_established", "missing", "not_offered", "outcome_unknown", "tool_execution_declined"
+        ]},
+        "reporter": {"enum": ["host", "app", "app_via_supplier"]},
+        "observer": {"enum": ["app"]},
+        "last_observed_state": {"type": "string", "minLength": 1, "description": "The proposal's last observed derived state, or 'submitted' when nothing was observed after sending."},
+        "reason": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"value": {"const": "outcome_unknown"}}}, "then": {"required": ["observer", "last_observed_state"]}},
+        {"if": {"properties": {"value": {"enum": ["endpoint_unavailable", "not_established", "missing", "not_offered", "tool_execution_declined"]}}}, "then": {"properties": {"reporter": {"enum": ["app", "app_via_supplier"]}}}}
+      ]
+    },
+    "host_result": {
+      "description": "The host's own result document, parsed from the item and relayed unchanged (RD-3); validated against C read_result or P proposal_state.",
+      "type": "object"
+    },
+    "origin_observed": {
+      "type": "object",
+      "required": ["author_identity", "channel"],
+      "additionalProperties": false,
+      "properties": {
+        "author_identity": {"const": "unverified"},
+        "channel": {"const": "external_agent"},
+        "host_origin_mark": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence_limits": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": [
+        "lost_acknowledgement", "missing_receipt", "unresolvable_reference", "origin_mismatch",
+        "unverified_caller_identity", "cited_basis_not_observed", "agent_written_configuration", "native_hint_mismatch",
+        "host_reachable_without_evidenced_A13", "constraint_not_carriable_on_this_host",
+        "subject_identities_not_supplied", "failing_targets_not_supplied",
+        "resubmission_without_prior_observation", "app_restart_interruption",
+        "host_result_not_isolated", "dispatch_recognized_from_compound_command",
+        "dedup_scope_exceeded", "basis_lineage_not_supplied"
+      ]}
+    },
+    "a14_record_reference": {"type": "string", "minLength": 1},
+    "observed_at": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"path": {"const": "N-MCP"}}}, "then": {"properties": {"native_reference": {"required": ["server", "tool"]}}}},
+    {"if": {"properties": {"path": {"const": "N-CLI"}}}, "then": {"properties": {"native_reference": {"required": ["command_form"]}}}},
+    {"if": {"properties": {"native_status": {"const": "declined"}}}, "then": {"required": ["a14_record_reference"], "properties": {"outcome": {"properties": {"value": {"const": "tool_execution_declined"}}}}}},
+    {"if": {"properties": {"request_kind": {"enum": ["submission", "observation"]}}}, "then": {"required": ["proposal_identity"]}}
+  ]
+}

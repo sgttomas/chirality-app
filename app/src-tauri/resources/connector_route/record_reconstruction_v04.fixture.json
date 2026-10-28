@@ -1,0 +1,249 @@
+{
+  "format": "chirality.connector.route-account",
+  "formatVersion": "0.4",
+  "standing": "bounded_record_comparison",
+  "account_id": "ra:constructed-crr",
+  "question": {
+    "id": "Q1",
+    "text": "What status does the constructed record report at each pin?",
+    "at_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "since_revision": "cccccccccccccccccccccccccccccccccccccccc"
+  },
+  "trigger": {
+    "connector": "pec",
+    "why": "constructed absent",
+    "standing": "constructed",
+    "receiving_records": []
+  },
+  "sources": [
+    {
+      "source_id": "s-since",
+      "path": "record.md",
+      "revision": "cccccccccccccccccccccccccccccccccccccccc",
+      "sha256": "39b14ee73b547816279c8810893eff743c64780a53474adf7411e79e540c9e0f",
+      "role": "caller-described record",
+      "role_standing": "caller_assertion",
+      "provenance": {
+        "side": "since",
+        "object_format": "sha1",
+        "commit": "cccccccccccccccccccccccccccccccccccccccc",
+        "root_tree": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "blob": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "mode": "100644",
+        "raw_commit_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "traversal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed_at": "2026-10-08T00:00:00Z",
+        "time_provenance": "observed_clock",
+        "verification": "same_engine_object_id_consistency",
+        "observation_reference": "constructed-since"
+      },
+      "excerpts": [
+        {
+          "excerpt_id": "e-since",
+          "anchor": "L1",
+          "byte_start": 0,
+          "byte_end": 16,
+          "text": "status: pending\n",
+          "sha256": "39b14ee73b547816279c8810893eff743c64780a53474adf7411e79e540c9e0f",
+          "standing": "exact_byte_inclusion_only"
+        }
+      ]
+    },
+    {
+      "source_id": "s-at",
+      "path": "record.md",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sha256": "3e146afa950275219c9e19e06a0f666d90c5c68fa356e3fb9ae51dfee84ec4c1",
+      "role": "caller-described record",
+      "role_standing": "caller_assertion",
+      "provenance": {
+        "side": "at",
+        "object_format": "sha1",
+        "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "root_tree": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "blob": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "mode": "100644",
+        "raw_commit_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "traversal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed_at": "2026-10-08T00:00:00Z",
+        "time_provenance": "observed_clock",
+        "verification": "same_engine_object_id_consistency",
+        "observation_reference": "constructed-at"
+      },
+      "excerpts": [
+        {
+          "excerpt_id": "e-at",
+          "anchor": "L1",
+          "byte_start": 0,
+          "byte_end": 26,
+          "text": "status: recorded complete\n",
+          "sha256": "3e146afa950275219c9e19e06a0f666d90c5c68fa356e3fb9ae51dfee84ec4c1",
+          "standing": "exact_byte_inclusion_only"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "f-since",
+      "source_id": "s-since",
+      "excerpt_id": "e-since",
+      "anchor": "L1",
+      "statement": "Observed excerpt e-since at cccccccccccccccccccccccccccccccccccccccc; content SHA-256 39b14ee73b547816279c8810893eff743c64780a53474adf7411e79e540c9e0f.",
+      "standing": "observed_record_excerpt_only"
+    },
+    {
+      "fact_id": "f-at",
+      "source_id": "s-at",
+      "excerpt_id": "e-at",
+      "anchor": "L1",
+      "statement": "Observed excerpt e-at at bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; content SHA-256 3e146afa950275219c9e19e06a0f666d90c5c68fa356e3fb9ae51dfee84ec4c1.",
+      "standing": "observed_record_excerpt_only"
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Record comparison only; completeness, truth, duties and authority unestablished",
+      "effect": "No whole-record or actual-performance conclusion",
+      "responsible": {
+        "standing": "unassigned",
+        "identity": null
+      },
+      "origin": "producer_limit",
+      "context": {
+        "side": "general",
+        "requested_commit": null,
+        "path": null
+      }
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "Observed excerpt e-since at cccccccccccccccccccccccccccccccccccccccc; content SHA-256 39b14ee73b547816279c8810893eff743c64780a53474adf7411e79e540c9e0f.",
+        "basis": "source_route",
+        "refs": [
+          "f-since"
+        ]
+      },
+      {
+        "statement": "Observed excerpt e-at at bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; content SHA-256 3e146afa950275219c9e19e06a0f666d90c5c68fa356e3fb9ae51dfee84ec4c1.",
+        "basis": "source_route",
+        "refs": [
+          "f-at"
+        ]
+      },
+      {
+        "statement": "Selected excerpts f-since and f-at: different_excerpt_bytes; no whole-record or substantive-change conclusion.",
+        "basis": "source_route",
+        "refs": [
+          "cmp-1"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "Whole-record meaning, completeness, truth, actual duties and authority",
+        "why": "Selected excerpts and caller reports do not establish these"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "duties": [
+    {
+      "duty": "locate_compare",
+      "actor_role": "agent",
+      "standing": "outstanding",
+      "reason": "Explicit constructed caller input; no act observed",
+      "assertion_standing": "caller_reported_unverified"
+    },
+    {
+      "duty": "review_integrate",
+      "actor_role": "manager",
+      "standing": "outstanding",
+      "reason": "Explicit constructed caller input; no act observed",
+      "assertion_standing": "caller_reported_unverified"
+    },
+    {
+      "duty": "cross_undertaking_coordination",
+      "actor_role": "person",
+      "standing": "outstanding",
+      "reason": "Explicit constructed caller input; no act observed",
+      "assertion_standing": "caller_reported_unverified"
+    }
+  ],
+  "recorder": {
+    "kind": "app",
+    "identity": "constructed-app-instance"
+  },
+  "written_at": "2026-10-08T00:00:00Z",
+  "written_at_source": "observed_clock",
+  "evidence": {
+    "kind": "host_observed_git_receipt",
+    "project_identity": {
+      "device": "1",
+      "inode": "9007199254740993"
+    },
+    "project_display": "/synthetic/project",
+    "association_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "engine_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "git_request": {
+      "at": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "since": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "selection_mechanism": "synthetic_test_callback",
+    "verification_limit": "same_engine_consistency_not_truth_authorship_or_authority",
+    "custody_limit": "stored_receipt_not_hot_capability_or_independent_reverification",
+    "selected_path": "record.md"
+  },
+  "comparisons": [
+    {
+      "comparison_id": "cmp-1",
+      "since_fact_id": "f-since",
+      "at_fact_id": "f-at",
+      "relation": "different_excerpt_bytes",
+      "standing": "checked_excerpt_relation_only"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "cl-1",
+      "statement": "The selected record reports pending at since and recorded complete at at; this does not establish completion.",
+      "asserted_by": "constructed agent label",
+      "asserted_role": "agent",
+      "attribution_standing": "caller_asserted_identity",
+      "scope": "record_change",
+      "standing": "attributed_record_claim_not_verified_truth",
+      "fact_ids": [
+        "f-since",
+        "f-at"
+      ],
+      "comparison_ids": [
+        "cmp-1"
+      ]
+    }
+  ],
+  "contradictions": [],
+  "contribution_reports": [
+    {
+      "report_id": "r-1",
+      "duty": "locate_compare",
+      "reported_by": "constructed reporter label",
+      "reported_actor": "constructed agent label",
+      "reported_status": "performed",
+      "reason": "Constructed report only; record citations do not prove this performance",
+      "fact_ids": [
+        "f-since",
+        "f-at"
+      ],
+      "standing": "unverified_contribution_report",
+      "performance_verification": "not_established",
+      "actor_role": "agent"
+    }
+  ]
+}

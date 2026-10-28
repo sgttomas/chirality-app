@@ -1,0 +1,86 @@
+{
+  "format": "supplier-generation-correspondence/1",
+  "pin": "0.160.0",
+  "maintained_generated_output_identity": {
+    "manifest_file": "generated/0.160.0/MANIFEST.sha256",
+    "manifest_file_sha256": "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be",
+    "manifest_body_sha256_without_header": "5cfd4a73ac333cab652cac1390508fa2a8e43de5ac0a28702827cce89d465e04",
+    "rows": 2363,
+    "variants": {
+      "ts/stable": {"files": 734, "manifest_sha256": "3bf55d3ec866f70e81f093281463b0ed029d4192d7f5ddb9cc91fbc2ca7bd084"},
+      "ts/experimental": {"files": 875, "manifest_sha256": "b5229a9ca5c7cb4139851e256c360c0bcfd5b8053905ed3c5280f38db12dc656"},
+      "json-schema/stable": {"files": 314, "manifest_sha256": "d5f51be102b9c790f960f074b0974a4c78956896cdcdaf45225755a7c7bfeafb"},
+      "json-schema/experimental": {"files": 440, "manifest_sha256": "e587a3d5ffab12e528589e14d385b04d1192b9ae6914ce008cd3ea507e5aa455"}
+    },
+    "formatter": "none (no --prettier); stock generator bytes",
+    "declared_in": {"path": "generated/0.160.0/SUPPLIER_IDENTITY.json", "sha256": "31f2eacace192a1f32da35ef02fdc5c865f7c7cb761c548a9ea419cb47c757c1"},
+    "product_copy": {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/MANIFEST.sha256",
+      "sha256": "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be",
+      "bundles": {
+        "codex_app_server_protocol.schemas.json": "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5",
+        "codex_app_server_protocol.v2.schemas.json": "e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c"
+      },
+      "relation": "byte-identical to the Design generated/0.160.0 manifest and json-schema/experimental bundles"
+    }
+  },
+  "joins": [
+    {
+      "join": "generator binary = measured tree's bin/codex",
+      "evidence": "generated/0.160.0/GENERATION.json supplierSha256 and generate.py's asserted expected digest are 112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b, equal to the inventory's bin/codex sha256; GENERATION.json version is codex-cli 0.160.0, equal to the label probe",
+      "holds": true
+    },
+    {
+      "join": "manifest rows = recorded generation runs",
+      "evidence": "The per-variant manifests recomputed from MANIFEST.sha256 rows (path prefix removed) equal all four GENERATION.json manifestSha256 values; each variant was deterministic over two runs",
+      "holds": true
+    },
+    {
+      "join": "maintained output = version-advance generation from this archive",
+      "evidence": "VERSION_ADVANCE_0.160.0.md section 2 records the 2026-10-04 generation from the archive with sha1 f78898f0…dc9c and the published sha512 integrity (section 1). Its combined manifest body without header begins 5cfd4a73ac333cab, equal to this manifest body, and its bundle digests 7243ba24…/e77b7d14… equal the maintained bundles. The 2026-10-10 archive has the same sha1 and sha512",
+      "holds": true
+    },
+    {
+      "join": "independent regeneration",
+      "evidence": "Review V0-SUP1 (READY, no findings) ran the sealed generate.py against the binary with SHA-256 112fae7a…1b4b, reproduced all four variant manifests and all 2,363 rows, and confirmed the manifest file identity 411ea5d4…b8be",
+      "source": {
+        "revision": "727762ed39873685493575138914ddcc89b9ac06",
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-SUP1.md",
+        "sha256": "28f811b68ebbd18c24086fc8ec45a05421f2bf29211bf5104e614bab5c697b30",
+        "standing": "archived by 11718e61a2; readable at the named revision"
+      },
+      "holds": true
+    }
+  ],
+  "version_advance": {
+    "record": {"path": "VERSION_ADVANCE_0.160.0.md", "sha256": "b58c75ce82f0d715091b585a58d9ed60740356db09adcbb8ccd37929644c4cd6"},
+    "passed_determination": "Ruling R23-22: 0.160.0 is recorded as checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built",
+    "ruling_source": {
+      "revision": "727762ed39873685493575138914ddcc89b9ac06",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md",
+      "sha256": "21b2ccfa0f63d61671eddcebe5c2a41dccd2fc5f901e529808605bd017b3fc11"
+    },
+    "current_restatements": [
+      {"path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md", "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93", "item": "U-EXP-1"},
+      {"path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md", "sha256": "9f88209d7bac08137d0c92e65b8a344c619248bae683bf70a3137b0f00c5443b", "item": "U-SQ-1"}
+    ]
+  },
+  "pin_authority": {
+    "owner_direction": "Owner advanced the development/definition pin to the latest stock Codex (Group A owner decision 'Codex supplier version advance and product-test model')",
+    "source": {
+      "revision": "727762ed39873685493575138914ddcc89b9ac06",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/OWNER_DECISIONS.md",
+      "sha256": "51190a8e187b05a13e81f27e023ca7c9f5d8ae547c2016aed94ad65fe9785883"
+    },
+    "sup1_change": {
+      "revision": "727762ed39873685493575138914ddcc89b9ac06",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/SUP1.md",
+      "sha256": "10360605f7e067d06f621ec2d2199794de402387ab36c9492fb0aa6692fc4a03"
+    }
+  },
+  "limits": [
+    "The generation provenance identifies the generator by main-binary digest, not by the complete vendor tree. Generator output is attributed to the tree through that file digest and the shared archive identity; the author did not rerun the generators.",
+    "R23-22 selects the qualification pin when a candidate is built. This record supplies a reference for 0.160.0 and makes no candidate pin selection.",
+    "Text in SUPPLIER_IDENTITY.json and HOSTING section 7.0 still says 'independent review pending' or 'proposed adoption'. The Group A graph records SUP1 as COMPLETE (V0-SUP1, PR #1085). This record relies on the review bytes cited above, not on those status strings."
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "basis": {
+    "canonical_content_identity": "sh1:acd10ed310be58e8",
+    "generation": {
+      "not_supplied": "host_declares_none"
+    },
+    "identity_method": "m-sh1",
+    "model_revision": "r12",
+    "workspace_identity": {
+      "not_supplied": "host_declares_none"
+    }
+  },
+  "edition": "e2",
+  "operation": {
+    "operation_identity": "OP-C1",
+    "operation_version": "v1"
+  },
+  "outcome": "success",
+  "standing": {
+    "currency": "current",
+    "host_checks": [
+      {
+        "check_name": "equilibrium",
+        "evaluated_basis": {
+          "canonical_content_identity": "sh1:c0b954079d7230c6",
+          "generation": {
+            "not_supplied": "host_declares_none"
+          },
+          "identity_method": "m-sh1",
+          "model_revision": "r12",
+          "workspace_identity": {
+            "not_supplied": "host_declares_none"
+          }
+        },
+        "verdict": "passed"
+      },
+      {
+        "check_name": "unit-consistency",
+        "evaluated_basis": {
+          "canonical_content_identity": "sh1:c0b954079d7230c6",
+          "generation": {
+            "not_supplied": "host_declares_none"
+          },
+          "identity_method": "m-sh1",
+          "model_revision": "r12",
+          "workspace_identity": {
+            "not_supplied": "host_declares_none"
+          }
+        },
+        "verdict": "passed"
+      }
+    ],
+    "human_act_evidence": [],
+    "known_limitations": [
+      "linear supports assumed"
+    ]
+  },
+  "surface": "X",
+  "views": [
+    {
+      "diagnostics": [],
+      "results": [],
+      "tables": [
+        {
+          "columns": [
+            {
+              "column_identity": "location_m",
+              "meaning": "location along the run",
+              "unit": "m",
+              "value_kind": "number"
+            },
+            {
+              "column_identity": "type",
+              "meaning": "support type",
+              "unit": null,
+              "value_kind": "enumeration"
+            },
+            {
+              "column_identity": "stiffness",
+              "meaning": "stiffness",
+              "unit": "N/m",
+              "value_kind": "text"
+            },
+            {
+              "column_identity": "label",
+              "meaning": "display label",
+              "unit": null,
+              "value_kind": "text"
+            }
+          ],
+          "meaning": "supports on R-100",
+          "rows": [
+            {
+              "cells": {
+                "label": "G-1",
+                "location_m": 0.5,
+                "stiffness": "2.0e6",
+                "type": "guide"
+              },
+              "subject": {
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject",
+                "subject_content_identity": "sh1:b192b2699a8871c9",
+                "subject_identity": "S-1"
+              }
+            },
+            {
+              "cells": {
+                "label": "R-2",
+                "location_m": 2.0,
+                "stiffness": "rigid",
+                "type": "rigid"
+              },
+              "subject": {
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject",
+                "subject_content_identity": "sh1:5cec31832b66ad53",
+                "subject_identity": "S-2"
+              }
+            },
+            {
+              "cells": {
+                "label": "R-3",
+                "location_m": 8.4,
+                "stiffness": "rigid",
+                "type": "rigid"
+              },
+              "subject": {
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject",
+                "subject_content_identity": "sh1:61723ee181ceebdf",
+                "subject_identity": "S-3"
+              }
+            },
+            {
+              "cells": {
+                "label": "G-4a",
+                "location_m": 11.0,
+                "stiffness": "2.0e6",
+                "type": "guide"
+              },
+              "subject": {
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject",
+                "subject_content_identity": "sh1:186b335727546ddd",
+                "subject_identity": "S-4"
+              }
+            }
+          ],
+          "table_identity": "supports-R-100"
+        },
+        {
+          "columns": [
+            {
+              "column_identity": "from",
+              "meaning": "start node",
+              "unit": null,
+              "value_kind": "identity"
+            },
+            {
+              "column_identity": "to",
+              "meaning": "end node",
+              "unit": null,
+              "value_kind": "identity"
+            }
+          ],
+          "meaning": "geometry of R-100",
+          "rows": [
+            {
+              "cells": {
+                "from": "N-1",
+                "to": "N-2"
+              },
+              "subject": {
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject",
+                "subject_content_identity": "sh1:84c62199c52bc97d",
+                "subject_identity": "R-100"
+              }
+            }
+          ],
+          "table_identity": "run-R-100"
+        }
+      ],
+      "view_identity": "main"
+    }
+  ]
+}

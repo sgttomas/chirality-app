@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-05-01:destination-request:0.1",
+  "title": "A host agent's destination request as the loop holds it (DEL-05-01 LOOP-v0.8 §5.3 DF-1, DF-5, DF-6; PROPOSED)",
+  "description": "PROPOSED (R12-1, R12-2; node B5). One record per call to the host's destination request entry: the agent's A8 (NW-11), the call it carries, the destination check (DF-3 step), the request state (DF-6) and the result delivered to the model in TL-2's classes. Names are Chirality's own semantic labels; no wire field of a host, supplier or model interface is selected. The run record's entries for the same facts are RS-v0.8 R15 (RS_RECORD.schema.json).",
+  "type": "object",
+  "required": [
+    "basis",
+    "requestCall",
+    "requester",
+    "target",
+    "purpose",
+    "scopeSought",
+    "check",
+    "state"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "basis": {
+      "const": "LOOP-v0.8 §5.3"
+    },
+    "requestCall": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The correlation identity of the call to the destination request entry (the requesting call, NW-12)."
+    },
+    "requester": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scopeSought": {
+      "enum": [
+        "once",
+        "this run",
+        "always"
+      ]
+    },
+    "carriedCall": {
+      "$ref": "#/$defs/carriedCall"
+    },
+    "check": {
+      "$ref": "#/$defs/check"
+    },
+    "state": {
+      "enum": [
+        "pending",
+        "granted",
+        "declined",
+        "not granted",
+        "unanswered at end"
+      ]
+    },
+    "stateReason": {
+      "enum": [
+        "not grantable",
+        "grant refused by control",
+        "prompt not shown"
+      ]
+    },
+    "endCause": {
+      "enum": [
+        "run ended",
+        "turn cancelled"
+      ]
+    },
+    "grantScope": {
+      "enum": [
+        "once",
+        "this run",
+        "always"
+      ]
+    },
+    "interimNotice": {
+      "const": "waiting for the person's answer"
+    },
+    "result": {
+      "$ref": "#/$defs/result"
+    }
+  },
+  "anyOf": [
+    {
+      "properties": {
+        "scopeSought": {
+          "enum": [
+            "this run",
+            "always"
+          ]
+        }
+      }
+    },
+    {
+      "required": [
+        "carriedCall"
+      ]
+    }
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "state": {
+          "const": "pending"
+        }
+      },
+      "required": [
+        "interimNotice"
+      ]
+    },
+    {
+      "properties": {
+        "state": {
+          "const": "granted"
+        },
+        "result": {
+          "$ref": "#/$defs/resultAfterGrant"
+        }
+      },
+      "required": [
+        "grantScope",
+        "result"
+      ]
+    },
+    {
+      "properties": {
+        "state": {
+          "const": "declined"
+        },
+        "result": {
+          "$ref": "#/$defs/resultDeclined"
+        }
+      },
+      "required": [
+        "result"
+      ]
+    },
+    {
+      "properties": {
+        "state": {
+          "const": "not granted"
+        },
+        "result": {
+          "$ref": "#/$defs/resultNotAllowed"
+        }
+      },
+      "required": [
+        "stateReason",
+        "result"
+      ]
+    },
+    {
+      "properties": {
+        "state": {
+          "const": "unanswered at end"
+        }
+      },
+      "required": [
+        "endCause"
+      ]
+    }
+  ],
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "category"
+      ]
+    },
+    "carriedCall": {
+      "type": "object",
+      "required": [
+        "operationReference",
+        "argumentText"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "operationReference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "argumentText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination": {
+          "$ref": "#/$defs/target"
+        }
+      }
+    },
+    "check": {
+      "description": "DF-3: the first applying step and its outcome at V-D or at the request (Q-3).",
+      "type": "object",
+      "required": [
+        "step",
+        "allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "step": {
+          "enum": [
+            "A-1",
+            "A-2",
+            "A-3",
+            "A-4",
+            "A-5",
+            "A-6",
+            "A-7"
+          ]
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            "not allowed",
+            "always-off item",
+            "not stateless MCP (2026-07-28)"
+          ]
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "class",
+        "label",
+        "reporter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reporter": {
+          "enum": [
+            "host",
+            "host control",
+            "native layer",
+            "loop"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deferred": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resultAfterGrant": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "enum": [
+            2,
+            3,
+            4
+          ]
+        }
+      }
+    },
+    "resultDeclined": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "const": 2
+        },
+        "label": {
+          "const": "destination not allowed by the person"
+        },
+        "reporter": {
+          "const": "host control"
+        }
+      }
+    },
+    "resultNotAllowed": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "class": {
+          "const": 2
+        },
+        "label": {
+          "const": "destination not allowed"
+        }
+      }
+    }
+  }
+}

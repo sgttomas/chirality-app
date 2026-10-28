@@ -1,0 +1,82 @@
+id: DEL-11-01
+name: Preserved history and coexistence account
+needs:
+- from: DEL-10-03
+  condition: 'The continuity account consumes the supplied historical applicability, active-consumer,
+    packaging and tool-path account from DEL-10-03, with its limits.
+
+
+    Notes: FACT: Actual supplied account is required for applicable continuity claims; no receipt or reallocation
+    of shared commitments is claimed. RequiredMaturity=INITIALIZED is only local contract maturity; actual
+    artifact receipt or handoff and reliance remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+- from: DEL-10-01
+  condition: 'The continuity account uses actual manual/method pins supplied by DEL-10-01, retaining edition
+    identity and distinguishing this run selection from adoption or instruction supply.
+
+
+    Notes: FACT: Own _REFERENCES.md records the subsequent scoped OI-017 run selection at CURRENT_EXECUTION_BASIS.md;
+    this does not invent a new decision, broad adoption or completion of all supplier outputs. RequiredMaturity=INITIALIZED
+    is only local contract maturity; actual artifact receipt or handoff and reliance remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+- from: DEL-11-02
+  condition: 'The continuity account consumes identified receiving adoption status from DEL-11-02; absence
+    or uncertainty remains visible rather than being inferred from publication, files or run selection.
+
+
+    Notes: FACT: Actual consumer-specific status and supporting evidence are needed where relied upon;
+    each receiving owner retains its adoption act. RequiredMaturity=INITIALIZED is only local contract
+    maturity; actual artifact receipt or handoff and reliance remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+- from: doc:foundation/thesis/
+  condition: 'Production identity checks require the complete thesis file set and bytes for comparison
+    with preservation basis tree 47fc49e96c2931ba18090f1a82d56a49f230b3ee, retaining attribution and nonbinding
+    standing.
+
+
+    Notes: FACT: Source-stated tree and path retained; actual thesis bytes, full membership, attribution
+    and unchanged identity were not examined by this dependency extraction. No thesis or archive mutation
+    is authorized.
+
+
+    Target description — TargetName: Complete thesis and identified preservation basis; TargetRefID: 47fc49e96c2931ba18090f1a82d56a49f230b3ee;
+    TargetLocation: projects/chirality-app-v4/foundation/thesis/'
+  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+- from: DEL-11-02
+  condition: 'Supply truthful adoption status from the received change/verification account to DEL-11-01
+    for its continuity or replacement-evidence contribution.
+
+
+    Notes: FACT: CLM-004 identifies replacement-evidence preparation as DEL-11-03. This is an output handoff
+    only; no receipt, acceptance, replacement or retirement decision is inferred. INITIALIZED describes
+    the local receiving contract only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: DEL-11-03
+  condition: 'Return the faithfully recorded later owner disposition and continuing obligations to the
+    App continuity owner.
+
+
+    Notes: FACT: source-stated relationship. INITIALIZED is the local contract threshold only; actual
+    input/handoff condition remains unfulfilled by setup. This is a later evidence handoff distinct from
+    the upstream continuity account; it does not itself authorize consumer adoption or retirement.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md

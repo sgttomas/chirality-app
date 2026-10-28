@@ -1,0 +1,273 @@
+id: DEL-10-03
+name: Shared commitments and consumer responsibility account
+needs:
+- from: DEL-02-01
+  condition: 'The shared account requires the compatible portable workflow/role/checkpoint semantics and
+    justified shared allocation assigned to App v4 DEL-02-01 as its contract input for the responsibility
+    and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-002 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'The shared account requires the compatible workflow compatibility and checkpoint receiving
+    obligations assigned to App v4 DEL-02-03 as its contract input for the responsibility and promise
+    trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-002 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'The shared account requires the compatible additive role supply obligations assigned to
+    App v4 DEL-02-04 as its contract input for the responsibility and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-002 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'The shared account requires the compatible catalog/read-basis obligations assigned to App
+    v4 DEL-03-01 as its contract input for the responsibility and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-002 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'The shared account requires the compatible proposal/validation/outcome obligations assigned
+    to App v4 DEL-03-02 as its contract input for the responsibility and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-002 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'The shared account requires the compatible adopted operation/human-act policy obligations
+    assigned to App v4 DEL-04-01 as its contract input for the responsibility and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-003 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'The shared account requires the compatible content-bound record format and App writer/reader
+    obligations assigned to App v4 DEL-04-03 as its contract input for the responsibility and promise
+    trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-003 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-05-01
+  condition: 'The shared account requires the compatible host-loop/native-network receiving and conformance
+    obligations assigned to App v4 DEL-05-01 as its contract input for the responsibility and promise
+    trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-004 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred. UPDATE
+    20260929 (SCA-V4-002 DX): revised REQ-005 (SOW_REVISIONS F-1003-01, applying APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-3 as routed by APP-V4-BASIS-ALIGN-20260928-DECISION-8) now states that the minimal host loop runs
+    on a local or cloud model the person chooses, with no default, a cloud model being reached by OAuth
+    sign-in or an API key (PRD V4-HOST-01 and ARCH V4-ARC-11 as amended by SCA-V4-001); the superseded
+    "local-first" wording is gone. The quoted REQ-005 clause is unchanged; the model choice is the person''s
+    and names no supplier deliverable. Identity, direction, type, target, quote, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-05-02
+  condition: 'The shared account requires the compatible host-panel receiving and conformance obligations
+    assigned to App v4 DEL-05-02 as its contract input for the responsibility and promise trace.
+
+
+    Notes: FACT: Positive consumed-contract requirement is REQ-005; CLM-004 resolves ownership, not an
+    independent exclusion-derived edge. INITIALIZED concerns the local contract only; actual applicable
+    contract content must be available for account production and its receipt/compatibility is unclaimed.
+    No common executable service, provider implementation or joined qualification is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-10-01
+  condition: 'Before dependent account execution relies on manual editions, use the owning project-definition
+    manager record of actual adopted editions/content identities; this records the selected basis without
+    choosing a new edition.
+
+
+    Notes: FACT: Own _REFERENCES.md Subsequent current-basis disposition identifies CURRENT_EXECUTION_BASIS.md
+    as the scoped OI-017 selection for this project-definition run. Historical OPEN wording remains unchanged;
+    no new edition decision is requested. Recording custody is distinct from consequential owner adoption/departure
+    acts. INITIALIZED does not fulfill every DEL-10-01 output; this extraction does not independently
+    verify input satisfaction.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: unknown
+  condition: 'Before relying on an affected source-placement or supply change, the account requires identified
+    current source and the corresponding packaging/consumer/resolution/tool-path checks; unavailable affected
+    checks retain their own point-of-need hold.
+
+
+    Notes: FACT: Actual affected source set is not fixed by this contract, so target remains UNKNOWN.
+    CLM-007 names projects/chirality-app-dev/frontend/scripts/prepare-packaged-instruction-root.mjs as
+    a bounded lead only; that script was not read here. Static inspection is distinct from build/runtime
+    supply and consumer adoption. Independent definition proceeds without a blanket hold.
+
+
+    Target description — TargetName: Identified current source for affected packaging selectors, instruction
+    consumers and tool paths'
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-10-03 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-10-03-008 on an existing admitted arc (ledger RP1-MX-0201); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-10-03 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-10-03-009 on an existing admitted arc (ledger RP1-MX-0203); no topology change.
+    The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`," / "`DEL-09-02`,
+    … each of which declares it upstream in its own register."). INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'App v4 DEL-10-03 receives this deliverable''s role-supply obligations and declares them
+    upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-02-04-9); supplier-side mirror
+    of the consumer row DEP-10-03-010 on an existing admitted arc (ledger R3-02-04-b); no topology change.
+    INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-10-03 receives this catalog/read-basis contract (the shared account) and declares
+    it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-10-03-011 on an existing admitted arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'App v4 DEL-10-03 receives this contract''s proposal, validation and outcome meanings (the
+    shared account) and declares them upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-07); supplier-side mirror of the
+    consumer row DEP-10-03-012 on an existing admitted arc (ledger R-02-2); no topology change. INITIALIZED
+    is local contract maturity only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-10-03,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-10-03-014 on an existing admitted arc (ledger RP1-MX-0403);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: package:PKG-11
+  condition: 'Supply the historical applicability and active consumer/packaging/tool-path account to PKG-11
+    as the basis for staged adoption; the account does not perform adoption.
+
+
+    Notes: FACT: Positive package-level handoff is explicit. Kept at PKG-11 rather than manufacturing
+    separate handoffs to every ownership-list deliverable. Each consumer owner decides/performs adoption;
+    actual adoption, continuing-obligation and retirement dispositions remain with those owners and are
+    not established by prepared records.
+
+
+    Target description — TargetName: Adoption and replacement continuity; TargetRefID: PKG-11; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-11'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+checks:
+- execution/PKG-10/DEL-10-03/Design/prototype/ra_check.py

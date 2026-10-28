@@ -1,0 +1,56 @@
+{
+  "candidate": {
+    "fidelity": {
+      "limits": [
+        "no fidelity reading yet"
+      ],
+      "state": "not checked"
+    },
+    "kind": "delegated",
+    "readAgain": {
+      "offered": false,
+      "reason": "reading again would read the same: no sub-agent's input here is checkable; link the one that ran the trial"
+    },
+    "reference": "trial:fixture",
+    "sequence": 1,
+    "subAgent": {
+      "alsoGiven": [],
+      "notCheckable": [
+        {
+          "final": true,
+          "reading": "not checkable: the sub-agent's task arrived as an encrypted inter-agent message (Codex 0.160.0 delivers a spawned sub-agent's task this way), not as a user message, so the App cannot read what it was given",
+          "thread": "child-s"
+        }
+      ],
+      "state": "sub-agent not linked",
+      "unread": [],
+      "unreadReasons": []
+    }
+  },
+  "linked": {
+    "fidelity": {
+      "checkable": false,
+      "limits": [
+        "no fidelity reading yet"
+      ],
+      "reading": "not checkable: the sub-agent's task arrived as an encrypted inter-agent message (Codex 0.160.0 delivers a spawned sub-agent's task this way), not as a user message, so the App cannot read what it was given",
+      "state": "not checked"
+    },
+    "kind": "delegated",
+    "readAgain": {
+      "offered": false,
+      "reason": "reading again would read the same: the sub-agent's input is not checkable"
+    },
+    "reference": "trial:fixture",
+    "sequence": 1,
+    "subAgent": {
+      "alsoGiven": [],
+      "linkedBy": "explicit link control",
+      "notCheckable": [],
+      "state": "linked",
+      "thread": "child-s",
+      "unread": [],
+      "unreadReasons": []
+    }
+  }
+}

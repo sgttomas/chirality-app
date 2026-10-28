@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-02-02:workflow-record-envelope:1",
+  "title": "Immutable WR supplier envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "record_id",
+    "writer",
+    "observed_at",
+    "body",
+    "basis_records",
+    "source_references"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^wr-record:v1:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "writer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "body": {
+      "oneOf": [
+        {
+          "$ref": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2#/$defs/selection_record"
+        },
+        {
+          "$ref": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2#/$defs/run_text"
+        },
+        {
+          "$ref": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2#/$defs/supply_check"
+        }
+      ]
+    },
+    "basis_records": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^wr-record:v1:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+    },
+    "source_references": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

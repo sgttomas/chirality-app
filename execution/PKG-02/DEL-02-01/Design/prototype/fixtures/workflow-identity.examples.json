@@ -1,0 +1,13 @@
+{
+  "description": "Conformance instances for workflow-declaration.schema.json#/$defs/workflow_identity (WD §6.1; PROPOSED; V18-2 m-9). Invented values. Each invalid instance names the one error it carries.",
+  "valid": [
+    {"label": "E1 selected in the App project library", "instance": {"kind": "workflow", "origin": "project", "source_root": "fx-proj (LIB-A1)", "name": "supports-adjust", "revision": "rev-E1", "revision_method": "proto-sha256-list-0"}},
+    {"label": "E3 adapted in the fixture host, derived from E1 (nested tuple)", "instance": {"kind": "workflow", "origin": "host", "source_root": "fx-root", "name": "supports-adjust", "revision": "rev-3", "derived_from": {"kind": "workflow", "origin": "project", "source_root": "fx-proj (LIB-A1)", "name": "supports-adjust", "revision": "rev-E1"}}},
+    {"label": "a library slot without revision", "instance": {"kind": "workflow", "origin": "bundled", "source_root": "App bundle", "name": "create-workflow"}}
+  ],
+  "invalid": [
+    {"label": "origin host-supplied is not a value (S-D)", "error": ["/origin", "enum"], "instance": {"kind": "workflow", "origin": "host-supplied", "source_root": "fx-root", "name": "supports-adjust"}},
+    {"label": "derived-from as a string", "error": ["/derived_from", "type"], "instance": {"kind": "workflow", "origin": "host", "source_root": "fx-root", "name": "supports-adjust", "derived_from": "project/fx-proj/supports-adjust@rev-E1"}},
+    {"label": "source root missing", "error": ["", "required"], "instance": {"kind": "workflow", "origin": "user", "name": "supports-adjust"}}
+  ]
+}

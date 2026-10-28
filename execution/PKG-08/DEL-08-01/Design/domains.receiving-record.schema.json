@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-08-01:domains-receiving-record:0.1",
+  "title": "Domains receiving record (DEL-08-01 DRC-v0.1 §4; PROPOSED)",
+  "description": "What a receiver records for one Domains query result set, or for no response, against one research question. Each result keeps its source reference, the source revision the index was built from, the source's current revision where known, its admission standing and its freshness (REQ-001…003). Retrieval is not admission, standing, applicability or authority (REQ-001). Standing is in DEL-07-02's vocabulary. Element names are Chirality labels for meanings; no provider, wire field, database or transport is selected (OI-023, OI-026).",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "record_id",
+    "question_id",
+    "simulated",
+    "input",
+    "contract",
+    "results",
+    "response_standing",
+    "conclusions",
+    "route",
+    "recorder"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "chirality.domains.receiving-record"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^dr:[A-Za-z0-9._-]+$"
+    },
+    "question_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulated": {
+      "type": "boolean"
+    },
+    "simulated_terms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "response",
+            "no_response"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "fixture_standing": {
+          "enum": [
+            "recorded",
+            "recorded-truncated",
+            "mutated",
+            "constructed"
+          ]
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "required": [
+        "identity",
+        "established"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The identified query contract (HOST §8.1 'Search-tool/query interface'); null while OI-023 leaves it unidentified."
+        },
+        "established": {
+          "type": "boolean",
+          "description": "True only where the receiving decisions establish the contract and admission basis (envelope 'adopted')."
+        }
+      }
+    },
+    "index_basis": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "What the result set was built from, as supplied (e.g. an index build basis); null if not supplied."
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "result_id",
+          "source_ref",
+          "indexed_revision",
+          "current_revision",
+          "admission",
+          "standing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "result_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "indexed_revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "current_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Read by the receiver from the source itself; null if the source could not be read."
+          },
+          "admission": {
+            "type": "object",
+            "required": [
+              "state"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "enum": [
+                  "admitted",
+                  "not_admitted",
+                  "not_stated"
+                ]
+              },
+              "basis_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "admitted_revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "standing": {
+            "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/standing"
+          }
+        }
+      }
+    },
+    "response_standing": {
+      "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/standing"
+    },
+    "conclusions": {
+      "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/conclusions"
+    },
+    "route": {
+      "type": "object",
+      "required": [
+        "needed",
+        "account_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": "boolean"
+        },
+        "account_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "recorder": {
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "app",
+            "tool",
+            "agent",
+            "host"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "input": {
+            "properties": {
+              "kind": {
+                "const": "no_response"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "results": {
+            "maxItems": 0
+          },
+          "route": {
+            "properties": {
+              "needed": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "simulated": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "simulated_terms"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "response_standing": {
+          "properties": {
+            "connector": {
+              "const": "domains"
+            }
+          }
+        },
+        "results": {
+          "items": {
+            "properties": {
+              "standing": {
+                "properties": {
+                  "connector": {
+                    "const": "domains"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

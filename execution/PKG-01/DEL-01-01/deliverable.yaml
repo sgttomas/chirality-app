@@ -1,0 +1,124 @@
+id: DEL-01-01
+name: Stock Codex hosting and supplier contract
+needs:
+- from: external:chirality-app-v4:OI-008
+  condition: 'Met 2026-10-10: the App implementation owner (the owner) supplied the Rust/TypeScript responsibility
+    allocation beyond the fixed main-process invariants: "The Rust host owns everything that writes the
+    person''s files or the App''s records, talks to Codex, or captures a person''s act. The web view presents,
+    and sends only what the person initiates. It never writes records or operates the act control." (ScopeOfWork
+    TBD-001; docs/ARCHITECTURE.md §3). HOSTING §12 names this allocation in OUT-003''s source-correspondence account.
+
+
+    Notes: FACT: Internal-project owner decision, external to this bounded unit only; EXTERNAL does not
+    imply supplier/provider ownership or new allocation. Included work retains its named actor and point
+    of need. RequiredMaturity=TBD for the non-deliverable act; no blanket project hold. UPDATE 20261010:
+    the owner''s general OI-008 ruling supplies the decision; Open_Issues.csv OI-008 reads RESOLVED_BY_OWNER_DECISION.
+
+
+    Target description — TargetName: App v4 implementation owner — Rust/TypeScript responsibility allocation
+    beyond fixed main-process invariants; TargetRefID: chirality-app-v4:OI-008; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-008'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: external:chirality-app-v4:OI-012
+  condition: 'The current development/definition and generated-reference pin is 0.160.0 under the
+    owner-authorized, independently reviewed SUP1 advance (ScopeOfWork [S], CLM-003, REQ-006 and TBD-002;
+    HOSTING §7.0/U-01). D4''s initial 0.158.0 declaration is historical. The App implementation owner must
+    bind the qualification pin to the identified candidate under R23-22: the newest version that has
+    passed a version-advance check when that candidate is built; changed relied-on behaviour returns
+    the decision to the owner. Expected qualified distribution identity and product qualification are
+    still absent; pin selection and generation do not supply them or App signing/release evidence.
+
+
+    Historical extraction provenance (superseded current pin condition above): FACT: refreshed in place
+    (same target OI-012) after SCA-V4-001 revised CLM-003, REQ-006 and
+    TBD-002: the definition/generation pin 0.158.0 was selected by owner decision DECISION-1 D4 and establishes
+    no qualification; the prior quote ("OI-012 is OPEN ... before protocol generation and qualification")
+    no longer appears. Internal-project owner decision, external to this bounded unit only. RequiredMaturity=TBD;
+    SatisfactionStatus unchanged (TBD; not assessed by extraction); no blanket project hold. UPDATE 20260929
+    (SCA-V4-002 DX): the [N] source line (revised under SCA-V4-002 F-0101-01) now agrees with CLM-003/REQ-006/TBD-002:
+    OI-012 still open; 0.158.0 selected for definition and generation by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D4; no implementation or qualification version or environment is established. Identity, direction,
+    type, target, quote, maturity and closure unchanged. UPDATE 20261003 (SCA-V4-003 DX): TBD-002 now
+    also points to the dated observation records at 0.158.0 (OBS-1, OBS-1b, OBS-2, OBS-3; "not qualification");
+    the quoted OI-012 sentence is unchanged. Identity, direction, type, target, quote, maturity and closure
+    unchanged.
+
+
+    Target description — TargetName: App v4 implementation owner — OI-012 candidate-bound qualification pin
+    and evidence; TargetRefID: chirality-app-v4:OI-012; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-012'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-005
+  condition: 'The respective implementation/qualification witnesses require published stock supplier interfaces
+    on an identified version/environment; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
+    witnesses. The owner-authorized, reviewed SUP1 0.160.0 development/definition and generated-reference
+    basis (ScopeOfWork [S], CLM-003 and TBD-002; HOSTING §7.0/U-01) establishes no qualified distribution/App
+    candidate, endpoint capability or App signing/release evidence. D4''s initial 0.158.0 selection and its
+    observations retain their historical meaning and limits.
+
+
+    Historical extraction provenance (superseded current pin condition above): FACT: External supplier
+    contribution, not an App Deliverable. Statement refreshed in place
+    after SCA-V4-001 revised CLM-003/TBD-002 (definition/generation pin selected; DEP-005 still to define
+    for qualification witnesses); the quoted CLM-003 sentence is unchanged. RequiredMaturity=TBD; SatisfactionStatus
+    unchanged. Actual interface availability and candidate qualification require separate evidence; no
+    supplier/currentness inquiry or deployment choice made. UPDATE 20260929 (SCA-V4-002 DX): the [N] source
+    line (revised under SCA-V4-002 F-0101-01) now states that no implementation or qualification version
+    or environment is established; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
+    witnesses. Identity, direction, type, target, quote, maturity and closure unchanged. UPDATE 20261003
+    (SCA-V4-003 DX): R-11-2: revised TBD-002 (G-0101-03) records Design/OBS_1_0.158.0.md (OBS-1, OBS-1b),
+    OBS_2 and OBS_3 as dated observations at 0.158.0 against a local LM Studio model, "not qualification".
+    Per the accepted ledger row R-11-2 (source pass-2 C1-B §8; HOSTING §10.1), those observations record
+    that the Responses wire worked and MCP tools were not delivered; the ScopeOfWork does not restate
+    them and the Design records were not read by this extraction. DEP-005 unchanged (VERSION_AND_ENVIRONMENT_TO_DEFINE);
+    no qualification follows. Identity, direction, type, target, quote, maturity and closure unchanged.
+
+
+    Target description — TargetName: Published stock supplier interfaces — version and environment to
+    define; TargetRefID: chirality-app-v4:DEP-005; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv#DEP-005'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-05
+  condition: 'Receive native sign-in and server-substitution evidence from the App v4 DEL-01-05 account/provider
+    owner when needed for the local qualification witness; the source does not impose an unconditional
+    prerequisite.
+
+
+    Notes: FACT: Conditional technical-evidence input (when needed); INITIALIZED denotes contract maturity
+    only and does not establish evidence receipt. Distinct from the opposite-direction protocol-requirement
+    handoff; neither direction creates a generic act sequence or overall closure verdict.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/desktop_setup_confirmation.rs
+- app/src-tauri/src/lib.rs
+- app/src-tauri/src/desktop_startup.rs
+- app/src-tauri/src/hosting_observer_journal.rs
+- app/src-tauri/src/hosting_observer_rebuild.rs
+- app/supplier_checks/recorded_replay.py
+- app/src-tauri/src/process_group_custody.rs
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/hosting_observation_facts.rs
+- app/src-tauri/src/hosting_native_delivery.rs
+- app/src-tauri/src/model_turn_recorder.rs
+checks:
+- app/src-tauri/src/desktop_setup_confirmation.rs
+- app/src-tauri/src/desktop_startup.rs
+- app/tests/desktop-setup.test.mjs
+- app/src-tauri/src/hosting_observer_journal.rs
+- app/src-tauri/src/hosting_observer_journal_tests.rs
+- app/src-tauri/src/hosting_observer_rebuild_tests.rs
+- app/src-tauri/src/hosting_native_delivery.rs
+- app/src-tauri/src/hosting_observation_custody_tests.rs
+- app/src-tauri/tests/steering_integration.rs
+- app/supplier_checks/test_recorded_replay.py
+- app/src-tauri/src/hosting_recorded_replay_tests.rs
+- app/src-tauri/src/hosting_process_group_custody_tests.rs
+- app/tests/process-group-custody.test.mjs
+- app/src-tauri/src/hosting_build_selection_tests.rs
+- app/src-tauri/src/hosting_startup_refusal_tests.rs
+- app/src-tauri/src/model_turn_recorder_tests.rs
+- app/tests/validate-records.test.mjs
+- execution/PKG-01/DEL-01-01/Design/distribution-s1/test_model.py
+- execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py
+- execution/PKG-01/DEL-01-01/Design/prototype/distribution_identity/test_inventory.py

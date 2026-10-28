@@ -1,0 +1,549 @@
+//! App-content A4/A6/A7 capture, standing or on an original owned file arrival.
+//! No record/renderer/native-flag admission.
+use super::*;
+#[path = "file_act_native.rs"]
+mod native;
+pub(crate) use native::confirm_file_native;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FileActKind {
+    Check,
+    Approve,
+    Rely,
+}
+impl FileActKind {
+    pub(crate) fn code(self) -> &'static str {
+        match self {
+            Self::Check => "A4",
+            Self::Approve => "A6",
+            Self::Rely => "A7",
+        }
+    }
+    pub(crate) fn wording(self) -> &'static str {
+        match self {
+            Self::Check => "mark checked",
+            Self::Approve => "approve (engineering approval)",
+            Self::Rely => "rely (professional reliance)",
+        }
+    }
+    fn requirement(self) -> &'static str {
+        match self {
+            Self::Check => "the person",
+            Self::Approve => "the accountable person",
+            Self::Rely => "the accountable professional (the person's own statement; not verified)",
+        }
+    }
+}
+/// Owning reference, not deserializable. Root retains it; renderer receives only a view.
+pub(crate) struct FileActOfferRef {
+    id: String,
+}
+impl FileActOfferRef {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+}
+#[derive(Debug, PartialEq, Eq)]
+enum FileActState {
+    Composed,
+    Presented,
+    Dismissed,
+    Stale,
+    CaptureUncertain,
+    Captured,
+    Recorded,
+    RecordPending,
+}
+pub(super) struct FileActSlot {
+    retention_activity: Option<storage::Ownership>,
+    root: PathBuf,
+    path: PathBuf,
+    bytes: Vec<u8>,
+    kind: FileActKind,
+    offer: Value,
+    state: FileActState,
+    actor: Option<Value>,
+    context: Option<Value>,
+    capture_id: Option<String>,
+    uncertain_capture: Option<Value>,
+    arrival: Option<std::sync::Arc<crate::runtime_session::ArrivalSource>>,
+    record_source: Option<crate::file_act_view::FileSource>,
+}
+impl FileActSlot {
+    pub(super) fn owns_capture(&self, id: &str) -> bool {
+        self.capture_id.as_deref() == Some(id)
+    }
+    pub(super) fn recording_guard(&self) -> Result<(), String> {
+        if let Some(source) = &self.arrival {
+            source.validate_recording()?;
+            if let Some(expected) = self.record_source {
+                let log = storage::project_log(
+                    &self.root,
+                    self.offer["answers"]["runId"].as_str(),
+                    records::APP_INTERFACE.identity,
+                )?;
+                if crate::file_act_view::FileSource::at(&log)? != expected {
+                    return Err(
+                        "Original arrival act log was replaced; no recording relocation".into(),
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+    pub(super) fn remember_record_source(&mut self) {
+        if self.arrival.is_some() && self.record_source.is_none() {
+            self.record_source = storage::project_log(
+                &self.root,
+                self.offer["answers"]["runId"].as_str(),
+                records::APP_INTERFACE.identity,
+            )
+            .ok()
+            .and_then(|log| crate::file_act_view::FileSource::at(&log).ok());
+        }
+    }
+    pub(super) fn pending_native(&self) -> bool {
+        matches!(
+            self.state,
+            FileActState::CaptureUncertain | FileActState::RecordPending
+        )
+    }
+    pub(super) fn set_recording_state(&mut self, recorded: bool) {
+        self.state = if recorded {
+            FileActState::Recorded
+        } else {
+            FileActState::RecordPending
+        };
+    }
+}
+#[cfg(test)]
+thread_local! { static BEFORE_FILE_OPEN: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+pub(crate) fn before_file_open_for_test(hook: impl FnOnce(&Path) + 'static) {
+    BEFORE_FILE_OPEN.with(|slot| *slot.borrow_mut() = Some(Box::new(hook)));
+}
+/// The file must be inside the physical App workspace, never a host proxy.
+/// Recheck every component and the open file metadata before/after reading.
+fn read_subject(root: &Path, path: &Path) -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    if !root.is_absolute()
+        || !path.is_absolute()
+        || path.components().any(|c| {
+            matches!(
+                c,
+                std::path::Component::ParentDir | std::path::Component::CurDir
+            )
+        })
+        || !path.starts_with(root)
+        || path == root
+    {
+        return Err("App file must be an absolute contained physical workspace file".into());
+    }
+    storage::check_path(root)?;
+    storage::check_path(path)?;
+    if std::fs::canonicalize(root).map_err(|e| e.to_string())? != root
+        || std::fs::canonicalize(path).map_err(|e| e.to_string())? != path
+    {
+        return Err("App file/root alias refused".into());
+    }
+    if !std::fs::symlink_metadata(path)
+        .map_err(|e| e.to_string())?
+        .is_file()
+    {
+        return Err("App subject is not a regular file".into());
+    }
+    #[cfg(test)]
+    BEFORE_FILE_OPEN.with(|hook| {
+        if let Some(hook) = hook.borrow_mut().take() {
+            hook(path);
+        }
+    });
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)
+        .map_err(|e| e.to_string())?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if !before.is_file() {
+        return Err("App subject is not a regular file".into());
+    }
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    let after = file.metadata().map_err(|e| e.to_string())?;
+    storage::check_path(path)?;
+    let named = std::fs::metadata(path).map_err(|e| e.to_string())?;
+    let stamp = |m: &std::fs::Metadata| {
+        (
+            m.dev(),
+            m.ino(),
+            m.len(),
+            m.mtime(),
+            m.mtime_nsec(),
+            m.ctime(),
+            m.ctime_nsec(),
+        )
+    };
+    if stamp(&before) != stamp(&after)
+        || stamp(&after) != stamp(&named)
+        || std::fs::canonicalize(path).map_err(|e| e.to_string())? != path
+    {
+        return Err("App subject changed while reading; review again".into());
+    }
+    Ok(bytes)
+}
+impl ActControl {
+    /// Caller selects App content. Selection/compose confers no human-act authority.
+    /// This bounded first path is standing only; no arrival/request is invented.
+    pub(crate) fn compose_file_act(
+        &mut self,
+        path: &Path,
+        kind: FileActKind,
+        scope: &str,
+        purpose: &str,
+    ) -> Result<FileActOfferRef, String> {
+        if scope.trim().is_empty() || purpose.trim().is_empty() {
+            return Err("Explicit scope and purpose are required".into());
+        }
+        let bytes = read_subject(&self.workspace, path)?;
+        let id = crate::util::opaque_id("offer:")?;
+        let mut offer = json!({"format":"chirality.aac.offer","formatVersion":"0.3","offerId":id,
+            "actKind":kind.code(),"wording":kind.wording(),"subject":{"class":"App file","ref":path.to_str().ok_or("App file path is not UTF-8")?,"contentIdentity":{"method":FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(&bytes)}},
+            "scope":scope,"purpose":purpose,"actorRequirement":kind.requirement(),"declineAvailable":true,
+            "answers":{"standing":STANDING},"composedAt":capture_time()});
+        offer["offerDigest"] = json!({"method":OFFER_DIGEST_METHOD,"value":offer_digest(&offer)?});
+        crate::schema_validation::validate_offer(&offer)?;
+        self.file_offers.insert(
+            id.clone(),
+            FileActSlot {
+                retention_activity: None,
+                root: self.workspace.clone(),
+                path: path.to_path_buf(),
+                bytes,
+                kind,
+                offer,
+                state: FileActState::Composed,
+                actor: None,
+                context: None,
+                capture_id: None,
+                uncertain_capture: None,
+                arrival: None,
+                record_source: None,
+            },
+        );
+        Ok(FileActOfferRef { id })
+    }
+    /// Immutable original bytes for the consuming file preview; never reread an
+    /// unrelated current file and label it the offered content.
+    pub(crate) fn file_act_preview(
+        &self,
+        reference: &FileActOfferRef,
+    ) -> Result<(&Value, &[u8]), String> {
+        let slot = self
+            .file_offers
+            .get(&reference.id)
+            .ok_or("File act offer absent")?;
+        Ok((&slot.offer, &slot.bytes))
+    }
+    /// Only Root's original typed arrival source calls this before presenting.
+    /// The renderer receives the frozen result, never an answers setter.
+    pub(crate) fn bind_file_arrival(
+        &mut self,
+        reference: &FileActOfferRef,
+        source: std::sync::Arc<crate::runtime_session::ArrivalSource>,
+    ) -> Result<(), String> {
+        let slot = self
+            .file_offers
+            .get_mut(&reference.id)
+            .ok_or("Original file offer absent")?;
+        if slot.state != FileActState::Composed {
+            return Err("File offer is already presented".into());
+        }
+        slot.offer["answers"] = source.answers();
+        if let Some(request) = source.request_ref() {
+            slot.offer["requestRef"] = json!(request);
+        }
+        slot.offer["offerDigest"] =
+            json!({"method":OFFER_DIGEST_METHOD,"value":offer_digest(&slot.offer)?});
+        crate::schema_validation::validate_offer(&slot.offer)?;
+        slot.arrival = Some(source);
+        Ok(())
+    }
+    fn freeze_file_native(
+        &mut self,
+        reference: &FileActOfferRef,
+        actor: &Value,
+        context: &Value,
+    ) -> Result<(String, Value, FileActKind), String> {
+        let slot = self
+            .file_offers
+            .get_mut(&reference.id)
+            .ok_or("File act offer absent")?;
+        if slot.state != FileActState::Composed || slot.root != self.workspace {
+            return Err("File act is not a current unpresented offer".into());
+        }
+        if actor["identityVerified"] != false
+            || actor["osAccount"].as_str().is_none_or(|s| s.is_empty())
+        {
+            return Err("Observed OS actor with identity not verified required".into());
+        }
+        if read_subject(&slot.root, &slot.path)? != slot.bytes {
+            slot.state = FileActState::Stale;
+            return Err("File content changed; review again".into());
+        }
+        let statement=match slot.kind {
+            FileActKind::Check=>"Choosing mark checked records that act only.",
+            FileActKind::Approve=>"Choosing approve is your statement that you are the accountable person. It records engineering approval only.",
+            FileActKind::Rely=>"Choosing rely is your own statement that you are the accountable professional. Professional standing is not verified; no certification is inferred.",
+        };
+        // Readable lines (V14 F3), composed from the frozen offer only.
+        let identity = &slot.offer["subject"]["contentIdentity"];
+        let answers = if let Some(run) = slot.offer["answers"]["runId"].as_str() {
+            format!(
+                "run {run}; checkpoint {}; arrival {}",
+                slot.offer["answers"]["arrival"]["checkpoint"]
+                    .as_str()
+                    .unwrap_or(""),
+                slot.offer["answers"]["arrival"]["arrivalOrdinal"]
+            )
+        } else {
+            STANDING.into()
+        };
+        let request = slot.offer["requestRef"]
+            .as_str()
+            .map(|r| format!("\nRecorded request: {r} (a request is not the act)"))
+            .unwrap_or_default();
+        let text = format!(
+            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",
+            slot.kind.wording(),
+            slot.offer["subject"]["ref"].as_str().unwrap_or(""),
+            identity["method"].as_str().unwrap_or(""),
+            identity["value"].as_str().unwrap_or(""),
+            slot.offer["scope"].as_str().unwrap_or(""),
+            slot.offer["purpose"].as_str().unwrap_or(""),
+            slot.kind.requirement(),
+            super::native_statement::actor_line(actor),
+            answers,
+            format!("{statement}{request}")
+        );
+        // Bounded before anything is frozen or the offer is Presented: a
+        // refused statement leaves the offer Composed and unfrozen (V14 F3).
+        let text = super::native_statement::bounded("File act native confirmation", text)?;
+        slot.actor = Some(actor.clone());
+        slot.context = Some(context.clone());
+        slot.state = FileActState::Presented;
+        Ok((text, slot.offer["offerDigest"].clone(), slot.kind))
+    }
+    pub(crate) fn dismiss_file_act(&mut self, reference: &FileActOfferRef) {
+        if let Some(slot) = self.file_offers.get_mut(&reference.id) {
+            if matches!(slot.state, FileActState::Composed | FileActState::Presented) {
+                slot.state = FileActState::Dismissed;
+            }
+        }
+    }
+    fn consume_file_event(
+        &mut self,
+        reference: &FileActOfferRef,
+        event: native::ConfirmedFileEvent,
+    ) -> Result<Value, String> {
+        let slot = self
+            .file_offers
+            .get_mut(&reference.id)
+            .ok_or("File act offer absent")?;
+        if slot.state != FileActState::Presented || slot.root != self.workspace {
+            return Err("File act not presented, stale owner or already captured".into());
+        }
+        if event.id() != reference.id
+            || event.digest() != &slot.offer["offerDigest"]
+            || slot.actor.as_ref() != Some(event.actor())
+            || slot.context.as_ref() != Some(event.context())
+            || offer_digest(&slot.offer)? != event.digest()["value"].as_str().unwrap_or("")
+        {
+            return Err("Native event differs from original offer/actor/context".into());
+        }
+        match read_subject(&slot.root, &slot.path) {
+            Ok(bytes) if bytes == slot.bytes => {}
+            _ => {
+                slot.state = FileActState::Stale;
+                return Err(
+                    "File subject changed/unavailable after confirmation; nothing captured".into(),
+                );
+            }
+        }
+        let id = crate::util::opaque_id("cap:")?;
+        slot.recording_guard()?;
+        let mut limits = vec!["identity not verified"];
+        if slot.kind == FileActKind::Rely && event.choice() == "act" {
+            limits.push("professional standing is the person's own statement; not verified");
+        }
+        let mut capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":reference.id,
+            "offerDigest":slot.offer["offerDigest"],"choice":event.choice(),"actKind":slot.kind.code(),"actor":event.actor(),
+            "boundSubject":[slot.offer["subject"]["ref"]],"boundContent":[slot.offer["subject"]["contentIdentity"]],
+            "scope":slot.offer["scope"],"purpose":slot.offer["purpose"],"capturedAt":capture_time(),"surface":"App interface","inputSource":"host-native-confirmation",
+            "answers":slot.offer["answers"],"evidenceLimits":limits});
+        if let Some(request) = slot.offer.get("requestRef") {
+            capture["requestRef"] = request.clone();
+        }
+        // AAC §6.3 SEAL-C: sealed under this installation's host-held key before
+        // publication. If it cannot be sealed the act is still captured and
+        // recorded, saying so, and is never counted (AAC §6.3 / EXEC §2.4–2.5).
+        if let Err(reason) = crate::capture_seal::seal(&slot.root, &mut capture) {
+            capture["evidenceLimits"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!(crate::capture_seal::unsealed_limit(&reason)));
+        }
+        crate::schema_validation::validate_capture(&capture)?;
+        // The native event is not itself an admitted capture. Definite failure
+        // before publication means nothing captured (AAC 4.1 step 6).
+        let root = slot.root.clone();
+        let retention_activity = crate::records_retention::activity(&root)?;
+        slot.state = FileActState::Dismissed; // consume this confirmation even on failure
+                                              // The project's records store subtree (RS §13.8).
+        let capture_file = storage::capture_file_for(&root, &capture).map_err(|e| {
+            format!("capture failed; nothing captured; review and confirm again: {e}")
+        })?;
+        let _lock = storage::lock(&storage::capture_lock_for(&root, &capture).map_err(|e| {
+            format!("capture failed; nothing captured; review and confirm again: {e}")
+        })?)
+        .map_err(|e| format!("capture failed; nothing captured; review and confirm again: {e}"))?;
+        match storage::create_capture_json(&capture_file, &capture) {
+            Ok(()) => {}
+            Err(storage::CapturePublicationFailure::DefinitelyNotPublished(error)) => {
+                return Err(format!(
+                    "capture failed; nothing captured; review and confirm again: {error}"
+                ));
+            }
+            Err(storage::CapturePublicationFailure::PublicationUncertain(error)) => {
+                // Keep the actual native facts but do not admit them to the writer
+                // or recreate absent bytes. Reconciliation requires stored bytes.
+                slot.state = FileActState::CaptureUncertain;
+                slot.retention_activity = retention_activity;
+                slot.uncertain_capture = Some(capture);
+                return Ok(
+                    json!({"state":"capture publication uncertain","captureId":id,"captureDurability":"not established","recorded":false,"writeFailure":error}),
+                );
+            }
+        }
+        self.file_offers
+            .get_mut(&reference.id)
+            .unwrap()
+            .retention_activity = retention_activity;
+        self.admit_file_capture(reference, capture);
+        let results = self.flush_native_locked();
+        results
+            .into_iter()
+            .find(|v| v["capture"]["captureId"] == id)
+            .ok_or("Original file capture result absent".into())
+    }
+    fn admit_file_capture(&mut self, reference: &FileActOfferRef, capture: Value) {
+        let id = capture["captureId"]
+            .as_str()
+            .expect("validated capture")
+            .to_owned();
+        let slot = self.file_offers.get_mut(&reference.id).unwrap();
+        slot.state = FileActState::Captured;
+        slot.capture_id = Some(id.clone());
+        slot.uncertain_capture = None;
+        self.file_capture_roots
+            .insert(id.clone(), slot.root.clone());
+        self.native_captures.insert(
+            id,
+            NativeCapture {
+                retention_activity: slot.retention_activity.take(),
+                ordinal: self.native_captures.len(),
+                target_log: capture["answers"]["runId"]
+                    .as_str()
+                    .map(|run| storage::log_rel(Some(run), records::APP_INTERFACE.identity))
+                    .unwrap_or_else(|| LOG.into()),
+                a15: None,
+                written: false,
+                delay_pending: false,
+                capture,
+                pending: None,
+                failure: None,
+            },
+        );
+    }
+    /// Retry only the original in-process native facts. Never admits cold claims.
+    pub(crate) fn continue_file_act(
+        &mut self,
+        reference: &FileActOfferRef,
+    ) -> Result<Value, String> {
+        let slot = self
+            .file_offers
+            .get(&reference.id)
+            .ok_or("File act offer absent")?;
+        if slot.root != self.workspace {
+            return Err("File act original owning root changed; no relocation".into());
+        }
+        let root = slot.root.clone();
+        let uncertain = slot.uncertain_capture.clone();
+        let admitted_id = slot.capture_id.clone();
+        slot.recording_guard()?;
+        if uncertain.is_none() && admitted_id.is_none() {
+            return Err("File act has no admitted capture; review and confirm again".into());
+        }
+        let captures = storage::write_capture_dir(&root)?;
+        let _lock = storage::lock(&captures.join(".capture.lock"))?;
+        let id = if let Some(original) = uncertain {
+            let id = original["captureId"].as_str().unwrap().to_owned();
+            let path = storage::write_capture_path(&root, &id)?;
+            // No create/replace call here: uncertain absence never authorizes a
+            // new publication. Compare the actual stored bytes before admission.
+            let reconcile = (|| -> Result<(), String> {
+                let bytes = read_subject(&captures, &path)?;
+
+                let stored: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+                if stored != original {
+                    return Err("Stored capture differs from original native facts".into());
+                }
+                storage::sync_publication(&path)
+            })();
+            if let Err(error) = reconcile {
+                return Ok(
+                    json!({"state":"capture publication uncertain","captureId":id,"captureDurability":"not established","recorded":false,"writeFailure":error}),
+                );
+            }
+            self.admit_file_capture(reference, original);
+            id
+        } else {
+            admitted_id.unwrap()
+        };
+        let results = self.flush_native_locked();
+        results
+            .into_iter()
+            .find(|v| v["capture"]["captureId"] == id)
+            .ok_or("Original file capture result absent".into())
+    }
+}
+pub(super) fn body(capture: &Value) -> Value {
+    let evidence = json!([{"kind":"capture evidence","ref":capture["captureId"],"resolutionAtWrite":"resolved"}]);
+    if capture["choice"] == "decline" {
+        let mut body = json!({"actor":capture["actor"],"declinedKind":capture["actKind"],"subject":capture["boundSubject"],"time":capture["capturedAt"],"captureEvidence":evidence});
+        if let Some(arrival) = capture["answers"].get("arrival") {
+            body["arrival"] = arrival.clone();
+        }
+        if let Some(request) = capture.get("requestRef") {
+            body["requestRef"] = request.clone();
+        }
+        return body;
+    }
+    let mut body = json!({"actKind":capture["actKind"],"actClass":{"value":"reserved to the person"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
+        "boundSubject":capture["boundSubject"],"boundContent":capture["boundContent"],"scope":capture["scope"],"purpose":capture["purpose"],
+        "captureEvidence":evidence,"captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"]});
+    let mut relations = serde_json::Map::new();
+    if let Some(arrival) = capture["answers"].get("arrival") {
+        relations.insert("arrivalAnswered".into(), arrival.clone());
+    }
+    if let Some(request) = capture.get("requestRef") {
+        relations.insert("requestRef".into(), request.clone());
+    }
+    if !relations.is_empty() {
+        body["relations"] = Value::Object(relations);
+    }
+    body
+}
+#[cfg(test)]
+#[path = "file_act_tests.rs"]
+mod tests;

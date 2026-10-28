@@ -1,0 +1,38 @@
+# DEL-01-05/ACCESS-v0.2 prototype run (node D4 round 2, run APP-V4-DESIGN-PASS-3-20261001)
+# command: cd <Design>/prototype && PYTHONDONTWRITEBYTECODE=1 python3 run_cases.py
+# date (UTC): 2026-10-02T18:41:41Z
+# python: Python 3.13.7
+# host: Darwin 25.6.0 arm64
+# repository HEAD: 0ccb3cd03d
+# supplier facts modelled: Codex 0.158.0 (OBS-2 O-6, O-7)
+# inputs sha256:
+#   6cc6fd85d0dc7410f143eb97c932d88d6c60c92a2959dd89651434daf6227e23  access_model.py
+#   e5707fd90cc216124a0b84c51dff0c5eda8dbf470346b78cd441832d47c00c88  run_cases.py
+#   486e9286e5aa56888b5473f1c08493a115591255685a8a7bb88b93ff2cacffc0  jsonschema_subset.py
+#   cca3ee5ee098789efa06e7302a43f28a65ef55783b7042a413fba7823522a23e  README.md
+#   75bafd8133ecce458b0ad9e4db3f52a1a5542c9c1f8339acf58691fbe0b86339  ../ACCOUNT_AND_PROVIDER_ACCESS.md
+#   cb62712965f36b90b2ccfcec663f883896ba41c71844bd888d452f4ffbb03afe  ../access.state.schema.json
+#   e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed  ../access.conversation-selection.schema.json
+#   ebecc830367cbe15f58e65913fb8ef2fa810d7d0f46b10f80d9ac24b6405e292  ../access.network-observation.schema.json
+#   48e33c03f0ee4cf854ab88d8b834722d4a3d2da1436e18275b209994f74ea11b  ../access.capability-handoff.schema.json
+#   3735cc3db4a171f824597dc8549411d113fd882b0f4c73cd281f9cf9bdc1e5f8  fixtures/access-state.invalid.json
+#   abcd228787fd061a09fc177e9bd3ae441baf35909dfb19df4ff4850e6aea5731  fixtures/access-state.valid.json
+#   6f7a5f5d27cadc1e461f59c9cfe83d3f410fb8d4cd82f03594378d3449d1420b  fixtures/capability-handoff.invalid.json
+#   3a296b1678224a0a0111bff70810727415f89a3e2ceaa7225bd92e67e1568d4a  fixtures/capability-handoff.valid.json
+#   1d2288a28bd7365d27493c3f0121cb5bd4d48d7c02a251ed7c8632f90f93f9d8  fixtures/conversation-selection.invalid.json
+#   63750d689f7fa8d7acc838a7c299a4b1f8045c463005322721aac6a1177a6837  fixtures/conversation-selection.valid.json
+#   30bd24b1000030be9f4cde35924be4471f23b01c5efead256c0790a101172687  fixtures/network-observation.invalid.json
+#   29bc3bcaafa26f8366c3afd1ac6442214ec5e6c4827d34c89b47e0b1048980bb  fixtures/network-observation.valid.json
+# no Codex process, no model, no network, no credential; invented values only
+
+VC-A14   pass (model)     doc tables = model tables: AE 20/20, KE 18/18, LE 12/12, CS 21/21, CL 10/10; every row applies; unlisted move refused
+VC-A12   pass (model)     K-3 walk: refusal 'not started — no model selected'; offer not applied; explicit provider+model on start; no switch on unavailability; entry change refused; trace CS-1 CS-5 CS-8 CS-9 CS-19 | CS-3 CS-2 CS-4 CS-8 CS-9 CS-15 CS-20
+VC-A15   pass (model)     K2-1 routing: api-key -> H-key (created only with a key), chatgpt and local -> H-acct; homes used ['api-key', 'account', 'account']
+VC-A13   pass (model)     canaries in durable records/logs/errors/snapshots: none; key on the wire only; auth URL shown during sign-in, display cleared; foreign loginId ignored; no resend after exit (2 key frames for 2 entries before the third)
+VC-A11   pass (model)     steps [('setup', 'CL-1'), ('guidance-links', True), ('read-through-link', True), ('write-explicit-target', 'CL-10'), ('write-by-replacement', 'CL-4'), ('diverged-and-both-kept', True), ('person-relink', 'CL-7'), ('backup-kept', True), ('probe-home-separate', True), ('skills-root-untouched', True)]; 14 paths, all inside a temporary folder under $TMPDIR (removed); ~/.codex untouched; config.toml, AGENTS.md and skills/ linked (R18-6); nothing written into the linked skills root (R19-7)
+VC-A16   pass (model)     rows ['plugins-featured', 'plugin-sync', 'model', 'unlisted', 'remote-control']; unlisted shown, never blocked; remote-control loop listed as observed (no setting; no socket without sign-in); plugin rows follow the person's setting; every row names its version
+VC-A19   pass (model)     L-3: linked/on: flags=analytics.enabled=false plugins=on/person-config plugin-rows=True; linked/off: flags=analytics.enabled=false plugins=off/person-config plugin-rows=False; linked/unset: flags=analytics.enabled=false plugins=on/codex-default-observed plugin-rows=True; own-config/on: flags=analytics.enabled=false plugins=on/person-config plugin-rows=True; own-config/off: flags=analytics.enabled=false,features.plugins=false plugins=off/app-fallback-flag plugin-rows=False; own-config/unset: flags=analytics.enabled=false plugins=on/codex-default-observed plugin-rows=True; internal remote-control variable and credential variables never passed to the child
+VC-A20   pass (model)     R18-2: ordinary 'not started — no model selected'; workflow run 'run not started — no model selected'; a run refusal with the ordinary wording is rejected by the schema: True
+VC-A17   pass (model)     access-state.valid: valid | access-state.invalid: invalid ($.entries[0]: additional property apiKey) | conversation-selection.valid: valid | conversation-selection.invalid: invalid ($.selection: type null expected) | network-observation.valid: valid | network-observation.invalid: invalid ($.rows[0].sources[0]: const 'app-observed') | capability-handoff.valid: valid | capability-handoff.invalid: invalid ($.noHostConformanceClaimed: const True) | 16 emitted records valid
+TOTAL 9, FAIL 0
+# exit status: 0

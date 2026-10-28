@@ -1,0 +1,188 @@
+{
+  "description": "Valid (invented): (1) one A15 act composed from one WR a15_descriptor (a new revision of supports-adjust), registered; (2) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (L-4; R21-3); recorded at capture; the workspace then registered the first entry and reported the second not completed, each beside the act. (3) AAC-v0.3 (pass 4, R23-18): the person's A16 on that package, choosing ALT-2; the record cites the request and the chosen alternative.",
+  "instances": [
+    {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.3",
+      "captureId": "cap:0010",
+      "offerId": "offer:0009",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "enga@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "workflow revision project:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-02T10:00:20Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "revision": "workflow revision project:supports-adjust@rev-5",
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          },
+          "outcome": {
+            "registration": "completed",
+            "revisionIdentity": "workflow revision project:supports-adjust@rev-5"
+          }
+        }
+      ],
+      "recordId": "rec:app-interface:0010",
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    },
+    {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.3",
+      "captureId": "cap:0012",
+      "offerId": "offer:0011",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "ChatGPT account (no email reported)",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "workflow revision project:notes-a@5e21...0c",
+        "workflow revision project:notes-c@b7a0...93"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "5e21...0c"
+        },
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "b7a0...93"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "capturedAt": "2026-10-02T10:05:20Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "revision": "workflow revision project:notes-a@5e21...0c",
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null,
+          "outcome": {
+            "registration": "completed",
+            "revisionIdentity": "workflow revision project:notes-a@5e21...0c"
+          }
+        },
+        {
+          "revision": "workflow revision project:notes-c@b7a0...93",
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null,
+          "outcome": {
+            "registration": "not completed",
+            "reason": "the entry changed between capture and publication (invented; WR ME-5)"
+          }
+        }
+      ],
+      "recordId": "rec:app-interface:0012",
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    },
+    {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.3",
+      "captureId": "cap:decide-pkg-1",
+      "offerId": "offer:pkg-1",
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      },
+      "choice": "act",
+      "actKind": "A16",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "decision package rec:app:coord:0001"
+      ],
+      "boundContent": [
+        {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      ],
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "capturedAt": "t4",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "alternativeChosen": "ALT-2",
+      "recordId": "rec:app:coord:0003",
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/act_policy.rs",
+    "sha256": "96a6d9d2b9a24ca1dcf17f05e62942fb44c2331531813b0f33c87e877ca7188b"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/standing.rs",
+    "sha256": "87edd37211105db262c0404c929c6556511cd341e13b8aee23338c19e97393f9"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/tests/policy_standing.rs",
+    "sha256": "d8332ea367081768e492951f0fea7c999b972085747014823d3ec7ac563dcc06"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/test-output-r1.txt",
+    "sha256": "12644e3a885046f08a72d70b9c3ad8c3e8a63c160b008b3358d158ca5887eb3a"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/repair-r1.md",
+    "sha256": "75e26056367694247f18d55b53d0bbe733cb443e22232444d4e37850762e5b72"
+  }
+]

@@ -1,0 +1,578 @@
+//! Crash and torn-write witnesses for the two append-only writers: the App
+//! recovery ledger (`recovery::RecoveryLedger::append`, DEL-01-02 §7; its
+//! SQLite database) and the RS run/act log writer (`records::append_reserved`,
+//! RS §14.1).
+//!
+//! A real child process (this test binary, re-run on `durability_child`)
+//! appends in a loop and is SIGKILLed at random points; a short write is
+//! produced in a child by `RLIMIT_FSIZE` (the kernel writes what fits, then
+//! refuses with EFBIG). Each result is checked from the bytes on disk and by
+//! reopening the reader and the writer. What this cannot show: loss of data
+//! the OS acknowledged but had not reached the device at a power failure;
+//! `sync_data`/`sync_all` are called, but whether the device honours them is
+//! not observable from a process (a killed process leaves the page cache intact).
+use super::*;
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
+
+const CHILD: &str = "records::durability_tests::durability_child";
+const LEDGER_SESSION: &str = "app-session:durability";
+
+fn scratch(prefix: &str) -> PathBuf {
+    let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
+    std::fs::create_dir_all(&p).unwrap();
+    std::fs::canonicalize(p).unwrap()
+}
+/// A small xorshift generator; the seed is printed so a run can be repeated
+/// (`CHIRALITY_DURABILITY_SEED`).
+struct Rng(u64);
+impl Rng {
+    fn new() -> Self {
+        let seed = std::env::var("CHIRALITY_DURABILITY_SEED").ok().and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() as u64 | 1);
+        println!("durability seed {seed}");
+        Self(seed)
+    }
+    fn below(&mut self, n: u64) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0 % n.max(1)
+    }
+}
+fn kills() -> usize {
+    std::env::var("CHIRALITY_DURABILITY_KILLS").ok().and_then(|s| s.parse().ok()).unwrap_or(12)
+}
+fn child(mode: &str, path: &Path) -> Command {
+    let mut c = Command::new(std::env::current_exe().unwrap());
+    c.args([CHILD, "--exact", "--ignored", "--nocapture", "--test-threads=1"])
+        .env("CHIRALITY_DURABILITY_CHILD", mode)
+        .env("CHIRALITY_DURABILITY_PATH", path)
+        // The child writes the parent's records store (RS §13.8), named explicitly.
+        .env(crate::records_store::OVERRIDE_ENV, crate::records_store::current().unwrap().root)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    c
+}
+/// The child's one result line.
+fn result_of(output: &std::process::Output) -> Value {
+    let text = String::from_utf8_lossy(&output.stdout);
+    let line = text.lines().find_map(|l| l.split_once("DURABILITY-RESULT ").map(|(_, r)| r)).unwrap_or_else(|| panic!("no child result: {text}"));
+    serde_json::from_str(line).unwrap()
+}
+/// The side file a looping ledger child marks each confirmed append in.
+fn confirmed_log(path: &Path) -> PathBuf {
+    path.with_extension("confirmed")
+}
+fn ledger_entry() -> Value {
+    crate::recovery::RecoveryLedger::session_end_entry(LEDGER_SESSION, "quit", &[]).unwrap()
+}
+fn rs_body(pad: usize) -> Value {
+    json!({"label":"unresolvable reference","subjectRef":"durability witness","detail":"x".repeat(pad)})
+}
+/// A unit of two 24 KiB entries (RS §13.8 "Units written together").
+fn unit() -> Vec<Spec<'static>> {
+    (0..2).map(|_| Spec { kind: "evidence_limit", recorder: &APP_WRITER, body: rs_body(24 * 1024), id: crate::util::opaque_id("rec:app:").unwrap(), observed_at: None }).collect()
+}
+/// The chain limits of a log (RS §13.8 Tamper-evidence): none, on every round.
+fn chain_broken(log: &Path) -> Vec<Value> {
+    crate::record_lines::chain_head(log)["broken"].as_array().cloned().unwrap_or_default()
+}
+/// The RS log a witness writes, in project `root`.
+fn rs_log(root: &Path) -> PathBuf {
+    crate::storage::project_log(root, None, "durability-writer").unwrap()
+}
+/// The bytes on disk, split at LF: the complete lines and the unclosed tail.
+fn lines(path: &Path) -> (Vec<Vec<u8>>, Vec<u8>) {
+    let bytes = std::fs::read(path).unwrap_or_default();
+    let mut parts: Vec<Vec<u8>> = bytes.split(|b| *b == b'\n').map(<[u8]>::to_vec).collect();
+    let tail = parts.pop().unwrap_or_default();
+    (parts, tail)
+}
+/// Drop an unclosed ledger tail (the test's own repair, so the next kill starts
+/// from a closed file; the ledger does not repair it).
+fn cut_tail(path: &Path) {
+    let bytes = std::fs::read(path).unwrap();
+    let keep = bytes.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
+    std::fs::write(path, &bytes[..keep]).unwrap();
+}
+
+/// The child: `ledger-loop` / `rs-loop` append until killed; `ledger-short` /
+/// `rs-short` set the file-size limit so the next append lands only part of
+/// its line, then lift the limit and append again. Does nothing unless run by
+/// a witness below.
+#[test]
+#[ignore = "child process of the durability witnesses"]
+fn durability_child() {
+    let (Ok(mode), Ok(path)) = (std::env::var("CHIRALITY_DURABILITY_CHILD"), std::env::var("CHIRALITY_DURABILITY_PATH")) else { return };
+    let path = PathBuf::from(path);
+    fn report(v: Value) -> ! { println!("DURABILITY-RESULT {v}"); std::process::exit(0) }
+    match mode.as_str() {
+        "ledger-loop" => {
+            // One byte per append the ledger confirmed, after it returned.
+            let confirmed = confirmed_log(&path);
+            let mut ledger = match crate::recovery::RecoveryLedger::open(path) { Ok(l) => l, Err(e) => report(json!({"open":e})) };
+            let mut side = std::fs::OpenOptions::new().create(true).append(true).open(confirmed).unwrap();
+            loop {
+                if let Err(e) = ledger.append(ledger_entry()) { report(json!({"append":e})) }
+                side.write_all(b".").unwrap();
+            }
+        }
+        "rs-loop" => {
+            let log = rs_log(&path);
+            loop {
+                if let Err(e) = append(&log, "evidence_limit", &APP_WRITER, rs_body(48 * 1024)) { report(json!({"append":e})) }
+            }
+        }
+        "rs-group-loop" => {
+            let log = rs_log(&path);
+            loop {
+                if let Err(e) = append_group(&log, unit(), None, RecordSet::Complete) { report(json!({"append":e})) }
+            }
+        }
+        "ledger-short" | "rs-short" | "rs-short-only" | "rs-group-short" => {
+            let target = if mode == "ledger-short" { crate::recovery::database_path(&path) } else { rs_log(&path) };
+            let size = std::fs::metadata(&target).map(|m| m.len()).unwrap_or(0);
+            // The ledger: a batch that needs new database pages, so its commit
+            // writes past the limit (the database's size) after the journal.
+            let line = if mode == "ledger-short" { 0 } else { 2048 };
+            // The RS line must exceed the limit counted from the descriptor's
+            // offset (macOS applies RLIMIT_FSIZE to an O_APPEND write from its
+            // descriptor offset, not the file's end), so it grows with the log.
+            let pad = size as usize + 1800;
+            let mut ledger = (mode == "ledger-short").then(|| crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
+            let mut attempt = || {
+                let result = match &mut ledger {
+                    Some(l) => l.append_batch(vec![ledger_entry(); 64]),
+                    None if mode == "rs-group-short" => append_group(&target, unit(), None, RecordSet::Complete).map(|_| ()),
+                    None => append(&target, "evidence_limit", &APP_WRITER, rs_body(pad)).map(|_| ()),
+                };
+                (result, ledger.as_ref().map(|l| l.current_entries().len()))
+            };
+            unsafe { libc::signal(libc::SIGXFSZ, libc::SIG_IGN); }
+            let mut limit = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+            unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut limit); }
+            let original = limit.rlim_cur;
+            limit.rlim_cur = size + (line as u64) / 2;
+            unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
+            let (first, held_after_first) = attempt();
+            limit.rlim_cur = original;
+            unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limit); }
+            let (second, held_after_second) = if matches!(mode.as_str(), "rs-short-only" | "rs-group-short") { (Ok(()), None) } else { attempt() };
+            report(json!({"first":first.err(),"second":second.err(),"sizeBefore":size,"heldAfterFirst":held_after_first,"heldAfterSecond":held_after_second}));
+        }
+        other => panic!("unknown child mode {other}"),
+    }
+}
+
+/// Starts the loop child, waits until it has grown the file, lets it run a
+/// random while more, and SIGKILLs it.
+fn kill_mid_loop(mode: &str, path: &Path, file: &Path, rng: &mut Rng) {
+    let before = std::fs::metadata(file).map(|m| m.len()).unwrap_or(0);
+    let mut c = child(mode, path).spawn().unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while std::fs::metadata(file).map(|m| m.len()).unwrap_or(0) <= before {
+        assert!(Instant::now() < deadline, "{mode}: the child never appended");
+        if let Ok(Some(status)) = c.try_wait() {
+            let mut out = String::new();
+            BufReader::new(c.stdout.take().unwrap()).lines().for_each(|l| { out.push_str(&l.unwrap()); });
+            panic!("{mode}: the child stopped before being killed ({status}): {out}");
+        }
+        std::thread::sleep(Duration::from_micros(200));
+    }
+    std::thread::sleep(Duration::from_micros(rng.below(30_000)));
+    unsafe { libc::kill(c.id() as i32, libc::SIGKILL); }
+    c.wait().unwrap();
+}
+
+/// Every entry the ledger database holds, read on a separate connection after
+/// SQLite's own integrity check (the open also rolls back a hot journal).
+fn ledger_rows(path: &Path) -> Vec<Value> {
+    let db = rusqlite::Connection::open(crate::recovery::database_path(path)).unwrap();
+    let check: String = db.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
+    assert_eq!(check, "ok");
+    // A kill before the schema's own commit leaves a database with no tables:
+    // no entry was confirmed then (the caller's count says so).
+    let tables: i64 = db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'ledger_entry'", [], |r| r.get(0)).unwrap();
+    if tables == 0 {
+        return Vec::new();
+    }
+    let mut statement = db.prepare("SELECT entry FROM ledger_entry ORDER BY seq").unwrap();
+    let rows = statement.query_map([], |r| r.get::<_, String>(0)).unwrap();
+    rows.map(|r| serde_json::from_str(&r.unwrap()).unwrap()).collect()
+}
+
+// DEL-01-02 §7: after a SIGKILL at a random point of the ledger writer's loop,
+// the database passes its integrity check, every entry validates, no
+// committed entry is lost (the count only grows), and a reopened ledger
+// appends again. A transaction cut by the kill leaves nothing of itself: its
+// journal is rolled back by the next open, so there is no torn tail to refuse.
+#[test]
+fn sigkill_mid_ledger_append_leaves_only_committed_entries() {
+    let dir = scratch("ledger-kill-");
+    let path = dir.join("recovery.ledger.jsonl");
+    let database = crate::recovery::database_path(&path);
+    let mut journal = database.as_os_str().to_owned();
+    journal.push("-journal");
+    let journal = PathBuf::from(journal);
+    let mut rng = Rng::new();
+    let (mut hot, mut appended) = (0, 0);
+    for round in 0..kills() {
+        let _ = std::fs::remove_file(confirmed_log(&path));
+        kill_mid_loop("ledger-loop", &path, &database, &mut rng);
+        let confirmed = std::fs::metadata(confirmed_log(&path)).map(|m| m.len() as usize).unwrap_or(0);
+        if std::fs::symlink_metadata(&journal).is_ok() { hot += 1; }
+        let rows = ledger_rows(&path);
+        for row in &rows {
+            crate::recovery::RecoveryLedger::validate_pointer_entry(row).unwrap();
+        }
+        assert!(rows.len() >= appended + confirmed, "round {round}: {} entries after {appended}, and the child confirmed {confirmed} more", rows.len());
+        let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap_or_else(|e| panic!("round {round}: {e}"));
+        ledger.append(ledger_entry()).unwrap();
+        drop(ledger);
+        appended = ledger_rows(&path).len();
+        assert!(!path.exists(), "no JSON Lines file is written");
+    }
+    println!("ledger: {} kills, {hot} left a journal, {appended} entries", kills());
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+// RS §14.1/§14.2: after a SIGKILL at a random point of the RS writer's loop
+// (48 KiB lines), the reader returns every complete entry in sequence and
+// reports an unclosed tail only as "partial entry at end (not read)"; a
+// reopened writer appends, after W-0 on a torn one (the torn bytes kept).
+#[test]
+fn sigkill_mid_rs_append_leaves_complete_entries_or_a_recovered_torn_tail() {
+    let root = scratch("rs-kill-");
+    let log = rs_log(&root);
+    let mut rng = Rng::new();
+    let (mut torn, mut entries) = (0, 0);
+    for round in 0..kills() {
+        kill_mid_loop("rs-loop", &root, &log, &mut rng);
+        let (read, limits) = read_log(&log);
+        let (complete, tail) = lines(&log);
+        let recovered = recovered_partial_lines(&std::fs::read(&log).unwrap(), 0).0.len();
+        assert_eq!(read.len() + recovered, complete.len(), "round {round}: every complete line not named by W-0 is an entry");
+        assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), (1..=read.len() as u64).collect::<Vec<_>>());
+        assert!(chain_broken(&log).is_empty(), "round {round}: the chain holds: {:?}", chain_broken(&log));
+        entries = read.len();
+        if tail.is_empty() {
+            assert!(limits.is_empty(), "round {round}: {limits:?}");
+            append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+        } else {
+            torn += 1;
+            assert_eq!(limits.len(), 1, "{limits:?}");
+            assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
+            let bytes = std::fs::read(&log).unwrap();
+            append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+            assert!(std::fs::read(&log).unwrap().starts_with(&bytes), "the torn bytes are kept");
+            let (read, limits) = read_log(&log);
+            assert!(limits.is_empty(), "{limits:?}");
+            assert_eq!(read[read.len() - 2]["body"]["label"], PARTIAL_NOT_RECOVERED);
+        }
+    }
+    println!("rs: {} kills, {torn} torn tails, {entries} complete entries", kills());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS §13.8: after a SIGKILL at a random point of the writer's loop of group
+// lines (two 24 KiB entries each), every complete line not named by W-0 is a
+// whole group, the reader never returns half of one, the sequence is
+// complete, and the chain is unbroken; a torn group is a partial only, and
+// the reopened writer terminates it outside the chain and continues it.
+#[test]
+fn sigkill_mid_rs_group_append_leaves_whole_groups_and_an_unbroken_chain() {
+    let root = scratch("rs-group-kill-");
+    let log = rs_log(&root);
+    let mut rng = Rng::new();
+    let (mut torn, mut groups) = (0, 0);
+    for round in 0..kills() {
+        kill_mid_loop("rs-group-loop", &root, &log, &mut rng);
+        let (read, limits) = read_log(&log);
+        let (complete, tail) = lines(&log);
+        let recovered = recovered_partial_lines(&std::fs::read(&log).unwrap(), 0).0.len();
+        // Every complete line not named by W-0: a group of two, or a W-0 limit or the follow-up entry of an earlier round.
+        let singles = read.iter().filter(|e| e["body"]["subjectRef"] != "durability witness" || e["body"]["detail"].as_str().is_some_and(|d| d.len() < 64)).count();
+        assert_eq!((read.len() - singles) % 2, 0, "round {round}: no half group");
+        assert_eq!(read.len() - singles + 2 * singles, 2 * (complete.len() - recovered), "round {round}: each line not named by W-0 is two entries or one single");
+        assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), (1..=read.len() as u64).collect::<Vec<_>>());
+        assert!(chain_broken(&log).is_empty(), "round {round}: {:?}", chain_broken(&log));
+        groups = (read.len() - singles) / 2;
+        if tail.is_empty() {
+            assert!(limits.is_empty(), "round {round}: {limits:?}");
+        } else {
+            torn += 1;
+            assert_eq!(limits.len(), 1, "{limits:?}");
+            assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
+        }
+        let bytes = std::fs::read(&log).unwrap();
+        append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+        assert!(std::fs::read(&log).unwrap().starts_with(&bytes), "the torn bytes are kept");
+        assert!(read_log(&log).1.is_empty() && chain_broken(&log).is_empty());
+    }
+    println!("rs groups: {} kills, {torn} torn tails, {groups} whole groups", kills());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS §13.8 under a short write: a group line cut by the kernel is a partial
+// only (none of its entries is read); the reopened writer terminates it in
+// place and names it, outside the chain, and the log continues unbroken.
+#[test]
+fn a_short_group_write_is_a_partial_only_and_the_chain_continues_past_it() {
+    let root = scratch("rs-group-short-");
+    let log = rs_log(&root);
+    for _ in 0..3 { append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
+    let result = result_of(&child("rs-group-short", &root).output().unwrap());
+    assert!(result["first"].as_str().unwrap_or_else(|| panic!("{result}")).starts_with("write: "), "{result}");
+    let (complete, tail) = lines(&log);
+    assert_eq!(complete.len(), 3);
+    assert!(tail.len() > 1024 && tail.starts_with(br#"{"entries":["#), "a group line, cut");
+    let (read, limits) = read_log(&log);
+    assert_eq!(read.len(), 3, "no entry of the cut group");
+    assert_eq!(limits.len(), 1);
+    assert!(limits[0].ends_with("partial entry at end (not read)"), "{limits:?}");
+    let next = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (read, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3, 4, 5]);
+    assert_eq!(read[3]["body"]["label"], PARTIAL_NOT_RECOVERED);
+    let (complete, _) = lines(&log);
+    assert_eq!(read[3]["prevLine"]["value"], crate::record_lines::line_identity(&complete[2]), "the torn line is not a link");
+    assert_eq!(next["prevLine"]["value"], crate::record_lines::line_identity(&complete[4]));
+    assert!(chain_broken(&log).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A short write (RLIMIT_FSIZE at the database's size: the commit's write of
+// new pages fails with EFBIG) in a child: the ledger reports the batch not
+// confirmed and keeps none of it; once the limit is lifted the same writer's
+// next batch is recorded whole; the database passes its integrity check and
+// holds the earlier entries and that batch only.
+#[test]
+fn a_short_ledger_write_is_reported_and_leaves_nothing_of_its_batch() {
+    let dir = scratch("ledger-short-");
+    let path = dir.join("recovery.ledger.jsonl");
+    let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap();
+    for _ in 0..3 { ledger.append(ledger_entry()).unwrap(); }
+    drop(ledger);
+    let result = result_of(&child("ledger-short", &path).output().unwrap());
+    let first = result["first"].as_str().unwrap_or_else(|| panic!("{result}"));
+    assert!(first.starts_with("recovery ledger append not confirmed"), "{result}");
+    assert!(result["second"].is_null(), "{result}");
+    assert_eq!((result["heldAfterFirst"].as_u64(), result["heldAfterSecond"].as_u64()), (Some(3), Some(3 + 64)), "the held entries never include the failed batch: {result}");
+    assert_eq!(ledger_rows(&path).len(), 3 + 64, "the failed batch left nothing; the next is whole");
+    drop(crate::recovery::RecoveryLedger::open(path.clone()).unwrap());
+    println!("ledger short write: {first}");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+// The RS writer under a short write (RS §14.1 W-0, FC-2; §13.7 Failures): the
+// append reports a write error and leaves a torn tail, which the reader
+// reports only as a partial. Other logs of the project stay writable beside
+// it, while a genuinely unreadable line elsewhere still leaves the set
+// incomplete for an open run's append. The reopened writer terminates the torn
+// line in place (its bytes kept), appends "partial entry not recovered" naming
+// it, and continues the log in sequence; identities are still checked.
+#[test]
+fn a_short_rs_write_is_recovered_by_the_reopened_writer_and_blocks_no_other_log() {
+    let root = scratch("rs-short-");
+    let log = rs_log(&root);
+    for _ in 0..3 { append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
+    let result = result_of(&child("rs-short-only", &root).output().unwrap());
+    let first = result["first"].as_str().unwrap_or_else(|| panic!("{result}"));
+    assert!(first.starts_with("write: "), "{result}");
+    let (complete, tail) = lines(&log);
+    assert_eq!(complete.len(), 3);
+    assert!(!tail.is_empty());
+    let torn_bytes = std::fs::read(&log).unwrap();
+    let name = log.file_name().unwrap().to_string_lossy().into_owned();
+    assert_eq!(read_log(&log).1, [format!("{name}: partial entry at end (not read)")]);
+    // Another log of the project is writable beside the torn tail (open-run mode).
+    let run_entry = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1", "2026-10-12T00:00:00.000Z");
+    assert!(run_entry.is_ok(), "{run_entry:?}");
+    assert_eq!(std::fs::read(&log).unwrap(), torn_bytes, "another writer never repairs this log");
+    // A genuinely unreadable line in another log still leaves the set incomplete.
+    let broken = crate::storage::project_log(&root, None, "broken-writer").unwrap();
+    std::fs::write(&broken, b"{\"not an entry\"\n").unwrap();
+    let refused = append_project_reserved(&root, "run:durability", "app-writer:local", "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-2", "2026-10-12T00:00:00.000Z").unwrap_err();
+    assert!(refused.contains("record-set conflict/incomplete"), "{refused}");
+    std::fs::remove_file(&broken).unwrap();
+    // The reopened writer: W-0, then the entry.
+    let entry = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let after = std::fs::read(&log).unwrap();
+    assert!(after.starts_with(&torn_bytes) && after[torn_bytes.len()] == b'\n', "terminated in place, never truncated or edited");
+    let (read, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(read.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3, 4, 5]);
+    let limit = &read[3];
+    assert_eq!((limit["kind"].as_str(), limit["body"]["label"].as_str(), limit["body"]["subjectRef"].as_str()), (Some("evidence_limit"), Some(PARTIAL_NOT_RECOVERED), Some(torn_line_ref(4, &tail).as_str())));
+    assert!(limit["body"]["detail"].as_str().unwrap().contains(&crate::util::sha256_hex(&tail)), "{limit}");
+    assert_eq!(read[4]["recordId"], entry["recordId"]);
+    // The torn line is never read, here or by the project reader.
+    let (all, all_limits) = crate::storage::read_all(&root);
+    assert!(all_limits.is_empty(), "{all_limits:?}");
+    assert_eq!(all.len(), 6);
+    // Duplicates and identity conflicts are still refused.
+    let conflict = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), read[0]["recordId"].as_str().unwrap()).unwrap_err();
+    assert!(conflict.contains("record identity conflict"), "{conflict}");
+    let elsewhere = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-1").unwrap_err();
+    assert!(elsewhere.contains("record identity conflict"), "{elsewhere}");
+    // The same in one child process: its second append recovers the tail.
+    let again = scratch("rs-short-again-");
+    for _ in 0..2 { append(&rs_log(&again), "evidence_limit", &APP_WRITER, rs_body(16)).unwrap(); }
+    let result = result_of(&child("rs-short", &again).output().unwrap());
+    assert!(result["first"].is_string() && result["second"].is_null(), "{result}");
+    assert_eq!(read_log(&rs_log(&again)).0.len(), 4);
+    println!("rs short write: {} of a line landed; reopened writer recovered it", tail.len());
+    std::fs::remove_dir_all(again).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// An injected directory-sync failure after the line is written and the file
+// synced (storage::fail_directory_for_test): the caller is told the append
+// failed, the reader shows the complete entry, and a retry with the same
+// reserved identity refuses ("record identity conflict"), so no duplicate.
+#[test]
+fn an_uncertain_rs_sync_leaves_the_entry_and_a_retry_writes_no_duplicate() {
+    let root = scratch("rs-sync-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    crate::storage::fail_directory_for_test(Some(log.parent().unwrap().to_path_buf()));
+    let failed = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-sync");
+    crate::storage::fail_directory_for_test(None);
+    assert!(failed.as_ref().is_err_and(|e| e.contains("injected failure")), "{failed:?}");
+    let (read, limits) = read_log(&log);
+    assert!(limits.is_empty());
+    assert_eq!(read.last().unwrap()["recordId"], "rec:app:durability-sync", "the line landed although the caller saw a failure");
+    let retry = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), "rec:app:durability-sync").unwrap_err();
+    assert!(retry.contains("record identity conflict"), "{retry}");
+    assert_eq!(read_log(&log).0.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R10 F2 probe: a valid entry (seq 1) and then an appended evidence_limit
+// "partial entry not recovered" naming line 1 and reusing seq 1. The named line
+// is a valid entry, so nothing is hidden: both are read, and the reuse is a
+// sequence limit. A limit naming other bytes hides nothing either.
+#[test]
+fn probe_r10_forged_limit_hides_a_valid_entry() {
+    let root = scratch("rs-forged-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let first = std::fs::read(&log).unwrap();
+    let line1 = &first[..first.len() - 1];
+    let forge = |subject: String| {
+        let limit = envelope("evidence_limit", &APP_WRITER, json!({"label":PARTIAL_NOT_RECOVERED,"subjectRef":subject,"detail":"forged"}), "rec:app:forged".into(), 1, None, None);
+        let mut bytes = first.clone();
+        bytes.extend(serde_json::to_vec(&limit).unwrap());
+        bytes.push(b'\n');
+        std::fs::write(&log, bytes).unwrap();
+    };
+    for subject in [torn_line_ref(1, line1), "line 1".into(), torn_line_ref(1, b"other bytes")] {
+        forge(subject.clone());
+        let (entries, limits) = read_log(&log);
+        assert_eq!(entries.len(), 2, "{subject}: the named line is read");
+        assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{subject}: {limits:?}");
+        let (all, all_limits) = crate::storage::read_all(&root);
+        assert_eq!(all.len(), 2);
+        assert!(!all_limits.is_empty());
+    }
+    forge(torn_line_ref(1, line1));
+    assert!(read_log(&log).1.iter().any(|l| l.contains("a complete entry, although the limit after it names it as torn")));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A torn tail cut inside a multi-byte character is still a partial, and after
+// W-0 its terminated line is kept unread; the log stays readable.
+#[test]
+fn a_torn_tail_cut_inside_a_character_is_recovered() {
+    let root = scratch("rs-utf8-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend("{\"detail\":\"§".as_bytes());
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    assert_eq!(read_log(&log).1, [format!("{}: partial entry at end (not read)", log.file_name().unwrap().to_string_lossy())]);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (entries, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.len(), 3);
+    assert!(std::fs::read(&log).unwrap().starts_with(&bytes));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// AAC §5.2a: a torn line W-0 kept unread that holds a capture's identity is
+// that capture's torn append, which holds its replay.
+#[test]
+fn a_recovered_torn_line_naming_a_capture_is_found() {
+    let root = scratch("rs-hold-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(b"{\"captureEvidence\":[{\"ref\":\"cap:torn-one\"");
+    std::fs::write(&log, &bytes).unwrap();
+    assert!(!recovered_lines_hold(&log, "cap:torn-one"), "not yet recovered");
+    open_owning_log(&root, &log).unwrap();
+    assert!(recovered_lines_hold(&log, "cap:torn-one"));
+    assert!(!recovered_lines_hold(&log, "cap:other"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Review R12 N1 probe: two appends, then the final newline removed (a short
+// write that stopped just before it). The tail is a whole, valid entry with the
+// next seq: W-0 writes only the newline, no limit, and the log continues in
+// sequence; the entry is written, so its identity is held (a W-2 retry finds
+// its receipt, never a duplicate).
+#[test]
+fn probe_r12_tail_torn_at_the_newline() {
+    let root = scratch("rs-newline-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let second = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    assert_eq!(read_log(&log).0.len(), 1, "the unterminated tail is a partial until reopened");
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let (entries, limits) = read_log(&log);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.iter().map(|e| e["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2, 3]);
+    assert!(entries.iter().all(|e| e["body"]["label"] != PARTIAL_NOT_RECOVERED), "nothing named as torn");
+    assert_eq!(entries[1], second, "the entry whose newline was lost is the written entry");
+    let retry = append_with_id(&log, "evidence_limit", &APP_WRITER, rs_body(16), second["recordId"].as_str().unwrap()).unwrap_err();
+    assert!(retry.contains("record identity conflict"), "{retry}");
+    // The same through a reconciliation open (no append).
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.pop();
+    std::fs::write(&log, &bytes).unwrap();
+    open_owning_log(&root, &log).unwrap();
+    assert!(std::fs::read(&log).unwrap().ends_with(b"\n"));
+    assert!(read_log(&log).1.is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A whole, valid tail out of sequence cannot slip past the rule: W-0 only
+// terminates it (it is not a fragment), and the reader reports it as a
+// sequence limit, so the owning log is refused until repaired; nothing named.
+#[test]
+fn a_valid_tail_out_of_sequence_is_a_sequence_limit() {
+    let root = scratch("rs-wrong-seq-");
+    let log = rs_log(&root);
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let forged = envelope("evidence_limit", &APP_WRITER, rs_body(16), "rec:app:wrong-seq".into(), 7, None, None);
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(serde_json::to_vec(&forged).unwrap());
+    std::fs::write(&log, &bytes).unwrap();
+    let refused = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap_err();
+    assert!(refused.contains("incomplete owning log") && refused.contains("expected 3, found 7"), "{refused}");
+    let after = std::fs::read(&log).unwrap();
+    assert_eq!(after.len(), bytes.len() + 1, "only the newline was written");
+    let (entries, limits) = read_log(&log);
+    assert_eq!(entries.len(), 3);
+    assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{limits:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}

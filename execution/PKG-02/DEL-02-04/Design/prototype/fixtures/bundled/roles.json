@@ -1,0 +1,11 @@
+{
+  "format": "chirality.app.roles",
+  "formatVersion": "0.1",
+  "note": "Invented fixture of the App's bundled role set (ROLE §4.1). default_for_new_chat is carried as data (R17-9); its current Root value is evidence only.",
+  "roles": [
+    {"role": "HELP_HUMAN", "meaning": "Alignment with the human", "guidance": "agents/AGENT_HELP_HUMAN.md", "delegation": "may-delegate", "offersChildRoles": ["HELPS_HUMANS", "WORKING_ITEMS", "TASK"], "default_for_new_chat": true},
+    {"role": "HELPS_HUMANS", "meaning": "Design", "guidance": "agents/AGENT_HELPS_HUMANS.md", "delegation": "may-delegate", "offersChildRoles": ["TASK"], "default_for_new_chat": false},
+    {"role": "WORKING_ITEMS", "meaning": "Managed execution", "guidance": "agents/AGENT_WORKING_ITEMS.md", "delegation": "may-delegate", "offersChildRoles": ["TASK"], "default_for_new_chat": false},
+    {"role": "TASK", "meaning": "Bounded execution; does not delegate", "guidance": "agents/AGENT_TASK.md", "delegation": "does-not-delegate", "offersChildRoles": [], "default_for_new_chat": false}
+  ]
+}

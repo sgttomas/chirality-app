@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+  "title": "Independent candidate review record (DEL-09-01 EXP-v0.2 §4.2; PROPOSED)",
+  "description": "One record per review of an identified candidate's examination evidence. A v4_ops_34 review follows V4-OPS-34 as written (R23-12): a Codex reviewer, with the stated different-model Claude fallback; an additional_person review may be added and never replaces it. Actual separation and model identity are reported; an honest not_separate review is valid, it is just not reported as independent. A review is never human acceptance, release or professional reliance. Rules EXP-R6, EXP-R7 (EXP §3.5) are checked by prototype/check_exp.py.",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "record_id",
+    "subject",
+    "evidence_set",
+    "authors",
+    "reviewer",
+    "family_claim",
+    "findings",
+    "standing",
+    "date",
+    "review_kind",
+    "reported_as_independent"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "exam_review"
+    },
+    "format": {
+      "const": "EXP-v0.2"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "candidate",
+            "definition"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Candidate revision and build identity, or the definition's version label and digest."
+        }
+      }
+    },
+    "evidence_set": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Result records and evidence references the reviewer actually read."
+    },
+    "authors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/party"
+      },
+      "description": "Who produced the candidate and the evidence under review."
+    },
+    "reviewer": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/party"
+        },
+        {
+          "type": "object",
+          "required": [
+            "separation"
+          ],
+          "properties": {
+            "separation": {
+              "enum": [
+                "separate_person",
+                "separate_session_no_authoring",
+                "not_separate"
+              ],
+              "description": "Actual separation from the authors. A fresh context alone is reported as such; it says nothing about model family."
+            }
+          }
+        }
+      ]
+    },
+    "preference": {
+      "type": "object",
+      "required": [
+        "preferred",
+        "used"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "preferred": {
+          "const": "codex",
+          "description": "V4-OPS-34 / D-13 preference."
+        },
+        "used": {
+          "enum": [
+            "codex",
+            "claude_fallback"
+          ]
+        },
+        "fallback_reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why the Codex reviewer was not used: the actual unavailability, stated as observed (V4-OPS-34; R23-12)."
+        }
+      },
+      "if": {
+        "properties": {
+          "used": {
+            "const": "claude_fallback"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "fallback_reason"
+        ]
+      }
+    },
+    "family_claim": {
+      "enum": [
+        "different_family_observed",
+        "same_family",
+        "not_established"
+      ],
+      "description": "Only 'different_family_observed' claims diversity; it needs both model identities exposed and of different families (EXP-R6)."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "standing": {
+      "enum": [
+        "no_findings",
+        "findings_open",
+        "findings_dispositioned"
+      ],
+      "description": "Review standing only; never acceptance or release."
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    },
+    "review_kind": {
+      "enum": [
+        "v4_ops_34",
+        "additional_person"
+      ],
+      "description": "v4_ops_34: the review V4-OPS-34 requires (Codex reviewer, Claude fallback; R23-12). additional_person: a person reviews in addition; it never replaces the v4_ops_34 review."
+    },
+    "reported_as_independent": {
+      "type": "boolean",
+      "description": "Whether this review is reported as independent. EXP-R6 fires only when this is true and separation does not hold (RV EXP-R-F)."
+    }
+  },
+  "$defs": {
+    "party": {
+      "type": "object",
+      "required": [
+        "identity",
+        "kind",
+        "model_identity"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "person"
+          ]
+        },
+        "model_identity": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "model",
+                "family"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "family": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "exposed_by": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "enum": [
+                "not_exposed",
+                "not_applicable"
+              ]
+            }
+          ]
+        },
+        "separation": true
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "claim",
+        "evidence",
+        "consequence",
+        "disposition"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The affected claim."
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consequence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "type": "object",
+          "required": [
+            "state"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "enum": [
+                "open",
+                "repaired",
+                "limit_accepted",
+                "disputed"
+              ]
+            },
+            "by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "confirmed_by": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The reviewer who raised the finding confirms its repair."
+            },
+            "repair_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "repaired"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "by",
+                  "confirmed_by",
+                  "repair_ref"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "limit_accepted",
+                      "disputed"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "by"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_kind": {
+            "const": "v4_ops_34"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "preference"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_kind": {
+            "const": "additional_person"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "preference"
+          ]
+        },
+        "properties": {
+          "reviewer": {
+            "properties": {
+              "kind": {
+                "const": "person"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

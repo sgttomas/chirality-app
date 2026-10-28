@@ -1,0 +1,1127 @@
+[
+  {
+    "violates": "DH-1: counted as the completed witness without an independent review record",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-counts-without-review",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": true,
+        "acceptance_acts": [
+          {
+            "record_ref": "A5-1",
+            "actor": "Engineer A",
+            "recorder": "host facility"
+          }
+        ],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-counts-without-review",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "violates": "AC-008: an excluded act claimed discharged",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-discharged",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": true
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-discharged",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "violates": "REQ-008: coverage claimed present without evidence",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-present-without-evidence",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "present"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-present-without-evidence",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "violates": "DJ-1: session content supplied instead of identity",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-session-content",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation",
+            "content": "transcript text"
+          },
+          {
+            "identity": "EXP case results of INVALID-session-content",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "violates": "DH-1: counted as the completed witness with no acceptance act",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-counts-without-acts",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": true,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-counts-without-acts",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      },
+      "independent_review_ref": "EXP-REVIEW-1"
+    }
+  },
+  {
+    "violates": "U2-R2: a record-set item without its input-set standing",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-record-without-standing",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-record-without-standing",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "violates": "U2-R2 / DJ-1: a derived view (the dossier's case result) supplied in the record set",
+    "instance": {
+      "record_kind": "lhq_dossier_manifest",
+      "format": "DOS-v0.1",
+      "dossier_id": "INVALID-derived-view-supplied",
+      "version": 1,
+      "date": {
+        "value": "2026-10-03",
+        "source": "stated_by_person"
+      },
+      "cir_refs": [
+        "LHQ-CIR-EXAMPLE-STATE-2026-10-03"
+      ],
+      "case_results": [
+        {
+          "case": "LHQ-20",
+          "exam_result_refs": [
+            "EXP-LHQ-20-inconclusive-example"
+          ]
+        },
+        {
+          "case": "LHQ-21",
+          "exam_result_refs": [
+            "EXP-LHQ-21-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-22",
+          "exam_result_refs": [
+            "EXP-LHQ-22-not-run-example"
+          ]
+        },
+        {
+          "case": "LHQ-23",
+          "exam_result_refs": [
+            "EXP-LHQ-23-not-run-example"
+          ]
+        }
+      ],
+      "traffic_observation_refs": [],
+      "host_evidence": [],
+      "act_owner_account": [
+        {
+          "act": "host construction (catalog, route, loop, native layer, receipts)",
+          "owner": "external SWBPIPE owner (CLM-002)",
+          "claimed_discharged": false
+        },
+        {
+          "act": "every human act",
+          "owner": "the person",
+          "claimed_discharged": false
+        },
+        {
+          "act": "replacement decision",
+          "owner": "the owner (DEL-11-03 prepares the packet)",
+          "claimed_discharged": false
+        }
+      ],
+      "interface_coverage": [
+        {
+          "route": "interface_webkit",
+          "applies_to": "host_panel",
+          "standing": "absent"
+        },
+        {
+          "route": "native_packaged",
+          "applies_to": "app_candidate",
+          "standing": "absent"
+        }
+      ],
+      "applicability": [
+        {
+          "changed": "host_candidate",
+          "change_kind": "candidate_code",
+          "reopens": [
+            "LHQ-20",
+            "LHQ-21",
+            "LHQ-22",
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "initial_allow_list",
+          "change_kind": "configuration",
+          "reopens": [
+            "LHQ-23"
+          ]
+        },
+        {
+          "changed": "case_definition",
+          "change_kind": "case_definition",
+          "reopens": [
+            "LHQ-22"
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "label": "illustrative example; only LHQ-20 has run (outcome inconclusive)",
+          "vocabulary": "DOS-v0.1"
+        }
+      ],
+      "handoff_del_11_03": {
+        "p20a_result_ref": "EXP-LHQ-20-inconclusive-example",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": [],
+        "receipts": [],
+        "statement": "Evidence for the owner's replacement judgment; not a replacement decision, release or professional reliance."
+      },
+      "handoff_del_09_11": {
+        "journey_run_ref": "LHQ-20-EXAMPLE-RUN",
+        "cir_ref": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+        "journey_dates": [
+          {
+            "value": "2026-10-03",
+            "source": "record_timestamp"
+          }
+        ],
+        "run_authors": [
+          {
+            "identity": "Engineer A (invented)",
+            "role": "person_actor"
+          },
+          {
+            "identity": "host agent conversation K-7 (invented)",
+            "role": "host_agent_session"
+          }
+        ],
+        "record_set": [
+          {
+            "path": "runs/12/run-record.jsonl (invented)",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "standing": "record"
+          },
+          {
+            "path": "runs/12/summary.md (invented; agent-prepared)",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "standing": "not_authority"
+          },
+          {
+            "path": "dossier/exp/LHQ-20.json (invented)",
+            "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "standing": "derived_view"
+          }
+        ],
+        "receipt_refs": [],
+        "withheld": [
+          {
+            "identity": "K-7 (invented)",
+            "kind": "host_agent_conversation"
+          },
+          {
+            "identity": "EXP case results of INVALID-derived-view-supplied",
+            "kind": "derived_view"
+          },
+          {
+            "identity": "examiner reconstruction and review record (invented)",
+            "kind": "derived_view"
+          }
+        ]
+      }
+    }
+  }
+]

@@ -1,0 +1,116 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: variants `A1`, `A3`, and `A11` are never constructed
+  --> tests/../src/act_policy.rs:51:5
+   |
+50 | pub enum ActKind {
+   |          ------- variants in this enum
+51 |     A1,
+   |     ^^
+52 |     A2,
+53 |     A3,
+   |     ^^
+...
+61 |     A11,
+   |     ^^^
+   |
+   = note: `ActKind` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variants `PolicyDefault` and `NotSet` are never constructed
+   --> tests/../src/act_policy.rs:300:5
+    |
+298 | pub enum GrantDisplay {
+    |          ------------ variants in this enum
+299 |     PersonSet,
+300 |     PolicyDefault,
+    |     ^^^^^^^^^^^^^
+...
+304 |     NotSet,
+    |     ^^^^^^
+    |
+    = note: `GrantDisplay` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: struct `RecordValidator` is never constructed
+   --> tests/../src/schema_validation.rs:121:12
+    |
+121 | pub struct RecordValidator(Validator);
+    |            ^^^^^^^^^^^^^^^
+
+warning: associated items `from_resources` and `validate` are never used
+   --> tests/../src/schema_validation.rs:125:12
+    |
+122 | impl RecordValidator {
+    | -------------------- associated items in this implementation
+...
+125 |     pub fn from_resources(resources: &[(&str, &str)]) -> Result<Self, String> {
+    |            ^^^^^^^^^^^^^^
+...
+130 |     pub fn validate(&self, entry: &Value) -> Result<(), String> {
+    |            ^^^^^^^^
+
+warning: function `bundled` is never used
+   --> tests/../src/schema_validation.rs:138:8
+    |
+138 | pub fn bundled() -> Result<&'static RecordValidator, String> {
+    |        ^^^^^^^
+
+warning: fields `package`, `offer`, and `capture` are never read
+   --> tests/../src/schema_validation.rs:147:5
+    |
+146 | struct ActValidators {
+    |        ------------- fields in this struct
+147 |     package: Validator,
+    |     ^^^^^^^
+148 |     offer: Validator,
+    |     ^^^^^
+149 |     capture: Validator,
+    |     ^^^^^^^
+
+warning: function `act_validators` is never used
+   --> tests/../src/schema_validation.rs:165:4
+    |
+165 | fn act_validators() -> Result<&'static ActValidators, String> {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `validate_package` is never used
+   --> tests/../src/schema_validation.rs:174:8
+    |
+174 | pub fn validate_package(package: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `validate_offer` is never used
+   --> tests/../src/schema_validation.rs:181:8
+    |
+181 | pub fn validate_offer(offer: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `validate_capture` is never used
+   --> tests/../src/schema_validation.rs:188:8
+    |
+188 | pub fn validate_capture(capture: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: struct `StandingFacets` is never constructed
+   --> tests/../src/standing.rs:201:12
+    |
+201 | pub struct StandingFacets {
+    |            ^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (test "policy_standing") generated 11 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.08s
+     Running tests/policy_standing.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/policy_standing-0852f28a14001bdd)
+
+running 10 tests
+test phase_one_lapse_does_not_rehold_or_resume_ended_run ... ok
+test lapse_compares_opaque_method_and_keeps_observed_history ... ok
+test returning_to_old_identity_never_silently_restores_checkpoint_act ... ok
+test pending_request_and_refusal_never_supersede_governing_grant ... ok
+test reserved_operations_and_default_do_not_create_acceptance ... ok
+test joint_answer_and_non_acts_and_mixed_items ... ok
+test setting_checkpoint_requires_control_establishment_not_only_an_act ... ok
+test scope_and_real_setting_and_confirmation_are_all_required ... ok
+test schema_validation::tests::act_targets_refuse_unavailable_or_invalid_aac_resources ... ok
+test maintained_contract_examples_validate_without_semantic_admission ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+

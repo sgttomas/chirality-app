@@ -1,0 +1,23 @@
+{
+  "format": "group-b-terminal-fixture-provenance.v1",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "--ignored",
+      "--exact",
+      "hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected",
+      "--test-threads=1"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "c568f53b288c142e444f936296cee1d29477f83f0ce19b2cc2c5506139bfca58",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71"
+  },
+  "exchange_sha256": {
+    "selected": "da0be8194038bd5121db3c6e5017ff401ad5d3c58cce397686373012260f1ce6",
+    "unselected": "b4558f0f44ea7610ac569965fe9df786124cc312f46abe49d7c2ff809e77120e"
+  },
+  "standing": "Actual synthetic completed LT09/LT23 export pair, not native capability or qualification",
+  "exporter_source_sha256": "bf2e76f064ab49a9c7d530f980c9a2d14b6697d851e5840d3fed977fcc9dc4e8",
+  "committed_export_receipt_sha256": "4ad0581d411bf5414c5dfc70219a185f770086a9f0d378f7835d3a1f059653a5"
+}

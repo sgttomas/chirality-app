@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-11:input-set-manifest:0.1",
+  "title": "Reconstruction input-set manifest (DEL-09-11 RRM-v0.1 §3; PROPOSED)",
+  "description": "Everything the reader is given, and nothing else. Records are authority; items marked 'not_authority' may be read but never support a claim (REQ-004). Session and harness identities are named, never supplied as content (DEL-09-07 DOS DJ-1).",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "input_set_id",
+    "source_journey",
+    "items",
+    "withheld"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "rrm_input_set"
+    },
+    "format": {
+      "const": "RRM-v0.1"
+    },
+    "input_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_journey": {
+      "type": "object",
+      "required": [
+        "identity",
+        "run_authors",
+        "journey_dates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handoff_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "DEL-09-07 dossier manifest's handoff_del_09_11, when the source is a V4-EXM-20 journey"
+        },
+        "run_authors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "identity",
+              "role"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "identity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "journey_dates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "value",
+              "source"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+              },
+              "source": {
+                "enum": [
+                  "observed_clock",
+                  "record_timestamp",
+                  "stated_by_person"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256",
+          "standing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "standing": {
+            "enum": [
+              "record",
+              "project_file",
+              "host_evidence",
+              "not_authority",
+              "definition"
+            ],
+            "description": "record, project_file and host_evidence may support claims; definition says how something is computed or identified (for example a digest rule) and may support a check, never an act or outcome; not_authority may be read but never supports a claim (RRM §3)."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "additionalProperties": false,
+            "description": "For an item copied from outside the source journey (a definition): the repository file it comes from.",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "standing": {
+                  "const": "definition"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "source"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "withheld": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "identity",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "identity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "harness_session",
+              "host_agent_conversation",
+              "app_conversation",
+              "author_memory",
+              "derived_view"
+            ]
+          }
+        }
+      },
+      "description": "Named so separation can be shown; never supplied."
+    }
+  }
+}

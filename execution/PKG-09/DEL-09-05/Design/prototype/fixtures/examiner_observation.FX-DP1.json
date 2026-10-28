@@ -1,0 +1,21 @@
+{
+  "format": "dac.examiner-observation",
+  "formatVersion": "0.1",
+  "standing": "constructed for a rehearsal on FX-DP1; invented; no person acted and no examiner observed anything",
+  "observer": "examiner (invented)",
+  "observations": [
+    {
+      "package_file": "project/decisions/PKG-1.json",
+      "observed": "act performed",
+      "surface": "App act control",
+      "person": "Engineer A",
+      "alternative": "ALT-2",
+      "source": "native observation of the person operating the control, with the person's own statement of what they chose"
+    },
+    {
+      "package_file": "project/decisions/PKG-2.json",
+      "observed": "no act observed",
+      "source": "native observation over the session; the person states they have not decided"
+    }
+  ]
+}

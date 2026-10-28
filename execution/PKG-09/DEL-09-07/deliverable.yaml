@@ -1,0 +1,240 @@
+id: DEL-09-07
+name: Local host candidate qualification
+needs:
+- from: DEL-09-06
+  condition: 'Consume the actual agreed activity and App/host workflow round-trip agreement from DEL-09-06
+    before dependent qualification execution, including the selected useful operation, permitted autonomy
+    and exact candidate environment.
+
+
+    Notes: FACT: INITIALIZED is only the local contract threshold. Actual agreement and applicable OI-021/OQ-11
+    choices are required at their stated points of need; their receipt/adoption is not established. Independent
+    definition continues.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: package:PKG-02
+  condition: 'Consume the applicable PKG-02 contracts for local host qualification together with the actual
+    agreed activity.
+
+
+    Notes: FACT: Positive consumption statement, not an owner/exclusion list. Exact contributing deliverable
+    or contract subset is not resolved by this source; no guessed per-deliverable edges or whole-package
+    completion gate. Actual contract availability remains unclaimed; maturity TBD at package level.
+
+
+    Target description — TargetName: Workflow and role portability; TargetRefID: PKG-02; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-02'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: package:PKG-03
+  condition: 'Consume the applicable PKG-03 contracts for local host qualification together with the actual
+    agreed activity.
+
+
+    Notes: FACT: Positive consumption statement, not an owner/exclusion list. Exact contributing deliverable
+    or contract subset is not resolved by this source; no guessed per-deliverable edges or whole-package
+    completion gate. Actual contract availability remains unclaimed; maturity TBD at package level.
+
+
+    Target description — TargetName: Host capability and operation contracts; TargetRefID: PKG-03; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-03'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: package:PKG-04
+  condition: 'Consume the applicable PKG-04 contracts for local host qualification together with the actual
+    agreed activity.
+
+
+    Notes: FACT: Positive consumption statement, not an owner/exclusion list. Exact contributing deliverable
+    or contract subset is not resolved by this source; no guessed per-deliverable edges or whole-package
+    completion gate. Actual contract availability remains unclaimed; maturity TBD at package level.
+
+
+    Target description — TargetName: Human acts, autonomy and run evidence; TargetRefID: PKG-04; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-04'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: package:PKG-05
+  condition: 'Consume the applicable PKG-05 contracts for local host qualification together with the actual
+    agreed activity.
+
+
+    Notes: FACT: Positive consumption statement, not an owner/exclusion list. Exact contributing deliverable
+    or contract subset is not resolved by this source; no guessed per-deliverable edges or whole-package
+    completion gate. Actual contract availability remains unclaimed; maturity TBD at package level.
+
+
+    Target description — TargetName: Embedded-host receiving integration; TargetRefID: PKG-05; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-05'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Receive the external SWB contribution before the corresponding connected examination: actual
+    candidate execution, complete same-run host-network observation with native destination-enforcement
+    evidence (selected model service and person-allowed destinations, each recorded and shown), and host
+    receipts/outcomes for the local-model journey.
+
+
+    Notes: FACT: DEP-001 is the App external-dependency reference, not a local DEP register ID or App
+    deliverable. Current source standing: OWNER_REPORTED_BUILDING_BEFORE_AGENT_ACTION_INTEGRATION (CLM-004).
+    Human-relayed repository evidence must show actual receipt. Host construction remains external; source
+    inspection, fixtures and local initialization do not establish delivery. Per the revised SoW (REQ-006,
+    AC-006, VER-006 as amended by SCA-V4-001 applying APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5): the
+    received host-network observation must be complete for the same V4-EXM-20 candidate/run and show requests
+    only to the model service the person selected and to destinations the person allowed (in advance or
+    when the agent asked), a declined request reaching no destination, nothing else contacted unless the
+    person turned it on, and every destination contacted recorded and shown, with actual native enforcement
+    evidence for the selected model service and allowed destinations; a partial capture, schema, mock,
+    browser-only witness or substitute fixture cannot pass the criterion. History: the pre-SCA-V4-001
+    wording "same V4-EXM-20 candidate/run/configured endpoint" is superseded (ASC-ISS-007); the 2026-09-29
+    DX-3 UPDATE refreshed the Statement for SCA-V4-001 (configured endpoint -> selected model service
+    and person-allowed destinations); this 2026-09-29 DX UPDATE (SCA-V4-002) restated these Notes against
+    the revised SoW. Quote, type, target, maturity and SatisfactionStatus unchanged.
+
+
+    Target description — TargetName: External SWBPIPE owner — candidate execution, traffic and receipt
+    contribution (DEP-001); TargetRefID: DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv#DEP-001'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Actual App/SWBPIPE candidate and local-model runtime configuration
+  condition: 'Qualification consumes an identified App/host candidate and dated configuration, harness/model
+    versions, local model server, adopted operation policy and the actual received contribution/activity;
+    bind every observation to that runtime basis.
+
+
+    Notes: FACT: Distinct from DEP-001 execution/traffic/receipt evidence: this is the actual examination
+    environment and configuration input. Candidate versions, provider/model identity, endpoint and deployment
+    are not supplied by this extraction and remain TBD. Required local-model V4-EXM-20 witness is not
+    replaceable by mock/schema/browser-only evidence; no blanket provider-completion gate is invented.
+
+
+    Target description — TargetName: Actual App/SWBPIPE candidate and local-model runtime configuration'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Person/engineer — scoped V4-EXM-20 row decisions
+  condition: 'The completed V4-EXM-20 witness needs the person to review the proposed old/new host-table
+    rows, accept some rows individually and reject one; retain the actual actor, affected content, scope/purpose
+    and receipts.
+
+
+    Notes: FACT: Scoped live-witness human input, not agent-attributed acceptance. One completed local-model
+    request-to-person-acceptance journey must actually pass. Execution, checking, approval and reliance
+    remain separate; no favorable engineering approval or professional reliance act is required or inferred.
+
+
+    Target description — TargetName: Person/engineer — scoped V4-EXM-20 row decisions'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Engineer-edited model and agent checking request for V4-EXM-21
+  condition: 'Begin V4-EXM-21 with the actual engineer-edited model and agent checking request so non-mutating
+    findings can be examined against the relevant rows/results and read basis.
+
+
+    Notes: FACT: Required examination fixture/input with its actual provenance; provider and exact candidate
+    configuration remain as received. Agent findings do not constitute a human Checked act, approval or
+    professional reliance. Faithful recording of an actual human act remains permitted.
+
+
+    Target description — TargetName: Engineer-edited model and agent checking request for V4-EXM-21'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Person-adopted per-operation autonomy policy and actual run setting
+  condition: 'For V4-EXM-22 consume the explicitly adopted operation policy and actual visible/recorded
+    per-class run setting: one allowed low-consequence direct-operation class and proposals for model
+    geometry.
+
+
+    Notes: FACT: Actual policy adoption and settings are required inputs for this scenario; running a
+    case cannot decide the open OI-001/OI-002 policy. Preserve conservative SWB model-change proposal
+    default and the person''s ability to widen the setting. No new thresholds or classifier rules are
+    invented. | 2026-09-29 DX UPDATE (SCA-V4-002): FACT: revised CLM-002/TBD-002/TBD-003 (F-0907-01/02/03)
+    record the first-increment reserved-act and classifier rulings (DECISION-1 D2/D3); running the V4-EXM-22
+    case still settles neither the residual matters (DEP-09-07-022/-023) nor OI-021 additions. Quote and
+    all other fields unchanged.
+
+
+    Target description — TargetName: Person-adopted per-operation autonomy policy and actual run setting'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Person's actual declared workflow-checkpoint act for V4-EXM-22
+  condition: 'The V4-EXM-22 checkpoint witness requires the specified person to perform the declared checkpoint
+    act; the act is requested and recorded only when the person performs it, despite the adopted autonomy
+    setting. Hold/release by that act is examined only for a workflow that takes up the governance phase.
+
+
+    Notes: FACT: Scoped required witness act distinct from policy adoption and row acceptance. The person
+    performs it; the host/agent records it. Do not infer one act from another or impose an acceptance
+    prerequisite on independently evidenced checking, approval or reliance. | 2026-09-29 DX-3 UPDATE:
+    FACT: refreshed in place for the SCA-V4-001 revision of REQ-005/AC-005/VER-005 (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-1 phasing). legacy_EvidenceQuote="workflow checkpoint hold/release only by the required actual
+    human act." (no longer in the SoW). Same input (the person''s actual checkpoint act); type, target
+    and SatisfactionStatus unchanged.
+
+
+    Target description — TargetName: Person''s actual declared workflow-checkpoint act for V4-EXM-22'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:OI-001
+  condition: 'Any reserved-act matter that the first-increment ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2) does not cover stays with the Owner with App/SWB contract owners, point of need before operation-policy
+    production contracts; an examination criterion that depends on such an uncovered operation awaits
+    its disposition (PRD OQ-02). Operation-specific additions for the examined activity remain OPEN under
+    OI-021 (TBD-001). This deliverable consumes the adopted choice without deciding it.
+
+
+    Notes: FACT: Point of need: before operation-policy production contracts; choose by concrete operation
+    and consequence. Applies to affected policy-dependent work only; unrelated definition/verification
+    continues. No withdrawn blanket reserved-act list is reinstated. | 2026-09-29 DX UPDATE (SCA-V4-002):
+    FACT: refreshed in place (same target OI-001, same owner and point of need) after SCA-V4-002 F-0907-02
+    revised TBD-002: OI-001 is ruled for the first increment''s App/shared contracts by DECISION-1 D2
+    (marking checked; accepting a proposal where the autonomy requires one; engineering approval; professional
+    reliance; changing the grant or enabling external access); the host names and enforces its own list
+    (HOST V4-HI-30; DEP-001). The prior quote no longer appears; the residual constraint is narrowed to
+    uncovered operations. Current Open_Issues.csv OI-001 still reads OPEN (own route). Type, maturity
+    and SatisfactionStatus unchanged.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — OI-001 reserved-act matters
+    not covered by the first-increment ruling D2 (OI-021 additions for the examined activity); TargetRefID:
+    OI-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-001'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:OI-002
+  condition: 'A dependent examination criterion outside the first-increment classifier ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D3: routine tool-permission and sandbox modes remain the user''s own Codex setting; hosts have no
+    classifier permission mode; the SWB default proposal mode applies) is fixed only after its disposition
+    (PRD OQ-02); host adoption remains under DEP-001. No classifier behavior is selected here.
+
+
+    Notes: FACT: Point of need: before permission-policy implementation. No classifier behavior selected
+    here, no universal start gate and no assumption that a local initialized contract settles the policy.
+    | 2026-09-29 DX UPDATE (SCA-V4-002): FACT: refreshed in place (same target OI-002) after SCA-V4-002
+    F-0907-03 revised TBD-003: OI-002 is ruled by DECISION-1 D3; the prior quote no longer appears; the
+    residual constraint is narrowed to criteria outside that ruling. Current Open_Issues.csv OI-002 still
+    reads OPEN (own route). Type, maturity and SatisfactionStatus unchanged.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — OI-002 classifier matters outside
+    the first-increment ruling D3; TargetRefID: OI-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-002'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: external:Independent examiner — joined local qualification dossier examination
+  condition: 'Obtain independent examination of the joined candidate dossier, its source fidelity, evidence
+    joins, candidate applicability and remaining limits before treating the dossier as independently examined.
+
+
+    Notes: FACT: Examiner identity and actual check result remain unprovided. This extraction performs
+    local schema/semantic checks only; it does not impersonate the dossier examiner, satisfy qualification
+    or create a new human-acceptance requirement.
+
+
+    Target description — TargetName: Independent examiner — joined local qualification dossier examination'
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-09-07
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+checks:
+- execution/PKG-09/DEL-09-07/Design/prototype/cir_check.py
+- execution/PKG-09/DEL-09-07/Design/prototype/dos_check.py
+- execution/PKG-09/DEL-09-07/Design/prototype/top_check.py

@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-08-02:research-context-account:0.1",
+  "title": "Research context account (DEL-08-02 RTD-v0.1 §3; PROPOSED)",
+  "description": "What a research run assembled for one design candidate: the question, the Domains receiving records it used, the evidence with its standing, the inferences drawn from it, the gaps, and the candidate it supports (REQ-001, REQ-002). Rules RC-1…RC-5 that a schema cannot express are checked by prototype/check_rtd.py; RC-6 (held) is enforced here. Retrieval is not evidence until its standing supports reliance (DEL-07-02 CS-R1; DEL-08-01 DR-4). The account is what the person's candidate decision is bound to, together with the candidate's own content identity (RTD §4 CA-2). Names are Chirality labels; no provider, host or wire field is selected.",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "account_id",
+    "question",
+    "receiving_records",
+    "evidence",
+    "inferences",
+    "gaps",
+    "candidate",
+    "standing",
+    "recorder"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "chirality.research.context-account"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "account_id": {
+      "type": "string",
+      "pattern": "^rc:[A-Za-z0-9._-]+$"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "receiving_records": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^dr:"
+      },
+      "description": "DEL-08-01 Domains receiving records used; empty when Domains was absent."
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "source_ref",
+          "revision",
+          "statement",
+          "use"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "use": {
+            "enum": [
+              "admitted_evidence",
+              "located_only",
+              "limited"
+            ],
+            "description": "admitted_evidence only when the item's standing supports reliance (CS-R1); located_only for a hit without admission; limited for stale, partial or unknown material, kept visible but not relied on."
+          },
+          "standing_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "inferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "inference_id",
+          "statement",
+          "from"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "inference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "evidence_id or inference_id values; an inference resting on located_only or limited evidence says so in 'limits'"
+          },
+          "limits": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "gap",
+          "effect"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gap": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responsible": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "candidate": {
+      "description": "The design candidate this context supports, or null when no candidate was produced (e.g. research held for a missing input).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "candidate_ref",
+            "content_identity",
+            "rests_on"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "candidate_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_identity": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The host's content identity of the candidate (host-owned; RS OF-3). Null when the host supplies none: then no decision can be bound to it (CA-2)."
+            },
+            "rests_on": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "standing": {
+      "enum": [
+        "supported",
+        "limited",
+        "held"
+      ],
+      "description": "supported: every evidence item the candidate rests on is admitted_evidence; limited: the candidate rests on at least one located_only or limited item, which the account names; held: research waits for a missing input and no candidate is produced. The 'supported' condition over rests_on is checked by RTD's check (RC-1), not by this schema."
+    },
+    "recorder": {
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "agent",
+            "host",
+            "app",
+            "tool"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "held"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "candidate": {
+            "type": "null"
+          },
+          "gaps": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

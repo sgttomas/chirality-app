@@ -1,0 +1,200 @@
+id: DEL-11-02
+name: Consumer-specific renewed-basis adoption
+needs:
+- from: DEL-10-03
+  condition: 'Consume DEL-10-03 shared responsibility and technical-promise allocation as the basis for
+    adoption consequences.
+
+
+    Notes: FACT: INITIALIZED applies only to the local contract; the actual responsibility/promise account
+    must be supplied for its use and receipt is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: package:PKG-02
+  condition: 'Consume the relevant PKG-02 contracts identified by the adoption account for their actual
+    adoption consequences.
+
+
+    Notes: FACT: The next sentence explicitly says this deliverable consumes these identified contracts.
+    Package-level source granularity is retained; no unsupported individual deliverable edges or package
+    lifecycle threshold. Actual applicable contracts must be identified and received.
+
+
+    Target description — TargetName: Workflow and role portability; TargetRefID: PKG-02; TargetLocation:
+    projects/chirality-app-v4/execution/PKG-02_Workflow and role portability'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: package:PKG-03
+  condition: 'Consume the relevant PKG-03 contracts identified by the adoption account for their actual
+    adoption consequences.
+
+
+    Notes: FACT: The next sentence explicitly says this deliverable consumes these identified contracts.
+    Package-level source granularity is retained; no unsupported individual deliverable edges or package
+    lifecycle threshold. Actual applicable contracts must be identified and received.
+
+
+    Target description — TargetName: Host capability and operation contracts; TargetRefID: PKG-03; TargetLocation:
+    projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: package:PKG-04
+  condition: 'Consume the relevant PKG-04 contracts identified by the adoption account for their actual
+    adoption consequences.
+
+
+    Notes: FACT: The next sentence explicitly says this deliverable consumes these identified contracts.
+    Package-level source granularity is retained; no unsupported individual deliverable edges or package
+    lifecycle threshold. Actual applicable contracts must be identified and received.
+
+
+    Target description — TargetName: Human acts, autonomy and run evidence; TargetRefID: PKG-04; TargetLocation:
+    projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: package:PKG-05
+  condition: 'Consume the relevant PKG-05 contracts identified by the adoption account for their actual
+    adoption consequences.
+
+
+    Notes: FACT: The next sentence explicitly says this deliverable consumes these identified contracts.
+    Package-level source granularity is retained; no unsupported individual deliverable edges or package
+    lifecycle threshold. Actual applicable contracts must be identified and received.
+
+
+    Target description — TargetName: Embedded-host receiving integration; TargetRefID: PKG-05; TargetLocation:
+    projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:DEP-006
+  condition: 'Receive affected owners'' identified adoption evidence, packaging/tool-path consequences
+    and continuing-obligation dispositions; retain their actual scope, actor and separate evidence for
+    every claimed act.
+
+
+    Notes: FACT: External to this deliverable''s act; own source records remain authoritative. Actual
+    adoption/change/check evidence must be received for the corresponding claim. Publication, App acceptance,
+    prepared notice or a recording act establishes no other consumer adoption. Faithful recording of a
+    performed human decision retains that human as actor and the coordinator as recorder.
+
+
+    Target description — TargetName: App-v4 DEP-006 — affected Root, Runtime, App and Piping receiving-owner
+    evidence; TargetRefID: DEP-006; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-006'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: unknown
+  condition: 'Obtain and compare relevant later-mainline and consumer source changes against the historical
+    research pin before relying on it as a current implementation map.
+
+
+    Notes: FACT: The historic pin is e548d4cfada4d2105de6231516dc6e5fc4bd4689 in CLM-005. Specific later
+    revisions and the comparison corpus are unresolved; the source-reference table S2 locates the historical
+    account. This constraint applies at current-map reliance and does not turn source inspection into
+    deployment or observed behavior.
+
+
+    Target description — TargetName: Relevant later mainline and consumer changes for the pinned research
+    comparison'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-017
+  condition: 'Before dependent manual-edition reliance, the owning project-definition manager records
+    the actual adopted editions and content identities.
+
+
+    Notes: FACT: The local _REFERENCES.md identifies a subsequent CURRENT_EXECUTION_BASIS.md selection
+    for this definition run only. That target body was not loaded; this extraction neither repeats a blanket
+    unresolved-run claim nor marks broader adoption fulfilled. Owner decision/act and fulfillment are
+    unclaimed; independent authorized definition continues.
+
+
+    Target description — TargetName: App-v4 OI-017 — project manual edition/content-identity record; TargetRefID:
+    OI-017; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-017'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-018
+  condition: 'Before instruction changes or dependent supply, the owner with shared/project instruction
+    owners defines the distribution/adoption arrangement.
+
+
+    Notes: FACT: The settled manual-led direction is retained. No replacement precedence tree or distribution
+    mechanism is selected. Owner decision/act and fulfillment are unclaimed; independent authorized definition
+    continues.
+
+
+    Target description — TargetName: App-v4 OI-018 — instruction distribution/adoption arrangement; TargetRefID:
+    OI-018; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-018'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-019
+  condition: 'When a consequential manual gap affects selected work, obtain the owner with execution manager
+    disposition of improvised practice and escalation.
+
+
+    Notes: FACT: Conditional point of need only; uncertainty does not halt independent preparation. Owner
+    decision/act and fulfillment are unclaimed; independent authorized definition continues.
+
+
+    Target description — TargetName: App-v4 OI-019 — consequential manual-gap disposition; TargetRefID:
+    OI-019; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-019'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-020
+  condition: 'Before revising manuals from feedback, the owner settles revision authorship and approval
+    arrangements.
+
+
+    Notes: FACT: No manual revision is performed or authorized here; the earlier owner-from-agent-proposals
+    default is not an adopted assignment. Owner decision/act and fulfillment are unclaimed; independent
+    authorized definition continues.
+
+
+    Target description — TargetName: App-v4 OI-020 — manual revision authorship/approval arrangement;
+    TargetRefID: OI-020; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-020'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-024
+  condition: 'Before each adoption or retirement decision, the owner with affected consumers identifies
+    adopters, continuing obligations and end-of-coexistence conditions.
+
+
+    Notes: FACT: Fallback replacement does not decide all-project retirement or professional acceptance.
+    This disposition is distinct from each actual adoption decision and its faithful recording. Owner
+    decision/act and fulfillment are unclaimed; independent authorized definition continues.
+
+
+    Target description — TargetName: App-v4 OI-024 — staged adoption and retirement disposition; TargetRefID:
+    OI-024; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-024'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'Before affected structural/production allocation, App/shared contract owners place shared
+    contracts/components against actual consumer responsibilities and agree ownership before common implementation.
+
+
+    Notes: FACT: The adoption account carries affected consequences; it does not allocate common implementation,
+    a service, host construction or a provider. Owner decision/act and fulfillment are unclaimed; independent
+    authorized definition continues.
+
+
+    Target description — TargetName: App-v4 OI-014 — shared contract/component placement decision; TargetRefID:
+    OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'Provide the role-specific source identity, actual supplied bytes and enforcement-limit evidence
+    to the consumer-specific adoption owner through the existing interface.
+
+
+    Notes: FACT: CLM-002 identifies this receiving Deliverable. Actual usable role evidence is required;
+    INITIALIZED does not prove evidence delivery. Record schemas and adoption decisions remain with their
+    owners; no adoption act or recipient completion is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-10-01
+  condition: 'Supply affected basis/manual-application adoption implications, with consumer and source
+    identity, to DEL-11-02 at each receiving transition or retirement point of need.
+
+
+    Notes: FACT: REQ-007 positively requires the transfer; CLM-005 resolves the receiving-adoption coordinator
+    to DEL-11-02. Actual affected basis/source-identity account is required; INITIALIZED denotes checked
+    contract only. Each receiving owner retains its actual adoption act; prepared information is not adoption.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md

@@ -1,0 +1,58 @@
+{
+  "format": "supplier-label-probe/1",
+  "probe": "H-probe version label (HOSTING section 7.2; ACCESS H-probe): bin/codex --version only",
+  "tree": {
+    "method": "codex-vendor-tree-v1",
+    "root": "<fresh extraction>/package/vendor/aarch64-apple-darwin",
+    "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+    "inventory_equal_to_expected": true,
+    "executable_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
+  },
+  "probe_directory": "<probe> = a new empty mktemp -d directory outside the repository and outside every account home, holding empty codex-home/, home/, tmp/ and cwd/",
+  "command": {
+    "argv": [
+      "<root>/bin/codex",
+      "--version"
+    ],
+    "working_directory": "<probe>/cwd",
+    "environment": {
+      "CODEX_HOME": "<probe>/codex-home",
+      "HOME": "<probe>/home",
+      "TMPDIR": "<probe>/tmp",
+      "PATH": "<root>/codex-path:/usr/bin:/bin"
+    },
+    "environment_policy": "Explicit four-variable environment; nothing inherited. No credential variable, no CODEX_MANAGED_PACKAGE_ROOT or CODEX_MANAGED_BY_NPM, no npm wrapper. Never ~/.codex. No sign-in, no network use requested.",
+    "launcher": "Python subprocess.run with env= set to exactly the four variables above (the host refused a shell command that sets HOME); timeout 60 s"
+  },
+  "run": {
+    "started_utc": "2026-10-10T19:06:26.909Z",
+    "ended_utc": "2026-10-10T19:06:28.830Z",
+    "exit_code": 0,
+    "stdout": "codex-cli 0.160.0\n",
+    "stdout_bytes": 18,
+    "stdout_sha256": "f6464b8cc67af75deb2589fe1dbcde152fc15ffb76a91de1cf0686b4623afb1e",
+    "stderr": "",
+    "stderr_bytes": 0
+  },
+  "parsed": {
+    "syntax": "codex-cli <major.minor.patch> with optional final LF (S1 model rule)",
+    "observed_label": "0.160.0",
+    "equals_pin": true
+  },
+  "side_effects": {
+    "probe_codex_home_after": [
+      "tmp",
+      "tmp/arg0",
+      "tmp/arg0/codex-arg0<random>",
+      "tmp/arg0/codex-arg0<random>/.lock",
+      "tmp/arg0/codex-arg0<random>/apply_patch",
+      "tmp/arg0/codex-arg0<random>/applypatch",
+      "tmp/arg0/codex-arg0<random>/codex-execve-wrapper"
+    ],
+    "note": "This is the documented S-F-17 write into the home the probe runs against; the three names are symbolic links to <root>/bin/codex. home/, tmp/ and cwd/ stayed empty. The measured tree was unchanged (re-inventory byte-identical)."
+  },
+  "limits": [
+    "Paths are redacted to placeholders; the scratch location is machine-local.",
+    "This is the label component only. It is not an App launch, a handshake, an App-produced observed-verification.s1 record or runtime verification of an installed bundle."
+  ]
+}

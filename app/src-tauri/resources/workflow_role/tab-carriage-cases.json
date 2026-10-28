@@ -1,0 +1,180 @@
+{
+  "oracle": "Existing local markdown-it-py 4.2.0 commonmark block-token levels, no downloads/runtime dependency; literal expected_root values checked independently",
+  "cases": [
+    {
+      "text": "-\tExample\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "-\tExample\n\n   ```workflow-declaration\n   {}\n   ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "-\tExample\n\n\t```workflow-declaration\n\t{}\n\t```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "-\tExample\n\n    ```workflow-declaration\n    {}\n    ```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "-   Example\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "-   Example\n\n   ```workflow-declaration\n   {}\n   ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "-   Example\n\n\t```workflow-declaration\n\t{}\n\t```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "-   Example\n\n    ```workflow-declaration\n    {}\n    ```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "1.\tExample\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1.\tExample\n\n   ```workflow-declaration\n   {}\n   ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1.\tExample\n\n\t```workflow-declaration\n\t{}\n\t```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "1.\tExample\n\n    ```workflow-declaration\n    {}\n    ```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "1.  Example\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1.  Example\n\n   ```workflow-declaration\n   {}\n   ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1.  Example\n\n\t```workflow-declaration\n\t{}\n\t```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "1.  Example\n\n    ```workflow-declaration\n    {}\n    ```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "- Example\n\tcontinuation\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": false,
+      "independent_token_levels": [
+        2
+      ]
+    },
+    {
+      "text": "-\tExample\n\tcontinuation\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1. Example\n\tcontinuation\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "1.\tExample\n\tcontinuation\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "- Example\n\n-\tSibling\n\n  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "```workflow-declaration\n{}\n```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": " ```workflow-declaration\n {}\n ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "  ```workflow-declaration\n  {}\n  ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    },
+    {
+      "text": "   ```workflow-declaration\n   {}\n   ```",
+      "expected_root": true,
+      "independent_token_levels": [
+        0
+      ]
+    }
+  ]
+}

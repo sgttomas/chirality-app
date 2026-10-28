@@ -1,0 +1,104 @@
+id: DEL-09-10
+name: Optional connector consumption witness
+needs:
+- from: DEL-07-01
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
+- from: DEL-07-02
+  condition: 'Consume the applicable connector limitation/fallback implementation for the identified candidate;
+    observe the actual source-file recovery or record its sound-basis limitation.
+
+
+    Notes: FACT; CLM-002 resolves the named PKG-07 fallback contribution to DEL-07-02; REQ-002 requires
+    actual observations. Fallback implementation is distinct from the actual source material used below.
+    INITIALIZED is checked local contract maturity only; actual required contribution must be received
+    for the dependent examination and is not marked fulfilled.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'Apply the supplied Domains source/admission/freshness contract where the examination needs
+    that interface; preserve independent connector availability and the original absent-PEC/stale-Domains
+    case.
+
+
+    Notes: FACT; CLM-002 resolves this contract to DEL-08-01. No Domains deployment, tool, data destination,
+    API readiness or later research-to-design completion is assumed. OI-023/OI-026 remain at their actual
+    points of need. INITIALIZED is checked local contract maturity only; actual required contribution
+    must be received for the dependent examination and is not marked fulfilled.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+- from: 'external:Selected receiving consumer: actual adopted envelope and permitted-action evidence'
+  condition: 'The qualified-case execution record must be checked against the selected receiving consumer''s
+    actual adopted envelope and supporting adoption evidence for the observed permitted receiving action.
+
+
+    Notes: FACT; Run-specific consumer and adoption-record identity are not selected here; no stable target
+    ID invented. This is receipt of actual adoption evidence for the required qualified witness, not a
+    request for a new or favorable human act. Provider qualification/release and consumer adoption remain
+    different facts.
+
+
+    Target description — TargetName: Selected receiving consumer: actual adopted envelope and permitted-action
+    evidence'
+  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+- from: 'doc:Actual source files for fallback: graphs, decisions and revisions'
+  condition: 'Actual source-file recovery uses the graphs, decisions and revisions relevant to the same
+    coordination question, where the source basis is sound; retain unavailable basis and unknowns when
+    recovery cannot be established.
+
+
+    Notes: FACT; CLM-003 identifies graphs, decisions and revisions as the source material. Exact run
+    source files remain unselected; no path or new provider prerequisite invented. Agents compare sources,
+    managers review/integrate and the human carries cross-undertaking coordination; faithful evidence
+    recording does not perform those acts.
+
+
+    Target description — TargetName: Actual source files for fallback: graphs, decisions and revisions'
+  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+- from: external:CURRENT OI-022
+  condition: 'Resolve the stated first-consumer contract and reliance questions with the App consumer
+    and PEC owners before operational consumer reliance; preserve actual release identification/evidence,
+    consumer adoption and D108 limitations.
+
+
+    Notes: FACT; Includes response/tool contract, stamp versus reliance declaration, claim/feed grain,
+    coverage/freshness/limits and no-response fallback at the stated point of need. No wire fields, tokens
+    or numeric budgets invented. This condition holds only dependent operational reliance, not independent
+    App or Domains work.
+
+
+    Target description — TargetName: App consumer owner and PEC owner: first-consumer interface and reliance
+    resolution; TargetRefID: CURRENT OI-022; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-022'
+  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'Supply Domains-specific admission/query cases to the broader optional-connector witness.
+
+
+    Notes: FACT: Actual case contribution and standing are needed by the witness; no provider qualification
+    follows from the contract. INITIALIZED is local checked-contract maturity only; actual technical input/transfer
+    remains separately required and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-09-10
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md

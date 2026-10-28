@@ -1,0 +1,138 @@
+id: DEL-08-02
+name: Later research-to-design receiving activity
+needs:
+- from: DEL-08-01
+  condition: 'Consumes the App DEL-08-01 source-admission/query/provenance/freshness contract for the
+    later research method.
+
+
+    Notes: FACT: source-stated relationship; INITIALIZED is local contract maturity only; actual usable
+    query capability and admitted sources are separately required and unverified. REQ-001 confirms consumption.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'Consumes applicable App PKG-02 portable method meanings and evidence in the receiving method.
+
+
+    Notes: FACT: The portable-method meanings and contract evidence are produced by App DEL-02-01 under
+    accepted G3 SOW-021/022/037/038/039/042/043/044/045 and its OUT-001/002/004. Actual received artifacts
+    remain unverified. DEL-08-02 OUT-001 owns the concrete research workflow; this input does not transfer
+    that authorship, establish compatible live execution or create a self-dependency.'
+  gating: true
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: package:PKG-04
+  condition: 'Consumes applicable App PKG-04 distinct act identity meanings and evidence in the receiving
+    method.
+
+
+    Notes: FACT: source-stated relationship; Source resolves only the Package interface; no constituent
+    Deliverable is inferred. Actual received meanings/evidence remain unverified. Apply the activity-specific
+    adopted operation policy; OI-001/OI-002 remain with Owner with App/SWB contract owners at their stated
+    points of need. No synthetic prerequisite between human acts.
+
+
+    Target description — TargetName: Human acts, autonomy and run evidence; TargetRefID: PKG-04; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-04'
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: unknown
+  condition: 'Requires an actually usable compatible Domains provider/query arrangement before dependent
+    implementation and the later live witness.
+
+
+    Notes: FACT: source-stated relationship; Provider/tool owner, construction allocation, deployment
+    and local-data-compatible receiving boundary remain unresolved under OI-023/OI-026. Knowledge outside
+    this repository settles none of these choices. Source-stated input is clear; concrete provider identity
+    is unknown. Later point of need only; initial D05 remains independent.
+
+
+    Target description — TargetName: Domains compatible provider/query arrangement (allocation unresolved)'
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: unknown
+  condition: 'Requires identified admitted source input before research-context reliance and actual admitted
+    test cases for the later witness, including unavailable or unsuitable input.
+
+
+    Notes: FACT: source-stated relationship; The contract is distinct from concrete admitted sources,
+    whose identities are not supplied here. Preserve provenance/freshness/suitability limits; no corpus
+    or threshold inferred. Missing basis holds only dependent research; independently supported work may
+    continue.
+
+
+    Target description — TargetName: Actually admitted Domains research and test source basis'
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: external:SWBPIPE
+  condition: 'Requires actually supplied external SWBPIPE host integration with the actual approval route
+    before the connected host witness.
+
+
+    Notes: FACT: source-stated relationship; SWBPIPE is the external host, not a same-numbered App Deliverable.
+    Construction, query use and candidate presentation remain with its owner; host facilities do not perform
+    the human act. Actual input availability unverified; no handoff document proves delivery.
+
+
+    Target description — TargetName: External SWBPIPE host integration and actual candidate/approval route;
+    TargetRefID: SWBPIPE'
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: external:Human actual content-bound candidate decision and its evidence
+  condition: 'A completed later live witness requires evidence of an actual content-bound human candidate
+    decision and its scope; negative or partial absence evidence alone leaves that witness incomplete.
+
+
+    Notes: FACT: source-stated relationship; No favorable approval or professional reliance is required
+    for witness completion. Actor is distinct from recorder/presenter; edit acceptance, checking, host
+    application and professional reliance retain independent subjects/evidence. No synthetic sequencing
+    between acts; no claim that an act occurred.
+
+
+    Target description — TargetName: Human actual content-bound candidate decision and its evidence'
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-08-02 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-08-02-006 on an existing admitted arc (ledger RP1-MX-0201); no topology change.
+    The consumer row DEP-08-02-006 targets this deliverable with RequiredMaturity TBD; this side keeps
+    the register default (no cross-register convention is set here; R-02-4 is deferred). The CLM-002 ownership
+    list alone remains a non-edge. INITIALIZED is local contract maturity only; no receipt or closure
+    is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'Give DEL-08-02 the identified receiving contract, source/admission/freshness limits, open
+    decisions and actual contribution standing for the later research-to-design activity.
+
+
+    Notes: FACT: Later increment only; not an initial HTML-D05 condition. Provider/query-tool, workflow,
+    host integration and actual human approval retain separate points of need; prepared handoff proves
+    no external agreement or delivery. INITIALIZED is local checked-contract maturity only; actual technical
+    input/transfer remains separately required and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: external:SWBPIPE
+  condition: 'Supplies the App/shared receiving integration contribution and host handoff to the external
+    SWB owner through human relay, distinguishing proposed questions from actual received answers/evidence.
+
+
+    Notes: FACT: source-stated relationship; Human-relayed handoff only; no external agreement, commitment,
+    construction, readiness or adoption inferred. Common implementation requires an agreed concrete repeated
+    responsibility; transport, fields and deployment remain open.
+
+
+    Target description — TargetName: External SWBPIPE owner receiving App/shared integration handoff;
+    TargetRefID: SWBPIPE'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+checks:
+- execution/PKG-08/DEL-08-02/Design/prototype/check_rtd.py

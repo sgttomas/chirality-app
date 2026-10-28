@@ -1,0 +1,47 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: function `evidence_output` is never used
+  --> tests/common/mod.rs:52:8
+   |
+52 | pub fn evidence_output() -> PathBuf {
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `chirality-app-v4` (test "decision_standing") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.42s
+     Running tests/decision_standing.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/decision_standing-9b94396cf2d8397d)
+
+running 8 tests
+test historical_test_value_bytes_and_method_remain_unchanged ... ok
+test synthetic_control_failures_and_cold_replay_boundary_are_unchanged ... ok
+test new_writes_use_selected_exact_buffer_method_and_no_normalization ... ok
+test absent_and_unreadable_are_distinct_and_derivation_writes_nothing ... ok
+test same_value_different_method_is_incomparable_and_claim_remains_unverified ... ok
+test restoration_uses_only_existing_referent_bound_act_lapsed_history ... FAILED
+test schema_valid_cold_capture_cannot_mint_a_human_act ... FAILED
+test different_subject_or_scope_never_becomes_current_standing ... ok
+
+failures:
+
+---- restoration_uses_only_existing_referent_bound_act_lapsed_history stdout ----
+
+thread 'restoration_uses_only_existing_referent_bound_act_lapsed_history' (25935666) panicked at tests/decision_standing.rs:155:9:
+called `Result::unwrap()` on an `Err` value: "RS W-1 validation refused: {\"body\":{\"act\":{\"actKind\":\"A16\",\"capturedAt\":\"2026-10-05T08:38:19.729Z\",\"capturingSurface\":\"App interface\",\"recordId\":\"rec:unrelated\"},\"c0\":{\"method\":\"chirality.app.exact-bytes.sha256/v1\",\"value\":\"2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b\"},\"c1\":{\"method\":\"chirality.app.exact-bytes.sha256/v1\",\"value\":\"c581f3bca8f03bc4e447bd4abe81f706c4e36d45921f447dc50ce68452993ddd\"},\"referents\":[\"decision package rec:app:9819d000-03e2-4c46-8613-4f31996287e2\"],\"state\":\"lapsed\",\"time\":\"fixture-observation-time\"},\"context\":{\"surface\":\"App\"},\"format\":\"chirality.rs.record\",\"formatVersion\":\"0.1\",\"kind\":\"act_lapsed\",\"recordId\":\"rec:app:b7f5e339-d93b-48e2-b6b9-08606ca5963f\",\"recorder\":{\"identity\":\"app-writer:local\",\"role\":\"App writer\"},\"seq\":1,\"writtenAt\":\"2026-10-05T08:38:20.075Z\"} is not valid under any of the schemas listed in the 'oneOf' keyword"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- schema_valid_cold_capture_cannot_mint_a_human_act stdout ----
+
+thread 'schema_valid_cold_capture_cannot_mint_a_human_act' (25935668) panicked at tests/decision_standing.rs:251:5:
+assertion failed: recovered.iter().any(|r|
+        r["state"] == "AC-8 record pending" &&
+            r["originLimit"].as_str().is_some_and(|s|
+                    s.contains("origin not established")))
+
+
+failures:
+    restoration_uses_only_existing_referent_bound_act_lapsed_history
+    schema_valid_cold_capture_cannot_mint_a_human_act
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+
+error: test failed, to rerun pass `--test decision_standing`

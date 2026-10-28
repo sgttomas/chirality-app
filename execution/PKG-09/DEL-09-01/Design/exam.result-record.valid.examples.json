@@ -1,0 +1,554 @@
+[
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-01",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "EXP-VC-03",
+   "owner_deliverable": "DEL-09-01"
+  },
+  "criterion": {
+   "source": "DEL-09-01 ScopeOfWork AC-003",
+   "identity": "sha256:ff772e406c1a315f4dc3a38ab33f2e3ee1f5eedbe7587580c3a8c043410bdeb7"
+  },
+  "activity": "verification",
+  "run_basis": "definition_check",
+  "subject": {
+   "kind": "definition",
+   "version_label": "DEL-09-01/EXP-v0.2 prototype/check_exp.py"
+  },
+  "configuration": {
+   "codex_pin": "not_applicable",
+   "route": {
+    "kind": "model_only"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "observed_clock"
+  },
+  "outcome": "pass",
+  "evidence": [
+   {
+    "ref": "prototype/check_exp.py output",
+    "provenance": "test_definition"
+   }
+  ],
+  "currency": {
+   "state": "current"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-02",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "X-01",
+   "owner_deliverable": "DEL-01-01",
+   "part": "supplier side of verify-spawn-handshake"
+  },
+  "criterion": {
+   "source": "DEL-01-01 HOSTING-v0.9 §9.4 X-01",
+   "identity": "sha256:1223142cc16fadbf6e9e8778b1ea05327769c5642adca795a8c37db20c4b4e0c"
+  },
+  "activity": "verification",
+  "run_basis": "rehearsal",
+  "subject": {
+   "kind": "double",
+   "double": "HOSTING supplier double",
+   "file_digests": [
+    "sha256:fada4ab1c828c753fb2fb82e3562b8ffbf5750ee0e5b75cbc3d0f5a17717c38e DEL-01-01 Design/prototype/supplier_double.py",
+    "sha256:1e56b30d29270ce0af10f239649c4732ce0411c3816c6037e19f16f3ac3b103c DEL-01-01 Design/prototype/double_scenarios.py"
+   ],
+   "recording": "DEL-01-01 Design/generated/0.158.0/_spike/transcripts/A-vendor-warmhome.jsonl"
+  },
+  "configuration": {
+   "codex_pin": "0.158.0",
+   "route": {
+    "kind": "seam_replay"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "observed_clock"
+  },
+  "outcome": "pass",
+  "evidence": [
+   {
+    "ref": "DEL-01-01 Design/generated/0.158.0/_spike/transcripts/A-vendor-warmhome.jsonl",
+    "provenance": "recorded_replay",
+    "fixture_standing": "recorded",
+    "route": "seam_replay"
+   }
+  ],
+  "limits": [
+   {
+    "label": "replay is not a live or candidate witness",
+    "vocabulary": "EXP"
+   }
+  ],
+  "currency": {
+   "state": "historical",
+   "change_ref": "EXP-EX-CI-01"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-03",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "X-01",
+   "owner_deliverable": "DEL-01-01",
+   "part": "supplier side of verify-spawn-handshake"
+  },
+  "criterion": {
+   "source": "DEL-01-01 HOSTING-v0.9 §9.4 X-01",
+   "identity": "sha256:1223142cc16fadbf6e9e8778b1ea05327769c5642adca795a8c37db20c4b4e0c"
+  },
+  "activity": "verification",
+  "run_basis": "rehearsal",
+  "subject": {
+   "kind": "double",
+   "double": "HOSTING supplier double",
+   "file_digests": [
+    "sha256:fada4ab1c828c753fb2fb82e3562b8ffbf5750ee0e5b75cbc3d0f5a17717c38e DEL-01-01 Design/prototype/supplier_double.py",
+    "sha256:1e56b30d29270ce0af10f239649c4732ce0411c3816c6037e19f16f3ac3b103c DEL-01-01 Design/prototype/double_scenarios.py"
+   ]
+  },
+  "configuration": {
+   "codex_pin": "0.160.0",
+   "route": {
+    "kind": "seam_replay"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "observed_clock"
+  },
+  "outcome": "not-run",
+  "not_run_because": "No 0.160.0 recording of X-01 exists yet (HOSTING §9.5 step 7).",
+  "missing_inputs": [
+   {
+    "input": "0.160.0 recording of X-01",
+    "supplier": "DEL-01-01",
+    "point_of_need": "before the X-01 replay at 0.160.0"
+   }
+  ],
+  "evidence": [],
+  "currency": {
+   "state": "reopened",
+   "change_ref": "EXP-EX-CI-01"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-04",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "EXP-VC-08",
+   "owner_deliverable": "DEL-09-01",
+   "part": "native packaged smoke"
+  },
+  "criterion": {
+   "source": "EXAMINATION.md V4-EXM-04",
+   "identity": "sha256:24ed3275719c1ae2d31fc6b676d33427ae7b9da3ca6e1025ea83071f2fded627"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+   "kind": "candidate",
+   "app_candidate": {
+    "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)",
+    "packaged": false
+   }
+  },
+  "configuration": {
+   "codex_pin": "0.158.0",
+   "model": "not_applicable",
+   "model_server": "not_applicable",
+   "route": {
+    "kind": "native_packaged",
+    "platform": {
+     "os": "macOS",
+     "arch": "arm64"
+    },
+    "webview": {
+     "name": "WKWebView",
+     "webkit_version": "not_observed",
+     "os_version": "ILLUSTRATIVE macOS"
+    },
+    "native_route": {
+     "method": "person_operated",
+     "form_ref": "EXP §8.2 form N-1 (not opened)"
+    }
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "stated_by_person"
+  },
+  "outcome": "not-run",
+  "not_run_because": "Planned for this candidate and not attempted: no package exists (R23-20).",
+  "missing_inputs": [
+   {
+    "input": "package and OUT-002 identity record (SCC-003 M2)",
+    "supplier": "DEL-01-06",
+    "point_of_need": "before the native packaged smoke"
+   }
+  ],
+  "evidence": [],
+  "currency": {
+   "state": "current"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-05",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "VC-R-14",
+   "owner_deliverable": "DEL-01-02",
+   "scenario": "V4-EXM-11"
+  },
+  "criterion": {
+   "source": "EXAMINATION.md V4-EXM-11",
+   "identity": "sha256:49d6faf7a018ab0216d7da67d3f3fd004955f17091cdc7596d89921291fffc81"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+   "kind": "candidate",
+   "app_candidate": {
+    "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+   },
+   "invented_material": "EXP example material"
+  },
+  "configuration": {
+   "codex_pin": "0.160.0",
+   "model": {
+    "requested": "ILLUSTRATIVE-local-model"
+   },
+   "model_server": {
+    "kind": "local_provider",
+    "label": "ILLUSTRATIVE local server",
+    "home": "H-acct"
+   },
+   "route": {
+    "kind": "native_development",
+    "platform": {
+     "os": "macOS",
+     "arch": "arm64"
+    },
+    "webview": {
+     "name": "WKWebView",
+     "webkit_version": "ILLUSTRATIVE",
+     "os_version": "ILLUSTRATIVE macOS"
+    },
+    "native_route": {
+     "method": "person_operated",
+     "form_ref": "Evidence/EXP/ILLUSTRATIVE/forms/EXP-EX-05-N1.md"
+    }
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "record_timestamp"
+  },
+  "outcome": "blocked",
+  "blocked_by": "part 'deny one approval and grant another'",
+  "parts": [
+   {
+    "part": "stop a turn",
+    "expectation": "turn ends 'interrupted'; nothing shown as done that was not observed",
+    "outcome": "pass",
+    "needs_native": true,
+    "evidence": [
+     {
+      "ref": "ILLUSTRATIVE capture 1",
+      "provenance": "live_observation",
+      "route": "native_development"
+     }
+    ]
+   },
+   {
+    "part": "deny one approval and grant another",
+    "expectation": "separate settlements, each with its origin",
+    "outcome": "blocked",
+    "needs_native": true,
+    "blocked_by": "the request card did not appear (ILLUSTRATIVE)"
+   },
+   {
+    "part": "quit, relaunch, continue",
+    "expectation": "outstanding requests survive; conversation continues",
+    "outcome": "not-run",
+    "needs_native": true,
+    "not_run_because": "needs the end state of 'deny one approval and grant another'"
+   }
+  ],
+  "evidence": [
+   {
+    "ref": "ILLUSTRATIVE capture 1",
+    "provenance": "live_observation",
+    "route": "native_development"
+   }
+  ],
+  "acts_cited": [
+   {
+    "record_ref": "ILLUSTRATIVE RS human_act record",
+    "kind": "A15",
+    "actor": "the person",
+    "recorder": "App act control"
+   }
+  ],
+  "limits": [
+   {
+    "label": "unobserved adoption",
+    "vocabulary": "RS-v0.9 evidenceLimitLabel"
+   }
+  ],
+  "currency": {
+   "state": "current"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-06",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "EXP-DC-RUNNER",
+   "owner_deliverable": "DEL-09-01"
+  },
+  "criterion": {
+   "source": "DEL-09-01 EXP-v0.2 §8.3 DC-R1…DC-R5",
+   "identity": "sha256:223122b767046e852204b37292228590214760382def98e5f32e8b5a0649a1cc"
+  },
+  "activity": "verification",
+  "run_basis": "definition_check",
+  "subject": {
+   "kind": "definition",
+   "version_label": "ILLUSTRATIVE runner 1.0 (WebKit and Chromium projects)"
+  },
+  "configuration": {
+   "codex_pin": "not_applicable",
+   "route": {
+    "kind": "model_only"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "observed_clock"
+  },
+  "outcome": "pass",
+  "evidence": [
+   {
+    "ref": "ILLUSTRATIVE runner check output",
+    "provenance": "test_definition"
+   }
+  ],
+  "currency": {
+   "state": "current"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-07",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "NIR-IF-cards",
+   "owner_deliverable": "DEL-01-04",
+   "scenario": "V4-EXM-04"
+  },
+  "criterion": {
+   "source": "EXAMINATION.md V4-EXM-04",
+   "identity": "sha256:605ea00e3b56c9e930c5d6c8bbfdbdd544e5402a18304ede1b28c5e7468fd58d"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+   "kind": "candidate",
+   "app_candidate": {
+    "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+   }
+  },
+  "configuration": {
+   "codex_pin": "0.160.0",
+   "model": "not_applicable",
+   "model_server": "not_applicable",
+   "route": {
+    "kind": "interface_chromium",
+    "engine": {
+     "name": "Chromium",
+     "version": "ILLUSTRATIVE"
+    },
+    "platform": {
+     "os": "macOS",
+     "arch": "arm64"
+    },
+    "runner_definition_check": "EXP-EX-06"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "observed_clock"
+  },
+  "outcome": "pass",
+  "evidence": [
+   {
+    "ref": "ILLUSTRATIVE interface run",
+    "provenance": "live_observation",
+    "route": "interface_chromium"
+   }
+  ],
+  "limits": [
+   {
+    "label": "interface portability evidence; not the WKWebView",
+    "vocabulary": "EXP"
+   }
+  ],
+  "currency": {
+   "state": "current"
+  }
+ },
+ {
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-08",
+  "support_revision": {
+   "exp_version": "EXP-v0.2",
+   "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+   "case_id": "ILLUSTRATIVE-LHQ-22",
+   "owner_deliverable": "DEL-09-07",
+   "scenario": "V4-EXM-22"
+  },
+  "criterion": {
+   "source": "EXAMINATION.md V4-EXM-22",
+   "identity": "sha256:e8f55d12aac238f397e2fb08665a751cc910c3dbc6b3cdabde91fa435ef0c40f"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+   "kind": "candidate",
+   "app_candidate": {
+    "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+   },
+   "host_candidate": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "configuration": {
+   "codex_pin": "0.158.0",
+   "model": {
+    "requested": "ILLUSTRATIVE"
+   },
+   "model_server": {
+    "kind": "local_provider",
+    "label": "ILLUSTRATIVE"
+   },
+   "route": {
+    "kind": "seam_live"
+   }
+  },
+  "date": {
+   "value": "2026-10-03",
+   "source": "record_timestamp"
+  },
+  "outcome": "pass",
+  "parts": [
+   {
+    "part": "P22-A",
+    "expectation": "ILLUSTRATIVE",
+    "outcome": "pass",
+    "evidence": [
+     {
+      "ref": "ILLUSTRATIVE",
+      "provenance": "live_observation"
+     }
+    ]
+   },
+   {
+    "part": "P22-B",
+    "expectation": "ILLUSTRATIVE",
+    "outcome": "pass",
+    "evidence": [
+     {
+      "ref": "ILLUSTRATIVE",
+      "provenance": "live_observation"
+     }
+    ]
+   },
+   {
+    "part": "P22-C",
+    "expectation": "ILLUSTRATIVE",
+    "outcome": "pass",
+    "evidence": [
+     {
+      "ref": "ILLUSTRATIVE",
+      "provenance": "live_observation"
+     }
+    ]
+   },
+   {
+    "part": "P22-D",
+    "expectation": "ILLUSTRATIVE",
+    "outcome": "pass",
+    "evidence": [
+     {
+      "ref": "ILLUSTRATIVE",
+      "provenance": "live_observation"
+     }
+    ]
+   }
+  ],
+  "parts_not_applicable": [
+   {
+    "part": "P22-G",
+    "reason": "governance phase not taken up (declared before the run)",
+    "declared_in": {
+     "case_definition": "ILLUSTRATIVE LHQ-22 case definition",
+     "identity": "sha256:6ddcca1f2a1a3e7e74b9aa8dcf387cecbb7764cf857de67a47776fb7ef685435"
+    }
+   }
+  ],
+  "evidence": [
+   {
+    "ref": "ILLUSTRATIVE",
+    "provenance": "live_observation"
+   }
+  ],
+  "currency": {
+   "state": "current"
+  }
+ }
+]

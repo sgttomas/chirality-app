@@ -1,0 +1,2213 @@
+{
+  "source_basis_revision": "14c91b83810a97c768f2bd5c18e2238a562dc7db",
+  "sources": [
+    {
+      "role": "step_map",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
+      "sha256": "sha256:92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee"
+    },
+    {
+      "role": "sq_design",
+      "path": "execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "sha256": "sha256:c6494ed91839aecde83d062b6a0ea6d2cb49977e32e7ba8f05e3da89865464f7",
+      "basis_file_sha256": "sha256:65bee77615d7cd8b4107f281a1fb793d300dcea64be6ba6d2341f2bbe100c574",
+      "selectors": [
+        {
+          "heading": "## 2. Interfaces"
+        },
+        {
+          "heading": "## 3. Case definitions (OUT-001; the step map)"
+        },
+        {
+          "heading": "## 4. Route, configuration and evidence"
+        },
+        {
+          "heading": "## 6. States and sequence"
+        },
+        {
+          "heading": "## 7. Failure behaviour"
+        },
+        {
+          "heading": "## 9. What the person must do, and what is never automated"
+        },
+        {
+          "heading": "## 12. UNRESOLVED"
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "sha256": "sha256:1b1ff3967a577877ecd92abd8591a732afdfca3f5f1c417e5e023a10d14b473f",
+      "basis_file_sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540",
+      "selectors": [
+        {
+          "case": "NV-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
+      "path": "execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "sha256": "sha256:7e32ea660a80792ef2f5e5a3aa24dbdc88a400670764b2af6f2f6139bdd8cbe4",
+      "basis_file_sha256": "sha256:0bfa9a7a73fcb98efc237131e92b9be3c78655acc8c01d809b12af0481f16254",
+      "selectors": [
+        {
+          "case": "WR-VC-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-21",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-22",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-23",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-24",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-25",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "sha256": "sha256:f1e7a3af8934fe13191e9bc91f2a0eb40412663bcd01081f4080232def16e3e3",
+      "basis_file_sha256": "sha256:203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5",
+      "selectors": [
+        {
+          "case": "VC-NIR-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-11",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-16",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
+      "path": "execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "sha256": "sha256:ff1acea3199765cc44673cda283f7f0f7381648032111e81d93c02009f4029f8",
+      "basis_file_sha256": "sha256:ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60",
+      "selectors": [
+        {
+          "case": "VC-R-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-15",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
+      "path": "execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "sha256:c7dd89f808acbd22f0eb0e0dbe76c8a4bfaef21baa9d5452e040d1115fab7a21",
+      "basis_file_sha256": "sha256:9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
+      "selectors": [
+        {
+          "case": "VC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "VC-28",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-04/APP_ACT_CONTROL.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "sha256": "sha256:84928a28a4b164a191c87e402c9d26abe9714c7cd37573ee2ee735d822634180",
+      "basis_file_sha256": "sha256:bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d",
+      "selectors": [
+        {
+          "case": "VC-AAC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-04-03/RECORD_SEMANTICS.md",
+      "path": "execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "sha256": "sha256:b136ccc1b5c8d18eedf8203fc2f1e6e754acf52dfa03bbd62d9c3fb4d7c4ef27",
+      "basis_file_sha256": "sha256:9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858",
+      "selectors": [
+        {
+          "case": "VC-37",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        },
+        {
+          "case": "VC-40",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        }
+      ]
+    },
+    {
+      "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
+      "path": "execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "sha256": "sha256:563ebf32ddbff57fdd47d412bf1ac512f559d1b316dfede8c7f57f294b61a2dd",
+      "basis_file_sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4",
+      "selectors": [
+        {
+          "case": "VC-E-17 Run end and runs in sequence",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        },
+        {
+          "case": "VC-E-18 Per-run workflow supply",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-01/HOSTING_BOUNDARY.md",
+      "path": "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "sha256": "sha256:6cae63c23e50e7093c20e10c03f3e057b46ee7b3a1bdb19b8c7f41e141a09faa",
+      "basis_file_sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
+      "selectors": [
+        {
+          "case": "X-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "X-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "sha256": "sha256:f5f2aaa014dbea9f6aad9e16592e2726d4157009e87e14244771836a801334c1",
+      "basis_file_sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036",
+      "selectors": [
+        {
+          "case": "VC-A01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "role": "missing-inputs.json",
+      "path": "app/examination/standalone/missing-inputs.json",
+      "sha256": "sha256:8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
+    },
+    {
+      "role": "invented-inputs.json",
+      "path": "app/examination/standalone/invented-inputs.json",
+      "sha256": "sha256:2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "selectors": [
+        {
+          "heading": "### 3.1 Outcomes"
+        },
+        {
+          "heading": "### 3.2 Run basis and evidence labels"
+        },
+        {
+          "heading": "### 3.3 Activity"
+        },
+        {
+          "heading": "### 3.4 Evidence provenance, fixture standing and limits"
+        },
+        {
+          "heading": "### 3.5 The rule set (EXP-R1…EXP-R9)"
+        },
+        {
+          "heading": "### 4.1 Result record — `exam.result-record.schema.json`"
+        },
+        {
+          "heading": "### 4.2 Review record — `exam.review-record.schema.json`"
+        },
+        {
+          "heading": "### 4.3 Change-impact record — `exam.change-impact.schema.json`"
+        },
+        {
+          "heading": "### 4.4 Support revision"
+        },
+        {
+          "heading": "### 6.2 Reopening (REQ-004; V4-EXM-03)"
+        },
+        {
+          "heading": "### 6.3 Repair with the criterion protected (REQ-005; V4-EXM-05)"
+        },
+        {
+          "heading": "## 9. Native and browser evidence kept apart"
+        },
+        {
+          "paragraphPrefix": "**Reviewer (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-1 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-2 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-3 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-4 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RV-5 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **N-1 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **N-2 ",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **Route change.",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **WKWebView identity.",
+          "count": 1
+        },
+        {
+          "case": "`model_only",
+          "count": 1
+        },
+        {
+          "case": "`seam_replay",
+          "count": 1
+        },
+        {
+          "case": "`seam_live",
+          "count": 1
+        },
+        {
+          "case": "`interface_webkit",
+          "count": 1
+        },
+        {
+          "case": "`interface_chromium",
+          "count": 1
+        },
+        {
+          "case": "`native_development",
+          "count": 1
+        },
+        {
+          "case": "`native_packaged",
+          "count": 1
+        },
+        {
+          "heading": "### 8.3 Definition checks for a runner or an N-2 tool (R23-17 item 3)"
+        },
+        {
+          "heading": "## 5. Fixture support (OUT-001; REQ-001)"
+        },
+        {
+          "heading": "### 6.1 Case state (per case, per subject)"
+        },
+        {
+          "heading": "### 8.2 Native-step form (route N-1; U-EXP-3, decided)"
+        },
+        {
+          "paragraphPrefix": "**Interface runner (",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:fe6740fa33cd760403df3ca575bf5f9b431727839419b021fd7b8627c3b835f6"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-01/ScopeOfWork.md",
+      "path": "execution/PKG-09/DEL-09-01/ScopeOfWork.md",
+      "selectors": [
+        {
+          "paragraphPrefix": "- **REQ-001**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-002**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-003**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-004**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-005**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-006**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-007**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **REQ-008**",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:8cb4ce5f78fc791a318d52b31bf0cab5f6744e8c3a416421a4044aca713ef679"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "path": "execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "selectors": [
+        {
+          "heading": "### 5.1 Elements"
+        },
+        {
+          "paragraphPrefix": "`manifest_sha256` is the sha256",
+          "count": 1
+        },
+        {
+          "heading": "### 5.4 Rules (`prototype/check_pkg.py`)"
+        },
+        {
+          "heading": "### 7.2 Configuration space before the fallback"
+        },
+        {
+          "paragraphPrefix": "**SIGN-1 (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**Its risk**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**SIGN-2 Fallback:",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "FP-0, FP-1 and FP-3 run before",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Written as a DEL-09-01 EXP result record",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "**It starts as a person receives the App",
+          "count": 1
+        },
+        {
+          "case": "**FP-1(a",
+          "count": 1
+        },
+        {
+          "case": "**FP-1(b",
+          "count": 1
+        },
+        {
+          "case": "**FP-3",
+          "count": 1
+        },
+        {
+          "heading": "## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`"
+        },
+        {
+          "heading": "## 8. Install/launch witness (OUT-003; REQ-003)"
+        },
+        {
+          "case": "**FP-0",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 3,
+            "marker": " **Run at "
+          }
+        },
+        {
+          "case": "**FP-2",
+          "count": 1
+        },
+        {
+          "case": "**FP-4",
+          "count": 1
+        },
+        {
+          "case": "**FP-5",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:5312e36e02749cd3397dc8aa71385a1f6705833528afcd7bb76039e5bdd951f1"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md",
+      "selectors": [
+        {
+          "heading": "## Authority and selection boundary"
+        },
+        {
+          "heading": "## Binding and selection"
+        },
+        {
+          "heading": "## Required checks and preserved limits"
+        }
+      ],
+      "sha256": "sha256:7cd4c3cd335114d3b7d455eac221551e5836f9ed636a02d9ef62d7d48f94596a"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md",
+      "path": "execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md",
+      "selectors": [
+        {
+          "paragraphPrefix": "The existing PKG-v0.2 protocol,",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Use `app/examination/support_identity/canonical.py check`",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "A current producer binding declares",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Existing inventory/unsigned preparation",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:7745545fb8b181a6cd21c88836365cbd6b89d0f3179f46c89e4f26a91779cf4e"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "path": "execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "selectors": [
+        {
+          "heading": "## 3. Case definitions (OUT-001; the step map)"
+        },
+        {
+          "heading": "## 4. Route, configuration and evidence"
+        },
+        {
+          "heading": "## 5. The dossier (OUT-002) — `sq.dossier.schema.json`"
+        },
+        {
+          "heading": "## 6. States and sequence"
+        },
+        {
+          "heading": "## 7. Failure behaviour"
+        },
+        {
+          "heading": "## 8. Return to DEL-11-03 (AC-008)"
+        },
+        {
+          "heading": "## 9. What the person must do, and what is never automated"
+        },
+        {
+          "paragraphPrefix": "- **Pin basis (",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:02f6d8ed0e184b9c283b618c44660543fcd9e5f17e6c2b1114bd82bbdcc297f4"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
+      "selectors": [
+        {
+          "heading": "## Existing method remains intact"
+        },
+        {
+          "heading": "## Explicit new receiving cohort"
+        },
+        {
+          "paragraphPrefix": "A future maintained SQ receiver must freeze",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The receiver reports exact correspondence",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:e73ba05a10bd8c1722e42404016b40bb6de6dd6de156baedba7603da06e5f77e"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md",
+      "selectors": [
+        {
+          "heading": "## Governing sources and inherited obligations"
+        },
+        {
+          "heading": "## S1: fixed sources, exact files, explicit citations"
+        },
+        {
+          "heading": "## S2: review evidence and conditional attachments"
+        },
+        {
+          "heading": "## S3: Report and validation order"
+        },
+        {
+          "paragraphPrefix": "Implementation must preserve original record bytes",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The new choices selected for this route",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The following source-level acceptance obligations",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The cases retain the reviewed proposal",
+          "count": 1
+        },
+        {
+          "case": "01/16",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "11",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "15",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "17",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ],
+      "sha256": "sha256:b5e8dc3dbbc5fd3fdeff63d534d9795749a84ab76617e33f5a20134366bb7a12"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "selectors": [
+        {
+          "case": "NV-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "NV-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "PS-1",
+          "count": 1
+        },
+        {
+          "case": "PS-2",
+          "count": 1
+        },
+        {
+          "case": "PS-3",
+          "count": 1
+        },
+        {
+          "case": "PS-4",
+          "count": 1
+        },
+        {
+          "case": "PS-5",
+          "count": 1
+        },
+        {
+          "heading": "### 5.2 Revision identity and durability (B-2; PROPOSED; R17-4, R18-1 C-03)"
+        },
+        {
+          "heading": "### 6.2 Rules"
+        },
+        {
+          "heading": "### 7.2 Identity model"
+        },
+        {
+          "heading": "### 7.3 Display rules"
+        },
+        {
+          "heading": "### 7.4 Observing children"
+        },
+        {
+          "heading": "### 7.5 States"
+        }
+      ],
+      "sha256": "sha256:6f33bf9b50e2ddb5844bd8ed26ffb0e30d1799e90af14d9a3783e3dccf2a5c0c"
+    },
+    {
+      "role": "governing/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "path": "execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "selectors": [
+        {
+          "case": "WR-VC-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-21",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-22",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-23",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-24",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "WR-VC-25",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "heading": "### 2.2 Identity rules"
+        },
+        {
+          "heading": "### 4.2 Drafts and trials (K-7; CC-WR-TRIALS)"
+        },
+        {
+          "heading": "### 4.3 Review binding and the registration act (K-8; R17-11)"
+        },
+        {
+          "heading": "### 4.4 Selection (WD C-1…C-6; U-10)"
+        },
+        {
+          "heading": "### 4.5 Package hygiene at review (WD RV-2 and \"Whether registration refuses them is DEL-02-02's\")"
+        },
+        {
+          "case": "**DS-3",
+          "count": 1
+        },
+        {
+          "case": "**DS-4",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **SP-5 (",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **SP-3",
+          "count": 1
+        },
+        {
+          "heading": "### 4.8 Re-confirming a registered revision for use (CC-WR-RECONFIRM; PROPOSED)"
+        },
+        {
+          "heading": "### 5.1 Draft (per draft folder)"
+        },
+        {
+          "heading": "### 16.2 Composition (framing WR-FRAME-1; PROPOSED, fixed by the schema's patterns)"
+        },
+        {
+          "heading": "### 16.6 Supply check against Codex's history (R19-7; R21-4; PROPOSED)"
+        },
+        {
+          "case": "**LS-1",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "case": "**LS-4",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "sha256": "sha256:5a1b3edbf7c65ee37592312acbba14d24a486a1ae3fbc663c28d029027677230"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "selectors": [
+        {
+          "case": "VC-NIR-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-11",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-NIR-16",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "heading": "### 4.2 What a card offers (FO) and the words it uses (LB)"
+        },
+        {
+          "heading": "### 4.3 The explicit decline, per kind (DM)"
+        },
+        {
+          "heading": "### 4.4 Card states (CS) over the register states"
+        },
+        {
+          "heading": "### 5.1 Turn outcome states (TO)"
+        },
+        {
+          "heading": "### 5.2 The three stop operations, as presented (R17-3)"
+        },
+        {
+          "heading": "### 5.3 Reload, reopen and relaunch (SQ-V)"
+        },
+        {
+          "heading": "### 5.4 Conversation start display (K-3)"
+        },
+        {
+          "heading": "### 5.5 Delegated agents (descendants)"
+        },
+        {
+          "heading": "### 4.1 Kinds at 0.158.0 and how each is met"
+        },
+        {
+          "case": "NR-2",
+          "count": 1
+        },
+        {
+          "case": "NR-3",
+          "count": 1
+        },
+        {
+          "case": "NR-7",
+          "count": 1
+        },
+        {
+          "case": "NR-8",
+          "count": 1
+        },
+        {
+          "case": "NR-9",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:5180cef50036d17dad9c69dfac35cdcebb78005fe9259d549eb0ece827b42bce"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "path": "execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "selectors": [
+        {
+          "case": "VC-R-01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-06",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-14",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-15",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "heading": "## 2. Stops, losses and run ends (R17-3; DEL-01-02 owns these definitions)"
+        },
+        {
+          "heading": "### 3.1 App session (AS)"
+        },
+        {
+          "heading": "### 3.2 Conversation (CV)"
+        },
+        {
+          "heading": "### 3.3 Observer attachment (OA)"
+        },
+        {
+          "heading": "### 3.4 Stop request (SR)"
+        },
+        {
+          "heading": "### 3.5 Outstanding requests across generations (RQ)"
+        },
+        {
+          "case": "VC-R-05",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "case": "VC-R-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        }
+      ],
+      "sha256": "sha256:430d4500d32ce4261a38c64d8ecd07c71885cf2c64e8d3cf4bab28096a2d7cc1"
+    },
+    {
+      "role": "governing/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "path": "execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "selectors": [
+        {
+          "case": "VC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "case": "VC-28",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "paragraphPrefix": "- **C-1**",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **C-2**",
+          "count": 1
+        },
+        {
+          "case": "S-R",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **C-3**",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:f48ceef037fb6fb76f50cf0bd80fe058e2e64ed2c6e4f273c9c32120f4a67872"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "selectors": [
+        {
+          "case": "VC-AAC-03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-07",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-08",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "VC-AAC-13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "heading": "### 4.2 Registration of reviewed content, A15 (K-8)"
+        },
+        {
+          "case": "NA-1",
+          "count": 1
+        },
+        {
+          "case": "NA-2",
+          "count": 1
+        },
+        {
+          "case": "NA-3",
+          "count": 1
+        },
+        {
+          "case": "NA-4",
+          "count": 1
+        },
+        {
+          "heading": "### 4.1 An act on App content (A4, A6, A7), standing or at an arrival"
+        },
+        {
+          "heading": "### 6.2 Selected P-2/Rust allocation (CC-P-A; Group A implementation)"
+        },
+        {
+          "case": "AK-c",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:786440eb120fca9acd6e4d1bedaa6d1845aa257a568fa01ab38d6ed218fb267c"
+    },
+    {
+      "role": "governing/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "path": "execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "selectors": [
+        {
+          "case": "VC-37",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        },
+        {
+          "case": "VC-40",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Ran"
+          }
+        },
+        {
+          "case": "R3",
+          "count": 3
+        },
+        {
+          "case": "**FR-06",
+          "count": 1,
+          "columns": [
+            0,
+            1
+          ]
+        },
+        {
+          "case": "**L-4",
+          "count": 1,
+          "columns": [
+            0,
+            1
+          ]
+        },
+        {
+          "heading": "### 6.2 Rules"
+        },
+        {
+          "heading": "## 7. Content binding and lapse comparison rule"
+        },
+        {
+          "heading": "### 13.6a Native workflow supply receiving (CC-RS-WR-SUPPLY-FIT)"
+        },
+        {
+          "heading": "### 14.2 Reader"
+        }
+      ],
+      "sha256": "sha256:697b88d54d8019b6eafad7ba92ec14c3f33e1c99f642a8111538cd45537c502b"
+    },
+    {
+      "role": "governing/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "path": "execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "selectors": [
+        {
+          "case": "VC-E-17 Run end and runs in sequence",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        },
+        {
+          "case": "VC-E-18 Per-run workflow supply",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "trim_observation": {
+            "column": 2,
+            "marker": " **Not run**"
+          }
+        },
+        {
+          "paragraphPrefix": "- **RE-4 Interruption",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RE-6 Run owner",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **RE-7 Runs in sequence",
+          "count": 1
+        },
+        {
+          "heading": "### 2.6 Operating sequences with failure behaviour (current phase; S1-C EXEC 7)"
+        },
+        {
+          "heading": "### 6.1 Trace links (original and revised identities)"
+        },
+        {
+          "case": "**AE-7",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        }
+      ],
+      "sha256": "sha256:2a5fe50cd1bb091e909ded735e3231732816a951c210b4cfe1f0eeb8d9aed0a3"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "path": "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "selectors": [
+        {
+          "case": "X-09",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "case": "X-10",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "paragraphPrefix": "`recorded`, `recorded-truncated`, `mutated`, `constructed`.",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "- **Outcome labels** per case:",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:1d9b05952ccb940aa576e735c0887e93cf99c57436f44a3b845a8363d0b6934e"
+    },
+    {
+      "role": "governing/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "selectors": [
+        {
+          "case": "VC-A01",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A02",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A03",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A04",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A12",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "case": "VC-A13",
+          "count": 1,
+          "columns": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "heading": "### 5.1 ChatGPT account entry (one per H-acct)"
+        },
+        {
+          "heading": "### 5.2 API-key entry (one per H-key; K2-1)"
+        },
+        {
+          "heading": "### 5.3 Local-provider entry (one per provider id in the effective configuration)"
+        },
+        {
+          "heading": "### 5.4 Conversation selection (K-3; one per App conversation)"
+        }
+      ],
+      "sha256": "sha256:7397aebddedfdfffc2f6fbe08f0c23b2a8bb024c2de27d3695549f200b8d463b"
+    },
+    {
+      "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
+      "selectors": [
+        {
+          "paragraphPrefix": "The owner approved this successor condition",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "Schemas, step maps, executable validators/helpers",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The original full-byte publication tuple",
+          "count": 1
+        },
+        {
+          "paragraphPrefix": "The existing sidecar remains a declaration",
+          "count": 1
+        }
+      ],
+      "sha256": "sha256:8dd3572a17308ecffc10f74fc677f36285505dc094b7b1dbfd9b1a8ae2828909"
+    },
+    {
+      "role": "documentary_condition",
+      "path": "app/examination/documentary_condition.py",
+      "sha256": "sha256:d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf"
+    },
+    {
+      "role": "condition_manifest",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
+      "sha256": "sha256:2e19e1daab522e6548c3ce75121c0df027ae1ef8e02ffb3169133c7101e73a90"
+    }
+  ],
+  "historical_provenance": [
+    {
+      "role": "sq_schema",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
+      "sha256": "sha256:16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
+    },
+    {
+      "role": "sq_rules",
+      "path": "execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
+      "sha256": "sha256:65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac"
+    },
+    {
+      "role": "sq_scope",
+      "path": "execution/PKG-09/DEL-09-02/ScopeOfWork.md",
+      "sha256": "sha256:64533cfdc825da17b41f3e1d754bf549e42d76488aabecfac85e74ee65aae878"
+    },
+    {
+      "role": "exp_design",
+      "path": "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "sha256:ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "role": "exp_schema",
+      "path": "execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
+      "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    }
+  ],
+  "documentary_binding_method": "selected-documentary-source-condition/v2"
+}

@@ -1,0 +1,1780 @@
+{
+  "differences": [
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/CodexErrorInfo/oneOf",
+      "old": [
+        {
+          "enum": [
+            "contextWindowExceeded",
+            "sessionBudgetExceeded",
+            "usageLimitExceeded",
+            "rateLimitExceeded",
+            "flexUnavailable",
+            "serverOverloaded",
+            "cyberPolicy",
+            "misalignmentPolicyViolation",
+            "internalServerError",
+            "unauthorized",
+            "badRequest",
+            "threadRollbackFailed",
+            "sandboxError",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "httpConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "httpConnectionFailed"
+          ],
+          "title": "HttpConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Failed to connect to the response SSE stream.",
+          "properties": {
+            "responseStreamConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamConnectionFailed"
+          ],
+          "title": "ResponseStreamConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The response SSE stream disconnected in the middle of a turn before completion.",
+          "properties": {
+            "responseStreamDisconnected": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamDisconnected"
+          ],
+          "title": "ResponseStreamDisconnectedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Reached the retry limit for responses.",
+          "properties": {
+            "responseTooManyFailedAttempts": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseTooManyFailedAttempts"
+          ],
+          "title": "ResponseTooManyFailedAttemptsCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Returned when `turn/start` or `turn/steer` is submitted while the current active turn cannot accept same-turn steering, for example `/review` or manual `/compact`.",
+          "properties": {
+            "activeTurnNotSteerable": {
+              "properties": {
+                "turnKind": {
+                  "$ref": "#/definitions/NonSteerableTurnKind"
+                }
+              },
+              "required": [
+                "turnKind"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "activeTurnNotSteerable"
+          ],
+          "title": "ActiveTurnNotSteerableCodexErrorInfo",
+          "type": "object"
+        }
+      ],
+      "new": [
+        {
+          "enum": [
+            "contextWindowExceeded",
+            "sessionBudgetExceeded",
+            "usageLimitExceeded",
+            "rateLimitExceeded",
+            "flexUnavailable",
+            "serverOverloaded",
+            "cyberPolicy",
+            "misalignmentPolicyViolation",
+            "tooManyDenials",
+            "internalServerError",
+            "unauthorized",
+            "badRequest",
+            "threadRollbackFailed",
+            "sandboxError",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "httpConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "httpConnectionFailed"
+          ],
+          "title": "HttpConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Failed to connect to the response SSE stream.",
+          "properties": {
+            "responseStreamConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamConnectionFailed"
+          ],
+          "title": "ResponseStreamConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The response SSE stream disconnected in the middle of a turn before completion.",
+          "properties": {
+            "responseStreamDisconnected": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamDisconnected"
+          ],
+          "title": "ResponseStreamDisconnectedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Reached the retry limit for responses.",
+          "properties": {
+            "responseTooManyFailedAttempts": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseTooManyFailedAttempts"
+          ],
+          "title": "ResponseTooManyFailedAttemptsCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Returned when `turn/start` or `turn/steer` is submitted while the current active turn cannot accept same-turn steering, for example `/review` or manual `/compact`.",
+          "properties": {
+            "activeTurnNotSteerable": {
+              "properties": {
+                "turnKind": {
+                  "$ref": "#/definitions/NonSteerableTurnKind"
+                }
+              },
+              "required": [
+                "turnKind"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "activeTurnNotSteerable"
+          ],
+          "title": "ActiveTurnNotSteerableCodexErrorInfo",
+          "type": "object"
+        }
+      ],
+      "class": "error-enum-tooManyDenials"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ListMcpServerStatusParams/properties/serverName",
+      "kind": "added",
+      "new": {
+        "description": "Limit discovery to one server. With a thread ID, reuse that thread's MCP connection.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "class": "mcp-optional-serverName"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ThreadItemsListAnchor",
+      "kind": "added",
+      "new": {
+        "description": "An exclusive item position within the requested visible turn.",
+        "oneOf": [
+          {
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "item"
+                ],
+                "title": "ItemThreadItemsListAnchorType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "itemId",
+              "type"
+            ],
+            "title": "ItemThreadItemsListAnchor",
+            "type": "object"
+          }
+        ]
+      },
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ThreadItemsListCursor",
+      "kind": "added",
+      "new": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/definitions/ThreadItemsListAnchor"
+          }
+        ],
+        "description": "Starting position for an item-history page."
+      },
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ThreadItemsListParams/properties/cursor/anyOf",
+      "kind": "added",
+      "new": [
+        {
+          "$ref": "#/definitions/ThreadItemsListCursor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ThreadItemsListParams/properties/cursor/description",
+      "old": "Opaque cursor to pass to the next call to continue after the last item.",
+      "new": "Opaque continuation cursor or an exclusive item anchor in the requested visible turn. An item anchor requires a non-empty `turnId`; ascending (the default) returns items after it, and descending returns items before it. Continue with the returned string cursor.",
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/ThreadItemsListParams/properties/cursor/type",
+      "kind": "removed",
+      "old": [
+        "string",
+        "null"
+      ],
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.v2.schemas.json/definitions/Turn/properties/error/description",
+      "old": "Only populated when the Turn's status is failed.",
+      "new": "Error associated with a failed or interrupted turn.",
+      "class": "turn-error-description"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/CodexErrorInfo/oneOf",
+      "old": [
+        {
+          "enum": [
+            "contextWindowExceeded",
+            "sessionBudgetExceeded",
+            "usageLimitExceeded",
+            "rateLimitExceeded",
+            "flexUnavailable",
+            "serverOverloaded",
+            "cyberPolicy",
+            "misalignmentPolicyViolation",
+            "internalServerError",
+            "unauthorized",
+            "badRequest",
+            "threadRollbackFailed",
+            "sandboxError",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "httpConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "httpConnectionFailed"
+          ],
+          "title": "HttpConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Failed to connect to the response SSE stream.",
+          "properties": {
+            "responseStreamConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamConnectionFailed"
+          ],
+          "title": "ResponseStreamConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The response SSE stream disconnected in the middle of a turn before completion.",
+          "properties": {
+            "responseStreamDisconnected": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamDisconnected"
+          ],
+          "title": "ResponseStreamDisconnectedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Reached the retry limit for responses.",
+          "properties": {
+            "responseTooManyFailedAttempts": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseTooManyFailedAttempts"
+          ],
+          "title": "ResponseTooManyFailedAttemptsCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Returned when `turn/start` or `turn/steer` is submitted while the current active turn cannot accept same-turn steering, for example `/review` or manual `/compact`.",
+          "properties": {
+            "activeTurnNotSteerable": {
+              "properties": {
+                "turnKind": {
+                  "$ref": "#/definitions/v2/NonSteerableTurnKind"
+                }
+              },
+              "required": [
+                "turnKind"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "activeTurnNotSteerable"
+          ],
+          "title": "ActiveTurnNotSteerableCodexErrorInfo",
+          "type": "object"
+        }
+      ],
+      "new": [
+        {
+          "enum": [
+            "contextWindowExceeded",
+            "sessionBudgetExceeded",
+            "usageLimitExceeded",
+            "rateLimitExceeded",
+            "flexUnavailable",
+            "serverOverloaded",
+            "cyberPolicy",
+            "misalignmentPolicyViolation",
+            "tooManyDenials",
+            "internalServerError",
+            "unauthorized",
+            "badRequest",
+            "threadRollbackFailed",
+            "sandboxError",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "httpConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "httpConnectionFailed"
+          ],
+          "title": "HttpConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Failed to connect to the response SSE stream.",
+          "properties": {
+            "responseStreamConnectionFailed": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamConnectionFailed"
+          ],
+          "title": "ResponseStreamConnectionFailedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The response SSE stream disconnected in the middle of a turn before completion.",
+          "properties": {
+            "responseStreamDisconnected": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseStreamDisconnected"
+          ],
+          "title": "ResponseStreamDisconnectedCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Reached the retry limit for responses.",
+          "properties": {
+            "responseTooManyFailedAttempts": {
+              "properties": {
+                "httpStatusCode": {
+                  "format": "uint16",
+                  "minimum": 0.0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "responseTooManyFailedAttempts"
+          ],
+          "title": "ResponseTooManyFailedAttemptsCodexErrorInfo",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Returned when `turn/start` or `turn/steer` is submitted while the current active turn cannot accept same-turn steering, for example `/review` or manual `/compact`.",
+          "properties": {
+            "activeTurnNotSteerable": {
+              "properties": {
+                "turnKind": {
+                  "$ref": "#/definitions/v2/NonSteerableTurnKind"
+                }
+              },
+              "required": [
+                "turnKind"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "activeTurnNotSteerable"
+          ],
+          "title": "ActiveTurnNotSteerableCodexErrorInfo",
+          "type": "object"
+        }
+      ],
+      "class": "error-enum-tooManyDenials"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ListMcpServerStatusParams/properties/serverName",
+      "kind": "added",
+      "new": {
+        "description": "Limit discovery to one server. With a thread ID, reuse that thread's MCP connection.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "class": "mcp-optional-serverName"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ThreadItemsListAnchor",
+      "kind": "added",
+      "new": {
+        "description": "An exclusive item position within the requested visible turn.",
+        "oneOf": [
+          {
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "item"
+                ],
+                "title": "ItemThreadItemsListAnchorType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "itemId",
+              "type"
+            ],
+            "title": "ItemThreadItemsListAnchor",
+            "type": "object"
+          }
+        ]
+      },
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ThreadItemsListCursor",
+      "kind": "added",
+      "new": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/definitions/v2/ThreadItemsListAnchor"
+          }
+        ],
+        "description": "Starting position for an item-history page."
+      },
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ThreadItemsListParams/properties/cursor/anyOf",
+      "kind": "added",
+      "new": [
+        {
+          "$ref": "#/definitions/v2/ThreadItemsListCursor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ThreadItemsListParams/properties/cursor/description",
+      "old": "Opaque cursor to pass to the next call to continue after the last item.",
+      "new": "Opaque continuation cursor or an exclusive item anchor in the requested visible turn. An item anchor requires a non-empty `turnId`; ascending (the default) returns items after it, and descending returns items before it. Continue with the returned string cursor.",
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/ThreadItemsListParams/properties/cursor/type",
+      "kind": "removed",
+      "old": [
+        "string",
+        "null"
+      ],
+      "class": "cursor-widening"
+    },
+    {
+      "path": "codex_app_server_protocol.schemas.json/definitions/v2/Turn/properties/error/description",
+      "old": "Only populated when the Turn's status is failed.",
+      "new": "Error associated with a failed or interrupted turn.",
+      "class": "turn-error-description"
+    }
+  ],
+  "methodInventory": {
+    "stable/ClientRequest": {
+      "schema": [
+        "initialize",
+        "thread/start",
+        "thread/resume",
+        "thread/fork",
+        "thread/archive",
+        "thread/delete",
+        "thread/unsubscribe",
+        "thread/name/set",
+        "thread/goal/set",
+        "thread/goal/get",
+        "thread/goal/clear",
+        "thread/metadata/update",
+        "thread/attachment/add",
+        "thread/attachment/list",
+        "thread/attachment/remove",
+        "thread/section/move",
+        "thread/unarchive",
+        "thread/compact/start",
+        "thread/shellCommand",
+        "thread/approveGuardianDeniedAction",
+        "thread/revert",
+        "thread/list",
+        "threadSection/list",
+        "threadSection/create",
+        "threadSection/update",
+        "threadSection/delete",
+        "thread/loaded/list",
+        "thread/read",
+        "thread/turns/list",
+        "thread/items/list",
+        "thread/inject_items",
+        "skills/list",
+        "skills/extraRoots/set",
+        "hooks/list",
+        "marketplace/add",
+        "marketplace/remove",
+        "marketplace/upgrade",
+        "plugin/list",
+        "plugin/installed",
+        "plugin/reconcile",
+        "plugin/read",
+        "plugin/skill/read",
+        "plugin/share/save",
+        "plugin/share/updateTargets",
+        "plugin/share/list",
+        "plugin/share/checkout",
+        "plugin/share/delete",
+        "app/read",
+        "app/list",
+        "app/installed",
+        "fs/readFile",
+        "fs/writeFile",
+        "fs/createDirectory",
+        "fs/getMetadata",
+        "fs/readDirectory",
+        "fs/remove",
+        "fs/copy",
+        "fs/watch",
+        "fs/unwatch",
+        "skills/config/write",
+        "plugin/install",
+        "plugin/uninstall",
+        "turn/start",
+        "turn/steer",
+        "turn/interrupt",
+        "review/start",
+        "model/list",
+        "account/gatewayOAuth/read",
+        "account/gatewayOAuth/login",
+        "account/gatewayOAuth/cancel",
+        "modelProvider/capabilities/read",
+        "experimentalFeature/list",
+        "permissionProfile/list",
+        "experimentalFeature/enablement/set",
+        "mcpServer/oauth/login",
+        "config/mcpServer/reload",
+        "mcpServerStatus/list",
+        "mcpServer/resource/read",
+        "mcpServer/tool/call",
+        "windowsSandbox/setupStart",
+        "windowsSandbox/readiness",
+        "account/login/start",
+        "account/login/cancel",
+        "account/logout",
+        "account/rateLimits/read",
+        "account/rateLimitResetCredit/consume",
+        "account/usage/read",
+        "account/workspaceMessages/read",
+        "account/sendAddCreditsNudgeEmail",
+        "feedback/upload",
+        "command/exec",
+        "command/exec/write",
+        "command/exec/terminate",
+        "command/exec/resize",
+        "config/read",
+        "externalAgentConfig/detect",
+        "externalAgentConfig/import",
+        "externalAgentConfig/import/recordHistory",
+        "externalAgentConfig/import/readHistories",
+        "config/value/write",
+        "config/batchWrite",
+        "configRequirements/read",
+        "account/read",
+        "fuzzyFileSearch"
+      ],
+      "typescript": [
+        "initialize",
+        "thread/start",
+        "thread/resume",
+        "thread/fork",
+        "thread/archive",
+        "thread/delete",
+        "thread/unsubscribe",
+        "thread/name/set",
+        "thread/goal/set",
+        "thread/goal/get",
+        "thread/goal/clear",
+        "thread/metadata/update",
+        "thread/attachment/add",
+        "thread/attachment/list",
+        "thread/attachment/remove",
+        "thread/section/move",
+        "thread/unarchive",
+        "thread/compact/start",
+        "thread/shellCommand",
+        "thread/approveGuardianDeniedAction",
+        "thread/revert",
+        "thread/list",
+        "threadSection/list",
+        "threadSection/create",
+        "threadSection/update",
+        "threadSection/delete",
+        "thread/loaded/list",
+        "thread/read",
+        "thread/turns/list",
+        "thread/items/list",
+        "thread/inject_items",
+        "skills/list",
+        "skills/extraRoots/set",
+        "hooks/list",
+        "marketplace/add",
+        "marketplace/remove",
+        "marketplace/upgrade",
+        "plugin/list",
+        "plugin/installed",
+        "plugin/reconcile",
+        "plugin/read",
+        "plugin/skill/read",
+        "plugin/share/save",
+        "plugin/share/updateTargets",
+        "plugin/share/list",
+        "plugin/share/checkout",
+        "plugin/share/delete",
+        "app/read",
+        "app/list",
+        "app/installed",
+        "fs/readFile",
+        "fs/writeFile",
+        "fs/createDirectory",
+        "fs/getMetadata",
+        "fs/readDirectory",
+        "fs/remove",
+        "fs/copy",
+        "fs/watch",
+        "fs/unwatch",
+        "skills/config/write",
+        "plugin/install",
+        "plugin/uninstall",
+        "turn/start",
+        "turn/steer",
+        "turn/interrupt",
+        "review/start",
+        "model/list",
+        "account/gatewayOAuth/read",
+        "account/gatewayOAuth/login",
+        "account/gatewayOAuth/cancel",
+        "modelProvider/capabilities/read",
+        "experimentalFeature/list",
+        "permissionProfile/list",
+        "experimentalFeature/enablement/set",
+        "mcpServer/oauth/login",
+        "config/mcpServer/reload",
+        "mcpServerStatus/list",
+        "mcpServer/resource/read",
+        "mcpServer/tool/call",
+        "windowsSandbox/setupStart",
+        "windowsSandbox/readiness",
+        "account/login/start",
+        "account/login/cancel",
+        "account/logout",
+        "account/rateLimits/read",
+        "account/rateLimitResetCredit/consume",
+        "account/usage/read",
+        "account/workspaceMessages/read",
+        "account/sendAddCreditsNudgeEmail",
+        "feedback/upload",
+        "command/exec",
+        "command/exec/write",
+        "command/exec/terminate",
+        "command/exec/resize",
+        "config/read",
+        "externalAgentConfig/detect",
+        "externalAgentConfig/import",
+        "externalAgentConfig/import/recordHistory",
+        "externalAgentConfig/import/readHistories",
+        "config/value/write",
+        "config/batchWrite",
+        "configRequirements/read",
+        "account/read",
+        "getConversationSummary",
+        "gitDiffToRemote",
+        "getAuthStatus",
+        "fuzzyFileSearch"
+      ],
+      "typescriptOnly": [
+        "getAuthStatus",
+        "getConversationSummary",
+        "gitDiffToRemote"
+      ]
+    },
+    "stable/ClientNotification": {
+      "schema": [
+        "initialized"
+      ],
+      "typescript": [
+        "initialized"
+      ],
+      "typescriptOnly": []
+    },
+    "stable/ServerRequest": {
+      "schema": [
+        "item/commandExecution/requestApproval",
+        "item/fileChange/requestApproval",
+        "item/tool/requestUserInput",
+        "mcpServer/elicitation/request",
+        "item/permissions/requestApproval",
+        "item/tool/call",
+        "account/chatgptAuthTokens/refresh",
+        "attestation/generate",
+        "applyPatchApproval",
+        "execCommandApproval"
+      ],
+      "typescript": [
+        "item/commandExecution/requestApproval",
+        "item/fileChange/requestApproval",
+        "item/tool/requestUserInput",
+        "mcpServer/elicitation/request",
+        "item/permissions/requestApproval",
+        "item/tool/call",
+        "account/chatgptAuthTokens/refresh",
+        "attestation/generate",
+        "applyPatchApproval",
+        "execCommandApproval"
+      ],
+      "typescriptOnly": []
+    },
+    "stable/ServerNotification": {
+      "schema": [
+        "error",
+        "thread/started",
+        "thread/status/changed",
+        "thread/archived",
+        "thread/deleted",
+        "thread/unarchived",
+        "thread/closed",
+        "thread/reverted",
+        "skills/changed",
+        "thread/name/updated",
+        "thread/attachment/updated",
+        "thread/goal/updated",
+        "thread/goal/cleared",
+        "thread/queue/changed",
+        "project/changed",
+        "thread/project/updated",
+        "thread/environment/connected",
+        "thread/environment/disconnected",
+        "thread/settings/updated",
+        "thread/tokenUsage/updated",
+        "turn/started",
+        "hook/started",
+        "turn/completed",
+        "hook/completed",
+        "turn/diff/updated",
+        "turn/plan/updated",
+        "item/started",
+        "item/autoApprovalReview/started",
+        "item/autoApprovalReview/completed",
+        "autoApprovalReview/strictReviewRequired",
+        "item/completed",
+        "item/agentMessage/delta",
+        "item/plan/delta",
+        "command/exec/outputDelta",
+        "process/outputDelta",
+        "process/exited",
+        "item/commandExecution/outputDelta",
+        "item/commandExecution/terminalInteraction",
+        "item/fileChange/outputDelta",
+        "item/fileChange/patchUpdated",
+        "serverRequest/resolved",
+        "item/mcpToolCall/progress",
+        "mcpServer/oauthLogin/completed",
+        "mcpServer/startupStatus/updated",
+        "mcpServer/event/stream/notification",
+        "account/updated",
+        "account/gatewayOAuth/changed",
+        "account/rateLimits/updated",
+        "app/list/updated",
+        "remoteControl/status/changed",
+        "externalAgentConfig/import/progress",
+        "externalAgentConfig/import/completed",
+        "fs/changed",
+        "item/reasoning/summaryTextDelta",
+        "item/reasoning/summaryPartAdded",
+        "item/reasoning/textDelta",
+        "thread/compacted",
+        "model/rerouted",
+        "model/verification",
+        "modelProvider/authRecoveryStarted",
+        "modelProvider/authRecoveryCompleted",
+        "turn/moderationMetadata",
+        "model/safetyBuffering/updated",
+        "warning",
+        "guardianWarning",
+        "deprecationNotice",
+        "configWarning",
+        "fuzzyFileSearch/sessionUpdated",
+        "fuzzyFileSearch/sessionCompleted",
+        "thread/realtime/started",
+        "thread/realtime/itemAdded",
+        "thread/realtime/item/started",
+        "thread/realtime/item/transcript/delta",
+        "thread/realtime/item/completed",
+        "thread/realtime/transcript/delta",
+        "thread/realtime/transcript/done",
+        "thread/realtime/outputAudio/delta",
+        "thread/realtime/sdp",
+        "thread/realtime/error",
+        "thread/realtime/closed",
+        "windows/worldWritableWarning",
+        "windowsSandbox/setupCompleted",
+        "account/login/completed"
+      ],
+      "typescript": [
+        "error",
+        "thread/started",
+        "thread/status/changed",
+        "thread/archived",
+        "thread/deleted",
+        "thread/unarchived",
+        "thread/closed",
+        "thread/reverted",
+        "skills/changed",
+        "thread/name/updated",
+        "thread/attachment/updated",
+        "thread/goal/updated",
+        "thread/goal/cleared",
+        "thread/queue/changed",
+        "project/changed",
+        "thread/project/updated",
+        "thread/environment/connected",
+        "thread/environment/disconnected",
+        "thread/settings/updated",
+        "thread/tokenUsage/updated",
+        "turn/started",
+        "hook/started",
+        "turn/completed",
+        "hook/completed",
+        "turn/diff/updated",
+        "turn/plan/updated",
+        "item/started",
+        "item/autoApprovalReview/started",
+        "item/autoApprovalReview/completed",
+        "autoApprovalReview/strictReviewRequired",
+        "item/completed",
+        "rawResponseItem/completed",
+        "rawResponse/completed",
+        "item/agentMessage/delta",
+        "item/plan/delta",
+        "command/exec/outputDelta",
+        "process/outputDelta",
+        "process/exited",
+        "item/commandExecution/outputDelta",
+        "item/commandExecution/terminalInteraction",
+        "item/fileChange/outputDelta",
+        "item/fileChange/patchUpdated",
+        "serverRequest/resolved",
+        "item/mcpToolCall/progress",
+        "mcpServer/oauthLogin/completed",
+        "mcpServer/startupStatus/updated",
+        "mcpServer/event/stream/notification",
+        "account/updated",
+        "account/gatewayOAuth/changed",
+        "account/rateLimits/updated",
+        "app/list/updated",
+        "remoteControl/status/changed",
+        "externalAgentConfig/import/progress",
+        "externalAgentConfig/import/completed",
+        "fs/changed",
+        "item/reasoning/summaryTextDelta",
+        "item/reasoning/summaryPartAdded",
+        "item/reasoning/textDelta",
+        "thread/compacted",
+        "model/rerouted",
+        "model/verification",
+        "modelProvider/authRecoveryStarted",
+        "modelProvider/authRecoveryCompleted",
+        "turn/moderationMetadata",
+        "model/safetyBuffering/updated",
+        "warning",
+        "guardianWarning",
+        "deprecationNotice",
+        "configWarning",
+        "fuzzyFileSearch/sessionUpdated",
+        "fuzzyFileSearch/sessionCompleted",
+        "thread/realtime/started",
+        "thread/realtime/itemAdded",
+        "thread/realtime/item/started",
+        "thread/realtime/item/transcript/delta",
+        "thread/realtime/item/completed",
+        "thread/realtime/transcript/delta",
+        "thread/realtime/transcript/done",
+        "thread/realtime/outputAudio/delta",
+        "thread/realtime/sdp",
+        "thread/realtime/error",
+        "thread/realtime/closed",
+        "windows/worldWritableWarning",
+        "windowsSandbox/setupCompleted",
+        "account/login/completed"
+      ],
+      "typescriptOnly": [
+        "rawResponse/completed",
+        "rawResponseItem/completed"
+      ]
+    },
+    "experimental/ClientRequest": {
+      "schema": [
+        "initialize",
+        "server/diagnostics",
+        "userVerification/status",
+        "userVerification/enroll",
+        "userVerification/delete",
+        "userVerification/verify",
+        "userVerification/cancel",
+        "thread/start",
+        "thread/resume",
+        "thread/fork",
+        "thread/archive",
+        "thread/delete",
+        "thread/unsubscribe",
+        "thread/increment_elicitation",
+        "thread/decrement_elicitation",
+        "thread/name/set",
+        "thread/goal/set",
+        "thread/goal/get",
+        "thread/goal/clear",
+        "thread/queue/add",
+        "thread/queue/list",
+        "thread/queue/update",
+        "thread/queue/delete",
+        "thread/queue/reorder",
+        "thread/queue/start",
+        "thread/metadata/update",
+        "thread/attachment/add",
+        "thread/attachment/list",
+        "thread/attachment/remove",
+        "thread/section/move",
+        "thread/settings/update",
+        "thread/memoryMode/set",
+        "memory/status",
+        "memory/reset",
+        "rollout/compress",
+        "thread/unarchive",
+        "thread/compact/start",
+        "thread/shellCommand",
+        "thread/approveGuardianDeniedAction",
+        "thread/backgroundTerminals/clean",
+        "thread/backgroundTerminals/list",
+        "thread/backgroundTerminals/terminate",
+        "thread/revert",
+        "thread/list",
+        "project/list",
+        "project/read",
+        "project/create",
+        "project/import",
+        "project/update",
+        "project/move",
+        "project/delete",
+        "threadSection/list",
+        "threadSection/create",
+        "threadSection/update",
+        "threadSection/delete",
+        "thread/search",
+        "thread/searchOccurrences",
+        "thread/loaded/list",
+        "thread/read",
+        "thread/turns/list",
+        "thread/items/list",
+        "thread/inject_items",
+        "skills/list",
+        "skills/extraRoots/set",
+        "hooks/list",
+        "marketplace/add",
+        "marketplace/remove",
+        "marketplace/upgrade",
+        "plugin/list",
+        "plugin/search",
+        "plugin/installed",
+        "plugin/reconcile",
+        "plugin/read",
+        "plugin/skill/read",
+        "plugin/share/save",
+        "plugin/share/updateTargets",
+        "plugin/share/list",
+        "plugin/share/checkout",
+        "plugin/share/delete",
+        "app/read",
+        "app/list",
+        "app/installed",
+        "fs/readFile",
+        "fs/writeFile",
+        "fs/createDirectory",
+        "fs/getMetadata",
+        "fs/readDirectory",
+        "fs/remove",
+        "fs/copy",
+        "fs/watch",
+        "fs/unwatch",
+        "skills/config/write",
+        "plugin/install",
+        "plugin/uninstall",
+        "turn/start",
+        "turn/settings/update",
+        "turn/steer",
+        "turn/interrupt",
+        "thread/realtime/start",
+        "thread/realtime/appendAudio",
+        "thread/realtime/appendText",
+        "thread/realtime/appendSpeech",
+        "thread/realtime/stop",
+        "thread/timeline/list",
+        "thread/realtime/listVoices",
+        "review/start",
+        "model/list",
+        "account/gatewayOAuth/read",
+        "account/gatewayOAuth/login",
+        "account/gatewayOAuth/cancel",
+        "modelProvider/capabilities/read",
+        "experimentalFeature/list",
+        "permissionProfile/list",
+        "experimentalFeature/enablement/set",
+        "remoteControl/enable",
+        "remoteControl/disable",
+        "remoteControl/status/read",
+        "remoteControl/pairing/start",
+        "remoteControl/pairing/status",
+        "remoteControl/client/list",
+        "remoteControl/client/revoke",
+        "collaborationMode/list",
+        "mock/experimentalMethod",
+        "environment/add",
+        "environment/info",
+        "environment/status",
+        "mcpServer/oauth/login",
+        "config/mcpServer/reload",
+        "mcpServerStatus/list",
+        "mcpServer/resource/read",
+        "mcpServer/event/stream/start",
+        "mcpServer/event/stream/stop",
+        "mcpServer/tool/call",
+        "windowsSandbox/setupStart",
+        "windowsSandbox/readiness",
+        "account/login/start",
+        "account/bedrock/discover",
+        "account/bedrock/setup",
+        "account/login/cancel",
+        "account/logout",
+        "account/rateLimits/read",
+        "account/rateLimitResetCredit/consume",
+        "account/usage/read",
+        "account/workspaceMessages/read",
+        "account/sendAddCreditsNudgeEmail",
+        "feedback/upload",
+        "command/exec",
+        "command/exec/write",
+        "command/exec/terminate",
+        "command/exec/resize",
+        "process/spawn",
+        "process/writeStdin",
+        "process/kill",
+        "process/resizePty",
+        "config/read",
+        "externalAgentConfig/detect",
+        "externalAgentConfig/import",
+        "externalAgentConfig/import/recordHistory",
+        "externalAgentConfig/import/readHistories",
+        "config/value/write",
+        "config/batchWrite",
+        "configRequirements/read",
+        "account/read",
+        "fuzzyFileSearch",
+        "fuzzyFileSearch/sessionStart",
+        "fuzzyFileSearch/sessionUpdate",
+        "fuzzyFileSearch/sessionStop"
+      ],
+      "typescript": [
+        "initialize",
+        "server/diagnostics",
+        "userVerification/status",
+        "userVerification/enroll",
+        "userVerification/delete",
+        "userVerification/verify",
+        "userVerification/cancel",
+        "thread/start",
+        "thread/resume",
+        "thread/fork",
+        "thread/archive",
+        "thread/delete",
+        "thread/unsubscribe",
+        "thread/increment_elicitation",
+        "thread/decrement_elicitation",
+        "thread/name/set",
+        "thread/goal/set",
+        "thread/goal/get",
+        "thread/goal/clear",
+        "thread/queue/add",
+        "thread/queue/list",
+        "thread/queue/update",
+        "thread/queue/delete",
+        "thread/queue/reorder",
+        "thread/queue/start",
+        "thread/metadata/update",
+        "thread/attachment/add",
+        "thread/attachment/list",
+        "thread/attachment/remove",
+        "thread/section/move",
+        "thread/settings/update",
+        "thread/memoryMode/set",
+        "memory/status",
+        "memory/reset",
+        "rollout/compress",
+        "thread/unarchive",
+        "thread/compact/start",
+        "thread/shellCommand",
+        "thread/approveGuardianDeniedAction",
+        "thread/backgroundTerminals/clean",
+        "thread/backgroundTerminals/list",
+        "thread/backgroundTerminals/terminate",
+        "thread/revert",
+        "thread/list",
+        "project/list",
+        "project/read",
+        "project/create",
+        "project/import",
+        "project/update",
+        "project/move",
+        "project/delete",
+        "threadSection/list",
+        "threadSection/create",
+        "threadSection/update",
+        "threadSection/delete",
+        "thread/search",
+        "thread/searchOccurrences",
+        "thread/loaded/list",
+        "thread/read",
+        "thread/turns/list",
+        "thread/items/list",
+        "thread/inject_items",
+        "skills/list",
+        "skills/extraRoots/set",
+        "hooks/list",
+        "marketplace/add",
+        "marketplace/remove",
+        "marketplace/upgrade",
+        "plugin/list",
+        "plugin/search",
+        "plugin/installed",
+        "plugin/reconcile",
+        "plugin/read",
+        "plugin/skill/read",
+        "plugin/share/save",
+        "plugin/share/updateTargets",
+        "plugin/share/list",
+        "plugin/share/checkout",
+        "plugin/share/delete",
+        "app/read",
+        "app/list",
+        "app/installed",
+        "fs/readFile",
+        "fs/writeFile",
+        "fs/createDirectory",
+        "fs/getMetadata",
+        "fs/readDirectory",
+        "fs/remove",
+        "fs/copy",
+        "fs/watch",
+        "fs/unwatch",
+        "skills/config/write",
+        "plugin/install",
+        "plugin/uninstall",
+        "turn/start",
+        "turn/settings/update",
+        "turn/steer",
+        "turn/interrupt",
+        "thread/realtime/start",
+        "thread/realtime/appendAudio",
+        "thread/realtime/appendText",
+        "thread/realtime/appendSpeech",
+        "thread/realtime/stop",
+        "thread/timeline/list",
+        "thread/realtime/listVoices",
+        "review/start",
+        "model/list",
+        "account/gatewayOAuth/read",
+        "account/gatewayOAuth/login",
+        "account/gatewayOAuth/cancel",
+        "modelProvider/capabilities/read",
+        "experimentalFeature/list",
+        "permissionProfile/list",
+        "experimentalFeature/enablement/set",
+        "remoteControl/enable",
+        "remoteControl/disable",
+        "remoteControl/status/read",
+        "remoteControl/pairing/start",
+        "remoteControl/pairing/status",
+        "remoteControl/client/list",
+        "remoteControl/client/revoke",
+        "collaborationMode/list",
+        "mock/experimentalMethod",
+        "environment/add",
+        "environment/info",
+        "environment/status",
+        "mcpServer/oauth/login",
+        "config/mcpServer/reload",
+        "mcpServerStatus/list",
+        "mcpServer/resource/read",
+        "mcpServer/event/stream/start",
+        "mcpServer/event/stream/stop",
+        "mcpServer/tool/call",
+        "windowsSandbox/setupStart",
+        "windowsSandbox/readiness",
+        "account/login/start",
+        "account/bedrock/discover",
+        "account/bedrock/setup",
+        "account/login/cancel",
+        "account/logout",
+        "account/rateLimits/read",
+        "account/rateLimitResetCredit/consume",
+        "account/usage/read",
+        "account/workspaceMessages/read",
+        "account/sendAddCreditsNudgeEmail",
+        "feedback/upload",
+        "command/exec",
+        "command/exec/write",
+        "command/exec/terminate",
+        "command/exec/resize",
+        "process/spawn",
+        "process/writeStdin",
+        "process/kill",
+        "process/resizePty",
+        "config/read",
+        "externalAgentConfig/detect",
+        "externalAgentConfig/import",
+        "externalAgentConfig/import/recordHistory",
+        "externalAgentConfig/import/readHistories",
+        "config/value/write",
+        "config/batchWrite",
+        "configRequirements/read",
+        "account/read",
+        "getConversationSummary",
+        "gitDiffToRemote",
+        "getAuthStatus",
+        "fuzzyFileSearch",
+        "fuzzyFileSearch/sessionStart",
+        "fuzzyFileSearch/sessionUpdate",
+        "fuzzyFileSearch/sessionStop"
+      ],
+      "typescriptOnly": [
+        "getAuthStatus",
+        "getConversationSummary",
+        "gitDiffToRemote"
+      ]
+    },
+    "experimental/ClientNotification": {
+      "schema": [
+        "initialized"
+      ],
+      "typescript": [
+        "initialized"
+      ],
+      "typescriptOnly": []
+    },
+    "experimental/ServerRequest": {
+      "schema": [
+        "item/commandExecution/requestApproval",
+        "item/fileChange/requestApproval",
+        "item/tool/requestUserInput",
+        "mcpServer/elicitation/request",
+        "item/permissions/requestApproval",
+        "item/tool/call",
+        "account/chatgptAuthTokens/refresh",
+        "attestation/generate",
+        "currentTime/read",
+        "applyPatchApproval",
+        "execCommandApproval"
+      ],
+      "typescript": [
+        "item/commandExecution/requestApproval",
+        "item/fileChange/requestApproval",
+        "item/tool/requestUserInput",
+        "mcpServer/elicitation/request",
+        "item/permissions/requestApproval",
+        "item/tool/call",
+        "account/chatgptAuthTokens/refresh",
+        "attestation/generate",
+        "currentTime/read",
+        "applyPatchApproval",
+        "execCommandApproval"
+      ],
+      "typescriptOnly": []
+    },
+    "experimental/ServerNotification": {
+      "schema": [
+        "error",
+        "thread/started",
+        "thread/status/changed",
+        "thread/archived",
+        "thread/deleted",
+        "thread/unarchived",
+        "thread/closed",
+        "thread/reverted",
+        "skills/changed",
+        "thread/name/updated",
+        "thread/attachment/updated",
+        "thread/goal/updated",
+        "thread/goal/cleared",
+        "thread/queue/changed",
+        "project/changed",
+        "thread/project/updated",
+        "thread/environment/connected",
+        "thread/environment/disconnected",
+        "thread/settings/updated",
+        "thread/tokenUsage/updated",
+        "turn/started",
+        "hook/started",
+        "turn/completed",
+        "hook/completed",
+        "turn/diff/updated",
+        "turn/plan/updated",
+        "item/started",
+        "item/autoApprovalReview/started",
+        "item/autoApprovalReview/completed",
+        "autoApprovalReview/strictReviewRequired",
+        "item/completed",
+        "item/agentMessage/delta",
+        "item/plan/delta",
+        "command/exec/outputDelta",
+        "process/outputDelta",
+        "process/exited",
+        "item/commandExecution/outputDelta",
+        "item/commandExecution/terminalInteraction",
+        "item/fileChange/outputDelta",
+        "item/fileChange/patchUpdated",
+        "serverRequest/resolved",
+        "item/mcpToolCall/progress",
+        "mcpServer/oauthLogin/completed",
+        "mcpServer/startupStatus/updated",
+        "mcpServer/event/stream/notification",
+        "account/updated",
+        "account/gatewayOAuth/changed",
+        "account/rateLimits/updated",
+        "app/list/updated",
+        "remoteControl/status/changed",
+        "externalAgentConfig/import/progress",
+        "externalAgentConfig/import/completed",
+        "fs/changed",
+        "item/reasoning/summaryTextDelta",
+        "item/reasoning/summaryPartAdded",
+        "item/reasoning/textDelta",
+        "thread/compacted",
+        "model/rerouted",
+        "model/verification",
+        "modelProvider/authRecoveryStarted",
+        "modelProvider/authRecoveryCompleted",
+        "turn/moderationMetadata",
+        "model/safetyBuffering/updated",
+        "warning",
+        "guardianWarning",
+        "deprecationNotice",
+        "configWarning",
+        "fuzzyFileSearch/sessionUpdated",
+        "fuzzyFileSearch/sessionCompleted",
+        "thread/realtime/started",
+        "thread/realtime/itemAdded",
+        "thread/realtime/item/started",
+        "thread/realtime/item/transcript/delta",
+        "thread/realtime/item/completed",
+        "thread/realtime/transcript/delta",
+        "thread/realtime/transcript/done",
+        "thread/realtime/outputAudio/delta",
+        "thread/realtime/sdp",
+        "thread/realtime/error",
+        "thread/realtime/closed",
+        "windows/worldWritableWarning",
+        "windowsSandbox/setupCompleted",
+        "account/login/completed"
+      ],
+      "typescript": [
+        "error",
+        "thread/started",
+        "thread/status/changed",
+        "thread/archived",
+        "thread/deleted",
+        "thread/unarchived",
+        "thread/closed",
+        "thread/reverted",
+        "skills/changed",
+        "thread/name/updated",
+        "thread/attachment/updated",
+        "thread/goal/updated",
+        "thread/goal/cleared",
+        "thread/queue/changed",
+        "project/changed",
+        "thread/project/updated",
+        "thread/environment/connected",
+        "thread/environment/disconnected",
+        "thread/settings/updated",
+        "thread/tokenUsage/updated",
+        "turn/started",
+        "hook/started",
+        "turn/completed",
+        "hook/completed",
+        "turn/diff/updated",
+        "turn/plan/updated",
+        "item/started",
+        "item/autoApprovalReview/started",
+        "item/autoApprovalReview/completed",
+        "autoApprovalReview/strictReviewRequired",
+        "item/completed",
+        "rawResponseItem/completed",
+        "rawResponse/completed",
+        "item/agentMessage/delta",
+        "item/plan/delta",
+        "command/exec/outputDelta",
+        "process/outputDelta",
+        "process/exited",
+        "item/commandExecution/outputDelta",
+        "item/commandExecution/terminalInteraction",
+        "item/fileChange/outputDelta",
+        "item/fileChange/patchUpdated",
+        "serverRequest/resolved",
+        "item/mcpToolCall/progress",
+        "mcpServer/oauthLogin/completed",
+        "mcpServer/startupStatus/updated",
+        "mcpServer/event/stream/notification",
+        "account/updated",
+        "account/gatewayOAuth/changed",
+        "account/rateLimits/updated",
+        "app/list/updated",
+        "remoteControl/status/changed",
+        "externalAgentConfig/import/progress",
+        "externalAgentConfig/import/completed",
+        "fs/changed",
+        "item/reasoning/summaryTextDelta",
+        "item/reasoning/summaryPartAdded",
+        "item/reasoning/textDelta",
+        "thread/compacted",
+        "model/rerouted",
+        "model/verification",
+        "modelProvider/authRecoveryStarted",
+        "modelProvider/authRecoveryCompleted",
+        "turn/moderationMetadata",
+        "model/safetyBuffering/updated",
+        "warning",
+        "guardianWarning",
+        "deprecationNotice",
+        "configWarning",
+        "fuzzyFileSearch/sessionUpdated",
+        "fuzzyFileSearch/sessionCompleted",
+        "thread/realtime/started",
+        "thread/realtime/itemAdded",
+        "thread/realtime/item/started",
+        "thread/realtime/item/transcript/delta",
+        "thread/realtime/item/completed",
+        "thread/realtime/transcript/delta",
+        "thread/realtime/transcript/done",
+        "thread/realtime/outputAudio/delta",
+        "thread/realtime/sdp",
+        "thread/realtime/error",
+        "thread/realtime/closed",
+        "windows/worldWritableWarning",
+        "windowsSandbox/setupCompleted",
+        "account/login/completed"
+      ],
+      "typescriptOnly": [
+        "rawResponse/completed",
+        "rawResponseItem/completed"
+      ]
+    }
+  },
+  "unchangedFocusDefinitions": [
+    "v2/ThreadStartParams",
+    "v2/ThreadStartResponse",
+    "v2/ThreadResumeParams",
+    "v2/ThreadResumeResponse",
+    "v2/ThreadForkParams",
+    "v2/TurnStartParams",
+    "v2/TurnStartResponse",
+    "v2/LoginAccountParams",
+    "v2/GetAccountResponse",
+    "v2/ModelListParams",
+    "v2/ConfigReadParams",
+    "v2/ConfigBatchWriteParams",
+    "v2/ModelProviderCapabilitiesReadResponse",
+    "ServerRequest",
+    "ServerNotification"
+  ],
+  "focusNamesNotLocated": [],
+  "focusChangedUnderReportedDeltas": [],
+  "legacyRecordedFramesValid": 8,
+  "legacyRecordedFramesFailed": [],
+  "schemaInventoryByteIdenticalTo0158": true,
+  "typescriptEmittedAtMsProvenance": [
+    {
+      "file": "ServerNotificationEnvelope.ts",
+      "sha256": "8ff6a6c83955e7c3dcf9d9d2b2b39c4097be774d667b76a9b84837b81c126983"
+    }
+  ]
+}

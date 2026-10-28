@@ -1,0 +1,18 @@
+{
+  "format": "rrm.examiner-judgments",
+  "formatVersion": "0.2",
+  "account": {
+    "account_id": "ACC-CONSTRUCTED-BAD-2",
+    "sha256": "5a187336856fe1ee0f531d64e4a34b2e72029db9babdcfe1c6852f36342a0a04"
+  },
+  "judgments": {
+    "C6": "unsupported"
+  },
+  "basis": {
+    "C6": "Claims stage 2 started, citing only a consequence statement in the package file; the input set holds no record of stage 2. Constructed negative."
+  },
+  "examiner": {
+    "identity": "O-C (constructed negative)",
+    "kind": "agent"
+  }
+}

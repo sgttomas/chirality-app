@@ -1,0 +1,2315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2",
+  "title": "Workflow workspace and registration records (DEL-02-02 WR-v0.2) - PROPOSED",
+  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check; CC-WR-RECONFIRM, in place, adds the DS-8 re-confirmation of a registered revision to registration_disposition, draft_transition, a15_descriptor and library_entry; CC-WR-TRIALS, in place, extends trial_pointer to the TT-4 trial link and adds trial_observation). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
+  "type": "object",
+  "required": [
+    "record_kind"
+  ],
+  "anyOf": [
+    {
+      "$ref": "#/$defs/draft_reference"
+    },
+    {
+      "$ref": "#/$defs/draft_transition"
+    },
+    {
+      "$ref": "#/$defs/registration_disposition"
+    },
+    {
+      "$ref": "#/$defs/a15_descriptor"
+    },
+    {
+      "$ref": "#/$defs/library_entry"
+    },
+    {
+      "$ref": "#/$defs/selection_record"
+    },
+    {
+      "$ref": "#/$defs/trial_pointer"
+    },
+    {
+      "$ref": "#/$defs/trial_observation"
+    },
+    {
+      "$ref": "#/$defs/a15_multi_descriptor"
+    },
+    {
+      "$ref": "#/$defs/run_text"
+    },
+    {
+      "$ref": "#/$defs/supply_check"
+    }
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "description": "Package name (WD section 7: 1-64 lowercase letters or digits in hyphen-separated segments; folder name equals name).",
+      "type": "string",
+      "pattern": "^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "content_identity": {
+      "description": "A content identity with its method designation. For a draft it is computed over the draft folder by WD section 6.1 RV-1...RV-5; for a revision it is the revision value. The algorithm is open (WD U-03); the prototype's proto-sha256-list-0 is an illustration.",
+      "type": "object",
+      "required": [
+        "method",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/text"
+        },
+        "value": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "identity": {
+      "description": "WD section 6.1 tuple, by reference to WD's schema.",
+      "$ref": "urn:chirality:app-v4:del-02-01:workflow-declaration:WD-v0.8#/$defs/workflow_identity"
+    },
+    "revision_identity": {
+      "description": "A tuple that names selected content: revision required (WD section 6.1: without revision a tuple names a slot).",
+      "allOf": [
+        {
+          "$ref": "#/$defs/identity"
+        },
+        {
+          "required": [
+            "revision",
+            "revision_method"
+          ]
+        }
+      ]
+    },
+    "identity_or_none": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/revision_identity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "slot": {
+      "description": "A library slot: origin, source root and name, no revision (WD section 6.1).",
+      "type": "object",
+      "required": [
+        "origin",
+        "source_root",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "origin": {
+          "enum": [
+            "project",
+            "user",
+            "bundled",
+            "host"
+          ]
+        },
+        "source_root": {
+          "$ref": "#/$defs/text"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "draft_key": {
+      "description": "Where a draft is. A draft has no workflow identity (EXEC TR-1, HR-3); it is named by its location and folder name, and its content by a content identity.",
+      "type": "object",
+      "required": [
+        "draft_location",
+        "draft_root",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "draft_location": {
+          "enum": [
+            "project",
+            "user"
+          ]
+        },
+        "draft_root": {
+          "$ref": "#/$defs/text"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "reviewed_draft": {
+      "type": "object",
+      "required": [
+        "draft",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/draft_key"
+        },
+        "content": {
+          "$ref": "#/$defs/content_identity"
+        }
+      },
+      "description": "Reviewed content locator and identity. In a single in-place A15 descriptor, compatibility field draft points to the existing library entry home/name; no draft exists. AAC/RS render the corresponding ID-3 entry: reference."
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "code",
+        "detail"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "HY-1 no WORKFLOW.md",
+            "HY-2 name",
+            "HY-3 non-regular entry",
+            "HY-4 operating-system file",
+            "HY-5 size bound",
+            "HY-7 not UTF-8",
+            "declared-part finding"
+          ]
+        },
+        "detail": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "draft_state": {
+      "enum": [
+        "absent",
+        "draft",
+        "not valid",
+        "under review",
+        "changed since review",
+        "registered, unchanged since",
+        "removed"
+      ]
+    },
+    "standing": {
+      "enum": [
+        "registered",
+        "present without registration record",
+        "library copy changed outside registration",
+        "registration record incomplete",
+        "bundled",
+        "shipped revision held in this library",
+        "host-listed",
+        "not established"
+      ]
+    },
+    "draft_reference": {
+      "description": "WR section 2.3 and 5.1. Supplied to DEL-01-04's draft receiving interface (DEP-01-04-009) and cited by the A15 descriptor and the library entry.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "draft",
+        "state",
+        "content",
+        "base",
+        "base_recorded_by",
+        "findings",
+        "observed_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "draft_reference"
+        },
+        "draft": {
+          "$ref": "#/$defs/draft_key"
+        },
+        "state": {
+          "$ref": "#/$defs/draft_state"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/content_identity"
+            },
+            {
+              "type": "object",
+              "required": [
+                "not_established"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "not_established": {
+                  "$ref": "#/$defs/text"
+                }
+              }
+            }
+          ]
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "base": {
+          "$ref": "#/$defs/identity_or_none"
+        },
+        "base_recorded_by": {
+          "enum": [
+            "app",
+            "none"
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "observed_at": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "allOf": [
+        {
+          "description": "The name follows WD's rule unless the draft is reported not valid (HY-2).",
+          "anyOf": [
+            {
+              "properties": {
+                "state": {
+                  "const": "not valid"
+                }
+              }
+            },
+            {
+              "properties": {
+                "draft": {
+                  "properties": {
+                    "name": {
+                      "$ref": "#/$defs/name"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "A base is recorded only by the App (WR SP-3).",
+          "anyOf": [
+            {
+              "properties": {
+                "base_recorded_by": {
+                  "const": "app"
+                },
+                "base": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "properties": {
+                "base_recorded_by": {
+                  "const": "none"
+                },
+                "base": {
+                  "type": "null"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "draft_transition": {
+      "description": "WR section 5.1 event, supplied to DEL-01-04 (DEP-01-04-009: draft/registration/collision/refusal transitions for native presentation).",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "event",
+        "draft",
+        "from",
+        "to",
+        "cause",
+        "time",
+        "attribution"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "draft_transition"
+        },
+        "event": {
+          "enum": [
+            "written",
+            "changed",
+            "review shown",
+            "review stale",
+            "registration refused",
+            "registered",
+            "registration not completed",
+            "re-confirmed",
+            "removed"
+          ]
+        },
+        "draft": {
+          "$ref": "#/$defs/draft_key"
+        },
+        "content": {
+          "$ref": "#/$defs/content_identity"
+        },
+        "from": {
+          "$ref": "#/$defs/draft_state"
+        },
+        "to": {
+          "$ref": "#/$defs/draft_state"
+        },
+        "disposition": {
+          "$ref": "#/$defs/disposition_code"
+        },
+        "cause": {
+          "$ref": "#/$defs/text"
+        },
+        "time": {
+          "$ref": "#/$defs/text"
+        },
+        "attribution": {
+          "description": "Who changed the files, where observed: a supplier fileChange item naming the path (observed-in-generated-types at 0.158.0), an App action, or not observed (a shell write or the person's editor).",
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "file change item",
+                "app action",
+                "not observed"
+              ]
+            },
+            "thread": {
+              "$ref": "#/$defs/text"
+            },
+            "item": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "a15_record": {
+          "description": "C-02 (R18-1): the RS human_act A15 record the App act control wrote; on 'registered', 'registration not completed' and (CC-WR-RECONFIRM) 're-confirmed' only.",
+          "$ref": "#/$defs/record_ref"
+        },
+        "revision": {
+          "description": "C-02 (R18-1): the registered revision identity; on 'registered' and (CC-WR-RECONFIRM) on 're-confirmed', where it is the re-confirmed revision's own identity, not a new one.",
+          "$ref": "#/$defs/text"
+        }
+      },
+      "allOf": [
+        {
+          "description": "C-02: a15_record only on 'registered' or 'registration not completed'; CC-WR-RECONFIRM adds 're-confirmed'.",
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "a15_record"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "event": {
+                  "enum": [
+                    "registered",
+                    "registration not completed",
+                    "re-confirmed"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "C-02: revision only on 'registered'; CC-WR-RECONFIRM adds 're-confirmed'.",
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "revision"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "event": {
+                  "enum": [
+                    "registered",
+                    "re-confirmed"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a 're-confirmed' event ends in 'registered, unchanged since' with disposition 're-confirmation', and names the content, the A15 record and the re-confirmed revision (NIR's draft-transition rule, mirrored).",
+          "anyOf": [
+            {
+              "properties": {
+                "event": {
+                  "not": {
+                    "const": "re-confirmed"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "a15_record",
+                "revision",
+                "content",
+                "disposition"
+              ],
+              "properties": {
+                "to": {
+                  "const": "registered, unchanged since"
+                },
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a 'registered' event never carries the re-confirmation disposition.",
+          "anyOf": [
+            {
+              "properties": {
+                "event": {
+                  "not": {
+                    "const": "registered"
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "disposition_code": {
+      "enum": [
+        "new workflow",
+        "new revision",
+        "in place",
+        "refused: name taken",
+        "refused: identical content",
+        "refused: draft not valid",
+        "refused: changed since review",
+        "refused: slot moved on",
+        "re-confirmation"
+      ]
+    },
+    "reconfirmed_revision": {
+      "description": "CC-WR-RECONFIRM (WR section 4.8 RC-3, RC-4, RC-9): the registered revision a re-confirmation names: its full tuple exactly as its registered ledger line records it, and that line's ledger_seq and sequence. A re-confirmation registers no new revision.",
+      "type": "object",
+      "required": [
+        "identity",
+        "ledger_seq",
+        "sequence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "ledger_seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "registration_disposition": {
+      "description": "WR section 4.1 DS-1...DS-7: the registration collision and disposition report, shown in the review and supplied to DEL-01-04. A discovery collision (C-1) uses the same entries list with disposition absent.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "occasion",
+        "target_slot",
+        "same_name_elsewhere",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "registration_disposition"
+        },
+        "occasion": {
+          "enum": [
+            "registration review",
+            "discovery"
+          ]
+        },
+        "review_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "target_slot": {
+          "$ref": "#/$defs/slot"
+        },
+        "reviewed": {
+          "$ref": "#/$defs/reviewed_draft"
+        },
+        "disposition": {
+          "$ref": "#/$defs/disposition_code"
+        },
+        "prior_revision": {
+          "$ref": "#/$defs/identity_or_none"
+        },
+        "base": {
+          "$ref": "#/$defs/identity_or_none"
+        },
+        "lineage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/revision_identity"
+          }
+        },
+        "stale_base": {
+          "type": "boolean"
+        },
+        "same_name_elsewhere": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "identity",
+              "holding_library",
+              "standing"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "identity": {
+                "$ref": "#/$defs/identity"
+              },
+              "holding_library": {
+                "$ref": "#/$defs/text"
+              },
+              "standing": {
+                "$ref": "#/$defs/standing"
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "message": {
+          "$ref": "#/$defs/text"
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision the review offers to re-confirm (WR section 4.8 RC-1). prior_revision keeps its meaning for every review: the slot's latest revision at review (WR section 4.8 RC-4).",
+          "$ref": "#/$defs/reconfirmed_revision"
+        }
+      },
+      "allOf": [
+        {
+          "description": "CC-WR-RECONFIRM: DS-8 (re-confirmation) names the registered revision it re-confirms; no other disposition does.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "description": "A registration review states a disposition and the reviewed content; a discovery report does not.",
+          "anyOf": [
+            {
+              "properties": {
+                "occasion": {
+                  "const": "discovery"
+                }
+              },
+              "not": {
+                "required": [
+                  "disposition"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "occasion": {
+                  "const": "registration review"
+                }
+              },
+              "required": [
+                "disposition",
+                "reviewed",
+                "review_ref",
+                "prior_revision",
+                "base"
+              ]
+            }
+          ]
+        },
+        {
+          "description": "DS-2: a new revision names the prior revision; DS-1: a new workflow has none.",
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "disposition"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "enum": [
+                      "new revision",
+                      "new workflow"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "const": "new revision"
+                },
+                "prior_revision": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "const": "new workflow"
+                },
+                "prior_revision": {
+                  "type": "null"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "a15_descriptor": {
+      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation. CC-WR-RECONFIRM (WR section 4.8 RC-4): for DS-8 the descriptor re-confirms a registered revision: disposition 're-confirmation', its own wording and purpose, subject equal to reconfirms.identity (reader check), prior_revision and derived_from as that revision's registered line records them; no new revision is registered. Owner: 'Allow direct single-entry registration (Recommended)'. A single existing entry reviewed in place uses this same descriptor with disposition in place, singular wording and null prior_revision; the compatibility reviewed_draft.draft locator identifies its actual workflows home, not a created draft.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "descriptor_id",
+        "act_kind",
+        "wording",
+        "subject",
+        "bound_content",
+        "relations",
+        "scope",
+        "purpose",
+        "review_ref",
+        "freshness"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "a15_descriptor"
+        },
+        "descriptor_id": {
+          "$ref": "#/$defs/text"
+        },
+        "act_kind": {
+          "const": "A15"
+        },
+        "wording": {
+          "enum": [
+            "register workflow revision",
+            "re-confirm workflow revision for use"
+          ]
+        },
+        "subject": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "bound_content": {
+          "$ref": "#/$defs/content_identity"
+        },
+        "relations": {
+          "type": "object",
+          "required": [
+            "reviewed_draft",
+            "prior_revision",
+            "derived_from"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "reviewed_draft": {
+              "$ref": "#/$defs/reviewed_draft"
+            },
+            "prior_revision": {
+              "$ref": "#/$defs/identity_or_none"
+            },
+            "derived_from": {
+              "$ref": "#/$defs/identity_or_none"
+            }
+          }
+        },
+        "disposition": {
+          "enum": [
+            "new workflow",
+            "new revision",
+            "in place",
+            "re-confirmation"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/text"
+        },
+        "purpose": {
+          "enum": [
+            "make it available in the project library",
+            "make it available in the user library",
+            "make it available again in this App session from the project library",
+            "make it available again in this App session from the user library"
+          ]
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision this act re-confirms (WR section 4.8 RC-4).",
+          "$ref": "#/$defs/reconfirmed_revision"
+        },
+        "review_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "freshness": {
+          "description": "RB-3: the descriptor is current only while the live reviewed draft or entry still has this content and the slot's latest revision is still prior_revision (or the slot is still empty). CC-WR-RECONFIRM (WR section 4.8 RC-5): for a re-confirmation descriptor (disposition 're-confirmation') the slot's latest revision is compared with slot_latest, the slot's latest at review, because relations.prior_revision is then the re-confirmed revision's own prior.",
+          "type": "object",
+          "required": [
+            "draft_content",
+            "slot_latest"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "draft_content": {
+              "$ref": "#/$defs/content_identity"
+            },
+            "slot_latest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/content_identity"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "act_request_ref": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "allOf": [
+        {
+          "description": "CC-WR-RECONFIRM: a re-confirmation descriptor (disposition 're-confirmation') carries the re-confirm wording and purpose and names the revision it re-confirms; any other descriptor keeps the registration wording and purpose and names none.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                },
+                "wording": {
+                  "const": "re-confirm workflow revision for use"
+                },
+                "purpose": {
+                  "enum": [
+                    "make it available again in this App session from the project library",
+                    "make it available again in this App session from the user library"
+                  ]
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                },
+                "wording": {
+                  "const": "register workflow revision"
+                },
+                "purpose": {
+                  "enum": [
+                    "make it available in the project library",
+                    "make it available in the user library"
+                  ]
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "library_entry": {
+      "description": "WR section 4.6 and 6 SQ-G: one line of a library's registration ledger (App-kept, R17-4). 'registered' is the commit point of a registration; 'not completed' records an A15 whose registration did not complete. Registered standing also needs the cited A15 record and store bytes that recompute (LS-1). CC-WR-RECONFIRM (WR section 4.8): 're-confirmed' is the commit point of a re-confirmation (G-4R): it cites the new A15 and, in reconfirms, the earlier 'registered' line of the same revision; it adds no revision to the slot's series and never changes the slot's latest (reader checks RC-9). A 'not completed' line with disposition 're-confirmation' records a re-confirmation that did not complete.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "ledger_seq",
+        "outcome",
+        "identity",
+        "act",
+        "prior_revision",
+        "written_at",
+        "evidence_limits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "library_entry"
+        },
+        "ledger_seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "outcome": {
+          "enum": [
+            "registered",
+            "not completed",
+            "re-confirmed"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disposition": {
+          "enum": [
+            "new workflow",
+            "new revision",
+            "in place",
+            "re-confirmation"
+          ],
+          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7). 're-confirmation' (CC-WR-RECONFIRM, DS-8) is carried by 're-confirmed' lines and by 'not completed' lines of a re-confirmation."
+        },
+        "prior_revision": {
+          "$ref": "#/$defs/identity_or_none"
+        },
+        "reviewed_draft": {
+          "$ref": "#/$defs/reviewed_draft"
+        },
+        "act": {
+          "type": "object",
+          "required": [
+            "record_id",
+            "capture_evidence"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "record_id": {
+              "$ref": "#/$defs/text"
+            },
+            "capture_evidence": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "store_path": {
+          "$ref": "#/$defs/text"
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        },
+        "written_at": {
+          "$ref": "#/$defs/text"
+        },
+        "evidence_limits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "reviewed_entry": {
+          "description": "L-4: for an in-place registration of a library entry reviewed directly (WR §4.7), the entry's ID-3 string and content.",
+          "type": "object",
+          "required": [
+            "entry",
+            "content"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "entry": {
+              "type": "string",
+              "pattern": "^entry:(project|user):[^@]+@.+$"
+            },
+            "content": {
+              "$ref": "#/$defs/content_identity"
+            }
+          }
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: on a re-confirmation line only, the earlier 'registered' line this line re-confirms (WR section 4.8 RC-9).",
+          "$ref": "#/$defs/reconfirmed_revision"
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "outcome": {
+                  "const": "registered"
+                },
+                "disposition": {
+                  "enum": [
+                    "new workflow",
+                    "new revision",
+                    "in place"
+                  ]
+                }
+              },
+              "required": [
+                "sequence",
+                "disposition",
+                "store_path"
+              ]
+            },
+            {
+              "properties": {
+                "outcome": {
+                  "const": "re-confirmed"
+                },
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "sequence",
+                "disposition",
+                "store_path",
+                "reconfirms",
+                "reviewed_draft"
+              ]
+            },
+            {
+              "properties": {
+                "outcome": {
+                  "const": "not completed"
+                }
+              },
+              "required": [
+                "reason"
+              ]
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a line names the revision it re-confirms exactly when its disposition is 're-confirmation'.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a re-confirmation is of a reviewed draft (WR section 4.8 RC-1), never of an entry reviewed in place.",
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            },
+            {
+              "required": [
+                "reviewed_draft"
+              ]
+            }
+          ]
+        },
+        {
+          "description": "Exactly one of reviewed_draft and reviewed_entry.",
+          "anyOf": [
+            {
+              "required": [
+                "reviewed_draft"
+              ],
+              "not": {
+                "required": [
+                  "reviewed_entry"
+                ]
+              }
+            },
+            {
+              "required": [
+                "reviewed_entry"
+              ],
+              "not": {
+                "required": [
+                  "reviewed_draft"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "selection_record": {
+      "description": "WR section 4.4 SL-1...SL-6: the person's explicit selection of registered content, handed to DEL-02-03 (CK-1, A-1; the resolver) and DEL-04-03 (R2 selected link). DEL-02-04 receives no selection: it composes role guidance only (R19-7, which dropped R17-8's workflow supply).",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "selection_id",
+        "identity",
+        "holding_library",
+        "standing",
+        "selected_by",
+        "how",
+        "conversation",
+        "selected_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "selection_record"
+        },
+        "selection_id": {
+          "$ref": "#/$defs/text"
+        },
+        "identity": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "holding_library": {
+          "$ref": "#/$defs/text"
+        },
+        "standing": {
+          "enum": [
+            "registered",
+            "bundled",
+            "shipped revision held in this library",
+            "host-listed"
+          ]
+        },
+        "selected_by": {
+          "const": "the person (App interface)"
+        },
+        "how": {
+          "enum": [
+            "explicit",
+            "from unqualified name",
+            "agent proposal confirmed by the person"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identity"
+          }
+        },
+        "replaces": {
+          "$ref": "#/$defs/text"
+        },
+        "conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "selected_at": {
+          "$ref": "#/$defs/text"
+        },
+        "prior_run": {
+          "description": "R19-2 (a)/(b): the run that came before in this conversation; a relation, not part of the identity.",
+          "type": "object",
+          "required": [
+            "run",
+            "workflow",
+            "ended"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "run": {
+              "$ref": "#/$defs/text"
+            },
+            "workflow": {
+              "$ref": "#/$defs/revision_identity"
+            },
+            "ended": {
+              "description": "How the earlier run ended; RX2 (R20-11 (4)) adds 'ended to start <B>' for the one-step End A and start B without a finished report.",
+              "anyOf": [
+                {
+                  "enum": [
+                    "ended by the person",
+                    "completed"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^ended to start (?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+                }
+              ]
+            }
+          }
+        },
+        "proposal": {
+          "description": "R19-2 (b): the agent message whose proposal line the person confirmed; never a selection by itself.",
+          "type": "object",
+          "required": [
+            "conversation",
+            "item",
+            "proposed_name"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "conversation": {
+              "$ref": "#/$defs/text"
+            },
+            "item": {
+              "$ref": "#/$defs/text"
+            },
+            "proposed_name": {
+              "description": "RX (R20-5, R20-9): the proposal line's '<origin>:<name>', exactly as the agent wrote it.",
+              "type": "string",
+              "pattern": "^(project|user|bundled|host):(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "A confirmed agent proposal cites the proposal; other selections do not.",
+          "anyOf": [
+            {
+              "properties": {
+                "how": {
+                  "const": "agent proposal confirmed by the person"
+                }
+              },
+              "required": [
+                "proposal"
+              ]
+            },
+            {
+              "properties": {
+                "how": {
+                  "enum": [
+                    "explicit",
+                    "from unqualified name"
+                  ]
+                }
+              },
+              "not": {
+                "required": [
+                  "proposal"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "trial_pointer": {
+      "description": "WR section 4.2 TT-4 (K-7; CC-WR-TRIALS): the trial link, an App-kept record that the person sent a trial of one draft version, written when the host acknowledges the send. It names draft content, never a workflow identity, and is not a run record, compatibility evidence or A15 evidence. A link with `trial` is a CC-WR-TRIALS trial and carries TT-4's standing sentence; a link without it was written before CC-WR-TRIALS (the draft's files sent as attachments) and keeps its earlier standing sentence: it is listed as an earlier attachment trial. `conversation` is the authoring conversation for a delegated trial and the trial conversation for a clean one; reader checks (WR section 8): for a delegated trial it equals trial.authoring_conversation, for a clean trial it equals trial.clean_conversation, and one trial reference has one link.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "draft",
+        "content",
+        "conversation",
+        "time",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "trial_pointer"
+        },
+        "draft": {
+          "$ref": "#/$defs/draft_key"
+        },
+        "content": {
+          "$ref": "#/$defs/content_identity"
+        },
+        "conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "time": {
+          "$ref": "#/$defs/text"
+        },
+        "standing": {
+          "enum": [
+            "draft tried in conversation; not a run of any workflow identity",
+            "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance"
+          ]
+        },
+        "trial": {
+          "$ref": "#/$defs/trial_link"
+        }
+      },
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "trial"
+            ]
+          },
+          "properties": {
+            "standing": {
+              "const": "draft tried in conversation; not a run of any workflow identity"
+            }
+          }
+        },
+        {
+          "required": [
+            "trial"
+          ],
+          "properties": {
+            "standing": {
+              "const": "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance"
+            }
+          }
+        }
+      ]
+    },
+    "trial_reference": {
+      "description": "WR section 4.2 TT-3: a trial's reference, `trial:` and a UUID. It is the run reference inside the trial text and is never a run identity.",
+      "type": "string",
+      "pattern": "^trial:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "trial_link": {
+      "description": "WR section 4.2 TT-4 (CC-WR-TRIALS): what a trial link adds to a trial pointer. sequence is the draft's trial number (display only); text_identity is the trial text's exact-bytes identity (TX-4) and text_bytes its size; snapshot_folder is the folder the trial text's files line names (TT-8; project- or home-relative, never absolute); client_message and turn are the sent message's client identity and, when the acknowledgment carried it, its turn; clean_conversation is the fresh conversation of a clean trial and null for a delegated one.",
+      "type": "object",
+      "required": [
+        "reference",
+        "sequence",
+        "kind",
+        "text_identity",
+        "text_bytes",
+        "snapshot_folder",
+        "authoring_conversation",
+        "client_message",
+        "turn",
+        "clean_conversation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/trial_reference"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "enum": [
+            "delegated",
+            "clean"
+          ]
+        },
+        "text_identity": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "text_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_folder": {
+          "type": "string",
+          "pattern": "^(?![/\\\\])[^\\r\\n]+$"
+        },
+        "authoring_conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "client_message": {
+          "$ref": "#/$defs/text"
+        },
+        "turn": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clean_conversation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "delegated"
+            },
+            "clean_conversation": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "clean"
+            },
+            "clean_conversation": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        }
+      ]
+    },
+    "trial_fidelity": {
+      "description": "WR section 4.2 TT-9: one fidelity reading of a trial's first input (a delegated trial's linked sub-agent, or a clean trial's first turn). verbatim: the trial text from its start line through the end marker occurs as one contiguous exact byte sequence in one text element (header_present says whether the header came too); differs: TX-3's extraction gives the difference; not checked: no child linked, or the read failed (limits say which). observed_text is the identity of the text element read. read_thread is the thread read, null when none was linked.",
+      "type": "object",
+      "required": [
+        "state",
+        "read_thread",
+        "limits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "verbatim",
+            "differs",
+            "not checked"
+          ]
+        },
+        "difference": {
+          "enum": [
+            "framing differs, workflow body equal",
+            "workflow body differs",
+            "workflow not found"
+          ]
+        },
+        "header_present": {
+          "type": "boolean"
+        },
+        "read_thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_text": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "state": {
+              "const": "verbatim"
+            },
+            "read_thread": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "header_present",
+            "observed_text"
+          ],
+          "not": {
+            "required": [
+              "difference"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "differs"
+            },
+            "read_thread": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "difference",
+            "observed_text"
+          ],
+          "not": {
+            "required": [
+              "header_present"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "not checked"
+            },
+            "limits": {
+              "type": "array",
+              "minItems": 1
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "difference"
+                ]
+              },
+              {
+                "required": [
+                  "header_present"
+                ]
+              },
+              {
+                "required": [
+                  "observed_text"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "trial_transcript": {
+      "description": "WR section 4.2 TT-10: the transcript element a bring-back message carried: its exact-bytes identity (TX-4), size, and every shortening named.",
+      "type": "object",
+      "required": [
+        "identity",
+        "bytes",
+        "shortenings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "shortenings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "trial_observation": {
+      "description": "WR section 4.2 TT-4, TT-9, TT-10 (CC-WR-TRIALS): one later App-observed fact about a trial, in its own create-once record beside the trial links, citing the trial reference. sub-agent linked / unlinked: the child thread and, for a link, how it was linked; fidelity: one reading (trial_fidelity); brought back: the target conversation and the transcript sent. Never relabelled: a later read is a new observation. Carries no workflow identity and is not a run record, registration, checking or acceptance. Reader check (WR section 8): trial names an existing trial link.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "observation_id",
+        "trial",
+        "observation",
+        "time",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "trial_observation"
+        },
+        "observation_id": {
+          "type": "string",
+          "pattern": "^trial-observation:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "trial": {
+          "$ref": "#/$defs/trial_reference"
+        },
+        "observation": {
+          "enum": [
+            "sub-agent linked",
+            "sub-agent unlinked",
+            "fidelity",
+            "brought back"
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/text"
+        },
+        "child_thread": {
+          "$ref": "#/$defs/text"
+        },
+        "linked_by": {
+          "description": "Observed linking route, not operator identity. New explicit-command observations use explicit link control; by the person is a retained legacy claim and must not be rewritten.",
+          "enum": [
+            "begin marker found",
+            "explicit link control",
+            "by the person"
+          ]
+        },
+        "fidelity": {
+          "$ref": "#/$defs/trial_fidelity"
+        },
+        "target_conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "transcript": {
+          "$ref": "#/$defs/trial_transcript"
+        },
+        "standing": {
+          "const": "observation of a trial; not a run record, registration, checking or acceptance"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "observation": {
+              "const": "sub-agent linked"
+            }
+          },
+          "required": [
+            "child_thread",
+            "linked_by"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "fidelity"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "sub-agent unlinked"
+            }
+          },
+          "required": [
+            "child_thread"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "fidelity"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "fidelity"
+            }
+          },
+          "required": [
+            "fidelity"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "child_thread"
+                ]
+              },
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "brought back"
+            }
+          },
+          "required": [
+            "target_conversation",
+            "transcript"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "child_thread"
+                ]
+              },
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "fidelity"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "text_identity": {
+      "description": "WR §16.3 TX-4 / CC-WR-TEXT-METHOD-ADOPTION: new App text uses chirality.app.exact-bytes.sha256/v1 over exact UTF-8 bytes. Historical and other method/value inputs remain opaque; different methods are incomparable, never relabelled.",
+      "type": "object",
+      "required": [
+        "method",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "$ref": "#/$defs/hex64"
+        }
+      }
+    },
+    "record_ref": {
+      "type": "string",
+      "pattern": "^rec:"
+    },
+    "a15_multi_descriptor": {
+      "description": "WR §4.7 (L-4 A as clarified): one A15 that registers several library entries in place, each entry's exact bytes bound. Offered by DEL-01-04's act control; one RS human_act with one boundSubject and boundContent per entry, in order.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "descriptor_id",
+        "act_kind",
+        "wording",
+        "disposition",
+        "library",
+        "entries",
+        "scope",
+        "purpose",
+        "review_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "a15_multi_descriptor"
+        },
+        "descriptor_id": {
+          "$ref": "#/$defs/text"
+        },
+        "act_kind": {
+          "const": "A15"
+        },
+        "wording": {
+          "const": "register workflow revisions"
+        },
+        "disposition": {
+          "const": "in place"
+        },
+        "library": {
+          "type": "object",
+          "required": [
+            "origin",
+            "source_root"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "origin": {
+              "enum": [
+                "project",
+                "user"
+              ]
+            },
+            "source_root": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "subject",
+              "bound_content",
+              "reviewed_entry"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "subject": {
+                "$ref": "#/$defs/revision_identity"
+              },
+              "bound_content": {
+                "$ref": "#/$defs/content_identity"
+              },
+              "reviewed_entry": {
+                "description": "ID-3 for a library entry: entry:<location>:<name>@<content identity>.",
+                "type": "string",
+                "pattern": "^entry:(project|user):[^@]+@.+$"
+              }
+            }
+          }
+        },
+        "scope": {
+          "$ref": "#/$defs/text"
+        },
+        "purpose": {
+          "enum": [
+            "make them available in the project library",
+            "make them available in the user library"
+          ]
+        },
+        "review_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "act_request_ref": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "frame_lines": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chain_line": {
+          "type": "string",
+          "pattern": "^\\[Chirality\\] Previous workflow run ended: \\S+ revision \\S+ \\(run \\S+, (ended by the person|completed|ended to start [a-z0-9]+(?:-[a-z0-9]+)*)\\)\\. Its instructions no longer apply\\.$"
+        },
+        "start_line": {
+          "type": "string",
+          "pattern": "^\\[Chirality\\] Workflow run start: \\S+ from the (project|user|bundled|host) library \"[^\"\\n]+\", revision \\S+, run \\S+\\. Follow the workflow between the two markers below for this run, until the person ends the run\\.$"
+        },
+        "proposal_line": {
+          "description": "WR section 16.2 line 3 (R20-1; RX with R20-9; RX2 with R20-11 (2)): tells the model the two agent lines and their placement; its finished line names the run's own origin and name (a reader check: it equals the run_text's workflow origin and name).",
+          "type": "string",
+          "pattern": "^\\[Chirality\\] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: (project|user|bundled|host):(?=[a-z0-9-]{1,64}\")[a-z0-9]+(?:-[a-z0-9]+)*\"\\. To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it\\. The person decides; nothing ends or starts until they confirm\\.$"
+        },
+        "files_line": {
+          "type": "string",
+          "pattern": "^\\[Chirality\\] Other files of this revision, in the folder \"[^\"\\n]+\": .+$"
+        },
+        "begin_marker": {
+          "type": "string",
+          "pattern": "^<<<chirality-workflow \\S+@\\S+ begin>>>$"
+        },
+        "end_marker": {
+          "type": "string",
+          "pattern": "^<<<chirality-workflow \\S+@\\S+ end>>>$"
+        },
+        "end_line": {
+          "type": "string",
+          "pattern": "^\\[Chirality\\] Workflow run ended: \\S+ revision \\S+ \\(run \\S+, (ended by the person|completed)\\)\\. No workflow is in force\\.$"
+        }
+      }
+    },
+    "run_text": {
+      "description": "WR §16 (R19-7): the text element the App composes for the turn that starts a run (purpose 'run start') or for the next turn after a run ended without a successor (purpose 'run end notice'). Framing WR-FRAME-1, PROPOSED. The record holds the lines, the identity of the workflow bytes and of the whole text; the bytes themselves stay in the revision store (linked, not copied).",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "purpose",
+        "framing",
+        "run",
+        "conversation",
+        "lines",
+        "text_identity",
+        "text_bytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "run_text"
+        },
+        "purpose": {
+          "enum": [
+            "run start",
+            "run end notice"
+          ]
+        },
+        "framing": {
+          "const": "WR-FRAME-1"
+        },
+        "run": {
+          "$ref": "#/$defs/text"
+        },
+        "conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "workflow": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "holding_library": {
+          "$ref": "#/$defs/text"
+        },
+        "workflow_file": {
+          "type": "object",
+          "required": [
+            "path",
+            "content",
+            "bytes"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "WORKFLOW.md"
+            },
+            "content": {
+              "$ref": "#/$defs/text_identity"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "other_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/text"
+              },
+              "sha256": {
+                "$ref": "#/$defs/hex64"
+              }
+            }
+          }
+        },
+        "chain": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "prior_run",
+                "prior_workflow",
+                "ended"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "prior_run": {
+                  "$ref": "#/$defs/text"
+                },
+                "prior_workflow": {
+                  "$ref": "#/$defs/revision_identity"
+                },
+                "ended": {
+                  "description": "How the earlier run ended; RX2 (R20-11 (4)) adds 'ended to start <B>' for the one-step End A and start B without a finished report.",
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "ended by the person",
+                        "completed"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^ended to start (?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "origin_of_start": {
+          "enum": [
+            "selected by the person",
+            "agent proposal confirmed by the person"
+          ]
+        },
+        "selection": {
+          "$ref": "#/$defs/text"
+        },
+        "lines": {
+          "$ref": "#/$defs/frame_lines"
+        },
+        "text_identity": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "text_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "purpose": {
+                  "const": "run start"
+                },
+                "lines": {
+                  "required": [
+                    "start_line",
+                    "proposal_line",
+                    "begin_marker",
+                    "end_marker"
+                  ],
+                  "not": {
+                    "required": [
+                      "end_line"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "workflow",
+                "holding_library",
+                "workflow_file",
+                "chain",
+                "origin_of_start",
+                "selection"
+              ]
+            },
+            {
+              "properties": {
+                "purpose": {
+                  "const": "run end notice"
+                },
+                "lines": {
+                  "required": [
+                    "end_line"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "start_line"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "begin_marker"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "chain_line"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "workflow_file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "chain"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "description": "A chain line exactly when a chain is recorded.",
+          "anyOf": [
+            {
+              "properties": {
+                "chain": {
+                  "type": "object"
+                },
+                "lines": {
+                  "required": [
+                    "chain_line"
+                  ]
+                }
+              }
+            },
+            {
+              "properties": {
+                "lines": {
+                  "not": {
+                    "required": [
+                      "chain_line"
+                    ]
+                  }
+                }
+              },
+              "not": {
+                "required": [
+                  "chain"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "chain": {
+                  "type": "null"
+                },
+                "lines": {
+                  "not": {
+                    "required": [
+                      "chain_line"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "supply_check": {
+      "description": "WR §16.6 (R19-7): one check of a run text against the turn's items as Codex returns them through thread/items/list {threadId, turnId}, all pages read (R21-4; HOSTING §4.4 'Recovery reads'). Feeds RS R3 (supplied guidance). A check is never relabelled; a later read is a new check. 'Verified' means the text was supplied as composed; whether the model followed it stays unknown (supplied is not adopted).",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "check",
+        "run",
+        "conversation",
+        "purpose",
+        "expected_text",
+        "state",
+        "read_at",
+        "evidence_limits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "supply_check"
+        },
+        "check": {
+          "$ref": "#/$defs/text"
+        },
+        "run": {
+          "$ref": "#/$defs/text"
+        },
+        "conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "turn": {
+          "$ref": "#/$defs/text"
+        },
+        "client_user_message_id": {
+          "$ref": "#/$defs/text"
+        },
+        "purpose": {
+          "enum": [
+            "run start",
+            "run end notice"
+          ]
+        },
+        "expected_text": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "expected_workflow": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "state": {
+          "enum": [
+            "verified",
+            "text differs, workflow bytes equal",
+            "text differs, workflow bytes differ",
+            "incomparable",
+            "not found",
+            "unreadable"
+          ]
+        },
+        "observed_text": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "item": {
+          "$ref": "#/$defs/text"
+        },
+        "located_by": {
+          "enum": [
+            "client id",
+            "first user message of the turn"
+          ]
+        },
+        "read_at": {
+          "$ref": "#/$defs/text"
+        },
+        "evidence_limits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "verified",
+                    "text differs, workflow bytes equal",
+                    "text differs, workflow bytes differ",
+                    "incomparable"
+                  ]
+                }
+              },
+              "required": [
+                "observed_text",
+                "item",
+                "turn",
+                "located_by"
+              ]
+            },
+            {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "not found",
+                    "unreadable"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

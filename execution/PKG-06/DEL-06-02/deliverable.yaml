@@ -1,0 +1,94 @@
+id: DEL-06-02
+name: Return, waiting and human-decision workspace
+needs:
+- from: DEL-06-01
+  condition: 'Consume the identified brief/current undertaking work-graph and coordination records to
+    derive return, waiting and ownership views. The current manual native adapter reads these files,
+    binds the selector to exact graph bytes, and retains sources, recorded actors and read limits.
+    Full native brief/dispatch/child association remains unavailable; 0.1 child statements and separate
+    0.2 Fork/Continue-as links do not establish current execution. Actual native association evidence
+    is still needed before the view can assert that contribution. See Design/FLEET_VIEWS.md.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the adopted operation-policy and human-act distinctions applicable to each exposed
+    act; unresolved choices stay with their owners at their stated points of need.
+    The first-increment reserved-act and classifier rulings are already carried by DEL-04-01 CLM-004
+    and TBD-001/002 (decision D2/D3); the view selects no new policy. Operation-specific additions
+    remain with OI-021, and actual host enforcement requires its own evidence.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Consume the content-bound decision/run record format and owning reader/writer interface;
+    actual view and witness inputs must preserve content/scope/purpose, actor versus recorder and changed-content
+    lapse. The implemented public decision reader consumes the owning store logs and package files,
+    preserves warranted recorded relations and ambiguity, and keeps reading separate from writer/control
+    actions. Its unsealed recorded-decision projection supplies no verified native capture origin and
+    cannot itself satisfy Fleet decision needs. Portable import/restore preserves that limit; actual
+    human evidence and the joined witness remain separately required. See Design/DECISION_VIEW.md.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:Host owners — receipts and offered/recorded/presented human-act interfaces
+  condition: 'Receive applicable host receipts and offered/recorded/presented human-act interfaces through
+    their identified owning contracts when used by the view; do not infer a specific host deployment.
+
+
+    Notes: FACT: External host-owned contribution; exact host/interface identity remains unresolved in
+    this local source. Host construction and actual acts are not claimed. Absence does not prevent independent
+    file-native behavior.
+
+
+    Target description — TargetName: Host owners — receipts and offered/recorded/presented human-act interfaces;
+    TargetLocation: ScopeOfWork.md#Deliverable Definition — Ontology / CLM-002'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:Person performing the attributable human act — VER-004 positive witness
+  condition: 'For the positive faithful-recording verification case, obtain evidence of an actually performed
+    human act with its actor distinct from the recorder and its content-bound record; preserve independent
+    acts without inferred ordering.
+
+
+    Notes: FACT: Point of need is the positive VER-004 witness, not every implementation step. Actual
+    person identity and evidence remain to be supplied. Negative no-human-evidence cases are separately
+    required; software success cannot fabricate the act.
+
+
+    Target description — TargetName: Person performing the attributable human act — VER-004 positive witness;
+    TargetLocation: ScopeOfWork.md#Production and Verification Method — Praxeology / VER-004'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:OI-021
+  condition: 'Obtain an operation-specific addition to the reserved-act policy from the owner via the
+    outside SWB session and App/shared owner before the connected-activity ScopeOfWork needs it. First-increment
+    OI-001 policy was already ruled by decision D2 and is carried through DEL-04-01. Only the concrete
+    unruled operation waits; independently supported view work continues. See ScopeOfWork.md TBD-001.'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-06-01
+  condition: 'Supply source coordination files to DEL-06-02 for return-review, waiting-cause and prepared
+    decision-package views; preserve actual ownership and separate returned, reviewed and integrated standing.
+    The App currently derives queues and selected-work causes from the readable current graph and records,
+    including returns on removed items and separate review/integration evidence. Missing, torn, conflicting
+    or changed sources retain incomplete/unknown standing. Native execution and current human-act standing
+    remain separate inputs, not inferred from file presence or record-contract maturity.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-07-02
+  condition: 'Consume declared connector needs through the identified standing vocabulary and source-route
+    reference, retaining missing, unsupported and claim-level limits. The current Fleet reader interprets
+    quoted receiving files this way; it does not adopt a live connector or prove source truth, performed
+    duties or readiness. File reconstruction proceeds without Fleet views. PEC delivery/adoption is retired;
+    a future deliberately adopted optional connector retains its own actual receiving contract.'
+  gating: true
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/fleet_records.rs
+- app/src-tauri/src/fleet_views.rs
+- app/src/FleetRecordsPanel.tsx
+- app/src/App.tsx
+- app/src-tauri/src/decision_view.rs
+- app/src-tauri/src/runtime_session.rs
+checks:
+- app/src-tauri/src/fleet_views_tests.rs
+- app/tests/fleet-records.test.mjs
+- app/src-tauri/tests/decision_reader.rs
+- app/src-tauri/tests/decision_standing.rs
+- app/src-tauri/tests/reader_integration.rs
+- app/src-tauri/src/records_portable_reconstruction_tests.rs

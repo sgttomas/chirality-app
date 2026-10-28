@@ -1,0 +1,63 @@
+{
+  "repository": "https://github.com/sgttomas/chirality",
+  "revision": "a6ad85ae82d534c0c064419219258a4df2109e10",
+  "sources": [
+    {
+      "path": "LICENSE.md",
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+    },
+    {
+      "path": "tools/deliverables/README.md",
+      "sha256": "54539d4ef51e0ada632621d651dcddd58492e5edea013dac7027b85b2e923b05"
+    },
+    {
+      "path": "tools/deliverables/__main__.py",
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d"
+    },
+    {
+      "path": "tools/deliverables/cli.py",
+      "sha256": "3c7fd23ca83958a0ffb3a5e7a180369c5b88c3f2b47261b910a82db4ec8df150"
+    },
+    {
+      "path": "tools/deliverables/graph.py",
+      "sha256": "7f0d839feb13468bf43185e751d5828b4cd9fada232533f0a7abca5309aec1cd"
+    },
+    {
+      "path": "tools/deliverables/test_cli.py",
+      "sha256": "4b3d8ed8d61897195c5766b08045a321a14e95e67f8b08ef2e302d665ca51ea2"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/REVIEW-NOTES.md",
+      "sha256": "0ae8867dc3010f99feb0251756f0008fb67dd57ff96a1af70125f688c91d055d"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "0488a744eb163fc633e1ae356de1955a58e9ca1f6396ef6b028c2e8ffad75355"
+    },
+    {
+      "path": "tools/validation/validate_conflict_markers.py",
+      "sha256": "f59afff9a283e4054cd57bb2edd110c8cc28bd8fade61e4d3a522fb86d30cd8f"
+    },
+    {
+      "path": "tools/validation/validate_run_record_leaks.py",
+      "sha256": "0aae3b551dbf13a38dbfd3b334f36a40a229a2503e398db69ab1f5662de55315"
+    },
+    {
+      "path": "tools/validation/validate_private_terms.py",
+      "sha256": "528414592b470b2e0b8ef0191d63957c1c74dd58eae68d827cf10ee0055b2fe7"
+    },
+    {
+      "path": ".github/workflows/app-v4.yml",
+      "sha256": "94e7905dbc1fa2e78fcdc785e83db73498fd731e70c14b41120cd732c7e71037"
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "c1bd1e1fca7b9ad890b86c752be15ec5f468eb6eaa3006bbbacddcf83c67b1ad"
+    }
+  ],
+  "adaptations": [
+    "tools/deliverables/cli.py defaults to repository root",
+    ".github/workflows/app-v4.yml runs App coverage for every PR, uses local frozen sources and omits Root CI/cache machinery",
+    "tools/deliverables/README.md examples and default describe the standalone project"
+  ]
+}

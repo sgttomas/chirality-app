@@ -1,0 +1,166 @@
+{
+  "difference": {
+    "files": [
+      {
+        "after": {
+          "bytes": 84,
+          "sha256": "44601345c43e2ed1aa380b28907511159fb13628ea83eae58c9275d90b3818c0"
+        },
+        "before": {
+          "bytes": 60,
+          "sha256": "cacb7f1bcd376e679980f6339d235faa046edbe96c1bbf80962847a147851e47"
+        },
+        "change": "changed",
+        "limit": null,
+        "lines": [
+          "- Step 1: read the brief.",
+          "+ Step 1: read the brief closely.",
+          "+ Step 3: report."
+        ],
+        "path": "WORKFLOW.md",
+        "text": true
+      },
+      {
+        "after": {
+          "bytes": 16,
+          "sha256": "b3458a3c7a76d08a72fd5aff500811d6ba721112041a57dde25a59c583d56460"
+        },
+        "before": null,
+        "change": "added",
+        "limit": null,
+        "lines": [
+          "+ - scope",
+          "+ - risks"
+        ],
+        "path": "checklist.md",
+        "text": true
+      },
+      {
+        "after": {
+          "bytes": 9,
+          "sha256": "4004816a0d91ac082b20841203e2968d2c02b505fc117c943e1b1fea2b1c36fb"
+        },
+        "before": {
+          "bytes": 8,
+          "sha256": "a2f1fd24269194c781385faedf255eead2ddc66f0a8200d04bdaa040d42e2a22"
+        },
+        "change": "changed",
+        "limit": null,
+        "lines": null,
+        "path": "logo.png",
+        "text": false
+      }
+    ],
+    "standing": "difference between the two versions' files; scores and judges nothing",
+    "unchanged": 1
+  },
+  "left": {
+    "conversation": {
+      "authoring": "thr-auth",
+      "subAgent": "thr-sub",
+      "trial": null
+    },
+    "kind": "delegated",
+    "label": "trial 3 of draft review-brief",
+    "snapshot": {
+      "state": "current"
+    },
+    "summary": {
+      "commands": {
+        "failed": 1,
+        "list": [
+          {
+            "command": "ls",
+            "exitCode": 0,
+            "status": "completed"
+          },
+          {
+            "command": "cargo test",
+            "exitCode": 101,
+            "status": "completed"
+          },
+          {
+            "command": "cat out/report.md",
+            "exitCode": 0,
+            "status": "completed"
+          }
+        ],
+        "run": 3
+      },
+      "endings": [
+        {
+          "status": "completed",
+          "turn": "t-1"
+        },
+        {
+          "status": "completed",
+          "turn": "t-2"
+        },
+        {
+          "status": "interrupted",
+          "turn": "t-3"
+        }
+      ],
+      "fileChanges": [
+        {
+          "kind": "add",
+          "path": "out/report.md"
+        },
+        {
+          "kind": "update, moved to new.md",
+          "path": "old.md"
+        }
+      ],
+      "finalAgentMessage": "Report written to out/report.md.",
+      "limits": [
+        "turn t-3: items not read (thread/items/list page 2 failed: timeout)"
+      ],
+      "turns": 3
+    },
+    "version": {
+      "method": "chirality.app.workflow-package.sha256/v1",
+      "value": "0123456789abcdef0123456789abcdef"
+    }
+  },
+  "right": {
+    "conversation": {
+      "run": "thr-run"
+    },
+    "kind": "registered run",
+    "label": "run run-7 of project:review-brief",
+    "snapshot": {
+      "reading": "read from the revision this run selected",
+      "state": "revision store"
+    },
+    "summary": {
+      "commands": {
+        "failed": 0,
+        "list": [
+          {
+            "command": "ls",
+            "exitCode": 0,
+            "status": "completed"
+          }
+        ],
+        "run": 1
+      },
+      "endings": [
+        {
+          "status": "completed",
+          "turn": "r-1"
+        }
+      ],
+      "fileChanges": [],
+      "finalAgentMessage": "Run finished.",
+      "limits": [
+        "turns list incomplete: thread/turns/list page 3 failed"
+      ],
+      "turns": 1
+    },
+    "version": {
+      "method": "chirality.app.workflow-package.sha256/v1",
+      "value": "fedcba9876543210fedcba9876543210"
+    }
+  },
+  "standing": "side by side as read from Codex's history, the trial snapshots and the revision store; Compare scores and judges nothing and records nothing"
+}

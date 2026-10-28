@@ -1,0 +1,39 @@
+{
+  "purpose": "Scratch check (outside the repository) of what the registered closure analyzer reports against this candidate installed as the accepted DAG-004 under a SPEC §11.2 pointer. It predicts the follow-up currency audit after acceptance. Scratch only; no governed file was written.",
+  "method": "rsync of projects/chirality-app-v4/execution at 75764184b9 (clean tree; excluding _Evaluation and _Coordination) and of tools/ into $TMPDIR/d1_precheck/repo; the candidate DependencyEdges.csv, CandidateEdges.csv, ExcludedRows.csv and DeliverableNodes.csv copied to scratch _DAG/DAG-004/; scratch _DAG/_LATEST.md written in §11.2 form (Latest: DAG-004 ... Supersedes: DAG-003); analyzer run from the scratch repository root with the project closure arguments and no --output-dir. A first attempt that copied only tools/coordination failed on missing helper modules (exit 1, no output) and was rerun with the whole tools tree.",
+  "tool": {
+    "path": "tools/coordination/analyze_dep_closure.py",
+    "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+  },
+  "arguments": [
+    "--scope",
+    "ALL",
+    "--filter-active-only",
+    "true",
+    "--normalize-ids",
+    "true",
+    "--dependency-class",
+    "EXECUTION",
+    "--target-type",
+    "DELIVERABLE",
+    "--hub-threshold",
+    "20",
+    "--max-cycles",
+    "200",
+    "--include-declared",
+    "true"
+  ],
+  "live_tree_result_for_comparison": "DEPARTURE against DAG-003 with 11 DAG pending (CURRENCY_APP_V4_SCA003_2026-10-03_1937)",
+  "result": {
+    "exit_code": 0,
+    "run_status": "COMPLETE",
+    "accepted_dag_version": "DAG-004",
+    "accepted_dag_result": "NO_DEPARTURE_FOUND",
+    "dag_pending_count": 0,
+    "dag_pending": [],
+    "added_arcs": [],
+    "removed_arcs": [],
+    "graph_edges": 212,
+    "scc_count": 6
+  }
+}

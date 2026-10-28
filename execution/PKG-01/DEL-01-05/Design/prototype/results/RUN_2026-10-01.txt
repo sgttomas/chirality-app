@@ -1,0 +1,34 @@
+# DEL-01-05/ACCESS-v0.1 prototype run (node D4, run APP-V4-DESIGN-PASS-3-20261001)
+# command: cd <Design>/prototype && PYTHONDONTWRITEBYTECODE=1 python3 run_cases.py
+# date (UTC): 2026-10-01T20:09:45Z
+# python: Python 3.13.7
+# host: Darwin 25.6.0 arm64
+# repository HEAD: dc031b5bec
+# inputs sha256:
+#   441d2bdeb87e15213bf8a41f781e3fb7ac5017146f3443af050afc30148c066e  access_model.py
+#   1fd3ba33e35c6b0c49a2d4889174210f71c255f07dc474f6cba2c1b1885f5010  run_cases.py
+#   486e9286e5aa56888b5473f1c08493a115591255685a8a7bb88b93ff2cacffc0  jsonschema_subset.py
+#   b82e40395a4a19bcd0b4e5623fd62b1040b7110ab19cb01af58b15582d447da4  ../ACCOUNT_AND_PROVIDER_ACCESS.md
+#   10e64a5c218cbbd3eedcbc08ca99dcbfe9237e602488ef14c08666768c38132a  ../access.state.schema.json
+#   25b5cf7b905c081b169bcf997fdd91498905ff4c920d812e2b3add5cdb0c41a0  ../access.conversation-selection.schema.json
+#   7b37976b287111f2a5fcd0254bb812dc93fc8677d71b2bd42bb796fa16bf22f8  ../access.network-observation.schema.json
+#   fe530effb6a482cf34b447947bd9b7e723885a2c135661bc6e1fb920461d8773  ../access.capability-handoff.schema.json
+#   d28afa69bcb360ffd9493787a527a12a4b1041fe53effa9afffeb2dd42c01778  fixtures/access-state.invalid.json
+#   3431c6c3729d57806412e9ff9e54b8e560cf169e5f61c50f711b3feee1382b49  fixtures/access-state.valid.json
+#   301d14eede3f59ab28ef7e99a58d399b123cfbf8de7a90052d54ca8dc371ca16  fixtures/capability-handoff.invalid.json
+#   238ab5d6d870a95f8f360339d5e72c4230bd17189769b87af51fb5ef33cf17f5  fixtures/capability-handoff.valid.json
+#   1e4465d167d5df5f832e675511c455d3fd14984def2504505f1bcc522c6940cd  fixtures/conversation-selection.invalid.json
+#   c0f1970d6d253d50a1841f8999cc06a0fd11be77b738b30061cf2b1e4d9fc506  fixtures/conversation-selection.valid.json
+#   bef7e08d556f812322da99c6f1f2667e50d1e2aa5ac8b8b70e8b1f8b13f09f2a  fixtures/network-observation.invalid.json
+#   31c1de41ea03a920c27e54f2dc3b028feca0fa3352c79bd5c454e0c3c9f63ec2  fixtures/network-observation.valid.json
+# no Codex process, no model, no network, no credential; invented values only
+
+VC-A14   pass (model)     doc tables = model tables: AE 20/20, KE 18/18, LE 12/12, CS 21/21, CL 10/10; every row applies; unlisted move refused
+VC-A12   pass (model)     K-3 walk: refusal 'run not started — no model selected'; offer not applied; explicit provider+model on start; no switch on unavailability; entry change refused; trace CS-1 CS-5 CS-8 CS-9 CS-19 | CS-3 CS-2 CS-4 CS-8 CS-9 CS-15 CS-20
+VC-A15   pass (model)     K2-1 routing: api-key -> H-key (created only with a key), chatgpt and local -> H-acct; homes used ['api-key', 'account', 'account']
+VC-A13   pass (model)     canaries in durable records/logs/errors/snapshots: none; key on the wire only; auth URL shown during sign-in, display cleared; foreign loginId ignored; no resend after exit (2 key frames for 2 entries before the third)
+VC-A11   pass (model)     steps [('setup', 'CL-1'), ('read-through-link', True), ('write-explicit-target', 'CL-10'), ('write-by-replacement', 'CL-4'), ('diverged-and-both-kept', True), ('person-relink', 'CL-7'), ('backup-kept', True), ('probe-home-separate', True)]; 6 paths, all inside a temporary folder under $TMPDIR (removed); ~/.codex untouched
+VC-A16   pass (model)     rows ['remote-control', 'plugin-sync', 'model', 'unlisted', 'plugins-featured']; unlisted shown, never blocked; expected-only row kept (not seen by sampling: lower bound); settings 'pending-observation' until O-7, then as settled
+VC-A17   pass (model)     access-state.valid: valid | access-state.invalid: invalid ($.entries[0]: additional property apiKey) | conversation-selection.valid: valid | conversation-selection.invalid: invalid ($.selection: type null expected) | network-observation.valid: valid | network-observation.invalid: invalid ($.rows[0].sources[0]: const 'app-observed') | capability-handoff.valid: valid | capability-handoff.invalid: invalid ($.noHostConformanceClaimed: const True) | 9 emitted records valid
+TOTAL 7, FAIL 0
+# exit status: 0

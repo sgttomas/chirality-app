@@ -1,0 +1,28 @@
+{
+  "tranche": "APP-V4-GROUP-A-DEVELOPMENT-WORKFLOW-20261005",
+  "standing": "App-v4 development build candidate; no published release or historic shipping claim",
+  "selected_source": "chirality-root:bundled:workflow:coordinated-knowledge-work",
+  "tuple": {
+    "kind": "workflow",
+    "origin": "bundled",
+    "source_root": "chirality-root",
+    "name": "coordinated-knowledge-work",
+    "revision": "1b1733864cd89fd6d8ca74bf3e2084ff1105c1fc7d76537eefb42e2ae9a41e83",
+    "revision_method": "chirality.app.workflow-package.sha256/v1"
+  },
+  "files": [
+    {
+      "resource": "coordinated-knowledge-work/REVIEW-NOTES.md",
+      "source": "workflows/coordinated-knowledge-work/REVIEW-NOTES.md",
+      "sha256": "4ab54fd3e222382561b075741ed3b7e281e5f11003f12bd1304ffa3c747d81ab",
+      "bytes": 13778
+    },
+    {
+      "resource": "coordinated-knowledge-work/WORKFLOW.md",
+      "source": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+      "bytes": 16030
+    }
+  ],
+  "adoption": "Explicit per-run selection only; no common/role/default injection; independent resource/content and code review required"
+}

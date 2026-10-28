@@ -1,0 +1,9 @@
+# SUP1 regeneration package — Codex 0.160.0
+
+PROPOSED controlled adoption for the owner's development/definition pin; independent review pending. Not supplier/App qualification. Generator outputs are untouched stock bytes.
+
+Committed: the two experimental JSON bundles (same compact form as 0.158.0), complete four-variant MANIFEST, GENERATION commands/determinism, COMPARISON of relevant shapes/native envelope inventories, inventory, supplier identity and these standard-library reproduction tools. TS trees and standalone JSON files remain regeneration outputs, not committed duplicates.
+
+`python3 generate.py /path/to/approved/0.160.0/codex` verifies binary SHA-256 and version, creates a `mktemp -d` scratch Codex home with local provider at 127.0.0.1:9/plugins and analytics off, runs both variants of both generators twice without formatter, and prints the scratch directory. It never starts a server, thread, turn, model or sign-in. `python3 compare.py <printed-scratch>` checks against the preserved 0.158.0 bundles/inventory and validates available recorded frames. Manifest rows name regenerated assets; absence of uncommitted files is not a mismatch.
+
+SUP1 comparison confirms four change classes only: thread/items/list cursor widening/anchor definitions; optional MCP serverName; Turn.error documentation now failed or interrupted; additional tooManyDenials error enum. Account/provider, thread start/resume/fork, turn start, config and all native server envelopes retain their shapes. TS-only divergence remains five methods/notifications plus emittedAtMs; U-15 reference choice is not silently resolved. Generation identity does not qualify runtime behavior. Historical 0.158.0 snapshots/prototypes remain labelled at their observed pin; current product consumers must deliberately adopt the new generated reference after review.

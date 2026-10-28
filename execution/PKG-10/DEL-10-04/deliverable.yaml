@@ -1,0 +1,131 @@
+id: DEL-10-04
+name: Project production dependency DAG
+needs:
+- from: DEL-10-01
+  condition: 'Graph production consumes applicable execution-basis and manual-application records from
+    App DEL-10-01 at the actual point of need.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this App contributor and consumes its applicable records;
+    INITIALIZED is checked local contract maturity only. Actual applicable records and any governing adoption
+    decision require their own evidence; no blanket gate on initial contract definition.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: DEL-10-02
+  condition: 'Graph production consumes applicable current undertaking work-graph, control and practice-feedback
+    records from App DEL-10-02 at the actual point of need.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this App contributor and consumes its applicable records;
+    INITIALIZED is checked local contract maturity only. Actual applicable records and any governing adoption
+    decision require their own evidence; no blanket gate on initial contract definition.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: DEL-10-03
+  condition: 'Graph production consumes applicable shared responsibility and technical-promise records
+    from App DEL-10-03 at the actual point of need.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this App contributor and consumes its applicable records;
+    INITIALIZED is checked local contract maturity only. Actual applicable records and any governing adoption
+    decision require their own evidence; no blanket gate on initial contract definition.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md
+  condition: 'Graph production uses accepted allocation to freeze its node inventory independently of
+    dependency-file availability.
+
+
+    Notes: FACT: explicit graph input; REQ-001 retains nodes with missing/unreadable/invalid dependency
+    evidence and justified exemptions. This extraction does not authenticate or create an allocation decision.
+
+
+    Target description — TargetName: Accepted App v4 allocation and node inventory; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:execution
+  condition: 'Graph production consumes applicable local contracts, source dependency registers and human
+    declarations with frozen provenance and original standing.
+
+
+    Notes: FACT: source corpus input, not an inferred edge to every Deliverable. REQ-001/002/004 preserve
+    missing evidence and source fidelity; the graph need not wait for all technical outputs or all external
+    delivery. Declarations remain human-owned.
+
+
+    Target description — TargetName: Applicable local ScopeOfWork contracts, dependency evidence and human
+    declarations; TargetLocation: projects/chirality-app-v4/execution'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:execution/_Decomposition
+  condition: 'Graph examination consumes current relevant external contribution and open-matter records
+    to preserve project-qualified owners, standing, conditions and points of need.
+
+
+    Notes: FACT: required receiving-record comparison; B8 names External_Dependencies.csv and Open_Issues.csv.
+    The DEP-001..006 interface account is not a demand for supplier implementation before graph acceptance.
+    PEC D108 limitations, later Domains and unresolved allocation remain as stated.
+
+
+    Target description — TargetName: Current external contribution and open-matter records; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:workflows/project-dag/WORKFLOW.md
+  condition: 'Future graph production uses the selected project-dag method, including its basis/version
+    checkpoints and current-basis handoff.
+
+
+    Notes: FACT: source B5 identifies chirality-root:bundled:workflow:project-dag and resources. Referenced
+    here as a required method input; not activated or executed by this dependency-extract run. Initial
+    definition executes none of the graph acts.
+
+
+    Target description — TargetName: Selected project-dag method; TargetLocation: workflows/project-dag/WORKFLOW.md'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:Independent graph examination record
+  condition: 'The version decision package includes independent examination by an instance separate from
+    graph assembly, with findings and candidate-bound rechecks.
+
+
+    Notes: FACT: distinct review contribution explicitly required by REQ-005 and VER-005. Examiner identity
+    and record location remain TBD; a passing review does not establish human acceptance. No synthetic
+    ordering between human acts is added.
+
+
+    Target description — TargetName: Independent graph examination record'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: external:Human owner — actual graph basis and version decisions
+  condition: 'Graph acceptance/publication requires the actual human basis and version decisions with
+    actor, custody, subject hashes and qualifications; only the actually accepted version may be published
+    as accepted.
+
+
+    Notes: FACT: REQ-006 actual decision condition, distinct from review, recording and audit. Actual
+    actor identity, dates, answers and custody are not supplied by extraction. Initial definition and
+    authorized pre-DAG preparation remain permitted; no new human prompt or prerequisite between human
+    acts is created.
+
+
+    Target description — TargetName: Human owner — actual graph basis and version decisions'
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: DEL-10-03
+  condition: 'Supply relevant responsibility-account relationships to the project production DAG contribution
+    owned by DEL-10-04, without accepting an instrument or establishing an accepted dependency edge.
+
+
+    Notes: FACT: CLM-006 names DEL-10-04 as the project production DAG owner immediately before this positive
+    relationship handoff. This is account-to-DAG information, not graph assembly, owner acceptance or
+    the lifecycle advancement of either deliverable. INITIALIZED is local contract maturity, not receipt
+    of the produced relationships.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md

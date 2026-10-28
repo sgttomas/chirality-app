@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:distribution-evidence-transport:s2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "mode",
+    "generation",
+    "sourceSelection",
+    "originalSource",
+    "entries",
+    "createdAt",
+    "limit"
+  ],
+  "properties": {
+    "format": {
+      "const": "distribution-evidence-transport.s2"
+    },
+    "mode": {
+      "const": "development-unqualified"
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ],
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "sourceSelection": {
+      "type": "null"
+    },
+    "originalSource": {
+      "type": "null"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "const": "attempt.json"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "limit": {
+      "const": "Creation-time exact bytes only; no supplier trust, S1 validation, live custody, or future integrity guarantee"
+    }
+  }
+}

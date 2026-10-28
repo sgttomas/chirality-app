@@ -1,0 +1,20 @@
+{
+  "format": "exp-support-binding.canonical.v1",
+  "declaration_sha256": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
+  "support_identity": {
+    "exp_version": "EXP-v0.2",
+    "schema_ids": {
+      "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+      "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+      "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+    },
+    "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  },
+  "artifact": {
+    "kind": "result",
+    "record_id": "INVENTED-SQ-M12-1",
+    "sha256": "eeaccf70d95fdc47741c38234f50110eadb7662d01aa57df9b347bf91c0dad7c"
+  },
+  "binding_method": "EXP-SUPPORT-BINDING-v1",
+  "binding_purpose": "current_producer_declaration"
+}

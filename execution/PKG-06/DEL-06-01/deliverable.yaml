@@ -1,0 +1,124 @@
+id: DEL-06-01
+name: Bounded delegation and current work-graph records
+code_paths:
+- app/src-tauri/src/fleet_views.rs
+- app/src-tauri/src/native_conversation_links.rs
+- app/src-tauri/src/conversation_roles.rs
+- app/src-tauri/src/fleet_records.rs
+- app/src-tauri/src/lib.rs
+- app/src-tauri/src/records_store.rs
+- app/src-tauri/src/records_index.rs
+- app/src-tauri/src/records_export.rs
+- app/src-tauri/src/records_package_import.rs
+- app/src-tauri/src/records_package_identity.rs
+- app/src-tauri/src/records_package_controls.rs
+- app/src-tauri/schemas/fleet.record.schema.json
+- app/src-tauri/schemas/fleet.native-links.schema.json
+- app/src/FleetRecordsPanel.tsx
+checks:
+- app/src-tauri/src/fleet_views_tests.rs
+- app/src-tauri/src/native_conversation_links_tests.rs
+- app/src-tauri/src/conversation_roles_tests.rs
+- app/src-tauri/src/fleet_records_tests.rs
+- app/src-tauri/src/records_package_identity_tests.rs
+- app/src-tauri/src/records_package_controls_tests.rs
+- app/tests/fleet-records.test.mjs
+- app/src-tauri/schemas/sync.py
+needs:
+- from: DEL-01-03
+  condition: 'Consume DEL-01-03 native supplier identities/interface and actual child/parent evidence
+    when implementing and exercising record association; bind results to the actual candidate and supplier
+    basis.
+
+
+    Notes: FACT: CLM-001 and VER-003 identify the input. INITIALIZED is a local contract threshold only;
+    actual supplier interface and observed identity evidence remain required at implementation/qualification.
+    No dispatch is inferred from a brief; no outcome is inferred from reconnection.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Consume the DEL-04-03 evidence/act record interface and identified source records for referenced
+    acts, retaining content, scope, purpose and actual actor; positive verification requires an actually
+    performed human-act record with a separate recorder.
+
+
+    Notes: FACT: REQ-004 resolves its PKG-04 interface through CLM-002; VER-005 requires actual positive-act
+    and fabrication-negative inputs. INITIALIZED does not supply these technical/source records. Host
+    receipts and actual human acts retain their own producers; no synthetic prerequisite ordering among
+    acts.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-07-01
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
+- from: external:DEP-002
+  condition: 'Retained PEC source/compatibility evidence only. Current DEL-07-01 and PRD
+    V4-CON-02 retire provider delivery, qualification and receiving adoption as App
+    prerequisites; retaining these references does not reactivate PEC.
+
+
+    Notes: FACT: DEP-002 is the App external-dependency register identifier for the PEC owning project,
+    not an App deliverable. No TargetDeliverableID is assigned. Historical conditional input; D108 accepted
+    exact D1 bytes/findings as-is with retained MAJOR limitation and a partly met criterion, not repair,
+    qualified release or receiving adoption. Source-only extraction does not recheck present PEC readiness
+    or gate file-native work.
+
+
+    Target description — TargetName: PEC owning project — covered PEC consumer contribution; TargetRefID:
+    DEP-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-002'
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'Use the DEL-01-01 selected development/definition supplier pin 0.160.0 and its
+    supplied protocol basis for current implementation. Before native-association qualification,
+    consume the actual candidate/supplier/environment evidence; a selected pin does not qualify it.
+
+
+    Notes: FACT: The selected supplier-pin producing obligation is allocated to App DEL-01-01 by accepted
+    G3 ScopeLedger SOW-135 and Deliverables.csv, and identified by that local ScopeOfWork OUT-002/REQ-006.
+    The owner-authorized development/definition pin is 0.160.0, supplied by DEL-01-01
+    Design/HOSTING_BOUNDARY.md current supplier basis and implemented hosting.rs DECLARED_PIN.
+    Native-association qualification still requires actual candidate/supplier/environment evidence.
+    Recorded stock 0.160.0 witnesses do not expose the readable spawn prompt needed for full
+    brief-to-child association; file reconstruction and protected Fork/Continue-as recording continue.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-06-01 receives the selected Codex pin from this supplier boundary before protocol
+    generation and qualification; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-09); supplier-side mirror of the
+    consumer row DEP-06-01-013 on an existing arc (ledger R-11-1); no topology change. The sentence states
+    that each receiver declares it upstream in its own register and that none of their acts is transferred
+    here. INITIALIZED is the local contract-maturity default only; no receipt or closure is claimed. The
+    consumer row records RequiredMaturity TBD; this side keeps the register default INITIALIZED (no cross-register
+    convention is set here; R-02-4 is deferred).
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'Hand this slice''s native delegation identities to App DEL-06-01; record association and
+    fleet coordination stay with that owner.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-01-03-8); supplier-side mirror
+    of the consumer row DEP-06-01-007 on an existing admitted arc (ledger R3-01-03-a, F0 M-3); no topology
+    change. The sentence states that each receiver declares it upstream in its own register. This deliverable
+    consumes nothing from DEL-06-01 (R17-10 guard). INITIALIZED is the local contract-maturity default
+    only; no receipt or witness result is claimed. The package-level row DEP-01-03-014 (PKG-06) stays,
+    as the ledger allows.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md

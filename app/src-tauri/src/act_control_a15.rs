@@ -1,0 +1,1885 @@
+//! Closed hot A15 owner. Native origin is an in-process event, never a file/DTO.
+use super::*;
+use crate::a15_native::ConfirmedA15Event;
+use crate::workflow_workspace::{registration::CurrentReviewView, WorkflowIdentity};
+
+#[derive(PartialEq, Eq)]
+pub(crate) struct A15Binding {
+    subject: WorkflowIdentity,
+    content_method: String,
+    content_value: String,
+    reviewed_id3: String,
+    reviewed_content_method: String,
+    reviewed_content_value: String,
+    prior: Option<WorkflowIdentity>,
+}
+impl A15Binding {
+    pub(crate) fn subject(&self) -> &WorkflowIdentity {
+        &self.subject
+    }
+    pub(crate) fn content_method(&self) -> &str {
+        &self.content_method
+    }
+    pub(crate) fn content_value(&self) -> &str {
+        &self.content_value
+    }
+    pub(crate) fn reviewed_id3(&self) -> &str {
+        &self.reviewed_id3
+    }
+    pub(crate) fn reviewed_content_method(&self) -> &str {
+        &self.reviewed_content_method
+    }
+    pub(crate) fn reviewed_content_value(&self) -> &str {
+        &self.reviewed_content_value
+    }
+    pub(crate) fn prior(&self) -> Option<&WorkflowIdentity> {
+        self.prior.as_ref()
+    }
+    fn content(&self) -> Value {
+        json!({"method":self.content_method,"value":self.content_value})
+    }
+    fn reviewed(&self) -> Value {
+        json!({"draft":self.reviewed_id3,"content":{"method":self.reviewed_content_method,"value":self.reviewed_content_value}})
+    }
+    fn subject_ref(&self) -> Result<String, String> {
+        Ok(format!(
+            "workflow revision {}",
+            serde_json::to_string(&rs_tuple(&self.subject)).map_err(|e| e.to_string())?
+        ))
+    }
+}
+fn rs_tuple(tuple: &WorkflowIdentity) -> Value {
+    let mut value = json!({"kind":tuple.kind,"origin":tuple.origin,"sourceRoot":tuple.source_root,
+        "name":tuple.name,"revision":tuple.revision,"revisionMethod":tuple.revision_method});
+    if let Some(base) = &tuple.derived_from {
+        value["derivedFrom"] = rs_tuple(base);
+    }
+    value
+}
+struct BoundReview {
+    review_ref: String,
+    descriptor_id: String,
+    descriptor_kind: String,
+    library_root: PathBuf,
+    act_log: PathBuf,
+    descriptor: Value,
+    presentation: Value,
+    bindings: Vec<A15Binding>,
+    listed_sources: Option<crate::workflow_workspace::registration::ListedSources>,
+}
+impl BoundReview {
+    fn observe(view: &CurrentReviewView<'_>) -> Result<Self, String> {
+        view.revalidate()?;
+        let library_root = view.library_root().to_path_buf();
+        if !library_root.is_absolute() || view.act_log() != storage::library_log(&library_root) {
+            return Err("A15 owning library/log disagreement".into());
+        }
+        storage::check_path(&library_root)?;
+        let bindings = view
+            .ordered_bindings()
+            .map(|b| A15Binding {
+                subject: b.subject().clone(),
+                content_method: b.content_method().into(),
+                content_value: b.content_value().into(),
+                reviewed_id3: b.reviewed_id3().into(),
+                reviewed_content_method: b.reviewed_content_method().into(),
+                reviewed_content_value: b.reviewed_content_value().into(),
+                prior: b.prior().cloned(),
+            })
+            .collect::<Vec<_>>();
+        let kind = view.descriptor_kind();
+        if !matches!(kind, "a15_descriptor" | "a15_multi_descriptor")
+            || bindings.is_empty()
+            || (kind == "a15_descriptor" && bindings.len() != 1)
+            || (kind == "a15_multi_descriptor" && bindings.len() < 2)
+        {
+            return Err("A15 descriptor entry count/kind disagreement".into());
+        }
+        let mut slots = std::collections::HashSet::new();
+        for b in &bindings {
+            b.subject.validate()?;
+            if !matches!(b.subject.origin.as_str(), "project" | "user")
+                || b.subject.revision_method != b.content_method
+                || b.subject.revision != b.content_value
+                || b.content_method != b.reviewed_content_method
+                || b.content_value != b.reviewed_content_value
+                || b.reviewed_id3
+                    != format!(
+                        "{}:{}:{}@{}",
+                        if b.reviewed_id3.starts_with("draft:") {
+                            "draft"
+                        } else {
+                            "entry"
+                        },
+                        b.subject.origin,
+                        b.subject.name,
+                        b.content_value
+                    )
+                || !slots.insert((
+                    b.subject.origin.clone(),
+                    b.subject.source_root.clone(),
+                    b.subject.name.clone(),
+                ))
+            {
+                return Err("A15 complete ordered content/ID-3/tuple binding disagreement".into());
+            }
+            if b.reviewed_id3.starts_with("entry:") && b.prior.is_some() {
+                return Err("A15 in-place entries must have no prior revision in this source-qualified slot".into());
+            }
+            if kind == "a15_multi_descriptor"
+                && (!b.reviewed_id3.starts_with("entry:") || b.prior.is_some())
+            {
+                return Err("A15 multi descriptor accepts only prior-free in-place entries".into());
+            }
+            if let Some(prior) = &b.prior {
+                prior.validate()?;
+                if !prior.same_slot(&b.subject) {
+                    return Err("A15 prior is in another slot".into());
+                }
+            }
+        }
+        let descriptor = view.descriptor().clone();
+        if descriptor["descriptor_id"] != view.descriptor_id()
+            || descriptor["record_kind"] != kind
+            || descriptor["act_kind"] != "A15"
+            || descriptor["review_ref"] != view.review_ref()
+            || view.review_ref().is_empty()
+            || view.descriptor_id().is_empty()
+        {
+            return Err("A15 owning descriptor identity disagreement".into());
+        }
+        // Closed source and mirrored field facts must ALSO match the descriptor.
+        if kind == "a15_descriptor" {
+            let b = &bindings[0];
+            if b.reviewed_id3.starts_with("entry:") && (descriptor["disposition"] != "in place" || descriptor["wording"] != "register workflow revision") {
+                return Err("A15 single in-place entry requires singular registration disposition".into());
+            }
+            if descriptor["subject"]
+                != serde_json::to_value(&b.subject).map_err(|e| e.to_string())?
+                || descriptor["bound_content"] != b.content()
+                || descriptor["relations"]["reviewed_draft"]["content"] != b.content()
+                || descriptor["relations"]["reviewed_draft"]["draft"]["draft_location"]
+                    != b.subject.origin
+                || descriptor["relations"]["reviewed_draft"]["draft"]["name"] != b.subject.name
+                || descriptor["relations"]["reviewed_draft"]["draft"]["draft_root"]
+                    != library_root
+                        .join(if b.reviewed_id3.starts_with("draft:") {
+                            ".chirality/workflow-drafts"
+                        } else {
+                            ".chirality/workflows"
+                        })
+                        .display()
+                        .to_string()
+                || descriptor["relations"]["prior_revision"]
+                    != serde_json::to_value(&b.prior).map_err(|e| e.to_string())?
+            {
+                return Err("A15 single descriptor and current binding facts disagree".into());
+            }
+        } else {
+            let entries = descriptor["entries"]
+                .as_array()
+                .ok_or("A15 multi descriptor entries absent")?;
+            if entries.len() != bindings.len() {
+                return Err("A15 multi descriptor count disagreement".into());
+            }
+            for (entry, b) in entries.iter().zip(&bindings) {
+                if entry["subject"]
+                    != serde_json::to_value(&b.subject).map_err(|e| e.to_string())?
+                    || entry["bound_content"] != b.content()
+                    || entry["reviewed_entry"] != b.reviewed_id3
+                    || b.prior.is_some()
+                {
+                    return Err("A15 multi descriptor ordered facts disagree".into());
+                }
+            }
+        }
+        Ok(Self {
+            review_ref: view.review_ref().into(),
+            descriptor_id: view.descriptor_id().into(),
+            descriptor_kind: kind.into(),
+            library_root,
+            act_log: view.act_log().to_path_buf(),
+            descriptor,
+            presentation: view.review_presentation().clone(),
+            bindings,
+            listed_sources: view.listed_sources().cloned(),
+        })
+    }
+    fn matches(&self, other: &Self) -> bool {
+        self.review_ref == other.review_ref
+            && self.descriptor_id == other.descriptor_id
+            && self.descriptor_kind == other.descriptor_kind
+            && self.library_root == other.library_root
+            && self.act_log == other.act_log
+            && self.descriptor == other.descriptor
+            && self.presentation == other.presentation
+            && self.bindings == other.bindings
+            && self.listed_sources == other.listed_sources
+    }
+}
+struct A15NativeWitness {
+    original_capture: Value,
+    durable_record: Value,
+    original_offer: Value,
+}
+/// Origin-bearing move-only value. No constructor/serde/Clone/file loader.
+pub(crate) struct HotA15Receipt {
+    bound: BoundReview,
+    record_id: String,
+    capture_id: String,
+    witness: std::sync::Arc<A15NativeWitness>,
+}
+impl HotA15Receipt {
+    pub(crate) fn review_ref(&self) -> &str {
+        &self.bound.review_ref
+    }
+    pub(crate) fn descriptor_id(&self) -> &str {
+        &self.bound.descriptor_id
+    }
+    pub(crate) fn descriptor_kind(&self) -> &str {
+        &self.bound.descriptor_kind
+    }
+    pub(crate) fn library_root(&self) -> &Path {
+        &self.bound.library_root
+    }
+    pub(crate) fn act_log(&self) -> &Path {
+        &self.bound.act_log
+    }
+    pub(crate) fn record_id(&self) -> &str {
+        &self.record_id
+    }
+    pub(crate) fn capture_id(&self) -> &str {
+        &self.capture_id
+    }
+    pub(crate) fn ordered_bindings(&self) -> &[A15Binding] {
+        &self.bound.bindings
+    }
+}
+pub(crate) struct A15OfferRef {
+    id: String,
+}
+impl A15OfferRef {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+}
+pub(crate) enum HotA15Result {
+    Recorded(HotA15Receipt),
+    RecordPending {
+        capture_id: String,
+        reason: String,
+    },
+    AlreadyTransferred {
+        capture_id: String,
+        record_id: String,
+    },
+}
+pub(super) struct A15Custody {
+    library_root: PathBuf,
+    bound: Option<BoundReview>,
+    original_offer: Value,
+    record_id: Option<String>,
+    receipt_issued: bool,
+    listed_sources: Option<crate::workflow_workspace::registration::ListedSources>,
+    settled_result: Option<Value>,
+}
+impl A15Custody {
+    pub(super) fn is_settled(&self, native: &NativeCapture) -> bool {
+        self.listed_sources.is_some() && self.receipt_issued && native.written
+            && !native.delay_pending && self.settled_result.is_some()
+    }
+    pub(super) fn settled_result(&self, native: &NativeCapture) -> Option<Value> {
+        self.is_settled(native).then(|| self.settled_result.clone()).flatten()
+    }
+    pub(super) fn backlink_pending(&self) -> bool {
+        self.settled_result.as_ref().is_some_and(|r|r["backlinkPending"] == true)
+    }
+    pub(super) fn remember_settled_result(&mut self, result: &Value) {
+        if self.listed_sources.is_some() && self.receipt_issued {
+            let mut historical = result.clone();
+            historical["standing"] = json!("original settled A15 recording result; retained history; only a pending backlink may retry at its original source");
+            self.settled_result = Some(historical);
+        }
+    }
+    pub(super) fn belongs_to(&self, root: &Path) -> bool {
+        self.library_root == root
+    }
+    pub(super) fn recording_guard(&self, root: &Path) -> Result<(), String> {
+        if !self.belongs_to(root) {
+            return Err("A15 original library custody changed; no write or relocation".into());
+        }
+        if let Some(sources) = &self.listed_sources { sources.check_current()?; }
+        Ok(())
+    }
+}
+pub(super) struct A15OfferSlot {
+    bound: Option<BoundReview>,
+    offer: Value,
+    state: OfferState,
+    actor: Option<Value>,
+    context: Option<Value>,
+    capture_id: Option<String>,
+    /// Digest of the complete review the native statement named (J6 D-1).
+    review_digest: Option<String>,
+}
+/// sha-256 (lowercase hex) of the complete review presentation in the
+/// `aac-offer-digest/0.1` canonical serialization (canonical.rs). The native
+/// statement names it; the host reports it to the App beside the review it
+/// shows (a reading aid; the binding is checked host-side at capture). A
+/// review holding a non-integer number is refused with the number's location
+/// (AAC §5.1 defines the form over integers only).
+pub(crate) fn review_digest(presentation: &Value) -> Result<String, String> {
+    super::native_statement::content_digest("The A15 complete review", presentation)
+}
+pub(crate) const REGISTER: &str = "Register";
+pub(crate) const DONT_REGISTER: &str = "Don't register";
+pub(crate) const RECONFIRM: &str = "Re-confirm";
+pub(crate) const DONT_RECONFIRM: &str = "Don't re-confirm";
+/// The act button labels and consequence of one A15 statement, chosen by the
+/// descriptor's kind and disposition (V14 F7). Re-confirmation follows AAC
+/// §4.2 as adopted by CC-WR-RECONFIRM: "Re-confirm revision ‹k› of
+/// ‹origin›:‹name› for use in this App session. This registers no new revision."
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct A15Variant {
+    pub(crate) act: &'static str,
+    pub(crate) dont: &'static str,
+    reconfirm: bool,
+}
+fn a15_variant(bound: &BoundReview) -> A15Variant {
+    if bound.descriptor_kind == "a15_descriptor"
+        && bound.descriptor["disposition"] == "re-confirmation"
+    {
+        A15Variant { act: RECONFIRM, dont: DONT_RECONFIRM, reconfirm: true }
+    } else {
+        A15Variant { act: REGISTER, dont: DONT_REGISTER, reconfirm: false }
+    }
+}
+/// The bounded native A15 statement (J6 D-1). It names the act, every entry's
+/// workflow identity (short and full revision), the prior revision, the
+/// library, scope and purpose, the complete review by reference and digest,
+/// the offer, the consequence, the actor and its limit, and what Cancel does.
+/// The complete review itself is shown in the App (AAC §4.2 step 1, §6.2).
+fn a15_statement(o: &Value, bound: &BoundReview, actor: &Value, review_digest: &str) -> String {
+    use super::native_statement::{actor_line, short};
+    let n = bound.bindings.len();
+    let wording = o["wording"].as_str().unwrap_or("");
+    let mut t = vec![if n == 1 {
+        format!("{wording} (A15)")
+    } else {
+        format!("{wording} (A15, {n} entries)")
+    }];
+    let methods = bound
+        .bindings
+        .iter()
+        .map(|b| b.subject.revision_method.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    let one_method = (methods.len() == 1).then(|| methods.iter().next().copied()).flatten();
+    if let Some(method) = one_method {
+        t.push(format!("Revision method: {method}"));
+    }
+    let disposition = bound.descriptor["disposition"].as_str().unwrap_or("not stated");
+    for (i, b) in bound.bindings.iter().enumerate() {
+        let s = &b.subject;
+        let number = if n == 1 { String::new() } else { format!(" {}", i + 1) };
+        let reviewed = if b.reviewed_id3.starts_with("draft:") {
+            "; reviewed draft"
+        } else {
+            ""
+        };
+        t.push(format!(
+            "Workflow{number}: {} ({} library; {disposition}{reviewed})",
+            s.name, s.origin
+        ));
+        match one_method {
+            Some(_) => t.push(format!("Revision {}, in full:", short(&s.revision))),
+            None => t.push(format!(
+                "Revision {} ({}), in full:",
+                short(&s.revision),
+                s.revision_method
+            )),
+        }
+        t.push(s.revision.clone());
+        match &b.prior {
+            None => t.push("Prior revision: none".into()),
+            Some(p) => {
+                t.push(format!("Prior revision {}, in full:", short(&p.revision)));
+                t.push(p.revision.clone());
+            }
+        }
+        if let Some(base) = &s.derived_from {
+            t.push(format!("Derived from: {} revision {}", base.name, short(&base.revision)));
+        }
+    }
+    let library = bound.library_root.display().to_string();
+    let scope = o["scope"].as_str().unwrap_or("");
+    if scope == library {
+        // The App's library scope is its source root: one exact line, not two.
+        t.push(format!("Library and scope: {library}"));
+    } else {
+        t.push(format!("Library: {library}"));
+        t.push(format!("Scope: {scope}"));
+    }
+    t.push(format!("Purpose: {}", o["purpose"].as_str().unwrap_or("")));
+    t.push(format!("Answers: {}", o["answers"]["standing"].as_str().unwrap_or(STANDING)));
+    t.push(String::new());
+    t.push(format!("Complete review: in the App, {}", bound.review_ref));
+    t.push("Its sha-256 digest (compare with the App):".into());
+    t.push(review_digest.into());
+    t.push(format!(
+        "Offer: {} (digest {})",
+        o["offerId"].as_str().unwrap_or(""),
+        short(o["offerDigest"]["value"].as_str().unwrap_or(""))
+    ));
+    t.push(String::new());
+    let variant = a15_variant(bound);
+    if variant.reconfirm {
+        let s = &bound.bindings[0].subject;
+        t.push(format!(
+            "Re-confirm revision {} of {}:{} for use in this App session. This registers no new revision.",
+            short(&s.revision),
+            s.origin,
+            s.name
+        ));
+    } else {
+        t.push("Registering makes these reviewed bytes available in this library; earlier revisions are kept. It is not a check that the workflow can run here.".into());
+    }
+    t.push(format!("Actor: {}. Required: {}.", actor_line(actor), o["actorRequirement"].as_str().unwrap_or("the person")));
+    t.push(format!(
+        "Only {} records this act. {} (the default) records nothing. Cancel closes without an act: nothing is captured or registered.",
+        variant.act, variant.dont
+    ));
+    t.push("Native confirmation; apps with Accessibility access could press these buttons.".into());
+    t.join("\n")
+}
+impl ActControl {
+    pub(crate) fn compose_a15(
+        &mut self,
+        current: &CurrentReviewView<'_>,
+    ) -> Result<A15OfferRef, String> {
+        let bound = BoundReview::observe(current)?;
+        if self.workspace != bound.library_root {
+            return Err("A15 control belongs to another owning library".into());
+        }
+        // V14 F2: a review the native statement cannot name by digest is
+        // refused at review time, with the number's location.
+        review_digest(&bound.presentation)?;
+        let id = crate::util::opaque_id("offer:")?;
+        let entries = bound
+            .bindings
+            .iter()
+            .map(|b| {
+                Ok(
+                    json!({"subject":{"ref":b.subject_ref()?,"contentIdentity":b.content()},
+            "reviewedDraft":b.reviewed(),"priorRevision":b.prior.as_ref().map(rs_tuple)}),
+                )
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        let mut offer = json!({"format":"chirality.aac.offer","formatVersion":"0.3","offerId":id,"actKind":"A15",
+            "wording":bound.descriptor["wording"],"descriptorId":bound.descriptor_id,"descriptorKind":bound.descriptor_kind,"entries":entries,
+            "scope":bound.descriptor["scope"],"purpose":bound.descriptor["purpose"],"actorRequirement":"the person","declineAvailable":false,
+            "answers":{"standing":STANDING},"composedAt":now_rfc3339()});
+        offer["offerDigest"] = json!({"method":OFFER_DIGEST_METHOD,"value":offer_digest(&offer)?});
+        crate::schema_validation::validate_offer(&offer)?;
+        self.a15_offers.insert(
+            id.clone(),
+            A15OfferSlot {
+                bound: Some(bound),
+                offer,
+                state: OfferState::Composed,
+                actor: None,
+                context: None,
+                capture_id: None,
+                review_digest: None,
+            },
+        );
+        Ok(A15OfferRef { id })
+    }
+    pub(crate) fn a15_confirmation_text(
+        &mut self,
+        offer: &A15OfferRef,
+        current: &CurrentReviewView<'_>,
+        actor: &Value,
+        context: &Value,
+    ) -> Result<String, String> {
+        let now = BoundReview::observe(current)?;
+        if self.workspace != now.library_root {
+            return Err("A15 control owning root changed".into());
+        }
+        let slot = self
+            .a15_offers
+            .get_mut(&offer.id)
+            .ok_or("A15 offer absent")?;
+        if slot.state != OfferState::Composed
+            || !slot.bound.as_ref().is_some_and(|b| b.matches(&now))
+        {
+            slot.state = OfferState::Stale;
+            return Err("A15 review changed; nothing captured".into());
+        }
+        if slot.actor.as_ref().is_some_and(|a| a != actor)
+            || slot.context.as_ref().is_some_and(|c| c != context)
+        {
+            return Err("A15 actor/context already frozen".into());
+        }
+        if actor["identityVerified"] != false {
+            return Err("A15 observed actor must retain identity not verified".into());
+        }
+        crate::schema_validation::validate_offer(&slot.offer)?;
+        if offer_digest(&slot.offer)? != slot.offer["offerDigest"]["value"].as_str().unwrap_or("") {
+            return Err("A15 frozen offer digest mismatch".into());
+        }
+        // Composed from the frozen binding (equal to `now`, checked above).
+        let frozen = slot.bound.as_ref().ok_or("A15 binding absent")?;
+        let digest = review_digest(&frozen.presentation)?;
+        let text = super::native_statement::bounded(
+            "A15 native confirmation",
+            a15_statement(&slot.offer, frozen, actor, &digest),
+        )?;
+        slot.actor = Some(actor.clone());
+        slot.context = Some(context.clone());
+        slot.review_digest = Some(digest);
+        Ok(text)
+    }
+    /// The act and default labels for this offer's native confirmation.
+    pub(crate) fn a15_variant(&self, offer: &A15OfferRef) -> Result<A15Variant, String> {
+        let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
+        Ok(a15_variant(slot.bound.as_ref().ok_or("A15 binding absent")?))
+    }
+    /// The frozen complete review and the digest the statement named, for the
+    /// App to show while the native confirmation is open.
+    pub(crate) fn a15_in_app(
+        &self,
+        offer: &A15OfferRef,
+    ) -> Result<super::native_statement::InApp, String> {
+        let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
+        Ok(super::native_statement::InApp {
+            kind: "A15 complete review",
+            digest: slot.review_digest.clone().ok_or("A15 statement not composed")?,
+            content: slot.bound.as_ref().ok_or("A15 binding absent")?.presentation.clone(),
+        })
+    }
+    pub(crate) fn frozen_a15_offer_digest(&self, offer: &A15OfferRef) -> Result<&Value, String> {
+        let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
+        if !matches!(slot.state, OfferState::Composed | OfferState::Presented)
+            || slot.actor.is_none()
+            || slot.context.is_none()
+            || offer_digest(&slot.offer)?
+                != slot.offer["offerDigest"]["value"].as_str().unwrap_or("")
+        {
+            return Err("A15 offer absent/unfrozen/stale or digest mismatch".into());
+        }
+        Ok(&slot.offer["offerDigest"])
+    }
+    pub(crate) fn present_a15(&mut self, offer: &A15OfferRef) -> Result<(), String> {
+        self.frozen_a15_offer_digest(offer)?;
+        let slot = self.a15_offers.get_mut(&offer.id).unwrap();
+        if slot.state != OfferState::Composed {
+            return Err("A15 offer already presented".into());
+        }
+        slot.state = OfferState::Presented;
+        Ok(())
+    }
+    pub(crate) fn dismiss_a15(&mut self, offer: &A15OfferRef) {
+        if let Some(slot) = self.a15_offers.get_mut(&offer.id) {
+            if matches!(slot.state, OfferState::Composed | OfferState::Presented) {
+                slot.state = OfferState::Dismissed;
+            }
+        }
+    }
+    pub(crate) fn confirm_a15_after_native_event(
+        &mut self,
+        offer: &A15OfferRef,
+        event: ConfirmedA15Event,
+        current: &CurrentReviewView<'_>,
+    ) -> Result<HotA15Result, String> {
+        let now = BoundReview::observe(current)?;
+        if self.workspace != now.library_root {
+            return Err("A15 control owning root changed".into());
+        }
+        let slot = self
+            .a15_offers
+            .get_mut(&offer.id)
+            .ok_or("A15 offer absent")?;
+        if slot.state != OfferState::Presented {
+            return Err("A15 not presented or already captured".into());
+        }
+        if !slot.bound.as_ref().is_some_and(|b| b.matches(&now)) {
+            slot.state = OfferState::Stale;
+            return Err("A15 review stale; nothing captured".into());
+        }
+        // The complete review the native statement named by digest is still the
+        // review now bound (in addition to the full equality above).
+        if slot.review_digest.as_deref() != Some(review_digest(&now.presentation)?.as_str()) {
+            slot.state = OfferState::Stale;
+            return Err("A15 complete review differs from the one the native statement named; nothing captured".into());
+        }
+        if event.offer_id() != offer.id
+            || event.offer_digest() != &slot.offer["offerDigest"]
+            || slot.actor.as_ref() != Some(event.actor())
+            || slot.context.as_ref() != Some(event.owning_context())
+            || offer_digest(&slot.offer)? != event.offer_digest()["value"].as_str().unwrap_or("")
+        {
+            return Err("A15 native event does not match frozen offer/actor/context".into());
+        }
+        let cap_id = crate::util::opaque_id("cap:")?;
+        let o = slot.offer.clone();
+        let es = o["entries"].as_array().ok_or("A15 entries absent")?;
+        let mut capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":cap_id,"offerId":offer.id,
+            "offerDigest":o["offerDigest"],"choice":"act","actKind":"A15","actor":event.actor(),
+            "boundSubject":es.iter().map(|e|e["subject"]["ref"].clone()).collect::<Vec<_>>(),
+            "boundContent":es.iter().map(|e|e["subject"]["contentIdentity"].clone()).collect::<Vec<_>>(),
+            "scope":o["scope"],"purpose":o["purpose"],"capturedAt":capture_time(),"surface":"App interface","inputSource":"host-native-confirmation",
+            "answers":o["answers"],"descriptorId":o["descriptorId"],"descriptorKind":o["descriptorKind"],
+            "entries":es.iter().map(|e|json!({"revision":e["subject"]["ref"],"reviewedDraft":e["reviewedDraft"],"priorRevision":e["priorRevision"]})).collect::<Vec<_>>(),
+            "evidenceLimits":["identity not verified"]});
+        let (installation, limit) = crate::installation::capture_claim(&self.workspace);
+        capture["installation"] = installation;
+        if let Some(limit) = limit { capture["evidenceLimits"].as_array_mut().unwrap().push(json!(limit)); }
+        crate::schema_validation::validate_capture(&capture)?;
+        let root = self.workspace.clone();
+        let target_log = storage::library_log(&root)
+            .strip_prefix(&root)
+            .map_err(|e| e.to_string())?
+            .to_str()
+            .ok_or("A15 non-UTF8 owning log")?
+            .to_owned();
+        let bound = slot.bound.take().ok_or("A15 binding already captured")?;
+        slot.capture_id = Some(cap_id.clone());
+        slot.state = OfferState::Captured;
+        let mut native = NativeCapture {
+            retention_activity: None,
+            ordinal: self.native_captures.len(),
+            target_log,
+            a15: Some(A15Custody {
+                library_root: root.clone(),
+                listed_sources: bound.listed_sources.clone(),
+                bound: Some(bound),
+                original_offer: o,
+                record_id: None,
+                receipt_issued: false,
+                settled_result: None,
+            }),
+            written: false,
+            delay_pending: false,
+            capture: capture.clone(),
+            pending: None,
+            failure: None,
+        };
+        // Retain the consumed native event's original facts/once guard even at
+        // the first storage boundary. No record ID is reserved before capture
+        // publication. This hot continuation choice does not redefine AAC's
+        // permitted pre-capture "nothing captured" refusal or old A16 behavior.
+        let _lock = match native.a15.as_ref().unwrap().recording_guard(&root)
+            .and_then(|_| storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock"))) {
+            Ok(lock) => lock,
+            Err(error) => {
+                native.failure = Some(error.clone());
+                slot.state = OfferState::RecordPending;
+                self.native_captures.insert(cap_id.clone(), native);
+                return Ok(HotA15Result::RecordPending { capture_id: cap_id, reason: error });
+            }
+        };
+        if let Err(e) = native.a15.as_ref().unwrap().recording_guard(&root)
+            .and_then(|_| storage::create_json(&storage::library_capture_path(&root, &cap_id), &capture)) {
+            native.failure = Some(e);
+        } else {
+            match native.a15.as_ref().unwrap().recording_guard(&root)
+                .and_then(|_| records::prepare_capture_submission(&root, &capture, &native.target_log)) {
+                Ok(p) => {
+                    native.pending = Some(p);
+                    if let Err(e) = native.a15.as_ref().unwrap().recording_guard(&root)
+                        .and_then(|_| records::persist_capture_submission(&root, native.pending.as_ref().unwrap()))
+                    {
+                        pending_failure(&root, &mut native, &e);
+                    }
+                }
+                Err(e) => native.failure = Some(e),
+            }
+        }
+        self.native_captures.insert(cap_id, native);
+        let writer = A15CaptureWriter { root:&root,_lease:&_lock };
+        self.flush_native_with_a15_writer(Some(&writer));
+        self.finish_a15_delivery(offer)
+    }
+    pub(crate) fn continue_a15(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
+        if self
+            .a15_offers
+            .get(&offer.id)
+            .is_none_or(|s| s.capture_id.is_none())
+        {
+            return Err("A15 original captured offer absent".into());
+        }
+        let id = self
+            .a15_offers
+            .get(&offer.id)
+            .and_then(|s| s.capture_id.as_ref())
+            .ok_or("A15 captured offer absent")?;
+        let native = self
+            .native_captures
+            .get(id)
+            .ok_or("A15 original native custody absent")?;
+        let custody = native.a15.as_ref()
+            .ok_or("A15 original library custody absent")?;
+        if custody.is_settled(native) {
+            // The act and receipt stay settled even while this annotation is
+            // pending. Retry metadata only, never capture or transfer again.
+            if custody.backlink_pending() && custody.recording_guard(&self.workspace).is_ok() {
+                let root = self.workspace.clone();
+                if let Ok(lease) = storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock")) {
+                    let writer = A15CaptureWriter { root:&root,_lease:&lease };
+                    self.flush_native_with_a15_writer(Some(&writer));
+                }
+            }
+            return self.finish_a15_delivery(offer);
+        }
+        custody.recording_guard(&self.workspace)?;
+        let root = self.workspace.clone();
+        let lease = storage::lock(&root.join(CAPTURE_STORE).join(".capture.lock"))?;
+        let writer = A15CaptureWriter { root:&root,_lease:&lease };
+        self.flush_native_with_a15_writer(Some(&writer));
+        self.finish_a15_delivery(offer)
+    }
+    fn finish_a15_delivery(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
+        let slot = self
+            .a15_offers
+            .get_mut(&offer.id)
+            .ok_or("A15 offer absent")?;
+        let id = slot.capture_id.as_ref().ok_or("A15 not captured")?.clone();
+        let native = self
+            .native_captures
+            .get_mut(&id)
+            .ok_or("A15 original native custody absent")?;
+        let a15 = native.a15.as_mut().ok_or("A15 native custody absent")?;
+        if !a15.belongs_to(&self.workspace) {
+            return Err("A15 original library custody changed".into());
+        }
+        if a15.receipt_issued {
+            return Ok(HotA15Result::AlreadyTransferred {
+                capture_id: id,
+                record_id: a15
+                    .record_id
+                    .clone()
+                    .ok_or("A15 issued record identity absent")?,
+            });
+        }
+        a15.recording_guard(&self.workspace)?;
+        if !native.written || native.delay_pending {
+            slot.state = OfferState::RecordPending;
+            return Ok(HotA15Result::RecordPending {
+                capture_id: id,
+                reason: native.failure.clone().unwrap_or_else(|| {
+                    "original native capture/record durability or delayed account pending".into()
+                }),
+            });
+        }
+        // Equality validates original witness; it does not create origin. Only this
+        // retained A15 native object can reach receipt construction.
+        let original = native.capture.clone();
+        let result = recover_capture(&self.workspace, &original, Some(native), None, true, None)?;
+        if result["state"] != "AC-7 recorded"
+            || result["recordDurable"] != true
+            || result["delayEvidencePending"] == true
+        {
+            native.written = false;
+            slot.state = OfferState::RecordPending;
+            return Ok(HotA15Result::RecordPending {
+                capture_id: id,
+                reason: result["writeFailure"]
+                    .as_str()
+                    .unwrap_or("A15 original record durability pending")
+                    .into(),
+            });
+        }
+        let a15 = native.a15.as_mut().unwrap();
+        let rid = result["record"]["recordId"]
+            .as_str()
+            .ok_or("A15 matching record identity absent")?
+            .to_owned();
+        let bound = a15
+            .bound
+            .take()
+            .ok_or("A15 original binding already transferred")?;
+        let witness = std::sync::Arc::new(A15NativeWitness {
+            original_capture: original,
+            durable_record: result["record"].clone(),
+            original_offer: a15.original_offer.clone(),
+        });
+        a15.receipt_issued = true;
+        a15.record_id = Some(rid.clone());
+        a15.remember_settled_result(&result);
+        slot.state = OfferState::Recorded;
+        Ok(HotA15Result::Recorded(HotA15Receipt {
+            bound,
+            record_id: rid,
+            capture_id: id,
+            witness,
+        }))
+    }
+}
+pub(super) fn a15_body(capture: &Value) -> Value {
+    let entries = capture["entries"].as_array();
+    let relations = if capture["descriptorKind"] == "a15_descriptor" {
+        json!({"reviewedDraft":capture["entries"][0]["reviewedDraft"],"priorRevision":capture["entries"][0]["priorRevision"]})
+    } else {
+        json!({"registeredEntries":entries.map(|es|es.iter().map(|e|json!({"subject":e["revision"],"reviewedDraft":e["reviewedDraft"],"priorRevision":e["priorRevision"]})).collect::<Vec<_>>()).unwrap_or_default()})
+    };
+    let mut body = json!({"actKind":"A15","actClass":{"value":"person's act (V4-WF-02)"},"decisionActor":capture["actor"],"recordingMode":"direct capture",
+        "boundSubject":capture["boundSubject"],"boundContent":capture["boundContent"],"scope":capture["scope"],"purpose":capture["purpose"],
+        "captureEvidence":[{"kind":"capture evidence","ref":capture["captureId"],"resolutionAtWrite":"resolved"}],
+        "captureTime":capture["capturedAt"],"evidenceLimits":capture["evidenceLimits"],"relations":relations});
+    if let Some(installation) = capture.get("installation") { body["installation"] = installation.clone(); }
+    body
+}
+
+#[cfg(test)]
+mod tests {
+    //! Synthetic events, actual owner reads/writer/receipt; no native event evidence.
+    use super::*;
+    use crate::workflow_workspace::{
+        registration::{LibraryOwner, ReviewSession},
+        Snapshot,
+    };
+    fn library(names: &[&str], in_place: bool) -> (PathBuf, ReviewSession) {
+        let root = std::env::temp_dir().join(crate::util::opaque_id("aac-a15-test-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        for name in names {
+            let path = root
+                .join(if in_place {
+                    ".chirality/workflows"
+                } else {
+                    ".chirality/workflow-drafts"
+                })
+                .join(name);
+            std::fs::create_dir_all(&path).unwrap();
+            std::fs::write(
+                path.join("WORKFLOW.md"),
+                format!("---\nname: {name}\n---\n# Method\nDo bounded work.\n"),
+            )
+            .unwrap();
+        }
+        let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+        let session = if in_place {
+            owner
+                .review_in_place(&names.iter().map(|n| n.to_string()).collect::<Vec<_>>())
+                .unwrap()
+        } else {
+            let rev =
+                Snapshot::capture(&root.join(".chirality/workflow-drafts").join(names[0])).unwrap();
+            owner.review_draft(names[0], rev.revision()).unwrap()
+        };
+        (root, session)
+    }
+    fn ready(
+        root: &Path,
+        session: &ReviewSession,
+    ) -> (ActControl, A15OfferRef, Value, Value, Value) {
+        let mut ac = ActControl::new(root);
+        let current = session.current().unwrap();
+        let offer = ac.compose_a15(&current).unwrap();
+        assert!(ac.frozen_a15_offer_digest(&offer).is_err());
+        let actor = person(Some("Synthetic test person"), Some("fixture"));
+        let context = json!({"fixture":"synthetic owning context"});
+        let text = ac
+            .a15_confirmation_text(&offer, &current, &actor, &context)
+            .unwrap();
+        assert!(text.contains("identity not verified"));
+        assert!(text.contains("Accessibility"));
+        let digest = ac.frozen_a15_offer_digest(&offer).unwrap().clone();
+        ac.present_a15(&offer).unwrap();
+        (ac, offer, actor, context, digest)
+    }
+    fn listed_tree(root: &Path) -> std::collections::BTreeMap<PathBuf, Value> {
+        use std::os::unix::fs::MetadataExt;
+        fn visit(root: &Path, path: &Path, tree: &mut std::collections::BTreeMap<PathBuf, Value>) {
+            let meta = std::fs::symlink_metadata(path).unwrap();
+            tree.insert(path.strip_prefix(root).unwrap().to_path_buf(), json!({
+                "inode":meta.ino(),"modified":meta.mtime(),"nanos":meta.mtime_nsec(),
+                "bytes":if meta.is_file(){Some(std::fs::read(path).unwrap())}else{None}
+            }));
+            if meta.is_dir() {
+                for entry in std::fs::read_dir(path).unwrap() {
+                    visit(root, &entry.unwrap().path(), tree);
+                }
+            }
+        }
+        let mut tree = Default::default();
+        visit(root, root, &mut tree);
+        tree
+    }
+    #[test]
+    fn listed_a15_pending_capture_record_and_delay_never_write_replacement_sources() {
+        for stage in ["capture", "record", "delay"] {
+            for replacement in ["library", "entry"] {
+                for route in ["continue", "recovery", "flush", "refresh", "capture recovery", "pending failure"] {
+                    let (root, direct) = library(&["sample"], true);
+                    drop(direct);
+                    let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+                    let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+                    let view = listing.view();
+                    let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+                        &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+                    let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+                    let log = storage::library_log(&root);
+                    if stage == "capture" {
+                        std::fs::create_dir_all(root.join(CAPTURE_STORE).join(".capture.lock")).unwrap();
+                    } else {
+                        std::fs::create_dir_all(&log).unwrap();
+                    }
+                    let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &session.current().unwrap());
+                    assert!(matches!(result.unwrap(), HotA15Result::RecordPending { .. }));
+                    if stage == "capture" {
+                        std::fs::remove_dir(root.join(CAPTURE_STORE).join(".capture.lock")).unwrap();
+                    } else { std::fs::remove_dir(&log).unwrap(); }
+                    let capture = ac.native_captures.values().next().unwrap().capture.clone();
+                    let id = capture["captureId"].as_str().unwrap().to_owned();
+                    if stage == "capture" {
+                        assert!(!storage::library_capture_path(&root, &id).exists());
+                        assert!(ac.native_captures[&id].pending.is_none());
+                    } else {
+                        assert!(ac.native_captures[&id].pending.as_ref().unwrap()["delayed"] == true);
+                    }
+                    if stage == "delay" {
+                        // Pause between the writer's record and delayed-account phases.
+                        let native = ac.native_captures.get_mut(&id).unwrap();
+                        let recorded = recover_capture(&root, &capture, Some(native), None, false, None).unwrap();
+                        assert_eq!(recorded["state"], "AC-7 recorded");
+                        assert_eq!(recorded["delayEvidencePending"], true);
+                        native.written = true;
+                        native.delay_pending = true;
+                    }
+                    let pending = ac.native_captures[&id].pending.clone();
+                    let failure = ac.native_captures[&id].failure.clone();
+                    let progress = (ac.native_captures[&id].written, ac.native_captures[&id].delay_pending);
+                    let path = if replacement == "library" { root.clone() } else { root.join(".chirality/workflows/sample") };
+                    let original = path.with_extension("original");
+                    std::fs::rename(&path, &original).unwrap();
+                    std::fs::create_dir(&path).unwrap();
+                    if replacement == "entry" {
+                        std::fs::write(path.join("WORKFLOW.md"), std::fs::read(original.join("WORKFLOW.md")).unwrap()).unwrap();
+                    }
+                    let replacement_before = listed_tree(&root);
+                    let original_before = listed_tree(&original);
+                    match route {
+                        "continue" => { let _ = ac.continue_a15(&offer); }
+                        "recovery" => { let _ = ac.recover_pending(); }
+                        "flush" => { ac.flush_native_locked(); }
+                        "refresh" => { ac.refresh_recording(); }
+                        "capture recovery" => { let _ = recover_capture(&root, &capture, ac.native_captures.get_mut(&id), None, true, None); }
+                        "pending failure" => { pending_failure(&root, ac.native_captures.get_mut(&id).unwrap(), "late writer failure"); }
+                        _ => unreachable!(),
+                    }
+                    assert_eq!(listed_tree(&root), replacement_before,
+                        "{stage}/{replacement}/{route}: no metadata write or recovery into replacement source");
+                    assert_eq!(listed_tree(&original), original_before);
+                    assert_eq!(ac.native_captures[&id].capture, capture);
+                    assert_eq!(ac.native_captures[&id].pending, pending);
+                    assert_eq!(ac.native_captures[&id].failure, failure);
+                    assert_eq!((ac.native_captures[&id].written, ac.native_captures[&id].delay_pending), progress);
+                    assert_eq!(ac.native_captures.len(), 1);
+                    assert!(!ac.native_captures[&id].a15.as_ref().unwrap().receipt_issued);
+                    std::fs::remove_dir_all(&path).unwrap();
+                    std::fs::rename(&original, &path).unwrap();
+                    // Continuation checks source, not pre-capture content freshness.
+                    std::fs::write(root.join(".chirality/workflows/sample/WORKFLOW.md"), b"changed after capture").unwrap();
+                    let HotA15Result::Recorded(receipt) = ac.continue_a15(&offer).unwrap() else { panic!("original pending capture must remain resumable") };
+                    assert_eq!(receipt.capture_id(), id);
+                    assert_eq!(receipt.witness.original_capture, capture);
+                    assert_eq!(receipt.witness.durable_record["observedAt"], capture["capturedAt"]);
+                    if let Some(pending) = pending { assert_eq!(receipt.record_id(), pending["recordId"].as_str().unwrap()); }
+                    assert_eq!(ac.native_captures.len(), 1);
+                    assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                    let (records, limits) = records::read_log(&log);
+                    assert!(limits.is_empty());
+                    assert_eq!(records.iter().filter(|r| r["kind"] == "human_act").count(), 1);
+                    std::fs::remove_dir_all(root).unwrap();
+                }
+            }
+        }
+    }
+    #[test]
+    fn listed_a15_ownership_missing_capture_directory_holds_real_lock() {
+        use std::{os::fd::AsRawFd, cell::Cell, rc::Rc};
+        let (root, mut ac, offer, capture, record_id) = settled_backlink_fixture();
+        let before = listed_tree(&root);
+        assert_eq!(ac.flush_native_locked()[0]["backlinkPending"],true);
+        let id = capture["captureId"].as_str().unwrap();
+        assert_eq!(recover_capture(&root,&capture,ac.native_captures.get_mut(id),None,false,None).unwrap()["backlinkPending"],true);
+        assert_eq!(listed_tree(&root),before,"direct unowned flush/recovery must stay cached even at a current source");
+        let log = std::fs::read(storage::library_log(&root)).unwrap();
+        let captures = root.join(CAPTURE_STORE);
+        std::fs::remove_dir_all(&captures).unwrap();
+        let held = Rc::new(Cell::new(false));
+        let observed = held.clone();
+        let expected = storage::library_capture_path(&root, capture["captureId"].as_str().unwrap());
+        storage::after_create_link_for_test(Some(Box::new(move |path| {
+            assert_eq!(path, expected);
+            let locked = std::fs::OpenOptions::new().read(true).write(true).open(captures.join(".capture.lock"))
+                .is_ok_and(|file| unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0
+                    && std::io::Error::last_os_error().kind() == std::io::ErrorKind::WouldBlock);
+            observed.set(locked);
+        })));
+        let results = ac.recover_pending().unwrap();
+        storage::after_create_link_for_test(None);
+        assert!(held.get(), "recreated settled capture must be published under the actual library capture lock");
+        assert_eq!(results[0]["state"], "AC-7 recorded");
+        assert_ne!(results[0]["backlinkPending"], true);
+        let mut disk:Value = serde_json::from_slice(&std::fs::read(storage::library_capture_path(&root, capture["captureId"].as_str().unwrap())).unwrap()).unwrap();
+        assert_eq!(disk["recordId"], record_id);
+        disk.as_object_mut().unwrap().remove("recordId"); assert_eq!(disk,capture);
+        assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(),log);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(),HotA15Result::AlreadyTransferred { .. }));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn listed_a15_ownership_unavailable_return_is_readonly_after_source_restore() {
+        use std::{cell::RefCell,rc::Rc};
+        for route in ["recovery","refresh"] {
+        let (root, mut ac, offer, capture, record_id) = settled_backlink_fixture();
+        let log = std::fs::read(storage::library_log(&root)).unwrap();
+        let entry = root.join(".chirality/workflows/sample");
+        let saved = entry.with_extension("original");
+        std::fs::rename(&entry,&saved).unwrap(); std::fs::create_dir(&entry).unwrap();
+        let restored = Rc::new(RefCell::new(None)); let observed = restored.clone(); let original_root = root.clone();
+        AFTER_UNAVAILABLE_A15_ANNOTATIONS.with(|slot| *slot.borrow_mut() = Some(Box::new(move || {
+            std::fs::remove_dir(&entry).unwrap(); std::fs::rename(saved,entry).unwrap();
+            *observed.borrow_mut() = Some(listed_tree(&original_root));
+        })));
+        let results = if route == "refresh" {
+            let (results,requests) = ac.refresh_recording();
+            assert!(requests.is_err(),"a cached-only recovery must not become a recorder write after source restoration");
+            results.unwrap()
+        } else { ac.recover_pending().unwrap() };
+        assert_eq!(listed_tree(&root), restored.borrow().clone().unwrap(),
+            "an unavailable-source return must remain read-only when the original source returns before its result");
+        assert_eq!(results[0]["state"], "AC-7 recorded"); assert_eq!(results[0]["backlinkPending"],true);
+        assert!(ac.writer_ready());
+        let results = ac.recover_pending().unwrap();
+        assert_eq!(results[0]["capture"]["recordId"], record_id);
+        assert_eq!(results[0]["capture"]["captureId"],capture["captureId"]);
+        assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(),log);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(),HotA15Result::AlreadyTransferred { .. }));
+        std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    fn settled_backlink_fixture() -> (PathBuf,ActControl,A15OfferRef,Value,String) {
+        use std::os::unix::fs::PermissionsExt;
+        let (root,direct) = library(&["sample"],true); drop(direct);
+        let owner = LibraryOwner::open(root.clone(),"project","fixture-library").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner,"held-library");
+        let view = listing.view();
+        let session = listing.review(&owner,"held-library",view["reference"].as_str().unwrap(),&[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+        let (mut ac,offer,actor,context,digest) = ready(&root,&session); ac.library_only = true;
+        let captures = root.join(CAPTURE_STORE); std::fs::create_dir_all(captures.join("pending")).unwrap();
+        let denied = captures.clone(); crate::installation::folder_for_test(Some(None));
+        storage::after_create_link_for_test(Some(Box::new(move |_| {
+            std::fs::set_permissions(&denied,std::fs::Permissions::from_mode(0o500)).unwrap();
+        })));
+        let result = ac.confirm_a15_after_native_event(&offer,event(&offer,digest,actor,context),&session.current().unwrap());
+        std::fs::set_permissions(captures,std::fs::Permissions::from_mode(0o700)).unwrap();
+        storage::after_create_link_for_test(None); crate::installation::folder_for_test(None);
+        let HotA15Result::Recorded(receipt) = result.unwrap() else { panic!("real writer must retain recorded act with failed backlink") };
+        let capture = receipt.witness.original_capture.clone(); let record_id = receipt.record_id().to_owned();
+        assert_eq!(ac.native_captures[capture["captureId"].as_str().unwrap()].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"],true);
+        (root,ac,offer,capture,record_id)
+    }
+    #[test]
+    fn listed_a15_recorded_backlink_failure_retries_only_at_original_source() {
+        use std::os::unix::fs::PermissionsExt;
+        for route in ["continue", "recovery"] {
+            for replacement in ["library", "entry"] {
+                for accounted_delay in [false, true] {
+                let (root, direct) = library(&["sample"], true);
+                drop(direct);
+                let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+                let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+                let view = listing.view();
+                let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+                    &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+                let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+                let captures = root.join(CAPTURE_STORE);
+                std::fs::create_dir_all(captures.join("pending")).unwrap();
+                crate::installation::folder_for_test(Some(None));
+                let result = if accounted_delay {
+                    let log = storage::library_log(&root);
+                    std::fs::create_dir_all(&log).unwrap();
+                    let pending = ac.confirm_a15_after_native_event(&offer, event(&offer,digest,actor,context), &session.current().unwrap()).unwrap();
+                    assert!(matches!(pending, HotA15Result::RecordPending { .. }));
+                    std::fs::remove_dir(&log).unwrap();
+                    std::fs::set_permissions(&captures, std::fs::Permissions::from_mode(0o500)).unwrap();
+                    ac.continue_a15(&offer)
+                } else {
+                    let denied = captures.clone();
+                    storage::after_create_link_for_test(Some(Box::new(move |path| {
+                        assert_eq!(path.parent(), Some(denied.as_path()));
+                        // Capture is published; its existing pending subfolder and
+                        // the act log remain writable, but backlink temps cannot open.
+                        std::fs::set_permissions(&denied, std::fs::Permissions::from_mode(0o500)).unwrap();
+                    })));
+                    ac.confirm_a15_after_native_event(&offer, event(&offer,digest,actor,context), &session.current().unwrap())
+                };
+                std::fs::set_permissions(&captures, std::fs::Permissions::from_mode(0o700)).unwrap();
+                storage::after_create_link_for_test(None);
+                crate::installation::folder_for_test(None);
+                let HotA15Result::Recorded(receipt) = result.unwrap() else { panic!("backlink I/O failure must preserve the recorded act") };
+                let capture_id = receipt.capture_id().to_owned();
+                let record_id = receipt.record_id().to_owned();
+                let original = receipt.witness.original_capture.clone();
+                let capture_path = storage::library_capture_path(&root, &capture_id);
+                let disk:Value = serde_json::from_slice(&std::fs::read(&capture_path).unwrap()).unwrap();
+                assert!(disk.get("recordId").is_none(), "fixture must fail before annotation publication");
+                assert_eq!(disk, original);
+                assert_eq!(ac.native_captures[&capture_id].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"], true);
+                let mut registration = session.begin_hot_registration(receipt).unwrap();
+                assert!(matches!(registration.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+                let act_log = std::fs::read(storage::library_log(&root)).unwrap();
+                let ledger = std::fs::read(root.join(".chirality/workflow-registry.jsonl")).unwrap();
+                let path = if replacement == "library" { root.clone() } else { root.join(".chirality/workflows/sample") };
+                let saved = path.with_extension("original");
+                std::fs::rename(&path, &saved).unwrap();
+                std::fs::create_dir(&path).unwrap();
+                if replacement == "entry" {
+                    std::fs::write(path.join("WORKFLOW.md"), std::fs::read(saved.join("WORKFLOW.md")).unwrap()).unwrap();
+                }
+                let before = listed_tree(&root);
+                let original_before = listed_tree(&saved);
+                if route == "continue" {
+                    let HotA15Result::AlreadyTransferred { capture_id:id,record_id:rid } = ac.continue_a15(&offer).unwrap() else { panic!("no new receipt") };
+                    assert_eq!((id,rid), (capture_id.clone(),record_id.clone()));
+                } else {
+                    let results = ac.recover_pending().unwrap();
+                    assert_eq!(results[0]["state"], "AC-7 recorded");
+                    assert_eq!(results[0]["backlinkPending"], true);
+                }
+                assert_eq!(listed_tree(&root), before, "{route}/{replacement}: no annotation or lock writes into replacement");
+                assert_eq!(listed_tree(&saved), original_before);
+                assert!(ac.writer_ready(), "annotation failure does not unsettle the act");
+                std::fs::remove_dir_all(&path).unwrap();
+                std::fs::rename(&saved, &path).unwrap();
+                // An unrelated record-durability read limit cannot demote the
+                // original act or reopen its already accounted delayed write.
+                storage::fail_directory_for_test(Some(storage::library_log(&root).parent().unwrap().to_path_buf()));
+                let uncertain = ac.recover_pending();
+                storage::fail_directory_for_test(None);
+                let uncertain = uncertain.unwrap();
+                assert_eq!(uncertain[0]["state"], "AC-7 recorded");
+                assert_eq!(uncertain[0]["backlinkPending"], true);
+                assert!(ac.writer_ready());
+                if route == "continue" {
+                    assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                } else {
+                    let results = ac.recover_pending().unwrap();
+                    assert_eq!(results[0]["state"], "AC-7 recorded");
+                    assert_ne!(results[0]["backlinkPending"], true);
+                }
+                let mut annotated:Value = serde_json::from_slice(&std::fs::read(&capture_path).unwrap()).unwrap();
+                assert_eq!(annotated["recordId"], record_id, "{route}/{replacement}: cleared I/O must retry the retained backlink");
+                annotated.as_object_mut().unwrap().remove("recordId");
+                assert_eq!(annotated, original);
+                assert_eq!(std::fs::read(storage::library_log(&root)).unwrap(), act_log);
+                assert_eq!(std::fs::read(root.join(".chirality/workflow-registry.jsonl")).unwrap(), ledger);
+                let records = records::read_log(&storage::library_log(&root)).0;
+                assert_eq!(records.iter().filter(|r|r["kind"] == "human_act").count(), 1);
+                assert_eq!(records[0]["recordId"], record_id);
+                assert_eq!(records[0]["observedAt"], original["capturedAt"]);
+                assert_eq!(ac.native_captures.len(), 1);
+                assert!(!ac.native_captures[&capture_id].delay_pending);
+                assert_ne!(ac.native_captures[&capture_id].a15.as_ref().unwrap().settled_result.as_ref().unwrap()["backlinkPending"], true);
+                assert!(matches!(registration.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+                let before = listed_tree(&root);
+                assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+                assert_eq!(listed_tree(&root), before, "successful annotation makes later continuation inert");
+                std::fs::remove_dir_all(root).unwrap();
+                }
+            }
+        }
+    }
+    #[test]
+    fn listed_a15_settled_source_replacement_allows_new_disjoint_registration() {
+        let (root, direct) = library(&["sample"], true);
+        drop(direct);
+        let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+        let view = listing.view();
+        let session = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(),
+            &[view["entries"][0]["reference"].as_str().unwrap().into()]).unwrap();
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &session.current().unwrap()).unwrap();
+        let HotA15Result::Recorded(receipt) = result else { panic!("first listed A15 must settle") };
+        let old_capture_id = receipt.capture_id().to_owned();
+        let mut first = session.begin_hot_registration(receipt).unwrap();
+        assert!(matches!(first.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        drop(first);
+        assert!(ac.writer_ready());
+        let entry = root.join(".chirality/workflows/sample");
+        std::fs::rename(&entry, entry.with_extension("original")).unwrap();
+        std::fs::create_dir(&entry).unwrap();
+        std::fs::write(entry.join("WORKFLOW.md"), std::fs::read(entry.with_extension("original").join("WORKFLOW.md")).unwrap()).unwrap();
+        assert!(ac.writer_ready(), "a settled capture remains settled for existing project close/import readiness");
+        let before = listed_tree(&root);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+        assert_eq!(listed_tree(&root), before, "settled continuation must be inert");
+        let old_capture = ac.native_captures[&old_capture_id].capture.clone();
+        let capture_path = storage::library_capture_path(&root, &old_capture_id);
+        let pending_path = storage::pending_file_for(&root, &old_capture).unwrap();
+        let old_capture_before = listed_tree(&capture_path);
+        let old_pending_before = listed_tree(&pending_path);
+        let replaced_entry_before = listed_tree(&entry);
+        assert!(ac.recover_pending().is_ok(), "settled source limits must not hold normal writer recovery");
+        let other = root.join(".chirality/workflows/other");
+        std::fs::create_dir(&other).unwrap();
+        std::fs::write(other.join("WORKFLOW.md"), b"---\nname: other\n---\n# Other explicit work\n").unwrap();
+        let listing = crate::workflow_workspace::registration::EntryListing::observe(&owner, "held-library");
+        let view = listing.view();
+        let reference = view["entries"].as_array().unwrap().iter().find(|e|e["name"] == "other").unwrap()["reference"].as_str().unwrap();
+        let next = listing.review(&owner, "held-library", view["reference"].as_str().unwrap(), &[reference.into()]).unwrap();
+        let current = next.current().unwrap();
+        let new_offer = ac.compose_a15(&current).unwrap();
+        let actor = person(Some("Synthetic test person"), Some("fixture"));
+        let context = json!({"fixture":"new disjoint explicit review"});
+        ac.a15_confirmation_text(&new_offer, &current, &actor, &context).unwrap();
+        let digest = ac.frozen_a15_offer_digest(&new_offer).unwrap().clone();
+        ac.present_a15(&new_offer).unwrap();
+        let HotA15Result::Recorded(receipt) = ac.confirm_a15_after_native_event(&new_offer, event(&new_offer,digest,actor,context), &current).unwrap()
+            else { panic!("old settled custody must not hold the new native capture") };
+        drop(current);
+        let mut second = next.begin_hot_registration(receipt).unwrap();
+        assert!(matches!(second.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        assert_eq!(ac.native_captures.len(), 2);
+        assert!(ac.recover_pending().is_ok());
+        assert!(ac.writer_ready());
+        assert_eq!(listed_tree(&capture_path), old_capture_before);
+        assert_eq!(listed_tree(&pending_path), old_pending_before);
+        assert_eq!(listed_tree(&entry), replaced_entry_before);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    /// J6 D-1 control (written before the repair, kept): the native A15
+    /// statement must fit a readable alert and still name every binding element.
+    /// Limits are literal here so the control does not depend on the repair.
+    #[test]
+    fn control_a15_native_statement_is_bounded_and_names_every_binding() {
+        for (names, in_place) in [(&["sample"][..], false), (&["second", "first"][..], true)] {
+            let (root, session) = library(names, in_place);
+            let mut ac = ActControl::new(&root);
+            let current = session.current().unwrap();
+            let offer = ac.compose_a15(&current).unwrap();
+            let actor = person(Some("Synthetic test person"), Some("fixture-os"));
+            let context = json!({"fixture":"synthetic owning context"});
+            let text = ac
+                .a15_confirmation_text(&offer, &current, &actor, &context)
+                .unwrap();
+            let (lines, chars) = (text.lines().count(), text.chars().count());
+            assert!(
+                lines <= 30 && chars <= 1400,
+                "native A15 statement unbounded: {lines} lines, {chars} chars"
+            );
+            assert!(!text.contains("{\""), "raw JSON in native statement:\n{text}");
+            let wording = ac.a15_offers[offer.id()].offer["wording"].as_str().unwrap().to_owned();
+            assert!(text.starts_with(&wording), "{text}");
+            assert!(text.contains("(A15"), "{text}");
+            for b in current.ordered_bindings() {
+                let s = b.subject();
+                assert!(text.contains(&s.name) && text.contains(&s.origin), "{text}");
+                assert!(text.contains(&s.revision[..12]), "short revision: {text}");
+                assert!(
+                    text.lines().any(|l| l.trim() == s.revision),
+                    "full revision on its own copyable line:\n{text}"
+                );
+                assert!(text.contains(&s.revision_method), "{text}");
+            }
+            assert!(text.contains("Prior revision: none"), "{text}");
+            assert!(text.contains(&root.display().to_string()), "library: {text}");
+            let descriptor = current.descriptor();
+            assert!(text.contains(descriptor["scope"].as_str().unwrap()), "{text}");
+            assert!(text.contains(descriptor["purpose"].as_str().unwrap()), "{text}");
+            assert!(text.contains(current.review_ref()), "{text}");
+            let mut canonical = String::new();
+            crate::canonical::canonical(current.review_presentation(), &mut canonical).unwrap();
+            let review_digest = crate::util::sha256_hex(canonical.as_bytes());
+            assert!(
+                text.lines().any(|l| l.trim() == review_digest),
+                "complete-review digest on its own line:\n{text}"
+            );
+            assert!(text.contains(offer.id()), "{text}");
+            assert!(text.contains("Synthetic test person") && text.contains("fixture-os"));
+            assert!(text.contains("identity not verified"), "{text}");
+            assert!(text.contains("not a check that the workflow can run here"), "{text}");
+            assert!(text.contains("Cancel closes without an act"), "{text}");
+            assert!(text.contains("Accessibility"), "{text}");
+            drop(current);
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    /// Shared vector with app/tests/presentation.test.mjs: the App's review
+    /// digest (src/presentation.ts) must equal the one the native statement names.
+    #[test]
+    fn review_digest_vector_is_shared_with_the_app_view() {
+        let vector = json!({"b":"x\u{2028}ü≈\u{7f}\u{1}\n\"\\","a":[1,-2,true,null,{"z":"😀","é":0,"y":"\t\u{8}\u{c}\r"}],"😀":"astral key","\u{ffff}":"bmp max key"});
+        let mut canonical = String::new();
+        crate::canonical::canonical(&vector, &mut canonical).unwrap();
+        assert!(canonical.find("\"\u{ffff}\":").unwrap() < canonical.find("\"😀\":").unwrap(), "code-point key order");
+        // Also computed independently (Python, code-point key order) during J6.
+        assert_eq!(
+            review_digest(&vector).unwrap(),
+            "f0320f0cb802f23b0ca96ae972832215676a3c76e825efceb37c941e8e0e6d6b"
+        );
+        // V14 F2: a non-integer is refused with its location and the right
+        // cause; an integer above 2^53 is digested exactly (the App then uses
+        // the host's digest, as it cannot recompute it).
+        let err = review_digest(&json!({"entries":[{"declaration":{"raw":{"x":1.5}}}]})).unwrap_err();
+        assert!(err.contains("non-integer number at /entries/0/declaration/raw/x") && err.contains("integers only"), "{err}");
+        assert!(!err.contains("offer is not offered"), "{err}");
+        let big = review_digest(&json!({"n": 9007199254740993u64})).unwrap();
+        let mut canonical = String::new();
+        crate::canonical::canonical(&json!({"n": 9007199254740993u64}), &mut canonical).unwrap();
+        assert_eq!(canonical, "{\"n\":9007199254740993}");
+        assert_eq!(big, crate::util::sha256_hex(canonical.as_bytes()));
+    }
+    /// V14 F2: the refusal happens when the review is opened (compose), with
+    /// the number's location, not later at the native confirmation.
+    #[test]
+    fn review_with_a_non_integer_number_is_refused_at_review_time_with_its_location() {
+        let root = std::env::temp_dir().join(crate::util::opaque_id("aac-a15-float-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let path = root.join(".chirality/workflow-drafts/sample");
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(
+            path.join("WORKFLOW.md"),
+            "---\nname: sample\n---\n# Method\nDo bounded work.\n\n```workflow-declaration\n{\"x\": 1.5}\n```\n",
+        )
+        .unwrap();
+        let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+        let rev = Snapshot::capture(&path).unwrap();
+        let session = owner.review_draft("sample", rev.revision()).unwrap();
+        let mut ac = ActControl::new(&root);
+        let err = ac.compose_a15(&session.current().unwrap()).err().unwrap();
+        assert!(err.contains("non-integer number at /entries/0/declaration"), "{err}");
+        assert!(err.contains("integers only") && !err.contains("offer is not offered"), "{err}");
+        assert!(ac.a15_offers.is_empty(), "no offer composed");
+        drop(session);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    /// A realistic large single registration (long library path used as scope,
+    /// prior revision, derived-from base, full actor) still fits the bound; a
+    /// multi-entry act fits up to a stated count and is refused above it.
+    #[test]
+    fn realistic_large_statements_fit_or_are_refused_whole() {
+        let library = PathBuf::from(format!(
+            "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/tmp.{}/workspace",
+            "x".repeat(40)
+        ));
+        let id = |name: &str, rev: char, base: Option<WorkflowIdentity>| WorkflowIdentity {
+            kind: "workflow".into(),
+            origin: "project".into(),
+            source_root: library.display().to_string(),
+            name: name.into(),
+            revision: rev.to_string().repeat(64),
+            revision_method: crate::workflow_workspace::SNAPSHOT_METHOD.into(),
+            derived_from: base.map(Box::new),
+        };
+        // `prior`: a new revision of a draft with a prior and a derived-from
+        // base; otherwise an in-place entry (neither).
+        let binding = |name: &str, rev: char, prior: bool| {
+            let base = prior.then(|| id("coordinated-knowledge-work", 'b', None));
+            let subject = id(name, rev, base);
+            A15Binding {
+                content_method: subject.revision_method.clone(),
+                content_value: subject.revision.clone(),
+                reviewed_id3: format!("draft:project:{name}@{}", subject.revision),
+                reviewed_content_method: subject.revision_method.clone(),
+                reviewed_content_value: subject.revision.clone(),
+                prior: prior.then(|| id(name, 'p', None)),
+                subject,
+            }
+        };
+        let bound = |bindings: Vec<A15Binding>| BoundReview {
+            listed_sources: None,
+            review_ref: format!("review:{}", uuid_like()),
+            descriptor_id: "descriptor:x".into(),
+            descriptor_kind: "a15_descriptor".into(),
+            library_root: library.clone(),
+            act_log: library.join(".chirality/records/acts.jsonl"),
+            descriptor: json!({"disposition":"new revision"}),
+            presentation: json!({}),
+            bindings,
+        };
+        let offer = json!({"wording":"register workflow revision","scope":library.display().to_string(),
+            "purpose":"make it available in the project library","answers":{"standing":STANDING},
+            "offerId":format!("offer:{}", uuid_like()),"offerDigest":{"value":"d".repeat(64)},"actorRequirement":"the person"});
+        let mut actor = person(Some("Ryan, accountable workflow owner"), Some("ryan"));
+        actor["codexAccount"] = json!("someone.with.a.long.address@example.invalid");
+        let single = a15_statement(&offer, &bound(vec![binding("coordinated-knowledge-work", 'a', true)]), &actor, &"e".repeat(64));
+        let single = super::super::native_statement::bounded("A15", single).unwrap();
+        assert!(single.contains("Library and scope: /private/var/folders"), "{single}");
+        assert!(single.lines().any(|l| l == "p".repeat(64)), "full prior revision line:\n{single}");
+        assert!(single.contains("Derived from: coordinated-knowledge-work revision bbbbbbbbbbbb"));
+        let multi = |n: usize| {
+            let entries = (0..n).map(|i| binding(&format!("workflow-entry-{i}"), 'a', false)).collect();
+            let mut b = bound(entries);
+            b.descriptor_kind = "a15_multi_descriptor".into();
+            b.descriptor = json!({"disposition":"in place"});
+            super::super::native_statement::bounded("A15", a15_statement(&offer, &b, &actor, &"e".repeat(64)))
+        };
+        // With this long library path, two in-place entries fit; a third is
+        // refused whole with its cause (the person registers fewer per act).
+        let fits = (2..=12).take_while(|n| multi(*n).is_ok()).count() + 1;
+        assert_eq!(fits, 2, "entries that fit at this library path");
+        assert!(multi(fits + 1).unwrap_err().contains("exceeds the readable native confirmation"));
+    }
+    fn uuid_like() -> String {
+        "01234567-89ab-4cde-8f01-23456789abcd".into()
+    }
+    fn facts() -> (Value, Value) {
+        (
+            person(Some("Synthetic test person"), Some("fixture-os")),
+            json!({"fixture":"synthetic owning context"}),
+        )
+    }
+    /// Owner decision "Native confirmation default key — 2026-10-08": the A15
+    /// alert is [Don't register (default)] [Register] [Cancel]; Return, the
+    /// third button and every abort record nothing; only the middle captures.
+    #[test]
+    fn native_adapter_three_buttons_only_the_middle_captures() {
+        use super::super::native_statement::dialog_model;
+        use tauri_plugin_dialog::MessageDialogResult as R;
+        let mut ends = vec![];
+        {
+            let (root, session) = library(&["sample"], false);
+            let mut ac = ActControl::new(&root);
+            let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+            let _ = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_, buttons| {
+                ends = dialog_model::outcomes(&buttons);
+                R::Custom(DONT_REGISTER.into())
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        assert_eq!(
+            ends.iter().map(|(how, r)| (*how, r.clone())).collect::<Vec<_>>(),
+            vec![
+                ("default (Return)", R::Custom(DONT_REGISTER.into())),
+                ("middle", R::Custom(REGISTER.into())),
+                ("third", R::Custom("Cancel".into())),
+                ("abort or failure", R::Custom("Cancel".into())),
+            ]
+        );
+        let others = [R::Cancel, R::Ok, R::Yes, R::No, R::Custom("register".into())];
+        for (how, result) in ends.into_iter().map(|(h, r)| (h.to_owned(), r)).chain(others.into_iter().map(|r| ("other".to_owned(), r))) {
+            let (root, session) = library(&["sample"], false);
+            let mut ac = ActControl::new(&root);
+            let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+            let mut shown = String::new();
+            let mut in_app = Value::Null;
+            let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |text, _| {
+                shown = text;
+                in_app = super::super::native_statement::shown_in_app();
+                result
+            })
+            .unwrap();
+            assert!(shown.lines().count() <= super::super::native_statement::MAX_LINES);
+            assert!(shown.contains("Only Register records this act. Don't register (the default) records nothing."), "{shown}");
+            assert!(shown.contains("Cancel closes without an act"));
+            // The complete review is shown in the App while the alert is open.
+            let named = ac.a15_offers[offer.id()].review_digest.clone().unwrap();
+            assert!(in_app.as_array().unwrap().iter().any(|c| c["digest"] == named.as_str()
+                && c["content"] == *session.current().unwrap().review_presentation()), "{in_app}");
+            assert!(shown.contains(&named));
+            assert!(!super::super::native_statement::shown_in_app().as_array().unwrap().iter()
+                .any(|c| c["digest"] == named.as_str()), "withdrawn from the App after the alert");
+            if how == "middle" {
+                assert!(matches!(out, Some(HotA15Result::Recorded(_))), "{how}");
+                assert_eq!(records::read_log(&storage::library_log(&root)).0.len(), 1);
+            } else {
+                assert!(out.is_none(), "{how} must not capture");
+                assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Dismissed);
+                assert!(ac.native_captures.is_empty());
+                assert!(!storage::library_log(&root).exists());
+            }
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    /// V14 F7: a re-confirmation descriptor (AAC §4.2, CC-WR-RECONFIRM) gets
+    /// its own statement and act label without restructuring.
+    #[test]
+    fn reconfirmation_descriptor_has_its_own_statement_and_act_label() {
+        let library = PathBuf::from("/tmp/lib");
+        let subject = WorkflowIdentity {
+            kind: "workflow".into(),
+            origin: "project".into(),
+            source_root: "/tmp/lib".into(),
+            name: "sample".into(),
+            revision: "k".repeat(64),
+            revision_method: crate::workflow_workspace::SNAPSHOT_METHOD.into(),
+            derived_from: None,
+        };
+        let b = BoundReview {
+            listed_sources: None,
+            review_ref: "review:r".into(),
+            descriptor_id: "descriptor:r".into(),
+            descriptor_kind: "a15_descriptor".into(),
+            library_root: library.clone(),
+            act_log: library.join(".chirality/records/acts.jsonl"),
+            descriptor: json!({"disposition":"re-confirmation"}),
+            presentation: json!({}),
+            bindings: vec![A15Binding {
+                content_method: subject.revision_method.clone(),
+                content_value: subject.revision.clone(),
+                reviewed_id3: format!("entry:project:sample@{}", subject.revision),
+                reviewed_content_method: subject.revision_method.clone(),
+                reviewed_content_value: subject.revision.clone(),
+                prior: None,
+                subject,
+            }],
+        };
+        let offer = json!({"wording":"re-confirm workflow revision for use","scope":"/tmp/lib","purpose":"use it in this App session",
+            "answers":{"standing":STANDING},"offerId":"offer:r","offerDigest":{"value":"d".repeat(64)},"actorRequirement":"the person"});
+        let text = a15_statement(&offer, &b, &person(Some("P"), Some("p")), &"e".repeat(64));
+        assert!(text.starts_with("re-confirm workflow revision for use (A15)"), "{text}");
+        assert!(text.contains("Re-confirm revision kkkkkkkkkkkk of project:sample for use in this App session. This registers no new revision."), "{text}");
+        assert!(!text.contains("Registering makes"), "{text}");
+        assert!(text.contains("Only Re-confirm records this act. Don't re-confirm (the default) records nothing."), "{text}");
+        assert_eq!(a15_variant(&b), A15Variant { act: RECONFIRM, dont: DONT_RECONFIRM, reconfirm: true });
+        assert!(matches!(crate::a15_native::a15_buttons(a15_variant(&b)),
+            tauri_plugin_dialog::MessageDialogButtons::YesNoCancelCustom(d, a, c)
+                if d == DONT_RECONFIRM && a == RECONFIRM && c == "Cancel"));
+        let mut plain = b;
+        plain.descriptor = json!({"disposition":"new revision"});
+        assert_eq!(a15_variant(&plain).act, REGISTER);
+        assert!(super::super::native_statement::bounded("A15", text).is_ok());
+    }
+    #[test]
+    fn over_long_statement_is_refused_before_presentation_with_its_cause() {
+        let names = ["one", "two", "three", "four", "five", "six", "seven"];
+        let (root, session) = library(&names, true);
+        let mut ac = ActControl::new(&root);
+        let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+        let mut called = false;
+        let err = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_, _| {
+            called = true;
+            tauri_plugin_dialog::MessageDialogResult::Custom(REGISTER.into())
+        })
+        .err()
+        .unwrap();
+        assert!(!called, "an over-long statement is never presented");
+        assert!(err.contains("exceeds the readable native confirmation") && err.contains("nothing captured"), "{err}");
+        assert!(ac.frozen_a15_offer_digest(&offer).is_err(), "not frozen, not presented");
+        assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Composed);
+        assert!(ac.native_captures.is_empty());
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn capture_still_requires_the_frozen_offer_and_the_named_review_digest() {
+        // The digest named in the statement is checked at capture; a review
+        // that differs from it captures nothing, as a stale review always has.
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let named = ac.a15_offers[offer.id()].review_digest.clone().unwrap();
+        assert_eq!(named, review_digest(session.current().unwrap().review_presentation()).unwrap());
+        ac.a15_offers.get_mut(offer.id()).unwrap().review_digest = Some("0".repeat(64));
+        let refused = ac.confirm_a15_after_native_event(
+            &offer,
+            event(&offer, digest, actor, context),
+            &session.current().unwrap(),
+        );
+        assert!(refused.err().unwrap().contains("nothing captured"));
+        assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Stale);
+        assert!(ac.native_captures.is_empty());
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+        // A review changed after the statement was shown still refuses:
+        // synthetic_retained_old_view_rechecks_live_freshness_before_capture.
+    }
+    fn event(
+        offer: &A15OfferRef,
+        digest: Value,
+        actor: Value,
+        context: Value,
+    ) -> ConfirmedA15Event {
+        ConfirmedA15Event::synthetic_for_test(offer.id().into(), digest, actor, context)
+    }
+    #[test]
+    fn synthetic_single_receipt_durable_library_record_once_and_cold_cannot_transfer() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let current = session.current().unwrap();
+        let result = ac
+            .confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current)
+            .unwrap();
+        let HotA15Result::Recorded(receipt) = result else {
+            panic!("expected durable real-writer receipt from synthetic event")
+        };
+        assert_eq!(receipt.review_ref(), current.review_ref());
+        assert_eq!(receipt.library_root(), root);
+        assert_eq!(receipt.ordered_bindings().len(), 1);
+        assert!(receipt.witness.original_capture["actKind"] == "A15");
+        assert_eq!(
+            receipt.witness.durable_record["body"],
+            a15_body(&receipt.witness.original_capture)
+        );
+        assert_eq!(receipt.witness.original_offer["offerId"], offer.id());
+        let (records, limits) = records::read_log(&storage::library_log(&root));
+        assert!(limits.is_empty());
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0]["recordId"], receipt.record_id());
+        assert!(crate::records_store::attach(&root, false).unwrap().dir.is_none_or(|d| !d.join(LOG).exists()), "no project log; the library gets no project identity");
+        assert!(matches!(
+            ac.continue_a15(&offer).unwrap(),
+            HotA15Result::AlreadyTransferred { .. }
+        ));
+        let before_cold = std::fs::read(storage::library_log(&root)).unwrap();
+        let mut cold = ActControl::new(&root);
+        cold.recover_pending().unwrap();
+        assert!(cold.continue_a15(&offer).is_err());
+        assert_eq!(
+            std::fs::read(storage::library_log(&root)).unwrap(),
+            before_cold
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn u_store_2_identity_failure_retains_the_native_a15_and_its_hot_effect() {
+        crate::installation::folder_for_test(Some(None));
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let current = session.current().unwrap();
+        let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current).unwrap();
+        let HotA15Result::Recorded(receipt) = result else { panic!("actual synthetic capture must survive attribution failure") };
+        assert!(receipt.witness.original_capture["installation"]["reference"].is_null());
+        assert_eq!(receipt.witness.original_capture["installation"]["verification"], "unverified");
+        assert!(receipt.witness.original_capture["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("installation attribution unavailable")));
+        assert_eq!(receipt.witness.durable_record["body"], a15_body(&receipt.witness.original_capture));
+        drop(current);
+        let mut attempt = session.begin_hot_registration(receipt).unwrap();
+        let outcomes = attempt.advance();
+        assert!(matches!(&outcomes[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
+        crate::installation::folder_for_test(None);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_wrong_frozen_digest_captures_nothing() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, mut digest) = ready(&root, &session);
+        digest["value"] = json!("wrong");
+        let result = ac.confirm_a15_after_native_event(
+            &offer,
+            event(&offer, digest, actor, context),
+            &session.current().unwrap(),
+        );
+        assert!(result.is_err());
+        assert!(ac.native_captures.is_empty());
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_retained_old_view_rechecks_live_freshness_before_capture() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let old = session.current().unwrap();
+        std::fs::write(
+            root.join(".chirality/workflow-drafts/sample/WORKFLOW.md"),
+            "changed externally",
+        )
+        .unwrap();
+        assert!(ac
+            .confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &old)
+            .is_err());
+        assert!(ac.native_captures.is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_failed_capture_publication_retains_original_pending_then_one_receipt() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        storage::ensure_directory(&root.join(CAPTURE_STORE)).unwrap();
+        storage::fail_directory_for_test(Some(root.join(CAPTURE_STORE)));
+        let pending = ac.confirm_a15_after_native_event(
+            &offer,
+            event(&offer, digest, actor, context),
+            &session.current().unwrap(),
+        );
+        storage::fail_directory_for_test(None);
+        assert!(matches!(
+            pending.unwrap(),
+            HotA15Result::RecordPending { .. }
+        ));
+        let original = ac.native_captures.values().next().unwrap().capture.clone();
+        let HotA15Result::Recorded(receipt) = ac.continue_a15(&offer).unwrap() else {
+            panic!("hot continuation must finish original")
+        };
+        assert_eq!(
+            receipt.capture_id(),
+            original["captureId"].as_str().unwrap()
+        );
+        assert_eq!(receipt.witness.original_capture, original);
+        assert_eq!(
+            receipt.witness.durable_record["observedAt"],
+            original["capturedAt"]
+        );
+        assert!(matches!(
+            ac.continue_a15(&offer).unwrap(),
+            HotA15Result::AlreadyTransferred { .. }
+        ));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_multi_preserves_requested_entry_order_and_full_tuple_refs() {
+        let (root, session) = library(&["second", "first"], true);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let HotA15Result::Recorded(receipt) = ac
+            .confirm_a15_after_native_event(
+                &offer,
+                event(&offer, digest, actor, context),
+                &session.current().unwrap(),
+            )
+            .unwrap()
+        else {
+            panic!("expected multi receipt")
+        };
+        assert_eq!(receipt.ordered_bindings()[0].subject().name, "second");
+        assert_eq!(receipt.ordered_bindings()[1].subject().name, "first");
+        let body = &receipt.witness.durable_record["body"];
+        assert_eq!(
+            body["relations"]["registeredEntries"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        for (i, b) in receipt.ordered_bindings().iter().enumerate() {
+            assert_eq!(body["boundSubject"][i], b.subject_ref().unwrap());
+            assert_eq!(
+                body["relations"]["registeredEntries"][i]["subject"],
+                body["boundSubject"][i]
+            );
+            assert!(body["boundSubject"][i]
+                .as_str()
+                .unwrap()
+                .contains("sourceRoot"));
+            assert!(b.prior().is_none());
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_changed_control_root_never_redirects_original_capture() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        ac.workspace = root.join("other-root");
+        assert!(ac
+            .confirm_a15_after_native_event(
+                &offer,
+                event(&offer, digest, actor, context),
+                &session.current().unwrap()
+            )
+            .is_err());
+        assert!(ac.native_captures.is_empty());
+        assert!(!ac.workspace.exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn synthetic_capture_lock_failure_retains_original_event_for_once_only_hot_retry() {
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let lock_path = root.join(CAPTURE_STORE).join(".capture.lock");
+        std::fs::create_dir_all(&lock_path).unwrap(); // actual open fails: lock is a directory
+        let pending = ac.confirm_a15_after_native_event(
+            &offer, event(&offer, digest, actor, context), &session.current().unwrap());
+        assert!(matches!(pending, Ok(HotA15Result::RecordPending { .. })),
+            "confirmed native event must remain original hot pending after capture-lock failure");
+        assert_eq!(ac.native_captures.len(), 1);
+        let original = ac.native_captures.values().next().unwrap().capture.clone();
+        assert!(ac.native_captures.values().next().unwrap().pending.is_none(),
+            "no writer identity reserved before original capture publication");
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir(&lock_path).unwrap();
+        let HotA15Result::Recorded(receipt) = ac.continue_a15(&offer).unwrap() else {
+            panic!("must finish original event after repairing lock path")
+        };
+        assert_eq!(receipt.capture_id(), original["captureId"].as_str().unwrap());
+        assert_eq!(receipt.witness.original_capture, original);
+        assert_eq!(receipt.witness.durable_record["observedAt"], original["capturedAt"]);
+        assert!(matches!(ac.continue_a15(&offer).unwrap(), HotA15Result::AlreadyTransferred { .. }));
+        let (lines, limits) = records::read_log(&storage::library_log(&root));
+        assert!(limits.is_empty());
+        assert_eq!(lines.iter().filter(|r| r["kind"] == "human_act").count(), 1);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a15_single_entry_native_offer_capture_is_singular_and_bound_to_actual_entry() {
+        let (root, session) = library(&["sample"], true);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let slot = &ac.a15_offers[&offer.id];
+        assert_eq!(slot.offer["wording"], "register workflow revision");
+        assert_eq!(slot.offer["descriptorKind"], "a15_descriptor");
+        assert!(slot.offer["entries"][0]["reviewedDraft"]["draft"]
+            .as_str()
+            .unwrap()
+            .starts_with("entry:"));
+        assert_eq!(slot.offer["entries"][0]["priorRevision"], Value::Null);
+        let current = session.current().unwrap();
+        let HotA15Result::Recorded(receipt) = ac
+            .confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current)
+            .unwrap()
+        else {
+            panic!("synthetic explicit native event must record")
+        };
+        assert_eq!(
+            receipt.witness.original_capture["descriptorKind"],
+            "a15_descriptor"
+        );
+        assert_eq!(
+            receipt.witness.original_capture["entries"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            receipt.witness.durable_record["body"],
+            a15_body(&receipt.witness.original_capture)
+        );
+        assert!(
+            receipt.witness.durable_record["body"]["relations"]["reviewedDraft"]["draft"]
+                .as_str()
+                .unwrap()
+                .starts_with("entry:")
+        );
+        assert_eq!(
+            receipt.witness.original_capture["installation"]["verification"],
+            "unverified"
+        );
+        assert!(!root.join(".chirality/workflow-drafts").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn a15_single_entry_stale_content_actor_or_context_cannot_capture() {
+        for mode in ["content", "actor", "context"] {
+            let (root, session) = library(&["sample"], true);
+            let (mut ac, offer, mut actor, mut context, digest) = ready(&root, &session);
+            if mode == "content" {
+                std::fs::write(
+                    root.join(".chirality/workflows/sample/WORKFLOW.md"),
+                    b"changed",
+                )
+                .unwrap();
+                assert!(session.current().is_err());
+            } else {
+                if mode == "actor" {
+                    actor["displayName"] = json!("changed fixture person");
+                } else {
+                    context["home"] = json!("changed fixture home");
+                }
+                assert!(ac
+                    .confirm_a15_after_native_event(
+                        &offer,
+                        event(&offer, digest, actor, context),
+                        &session.current().unwrap()
+                    )
+                    .is_err());
+            }
+            assert!(!storage::library_log(&root).exists());
+            assert!(!root.join(".chirality/workflow-drafts").exists());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+}

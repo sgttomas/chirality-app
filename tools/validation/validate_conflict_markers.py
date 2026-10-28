@@ -12,8 +12,13 @@ def main():
     parser.add_argument('--base', required=True)
     parser.add_argument('--head', default='HEAD')
     args = parser.parse_args()
+    # Markers can only be added lines, so only added/modified/type-changed
+    # files matter. Skipping deletions and rename detection keeps the check
+    # from reading (or, in a blob-less clone, downloading) deleted content and
+    # from Git's rename-limit warning on mass removals such as an archive.
     result = subprocess.run(
-        ['git', 'diff', '--no-ext-diff', '--no-color', '--check', args.base, args.head, '--'],
+        ['git', 'diff', '--no-ext-diff', '--no-color', '--no-renames', '--diff-filter=AMT',
+         '--check', args.base, args.head, '--'],
         env={**os.environ, 'LC_ALL': 'C'}, capture_output=True, text=True,
     )
     # Git returns 2 for check findings, including cosmetic whitespace. Other

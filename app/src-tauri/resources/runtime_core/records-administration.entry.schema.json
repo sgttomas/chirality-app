@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:records-administration-entry:0.1",
+  "title": "App records administration: native person acts and observed disposal completion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "formatVersion", "sequence", "previous", "projectKey", "projectId", "at", "action", "purpose", "scope", "context", "recorder", "stateAfter"],
+  "properties": {
+    "format": {"const": "chirality.records-administration"},
+    "formatVersion": {"const": "0.1"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "previous": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "projectKey": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "projectId": {"type": "string", "minLength": 1},
+    "at": {"type": "string", "minLength": 1},
+    "action": {"enum": ["close", "reopen", "set-hold", "release-hold", "dispose", "disposal-completed"]},
+    "purpose": {"type": "string", "minLength": 1},
+    "scope": {"type": "object", "required": ["projectId", "projectRoot", "storeId"], "properties": {"projectId": {"type": "string", "minLength": 1}, "projectRoot": {"type": "string", "minLength": 1}, "storeId": {"type": "string", "minLength": 1}}},
+    "context": {"type": "object"},
+    "recorder": {"enum": ["App interface", "App"]},
+    "actorKind": {"const": "person"},
+    "actor": {"type": "object", "required": ["identityVerified"], "properties": {"identityVerified": {"const": false}, "displayName": {"type": "string"}, "osAccount": {"type": "string"}, "codexAccount": {"type": "string"}}},
+    "stateAfter": {"type": "object", "additionalProperties": false, "required": ["closed", "legalHold", "disposition"], "properties": {"closed": {"type": "boolean"}, "legalHold": {"type": "boolean"}, "disposition": {"enum": ["kept", "disposal incomplete", "disposed"]}}},
+    "export": {"type": "object", "required": ["folder", "identity", "payload", "administrationIdentity"]},
+    "payload": {"type": "object", "required": ["files", "identity", "identityMethod"]},
+    "originalAct": {"type": "integer", "minimum": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"action": {"const": "disposal-completed"}}}, "then": {"required": ["originalAct"], "properties": {"recorder": {"const": "App"}}, "not": {"anyOf": [{"required": ["actor"]}, {"required": ["actorKind"]}]}}, "else": {"required": ["actor", "actorKind"], "properties": {"recorder": {"const": "App interface"}}}},
+    {"if": {"properties": {"action": {"const": "dispose"}}}, "then": {"required": ["export", "payload"]}}
+  ]
+}

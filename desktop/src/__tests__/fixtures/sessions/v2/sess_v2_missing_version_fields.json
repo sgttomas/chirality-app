@@ -1,5 +1,0 @@
-{
-  "sessionId": "sess_v2_missing_version_fields",
-  "persona": "WORKING_ITEMS",
-  "note": "declares no schemaVersion and omits projectRoot and createdAt"
-}

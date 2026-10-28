@@ -1,0 +1,7 @@
+{
+  "format": "pre-run-form-pins.v1",
+  "sources": {
+    "app/examination/standalone/pre_run_inputs.py": "c26194033b4c345cd1a9a6ee24327a3df5430d06af9086a97ca4eeff01662553",
+    "app/examination/standalone/pre_run_inputs.pins.json": "6cc9702691ce06774563c1af57385f67182197f8a9d47b8f058340eb0e7fbf56"
+  }
+}

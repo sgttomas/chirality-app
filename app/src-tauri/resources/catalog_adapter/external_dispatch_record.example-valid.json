@@ -1,0 +1,83 @@
+{
+  "record_kind": "external_dispatch",
+  "path": "N-MCP",
+  "correlation": {
+    "thread": "th-main",
+    "turn": "turn-T10",
+    "native_item": "item-main-11"
+  },
+  "native_reference": {
+    "server": "sh1",
+    "tool": "submit-proposal"
+  },
+  "request_kind": "submission",
+  "operation": {
+    "not_established": "not_a_catalog_operation"
+  },
+  "native_status": "completed",
+  "transport": {
+    "duration_ms": 1
+  },
+  "observed_at": "T10",
+  "proposal_identity": "PR-2",
+  "proposal_minted_by": "proposer",
+  "requested_mode": "propose",
+  "origin_observed": {
+    "author_identity": "unverified",
+    "channel": "external_agent"
+  },
+  "relied_on_basis_check": "observed_in_prior_read",
+  "outcome": {
+    "value": "queued",
+    "reporter": "host",
+    "reason": "derived state: queued"
+  },
+  "host_result": {
+    "kind": "recorded_state",
+    "proposal_identity": "PR-2",
+    "lineage_replaces": "PR-1",
+    "host_handles": [
+      {
+        "handle_kind": "ticket",
+        "value": "TK-2",
+        "scope": "durable"
+      }
+    ],
+    "dedup_scope": "durable",
+    "submissions_recorded": 1,
+    "answered_from_recorded_state": false,
+    "items": [
+      {
+        "item_identity": "1",
+        "change_item_content_identity": "sh1:e67adbf4d0b16611",
+        "identity_method": "m-sh1",
+        "state": "queued"
+      },
+      {
+        "item_identity": "2",
+        "change_item_content_identity": "sh1:b118b14d880f03c4",
+        "identity_method": "m-sh1",
+        "state": "queued"
+      }
+    ],
+    "derived_state": {
+      "summary": "queued",
+      "counts": {
+        "queued": 2
+      },
+      "open": true,
+      "all_items_decided": false
+    },
+    "observed_at": "t0004",
+    "current_basis": {
+      "workspace_identity": "FX-W1",
+      "generation": "g1",
+      "model_revision": "r13",
+      "canonical_content_identity": "sh1:ab78bf780c63e3c2",
+      "identity_method": "m-sh1"
+    }
+  },
+  "evidence_limits": [
+    "unverified_caller_identity"
+  ]
+}

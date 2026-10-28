@@ -1,0 +1,12 @@
+codex app-server generate-ts --out <scratch>/gen/ts-stable/run1  EXIT=0
+codex app-server generate-ts --experimental --out <scratch>/gen/ts-experimental/run1  EXIT=0
+codex app-server generate-json-schema --out <scratch>/gen/schema-stable/run1  EXIT=0
+codex app-server generate-json-schema --experimental --out <scratch>/gen/schema-experimental/run1  EXIT=0
+codex app-server generate-ts --out <scratch>/gen/ts-stable/run2  EXIT=0
+codex app-server generate-ts --experimental --out <scratch>/gen/ts-experimental/run2  EXIT=0
+codex app-server generate-json-schema --out <scratch>/gen/schema-stable/run2  EXIT=0
+codex app-server generate-json-schema --experimental --out <scratch>/gen/schema-experimental/run2  EXIT=0
+determinism ts-stable: IDENTICAL (732 files; manifest sha256 5606da9ab4986e7cb08e152b2c9327766c2da01f09d7bcd2808b7311eb84386d)
+determinism ts-experimental: IDENTICAL (873 files; manifest sha256 9929458e2a7532299c31166954d4356b2315f29777f3651c0a2fcf53e085dd4b)
+determinism schema-stable: IDENTICAL (314 files; manifest sha256 f4901c6aafb9870a5f6d9b6329c2283bdc1eff8c2b024f02eeb7ade35b527aa4)
+determinism schema-experimental: IDENTICAL (440 files; manifest sha256 95942cbe0624f6685f61727e3feae27e86ffcf67ca161a846295f9e676e6f6c9)

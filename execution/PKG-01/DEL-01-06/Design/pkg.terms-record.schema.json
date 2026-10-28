@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-06:distribution-terms-record:0.2",
+  "title": "Distributed sign-in terms record (DEL-01-06 PKG-v0.2 §9; OUT-004; PROPOSED)",
+  "description": "One record per supplier whose sign-in a public distribution would carry (OpenAI; Anthropic only if a Claude sign-in is ever offered). Keeps the supplier's written position, the owner's act of obtaining it and the owner's public-distribution decision apart from each other and from the recorder. Until a written response exists the obligation is 'unresolved'. Rules beyond the schema: PK-R4 in prototype/check_pkg.py. Kept at DEL-01-06 Evidence/PKG/terms/<supplier>.json (PKG §5.3).",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "record_id",
+    "obligation",
+    "supplier",
+    "state",
+    "recorded_by",
+    "distribution_decision",
+    "date"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "distribution_terms"
+    },
+    "format": {
+      "const": "PKG-v0.2"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "obligation": {
+      "const": "OI-007 / DEP-004 / SOW-117: written supplier position on distributed sign-in, before public release beyond owner use"
+    },
+    "supplier": {
+      "enum": [
+        "OpenAI",
+        "Anthropic"
+      ]
+    },
+    "state": {
+      "enum": [
+        "unresolved",
+        "response_received"
+      ]
+    },
+    "response": {
+      "type": "object",
+      "required": [
+        "source_ref",
+        "custody",
+        "obtained_by",
+        "applies_to",
+        "received_on"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The supplier's written response itself, by reference."
+        },
+        "custody": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the original is kept and by whom."
+        },
+        "obtained_by": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The owner, who obtains it (CLM-003)."
+        },
+        "applies_to": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Which sign-in, in which distribution, the response covers, in its own words."
+        },
+        "received_on": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+        }
+      }
+    },
+    "recorded_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "distribution_decision": {
+      "description": "The owner's separate public-distribution decision: a reference to its own record, or 'not_made'. Never inferred from a response or a package.",
+      "oneOf": [
+        {
+          "const": "not_made"
+        },
+        {
+          "type": "object",
+          "required": [
+            "decision_ref",
+            "decided_by"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "decision_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decided_by": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "response_received"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "response"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "unresolved"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "response"
+          ]
+        }
+      }
+    }
+  ]
+}
