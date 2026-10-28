@@ -10,13 +10,68 @@ and `deliverable.yaml` conventions. Reconcile changed implementation meaning
 with those documents; leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
 
+## Shared roles and methods
+
+| Role | Type | Contribution |
+|---|---|---|
+| HELP_HUMAN | 0 | Purpose, alignment and continuity with the owner |
+| HELPS_HUMANS | 1 | Design workflows, tools and projects with the owner |
+| WORKING_ITEMS | 1 | Own implementation, assignments and integration |
+| TASK | 2 | Execute one bounded assignment; does not delegate |
+
+The agent working with the owner holds Agent 0's responsibilities for purpose,
+continuity and reserved choices, whatever role it entered through. Use only the
+hierarchy the undertaking needs. Managers retain ownership through repairs and
+integration; TASKs return their bounded contributions to the caller.
+
+The shared Chirality library for this workspace is `/Users/ryan/dev/chirality`.
+On another machine, use an explicitly selected checkout of
+`https://github.com/sgttomas/chirality`. Resolve the shared `agents/`, `workflows/`
+and `.agents/skills/` references in this section against that library, not this
+App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
+workflow and skill bodies are on demand. Roles and methods come from these local
+instructions and the selected library, not host-side agent definitions. Roles
+grant no additional host permissions; use actual host capabilities and return
+mechanisms. Model and effort choices come from session steering.
+
+Use the library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when
+coordinating related contributions into a usable result. Other methods are
+indexed in its `workflows/index.json`; load only the selected method and the
+resources needed for the current stage. Before creating or revising a reusable
+workflow, follow its `workflows/create-workflow/WORKFLOW.md`. Load applicable
+shared skills by their explicit path and respect their stated scope. Retain the
+selected source identity and expose collisions rather than silently switching
+between shared, project-local or packaged sources. If the selected library is
+unavailable, make that limitation explicit and resolve the source before relying
+on its instructions; do not silently substitute a bundled product snapshot.
+
+Give a dispatched contribution its objective, input basis, allowed reads and
+writes, integration owner, review route and reserved choices. Inspect actual
+returns and retain responsibility for how they fit together. Scratch holds
+evidence, outputs and at most one recovery note; governing instructions remain
+in repository files and assignment briefs.
+
+This App repository owns its work, commitments and Git lifecycle. Chirality's
+Root work locality, backlog, repository-specific duties and standing Git grant
+do not transfer here. Shared-library consultation does not authorize changing
+Chirality, SWBPIPE or another consumer, and adopting a shared method does not
+lift the App development hold.
+
+## Product assets and local tools
+
+Agent instructions for work on this project are separate from the instructions
+packaged into the App. `app/src-tauri/resources/` and the local
+`workflows/coordinated-knowledge-work/` test input retain their pinned source
+identities. Reading a newer shared role or method does not update those assets
+or establish product adoption; such changes require their own authorized work.
+Ordinary build and test execution must not require a sibling Chirality checkout.
+Shared input and migration provenance lives in `reference/migration/`.
+
 Use `python3 -m tools.deliverables --project . check`, `neighborhood <DEL>`,
 `impact <DEL>` or `touches <revision>` from this repository. Build/test setup
-is in `app/README.md`. Shared methods may be consulted from an explicitly
-selected Chirality library, such as `https://github.com/sgttomas/chirality`;
-ordinary build and test execution must not require a sibling checkout. The
-local `workflows/coordinated-knowledge-work` copy is a pinned App test input.
-Shared input and migration provenance lives in `reference/migration/`.
+is in `app/README.md`.
+
+## Verification and authority
 
 Work within the owner's current steer. Use focused checks for ordinary changes;
 changes affecting persistence, permissions or destructive operations require
