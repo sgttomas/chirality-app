@@ -33,7 +33,7 @@ SELF_TEST_VERSION = "DAG-004"
 def dag_root() -> pathlib.Path:
     top = pathlib.Path(subprocess.run(["git", "-C", str(HERE), "rev-parse", "--show-toplevel"],
                                       capture_output=True, text=True, check=True).stdout.strip())
-    return top / "projects/chirality-app-v4/execution/_DAG"
+    return top / "execution/_DAG"
 
 
 def dag_dir(version=None):

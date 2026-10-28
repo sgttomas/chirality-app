@@ -700,7 +700,7 @@ fn inputs() -> Result<(Value, Value, bool), String> {
         for (path, compiled) in compiled_sources() {
             let committed = git(&[
                 "show",
-                &format!("HEAD:projects/chirality-app-v4/app/src-tauri/src/{path}"),
+                &format!("HEAD:app/src-tauri/src/{path}"),
             ])?;
             source_matches(&committed, compiled)?;
             source_matches(

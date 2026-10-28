@@ -2,6 +2,7 @@
 Set DISTRIBUTION_STATIC_BIN explicitly. Wrappers in two tests are named race seams.
 """
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -67,6 +68,20 @@ class Fixture:
         try: value=json.loads(result.stdout)
         except ValueError: raise AssertionError(result.stderr + result.stdout)
         return result.returncode,value
+
+
+class SourceLayout(unittest.TestCase):
+    def test_frozen_model_loads_without_scanner_or_sibling_repository(self):
+        spec = importlib.util.spec_from_file_location('static_layout_check', HERE / 'check.py')
+        checker = importlib.util.module_from_spec(spec); spec.loader.exec_module(checker)
+        with tempfile.TemporaryDirectory() as temp:
+            scratch = Path(temp).resolve()
+            frozen = checker.Frozen(scratch / 'artifacts')
+            model, digest = checker.source_model(frozen, scratch)
+            self.assertEqual(digest, sha((HERE / 'sources.json').read_bytes()))
+            self.assertEqual(model.ROOT, scratch / 'source')
+            self.assertTrue(model.inventory)
+            frozen.recheck()
 
 
 @unittest.skipUnless(SCANNER, 'explicit built DISTRIBUTION_STATIC_BIN required; never auto-build/download')

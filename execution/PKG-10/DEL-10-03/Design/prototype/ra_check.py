@@ -45,7 +45,7 @@ SOW_CLAUSES = {"DEL-02-01": {"CLM-002"}, "DEL-02-03": {"CLM-003"}, "DEL-02-04": 
 def execution_root() -> pathlib.Path:
     top = subprocess.run(["git", "-C", str(HERE), "rev-parse", "--show-toplevel"],
                          capture_output=True, text=True, check=True).stdout.strip()
-    return pathlib.Path(top) / "projects/chirality-app-v4/execution"
+    return pathlib.Path(top) / "execution"
 
 
 def sha(p: pathlib.Path) -> str:

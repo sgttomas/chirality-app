@@ -10,8 +10,16 @@ the old unmerged App branches. Existing `chirality-app` main was
 
 An isolated clone used Git `filter-branch --subdirectory-filter` with a saved
 state branch. `commit-map.txt` maps original commits to rewritten commits.
-The unadapted import is `0d145109d5d59533a71bc34930ee71ca2591642a`. Its tree
+Before privacy sanitization, the unadapted import was
+`0d145109d5d59533a71bc34930ee71ca2591642a`. Its tree
 `25ac3b58096a646009961e15dfc362a5b943acef` exactly equals the source subtree.
+The owner authorized sanitizing private machine identifiers in the unpublished
+import: 82 commits retain author/committer names and timestamps but use
+`redacted@users.invalid` instead of machine-derived email addresses; five
+historical blob versions have private identifiers replaced with `private-host`.
+Messages are unchanged. Original published history remains in Chirality. The
+commit map points to sanitized commits, not the pre-sanitization rehearsal.
+The sanitized import tip is `6208d0de4519d1ff07dd6764c6f7ac28158e9830`.
 A merge joins that history to existing App ancestry; subsequent commits adapt
 paths and verification. Historical SHAs and PR links still identify Chirality,
 not rewritten App commits. GitHub discussions are not copied by the import.
@@ -29,13 +37,14 @@ identities nor historical evidence claims are rewritten.
 
 The dependency baseline tag `app-v4/deps-baseline-1` maps original Chirality
 commit `a7b93ff9ba35fd069481d4c387650b98ca63cc73` to filtered commit
-`259d4fa4a7d2d195a3c77cd3a38a6f9f2ac9ab0a`. Their project trees are identical.
+`5fc90f4c79b83f7bfec4e76af69d5b4ad42107ae`. The pre-sanitization project trees were identical; the mapped imported history
+includes the documented privacy substitutions.
 This is a dependency-comparison reference, not a product release.
 
 Verification before PR: exact import tree and ancestry, 30 frozen source hashes,
 102 examination tests, frontend build, eight Rust workflow-bundle tests, schema
 copy check and deliverable structure passed offline. Candidate identity, packaging
-and utility checks passed 47 tests with 22 platform-dependent skips. No live
+and utility checks passed 47 tests with 22 connected-packaging skips because `DISTRIBUTION_STATIC_BIN` was unset. No live
 examination, sign-in, supplier run or release was performed.
 
 The owner authorized migration Git operations through the existing administrator

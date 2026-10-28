@@ -140,12 +140,15 @@ def source_model(frozen, scratch):
     require(pins['format'] == 'static-distribution-sources/1', 'unknown source manifest version')
     relative(pins['model'])
     require(pins['model'] in pins['sources'], 'model must be a guarded frozen source')
+    # The frozen model's hash-bound basis retains original monorepo locators.
+    # Read current project-relative inputs, stage their original logical layout.
+    logical_root = scratch / 'source/projects/chirality-app-v4'
     for name, digest in pins['sources'].items():
         relative(name)
-        actual = frozen.file(ROOT / name, scratch / 'source' / name)
+        actual = frozen.file(ROOT / name, logical_root / name)
         require(sha(actual) == digest, 'canonical static source changed: ' + name)
     (scratch / 'source/AGENTS.md').write_text('Frozen value-model source root marker.\n')
-    spec = importlib.util.spec_from_file_location('static_s1_value_model', scratch / 'source' / pins['model'])
+    spec = importlib.util.spec_from_file_location('static_s1_value_model', logical_root / pins['model'])
     model = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model)
     return model, sha(raw)
