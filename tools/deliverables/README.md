@@ -2,14 +2,14 @@
 
 Run from the selected Git repository with Python 3 and PyYAML. The repository
 must have a resolvable `HEAD`; `--project` names an existing directory within it
-and defaults to `projects/chirality-app-v4`:
+and defaults to `.` (this standalone App project):
 
 ```sh
-python3 -m tools.deliverables --project projects/example check
-python3 -m tools.deliverables --project projects/example neighborhood DEL-01-01
-python3 -m tools.deliverables --project projects/example impact DEL-01-01
-python3 -m tools.deliverables --project projects/example touches HEAD
-python3 -m tools.deliverables --project projects/example dag-diff baseline-tag
+python3 -m tools.deliverables --project . check
+python3 -m tools.deliverables --project . neighborhood DEL-01-01
+python3 -m tools.deliverables --project . impact DEL-01-01
+python3 -m tools.deliverables --project . touches HEAD
+python3 -m tools.deliverables --project . dag-diff baseline-tag
 ```
 
 Output is JSON; queries write nothing. The basis names HEAD and observed

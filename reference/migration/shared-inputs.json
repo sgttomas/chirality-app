@@ -49,10 +49,15 @@
     {
       "path": ".github/workflows/app-v4.yml",
       "sha256": "94e7905dbc1fa2e78fcdc785e83db73498fd731e70c14b41120cd732c7e71037"
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "c1bd1e1fca7b9ad890b86c752be15ec5f468eb6eaa3006bbbacddcf83c67b1ad"
     }
   ],
   "adaptations": [
     "tools/deliverables/cli.py defaults to repository root",
-    ".github/workflows/app-v4.yml runs App coverage for every PR, uses local frozen sources and omits Root CI/cache machinery"
+    ".github/workflows/app-v4.yml runs App coverage for every PR, uses local frozen sources and omits Root CI/cache machinery",
+    "tools/deliverables/README.md examples and default describe the standalone project"
   ]
 }

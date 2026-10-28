@@ -1,7 +1,7 @@
 <init-prompt>
 Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
 
-Set `WORKING_ROOT` to `{REPO_ROOT}/projects/chirality-app-v4`.
+Set `WORKING_ROOT` to `{REPO_ROOT}`.
 
 Read `{REPO_ROOT}/AGENTS.md`.
 Read `{REPO_ROOT}/agents/AGENT_HELP_HUMAN.md`.
