@@ -3,6 +3,10 @@
 Development is on hold. Only owner-authorized migration work and verification
 may proceed; migration does not lift the hold or authorize release.
 
+Read local `AGENTS.md` for shared-library selection and load the active role
+from that library. Follow its applicable methods on demand; this loop retains
+App-local work locations, commitments and constraints.
+
 Chirality makes a general agent act within and for a host application; its own
 workflow-authoring App is the exemplar. Work at this repository root.
 Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,

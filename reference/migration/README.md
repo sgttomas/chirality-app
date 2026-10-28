@@ -27,6 +27,10 @@ not rewritten App commits. GitHub discussions are not copied by the import.
 `shared-inputs.json` identifies the copied deliverable utility, workflow test
 input and license at their original revision and hashes. Local adaptations are
 maintained here; synchronization is explicit, not a runtime sibling dependency.
+Development-agent roles and methods are read on demand from the selected shared
+Chirality library through local `AGENTS.md`. The migration's temporary local
+HELP_HUMAN role copy was removed when that entry adopted the West DOE pattern.
+Packaged product instructions and workflow test inputs remain pinned.
 
 The examination reader's `app/examination/support_identity/frozen/` contains
 30 exact historical files from original commit
