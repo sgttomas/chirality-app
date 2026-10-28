@@ -55,5 +55,23 @@ bypass while leaving repository rules and integrations unchanged. Destination
 `PRIVATE_TERMS` was configured from this host using the existing checker's
 `--from-host` source; the original secret's historical aliases were unavailable.
 
-Status: candidate preparation; no cutover yet. Final PRs and integration SHAs
-will be recorded in the migration handover.
+App cutover completed on 2026-10-28:
+
+- [App import PR #6](https://github.com/sgttomas/chirality-app/pull/6) merged at
+  `ca462234ae1c3e989e5c6670686c4a7545d17b2b` after required checks passed on
+  `7d5ff4f39d4dcdb5ee3f88b9a52541db9b18ef80`.
+- [Root detachment PR #1715](https://github.com/sgttomas/chirality/pull/1715)
+  merged at `04ba2ad72b671305382299580bcc521248ce60ae` after required checks
+  passed on `382dcf0ce07411380a152846fa9288aba8df907d`.
+- Both merged trees matched their checked candidates. Existing App history and
+  imported ancestry remain reachable; release tags are unchanged. The mapped
+  dependency-baseline tag is published.
+- Root's SWBPIPE subtree was unchanged by detachment. SWBPIPE continues in
+  Chirality; its eventual extraction remains deferred. App development stays held.
+
+The final App CI repair changes only source-locator resolution in five test suites;
+original binding manifests and hash assertions remain intact. All 61 affected
+local tests passed before the complete hosted App run passed. Root's stale
+workflow assertions were updated; its hosted repository and selected Piping
+numerical, desktop, browser and Python checks all passed. These results establish
+migration verification, not live examination, qualification or release.

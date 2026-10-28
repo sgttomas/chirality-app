@@ -1,7 +1,7 @@
 # Chirality App v4
 
-**Development is on hold.** This repository is undergoing migration from
-Chirality; it does not publish or qualify a v4 release.
+**Development is on hold.** App v4 has moved here from Chirality. The migration does not publish or qualify
+a v4 release; the existing v3.0.1 release remains the fallback.
 
 Chirality makes a general agent act within and for a host application. Its
 workflow-authoring App is the exemplar. [App v4 thesis](docs/thesis/README.md)
