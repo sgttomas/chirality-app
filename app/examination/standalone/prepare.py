@@ -9,7 +9,7 @@ import re
 import sys
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[4]
+ROOT = HERE.parents[2]
 DOCUMENTARY_SHA256 = 'd6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf'
 
 

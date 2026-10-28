@@ -147,8 +147,8 @@ class Connected(unittest.TestCase):
         code,out=self.f.run(prepare=prepare);self.assertEqual(code,2,out);self.assertIn('canonical static source changed',out['error'])
     def test_unread_design_notes_and_rust_source_are_not_operational_inputs(self):
         clone,prepare,pins=self.clone_consumer()
-        for name in ('projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs',
-                     'projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/DISTRIBUTION_IDENTITY.md'):
+        for name in ('app/src-tauri/src/distribution_preflight.rs',
+                     'execution/PKG-01/DEL-01-01/Design/DISTRIBUTION_IDENTITY.md'):
             self.assertNotIn(name,pins['sources'])
             target=clone/name;target.parent.mkdir(parents=True,exist_ok=True)
             target.write_text('Unrelated changed bytes; this command does not read this file.\n')

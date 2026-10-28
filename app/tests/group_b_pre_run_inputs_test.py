@@ -102,7 +102,7 @@ class PreRunInputsTests(unittest.TestCase):
             with self.assertRaises(OSError): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
 
     def test_unlisted_fixture_companions_and_directories_refuse(self):
-        directory = self.inputs.snapshot / 'projects/chirality-app-v4/app/examination/standalone/fixtures/revision-1/invented-pipe-inventory'
+        directory = self.inputs.snapshot / 'app/examination/standalone/fixtures/revision-1/invented-pipe-inventory'
         extra = directory / 'extra.py'; extra.write_text('unexpected companion')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
             with self.assertRaisesRegex(ValueError, 'unexpected fixture file'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
@@ -111,7 +111,7 @@ class PreRunInputsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'unexpected fixture directory'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
 
     def test_actual_source_and_helper_pin_drift_refuse(self):
-        target = self.inputs.snapshot / 'projects/chirality-app-v4/app/examination/standalone/prepare.py'
+        target = self.inputs.snapshot / 'app/examination/standalone/prepare.py'
         target.write_bytes(target.read_bytes() + b'\n')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
             with self.assertRaisesRegex(ValueError, 'source drift'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')

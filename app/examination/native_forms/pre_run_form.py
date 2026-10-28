@@ -8,8 +8,8 @@ from pathlib import Path
 import sys
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[4]
-PINS_SHA256 = '57f40f649ea0021b4e957a4668514e911b45f8c74e36c02b4ea5681eb7d3a8e1'
+ROOT = HERE.parents[2]
+PINS_SHA256 = '016d2ab308c7cc64bdd4606d7ab15cf9bd587689ab396f2ba8cf5b633f339d0f'
 
 
 def consumer():
@@ -25,7 +25,7 @@ def consumer():
         if hashlib.sha256(payload).hexdigest() != expected:
             raise ValueError('pre-run form dependency drift')
         captured[path] = payload
-    path = 'projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.py'
+    path = 'app/examination/standalone/pre_run_inputs.py'
     spec = importlib.util.spec_from_file_location('_pre_run_form_inputs', ROOT / path)
     api = importlib.util.module_from_spec(spec)
     exec(compile(captured[path], str(ROOT / path), 'exec'), api.__dict__)

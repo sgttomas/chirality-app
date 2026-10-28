@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[4]
+ROOT = HERE.parents[2]
 
 
 def consumer(root=ROOT):

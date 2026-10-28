@@ -3,12 +3,12 @@
   "sources": [
     {
       "role": "step_map",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
       "sha256": "sha256:92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee"
     },
     {
       "role": "sq_design",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "path": "execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
       "sha256": "sha256:c6494ed91839aecde83d062b6a0ea6d2cb49977e32e7ba8f05e3da89865464f7",
       "basis_file_sha256": "sha256:65bee77615d7cd8b4107f281a1fb793d300dcea64be6ba6d2341f2bbe100c574",
       "selectors": [
@@ -37,7 +37,7 @@
     },
     {
       "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
       "sha256": "sha256:1b1ff3967a577877ecd92abd8591a732afdfca3f5f1c417e5e023a10d14b473f",
       "basis_file_sha256": "sha256:c388647781c26988f8dbe48a128df728a7a27a5636b97a4e871ab09b0fef5540",
       "selectors": [
@@ -95,7 +95,7 @@
     },
     {
       "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "path": "execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
       "sha256": "sha256:7e32ea660a80792ef2f5e5a3aa24dbdc88a400670764b2af6f2f6139bdd8cbe4",
       "basis_file_sha256": "sha256:0bfa9a7a73fcb98efc237131e92b9be3c78655acc8c01d809b12af0481f16254",
       "selectors": [
@@ -233,7 +233,7 @@
     },
     {
       "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
       "sha256": "sha256:f1e7a3af8934fe13191e9bc91f2a0eb40412663bcd01081f4080232def16e3e3",
       "basis_file_sha256": "sha256:203e5a142e4464ea884b9b77a99730cb9227f64c15874cfd3354b9bb2f8128a5",
       "selectors": [
@@ -337,7 +337,7 @@
     },
     {
       "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "path": "execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
       "sha256": "sha256:ff1acea3199765cc44673cda283f7f0f7381648032111e81d93c02009f4029f8",
       "basis_file_sha256": "sha256:ef7ade5697918de5b8fa1b3af88a0a514a279b1b41f065b55fb1ed26b4172c60",
       "selectors": [
@@ -429,7 +429,7 @@
     },
     {
       "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "path": "execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
       "sha256": "sha256:c7dd89f808acbd22f0eb0e0dbe76c8a4bfaef21baa9d5452e040d1115fab7a21",
       "basis_file_sha256": "sha256:9360e096ac43bd4a58e7750334697322e02d5d85f22b27abb8b540ce3551c2c7",
       "selectors": [
@@ -457,7 +457,7 @@
     },
     {
       "role": "DEL-01-04/APP_ACT_CONTROL.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
       "sha256": "sha256:84928a28a4b164a191c87e402c9d26abe9714c7cd37573ee2ee735d822634180",
       "basis_file_sha256": "sha256:bb22c1faf3fe07fca81ef6cf4962de3a9a0761abab56e3c7be8264ee59e3c49d",
       "selectors": [
@@ -501,7 +501,7 @@
     },
     {
       "role": "DEL-04-03/RECORD_SEMANTICS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "path": "execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
       "sha256": "sha256:b136ccc1b5c8d18eedf8203fc2f1e6e754acf52dfa03bbd62d9c3fb4d7c4ef27",
       "basis_file_sha256": "sha256:9aa1a69a23aa49bbde81bacad4056328c1eeb5f10d36ad95f6f7fffe9160b858",
       "selectors": [
@@ -537,7 +537,7 @@
     },
     {
       "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "path": "execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
       "sha256": "sha256:563ebf32ddbff57fdd47d412bf1ac512f559d1b316dfede8c7f57f294b61a2dd",
       "basis_file_sha256": "sha256:2b6c1daa6dca2ea1573f8efbff3c1e6d2dba0462480157d93576b8b0f943f9e4",
       "selectors": [
@@ -573,7 +573,7 @@
     },
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "path": "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
       "sha256": "sha256:6cae63c23e50e7093c20e10c03f3e057b46ee7b3a1bdb19b8c7f41e141a09faa",
       "basis_file_sha256": "sha256:23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
       "selectors": [
@@ -599,7 +599,7 @@
     },
     {
       "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
       "sha256": "sha256:f5f2aaa014dbea9f6aad9e16592e2726d4157009e87e14244771836a801334c1",
       "basis_file_sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036",
       "selectors": [
@@ -673,17 +673,17 @@
     },
     {
       "role": "missing-inputs.json",
-      "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",
+      "path": "app/examination/standalone/missing-inputs.json",
       "sha256": "sha256:8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
     },
     {
       "role": "invented-inputs.json",
-      "path": "projects/chirality-app-v4/app/examination/standalone/invented-inputs.json",
+      "path": "app/examination/standalone/invented-inputs.json",
       "sha256": "sha256:2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24"
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
       "selectors": [
         {
           "heading": "### 3.1 Outcomes"
@@ -810,7 +810,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/ScopeOfWork.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/ScopeOfWork.md",
+      "path": "execution/PKG-09/DEL-09-01/ScopeOfWork.md",
       "selectors": [
         {
           "paragraphPrefix": "- **REQ-001**",
@@ -849,7 +849,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "path": "execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md",
       "selectors": [
         {
           "heading": "### 5.1 Elements"
@@ -937,7 +937,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/METHOD.md",
       "selectors": [
         {
           "heading": "## Authority and selection boundary"
@@ -953,7 +953,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md",
+      "path": "execution/PKG-01/DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md",
       "selectors": [
         {
           "paragraphPrefix": "The existing PKG-v0.2 protocol,",
@@ -976,7 +976,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
+      "path": "execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
       "selectors": [
         {
           "heading": "## 3. Case definitions (OUT-001; the step map)"
@@ -1008,7 +1008,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md",
       "selectors": [
         {
           "heading": "## Existing method remains intact"
@@ -1029,7 +1029,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq-exp-receiving-v1/RECEIVING.md",
       "selectors": [
         {
           "heading": "## Governing sources and inherited obligations"
@@ -1208,7 +1208,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
       "selectors": [
         {
           "case": "NV-01",
@@ -1303,7 +1303,7 @@
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
+      "path": "execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
       "selectors": [
         {
           "case": "WR-VC-01",
@@ -1505,7 +1505,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
       "selectors": [
         {
           "case": "VC-NIR-01",
@@ -1655,7 +1655,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
+      "path": "execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
       "selectors": [
         {
           "case": "VC-R-01",
@@ -1788,7 +1788,7 @@
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
+      "path": "execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
       "selectors": [
         {
           "case": "VC-13",
@@ -1831,7 +1831,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
+      "path": "execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
       "selectors": [
         {
           "case": "VC-AAC-03",
@@ -1903,7 +1903,7 @@
     },
     {
       "role": "governing/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
+      "path": "execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
       "selectors": [
         {
           "case": "VC-37",
@@ -1970,7 +1970,7 @@
     },
     {
       "role": "governing/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
+      "path": "execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
       "selectors": [
         {
           "case": "VC-E-17 Run end and runs in sequence",
@@ -2032,7 +2032,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
+      "path": "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
       "selectors": [
         {
           "case": "X-09",
@@ -2065,7 +2065,7 @@
     },
     {
       "role": "governing/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
       "selectors": [
         {
           "case": "VC-A01",
@@ -2150,7 +2150,7 @@
     },
     {
       "role": "governing/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/DOCUMENTARY_SOURCE_CONDITION.md",
       "selectors": [
         {
           "paragraphPrefix": "The owner approved this successor condition",
@@ -2173,39 +2173,39 @@
     },
     {
       "role": "documentary_condition",
-      "path": "projects/chirality-app-v4/app/examination/documentary_condition.py",
+      "path": "app/examination/documentary_condition.py",
       "sha256": "sha256:d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf"
     },
     {
       "role": "condition_manifest",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
+      "path": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json",
       "sha256": "sha256:2e19e1daab522e6548c3ce75121c0df027ae1ef8e02ffb3169133c7101e73a90"
     }
   ],
   "historical_provenance": [
     {
       "role": "sq_schema",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
+      "path": "execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
       "sha256": "sha256:16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
     },
     {
       "role": "sq_rules",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
+      "path": "execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
       "sha256": "sha256:65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac"
     },
     {
       "role": "sq_scope",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/ScopeOfWork.md",
+      "path": "execution/PKG-09/DEL-09-02/ScopeOfWork.md",
       "sha256": "sha256:64533cfdc825da17b41f3e1d754bf549e42d76488aabecfac85e74ee65aae878"
     },
     {
       "role": "exp_design",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
+      "path": "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
       "sha256": "sha256:ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
     },
     {
       "role": "exp_schema",
-      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
+      "path": "execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
       "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
     }
   ],

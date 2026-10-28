@@ -455,7 +455,8 @@ def git(repo, *args):
 
 def verify_export(repo, revision, prefix, export_root):
     """Every tracked file and link under prefix at revision exists unchanged in the export."""
-    tree = git(repo, 'rev-parse', f'{revision}:{prefix}').decode().strip()
+    tree_ref = revision + '^{tree}' if prefix == '.' else f'{revision}:{prefix}'
+    tree = git(repo, 'rev-parse', tree_ref).decode().strip()
     listing = git(repo, 'ls-tree', '-r', '-z', '--full-tree', revision, '--', prefix).split(b'\0')
     count = 0
     with _open_directory(export_root) as base:
@@ -624,7 +625,7 @@ def make_record(args):
         'bundle': {**meta, 'inventory': {'path': 'bundle-inventory.json', 'sha256': sha(inventory_bytes)}},
         'app_data': app_data_state(meta['identifier']),
         'supplier': {'bundled': False, 'binding': 'per examination record configuration (codex_pin, codex_distribution_identity)'},
-        'identified_by': {'tool': 'projects/chirality-app-v4/app/examination/candidate_identity/identify.py',
+        'identified_by': {'tool': 'app/examination/candidate_identity/identify.py',
                           'tool_sha256': sha(Path(__file__).read_bytes()), 'method': METHOD},
         'identified_at': args.identified_at,
         'limits': LIMITS,
@@ -696,9 +697,9 @@ def main(argv=None):
     p = sub.add_parser('inventory'); p.add_argument('app')
     p = sub.add_parser('record')
     p.add_argument('--app', required=True); p.add_argument('--repo', required=True)
-    p.add_argument('--revision', required=True); p.add_argument('--prefix', default='projects/chirality-app-v4')
+    p.add_argument('--revision', required=True); p.add_argument('--prefix', default='.')
     p.add_argument('--export-root', required=True); p.add_argument('--build-facts', required=True)
-    p.add_argument('--repository', default='sgttomas/chirality'); p.add_argument('--identified-at', required=True)
+    p.add_argument('--repository', default='sgttomas/chirality-app'); p.add_argument('--identified-at', required=True)
     p.add_argument('--out-dir', required=True)
     p = sub.add_parser('check'); p.add_argument('--record', required=True); p.add_argument('--app', required=True)
     args = parser.parse_args(argv)

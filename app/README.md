@@ -5,7 +5,7 @@ Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
 supplies reviewed v4 common/role guidance, receives native requests and activity,
 loads external observations, records decision packages, and supplies native controls
 for A16 decisions, A15 workflow registration, and A4/A6/A7 App-file acts. Separate
-readers retain decision and file-act evidence limits. Group A development remains active;
+readers retain decision and file-act evidence limits. App v4 development is on hold;
 packaging, supplier qualification and the owner's stage gate are separate work.
 
 Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
@@ -23,10 +23,10 @@ writes records or operates the act control." `src-tauri/` holds that host;
 
 This is the development App; the published fallback remains v3.0.1 in
 [chirality-app](https://github.com/sgttomas/chirality-app). Build commands below
-run from `projects/chirality-app-v4/app/` in the Chirality repository.
+run from `app/` in this repository.
 
 Use Rust **1.97.1**, Node **24** and Python **3**. These Rust and Node versions
-match [App v4 CI](../../../.github/workflows/app-v4.yml). Install dependencies
+match [App v4 CI](../.github/workflows/app-v4.yml). Install dependencies
 with `npm ci` when downloads are authorized, or use the prepared-cache route in
 [Offline build and checks](#offline-build-and-checks).
 

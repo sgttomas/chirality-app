@@ -90,18 +90,20 @@ def publication_source(root, path, expected):
     if data is not None and sha(data) == expected:
         return data
     require(path.endswith('.md'), 'frozen source changed: ' + path)
-    # Fixed raw Git objects only. Never follow a branch, fetch a missing object,
-    # or let a caller select another support publication.
-    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
-    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
+    return frozen_snapshot_source(path, expected)
+
+
+def frozen_snapshot_source(path, expected):
+    """Fixed original bytes carried locally; caller pins still select the content."""
+    prefix = 'projects/chirality-app-v4/'
+    relative = path[len(prefix):] if path.startswith(prefix) else path
     try:
-        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
-                                cwd=root, env=env, capture_output=True, timeout=10)
-    except subprocess.TimeoutExpired as error:
-        raise ValueError('frozen documentary source unavailable: ' + path) from error
-    require(result.returncode == 0 and sha(result.stdout) == expected,
-            'frozen documentary source missing or changed: ' + path)
-    return result.stdout
+        require(not (HERE / 'frozen').is_symlink(), 'symbolic link refused')
+        data = relative_file(HERE / 'frozen', relative)
+    except OSError as error:
+        raise ValueError('frozen source missing or unavailable: ' + path) from error
+    require(sha(data) == expected, 'frozen source changed: ' + path)
+    return data
 
 
 def frozen_publication_source(root, path, expected):
@@ -112,16 +114,7 @@ def frozen_publication_source(root, path, expected):
         raw = None
     if raw is not None and sha(raw) == expected:
         return raw
-    repo_path = path if path.startswith('projects/chirality-app-v4/') else 'projects/chirality-app-v4/' + path
-    env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_NO_REPLACE_OBJECTS='1')
-    try:
-        result = subprocess.run(['git', 'cat-file', 'blob', DOCUMENTARY_SOURCE_COMMIT + ':' + repo_path],
-                                cwd=root, env=env, capture_output=True, timeout=10)
-    except subprocess.TimeoutExpired as error:
-        raise ValueError('frozen publication source unavailable: ' + path) from error
-    require(result.returncode == 0 and sha(result.stdout) == expected,
-            'frozen source changed or unavailable: ' + path)
-    return result.stdout
+    return frozen_snapshot_source(path, expected)
 
 
 class SupportIdentity:

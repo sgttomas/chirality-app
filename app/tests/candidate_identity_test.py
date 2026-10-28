@@ -231,6 +231,14 @@ class GitScratch(Scratch):
 
 
 class ExportAndData(GitScratch):
+    def test_repository_root_export_keeps_full_tree_identity(self):
+        result = identify.verify_export(self.repo, 'HEAD', '.', self.export)
+        self.assertEqual(result['tree'], identify.git(self.repo, 'rev-parse', 'HEAD^{tree}').decode().strip())
+        self.assertEqual(result['tracked_files_verified'], 3)
+        (self.export / 'proj/app/main.rs').write_bytes(b'changed')
+        with self.assertRaises(ValueError):
+            identify.verify_export(self.repo, 'HEAD', '.', self.export)
+
     def test_verify_export_tracks_git_symlinks_and_refuses_wrong_types_content_and_ancestors(self):
         self.assertIn(b'120000 blob', identify.git(self.repo, 'ls-tree', 'HEAD', 'proj/link'))
         self.assertEqual(identify.verify_export(self.repo, 'HEAD', 'proj', self.export)['tracked_files_verified'], 3)

@@ -11,9 +11,11 @@ receiving supplement in `canonical-pins.v1.json`. The writer cannot replace
 those pins or select publication through an input field.
 
 Frozen documentary sources retain every original full-byte hash. If today's
-checkout has moved, the reader obtains the same bytes with `git cat-file blob`
-from the fixed commit named in `DOCUMENTARY_SOURCE_COMMIT`. Missing objects or
-different bytes refuse; lazy fetching and replacement objects are disabled.
+checkout has moved, the reader obtains the same bytes from the local `frozen/` snapshot. Its
+manifest identifies the original repository, commit and paths; existing reader
+hashes still select the exact content. Missing files, symbolic links or changed
+bytes refuse. No Git lookup or network fetch is needed. The original
+`DOCUMENTARY_SOURCE_COMMIT` remains provenance, not a destination-repository SHA.
 Exact private source snapshots need no Git access. Current operational inputs
 still refuse drift; original declaration objects retain their full selected
 hashes and fixed version independently of today's checkout. These reads identify the selected frozen support,

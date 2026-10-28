@@ -1,0 +1,58 @@
+name: governance-harness
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: governance-harness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  repository-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install repository-check dependencies
+        run: python -m pip install pyyaml pytest
+      - name: Deliverable structure and utility behavior
+        run: |
+          python -m tools.deliverables --project . check > deliverable-check.json
+          python -m pytest -q tools/deliverables/test_cli.py
+      - name: Conflict, credential and private-term checks
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+          TERMS_REQUIRED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if ! git rev-parse --verify --quiet "${BASE}^{commit}" >/dev/null; then BASE=HEAD^1; fi
+          python tools/validation/validate_conflict_markers.py --base "$BASE" --head HEAD
+          python tools/validation/validate_run_record_leaks.py --base "$BASE" --head HEAD
+          REQUIRE=()
+          if [ "$TERMS_REQUIRED" = true ]; then REQUIRE=(--require-terms); fi
+          python tools/validation/validate_private_terms.py --base "$BASE" --head HEAD "${REQUIRE[@]}"
+  app-v4:
+    uses: ./.github/workflows/app-v4.yml
+  harness:
+    name: harness
+    needs: [repository-checks, app-v4]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          failed = {name: job['result'] for name, job in json.loads(os.environ['RESULTS']).items()
+                    if job['result'] != 'success'}
+          if failed:
+              raise SystemExit(f'Verification did not succeed: {failed}')
+          PY

@@ -1,5 +1,8 @@
 # Chirality App v4
 
+**Development is on hold.** This repository is undergoing migration from
+Chirality; it does not publish or qualify a v4 release.
+
 Chirality makes a general agent act within and for a host application. Its
 workflow-authoring App is the exemplar. [App v4 thesis](docs/thesis/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
@@ -9,7 +12,7 @@ Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables li
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
 criteria, `Design/` holds contracts and open implementation conditions, and
 `deliverable.yaml` states needs and code/check pointers. Query their inputs and
-consumers with the [deliverables tools](../../tools/deliverables/README.md).
+consumers with the [deliverables tools](tools/deliverables/README.md).
 For the toolchain, build and launch instructions, start with the
 [App developer start](app/README.md#developer-start). The rest of that README
 describes the current product path, checks and remaining qualification limits.

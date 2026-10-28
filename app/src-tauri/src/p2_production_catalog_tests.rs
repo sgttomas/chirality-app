@@ -38,7 +38,7 @@ fn candidate_catalog_binds_current_source_without_claiming_release_history() {
         SelectionAdmission::ProductionBundle { .. }
     ));
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../../workflows/coordinated-knowledge-work");
+        .join("../../workflows/coordinated-knowledge-work");
     assert_eq!(
         Snapshot::capture(&source).unwrap().files(),
         selected.snapshot().files()

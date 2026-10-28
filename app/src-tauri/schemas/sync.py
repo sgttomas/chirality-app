@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--sync', action='store_true')
 args = parser.parse_args()
 here = Path(__file__).resolve().parent
-root = here.parents[4]
+root = here.parents[2]
 manifest_path = here / 'manifest.json'
 manifest = json.loads(manifest_path.read_text())
 for row in manifest['resources']:

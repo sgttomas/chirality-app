@@ -1,7 +1,6 @@
 """Frozen publication bytes are distinct from today's documentary checkout."""
 import importlib.util
 from pathlib import Path
-import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -16,25 +15,43 @@ class PublicationSourceTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name) / 'current'
+        self.root.mkdir()
+        self.library = Path(self.temp.name) / 'library'
+        (self.library / 'frozen').mkdir(parents=True)
+        here = patch.object(subject, 'HERE', self.library)
+        here.start(); self.addCleanup(here.stop)
         self.original = b'Frozen published documentary meaning.\n'
         self.digest = subject.sha(self.original)
         (self.root / 'Design.md').write_bytes(b'Todays unrelated implementation notes.\n')
 
-    def test_fixed_object_bytes_remain_exact_and_fetch_is_disabled(self):
-        response = subprocess.CompletedProcess([], 0, self.original, b'')
-        with patch.object(subject.subprocess, 'run', return_value=response) as run:
+    def test_fixed_snapshot_bytes_remain_exact_without_git(self):
+        (self.library / 'frozen/Design.md').write_bytes(self.original)
+        with patch.object(subject.subprocess, 'run', side_effect=AssertionError('No Git or network')):
             self.assertEqual(subject.publication_source(self.root, 'Design.md', self.digest), self.original)
-        args, options = run.call_args
-        self.assertEqual(args[0], ['git', 'cat-file', 'blob', subject.DOCUMENTARY_SOURCE_COMMIT + ':projects/chirality-app-v4/Design.md'])
-        self.assertEqual(options['env']['GIT_NO_LAZY_FETCH'], '1')
-        self.assertEqual(options['env']['GIT_NO_REPLACE_OBJECTS'], '1')
 
-    def test_changed_frozen_meaning_and_missing_objects_refuse(self):
-        for code, data in ((0, b'Changed frozen meaning.\n'), (128, b'')):
-            with self.subTest(code=code), patch.object(subject.subprocess, 'run', return_value=subprocess.CompletedProcess([], code, data, b'')):
-                with self.assertRaisesRegex(ValueError, 'frozen documentary source missing or changed'):
-                    subject.publication_source(self.root, 'Design.md', self.digest)
+    def test_changed_frozen_meaning_and_missing_files_refuse(self):
+        path = self.library / 'frozen/Design.md'
+        path.write_bytes(b'Changed frozen meaning.\n')
+        with self.assertRaisesRegex(ValueError, 'frozen source changed'):
+            subject.publication_source(self.root, 'Design.md', self.digest)
+        path.unlink()
+        with self.assertRaisesRegex(ValueError, 'frozen source missing'):
+            subject.publication_source(self.root, 'Design.md', self.digest)
+
+    def test_link_in_frozen_snapshot_refuses(self):
+        (self.library / 'frozen/Design.md').symlink_to(self.root / 'Design.md')
+        with self.assertRaisesRegex(ValueError, 'symbolic link refused'):
+            subject.publication_source(self.root, 'Design.md', self.digest)
+
+    def test_link_at_frozen_root_refuses(self):
+        frozen = self.library / 'frozen'
+        frozen.rmdir()
+        frozen.symlink_to(self.root, target_is_directory=True)
+        (self.root / 'Design.md').unlink()
+        (self.root / 'other.md').write_bytes(self.original)
+        with self.assertRaisesRegex(ValueError, 'symbolic link refused'):
+            subject.frozen_snapshot_source('other.md', self.digest)
 
     def test_exact_snapshot_needs_no_git_and_executable_drift_never_falls_back(self):
         (self.root / 'Design.md').write_bytes(self.original)
@@ -55,8 +72,10 @@ class PublicationSourceTests(unittest.TestCase):
         original = b'Original frozen validator bytes.\n'
         digest = subject.sha(original)
         (self.root / 'validator.py').write_bytes(b'Unrelated current implementation')
-        with patch.object(subject.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, original, b'')):
+        frozen = self.library / 'frozen/validator.py'
+        frozen.write_bytes(original)
+        with patch.object(subject.subprocess, 'run', side_effect=AssertionError('No Git or network')):
             self.assertEqual(subject.frozen_publication_source(self.root, 'validator.py', digest), original)
-        with patch.object(subject.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'wrong object bytes', b'')):
-            with self.assertRaisesRegex(ValueError, 'frozen source changed or unavailable'):
-                subject.frozen_publication_source(self.root, 'validator.py', digest)
+        frozen.write_bytes(b'wrong object bytes')
+        with self.assertRaisesRegex(ValueError, 'frozen source changed'):
+            subject.frozen_publication_source(self.root, 'validator.py', digest)
