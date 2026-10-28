@@ -1,0 +1,22 @@
+{
+  "format": "group-b-build-selection-lt09-fixture-provenance.v1",
+  "adoption": "B-S4-BUILD-SELECTION-LT09-v1",
+  "producer": {
+    "command": [
+      "/private/tmp/chirality-s4-s2-neutral-5SxNa4/producer",
+      "--exact",
+      "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+      "--ignored",
+      "--test-threads=1"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "9db0079442c9b0f5797c6dfcd081a067e874c2f33b691fd1d699dda0c3a76049",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "b5dbfbbdf300b993f34fc87924146073bb017877"
+  },
+  "exchange_sha256": {
+    "selected": "6f1f7c330e5956b9e902e871a80b468c54fed4bf751d52eae10877384a6d6e42",
+    "unselected": "2d2bde919ae267bee36bd6bc1425717bf05d84415b567bcf9a0c434df0cd4896"
+  },
+  "standing": "Actual clean committed-source synthetic exports from an exact neutral-path executable copy; invented App candidate; no native authority, integrity or qualification"
+}

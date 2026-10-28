@@ -1,0 +1,357 @@
+id: DEL-05-02
+name: Host panel and shared interaction receiving
+needs:
+- from: DEL-02-01
+  condition: 'Panel receiving requirements consume the actual identified, independently compared portable
+    workflow/checkpoint meaning definition supplied by App-v4 DEL-02-01; the required input must be identified
+    or recorded as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement wording "checked" → "identified, independently
+    compared" (pass-2 R-4 reserves "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork
+    is not revised by SCA-V4-003 (register-only action, Amendment_Actions row 18); quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'Panel receiving requirements consume the actual identified, independently compared catalog/read-basis
+    meaning definition supplied by App-v4 DEL-03-01; the required input must be identified or recorded
+    as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement wording "checked" → "identified, independently
+    compared" (pass-2 R-4 reserves "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork
+    is not revised by SCA-V4-003 (register-only action, Amendment_Actions row 18); quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Panel receiving requirements consume the actual identified, independently compared proposal,
+    validation and outcome meaning definition supplied by App-v4 DEL-03-02; the required input must be
+    identified or recorded as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement wording "checked" → "identified, independently
+    compared" (pass-2 R-4 reserves "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork
+    is not revised by SCA-V4-003 (register-only action, Amendment_Actions row 18); quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Panel receiving requirements consume the actual identified, independently compared adopted
+    operation-policy and human-act distinctions definition supplied by App-v4 DEL-04-01; the required
+    input must be identified or recorded as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20260929: revised REQ-003/TBD-004/TBD-005 record the first-increment OI-001/OI-002 rulings
+    (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2/D3) carried by DEL-04-01 and consumed here; operation-specific
+    additions remain under OI-021 (DEP-05-02-016). UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement
+    wording "checked" → "identified, independently compared" (pass-2 R-4 reserves "checked" for the person''s
+    act A4); meaning unchanged. The ScopeOfWork is not revised by SCA-V4-003 (register-only action, Amendment_Actions
+    row 18); quote unchanged and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Panel receiving requirements consume the actual identified, independently compared content-bound
+    decision/run-record meaning definition supplied by App-v4 DEL-04-03; the required input must be identified
+    or recorded as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement wording "checked" → "identified, independently
+    compared" (pass-2 R-4 reserves "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork
+    is not revised by SCA-V4-003 (register-only action, Amendment_Actions row 18); quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-05-01
+  condition: 'Panel receiving requirements consume the actual identified, independently compared loop
+    messages/tools/events/checkpoints and receiving requirements definition supplied by App-v4 DEL-05-01;
+    the required input must be identified or recorded as unavailable.
+
+
+    Notes: FACT: CLM-002 explicitly states that their checked definitions are consumed here. INITIALIZED
+    is the local contract-maturity threshold only; actual checked-definition receipt, applicability and
+    fulfilment are unclaimed. App-v4 identity; not an identically numbered external-project deliverable.
+    UPDATE 20261003 (SCA-V4-003 DX): R-0502-1: Statement wording "checked" → "identified, independently
+    compared" (pass-2 R-4 reserves "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork
+    is not revised by SCA-V4-003 (register-only action, Amendment_Actions row 18); quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Receive actual external host panel/view and interaction inputs plus candidate-bound evidence
+    before corresponding joined integration/examination; contract definition and independent App preparation
+    can proceed without claiming those inputs.
+
+
+    Notes: FACT: External host construction remains with SWBPIPE. Source records OWNER_REPORTED_BUILDING_BEFORE_AGENT_ACTION_INTEGRATION,
+    not receipt or readiness. Source DEP-001 also names the corresponding fallback-replacement point of
+    need; this row is limited to the relevant panel/view and interaction contribution. Actual contribution
+    location/candidate remain TBD. UPDATE 20260929: SourceRef line number refreshed after the SCA-V4-001
+    revision. UPDATE 20260929: revised TBD-003 names the relevant panel/view and interaction evidence
+    (stable capture-evidence reference per host-captured act, SQ-01; host handling of the governing checkpoint
+    constraint, SQ-02, governance phase; the host loop''s actual behavior) and records that host joins
+    are deferred until the owner resumes SWBPIPE UI-SUCCESSOR (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3).
+    GUARD: TBD-003 names DEL-09-06 Design/RELAY_QUESTIONS_SWBPIPE.md as "a coordination route, not an
+    input this deliverable consumes" and RELAY_ANSWERS_SWBPIPE.md as current-state answers, not commitments;
+    no DEL-09-06 input or prerequisite row is extracted.
+
+
+    Target description — TargetName: SWBPIPE outside implementation session — actual panel/view and interaction
+    evidence; TargetRefID: DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: external:OI-013
+  condition: 'Before shared/host implementation boundary contracts, obtain the host/common construction
+    agreement for the panel-receiving portion; any common implementation also requires an agreed repeated
+    responsibility.
+
+
+    Notes: FACT: OI-013 remains OPEN. Exact source owner: Shared contract owner with SWB implementation
+    owner. Agreement evidence TBD; this is a conditional boundary decision, not transfer of host construction
+    or a blanket setup hold. UPDATE 20260929: SourceRef line number refreshed after the SCA-V4-001 revision.
+
+
+    Target description — TargetName: Shared contract owner with SWB implementation owner — host/common
+    boundary agreement; TargetRefID: OI-013; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-013'
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'Before structural/production contract allocation, agree placement and ownership against
+    actual consumer responsibilities; selected common panel components require the concrete repeated purpose
+    and receiving-consumer agreement before implementation.
+
+
+    Notes: FACT: OI-014 remains OPEN. Exact source owner: App/shared contract owners. Point of need: Before
+    structural/production contract allocation. Agreement evidence TBD. No common service, implementation
+    language, deployment or reuse is selected by this extraction; distinct from OI-013. UPDATE 20260929:
+    SourceRef line number refreshed after the SCA-V4-001 revision.
+
+
+    Target description — TargetName: App/shared contract owners — shared contract/component allocation
+    agreement; TargetRefID: OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: external:OI-021
+  condition: 'Before dependent implementation or live connected examination, resolve the first connected
+    activity exact operation, autonomy, environment and externally supplied interfaces with the App manager,
+    human and external SWBPIPE owner.
+
+
+    Notes: FACT: Actual choices and supplied interface identities remain TBD. Source treats the example
+    as a proposed fixture; no operation, environment, host construction assignment or new setup checkpoint
+    is inferred. UPDATE 20260929: SourceRef line number refreshed after the SCA-V4-001 revision. UPDATE
+    20260929: the revised paragraph states that P/OQ-11 is tracked as OI-021 in Open_Issues.csv (owner:
+    Owner via outside SWB session and App/shared owner; point of need: before connected-activity SoW and
+    execution); TargetRefID updated to OI-021 (legacy_TargetRefID=OQ-11) and TargetLocation to the current
+    Open_Issues.csv row.
+
+
+    Target description — TargetName: OI-021 (P/OQ-11) — App manager, human and external SWBPIPE owner:
+    first connected activity choices; TargetRefID: OI-021; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-021'
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: external:Person performing the actual human act for the VER-003 positive evidence case
+  condition: 'When executing the VER-003 positive faithful-recording case, obtain evidence of an actual
+    human act with its real actor and bound content, including an independently evidenced act without
+    inferred prior proposal acceptance.
+
+
+    Notes: FACT: Required only at the executed positive case; case definition can proceed with missing
+    participation/evidence explicit. Actual actor, act, content binding and evidence location remain TBD.
+    Recorder is distinct from decision actor. This row neither requires professional reliance universally
+    nor invents a prerequisite between human acts.
+
+
+    Target description — TargetName: Person performing the actual human act for the VER-003 positive evidence
+    case'
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Panel receiving requirements consume the actual identified, independently compared autonomy-grant
+    display states and active scope definition supplied by App-v4 DEL-04-02; the required input must be
+    identified or recorded as unavailable.
+
+
+    Notes: FACT: added by SCA-V4-001 revision of CLM-002/REQ-006; CLM-002 explicitly states that the identified,
+    independently compared definitions are consumed here. INITIALIZED is the local contract-maturity threshold
+    only; receipt, applicability and fulfilment are unclaimed. App-v4 identity. UPDATE 20261003 (SCA-V4-003
+    DX): R-0502-1: Statement wording "checked" → "identified, independently compared" (pass-2 R-4 reserves
+    "checked" for the person''s act A4); meaning unchanged. The ScopeOfWork is not revised by SCA-V4-003
+    (register-only action, Amendment_Actions row 18); quote unchanged and verbatim. Identity, direction,
+    type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'Panel receiving requirements consume DEL-02-03''s checkpoint recording meanings displayed
+    in the current phase (arrival, act recorded only when performed, act-lapsed label) and, for the governance
+    phase, its retained hold-support values and hold-machine meanings.
+
+
+    Notes: FACT: added by SCA-V4-001 revision of CLM-002/REQ-006 (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-1 phasing); CLM-002 explicitly states consumption. Hold-support values and hold-machine meanings
+    apply only to the governance phase. INITIALIZED is the local contract-maturity threshold only; receipt
+    is unclaimed. App-v4 identity.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-05-02 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-05-02-005 on an existing held arc (ledger R2-02-01-a..f); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-05-02 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-05-02-020 on an existing held arc (ledger R2-02-03-b..i); no topology change.
+    The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`," / "`DEL-09-02`,
+    … each of which declares it upstream in its own register."). INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-05-02 receives this catalog/read-basis contract (panel receiving) and declares
+    it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-05-02-006 on an existing held arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'App v4 DEL-05-02 receives this contract''s proposal, validation and outcome meanings (panel
+    receiving) and declares them upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-07); supplier-side mirror of the
+    consumer row DEP-05-02-007 on an existing held arc (ledger R-02-2); no topology change. INITIALIZED
+    is local contract maturity only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-05-02, which the source
+    states declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted
+    decisions must be provided.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) positively states this policy-meaning supply to the
+    named consumer. Typed HANDOVER and INITIALIZED threshold for consistency with DEP-04-01-012..016;
+    INITIALIZED is only the local contract threshold, not actual policy handoff or receiving implementation.
+    The consumer-side upstream declaration is asserted by this source and was not read here (read boundary).
+    Satisfaction unassessed. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code
+    backticks included (ASC-ISS-008; V12 F1); no other field changed. UPDATE 20261003 (SCA-V4-003 DX):
+    Re-quoted in place: CLM-002''s second supply sentence now also names `DEL-09-06` (SC2-04-01-1), so
+    the prior quote no longer occurs. Identity, direction, type, target, statement, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Supply DEL-04-02 visible autonomy state to App DEL-05-02, which the source names as a receiver.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) names this receiver of the visible autonomy state.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; actual contribution receipt/fulfilment
+    is unclaimed. SatisfactionStatus PENDING follows this register''s convention for unfulfilled execution
+    inputs. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code/bold markers
+    included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-05-02;
+    the receiving documentation identifies how it is consumed.
+
+
+    Notes: FACT; REQ-005 (revised under SCA-V4-001) names this consumer of the record meaning. Typed INTERFACE
+    for consistency with the package consumer rows DEP-04-03-011..013. RequiredMaturity=INITIALIZED is
+    the local contract threshold only; actual contribution receipt/fulfilment is unclaimed. Fulfilment
+    is not established by this extraction. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly,
+    inline-code backticks included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Carry concrete panel questions and proposed interfaces to the external SWBPIPE owner through
+    the App manager and human-relayed repository-file route; retain the returned agreement/input evidence
+    separately.
+
+
+    Notes: FACT: Specific artifact handoff stated by the source, not a coordination-only edge or authorization
+    to contact the external session. App manager owns preparation/dependency accounting; the human performs
+    the external relay. Actual handoff/return is unclaimed. This output flow is distinct from upstream
+    receipt of host candidate evidence. UPDATE 20260929: target remains the external SWBPIPE owner (DEP-001)
+    via the App manager and human relay; the DEL-09-06 relay file named in TBD-003 is the coordination
+    route and is not a target of this row.
+
+
+    Target description — TargetName: External SWBPIPE owner — concrete panel interface questions and proposed
+    interfaces via App manager/human relay; TargetRefID: DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/catalog.rs
+- app/src-tauri/src/receiving.rs

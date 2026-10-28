@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window may call the App's own commands only. No dialog, file-system or shell permission is granted to the webview: the native confirmation is opened by the host (AAC §6.2 P-2).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

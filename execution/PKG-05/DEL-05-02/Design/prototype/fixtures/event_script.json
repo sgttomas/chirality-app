@@ -1,0 +1,43 @@
+{
+ "note": "Scripted loop events for the panel double (PANEL-v0.8 §7.1). Invented example material on FX-PIPE-01 identifiers; event meanings per LOOP-v0.8 §2.3.",
+ "cases": [
+  {"id": "PC-38", "note": "Model interface failure during a turn (FD-1)",
+   "events": [
+    {"ordinal": 1, "kind": "turn started"},
+    {"ordinal": 2, "kind": "model stream progress"},
+    {"ordinal": 3, "kind": "model interface failure", "termination_reason": "ended-without-reason", "reporter": "loop"},
+    {"ordinal": 4, "kind": "turn failed", "turn": "turn-3", "cause": "model interface failure", "message_standing": "interrupted"}],
+   "expected": [
+    "turn started", "model stream progress",
+    "FD-1 model interface failure: ended-without-reason (reported by loop)",
+    "FD-1 turn turn-3 failed: model interface failure; partial message shown as interrupted"]},
+  {"id": "PC-39", "note": "A reference that no longer resolves (FD-2)",
+   "events": [
+    {"ordinal": 1, "kind": "reference", "reference": "ref:S-2@r12", "label": "S-2 (r12)"},
+    {"ordinal": 2, "kind": "reference", "reference": "ref:PR-1", "label": "PR-1"}],
+   "unresolved": ["ref:PR-1"],
+   "expected": [
+    "reference ref:S-2@r12 ('S-2 (r12)')",
+    "FD-2 reference ref:PR-1 no longer resolves; last known label 'PR-1' kept, marked unresolved"]},
+  {"id": "PC-40", "note": "Missed events: ordinals 3 and 4 dropped in delivery (FD-3)",
+   "events": [
+    {"ordinal": 1, "kind": "turn started"},
+    {"ordinal": 2, "kind": "tool call received"},
+    {"ordinal": 3, "kind": "tool call dispatched"},
+    {"ordinal": 4, "kind": "host outcome"},
+    {"ordinal": 5, "kind": "turn completed"}],
+   "drop": [3, 4],
+   "expected": [
+    "turn started", "tool call received",
+    "FD-3 events 3-4 not received; nothing inferred for them",
+    "turn completed"]},
+  {"id": "PC-41", "note": "A destination request still pending when the run ends (FD-4; request states are node B5's)",
+   "events": [
+    {"ordinal": 1, "kind": "destination request issued", "request": "dr-1", "destination": "A-1"},
+    {"ordinal": 2, "kind": "run ended", "cause": "person stopped"}],
+   "expected": [
+    "destination request dr-1 for A-1 shown (ND-2)",
+    "FD-4 destination request dr-1 for A-1: not answered, run ended; no grant shown; requesting call not sent",
+    "run ended (person stopped)"]}
+ ]
+}

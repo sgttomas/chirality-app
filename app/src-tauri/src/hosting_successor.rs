@@ -1,0 +1,1002 @@
+//! Explicit staged successor route. The compiled A-IN-S2 build selection names
+//! the A-IN-S3 attested reference, and a supplied tree is compared with it in
+//! full before any supplier execution. No installed-custody issuer exists, so
+//! `verified` stays unavailable: production refuses and development never qualifies.
+use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
+use crate::distribution_preflight::{self as tree, selection::Selected, Inventory, LaunchPlan};
+use serde_json::{json, Value};
+use std::io::Read;
+use std::os::fd::AsRawFd;
+use std::os::unix::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
+
+#[derive(Clone, Debug)]
+pub(crate) enum Distribution {
+    Production { resources: PathBuf },
+    Development { root: PathBuf },
+}
+impl Distribution {
+    pub(crate) fn vendor_root(&self) -> PathBuf {
+        match self { Self::Production { resources } => resources.join("codex"), Self::Development { root } => root.clone() }
+    }
+
+    pub(crate) fn development_from_binary(binary: &Path) -> Result<Self, String> {
+        if binary.file_name().is_none_or(|n| n != "codex")
+            || binary
+                .parent()
+                .and_then(Path::file_name)
+                .is_none_or(|n| n != "bin")
+        {
+            return Err("successor development requires vendor-root/bin/codex".into());
+        }
+        Ok(Self::Development {
+            root: binary
+                .parent()
+                .unwrap()
+                .parent()
+                .ok_or("vendor root absent")?
+                .to_owned(),
+        })
+    }
+}
+/// Debug development builds read the committed reference closure from this
+/// source tree. The location is not trust: every byte is accepted only through
+/// the compiled build-selection digest, exactly as for packaged resources.
+#[cfg(debug_assertions)]
+pub(crate) fn development_reference_root() -> Result<PathBuf, String> {
+    Ok(Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/distribution-reference"))
+}
+#[cfg(not(debug_assertions))]
+pub(crate) fn development_reference_root() -> Result<PathBuf, String> {
+    Err("development reference closure is available to debug builds only".into())
+}
+/// Called only by native setup with Tauri's resource directory. Public legacy
+/// binary/assertion/development fields cannot replace this production root.
+pub(crate) fn production_config(
+    resources: PathBuf,
+    account: PathBuf,
+    probe: PathBuf,
+    cwd: PathBuf,
+) -> HostConfig {
+    let mut cfg = HostConfig::new(resources.join("codex/bin/codex"), account, probe, cwd);
+    cfg.distribution = Some(Distribution::Production { resources });
+    cfg
+}
+/// The compiled reference this attempt may compare against. It comes only from
+/// the configured Store's compiled selection, never from a caller.
+pub(crate) enum Reference<'a> {
+    Selected(&'a Selected),
+    Unavailable(&'a str),
+    None,
+}
+impl Reference<'_> {
+    fn gap(&self) -> String {
+        match self {
+            Self::Selected(_) => String::new(),
+            Self::Unavailable(reason) => format!("compiled reference closure unavailable: {reason}"),
+            Self::None => "no compiled reference closure configured for this attempt".into(),
+        }
+    }
+}
+fn launcher() -> Value {
+    json!({"kind":"direct-vendor","relative_executable":"bin/codex","path_prefix_relative":"codex-path","removed_wrapper_variables":["CODEX_MANAGED_PACKAGE_ROOT","CODEX_MANAGED_BY_NPM"]})
+}
+/// DISTRIBUTION_IDENTITY "Verifier obligations": the complete actual tree is
+/// compared with every expected value before the label probe. A known
+/// contradiction refuses with a `mismatch:` reason and no supplier execution.
+fn compare_to_reference(selected: &Selected, actual: &Inventory) -> Result<Value, String> {
+    selected.recheck().map_err(|e| format!("mismatch: selected reference closure changed or unreadable: {e}"))?;
+    let e = selected.expected()?;
+    let (pin, platform) = (e["pin"].as_str().unwrap_or("?"), e["platform"].as_str().unwrap_or("?"));
+    if pin != DECLARED_PIN || e["generated"]["pin"] != DECLARED_PIN {
+        return Err(format!("mismatch: selected reference pin {pin} is not the declared pin {DECLARED_PIN}"));
+    }
+    if e["launcher"] != launcher() {
+        return Err("mismatch: selected reference launcher convention differs from direct-vendor".into());
+    }
+    let expected: Inventory = serde_json::from_value(e["inventory"].clone())
+        .map_err(|x| format!("mismatch: selected reference inventory unreadable: {x}"))?;
+    if !tree::equal(&expected, actual) {
+        let diff = tree::differences(&expected, actual);
+        let more = diff.len().saturating_sub(6);
+        return Err(format!(
+            "mismatch: distribution tree differs from the attested {pin} {platform} reference: {}{}",
+            diff.into_iter().take(6).collect::<Vec<_>>().join("; "),
+            if more > 0 { format!("; {more} more") } else { String::new() }
+        ));
+    }
+    if e["generated"]["manifest_sha256"] != GENERATED_MANIFEST_SHA256 {
+        return Err("mismatch: compiled generated-output identity differs from the attested reference".into());
+    }
+    Ok(json!({"outcome":"equal","pin":pin,"platform":platform,"expectedReference":selected.expected_ref(),
+        "adoptionAttestation":selected.attestation_ref(),"manifestSha256":expected.manifest_sha256,
+        "entries":expected.entries.len(),"generated":e["generated"],
+        "limit":"Complete tree, reference and generated identity agree at this preflight; installed integrity/stable custody issuer unavailable, so not verified"}))
+}
+pub(crate) struct Prepared {
+    pub plan: LaunchPlan,
+    root: PathBuf,
+    inventory: Inventory,
+    comparison: Option<Value>,
+    pub label: String,
+    pub verification: Value,
+    pub status: Value,
+}
+impl Prepared {
+    pub(crate) fn observation(&self,cfg:&HostConfig,g:&Value)->(Value,Value){
+        let mut argv=Vec::new();for flag in &cfg.session_flags{argv.push("-c".to_owned());argv.push(flag.clone());}argv.push("app-server".into());
+        let removed:Vec<_>=CREDENTIAL_VARS.iter().copied().chain(self.plan.removed).collect();
+        let configuration=json!({"resolved_root":self.root,"resolved_executable":self.plan.executable,"working_directory":cfg.cwd,"argv":argv,
+            "path_prefix":self.root.join("codex-path"),"path_remainder_provenance":"Inherited process PATH; remainder bytes omitted from this nonsecret record",
+            "app_supplied_nonsecret":{"CODEX_HOME":cfg.codex_home.to_string_lossy()},"removed_environment_names":removed,
+            "probe_home":cfg.probe_home,"account_home":cfg.codex_home,"home_link_states":"Root fixed namespace metadata reobserved by protected publication guard; not native discovery proof",
+            "k12_flags":cfg.session_flags,"secret_redactions":CREDENTIAL_VARS});
+        let facts=json!({"format":"distribution-preflight-facts.s3","generation":g,"inventory":self.inventory,"raw_version_label":self.status["rawVersionLabel"],"configuration":configuration,"limit":"Bounded source observations; no installed integrity/custody issuer or qualification"});
+        let check=|outcome:&str,reason:&str|json!({"outcome":outcome,"evidence":null,"reason":reason});
+        let checks=match &self.comparison {
+            Some(_) => json!({"tree":check("pass","Complete no-follow inventory equals the selected attested reference inventory"),"label":check("pass","Exact isolated raw label corresponds to declared pin"),"generated":check("pass","Compiled generated-output manifest equals the selected reference's generated identity"),"custody":check("missing","Installed integrity/stable custody issuer unavailable"),"reference":check("pass","Compiled build selection resolved the reviewed, adopted reference and attestation by exact bytes")}),
+            None => json!({"tree":check("unverifiable","Complete local inventory observed; qualified installed reference/custody unavailable"),"label":check("pass","Exact isolated raw label corresponds to declared pin"),"generated":check("missing","Compiled generated bytes checked, but S3 provenance/version-advance evidence absent"),"custody":check("missing","Installed integrity/stable custody issuer unavailable"),"reference":check("missing","No compiled S3 selection available to this attempt; any private selected fixture is not qualification")}),
+        };
+        let generated=self.comparison.as_ref().map(|c|c["generated"].clone()).unwrap_or(Value::Null);
+        let observation=json!({"format":"observed-verification.s1","expected_reference":null,"adoption_attestation":null,
+            "pin":DECLARED_PIN,"platform":"macOS arm64","observed_label":DECLARED_PIN,"raw_version_label":self.status["rawVersionLabel"],
+            "generated":generated,"inventory":self.inventory,"launcher":{"kind":"direct-vendor","relative_executable":"bin/codex","path_prefix_relative":"codex-path","removed_wrapper_variables":self.plan.removed},
+            "configuration":configuration,"generation":g,"at":crate::util::now_rfc3339(),"phase":"pre-spawn",
+            "checks":checks,
+            "outcome":"unverifiable","limits":["Development observation only; no installed integrity/custody issuer","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"],"candidate_subject":null});
+        (observation,facts)
+    }
+    pub fn revalidate(&self) -> Result<(), String> {
+        tree::revalidate(&self.root, &self.inventory)
+            .map(|_| ())
+            .map_err(|e| format!("mismatch: {e}"))
+    }
+    pub fn legacy_inventory(&self) -> Vec<Value> {
+        self.inventory
+            .entries
+            .iter()
+            .filter_map(|e| {
+                e.sha256.as_ref().map(
+                    |sha| json!({"path":e.path,"identity":{"algorithm":"sha-256","value":sha}}),
+                )
+            })
+            .collect()
+    }
+}
+pub(crate) fn configure(cmd: &mut Command, plan: &LaunchPlan) {
+    cmd.env("PATH", &plan.path);
+    for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
+        cmd.env_remove(name);
+    }
+}
+fn isolated(root: &Path, cfg: &HostConfig) -> Result<(), String> {
+    // Canonical equality also catches ancestor aliases. Scanner checks vendor
+    // no-follow traversal independently; homes must already have been admitted.
+    let root = root.canonicalize().map_err(|e| e.to_string())?;
+    let account = cfg.codex_home.canonicalize().map_err(|e| e.to_string())?;
+    let probe = cfg.probe_home.canonicalize().map_err(|e| e.to_string())?;
+    for (a, b) in [(&root, &account), (&root, &probe), (&account, &probe)] {
+        if a.starts_with(b) || b.starts_with(a) {
+            return Err("mismatch: vendor/probe/account domains overlap".into());
+        }
+    }
+    Ok(())
+}
+pub(crate) fn prepare(
+    distribution: &Distribution,
+    cfg: &HostConfig,
+    generation: &Value,
+    reference: Reference<'_>,
+) -> Result<Prepared, String> {
+    let root = match distribution {
+        Distribution::Production { resources } => {
+            // Resolve the compiled association and compare the complete bundled
+            // tree before any supplier execution. Without an installed-custody
+            // issuer and without LT-24, production can only refuse; equality is
+            // reported, never promoted to verified.
+            let owned;
+            let selected = match reference {
+                Reference::Selected(selected) => selected,
+                _ => {
+                    owned = Selected::production(&resources.join("distribution-reference"))?;
+                    &owned
+                }
+            };
+            let root = resources.join("codex");
+            isolated(&root, cfg)?;
+            let inventory = tree::scan(&root).map_err(|e| format!("mismatch: {e}"))?;
+            let comparison = compare_to_reference(selected, &inventory)?;
+            return Err(format!(
+                "installed integrity/stable custody issuer unavailable; production refused before supplier execution (complete tree equals the attested {} {} reference)",
+                comparison["pin"].as_str().unwrap_or("?"), comparison["platform"].as_str().unwrap_or("?")
+            ));
+        }
+        Distribution::Development { root } => root,
+    };
+    isolated(root, cfg)?;
+    let inventory = tree::scan(root).map_err(|e| format!("mismatch: {e}"))?;
+    let comparison = match &reference {
+        Reference::Selected(selected) => Some(compare_to_reference(selected, &inventory)?),
+        _ => None,
+    };
+    let inherited = std::env::var_os("PATH")
+        .map(|p| p.into_string().map_err(|_| "non UTF-8 inherited PATH"))
+        .transpose()?;
+    let plan = tree::plan(root, inherited.as_deref()).map_err(|e| format!("mismatch: {e}"))?;
+    if let Some(expected) = &cfg.expected_sha256 {
+        let measured = inventory
+            .entries
+            .iter()
+            .find(|e| e.path == "bin/codex")
+            .and_then(|e| e.sha256.as_deref());
+        if measured.is_none_or(|s| !s.eq_ignore_ascii_case(expected)) {
+            return Err("mismatch: development binary assertion".into());
+        }
+    }
+    if !super::generated_outputs_match() {
+        return Err("mismatch: maintained generated outputs".into());
+    }
+    let label = probe(&plan, cfg)?;
+    if label.strip_suffix('\n').unwrap_or(&label) != format!("codex-cli {DECLARED_PIN}") {
+        return Err("mismatch: observed version label".into());
+    }
+    let (reason, reference_limit, comparison_status) = match &comparison {
+        Some(c) => (
+            format!(
+                "complete tree equals the attested Codex {} {} reference (expected {}, attestation {}); label and generated identity agree; installed custody issuer unavailable",
+                c["pin"].as_str().unwrap_or("?"), c["platform"].as_str().unwrap_or("?"),
+                short(&c["expectedReference"]["sha256"]), short(&c["adoptionAttestation"]["sha256"])
+            ),
+            "Compiled S3 reference selected and matched; no installed integrity/custody issuer",
+            c.clone(),
+        ),
+        None => {
+            let gap = reference.gap();
+            (
+                format!("staged successor development; {gap}; installed custody unavailable"),
+                "No compiled S3 reference compared and no installed integrity/custody issuer",
+                json!({"outcome":"unavailable","reason":gap}),
+            )
+        }
+    };
+    let status = json!({"format":"host-successor-attempt.s2","verificationGeneration":generation,"inventory":inventory,
+        "standing":"unverified-development","referenceComparison":comparison_status,"resolvedExecutable":plan.executable,"pathPrefix":root.join("codex-path"),
+        "rawVersionLabel":label,"limits":[reference_limit,"S1 observation and LT-09 evidence require a configured protected store; other lifecycle envelopes unavailable","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"]});
+    Ok(Prepared {
+        plan,
+        root: root.clone(),
+        inventory,
+        comparison,
+        label: label.trim_end_matches('\n').into(),
+        verification: json!({"result":"unverifiable","reason":reason}),
+        status,
+    })
+}
+fn short(sha: &Value) -> String {
+    sha.as_str().map(|s| format!("{}…", &s[..s.len().min(8)])).unwrap_or_else(|| "?".into())
+}
+pub(crate) fn terminate(child: &mut Child) {
+    // Spawned by this module/Host in its own process group; never a user process.
+    unsafe {
+        libc::kill(-(child.id() as i32), libc::SIGKILL);
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
+    let mut command = Command::new(&plan.executable);
+    configure(&mut command, plan);
+    for flag in &cfg.session_flags {
+        command.args(["-c", flag]);
+    }
+    command
+        .arg("--version")
+        .env("CODEX_HOME", &cfg.probe_home)
+        .current_dir(&cfg.probe_home)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .process_group(0);
+    let mut child = command
+        .spawn()
+        .map_err(|e| format!("label probe unavailable: {e}"))?;
+    let mut out = child.stdout.take().unwrap();
+    let mut err = child.stderr.take().unwrap();
+    for fd in [out.as_raw_fd(), err.as_raw_fd()] {
+        if unsafe { libc::fcntl(fd, libc::F_SETFL, libc::O_NONBLOCK) } < 0 {
+            terminate(&mut child);
+            return Err("cannot bound label probe pipes".into());
+        }
+    }
+    let deadline = Instant::now() + cfg.wait_limit.min(Duration::from_secs(20));
+    let mut bytes = Vec::new();
+    let mut count = 0usize;
+    let result = (|| {
+        loop {
+            for (pipe, retain) in [
+                (&mut out as &mut dyn Read, true),
+                (&mut err as &mut dyn Read, false),
+            ] {
+                let mut chunk = [0u8; 4096];
+                // Bound each drain too: a continuously writing child must not
+                // prevent timeout/status observation.
+                for _ in 0..17 {
+                    match pipe.read(&mut chunk) {
+                        Ok(0) => break,
+                        Ok(n) => {
+                            count += n;
+                            if count > 65536 {
+                                return Err("label probe output limit exceeded".into());
+                            }
+                            if retain {
+                                bytes.extend_from_slice(&chunk[..n]);
+                            }
+                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
+                        Err(e) => return Err(format!("label probe read failed: {e}")),
+                    }
+                }
+            }
+            // Observe exit without reaping: the owned leader reserves PID/PGID
+            // until group cleanup, so no recycled unrelated group is signalled.
+            let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
+            if unsafe {
+                libc::waitid(
+                    libc::P_PID,
+                    child.id(),
+                    &mut info,
+                    libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+                )
+            } < 0
+            {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            if unsafe { info.si_pid() } != 0 {
+                if info.si_code != libc::CLD_EXITED || unsafe { info.si_status() } != 0 {
+                    return Err("label probe unsuccessful".into());
+                }
+                // Pipes were drained before status; perform one final bounded
+                // read after exit for bytes written between drain and exit observation.
+                let mut tail = [0u8; 65537];
+                match out.read(&mut tail) {
+                    Ok(n) => {
+                        count += n;
+                        bytes.extend_from_slice(&tail[..n]);
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => (),
+                    Err(e) => return Err(e.to_string()),
+                }
+                if count > 65536 {
+                    return Err("label probe output limit exceeded".into());
+                }
+                return String::from_utf8(bytes).map_err(|_| "non UTF-8 label probe output".into());
+            }
+            if Instant::now() >= deadline {
+                return Err("label probe timed out".into());
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    })();
+    terminate(&mut child); // also closes descendants retaining probe pipes
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    mod build_selection { include!("hosting_build_selection_tests.rs"); }
+    mod stop_admission { include!("hosting_stop_admission_tests.rs"); }
+    mod process_group_custody { include!("hosting_process_group_custody_tests.rs"); }
+    mod startup_refusal { include!("hosting_startup_refusal_tests.rs"); }
+    mod terminal_export { include!("hosting_terminal_export.rs"); }
+    mod lt12 { include!("hosting_lt12_tests.rs"); }
+    mod lt23 { include!("hosting_lt23_tests.rs"); }
+    mod s4_export { include!("hosting_s4_export.rs"); }
+    use super::*;
+    use crate::hosting::Host;
+    use std::os::unix::fs::PermissionsExt;
+    use std::sync::Arc;
+    struct Fixture {
+        root: PathBuf,
+        cfg: HostConfig,
+    }
+    impl Fixture {
+        fn new(probe: &str) -> Self {
+            let root = std::env::temp_dir()
+                .canonicalize()
+                .unwrap()
+                .join(crate::util::opaque_id("h3b-").unwrap());
+            for d in ["vendor/bin", "vendor/codex-path", "vendor/codex-resources", "account", "probe"] {
+                std::fs::create_dir_all(root.join(d)).unwrap();
+            }
+            std::fs::write(root.join("vendor/codex-package.json"), b"{}\n").unwrap();
+            let bin = root.join("vendor/bin/codex");
+            let code = format!(
+                r#"#!/usr/bin/env python3
+import os,sys,json,time
+if '--version' in sys.argv:
+ {probe}
+ print('codex-cli 0.160.0'); sys.exit(0)
+for line in sys.stdin:
+ f=json.loads(line)
+ if 'id' in f:
+  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.160.0'}}}}),flush=True)
+"#
+            );
+            std::fs::write(&bin, code).unwrap();
+            std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let mut cfg = HostConfig::new(
+                bin.clone(),
+                root.join("account"),
+                root.join("probe"),
+                root.clone(),
+            );
+            cfg.distribution = Some(Distribution::development_from_binary(&bin).unwrap());
+            cfg.allow_unverified_dev = true;
+            cfg.wait_limit = Duration::from_secs(2);
+            Self { root, cfg }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
+    #[test]
+    fn actual_host_successor_two_spawns_keep_exact_prospective_generation() {
+        let f=Fixture::new("assert os.environ['CODEX_HOME'].endswith('/probe'); assert os.environ['PATH'].split(':')[0].endswith('/vendor/codex-path'); assert 'CODEX_MANAGED_BY_NPM' not in os.environ");
+        let host = Arc::new(Host::new());
+        for counter in [1, 2] {
+            let ready = host.start(&f.cfg, "fixture").unwrap();
+            assert_eq!(ready["generation"]["spawnCounter"], counter);
+            assert_eq!(
+                ready["distributionSuccessor"]["verificationGeneration"],
+                ready["generation"]
+            );
+            assert_eq!(ready["supplierStanding"], "unverified-development");
+            assert_eq!(ready["versionIdentity"]["declaredPin"], "0.160.0");
+            let mut receiver = crate::runtime_session::RuntimeSession::default();
+            let received = receiver.receive(&host.observe(&Value::Null, 0));
+            assert_eq!(received["nativeView"]["generation"], ready["generation"]);
+            assert_eq!(
+                received["nativeView"]["supplierStanding"],
+                "unverified-development"
+            );
+            host.stop("fixture", "test complete").unwrap();
+        }
+    }
+    #[test]
+    fn actual_host_lt09_passes_explicit_successor_label_join() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let ready = host.start(&f.cfg, "fixture").unwrap();
+        let event = host.lifecycle_events().into_iter()
+            .find(|e| e["transitionId"] == "LT-09").unwrap();
+        let observation = json!({
+            "raw_version_label": ready["distributionSuccessor"]["rawVersionLabel"],
+            "observed_label": "0.160.0", "pin": "0.160.0"
+        });
+        assert_eq!(event["versionIdentity"]["observedVersionLabel"], "codex-cli 0.160.0");
+        let result = crate::distribution_semantics::validate_label_join(&event, &observation);
+        host.stop("fixture", "label join complete").unwrap();
+        result.unwrap();
+        assert_eq!(crate::distribution_semantics::label_join_identity()["semanticRevision"], "lifecycle-label-join.s2");
+    }
+    fn attach_store(host: &Host, f: &Fixture) -> PathBuf { attach_selected_store(host,f,None) }
+    fn attach_selected_store(host: &Host, f: &Fixture, expected_path:Option<&str>) -> PathBuf {
+        use crate::hosting::attachment_custody::{NativeHomeNamespace, NativeNamespaceBindings};
+        use crate::home_resources::{ExistingHomeReference, HomeClass};
+        let home=ExistingHomeReference::new(f.cfg.codex_home.clone(),HomeClass::Account).unwrap();
+        let probe=ExistingHomeReference::new(f.cfg.probe_home.clone(),HomeClass::Probe).unwrap();
+        let namespaces=NativeNamespaceBindings::from_root(vec![NativeHomeNamespace::received(&home,None),NativeHomeNamespace::received(&probe,None)]).unwrap();
+        let data=f.root.join("app-data");std::fs::create_dir(&data).unwrap();
+        let store=if let Some(expected_path)=expected_path {
+            let source=f.root.join("reference-source");
+            let inventory=serde_json::to_value(tree::scan(&f.root.join("vendor")).unwrap()).unwrap();
+            let anchor=tree::selection::fixture_files(&source,&inventory,expected_path);
+            let selected=tree::selection::Selected::fixture(&source,anchor).unwrap();
+            crate::distribution_store::Store::open_selected(&data,&f.root.join("vendor"),namespaces,selected).unwrap()
+        } else { crate::distribution_store::Store::open(&data,&f.root.join("vendor"),namespaces).unwrap() };
+        host.configure_distribution_store(Ok(store));data
+    }
+    #[test]
+    fn actual_host_attempt_publication_readback_and_tamper_refusal() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();
+        let g=ready["generation"].clone();
+        let evidence=host.distribution_evidence(&g);
+
+        assert_eq!(evidence["state"],"read", "{evidence}");
+        assert_eq!(evidence["evidence"]["artifact"]["format"],"observed-verification.s1");
+        let lt09=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-09").unwrap();
+        assert_eq!(evidence["evidence"]["lifecycle"]["legacy_event"],lt09);
+        assert_eq!(evidence["evidence"]["lifecycle"]["verification_generation"],g);
+        assert_eq!(evidence["evidence"]["artifact"]["generation"],g);
+        assert_eq!(evidence["evidence"]["transport"]["sourceAssociation"],Value::Null);
+        let name=evidence["evidence"]["reference"]["publication"].as_str().unwrap();
+        let artifact=data.join("runtime/distribution").join(name).join(".chirality-s1/observed.json");
+        let bytes=std::fs::read(&artifact).unwrap();
+        assert_eq!(tree::digest(&bytes),evidence["evidence"]["reference"]["observed"]["sha256"]);
+        assert_eq!(host.distribution_evidence(&json!({"appSession":"foreign","home":g["home"],"spawnCounter":1}))["state"],"unavailable");
+        std::fs::write(&artifact,b"{}").unwrap();
+        assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","store test complete").unwrap();
+    }
+    #[test]
+    fn actual_s1_at_use_final_audit_rejects_mutation_after_read() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();
+        let evidence=host.distribution_evidence(&g);
+        let artifact=data.join("runtime/distribution").join(evidence["evidence"]["reference"]["publication"].as_str().unwrap()).join(".chirality-s1/observed.json");
+        let store=host.distribution_store.lock().unwrap().as_ref().unwrap().as_ref().unwrap().clone();
+        store.before_s1_audit(move || std::fs::write(artifact,b"{}").unwrap());
+        assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","audit fixture complete").unwrap();
+    }
+    #[test]
+    fn namespace_admission_two_actual_host_homes_preserve_store_reference_and_expand_guards(){
+        let f=Fixture::new("pass");let account=Arc::new(Host::new());let data=attach_store(&account,&f);
+        let store=account.distribution_store_for_admission(true).unwrap().unwrap();let authority=store.namespace_authority();
+        account.configure_recovery(data.join("runtime/recovery.ledger.jsonl")).unwrap();
+        let ready=account.start(&f.cfg,"fixture").unwrap();let ga=ready["generation"].clone();let before=account.distribution_evidence(&ga);
+        let shared=f.root.join("shared");std::fs::create_dir(&shared).unwrap();std::fs::create_dir(shared.join("skills")).unwrap();for name in ["config.toml","AGENTS.md"]{std::fs::write(shared.join(name),b"synthetic resource").unwrap();}
+        let bootstrap=crate::runtime_session::freeze_root_home_descriptors(&data,&f.cfg,Some(data.join("key")),[Some(shared.join("config.toml")),Some(shared.join("AGENTS.md")),Some(shared.join("skills"))]).unwrap();
+        let cap=account.app_runtime_custody().unwrap();let installed=std::sync::atomic::AtomicBool::new(false);
+        let(tx,rx)=std::sync::mpsc::channel();let(go,wait)=std::sync::mpsc::channel();store.before_s1_audit(move||{tx.send(()).unwrap();wait.recv_timeout(Duration::from_secs(2)).unwrap();});let source=account.clone();let generation=ga.clone();let reader=std::thread::spawn(move||source.distribution_evidence(&generation));rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|panic!("busy must not install")).err().unwrap().contains("busy"));assert_eq!(authority.lease().unwrap().epoch(),0);go.send(()).unwrap();assert_eq!(reader.join().unwrap(),before);
+
+        let admitted=crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|{installed.store(true,std::sync::atomic::Ordering::SeqCst);}).unwrap();
+        assert!(installed.load(std::sync::atomic::Ordering::SeqCst));assert_eq!(before,account.distribution_evidence(&ga));
+        let key=Arc::new(Host::new_with_app_custody(cap).unwrap());key.configure_distribution_store(Ok(store.clone()));let mut cfg=f.cfg.clone();cfg.codex_home=data.join("key");
+        let ready=key.start(&cfg,"fixture").unwrap();let gk=ready["generation"].clone();assert_ne!(ga["home"],gk["home"]);assert_eq!(ga["appSession"],gk["appSession"]);assert_eq!(key.distribution_evidence(&gk)["state"],"read");assert_eq!(before,account.distribution_evidence(&ga));assert_eq!(key.distribution_evidence(&ga)["state"],"unavailable");
+        std::fs::remove_file(data.join("key/skills")).unwrap();assert_eq!(account.distribution_evidence(&ga)["state"],"unavailable");assert!(admitted.attachment.supplies_path("anything").is_err());std::os::unix::fs::symlink(shared.join("skills"),data.join("key/skills")).unwrap();assert_eq!(before,account.distribution_evidence(&ga));
+        key.stop("fixture","key continuity complete").unwrap();account.stop("fixture","account continuity complete").unwrap();
+    }
+    #[test]
+    fn actual_s1_selected_closure_is_unverified_exact_and_rechecks_original_source() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_selected_store(&host,&f,Some("reference/expected.json"));
+        let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();let evidence=host.distribution_evidence(&g);
+
+        assert_eq!(evidence["state"],"read","{evidence}");assert_eq!(evidence["evidence"]["outcome"],"unverifiable");assert_eq!(ready["supplierStanding"],"unverified-development");
+        let root=data.join("runtime/distribution").join(evidence["evidence"]["reference"]["publication"].as_str().unwrap());
+        for entry in evidence["evidence"]["transport"]["entries"].as_array().unwrap(){let path=entry["path"].as_str().unwrap();if !path.starts_with(".chirality-s1/"){assert_eq!(std::fs::read(root.join(path)).unwrap(),std::fs::read(f.root.join("reference-source").join(path)).unwrap());}}
+        std::fs::write(f.root.join("reference-source/evidence/expected/0.json"),b"tamper").unwrap();assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","selected closure test complete").unwrap();
+    }
+    #[test]
+    fn selected_reserved_path_collision_refuses_before_spawn() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());attach_selected_store(&host,&f,Some(".chirality-s1/source.json"));
+        assert!(host.start(&f.cfg,"fixture").unwrap_err().contains("collides"));assert!(host.snapshot()["generation"].is_null());assert!(host.child.lock().unwrap().is_none());
+    }
+    #[test]
+    fn full_s1_semantics_preserve_all_observation_and_lifecycle_duties() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();let evidence=host.distribution_evidence(&ready["generation"]);
+        host.stop("fixture","semantic test complete").unwrap();
+        let e=&evidence["evidence"];let observed=e["artifact"].clone();let lifecycle=e["lifecycle"].clone();
+        let root=data.join("runtime/distribution").join(e["reference"]["publication"].as_str().unwrap());
+        let files:crate::distribution_s1::Files=e["transport"]["entries"].as_array().unwrap().iter().map(|entry|{let path=entry["path"].as_str().unwrap();(path.into(),std::fs::read(root.join(path)).unwrap())}).collect();
+        assert_eq!(crate::distribution_s1::observed(&observed,&files,None).unwrap(),"unverifiable");
+        assert_eq!(crate::distribution_s1::lifecycle(&lifecycle,&files,None).unwrap(),"unverifiable");
+        // Keep named facts consistent while testing independent S1 value rules.
+        let rebind=|value:&mut Value|->crate::distribution_s1::Files {
+            let mut rebound=files.clone();let mut facts:Value=serde_json::from_slice(&files[".chirality-s1/preflight.json"]).unwrap();
+            for key in ["generation","inventory","raw_version_label","configuration"]{facts[key]=value[key].clone();}
+            let raw=serde_json::to_vec(&facts).unwrap();let reference=json!({"path":".chirality-s1/preflight.json","sha256":tree::digest(&raw)});
+            rebound.insert(".chirality-s1/preflight.json".into(),raw);for check in value["checks"].as_object_mut().unwrap().values_mut(){check["evidence"]=reference.clone();}rebound
+        };
+        for (pointer,value) in [("/raw_version_label",json!("codex 0.160.0\n")),("/observed_label",json!("9.9.9")),("/configuration/resolved_executable",json!("/wrong")),("/configuration/path_prefix",json!("bad:prefix")),("/configuration/probe_home",observed["configuration"]["account_home"].clone()),("/configuration/removed_environment_names",json!(["SOME_OTHER_VARIABLE"])),("/inventory/manifest_sha256",json!("0".repeat(64))),("/outcome",json!("verified")),("/checks/custody/outcome",json!("pass")),("/expected_reference",json!({"path":"forged.json","sha256":"0".repeat(64)}))] {
+            let mut changed=observed.clone();*changed.pointer_mut(pointer).unwrap()=value;
+            let rebound=rebind(&mut changed);assert!(crate::distribution_s1::observed(&changed,&rebound,None).is_err(),"{pointer}");
+        }
+        for required in ["codex-resources","codex-package.json"] {let mut changed=observed.clone();changed["inventory"]["entries"].as_array_mut().unwrap().retain(|e|e["path"]!=required);let rebound=rebind(&mut changed);assert!(crate::distribution_s1::observed(&changed,&rebound,None).unwrap_err().contains("mismatch"));}
+        let mut changed=observed.clone();let duplicate=changed["inventory"]["entries"][0].clone();changed["inventory"]["entries"].as_array_mut().unwrap().push(duplicate);let rebound=rebind(&mut changed);assert!(crate::distribution_s1::observed(&changed,&rebound,None).unwrap_err().contains("mismatch"));
+        let mut changed=observed.clone();changed["checks"]["tree"]["outcome"]=json!("mismatch");changed["outcome"]=json!("mismatch");assert_eq!(crate::distribution_s1::observed(&changed,&files,None).unwrap(),"mismatch");
+        let mut tampered=files.clone();tampered.insert(".chirality-s1/preflight.json".into(),b"{}".to_vec());assert!(crate::distribution_s1::observed(&observed,&tampered,None).is_err());
+        for (pointer,value) in [("/verification_generation/spawnCounter",json!(99)),("/legacy_event/generation/spawnCounter",json!(99)),("/legacy_event/fromState",json!("absent")),("/legacy_event/versionIdentity/observedVersionLabel",json!("0.160.0"))] {let mut changed=lifecycle.clone();*changed.pointer_mut(pointer).unwrap()=value;assert!(crate::distribution_s1::lifecycle(&changed,&files,None).is_err(),"{pointer}");}
+        let lt24=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-24").unwrap();
+        let mut phase_envelope=json!({"format":"lifecycle-event.s1","legacy_event":lt24,"verification_artifact":lifecycle["verification_artifact"],"verification_generation":observed["generation"]});
+        assert_eq!(crate::distribution_s1::lifecycle(&phase_envelope,&files,None).unwrap(),"unverifiable");
+        let mut preprobe=observed.clone();preprobe["phase"]=json!("pre-probe");let raw=serde_json::to_vec(&preprobe).unwrap();let mut phase_files=files.clone();phase_files.insert(".chirality-s1/observed.json".into(),raw.clone());phase_envelope["verification_artifact"]["sha256"]=json!(tree::digest(&raw));
+        assert!(crate::distribution_s1::lifecycle(&phase_envelope,&phase_files,None).is_err());
+        let mut no_artifact=lifecycle.clone();no_artifact["verification_artifact"]=Value::Null;no_artifact["verification_generation"]=Value::Null;assert!(crate::distribution_s1::lifecycle(&no_artifact,&files,None).is_err());
+        // Both immutable publication roots retain the exact same observed bytes.
+        let observed_bytes=std::fs::read(root.join(".chirality-s1/observed.json")).unwrap();
+        for entry in std::fs::read_dir(data.join("runtime/distribution")).unwrap(){assert_eq!(std::fs::read(entry.unwrap().path().join(".chirality-s1/observed.json")).unwrap(),observed_bytes);}
+    }
+    #[test]
+    fn post_lt09_publication_failure_preserves_actual_event_and_reports_unavailable() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        *host.before_successor_settlement.lock().unwrap()=Some(Box::new(move||std::fs::rename(data.join("runtime/distribution"),data.join("runtime/moved-distribution")).unwrap()));
+        let ready=host.start(&f.cfg,"fixture").unwrap();assert_eq!(ready["state"],"ready");
+        assert!(host.lifecycle_events().iter().any(|e|e["transitionId"]=="LT-09"));assert_eq!(host.distribution_evidence(&ready["generation"])["state"],"unavailable");
+        host.stop("fixture","failed artifact test complete").unwrap();
+    }
+    #[test]
+    fn late_s1_publication_cannot_replace_newer_generation_reference() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());attach_store(&host,&f);
+        let (paused_tx,paused_rx)=std::sync::mpsc::channel();let (resume_tx,resume_rx)=std::sync::mpsc::channel();
+        *host.before_s1_lt09_publish.lock().unwrap()=Some(Box::new(move||{paused_tx.send(()).unwrap();resume_rx.recv().unwrap();}));
+        let h=host.clone();let cfg=f.cfg.clone();let first=std::thread::spawn(move||h.start(&cfg,"fixture"));
+        paused_rx.recv_timeout(Duration::from_secs(5)).unwrap();host.stop("fixture","stop first source").unwrap();
+        let second=host.start(&f.cfg,"fixture").unwrap();assert_eq!(second["generation"]["spawnCounter"],2);
+        resume_tx.send(()).unwrap();assert!(first.join().unwrap().is_err());
+        let evidence=host.distribution_evidence(&second["generation"]);assert_eq!(evidence["state"],"read");assert_eq!(evidence["evidence"]["artifact"]["generation"],second["generation"]);
+        host.stop("fixture","late artifact test complete").unwrap();
+    }
+    #[test]
+    fn native_view_rechecks_artifacts_and_preserves_legacy_standing() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();
+        let mut receiver=crate::runtime_session::RuntimeSession::default();
+        let view=receiver.receive(&host.observe(&Value::Null,0));
+        assert_eq!(view["nativeView"]["distributionEvidence"]["state"],"read");
+        assert_eq!(view["nativeView"]["supplierStanding"],"unverified-development");
+        let evidence=host.distribution_evidence(&ready["generation"]);
+        let name=evidence["evidence"]["reference"]["publication"].as_str().unwrap();
+        std::fs::write(data.join("runtime/distribution").join(name).join("injected"),b"extra").unwrap();
+        let changed=receiver.receive(&host.observe(&ready["generation"],0));
+        host.stop("fixture","native adapter test complete").unwrap();
+        assert_eq!(changed["nativeView"]["distributionEvidence"]["state"],"unavailable");
+        assert_eq!(changed["nativeView"]["supplierStanding"],"unverified-development");
+    }
+    #[test]
+    fn store_configuration_failure_refuses_before_live_custody() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());
+        host.configure_distribution_store(Err("fixture store failure".into()));
+        assert!(host.start(&f.cfg,"fixture").unwrap_err().contains("fixture store failure"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert!(host.child.lock().unwrap().is_none());
+        let native = Arc::new(Host::new());
+        let mut cfg = f.cfg.clone();
+        cfg.require_distribution_artifacts = true;
+        assert!(native.start(&cfg,"fixture").unwrap_err().contains("store not configured"));
+        assert!(native.snapshot()["generation"].is_null());
+        assert!(native.child.lock().unwrap().is_none());
+    }
+    #[test]
+    fn production_cannot_be_overridden_by_development_fields() {
+        let f = Fixture::new("pass");
+        let mut cfg = production_config(
+            f.root.clone(),
+            f.cfg.codex_home.clone(),
+            f.cfg.probe_home.clone(),
+            f.root.clone(),
+        );
+        cfg.codex_bin = f.cfg.codex_bin.clone();
+        cfg.allow_unverified_dev = true;
+        cfg.expected_sha256 = Some(tree::digest(&std::fs::read(&cfg.codex_bin).unwrap()));
+        let host = Arc::new(Host::new());
+        // The compiled selection now exists (A-IN-S2), but this fixture root holds
+        // no reference closure: resolution refuses before any scan or probe.
+        let error = host.start(&cfg, "fixture").unwrap_err();
+        assert!(error.contains("no-follow open refused"), "{error}");
+        assert!(!error.contains("complete tree equals"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert_eq!(host.snapshot()["state"], "refused");
+        assert!(host.child.lock().unwrap().is_none());
+    }
+    #[test]
+    fn mutation_during_probe_refuses_before_child_custody() {
+        let f = Fixture::new(
+            "open(os.path.join(os.path.dirname(__file__),'../changed'),'w').write('mutation')",
+        );
+        let host = Arc::new(Host::new());
+        assert!(host.start(&f.cfg, "fixture").is_err());
+        assert!(host.snapshot()["generation"].is_null());
+        assert_eq!(host.snapshot()["verification"]["result"], "mismatch");
+        assert!(host.child.lock().unwrap().is_none());
+    }
+    #[test]
+    fn stalled_probe_does_not_hold_app_writer_and_is_bounded() {
+        let mut f = Fixture::new(
+            "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close(); time.sleep(10)",
+        );
+        f.cfg.wait_limit = Duration::from_millis(150);
+        let host = Arc::new(Host::new());
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let begin = Instant::now();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(1) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(host.recovery_writer.try_lock().is_ok());
+        assert!(worker.join().unwrap().unwrap_err().contains("timed out"));
+        assert!(begin.elapsed() < Duration::from_secs(2));
+        assert!(host.snapshot()["generation"].is_null());
+    }
+    #[test]
+    fn changed_counter_refuses_stale_attempt_without_consuming_another_counter() {
+        let mut f = Fixture::new(
+            "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close()\n while not os.path.exists(os.path.join(os.environ['CODEX_HOME'],'release')): time.sleep(0.005)",
+        );
+        f.cfg.wait_limit = Duration::from_secs(5);
+        let host = Arc::new(Host::new());
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        let begin = Instant::now();
+        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(5) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(f.root.join("probe/entered").exists());
+        let home = format!(
+            "app-home:{}",
+            crate::util::sha256_hex(f.cfg.codex_home.as_os_str().as_encoded_bytes())
+        );
+        {
+            let _guard = host.recovery_writer.lock().unwrap();
+            host.spawn_counters.lock().unwrap().insert(home.clone(), 1);
+        }
+        std::fs::write(f.root.join("probe/release"), b"counter changed").unwrap();
+        assert!(worker
+            .join()
+            .unwrap()
+            .unwrap_err()
+            .contains("prospective generation"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert_eq!(host.spawn_counters.lock().unwrap()[&home], 1);
+    }
+    #[test]
+    fn output_flood_and_home_overlap_refuse() {
+        let f = Fixture::new("sys.stdout.write('x'*70000); sys.stdout.flush()");
+        let host = Arc::new(Host::new());
+        assert!(host
+            .start(&f.cfg, "fixture")
+            .unwrap_err()
+            .contains("output limit"));
+        let mut cfg = f.cfg.clone();
+        cfg.probe_home = cfg.codex_home.clone();
+        assert!(host.start(&cfg, "fixture").unwrap_err().contains("overlap"));
+    }
+    #[test]
+    fn stale_probe_error_does_not_overwrite_successor_state() {
+        let f=Fixture::new("open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close(); time.sleep(0.2); sys.exit(2)");
+        let host = Arc::new(Host::new());
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        let begin = Instant::now();
+        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(1) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(f.root.join("probe/entered").exists());
+        {
+            let mut inner = host.inner.0.lock().unwrap();
+            inner.start_attempt += 1;
+            inner.state = "ready".into();
+        }
+        let before = host.snapshot();
+        assert!(worker
+            .join()
+            .unwrap()
+            .unwrap_err()
+            .contains("stale start attempt"));
+        assert_eq!(host.snapshot(), before);
+    }
+    #[test]
+    fn relocation_and_spawn_failure_preserve_counter_and_cleanup() {
+        let mut f = Fixture::new("pass");
+        let moved = f.root.join("relocated");
+        std::fs::rename(f.root.join("vendor"), &moved).unwrap();
+        f.cfg.codex_bin = moved.join("bin/codex");
+        f.cfg.distribution = Some(Distribution::development_from_binary(&f.cfg.codex_bin).unwrap());
+        let host = Arc::new(Host::new());
+        let ready = host.start(&f.cfg, "fixture").unwrap();
+        assert_eq!(
+            ready["distributionSuccessor"]["pathPrefix"],
+            moved.join("codex-path").to_str().unwrap()
+        );
+        host.stop("fixture", "done").unwrap();
+        let fresh = Arc::new(Host::new());
+        f.cfg.cwd = f.root.join("absent-cwd");
+        assert!(fresh
+            .start(&f.cfg, "fixture")
+            .unwrap_err()
+            .contains("spawn failed"));
+        assert!(fresh.snapshot()["generation"].is_null());
+        assert!(fresh.spawn_counters.lock().unwrap().is_empty());
+        assert!(fresh.child.lock().unwrap().is_none());
+    }
+    #[test]
+    fn launcher_removes_credentials_and_wrapper_settings() {
+        let f = Fixture::new("pass");
+        let plan = tree::plan(&f.root.join("vendor"), Some("inherited:remainder")).unwrap();
+        let mut cmd = Command::new("unused");
+        configure(&mut cmd, &plan);
+        let env: std::collections::HashMap<_, _> = cmd.get_envs().collect();
+        for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
+            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None));
+        }
+        assert_eq!(
+            env[std::ffi::OsStr::new("PATH")].unwrap(),
+            std::ffi::OsStr::new(&plan.path)
+        );
+    }
+
+    #[test]
+    fn exited_probe_leader_keeps_descendants_owned_until_cleanup() {
+        let f=Fixture::new("pid=os.fork(); (time.sleep(0.3),open(os.path.join(os.environ['CODEX_HOME'],'survived'),'w').close()) if pid==0 else None; sys.exit(0) if pid==0 else None");
+        let host = Arc::new(Host::new());
+        host.start(&f.cfg, "fixture").unwrap();
+        host.stop("fixture", "done").unwrap();
+        std::thread::sleep(Duration::from_millis(400));
+        assert!(!f.root.join("probe/survived").exists());
+    }
+    #[test]
+    fn busy_writer_after_audit_refuses_instead_of_waiting_with_stale_scan() {
+        let f = Fixture::new(
+            "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close(); time.sleep(0.2)",
+        );
+        let host = Arc::new(Host::new());
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        let begin = Instant::now();
+        while !f.root.join("probe/entered").exists() && begin.elapsed() < Duration::from_secs(1) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(f.root.join("probe/entered").exists());
+        let _guard = host.recovery_writer.lock().unwrap();
+        assert!(worker.join().unwrap().unwrap_err().contains("writer busy"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert!(host.spawn_counters.lock().unwrap().is_empty());
+    }
+    fn pause_at(
+        hook: &std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    ) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+        let (arrive, arrived) = std::sync::mpsc::channel();
+        let (resume, resumed) = std::sync::mpsc::channel();
+        *hook.lock().unwrap() = Some(Box::new(move || {
+            arrive.send(()).unwrap();
+            resumed.recv_timeout(Duration::from_secs(10)).unwrap();
+        }));
+        (arrived, resume)
+    }
+    #[test]
+    fn stop_winning_before_final_gate_prevents_spawn() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let (paused, resume) = pause_at(&host.before_successor_gate);
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        paused.recv_timeout(Duration::from_secs(3)).unwrap();
+        host.stop("fixture", "cancel pending start").unwrap();
+        assert_eq!(host.state(), "stopped");
+        let before = host.snapshot();
+        resume.send(()).unwrap();
+        assert!(worker.join().unwrap().is_err());
+        assert_eq!(host.snapshot(), before);
+        assert!(host.child.lock().unwrap().is_none());
+        assert!(host.spawn_counters.lock().unwrap().is_empty());
+    }
+    #[test]
+    fn stop_after_final_check_waits_for_published_child_then_stops_it() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let (checked, continue_spawn) = pause_at(&host.after_successor_check);
+        let (published, continue_handshake) = pause_at(&host.after_successor_publish);
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        checked.recv_timeout(Duration::from_secs(3)).unwrap();
+        assert!(host.attachment_gate.try_lock().is_err());
+        let (stopped_tx, stopped_rx) = std::sync::mpsc::channel();
+        let h = Arc::clone(&host);
+        let stopper = std::thread::spawn(move || {
+            stopped_tx
+                .send(h.stop("fixture", "cancel checked start"))
+                .unwrap()
+        });
+        assert!(stopped_rx.recv_timeout(Duration::from_millis(50)).is_err());
+        continue_spawn.send(()).unwrap();
+        published.recv_timeout(Duration::from_secs(3)).unwrap();
+        stopped_rx
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap()
+            .unwrap();
+        stopper.join().unwrap();
+        assert_eq!(host.state(), "stopped");
+        let before = host.snapshot();
+        continue_handshake.send(()).unwrap();
+        assert!(worker.join().unwrap().is_err());
+        assert_eq!(host.snapshot(), before);
+        // Host retains the reaped Child handle as historical process evidence.
+        // This ordering legitimately spawned; prove it ended rather than
+        // incorrectly requiring the never-spawned ordering's empty handle.
+        assert!(host
+            .child
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .observe_exit()
+            .unwrap()
+            .is_some());
+        assert_eq!(
+            host.lifecycle_events().last().unwrap()["descendants"]["surviving"],
+            0
+        );
+        assert_eq!(before["generation"]["spawnCounter"], 1);
+        assert!(!host
+            .lifecycle_events()
+            .iter()
+            .any(|e| e["transitionId"] == "LT-09"));
+    }
+    #[test]
+    fn stopped_handshake_response_cannot_revive_or_fail_a_later_source() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let (response_arrived, resume) = pause_at(&host.before_successor_settlement);
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        response_arrived
+            .recv_timeout(Duration::from_secs(3))
+            .unwrap();
+        let old = host.snapshot()["generation"].clone();
+        let old_attempt = host.inner.0.lock().unwrap().start_attempt;
+        host.stop("fixture", "cancel handshake completion").unwrap();
+        let stopped = host.snapshot();
+        resume.send(()).unwrap();
+        assert!(worker.join().unwrap().is_err());
+        assert_eq!(host.snapshot(), stopped);
+        host.start(&f.cfg, "fixture successor").unwrap();
+        let next = host.snapshot();
+        assert!(host
+            .finish_successor_handshake(
+                &old,
+                old_attempt,
+                json!({}),
+                Err("old transport failure".into())
+            )
+            .is_err());
+        assert_eq!(host.snapshot(), next);
+        host.stop("fixture", "cleanup").unwrap();
+    }
+    #[test]
+    fn busy_source_gate_after_audit_refuses_without_waiting() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let (paused, resume) = pause_at(&host.before_successor_gate);
+        let h = Arc::clone(&host);
+        let cfg = f.cfg.clone();
+        let worker = std::thread::spawn(move || h.start(&cfg, "fixture"));
+        paused.recv_timeout(Duration::from_secs(3)).unwrap();
+        let _gate = host.attachment_gate.lock().unwrap();
+        resume.send(()).unwrap();
+        assert!(worker
+            .join()
+            .unwrap()
+            .unwrap_err()
+            .contains("source gate busy"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert!(host.spawn_counters.lock().unwrap().is_empty());
+    }
+    #[test]
+    fn successor_handshake_mismatch_retains_observed_diagnostic_and_refuses_ready() {
+        let f = Fixture::new("pass");
+        let source = std::fs::read_to_string(&f.cfg.codex_bin)
+            .unwrap()
+            .replace("codex/0.160.0", "codex/0.159.0");
+        std::fs::write(&f.cfg.codex_bin, source).unwrap();
+        let host = Arc::new(Host::new());
+        assert!(host
+            .start(&f.cfg, "fixture")
+            .unwrap_err()
+            .contains("contradicts declared pin"));
+        assert_eq!(host.state(), "halted-after-repeated-failure");
+        assert_eq!(
+            host.snapshot()["versionIdentity"]["handshakeConsistency"],
+            "contradicts-declared-pin"
+        );
+        assert!(!host
+            .lifecycle_events()
+            .iter()
+            .any(|e| e["transitionId"] == "LT-09"));
+        assert!(host.child.lock().unwrap().as_mut().unwrap().wait_exit().is_ok());
+    }
+}

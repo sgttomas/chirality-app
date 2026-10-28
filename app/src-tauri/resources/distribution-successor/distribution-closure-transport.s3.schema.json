@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:distribution-closure-transport:s3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "method",
+    "sourceAssociation",
+    "mirrorLocator",
+    "generation",
+    "entries",
+    "reader",
+    "limit"
+  ],
+  "properties": {
+    "format": {
+      "const": "distribution-closure-transport.s3"
+    },
+    "method": {
+      "const": "selected-s1-contract-closure.s3"
+    },
+    "sourceAssociation": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "originalSource",
+            "compiledAnchor",
+            "expectedReference",
+            "adoptionAttestation"
+          ],
+          "properties": {
+            "method": {
+              "const": "selected-s1-contract-closure.s3"
+            },
+            "originalSource": {
+              "type": "string",
+              "minLength": 1
+            },
+            "compiledAnchor": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "expectedReference": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "adoptionAttestation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mirrorLocator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "reader": {
+      "type": "object"
+    },
+    "limit": {
+      "const": "Creation correspondence only; no future integrity, issuer, qualification or live custody assertion"
+    }
+  }
+}

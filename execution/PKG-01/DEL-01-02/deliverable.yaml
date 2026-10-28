@@ -1,0 +1,122 @@
+id: DEL-01-02
+name: Durable execution and request recovery
+needs:
+- from: DEL-01-01
+  condition: 'Consume the supplied stock-Codex process/protocol boundary and selected-version types from
+    App-v4 DEL-01-01 for execution/recovery implementation. Current development/definition and generated
+    reference use owner-authorized, reviewed SUP1 0.160.0 (ScopeOfWork TBD-001; DEL-01-01 source [S]/REQ-006/TBD-002).
+    The owner''s OI-008 ruling places Codex interaction, request custody and record writes in Rust; HOSTING
+    §12 records it. Bind the actual qualification pin by R23-22 at candidate build time; expected qualified
+    distribution identity and App qualification remain owed, with no signing/release evidence supplied by
+    development pin selection. Resolve the remaining applicable supplier/version/environment evidence at
+    its point of need.
+
+
+    Historical extraction provenance (superseded current input condition above): FACT: The technical
+    input is the supplied boundary and selected-version types, not mere existence
+    of the supplier contract. OI-012 supplier pin and DEP-005 inputs remain open as stated; OI-008 allocation
+    is decided (UPDATE 20261010 below). Stock/direct hosting and optional legacy reuse are preserved; no wire fields or Runtime service
+    are selected. INITIALIZED is the approved local-contract maturity threshold only; actual artifact/input/transfer
+    availability and fulfilment remain unclaimed. No lifecycle or readiness advancement. UPDATE 20261003
+    (SCA-V4-003 DX): R3-01-02-d: revised TBD-001 (G-0102-17) records that APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D4 selected Codex 0.158.0 as the definition and generation pin, not a qualification; the pin used
+    for qualification remains open with the App implementation owner (also the Owner, DECISION-L L-7),
+    and OI-008''s main-process division was then proposed as HOSTING §12 option O-1, not selected (superseded
+    by the owner''s decision of 2026-10-10 below). Identity,
+    direction, type, target, quote, maturity and closure unchanged. UPDATE 20261010: the owner decided
+    OI-008 for the whole App: "The Rust host owns everything that writes the person''s files or the App''s
+    records, talks to Codex, or captures a person''s act. The web view presents, and sends only what the
+    person initiates. It never writes records or operates the act control." The ruling is recorded in docs/ARCHITECTURE.md
+    §3 ("Process placement (OI-008)") and Open_Issues OI-008 reads RESOLVED_BY_OWNER_DECISION; TBD-001
+    now records it.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the applicable adopted operation policy carried by App-v4 DEL-04-01 and ScopeOfWork
+    TBD-003: first-increment reserved acts (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2) and the person''s
+    own Codex tool-permission and sandbox modes, including classifier-based modes (D3), never a substitute
+    for a reserved/professional act. Hosts have no classifier permission mode in this increment. No pending
+    OI-001/OI-002 first-increment selection remains; only dependent unruled operation-specific additions
+    remain under OI-021 with the owner via the outside SWB session and App/shared owner at its stated point
+    of need. Independent recovery work can proceed; no human act is inferred from an execution outcome.
+
+
+    Historical extraction provenance (superseded current input condition above): FACT: The actual
+    condition is an applicable adopted policy at the affected point of need; no
+    always-reserved list or classifier mode is selected and no blanket project hold or future-human-act
+    prerequisite is created. INITIALIZED is the approved local-contract maturity threshold only; actual
+    artifact/input/transfer availability and fulfilment remain unclaimed. No lifecycle or readiness advancement.
+    UPDATE 20261003 (SCA-V4-003 DX): R3-01-02-c: TBD-003 and CLM-004 now record D2/D3 as applying for
+    this scope, carried by DEL-04-01 (ACT §10.1 V-21), with OI-001/OI-002 open beyond it; Statement refreshed.
+    The quoted sentence is unchanged and verbatim. Identity, direction, type, target, maturity and closure
+    unchanged; DEL-04-01 gains no supplier (this row is DEL-01-02 consuming).
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-01-02 consumes this deliverable''s stock supplier boundary for its own named
+    production responsibility; the receiving act remains with that owner.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/hosting_continuation_context.rs
+- app/src-tauri/src/hosting_observer_rebuild.rs
+- app/src/ObserverAttachment.tsx
+- app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting_native_delivery.rs
+- app/src-tauri/src/process_group_custody.rs
+- app/src-tauri/src/records_continuity.rs
+- app/src-tauri/src/recovery.rs
+- app/src-tauri/src/recovery_store.rs
+- app/src-tauri/src/recovery_root_view.rs
+- app/src/RecoveryCustodyPanel.tsx
+- app/src-tauri/src/app_quit.rs
+- app/src-tauri/src/codex_stop.rs
+- app/src-tauri/src/stop_records.rs
+- app/src-tauri/resources/runtime_core/recovery.stop-request.schema.json
+- app/src-tauri/src/execution_custody.rs
+- app/src-tauri/src/hosting_recovery_reads.rs
+- app/src-tauri/src/workflow_learning_pointers.rs
+- app/src-tauri/src/historical_run_learning.rs
+checks:
+- app/src-tauri/src/hosting_continuation_context_tests.rs
+- app/src-tauri/src/hosting_observer_journal_tests.rs
+- app/src-tauri/src/hosting_observer_rebuild_tests.rs
+- app/tests/observer-attachment.test.mjs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting_native_delivery.rs
+- app/src-tauri/src/hosting_recorded_replay_tests.rs
+- app/src-tauri/src/hosting_process_group_custody_tests.rs
+- app/tests/process-group-custody.test.mjs
+- app/src-tauri/src/records_continuity_tests.rs
+- app/src-tauri/src/recovery_startup_request_tests.rs
+- app/src-tauri/src/recovery_store_tests.rs
+- app/src-tauri/src/recovery_request_history_tests.rs
+- app/src-tauri/src/recovery_root_tests.rs
+- app/tests/recovery-custody.test.mjs
+- app/src-tauri/tests/recovery_startup.rs
+- app/src-tauri/src/app_quit_tests.rs
+- app/src-tauri/src/codex_stop_tests.rs
+- app/src-tauri/src/stop_records_tests.rs
+- app/src-tauri/src/stop_records_host_tests.rs
+- app/src-tauri/src/execution_custody_tests.rs
+- app/src-tauri/src/hosting_recovery_reads_tests.rs
+- app/src-tauri/src/historical_run_learning_tests.rs
+- app/src-tauri/src/historical_trial_flows_tests.rs
+- execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
+- execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py

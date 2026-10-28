@@ -1,0 +1,8 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.05s
+     Running unittests src/lib.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/chirality_app_v4_lib-bd9e3d5c7d3fb158)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.00s
+

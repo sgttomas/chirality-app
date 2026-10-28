@@ -1,0 +1,210 @@
+//! Step 1: the main process hosts the stock Codex App Server and completes
+//! `initialize` then `thread/start` (HOSTING_BOUNDARY.md §4.2, §5, §4.5).
+//!
+//! Needs CHIRALITY_CODEX_BIN (the stock 0.160.0 binary). Fails if it is not set,
+//! unless CHIRALITY_SKIP_CODEX=1 is set explicitly. Uses a scratch CODEX_HOME made
+//! with `mktemp -d` below `std::env::temp_dir()`; never a real Codex home; no sign-in;
+//! no credential. The scratch home's config.toml stands in for the person's own
+//! configuration: plugins off, analytics off, and a model provider on 127.0.0.1
+//! port 9 where no server runs. This configures the model target; it does not
+//! enforce network isolation. Actual sampled socket observations are described
+//! in EVIDENCE.md, observation N-1. No model turn is started.
+
+mod common;
+use common::{evidence_output, ScratchDirectory};
+
+use chirality_app_v4_lib::hosting::{Host, HostConfig};
+use serde_json::{json, Value};
+use std::process::{Command, Output};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+const PERSON_CONFIG_STAND_IN: &str = r#"# Test stand-in for the person's Codex configuration (written by tests/handshake.rs).
+model_provider = "skeleton_local"
+model = "skeleton-no-model"
+
+[model_providers.skeleton_local]
+name = "skeleton local (no server running)"
+base_url = "http://127.0.0.1:9/v1"
+wire_api = "responses"
+
+[features]
+plugins = false
+
+[analytics]
+enabled = false
+"#;
+
+fn internet_sockets(pgid: i32) -> Result<Vec<String>, String> {
+    let out = Command::new("lsof").args(["-n", "-P", "-a", "-i", "-g", &pgid.to_string()]).output();
+    socket_observation(out)
+}
+
+fn socket_observation(out: std::io::Result<Output>) -> Result<Vec<String>, String> {
+    match out {
+        // lsof exit 1 also denotes no selected files. Only a clean, empty
+        // no-match result can establish an empty observation; diagnostics can
+        // indicate that permission/access prevented a complete listing.
+        Ok(o) if o.status.code() == Some(1) && o.stdout.is_empty() && o.stderr.is_empty() => Ok(Vec::new()),
+        Ok(o) if !o.status.success() || !o.stderr.is_empty() => Err(format!(
+            "lsof observation failed ({}): {}", o.status, String::from_utf8_lossy(&o.stderr)
+        )),
+        Ok(o) => Ok(String::from_utf8_lossy(&o.stdout).lines().skip(1).map(|l| l.to_string()).collect()),
+        Err(e) => Err(format!("lsof observation unavailable: {e}")),
+    }
+}
+
+#[cfg(unix)]
+mod socket_observation_tests {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+
+    fn output(code: i32, stdout: &str, stderr: &str) -> std::io::Result<Output> {
+        Ok(Output {
+            status: std::process::ExitStatus::from_raw(code << 8),
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: stderr.as_bytes().to_vec(),
+        })
+    }
+
+    #[test]
+    fn socket_observation_preserves_socket_rows() {
+        let row = "codex 123 user 4u IPv4 0x1 0t0 TCP 127.0.0.1:9 (LISTEN)";
+        assert_eq!(socket_observation(output(0, &format!("COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n{row}\n"), "")).unwrap(), vec![row]);
+    }
+
+    #[test]
+    fn socket_observation_accepts_success_without_rows_and_clean_no_match() {
+        assert!(socket_observation(output(0, "", "")).unwrap().is_empty());
+        assert!(socket_observation(output(0, "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n", "")).unwrap().is_empty());
+        assert!(socket_observation(output(1, "", "")).unwrap().is_empty());
+    }
+
+    #[test]
+    fn socket_observation_rejects_unavailable_command() {
+        let error = socket_observation(Err(std::io::Error::new(std::io::ErrorKind::NotFound, "synthetic missing lsof"))).unwrap_err();
+        assert!(error.contains("synthetic missing lsof"));
+    }
+
+    #[test]
+    fn socket_observation_rejects_failed_or_incomplete_observations() {
+        for (code, stdout, stderr) in [
+            (1, "", "lsof: permission denied\n"),
+            (2, "", ""),
+            (0, "", "lsof: WARNING: cannot stat filesystem\n"),
+            (1, "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n", ""),
+        ] {
+            assert!(socket_observation(output(code, stdout, stderr)).is_err(), "accepted code={code}, stdout={stdout:?}, stderr={stderr:?}");
+        }
+        assert!(socket_observation(Ok(Output {
+            status: std::process::ExitStatus::from_raw(9),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        })).is_err(), "signal termination is not a no-match result");
+    }
+}
+
+#[test]
+fn hosts_codex_initialize_then_thread_start() {
+    let Ok(bin) = std::env::var("CHIRALITY_CODEX_BIN") else {
+        if std::env::var("CHIRALITY_SKIP_CODEX").as_deref() == Ok("1") {
+            eprintln!("SKIPPED explicitly: CHIRALITY_SKIP_CODEX=1");
+            return;
+        }
+        panic!("CHIRALITY_CODEX_BIN is not set (set CHIRALITY_SKIP_CODEX=1 to skip explicitly)");
+    };
+    let home = ScratchDirectory::new("cxh");
+    let probe = ScratchDirectory::new("cxp");
+    let cwd = ScratchDirectory::new("cxw");
+    std::fs::write(home.join("config.toml"), PERSON_CONFIG_STAND_IN).unwrap();
+
+    let mut cfg = HostConfig::new(bin.into(), home.to_path_buf(), probe.to_path_buf(), cwd.to_path_buf());
+    cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
+    cfg.allow_unverified_dev = true; // current full distribution qualification is absent
+
+    let host = Arc::new(Host::new());
+    // CR-03: a request before ready is refused and not sent.
+    assert!(host.request("thread/start", json!({}), json!({"kind": "person-directed"})).is_err());
+
+    let t0 = Instant::now();
+    let ready = host.start(&cfg, "app-startup").expect("start reaches ready");
+    assert_eq!(ready["state"], "ready");
+    let generation = ready["generation"].clone();
+    assert_eq!(generation["spawnCounter"], 1);
+    assert!(generation["appSession"].as_str().unwrap().starts_with("app-session:"));
+    assert_eq!(ready["supplierStanding"], "unverified-development");
+    assert_eq!(ready["verification"]["result"], "unverifiable");
+    let vi = &ready["versionIdentity"];
+    assert_eq!(vi["observedVersionLabel"], "codex-cli 0.160.0");
+    assert_eq!(vi["handshakeConsistency"], "consistent");
+    assert_eq!(vi["handshakeReportedIdentity"]["codexHome"], json!(home.display().to_string()));
+    assert_eq!(ready["declaredCapabilities"], json!({"experimentalApi": true, "requestAttestation": false, "explicitGatewayOauth": true}));
+
+    // H4/H6: notifications received before readiness are buffered; the stock
+    // supplier may also emit this notification after the initialize reply.
+    // Observe delivery with a bounded wait instead of assuming scheduling order.
+    let notification_deadline = Instant::now() + Duration::from_secs(5);
+    let rc = loop {
+        if let Some(frame) = host.journal().into_iter()
+            .find(|e| e["frame"]["method"] == "remoteControl/status/changed") {
+            break frame;
+        }
+        assert!(Instant::now() < notification_deadline,
+                "remoteControl/status/changed not delivered within deadline");
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert_eq!(rc["generation"], generation);
+    assert!(rc["frame"].get("emittedAtMs").is_some());
+
+    let r = host.thread_start_selected(&cwd.display().to_string(), "skeleton-no-model", "skeleton_local").expect("thread/start answered");
+    assert_eq!(r["result"]["modelProvider"], "skeleton_local");
+    assert_eq!(r["result"]["model"], "skeleton-no-model");
+    assert_eq!(host.snapshot()["networkDisclosure"]["entries"][1]["phase"], "thread-start");
+    let thread_id = r["result"]["thread"]["id"].as_str().unwrap().to_string();
+    assert!(!thread_id.is_empty());
+    let elapsed_ready_to_thread = t0.elapsed();
+
+    // thread/started notification observed, same generation.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !host.journal().iter().any(|e| e["frame"]["method"] == "thread/started") && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(host.journal().iter().any(|e| e["frame"]["method"] == "thread/started" && e["generation"] == generation));
+
+    let pgid = host.child_pid().unwrap();
+    let sockets = internet_sockets(pgid).expect("internet socket observation completed");
+    assert!(sockets.is_empty(), "Codex opened internet sockets: {sockets:?}");
+
+    let reqs = host.client_requests();
+    let init = reqs.iter().find(|r| r["method"] == "initialize").unwrap();
+    assert_eq!(init["outcome"], "response-observed-result");
+    let ts = reqs.iter().find(|r| r["method"] == "thread/start" && r["generation"] == generation).unwrap();
+    assert_eq!(ts["outcome"], "response-observed-result");
+    assert_eq!(ts["initiator"]["kind"], "person-directed");
+
+    // §4.5 deliberate stop: stop record, close input, the whole group ends.
+    host.stop("the person", "test end").unwrap();
+    assert_eq!(host.state(), "stopped");
+    let lts: Vec<String> = host.lifecycle_events().iter().map(|e| e["transitionId"].as_str().unwrap().to_string()).collect();
+    assert_eq!(lts, ["LT-01", "LT-24", "LT-06", "LT-09", "LT-17", "LT-23"]);
+    let last = host.lifecycle_events().last().cloned().unwrap();
+    assert_eq!(last["descendants"]["surviving"], 0);
+    // After the stop: a request is refused, not sent.
+    assert!(host.request("thread/start", json!({}), json!({"kind": "person-directed"})).is_err());
+
+    // Records for the schema test (tests/validate-records.test.mjs).
+    let out = evidence_output();
+    std::fs::create_dir_all(&out).unwrap();
+    let evidence = json!({
+        "lifecycleEvents": host.lifecycle_events(),
+        "clientRequests": host.client_requests(),
+        "threadId": thread_id,
+        "codexHome": home.display().to_string(),
+        "elapsedStartToThreadMs": elapsed_ready_to_thread.as_millis() as u64,
+        "internetSocketsAfterThreadStart": sockets,
+        "modelTurnExercised": false,
+    });
+    std::fs::write(out.join("hosting-records.json"), serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+    let v: Value = evidence;
+    eprintln!("lifecycle: {lts:?}; thread {}; start->thread {} ms", v["threadId"], v["elapsedStartToThreadMs"]);
+}

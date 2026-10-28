@@ -1,46 +1,51 @@
-# Chirality App
+# Chirality App v4
 
-**Plan your work. Iterate.**
+Chirality makes a general agent act within and for a host application. Its
+workflow-authoring App is the exemplar. [App v4 thesis](docs/thesis/README.md)
+develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
+its companions and the deliverable Scopes of Work and Designs.
 
-Meet Help Human, the assistant inside Chirality App. Bring a complex task, work through it together, and turn a useful plan into a workflow you can reuse and adapt.
+Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
+in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
+criteria, `Design/` holds contracts and open implementation conditions, and
+`deliverable.yaml` states needs and code/check pointers. Query their inputs and
+consumers with the [deliverables tools](../../tools/deliverables/README.md).
+For the toolchain, build and launch instructions, start with the
+[App developer start](app/README.md#developer-start). The rest of that README
+describes the current product path, checks and remaining qualification limits.
 
-**[Download Chirality App](https://github.com/sgttomas/chirality-app/releases/latest)** · [Website](https://chirality.ai/app) · [Report an issue](https://github.com/sgttomas/chirality-app/issues/new/choose)
+The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
+applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
+retains its undelivered and unadopted standing. New contract gaps belong in their
+owning Design; PR descriptions carry the history of their fixes.
 
-## Get started
+## Basis and history
 
-Version **3.0.1** is the published fallback for **Apple Silicon Macs running macOS 15 or newer** while [App v4 develops in Chirality](https://github.com/sgttomas/chirality/tree/main/projects/chirality-app-v4). App v3 is frozen and no longer developed or verified in the main repository. The published version uses Codex through your ChatGPT account. Local-model support is planned for a later release.
+The owner accepted the revised composite basis on 2026-09-26, including its open
+matters and external dependencies, and accepted the 60% gate on 2026-10-04. The
+[composite acceptance](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md),
+[Group1](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md),
+[Group2](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md),
+[final decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md),
+[project DAG](execution/_DAG/_LATEST.md) and
+[gate decision](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md)
+identify those acts and their subjects. The published fallback remains v3.0.1
+until the separate replacement decision.
 
-1. Download the `.dmg` from the [latest release](https://github.com/sgttomas/chirality-app/releases/latest).
-2. Open it and drag Chirality to Applications. The release is signed and notarized.
-3. Open Chirality, sign in with your ChatGPT account, and choose a working folder.
-4. Tell Help Human what you want to accomplish.
+Old setup logs, handoffs, work graphs, acceptance packets and implementation
+register history are recoverable at
+[`archive/app-v4-pre-contract-register-retirement-20261011`](https://github.com/sgttomas/chirality/tree/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4).
+Earlier AgentRuns are in
+[`archive/pre-efficiency-cleanup-2026-10-09`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
+These are historical sources, not a standing development backlog.
 
-A conversation is enough to begin. Use Plan Mode when planning helps, select a workflow from the library, or ask Help Human to turn your plan into one. Come back to the conversation to continue, reuse, and refine your work.
+## Layout
 
-## Your work
-
-Prepare a monthly update, organize references, investigate a question, or review a document. You direct the work and decide when the result is ready.
-
-Saved plans, workflows, references, and outputs are ordinary files in your folders. Plans stay in conversation history unless you choose to save them to a file. You can use them outside Chirality. Model processing sends the content needed for the task to OpenAI using your account; Chirality AI Ltd does not proxy or retain that content. Read more about [installation and data handling](https://chirality.ai/deployment).
-
-## Updates and support
-
-The App checks for updates automatically and shows when a newer release is available. Downloading and installing the update remains your choice. You can also check manually in the App.
-
-Use **Report issue** in the App or [open a GitHub issue](https://github.com/sgttomas/chirality-app/issues/new/choose). Include the App version, what you expected, and what happened. Share only information you are comfortable making public.
-
-## Source and development
-
-This repository hosts public installers, release notes, user issue reports and retained v3 source snapshots. Current application and instruction development takes place in **[sgttomas/chirality](https://github.com/sgttomas/chirality)**.
-
-The [`desktop/`](desktop/) and [`runtime/`](runtime/) snapshots were published together in [projection commit ea7aac1](https://github.com/sgttomas/chirality-app/commit/ea7aac1) on 2026-09-20; the desktop package manifest identifies version 3.0.1. Their documentation describes that retained source, including historical architecture and build assumptions. The snapshots are separate from versioned installers: use each release's notes and assets to identify what was distributed. [Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md) explains recovery of the old source and exporter.
-
-- [App v4 development setup and checks](https://github.com/sgttomas/chirality/blob/main/projects/chirality-app-v4/app/README.md#developer-start)
-- [Roles and instructions](https://github.com/sgttomas/chirality/tree/main/agents)
-- [Workflow library](https://github.com/sgttomas/chirality/tree/main/workflows)
-- [Release notes](https://github.com/sgttomas/chirality-app/releases)
-- [Release projection CI](docs/CI.md)
-
-## License
-
-Chirality App is free and open source under the [MIT License](https://github.com/sgttomas/chirality/blob/main/LICENSE.md). Bundled dependencies and older source snapshots retain their own licence notices. Copyright © 2026 Ryan Tufts.
+| Path | Contents |
+|---|---|
+| [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
+| [app/](app/) | Rust host, web view and maintained product checks |
+| [execution/](execution/) | Deliverable contracts, Designs and dependency conditions |
+| [conceptual/](conceptual/) | Source interpretation and the original conceptual choices |
+| [reference/](reference/) | Identified source revisions and inventories |
+| [foundation/](foundation/) | Preserved thesis and its transfer account |

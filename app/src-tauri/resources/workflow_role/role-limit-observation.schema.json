@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:role-limit-observation:0.1",
+  "title": "Original App composition limit observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "formatVersion",
+    "role",
+    "roleSet",
+    "composedContent",
+    "roleGuidance",
+    "limits",
+    "basis"
+  ],
+  "properties": {
+    "format": {
+      "const": "chirality.role.limits.observation"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "role": {
+      "enum": [
+        "none",
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ]
+    },
+    "roleSet": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "composedContent": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "roleGuidance": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "content",
+            "source"
+          ],
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "source": {
+              "$ref": "#/$defs/guidanceSource"
+            }
+          }
+        }
+      ]
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/limit"
+      }
+    },
+    "basis": {
+      "const": "original App composition; role instructions do not establish supplier enforcement"
+    }
+  },
+  "$defs": {
+    "limit": {
+      "type": "object",
+      "required": [
+        "limitId",
+        "statement",
+        "standing",
+        "presentedAs",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "limitId": {
+          "type": "string",
+          "pattern": "^L-[A-Z_]+-[0-9]+$"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standing": {
+          "enum": [
+            "stated-not-enforced",
+            "enforced-by-supplier",
+            "unknown"
+          ]
+        },
+        "presentedAs": {
+          "enum": [
+            "Stated, not enforced",
+            "Enforced by Codex",
+            "Not known whether the supplied guidance states this"
+          ]
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why this standing: decision, supplier fact with its label, or the guidance state"
+        },
+        "mechanism": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for enforced-by-supplier: the supplier control and its evidence"
+        },
+        "notEnforcement": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "approval-policy",
+              "sandbox",
+              "brief-text",
+              "worktree",
+              "user-configuration",
+              "depth-limit"
+            ]
+          },
+          "description": "Things that may restrict the agent but are not reported as enforcement of this limit (AC-004)"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "standing": {
+                "const": "enforced-by-supplier"
+              }
+            },
+            "required": [
+              "standing"
+            ]
+          },
+          "then": {
+            "required": [
+              "mechanism"
+            ],
+            "properties": {
+              "presentedAs": {
+                "const": "Enforced by Codex"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "standing": {
+                "const": "stated-not-enforced"
+              }
+            },
+            "required": [
+              "standing"
+            ]
+          },
+          "then": {
+            "properties": {
+              "presentedAs": {
+                "const": "Stated, not enforced"
+              }
+            },
+            "not": {
+              "required": [
+                "mechanism"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "standing": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "standing"
+            ]
+          },
+          "then": {
+            "properties": {
+              "presentedAs": {
+                "const": "Not known whether the supplied guidance states this"
+              }
+            },
+            "not": {
+              "required": [
+                "mechanism"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "guidanceSource": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/seededGuidanceSource"
+        },
+        {
+          "$ref": "#/$defs/editableGuidanceSource"
+        }
+      ]
+    },
+    "editableGuidanceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store",
+        "path",
+        "reviewedDefault",
+        "state",
+        "seedHistory"
+      ],
+      "properties": {
+        "store": {
+          "const": "editable-copy"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+        },
+        "reviewedDefault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "release",
+            "content"
+          ],
+          "properties": {
+            "release": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content": {
+              "$ref": "#/$defs/contentIdentity"
+            }
+          }
+        },
+        "state": {
+          "enum": [
+            "default",
+            "modified"
+          ]
+        },
+        "seedHistory": {
+          "$ref": "#/$defs/seedHistory"
+        }
+      }
+    },
+    "seedHistory": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "unestablished"
+            },
+            "reason": {
+              "enum": [
+                "missing",
+                "invalid",
+                "unreadable",
+                "changed",
+                "preserved-path"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "standing",
+            "record",
+            "release",
+            "defaultContent",
+            "matchesSuppliedContent"
+          ],
+          "properties": {
+            "status": {
+              "const": "declared"
+            },
+            "standing": {
+              "const": "mutable seed-record declaration; creation custody not authenticated"
+            },
+            "record": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "const": ".seed-record.json"
+                },
+                "content": {
+                  "$ref": "#/$defs/contentIdentity"
+                }
+              }
+            },
+            "release": {
+              "type": "string",
+              "minLength": 1
+            },
+            "defaultContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "matchesSuppliedContent": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "contentIdentity": {
+      "description": "Same shape as RS-v0.8 contentIdentity. Method designation required; the algorithm is open (HOSTING U-08).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "method",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "notObtainable",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "notObtainable": {
+              "const": true
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "seededGuidanceSource": {
+      "type": "object",
+      "required": [
+        "store",
+        "path",
+        "release",
+        "state"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "store": {
+          "enum": [
+            "seeded-copy"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+        },
+        "release": {
+          "type": "string",
+          "minLength": 1,
+          "description": "App release whose default was seeded"
+        },
+        "state": {
+          "enum": [
+            "default",
+            "modified"
+          ]
+        },
+        "defaultContent": {
+          "$ref": "#/$defs/contentIdentity",
+          "description": "The shipped default's identity, for comparison"
+        }
+      }
+    }
+  }
+}

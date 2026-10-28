@@ -1,0 +1,44 @@
+[
+  {
+    "file": "EXP-person-stated-basis.json",
+    "sha256": "2b30b824cdd91be6f16639c5ac8c103ddd74942a6be366b262466e5b771610c5",
+    "derived_from": "exam.result-record.valid.examples.json#EXP-EX-08",
+    "derivation": "EXP-EX-08; only date.source changed to stated_by_person",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  },
+  {
+    "file": "EXP-same-revision-other-build.json",
+    "sha256": "3d9f342da3fe99cb2bc48fac8729f17c189391dce7523b69287fb79f5cba2fb5",
+    "derived_from": "exam.result-record.valid.examples.json#EXP-EX-08",
+    "derivation": "person-stated copy; only declared build identity changed",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  },
+  {
+    "file": "EXP-overlap-refused.json",
+    "sha256": "addb9cca34152d53bfdf3965428001adfbdd8cdda6bd617a07df10e0e9896285",
+    "derived_from": "exam.result-record.valid.examples.json#EXP-EX-08",
+    "derivation": "person-stated copy; only not-applicable part P22-G changed to applicable P22-A",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  },
+  {
+    "file": "EXP-missing-build.json",
+    "sha256": "9780e2dd10a7b36e813edcde9f216f01286e2e7e3e0b748ef4a043e67f829d21",
+    "derived_from": "exam.result-record.valid.examples.json#EXP-EX-08",
+    "derivation": "person-stated copy; required declared build identity removed",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  },
+  {
+    "file": "XT-unverified-joined-claim.json",
+    "sha256": "d29cde6e38e1aa88190dedf6d1bf4b24dd6b27bdfd73422cf14e64225896cca5",
+    "derived_from": "xt-result-record.example.valid.json",
+    "derivation": "canonical rehearsal document recast as an illustrative claimed joined source; no actual witness",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  },
+  {
+    "file": "XT-false-joined-pass.json",
+    "sha256": "8045bb74fd10c36540627de7f091a13b0b05119dd99d1aa844d486c66779e4e3",
+    "derived_from": "xt-result-record.example.valid.json",
+    "derivation": "claimed joined copy; all parts/source outcome passed and count true, required refusal",
+    "standing": "constructed illustrative receiving input; no actual candidate, native or host witness"
+  }
+]

@@ -1,0 +1,61 @@
+{
+  "change": "CC-HOSTING-DISTRIBUTION-01/S1-DESIGN-ADOPTION",
+  "basis": "9f1f96b17b9a9307827b8d00ae880a6c9a2c0039",
+  "selection": "Design contract definitions only; consumer activation and qualification excluded",
+  "artifacts": [
+    {
+      "file": "adoption-attestation.s1.schema.json",
+      "sha256": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/adoption-attestation.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "expected-reference.s1.schema.json",
+      "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/expected-reference.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "inventory-artifact.s1.schema.json",
+      "sha256": "bf1630d1e1777134c2295a40dddfbecb29181826b3b1ddc18126a2c6cd256056",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/inventory-artifact.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "lifecycle-event.s1.schema.json",
+      "sha256": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/lifecycle-event.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "observed-verification.s1.schema.json",
+      "sha256": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/observed-verification.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "pkg-identity.s1.schema.json",
+      "sha256": "ce68629acaa445e0a664b5d8c95cbcae7b19f454756abf2c81b220ebbcf218de",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/pkg-identity.s1.schema.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "model.py",
+      "sha256": "eeaa631cabb0b8650c542e4c38ce7ffeb59e40d7e40bf39d18f570a3b47a2e57",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/model.py",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "basis.json",
+      "sha256": "d0e589b3714661d1e2773d5fa65c9eda3a0d40e9330e8c0917edaaa40df20ca9",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/basis.json",
+      "reviewed_commit": "7aa1ae354b"
+    },
+    {
+      "file": "test_model.py",
+      "sha256": "1201c3b9d622ec89c4bde79d3a6de39b74f4d4cba07bfd5feb191bc487bdcc2a",
+      "reviewed_source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/test_model.py",
+      "reviewed_commit": "7aa1ae354b"
+    }
+  ]
+}

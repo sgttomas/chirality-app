@@ -1,0 +1,23 @@
+{
+  "productName": "Chirality App v4 (development candidate)",
+  "version": "0.0.0",
+  "identifier": "dev.chirality.app-v4.skeleton",
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "resources": {
+      "resources/instructions/": "instructions/",
+      "resources/production_workflows/": "workflows/",
+      "resources/distribution-development-reference/build-selection.s2.json": "distribution-development-reference/build-selection.s2.json",
+      "resources/distribution-successor/synthetic-expected.json": "distribution-development-reference/expected.json",
+      "resources/distribution-successor/synthetic-attestation.json": "distribution-development-reference/attestation.json",
+      "resources/distribution-successor/synthetic-evidence.json": "distribution-development-reference/synthetic-evidence.json"
+    },
+    "macOS": {
+      "minimumSystemVersion": "15.0",
+      "signingIdentity": null
+    }
+  }
+}

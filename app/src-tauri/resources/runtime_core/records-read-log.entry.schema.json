@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:records-read-log-entry:0.1",
+  "title": "App records read log entry (RS §13.9)",
+  "description": "One agent call of the App's read-only records capability, recorded by the App before it answers. App-observed: what the App prepared to return to the agent; never an act, a record of the project or authority. outcome 'returned' means the page was prepared for return and recorded; whether the reply was written to Codex is the request register's entry (joined by generation and requestIdentity), not this line.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "formatVersion", "readId", "at", "appSession", "generation", "requestIdentity", "threadId", "turnId", "callId", "tool", "project", "arguments", "outcome", "standing"],
+  "properties": {
+    "format": {"const": "chirality.records-read-log"},
+    "formatVersion": {"const": "0.1"},
+    "readId": {"type": "string", "pattern": "^rread:.+"},
+    "at": {"type": "string", "minLength": 1},
+    "appSession": {"type": "string", "minLength": 1},
+    "generation": {"type": "string", "minLength": 1},
+    "requestIdentity": {"type": "string", "minLength": 1},
+    "threadId": {"type": "string", "minLength": 1},
+    "turnId": {"type": "string", "minLength": 1},
+    "callId": {"type": "string", "minLength": 1},
+    "tool": {"const": "chirality_records_read_v1"},
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root"],
+      "properties": {"root": {"type": "string", "minLength": 1}}
+    },
+    "arguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation": {"type": "string", "maxLength": 1024},
+        "run": {"type": "string", "maxLength": 1024},
+        "subject": {"type": "string", "maxLength": 1024},
+        "cursor": {"type": "string", "maxLength": 1024},
+        "limit": {"type": "number"}
+      }
+    },
+    "outcome": {"enum": ["returned", "refused"]},
+    "refusal": {"type": "string", "minLength": 1},
+    "returned": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "bytes", "content", "next", "recordIds", "limits"],
+      "properties": {
+        "items": {"type": "integer", "minimum": 0, "maximum": 50},
+        "bytes": {"type": "integer", "minimum": 0},
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "value"],
+          "properties": {
+            "method": {"const": "chirality.app.exact-bytes.sha256/v1"},
+            "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          }
+        },
+        "next": {"type": ["string", "null"]},
+        "recordIds": {"type": "array", "maxItems": 50, "items": {"type": "string"}},
+        "limits": {"type": "integer", "minimum": 0}
+      }
+    },
+    "standing": {"const": "App-observed: what the App prepared to return to the agent; not an act"}
+  },
+  "allOf": [
+    {"if": {"properties": {"outcome": {"const": "returned"}}}, "then": {"required": ["returned"], "not": {"required": ["refusal"]}}},
+    {"if": {"properties": {"outcome": {"const": "refused"}}}, "then": {"required": ["refusal"], "not": {"required": ["returned"]}}}
+  ]
+}

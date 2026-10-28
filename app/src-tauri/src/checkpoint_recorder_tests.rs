@@ -1,0 +1,2245 @@
+//! The checkpoint recorder's first slice: CE-1 listing, AW-6/AW-7 arrivals
+//! from live-observed native items only, CE-12/CE-11 from RC-9 run actions,
+//! CE-17 waiting arrivals, and the EXEC entry-body schema.
+use super::*;
+
+thread_local! {
+    /// Called by `file_content` between the read and its recheck (tests only).
+    pub(crate) static DURING_READ: std::cell::RefCell<Option<Box<dyn Fn(&std::path::Path)>>> = const { std::cell::RefCell::new(None) };
+}
+
+pub(crate) const DECLARATION: &str = r#"{
+ "declaration_contract_version": "WD-v0.8",
+ "required_tools": [{"name":"add-support","class":"host_operation","operation":"OP-C4","versions":["v1"],"purpose":"Propose added supports.","necessity":"required","stages":["Propose"]}],
+ "returned_outputs": [
+  {"name":"report","meaning":"The spacing report.","form":"message","destination":"the person","promised_standing":["reported by the agent"],"designating_line":"Spacing report"},
+  {"name":"summary","meaning":"The written summary.","form":"file","destination":"the project","promised_standing":["written by the agent"],"path":"out/summary.md"}
+ ],
+ "checkpoints": [
+  {"name":"CP-check","required_act":"A4","reached_when":{"kind":"output_produced","output":"report"},"subject":{"class":"named_output","output":"report"},"position":"After the report","scope":"The report.","purpose":"You record your own checking of the report.","actor":"the_person","expected_act_evidence":{"capturing_surface":"app_act_control","description":"Mark checked in the App."},"on_subject_absent":{"path":"stop"}},
+  {"name":"CP-rely","required_act":"A7","reached_when":{"kind":"output_produced","output":"summary"},"subject":{"class":"named_output","output":"summary"},"position":"After the summary","scope":"The summary file.","purpose":"You decide to rely on the summary.","actor":"the_person","expected_act_evidence":{"capturing_surface":"app_act_control","description":"Rely in the App."},"governed":"yes"},
+  {"name":"CP-accept","required_act":"A5","reached_when":{"kind":"host_outcome","tools":["add-support"],"outcome":"queued"},"subject":{"class":"change_items_of_named_proposal"},"position":"Wait for acceptance","scope":"Per change item.","purpose":"You decide each change.","actor":"the_person","expected_act_evidence":{"capturing_surface":"host_act_facility","description":"The host's act record."}},
+  {"name":"CP-bad","required_act":"A16","reached_when":{"kind":"output_produced","output":"report"},"subject":{"class":"named_output","output":"report"},"position":"x","scope":"x","purpose":"x","actor":"the_person","expected_act_evidence":{"capturing_surface":"app_act_control","description":"x"}}
+ ]
+}"#;
+
+/// A WORKFLOW.md carrying the fixture declaration.
+pub(crate) fn workflow_text() -> String {
+    format!("# Fixture workflow\n\nInvented for tests.\n\n```workflow-declaration\n{DECLARATION}\n```\n")
+}
+fn declaration() -> crate::workflow_declaration::Declaration {
+    crate::workflow_declaration::read(&workflow_text()).unwrap()
+}
+fn g(counter: u64) -> Value {
+    json!({"appSession":"session","home":"native-home","spawnCounter":counter})
+}
+/// A live-observed row of `thread`, received in generation `g(1)` at the given positions.
+fn row(turn: &str, item: Value, order: u64, started: Option<u64>, completed: Option<u64>) -> Value {
+    let mut receipt = json!({"generation":g(1)});
+    if let Some(p) = started { receipt["started"] = json!(p); }
+    if let Some(p) = completed { receipt["completed"] = json!(p); }
+    let mut row = json!({"threadId":"thread","turnId":turn,"native":item,"displayState":if completed.is_some(){"completed"}else{"in-progress"},"standing":"live-observed","observedOrder":order,"receipt":receipt});
+    if started.is_some() { row["startNative"] = item.clone(); }
+    if completed.is_some() { row["sourceFrame"] = json!({"method":"item/completed","params":{"completedAtMs":1_790_000_000_123i64}}); }
+    row
+}
+fn message(id: &str, text: &str) -> Value { json!({"id":id,"type":"agentMessage","text":text}) }
+fn command(id: &str, source: &str) -> Value { json!({"id":id,"type":"commandExecution","source":source,"command":"x","status":"inProgress"}) }
+fn file(id: &str, path: &str, status: &str) -> Value { json!({"id":id,"type":"fileChange","status":status,"changes":[{"path":path,"kind":{"type":"add"},"diff":""}]}) }
+fn view(items: Vec<Value>) -> Value {
+    json!({"home":"native-home","generation":g(1),"items":items})
+}
+fn scope<'a>(root: &'a std::path::Path) -> RunScope<'a> {
+    RunScope { home: "native-home", conversation: "thread", start: crate::run_offers::RunStart::At(1), project_root: root, start_spawn: 1 }
+}
+fn validator() -> jsonschema::Validator {
+    let schema: Value = serde_json::from_str(include_str!("../schemas/checkpoint-record-entries.schema.json")).unwrap();
+    jsonschema::options().offline().build(&schema).unwrap()
+}
+fn valid(outputs: &[Output]) {
+    let v = validator();
+    for (kind, body) in outputs {
+        let output = json!({"kind":kind,"observedAt":"2026-10-10T00:00:00.000Z","body":body});
+        assert!(v.is_valid(&output), "{output}: {:?}", v.iter_errors(&output).map(|e| e.to_string()).collect::<Vec<_>>());
+    }
+}
+/// Observes with no act records in the project.
+fn obs(recorder: &mut CheckpointRecorder, view: &Value, scope: &RunScope, entries: &[Value]) -> Vec<Output> {
+    recorder.observe(view, scope, entries, &mut || Ok(ActRead::default()))
+}
+fn entries(outputs: &[Output]) -> Vec<Value> {
+    outputs.iter().map(|(k, b)| json!({"kind":k,"body":b})).collect()
+}
+
+#[test]
+fn ce1_lists_recognized_checkpoints_with_their_evaluability() {
+    let (recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    valid(&listed);
+    let names: Vec<&str> = listed.iter().filter(|(k, _)| *k == "checkpoint_listed").map(|(_, b)| b["checkpoint"].as_str().unwrap()).collect();
+    assert_eq!(names, ["CP-check", "CP-rely", "CP-accept"], "the invalid checkpoint is never listed (§4.14)");
+    assert_eq!(listed[3], ("declaration_finding", json!({"checkpoint":"CP-bad","finding":"invalid","code":"FB-03"})), "CE-2 reports it instead");
+    assert_eq!(listed[0].1["evaluability"]["status"], "evaluable with limit");
+    assert!(listed[0].1["evaluability"]["reason"].as_str().unwrap().contains("\"Spacing report\""));
+    assert_eq!(listed[0].1["onSubjectAbsent"], "stop");
+    assert_eq!(listed[1].1["governed"], true, "governed is listed and changes nothing (PH-9)");
+    assert!(listed[1].1["evaluability"]["reason"].as_str().unwrap().contains("out/summary.md"));
+    assert_eq!(listed[2].1["evaluability"]["status"], "not evaluable");
+    assert_eq!(recorder.view()["listed"].as_array().unwrap().len(), 3);
+    let (unreadable, none) = CheckpointRecorder::start(Err("bytes differ".into()));
+    assert!(none.is_empty());
+    assert!(unreadable.view()["limit"].as_str().unwrap().contains("declaration not resolvable"));
+}
+
+#[test]
+fn arrivals_come_only_from_live_completed_items_that_meet_the_declaration() {
+    let root = std::path::PathBuf::from("/project/root");
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let items = vec![
+        row("turn-0", message("before", "Spacing report"), 0, Some(1), Some(2)), // a turn before the run started
+        row("turn-1", json!({"id":"start","type":"userMessage","content":[]}), 1, Some(3), Some(3)),
+        row("turn-1", message("m1", "  \n  Spacing report  \nThe findings."), 2, Some(4), Some(6)),
+        row("turn-1", message("m2", "Report follows\nSpacing report"), 3, Some(5), Some(7)), // first line differs
+        row("turn-1", message("m3", "spacing report"), 4, Some(8), Some(9)), // case differs
+        row("turn-1", file("f1", "/project/root/out/summary.md", "completed"), 5, Some(10), Some(11)),
+        row("turn-1", file("f2", "/project/root/out/other.md", "completed"), 6, Some(12), Some(13)),
+        row("turn-1", file("f3", "out/summary.md", "failed"), 7, Some(14), Some(15)), // not completed
+        row("turn-1", message("m4", "Spacing report"), 8, Some(16), None), // still streaming
+    ];
+    let mut recovered = row("turn-1", message("m5", "Spacing report"), 9, None, Some(17));
+    recovered["standing"] = json!("recovered-from-supplier");
+    let mut all = items.clone();
+    all.push(recovered);
+    // The turn ordering puts turn-0 before the run's start turn (order 1).
+    let mut v = view(all);
+    v["items"][0]["observedOrder"] = json!(0);
+    let mut outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    valid(&outputs);
+    // f1, f2 and f3 started after m1's arrival: f1's start is the first run action after it.
+    let kinds: Vec<&str> = outputs.iter().map(|(k, _)| *k).collect();
+    assert_eq!(kinds, ["checkpoint_arrival", "disposition_change", "continued_past", "checkpoint_arrival", "disposition_change", "continued_past"], "{outputs:#?}");
+    let arrival = &outputs[0].1;
+    assert_eq!((arrival["checkpoint"].as_str(), arrival["arrivalOrdinal"].as_u64(), arrival["event"]["ref"].as_str()), (Some("CP-check"), Some(1), Some("item:thread/turn-1/m1")));
+    assert_eq!(arrival["event"]["evidencedTime"], json!({"value":"2026-09-21T14:13:20.123Z","source":"supplier_item_time"}));
+    assert_eq!(arrival["referents"][0]["content"]["method"], "chirality.app.exact-bytes.sha256/v1");
+    assert_eq!(arrival["referents"][0]["content"]["value"], crate::util::sha256_hex("  \n  Spacing report  \nThe findings.".as_bytes()));
+    assert_eq!(arrival["requestObservation"], json!({"state":"not yet observed"}));
+    assert!(arrival["limits"].as_array().unwrap().iter().any(|l| l == MESSAGE_ACT_LIMIT), "no act control binds an agent message");
+    assert_eq!(outputs[1].1, json!({"arrival":{"checkpoint":"CP-check","arrivalOrdinal":1},"disposition":"waiting","annotations":[]}));
+    assert_eq!(outputs[2].1["actionRef"], "item:thread/turn-1/f1");
+    let file_arrival = &outputs[3].1;
+    assert_eq!((file_arrival["checkpoint"].as_str(), file_arrival["governed"].as_bool()), (Some("CP-rely"), Some(true)));
+    assert_eq!(file_arrival["referents"][0]["content"]["notObtainable"], true);
+    assert_eq!(outputs[5].1["arrival"]["checkpoint"], "CP-rely");
+    assert_eq!(outputs[5].1["actionRef"], "item:thread/turn-1/f2");
+    // Reading the same view again records nothing new.
+    let mut recorded = entries(&listed);
+    recorded.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &v, &scope(&root), &recorded).is_empty(), "each item is read once");
+    // A later agent command adds no second continued_past; the person's own command never does.
+    let mut more = items.clone();
+    more.push(row("turn-1", command("c1", "userShell"), 10, Some(18), None));
+    more.push(row("turn-1", command("c2", "agent"), 11, Some(19), None));
+    assert!(obs(&mut recorder, &view(more.clone()), &scope(&root), &recorded).is_empty());
+    // CE-11: once the record reads the arrival performed, the next run action is its resume point.
+    recorded.push(json!({"kind":"disposition_change","body":{"arrival":{"checkpoint":"CP-check","arrivalOrdinal":1},"disposition":"performed","performanceOrdinal":1}}));
+    let mut c3 = row("turn-1", command("c3", "agent"), 12, Some(20), None);
+    c3["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_000_000_500i64}});
+    more.push(c3);
+    outputs = obs(&mut recorder, &view(more), &scope(&root), &recorded);
+    valid(&outputs);
+    assert_eq!(outputs.len(), 1);
+    assert_eq!((outputs[0].0, outputs[0].1["firstActionRef"].as_str()), ("run_resumed", Some("item:thread/turn-1/c3")));
+    assert_eq!(waiting_arrivals(&recorded), vec![json!({"checkpoint":"CP-rely","arrivalOrdinal":1})], "only the arrival still waiting in the record");
+}
+
+#[test]
+fn each_production_arrives_and_nothing_arrives_outside_the_run() {
+    let root = std::path::PathBuf::from("/project/root");
+    let (mut recorder, _) = CheckpointRecorder::start(Ok(declaration()));
+    let items = vec![
+        row("turn-1", json!({"id":"start","type":"userMessage","content":[]}), 1, Some(1), Some(1)),
+        row("turn-1", message("m1", "Spacing report"), 2, Some(2), Some(3)),
+        row("turn-2", message("m2", "Spacing report\nagain"), 3, Some(4), Some(5)),
+    ];
+    let outputs = obs(&mut recorder, &view(items.clone()), &scope(&root), &[]);
+    let ordinals: Vec<u64> = outputs.iter().filter(|(k, _)| *k == "checkpoint_arrival").map(|(_, b)| b["arrivalOrdinal"].as_u64().unwrap()).collect();
+    assert_eq!(ordinals, [1, 2], "OP-4: each completed message carrying the line is a production");
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    let mut unknown = scope(&root);
+    unknown.start = crate::run_offers::RunStart::Unknown;
+    assert!(obs(&mut fresh, &view(items.clone()), &unknown, &[]).is_empty(), "a run whose start is not in this view records nothing");
+    let mut other = view(items.clone());
+    other["home"] = json!("another-home");
+    assert!(obs(&mut fresh, &other, &scope(&root), &[]).is_empty(), "another home's view");
+    let mut other_session = view(items);
+    for item in other_session["items"].as_array_mut().unwrap() { item["receipt"]["generation"]["appSession"] = json!("earlier"); }
+    assert!(obs(&mut fresh, &other_session, &scope(&root), &[]).is_empty(), "rows not received in this App session");
+}
+
+// AW-7 as read here: only a change that produces the declared path arrives.
+// A delete, or a move away from it, is not a production of the output.
+#[test]
+fn a_delete_or_a_move_away_from_the_declared_path_is_not_an_arrival() {
+    let root = std::path::PathBuf::from("/project/root");
+    let change = |id: &str, path: &str, kind: Value| json!({"id":id,"type":"fileChange","status":"completed","changes":[{"path":path,"kind":kind,"diff":""}]});
+    let arrivals = |item: Value| {
+        let (mut recorder, _) = CheckpointRecorder::start(Ok(declaration()));
+        let items = vec![row("turn-1", json!({"id":"start","type":"userMessage","content":[]}), 1, Some(1), Some(1)), row("turn-1", item, 2, Some(2), Some(3))];
+        obs(&mut recorder, &view(items), &scope(&root), &[]).iter().filter(|(k, _)| *k == "checkpoint_arrival").count()
+    };
+    assert_eq!(arrivals(change("d", "out/summary.md", json!({"type":"delete"}))), 0, "a delete produces nothing");
+    assert_eq!(arrivals(change("m", "out/summary.md", json!({"type":"update","move_path":"out/elsewhere.md"}))), 0, "a move's source is not produced");
+    assert_eq!(arrivals(change("t", "out/draft.md", json!({"type":"update","move_path":"out/summary.md"}))), 1, "a move onto the declared path produces it");
+    assert_eq!(arrivals(change("u", "out/summary.md", json!({"type":"update","move_path":null}))), 1, "an update in place");
+    assert_eq!(arrivals(change("u2", "/project/root/out/summary.md", json!({"type":"update"}))), 1, "an update without move_path, absolute path");
+    assert_eq!(arrivals(change("a", "out/summary.md", json!({"type":"add"}))), 1);
+    assert_eq!(arrivals(change("x", "out/summary.md", json!({"type":"rename"}))), 0, "an unknown change kind produces nothing");
+}
+
+#[test]
+fn file_paths_compare_normalized_against_the_project_root() {
+    let root = std::path::Path::new("/project/root");
+    assert!(same_path("out/summary.md", "out/summary.md", root));
+    assert!(same_path("/project/root/out/summary.md", "out/summary.md", root));
+    assert!(same_path("./out//summary.md", "out/summary.md", root), "`.` segments and repeated separators are normalized on both sides");
+    assert!(same_path("out/summary.md", "./out/summary.md", root));
+    assert!(!same_path("/project/rootx/out/summary.md", "out/summary.md", root));
+    assert!(!same_path("/elsewhere/out/summary.md", "out/summary.md", root));
+    assert!(!same_path("out/../out/summary.md", "out/summary.md", root), "a path with `..` never matches");
+    assert_eq!(normal("./a//b/./c"), Some("a/b/c".into()));
+    assert_eq!((normal("/a"), normal("a/../b"), normal("./")), (None, None, None));
+    assert_eq!(first_line("\n \t\n  x  \ny"), Some("x"));
+    assert_eq!(first_line(" \n "), None);
+}
+
+// ---- Act counting (CE-5, CE-6, CE-8), requests (CE-4), findings (CE-2), AW-3 ----
+
+const BEFORE: &str = "2026-09-21T14:00:00.000Z";
+const AT: &str = "2026-09-21T14:13:20.123Z"; // the file change's completedAtMs
+const AFTER: &str = "2026-09-21T15:00:00.000Z";
+const LATER: &str = "2026-09-21T16:00:00.000Z";
+
+/// A temporary project with `out/summary.md` holding `content`.
+fn project(content: &str) -> std::path::PathBuf {
+    let root = std::env::temp_dir().join(crate::util::opaque_id("checkpoint-acts-").unwrap());
+    std::fs::create_dir_all(root.join("out")).unwrap();
+    std::fs::write(root.join("out/summary.md"), content).unwrap();
+    std::fs::canonicalize(root).unwrap()
+}
+fn digest(content: &str) -> Value {
+    json!({"method":EXACT_BYTES,"value":crate::util::sha256_hex(content.as_bytes())})
+}
+/// The capture object the App act control writes for a file act or decline.
+fn capture_of(choice: &str, kind: &str, file: &std::path::Path, content: &Value, time: &str) -> Value {
+    let id = crate::util::opaque_id("cap:").unwrap();
+    let capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
+        "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)},"choice":choice,"actKind":kind,
+        "actor":{"osAccount":"fixture","identityVerified":false},"boundSubject":[file.to_str().unwrap()],"boundContent":[content],
+        "scope":"The summary file.","purpose":"You decide.","capturedAt":time,"surface":"App interface","inputSource":"host-native-confirmation",
+        "answers":{"standing":"no arrival: a standing act (RC-6)"},"evidenceLimits":["identity not verified"]});
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    capture
+}
+/// Store a capture as the App act control does: sealed under this installation's key.
+fn store(root: &std::path::Path, capture: &Value) {
+    let mut sealed = capture.clone();
+    crate::capture_seal::seal(root, &mut sealed).unwrap();
+    store_as_is(root, &sealed);
+}
+/// Store a capture's bytes exactly as given (legacy or another writer's capture).
+fn store_as_is(root: &std::path::Path, capture: &Value) {
+    let path = crate::storage::write_capture_path(root, capture["captureId"].as_str().unwrap()).unwrap();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, serde_json::to_vec(capture).unwrap()).unwrap();
+}
+/// The record for a capture, as the App writer appends it, by `recorder`.
+fn record_for(root: &std::path::Path, capture: &Value, recorder: &crate::records::Recorder) -> String {
+    let kind = crate::records::capture_record_kind(capture).unwrap();
+    crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), kind, recorder, crate::act_control::act_body(capture)).unwrap()["recordId"].as_str().unwrap().to_owned()
+}
+// Fixture mutations resolve the original source named by the retained record.
+// A private checkpoint snapshot intentionally no longer carries that full file.
+fn capture_reference(claim: &Value) -> &str {
+    claim["record"]["body"]["captureEvidence"][0]["ref"].as_str().unwrap()
+}
+fn stored_capture(root: &std::path::Path, claim: &Value) -> Value {
+    crate::file_act_view::capture(root, &claim["record"]["body"]).unwrap()
+}
+/// A file act as the App act control leaves it: capture stored, record written by the capturing surface.
+fn act(root: &std::path::Path, kind: &str, file: &std::path::Path, content: &str, time: &str) -> String {
+    let capture = capture_of("act", kind, file, &digest(content), time);
+    store(root, &capture);
+    record_for(root, &capture, &crate::records::APP_INTERFACE)
+}
+fn decline(root: &std::path::Path, kind: &str, file: &std::path::Path, content: &str, time: &str) -> String {
+    let capture = capture_of("decline", kind, file, &digest(content), time);
+    store(root, &capture);
+    record_for(root, &capture, &crate::records::APP_INTERFACE)
+}
+fn start_row() -> Value {
+    row("turn-1", json!({"id":"start","type":"userMessage","content":[]}), 1, Some(1), Some(1))
+}
+/// The run's start turn, then a completed agent change that produces `path`
+/// (completed at 2026-09-21T14:13:20.123Z).
+fn change_view(path: &str) -> Value {
+    view(vec![start_row(), row("turn-1", file("f1", path, "completed"), 2, Some(2), Some(3))])
+}
+fn file_view() -> Value {
+    change_view("out/summary.md")
+}
+/// Every output is a valid EXEC body (the RS-only kinds aside) and a conformant RS run entry.
+fn conformant(outputs: &[Output]) {
+    let exec: Vec<Output> = outputs.iter().filter(|(k, _)| !matches!(*k, "evidence_limit" | "tool_permission_settlement")).cloned().collect();
+    valid(&exec);
+    for (kind, body) in outputs {
+        if let Some(why) = crate::records::nonconformance(kind, body, "rec:app:fixture", "run:workflow:fixture", "2026-10-10T00:00:00.000Z") {
+            panic!("{kind} {body}: {why}");
+        }
+    }
+}
+/// Starts a recorder, observes `view` with the project's act records as read now.
+fn observe_view(root: &std::path::Path, view: &Value) -> (Vec<Value>, Vec<Output>, ActRead) {
+    let read = project_act_records(root).unwrap();
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = recorder.observe(view, &scope(root), &entries(&listed), &mut || Ok(read.clone()));
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    (all, outputs, read)
+}
+fn observe_with(root: &std::path::Path) -> (Vec<Value>, Vec<Output>, ActRead) {
+    observe_view(root, &file_view())
+}
+fn kinds(outputs: &[Output]) -> Vec<&str> {
+    outputs.iter().map(|(k, _)| *k).collect()
+}
+const RELY: &str = "output summary: file out/summary.md";
+
+// AW-7 binds the file's content as read; CE-5/CE-6 after the arrival, in capture order;
+// the first counting act decides (§4.6); CE-17 then lists nothing; re-reading adds nothing.
+#[test]
+fn acts_after_the_arrival_are_counted_against_the_files_content() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let a4 = act(&root, "A4", &file, "v1", AFTER);
+    let old = act(&root, "A7", &file, "v0", "2026-09-21T15:30:00.000Z");
+    let rely = act(&root, "A7", &file, "v1", LATER);
+    act(&root, "A7", &file, "v1", "2026-09-21T17:00:00.000Z");
+    act(&root, "A7", &root.join("out/other.md"), "v1", AFTER);
+    let (all, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(read.acts.len(), 5);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_not_counted", "disposition_change", "act_not_counted", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["referents"][0], json!({"subject":RELY,"content":{"method":EXACT_BYTES,"value":crate::util::sha256_hex(b"v1"),"scope":"the file's bytes as the App read them after observing the completed change"}}));
+    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l == FILE_READ_LIMIT));
+    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A seal shows a holder of this installation's key wrote the capture, not that a person acted or who")), "the run record states the seal's limit");
+    let arrival = json!({"checkpoint":"CP-rely","arrivalOrdinal":1});
+    assert_eq!(outputs[2].1, json!({"arrival":arrival,"act":{"recordId":a4,"actKind":"A4","capturedAt":AFTER,"capturingSurface":"app_act_control"},"reason":"another act kind","capturedBeforeArrival":false}));
+    assert_eq!(outputs[3].1["disposition"], "waiting");
+    assert_eq!((outputs[4].1["act"]["recordId"].as_str(), outputs[4].1["reason"].as_str()), (Some(old.as_str()), Some("act on other content")));
+    assert_eq!(outputs[5].1["annotations"][0]["label"], "act on other content");
+    assert_eq!(outputs[6].1, json!({"arrival":arrival,"act":{"recordId":rely,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control"},"relation":"after arrival","referents":[RELY]}));
+    assert_eq!(outputs[7].1, json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":1,"answeredBy":[rely],"annotations":[]}));
+    assert!(waiting_arrivals(&all).is_empty(), "the performed arrival is not listed as waiting (AAC §6.3 / EXEC §2.4–2.5)");
+    assert!(count_acts(&all, &read, &root).is_empty(), "rebuildable: acts already cited are not read again (RC-10)");
+    // While the arrival still waits, an act already not counted is not cited again.
+    let waiting: Vec<Value> = all.iter().take_while(|e| e["kind"] != "act_counted").cloned().collect();
+    let first_two = ActRead::new(ActReadData {
+        acts: read.acts.iter().filter(|a| a["record"]["recordId"] == a4.as_str() || a["record"]["recordId"] == old.as_str()).cloned().collect(),
+        unresolved: read.unresolved.clone(),
+    });
+    assert!(count_acts(&waiting, &first_two, &root).is_empty(), "the not-counted acts are cited once");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// SP-6 (K1-2): an earlier act on the current content counts at the arrival; an earlier act
+// on older content or of another kind is "prior act not counted" with its reason.
+#[test]
+fn earlier_acts_count_only_on_current_content() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let stale = act(&root, "A7", &file, "v0", "2026-09-21T13:00:00.000Z");
+    let check = act(&root, "A4", &file, "v1", "2026-09-21T13:30:00.000Z");
+    let rely = act(&root, "A7", &file, "v1", BEFORE);
+    let (all, outputs, _) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs)[2..], ["act_not_counted", "disposition_change", "act_not_counted", "disposition_change", "act_counted", "disposition_change"]);
+    assert_eq!((outputs[2].1["reason"].as_str(), outputs[2].1["capturedBeforeArrival"].as_bool()), (Some("content no longer current"), Some(true)));
+    assert_eq!(outputs[3].1["annotations"], json!([{"label":"prior act not counted","actRef":stale,"reason":"content no longer current"}]));
+    assert_eq!(outputs[5].1["annotations"], json!([{"label":"prior act not counted","actRef":check,"reason":"another act kind"}]));
+    assert_eq!(outputs[6].1["relation"], "earlier act");
+    assert_eq!(outputs[7].1["annotations"], json!([{"label":"by earlier act","actRef":rely,"time":BEFORE,"referents":[RELY]}]));
+    assert!(waiting_arrivals(&all).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-3 (AAC §6.3 / EXEC §2.4–2.5 reading): before the arrival, the latest decision of the required kind on the
+// current content governs; an earlier one on that content is superseded.
+#[test]
+fn the_latest_decision_before_the_arrival_governs() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", "2026-09-21T13:00:00.000Z");
+    let no = decline(&root, "A7", &file, "v1", "2026-09-21T13:30:00.000Z");
+    decline(&root, "A7", &file, "v0", BEFORE); // on other content: not a decision on this content
+    let (all, outputs, _) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs)[2..], ["arrival_declined", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[2].1["declinedEventRef"].as_str(), outputs[3].1["disposition"].as_str()), (Some(no.as_str()), Some("resolved negatively")));
+    assert!(waiting_arrivals(&all).is_empty());
+    // The other order: a decline, then the act, both before the arrival.
+    let root2 = project("v1");
+    let file2 = root2.join("out/summary.md");
+    decline(&root2, "A7", &file2, "v1", "2026-09-21T13:00:00.000Z");
+    let rely = act(&root2, "A7", &file2, "v1", "2026-09-21T13:30:00.000Z");
+    let (_, outputs, _) = observe_with(&root2);
+    assert_eq!(kinds(&outputs)[2..], ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[2].1["act"]["recordId"].as_str(), outputs[2].1["relation"].as_str()), (Some(rely.as_str()), Some("earlier act")));
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(root2).unwrap();
+}
+
+// CE-8: after the arrival, a decline of the required kind on the current content resolves it
+// negatively; another kind or other content does not; acts after that are not read.
+#[test]
+fn a_decline_after_the_arrival_resolves_it_negatively() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    decline(&root, "A4", &file, "v1", AFTER);
+    decline(&root, "A7", &file, "v0", "2026-09-21T15:10:00.000Z");
+    let no = decline(&root, "A7", &file, "v1", "2026-09-21T15:30:00.000Z");
+    act(&root, "A7", &file, "v1", LATER);
+    let (all, outputs, _) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs)[2..], ["arrival_declined", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[2].1["declinedEventRef"], no.as_str());
+    assert_eq!(outputs[3].1["disposition"], "resolved negatively");
+    assert!(waiting_arrivals(&all).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// B-1 (SP-3, PH-4, RS R-8, §13.7): a record counts only through the one capture object it cites,
+// corresponding to it and written by the capturing surface. A missing or mismatched capture, a
+// record another recorder wrote, or two records on one capture never become acts: each adds an
+// "unresolvable reference" limit, once, and the arrival stays waiting.
+#[test]
+fn records_not_verified_against_their_capture_count_nothing() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    // Missing capture: the record cites a capture that is not in the store.
+    let missing = record_for(&root, &capture_of("act", "A7", &file, &digest("v1"), AFTER), &crate::records::APP_INTERFACE);
+    // Mismatched capture: the stored capture says another purpose than the record.
+    let capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    let mismatched = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let mut altered = capture.clone();
+    altered["purpose"] = json!("Something else.");
+    store(&root, &altered);
+    // An agent-written record: a real capture, but not written by the capturing surface.
+    let capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &capture);
+    let agent = record_for(&root, &capture, &crate::records::APP_WRITER);
+    // Two records on one capture (R-8).
+    let capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &capture);
+    let first = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let second = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let (all, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert!(read.acts.is_empty(), "{:#?}", read.acts);
+    assert_eq!(read.unresolved.len(), 5);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "evidence_limit", "evidence_limit", "evidence_limit", "evidence_limit", "evidence_limit"]);
+    let limited: BTreeSet<&str> = outputs[2..].iter().map(|(_, b)| b["subjectRef"].as_str().unwrap()).collect();
+    assert_eq!(limited, BTreeSet::from([missing.as_str(), mismatched.as_str(), agent.as_str(), first.as_str(), second.as_str()]));
+    assert!(outputs[2..].iter().all(|(_, b)| b["label"] == "unresolvable reference"));
+    let reason = |id: &str| read.unresolved.iter().find(|u| u["record"]["recordId"] == id).unwrap()["reason"].as_str().unwrap().to_owned();
+    assert!(reason(&missing).starts_with("capture evidence not resolved"), "{}", reason(&missing));
+    assert_eq!(reason(&mismatched), "the record differs from the capture it cites");
+    assert_eq!(reason(&agent), "not written by the App's capturing surface (PH-4)");
+    assert_eq!(reason(&first), "several records cite one capture (RS R-8)");
+    assert_eq!(waiting_arrivals(&all), vec![json!({"checkpoint":"CP-rely","arrivalOrdinal":1})]);
+    assert!(count_acts(&all, &read, &root).is_empty(), "each limit is written once");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// AAC §6.3 / EXEC §2.4–2.5 R-1 (AAC §6.3 SEAL-C): a record and a capture written by anything but the
+// App act control count nothing in checkpoint counting or the file-act view, each refused
+// with its stated limit: a forged record with a valid-looking capture carrying a seal that
+// does not verify, a legacy capture without a seal, and a capture sealed by another
+// installation (a moved project), which reads "not verified here", never forged.
+#[test]
+fn forged_legacy_and_foreign_captures_count_nothing() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let keys = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("seal-installations-").unwrap());
+    let (here, elsewhere) = (keys.join("here"), keys.join("elsewhere"));
+    crate::capture_seal::set_folder_for_test(Some(Some(here.clone())));
+    // Forged: every fact corresponds and the seal names this installation's key,
+    // but its value was not made with it.
+    let genuine = capture_of("act", "A7", &file, &digest("v0"), AFTER);
+    store(&root, &genuine); // makes this installation's key; this act is on other content
+    let genuine_id = record_for(&root, &genuine, &crate::records::APP_INTERFACE);
+    let mut forged = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    let key_id = {
+        let mut probe = forged.clone();
+        crate::capture_seal::seal(&root, &mut probe).unwrap();
+        probe["seal"]["value"].as_str().unwrap().split(':').next().unwrap().to_owned()
+    };
+    forged["seal"] = json!({"method":crate::capture_seal::SEAL_METHOD,"value":format!("{key_id}:{}","ab".repeat(32))});
+    store_as_is(&root, &forged);
+    let forged_id = record_for(&root, &forged, &crate::records::APP_INTERFACE);
+    // Legacy: a capture written before sealing, schema-valid and corresponding.
+    let legacy = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store_as_is(&root, &legacy);
+    let legacy_id = record_for(&root, &legacy, &crate::records::APP_INTERFACE);
+    // A second record citing a sealed capture whose backlink names another record.
+    let mut linked = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    crate::capture_seal::seal(&root, &mut linked).unwrap();
+    linked["recordId"] = json!("rec:app:the-original");
+    store_as_is(&root, &linked);
+    let relinked_id = record_for(&root, &linked, &crate::records::APP_INTERFACE);
+    // Moved here from another installation: sealed there under its own key.
+    crate::capture_seal::set_folder_for_test(Some(Some(elsewhere.clone())));
+    let foreign_id = act(&root, "A7", &file, "v1", LATER);
+    crate::capture_seal::set_folder_for_test(Some(Some(here.clone())));
+    let (all, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(read.acts.len(), 1, "only this installation's sealed capture is an act");
+    assert_eq!(read.acts[0]["record"]["recordId"], genuine_id.as_str());
+    let reason = |id: &str| read.unresolved.iter().find(|u| u["record"]["recordId"] == id).unwrap()["reason"].as_str().unwrap().to_owned();
+    assert!(reason(&forged_id).contains("capture seal does not verify under this installation's key"), "{}", reason(&forged_id));
+    assert!(reason(&legacy_id).contains("capture has no App seal"), "{}", reason(&legacy_id));
+    assert!(reason(&foreign_id).contains("which this App installation does not hold") && reason(&foreign_id).contains("not verified here"), "{}", reason(&foreign_id));
+    assert!(!reason(&foreign_id).contains("forg"), "a foreign seal is never called forged");
+    assert_eq!(reason(&relinked_id), "the record differs from the capture it cites");
+    let limited: BTreeSet<&str> = outputs.iter().filter(|(k, b)| *k == "evidence_limit" && b["label"] == "unresolvable reference").map(|(_, b)| b["subjectRef"].as_str().unwrap()).collect();
+    assert_eq!(limited, BTreeSet::from([forged_id.as_str(), legacy_id.as_str(), foreign_id.as_str(), relinked_id.as_str()]), "each refusal is a stated limit, not silently dropped");
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    // The file-act view applies the same rule.
+    let view = crate::file_act_view::read(&root);
+    for id in [&forged_id, &legacy_id, &foreign_id] {
+        let row = view["rows"].as_array().unwrap().iter().find(|r| r["recordId"] == id.as_str()).unwrap();
+        assert_eq!(row["captureCorrespondence"], false, "{row:#}");
+        assert!(row["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("not verified")), "{row:#}");
+    }
+    // Read back in the installation that sealed it, the moved act counts.
+    crate::capture_seal::set_folder_for_test(Some(Some(elsewhere.clone())));
+    let (_, outputs, read) = observe_with(&root);
+    assert!(read.acts.iter().any(|a| a["record"]["recordId"] == foreign_id.as_str()));
+    assert!(kinds(&outputs).contains(&"act_counted"), "{outputs:#?}");
+    let view = crate::file_act_view::read(&root);
+    assert!(view["rows"].as_array().unwrap().iter().any(|r| r["recordId"] == foreign_id.as_str() && r["captureCorrespondence"] == true));
+    crate::capture_seal::set_folder_for_test(None);
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(keys).unwrap();
+}
+
+// m-c 1: a record whose bound content differs from its capture's is not an act, even
+// when the record's content is the arrival's.
+#[test]
+fn a_record_whose_content_differs_from_its_capture_does_not_count() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let capture = capture_of("act", "A7", &file, &digest("v0"), AFTER);
+    store(&root, &capture);
+    let mut body = crate::act_control::act_body(&capture);
+    body["boundContent"] = json!([digest("v1")]);
+    let id = crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), "human_act", &crate::records::APP_INTERFACE, body).unwrap()["recordId"].as_str().unwrap().to_owned();
+    let (all, outputs, read) = observe_with(&root);
+    assert!(read.acts.is_empty());
+    assert_eq!((read.unresolved[0]["record"]["recordId"].as_str(), read.unresolved[0]["reason"].as_str()), (Some(id.as_str()), Some("the record differs from the capture it cites")));
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "evidence_limit"]);
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-c 2: a file that changes while it is read is not obtainable (RS §6.2a coherent snapshot).
+#[test]
+fn a_file_changed_during_the_read_is_not_obtainable() {
+    let root = project("v1");
+    DURING_READ.with(|hook| *hook.borrow_mut() = Some(Box::new(|file: &std::path::Path| {
+        let mut f = std::fs::OpenOptions::new().append(true).open(file).unwrap();
+        std::io::Write::write_all(&mut f, b" and more").unwrap();
+    })));
+    let content = file_content(&root, "out/summary.md");
+    DURING_READ.with(|hook| *hook.borrow_mut() = None);
+    assert_eq!(content["notObtainable"], true, "{content}");
+    assert!(content["reason"].as_str().unwrap().starts_with("the file changed while it was read"));
+    assert_eq!(file_content(&root, "out/summary.md")["value"], crate::util::sha256_hex(b"v1 and more"), "read again once it is still");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-b: the limit written when the act records cannot be read at an end is a conformant RS entry.
+#[test]
+fn the_unread_acts_limit_is_conformant() {
+    let limit = acts_unread_limit("the project's record set is incomplete");
+    conformant(&[limit.clone()]);
+    assert_eq!(limit.1["label"], "unresolvable reference");
+    assert!(limit.1["detail"].as_str().unwrap().contains("record set is incomplete"));
+}
+
+// m-2 (RS R-6): a corrected act record is not current, so it never counts; its correction
+// counts only if it corresponds to the capture.
+#[test]
+fn a_corrected_act_does_not_count() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &capture);
+    let original = crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), "human_act", &crate::records::APP_INTERFACE, crate::act_control::act_body(&capture)).unwrap();
+    let mut correction = original.clone();
+    correction["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+    correction["seq"] = json!(original["seq"].as_u64().unwrap() + 1);
+    correction["corrects"] = original["recordId"].clone();
+    correction["correctionReason"] = json!("purpose restated");
+    correction["body"]["purpose"] = json!("A restated purpose.");
+    correction["prevLine"] = crate::record_lines::fixture::next_link(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap());
+    crate::schema_validation::bundled().unwrap().validate(&correction).unwrap();
+    let mut line = serde_json::to_string(&correction).unwrap();
+    line.push('\n');
+    let mut log = std::fs::OpenOptions::new().append(true).open(crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).unwrap();
+    std::io::Write::write_all(&mut log, line.as_bytes()).unwrap();
+    let (all, outputs, read) = observe_with(&root);
+    assert!(read.acts.is_empty());
+    assert_eq!(read.unresolved.len(), 1, "only the correction is current, and it differs from the capture");
+    assert_eq!(read.unresolved[0]["record"]["recordId"], correction["recordId"]);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "evidence_limit"]);
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// m-7: an act captured at exactly the arrival's time is "after arrival"; a capture under
+// another content method is incomparable (SB-1): neither counted nor said to differ.
+#[test]
+fn boundary_time_and_content_method() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AT);
+    let (_, outputs, _) = observe_with(&root);
+    assert_eq!(outputs[2].1["relation"], "after arrival", "{outputs:#?}");
+    let root2 = project("v1");
+    let file2 = root2.join("out/summary.md");
+    let legacy = json!({"method":crate::util::LEGACY_FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(b"v1")});
+    let capture = capture_of("act", "A7", &file2, &legacy, AFTER);
+    store(&root2, &capture);
+    record_for(&root2, &capture, &crate::records::APP_INTERFACE);
+    let (all, outputs, read) = observe_with(&root2);
+    assert_eq!(read.acts.len(), 1);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"], "the same hex under another method is not the same content");
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(root2).unwrap();
+}
+
+// m-1: AW-7 reads only a regular file inside the project, as one snapshot, without blocking.
+#[test]
+fn file_content_reads_only_a_regular_file_inside_the_project() {
+    let root = project("v1");
+    let outside = project("secret");
+    assert_eq!(file_content(&root, "out/summary.md")["value"], crate::util::sha256_hex(b"v1"));
+    assert_eq!(file_content(&root, "./out//summary.md")["value"], crate::util::sha256_hex(b"v1"));
+    std::os::unix::fs::symlink(outside.join("out/summary.md"), root.join("out/link.md")).unwrap();
+    let fifo = root.join("out/fifo");
+    assert_eq!(unsafe { libc::mkfifo(std::ffi::CString::new(fifo.to_str().unwrap()).unwrap().as_ptr(), 0o600) }, 0);
+    let started = std::time::Instant::now();
+    for (declared, why) in [("out/link.md", "a link out of the project"), ("../x", "`..`"), ("out", "a directory"), ("out/fifo", "a FIFO"), ("out/missing.md", "absent")] {
+        assert_eq!(file_content(&root, declared)["notObtainable"], true, "{why}");
+    }
+    assert!(started.elapsed() < std::time::Duration::from_secs(2), "a FIFO never blocks the read");
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(outside).unwrap();
+}
+
+// m-8: a change reported as `./out/summary.md`, or a declared path through a linked
+// directory, binds the same file the act control names.
+#[test]
+fn normalized_and_linked_paths_bind_the_acted_file() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let rely = act(&root, "A7", &file, "v1", AFTER);
+    let (_, outputs, _) = observe_view(&root, &change_view("./out/summary.md"));
+    assert_eq!(outputs[0].1["referents"][0]["subject"], RELY);
+    assert_eq!(outputs[2].1["act"]["recordId"], rely.as_str(), "{outputs:#?}");
+    // The declared output reached through a linked directory.
+    std::os::unix::fs::symlink(root.join("out"), root.join("link")).unwrap();
+    let text = workflow_text().replace("\"path\":\"out/summary.md\"", "\"path\":\"link/summary.md\"");
+    let read = project_act_records(&root).unwrap();
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(crate::workflow_declaration::read(&text).unwrap()));
+    let outputs = recorder.observe(&change_view("link/summary.md"), &scope(&root), &entries(&listed), &mut || Ok(read.clone()));
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A message arrival binds no act, even one on a file named like the message; a file that is
+// not readable binds none (A-5, SP-4).
+#[test]
+fn unidentified_or_unreadable_subjects_bind_no_act() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    std::fs::remove_file(&file).unwrap();
+    let (all, outputs, _) = observe_with(&root);
+    assert_eq!(outputs[0].1["referents"][0]["content"]["notObtainable"], true);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"]);
+    assert_eq!(waiting_arrivals(&all).len(), 1);
+    let named = root.join("agentMessage m1");
+    std::fs::write(&named, "Spacing report").unwrap();
+    act(&root, "A4", &named, "Spacing report", AFTER);
+    let items = vec![start_row(), row("turn-1", message("m1", "Spacing report"), 2, Some(2), Some(3))];
+    let (_, outputs, _) = observe_view(&root, &view(items));
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RC-2: act records that cannot be read count nothing and are read again at the next
+// observation; the arrival's act is then counted although no new native item arrived.
+#[test]
+fn unreadable_act_records_are_retried_and_counted_later() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let read = project_act_records(&root).unwrap();
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let first = recorder.observe(&file_view(), &scope(&root), &entries(&listed), &mut || Err("incomplete".into()));
+    assert_eq!(kinds(&first), ["checkpoint_arrival", "disposition_change"]);
+    assert!(recorder.view()["actsLimit"].as_str().unwrap().contains("incomplete"));
+    let mut all = entries(&listed);
+    all.extend(entries(&first));
+    let mut reads = 0;
+    let second = recorder.observe(&file_view(), &scope(&root), &all, &mut || { reads += 1; Ok(read.clone()) });
+    assert_eq!(kinds(&second), ["act_counted", "disposition_change"]);
+    assert_eq!(reads, 1, "read once per observation");
+    assert!(recorder.view()["actsLimit"].is_null());
+    all.extend(entries(&second));
+    let mut reads = 0;
+    assert!(recorder.observe(&file_view(), &scope(&root), &all, &mut || { reads += 1; Ok(read.clone()) }).is_empty(), "the content is unchanged: no lapse");
+    assert_eq!(reads, 1, "nothing waits, but the performing act is read once to compare its content (CE-10)");
+    // A read that fails at a performed arrival claims no lapse and no currency (A-10).
+    std::fs::write(&file, "v2").unwrap();
+    assert!(recorder.observe(&file_view(), &scope(&root), &all, &mut || Err("incomplete".into())).is_empty());
+    assert!(recorder.view()["actsLimit"].as_str().unwrap().contains("no lapse observed"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A-9: the resume point is the first run action evidenced as started after the counted act;
+// an action started before the act carries continued_past (m-6), and with no start time no
+// resume point is claimed.
+#[test]
+fn the_resume_point_follows_the_counted_act() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let read = project_act_records(&root).unwrap();
+    let started = |id: &str, n: u64, ms: Option<i64>| {
+        let mut r = row("turn-1", command(id, "agent"), n, Some(10 * n), None);
+        if let Some(ms) = ms {
+            r["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":ms}});
+        }
+        r
+    };
+    let after_act = 1_790_005_000_000i64; // 15:36:40, after the act at 15:00
+    let before_act = 1_790_001_000_000i64; // 14:16:40
+    for (rows, expected) in [
+        (vec![started("c1", 3, Some(before_act)), started("c2", 4, Some(after_act))], vec!["continued_past", "run_resumed"]),
+        (vec![started("c1", 3, None), started("c2", 4, Some(after_act))], vec![]),
+    ] {
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut items = file_view()["items"].as_array().unwrap().clone();
+        let first = recorder.observe(&view(items.clone()), &scope(&root), &entries(&listed), &mut || Ok(ActRead::default()));
+        let mut all = entries(&listed);
+        all.extend(entries(&first));
+        // The person's act is read; the agent's commands follow in a later observation.
+        let counted = recorder.observe(&view(items.clone()), &scope(&root), &all, &mut || Ok(read.clone()));
+        assert_eq!(kinds(&counted), ["act_counted", "disposition_change"]);
+        all.extend(entries(&counted));
+        items.extend(rows);
+        let outputs = recorder.observe(&view(items), &scope(&root), &all, &mut || Ok(read.clone()));
+        conformant(&outputs);
+        assert_eq!(kinds(&outputs), expected, "{outputs:#?}");
+        if let Some((_, resumed)) = outputs.iter().find(|(k, _)| *k == "run_resumed") {
+            assert_eq!((resumed["firstActionRef"].as_str(), resumed["time"].as_str()), (Some("item:thread/turn-1/c2"), Some("2026-09-21T15:36:40.000Z")));
+        }
+        if let Some((_, past)) = outputs.iter().find(|(k, _)| *k == "continued_past") {
+            assert_eq!(past["actionRef"], "item:thread/turn-1/c1");
+        }
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// CE-4 (RC-5): a person-input request or an MCP elicitation received in the run while an
+// arrival waits; associated only when exactly one waits; none recorded when none waits.
+#[test]
+fn requests_are_recorded_only_while_an_arrival_waits() {
+    let root = std::path::PathBuf::from("/project/root");
+    let request = |id: u64, method: &str, turn: &str, position: u64| json!({"requestIdentity":id,"generation":g(1),"method":method,"nativeParameters":{"threadId":"thread","turnId":turn,"itemId":"x"},"receiptPosition":position,"state":"outstanding"});
+    let mut items = vec![start_row(), row("turn-1", message("m1", "Spacing report"), 2, Some(4), Some(5)), row("turn-0", message("m0", "earlier"), 0, Some(0), Some(0))];
+    let mut v = view(items.clone());
+    v["serverRequests"] = json!([request(1, "item/tool/requestUserInput", "turn-1", 3), request(2, "item/tool/requestUserInput", "turn-1", 6),
+        request(3, "mcpServer/elicitation/request", "turn-1", 7), request(4, "item/commandExecution/requestApproval", "turn-1", 8), request(5, "item/tool/requestUserInput", "turn-0", 9)]);
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_request", "act_request"], "before the arrival, an approval and a turn outside the run record none: {outputs:#?}");
+    let one = &outputs[2].1;
+    assert_eq!((one["form"].as_str(), one["requester"]["kind"].as_str(), one["association"].as_str()), (Some("supplier person-input request"), Some("agent"), Some("associated with the current arrival")));
+    assert_eq!(one["arrival"], json!({"checkpoint":"CP-check","arrivalOrdinal":1}));
+    assert_eq!((one["actKind"].as_str(), one["subject"].as_str(), one["purpose"].as_str()), (Some("not named by the request"), Some("not named by the request"), Some("not named by the request")));
+    assert_eq!(one["evidence"]["ref"], "server-request:1/2");
+    assert_eq!((outputs[3].1["form"].as_str(), outputs[3].1["requester"]["kind"].as_str()), (Some("MCP elicitation"), Some("not established (MCP server or agent)")));
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &v, &scope(&root), &all).is_empty(), "each request is read once");
+    // Two arrivals waiting: no association.
+    items.push(row("turn-1", message("m2", "Spacing report"), 3, Some(10), Some(11)));
+    let mut v = view(items);
+    v["serverRequests"] = json!([request(6, "item/tool/requestUserInput", "turn-1", 12)]);
+    let outputs = obs(&mut recorder, &v, &scope(&root), &all);
+    conformant(&outputs);
+    let body = &outputs.iter().find(|(k, _)| *k == "act_request").unwrap().1;
+    assert_eq!(body["association"], "arrival association not established");
+    assert!(body.get("arrival").is_none());
+}
+
+// AW-3: a kind (a) checkpoint on a harness capability with an active presence rule arrives
+// at the start of each agent item of its kind; an inactive name or a host operation is not
+// evaluable; a not-established checkpoint is CE-2 FB-04.
+#[test]
+fn harness_capability_calls_arrive_at_item_start() {
+    let mut d: Value = serde_json::from_str(DECLARATION).unwrap();
+    d["required_tools"].as_array_mut().unwrap().extend([
+        json!({"name":"shell","class":"harness_capability","capability":"shell-command","purpose":"run","necessity":"required","stages":["Method"]}),
+        json!({"name":"plan","class":"harness_capability","capability":"plan-update","purpose":"plan","necessity":"required","stages":["Method"]}),
+    ]);
+    let cp = |name: &str, tool: &str| json!({"name":name,"required_act":"A4","reached_when":{"kind":"before_dispatch","tool":tool},"subject":{"class":"targets_of_held_call"},"position":"before","scope":"s","purpose":"p","actor":"the_person","expected_act_evidence":{"capturing_surface":"app_act_control","description":"A4"}});
+    d["checkpoints"] = json!([cp("CP-shell", "shell"), cp("CP-plan", "plan"), cp("CP-host", "add-support"), {"name":"CP-half"}]);
+    let text = format!("# Fixture\n\n```workflow-declaration\n{d}\n```\n");
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(crate::workflow_declaration::read(&text).unwrap()));
+    conformant(&listed);
+    let status: Vec<(&str, &str)> = listed.iter().filter(|(k, _)| *k == "checkpoint_listed").map(|(_, b)| (b["checkpoint"].as_str().unwrap(), b["evaluability"]["status"].as_str().unwrap())).collect();
+    assert_eq!(status, [("CP-shell", "evaluable with limit"), ("CP-plan", "not evaluable"), ("CP-host", "not evaluable")], "{listed:#?}");
+    assert_eq!(listed[3], ("declaration_finding", json!({"checkpoint":"CP-half","finding":"not established","code":"FB-04"})));
+    let root = std::path::PathBuf::from("/project/root");
+    let mut agent = row("turn-1", command("c2", "agent"), 3, Some(4), None);
+    agent["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_000_000_000i64}});
+    let items = vec![start_row(), row("turn-1", command("c1", "userShell"), 2, Some(2), None), agent];
+    let outputs = obs(&mut recorder, &view(items), &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"], "the person's own command is not the run's call");
+    let arrival = &outputs[0].1;
+    assert_eq!((arrival["checkpoint"].as_str(), arrival["event"]["ref"].as_str()), (Some("CP-shell"), Some("item:thread/turn-1/c2")));
+    assert_eq!(arrival["event"]["evidencedTime"]["source"], "supplier_item_time");
+    assert_eq!(arrival["limits"][0], CALL_LIMIT);
+    assert_eq!(arrival["referents"][0]["content"]["notObtainable"], true);
+}
+
+// ---- Lapses (CE-10; RC-8, PH-8, A-10; RS L-1…L-6, L-11, L-12) ----
+
+fn cp_rely() -> Value {
+    json!({"checkpoint":"CP-rely","arrivalOrdinal":1})
+}
+/// A run whose file arrival CP-rely is *performed* by an A7 on "v1" captured
+/// after the arrival: the recorder, the run's entries so far and the act.
+fn performed_run(root: &std::path::Path) -> (CheckpointRecorder, Vec<Value>, String) {
+    let rely = act(root, "A7", &root.join("out/summary.md"), "v1", AFTER);
+    let read = project_act_records(root).unwrap();
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = recorder.observe(&file_view(), &scope(root), &entries(&listed), &mut || Ok(read.clone()));
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_counted", "disposition_change"]);
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    (recorder, all, rely)
+}
+/// Observes `view` again with the project's act records as read now; every
+/// output is checked and appended to the run's entries.
+fn again(recorder: &mut CheckpointRecorder, root: &std::path::Path, view: &Value, all: &mut Vec<Value>) -> Vec<Output> {
+    let read = project_act_records(root).unwrap();
+    let outputs = recorder.observe(view, &scope(root), all, &mut || Ok(read.clone()));
+    conformant(&outputs);
+    all.extend(entries(&outputs));
+    outputs
+}
+/// The file view with an agent command started at 15:36:40, after the act at 15:00.
+/// A supplier start time a minute from now: after a lapse the App observes now.
+fn after_now() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64 + 60_000
+}
+fn resumed_view() -> Value {
+    let mut items = file_view()["items"].as_array().unwrap().clone();
+    let mut c = row("turn-1", command("c1", "agent"), 3, Some(30), None);
+    c["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_005_000_000i64}});
+    items.push(c);
+    view(items)
+}
+fn file_str(root: &std::path::Path) -> String {
+    root.join("out/summary.md").to_str().unwrap().to_owned()
+}
+
+// Before the resume point a changed file lapses the performing act: *waiting*,
+// "waiting — lapsed at ‹t›" (RC-8, R2-19). A repeated observation writes nothing; an act
+// on the current content then performs the same arrival with the next ordinal (RS L-12).
+#[test]
+fn a_lapse_before_resume_makes_the_arrival_waiting_again() {
+    let root = project("v1");
+    let (mut recorder, mut all, rely) = performed_run(&root);
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty(), "unchanged content: no lapse");
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "{outputs:#?}");
+    let lapse = &outputs[0].1;
+    let time = lapse["time"].as_str().unwrap();
+    assert!(comparable(time), "the observation's own time: {time}");
+    assert_eq!(lapse, &json!({"act":{"recordId":rely,"actKind":"A7","capturedAt":AFTER,"capturingSurface":"app_act_control"},"state":"lapsed",
+        "referents":[file_str(&root)],"c0":digest("v1"),"c1":digest("v2"),"time":time,"arrival":cp_rely(),"when":"before resume"}));
+    assert_eq!(outputs[1].1, json!({"arrival":cp_rely(),"disposition":"waiting","annotations":[{"label":"waiting — lapsed at","actRefs":[rely],"time":time,"referents":[RELY]}]}));
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty(), "the same observation is not written again");
+    assert_eq!(waiting_arrivals(&all), vec![cp_rely()], "CE-17 would list it as waiting");
+    // The act on the old content is not counted again; an act on the current content is.
+    let next = act(&root, "A7", &root.join("out/summary.md"), "v2", LATER);
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["act"]["recordId"], next.as_str());
+    assert_eq!((outputs[1].1["performanceOrdinal"].as_u64(), &outputs[1].1["answeredBy"]), (Some(2), &json!([next])));
+    // A new resume point follows the new performance (HD-5).
+    let outputs = again(&mut recorder, &root, &{
+        let mut v = resumed_view();
+        v["items"][2]["sourceFrame"]["params"]["startedAtMs"] = json!(after_now()); // after the act and after the lapse observed now
+        v
+    }, &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed"], "{outputs:#?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// After the resume point the lapse is recorded and nothing re-holds: the arrival stays
+// *performed* with "act lapsed at ‹t›", its ordinal and its act (RC-8, PH-8); a later
+// change is a new observation.
+#[test]
+fn a_lapse_after_resume_is_recorded_and_nothing_re_holds() {
+    let root = project("v1");
+    let (mut recorder, mut all, rely) = performed_run(&root);
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["run_resumed"]);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "{outputs:#?}");
+    let time = outputs[0].1["time"].clone();
+    assert_eq!((outputs[0].1["when"].as_str(), outputs[0].1["state"].as_str()), (Some("after resume"), Some("lapsed")));
+    assert_eq!(outputs[1].1, json!({"arrival":cp_rely(),"disposition":"performed","performanceOrdinal":1,"answeredBy":[rely],
+        "annotations":[{"label":"act lapsed at","actRefs":[rely],"time":time,"referents":[RELY]}]}));
+    assert!(waiting_arrivals(&all).is_empty(), "nothing says waiting after the resume point");
+    assert!(again(&mut recorder, &root, &resumed_view(), &mut all).is_empty());
+    std::fs::write(root.join("out/summary.md"), "v3").unwrap();
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"]);
+    assert_eq!((outputs[0].1["c1"].clone(), outputs[1].1["disposition"].as_str()), (digest("v3"), Some("performed")));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The resumed view with a second agent command started at 17:00, after an act at 16:00.
+fn resumed_again_view() -> Value {
+    let mut items = resumed_view()["items"].as_array().unwrap().clone();
+    let mut c = row("turn-1", command("c2", "agent"), 4, Some(40), None);
+    c["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":after_now()}});
+    items.push(c);
+    view(items)
+}
+
+// §2.4.3 "performed, with lapsed referents | CE-5 acts cover the lapsed referents | performed
+// (ordinal n+1)"; RC-8, JA-1: after a lapse past the resume point only an act of the required
+// kind on the content now current answers, whatever its capture time (SP-6); an act on other
+// or older content, of another kind, or a decline is not recorded against the performed
+// arrival. The single referent is the whole scope, so the act answers alone. A new resume
+// point follows, and a second lapse after it is recorded against the new act.
+#[test]
+fn an_act_on_lapsed_content_after_resume_performs_the_arrival_again() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (mut recorder, mut all, rely) = performed_run(&root);
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["run_resumed"]);
+    std::fs::write(&file, "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    // Not qualifying: the old content, another kind, other content, a decline.
+    act(&root, "A7", &file, "v1", "2026-09-21T15:30:00.000Z");
+    act(&root, "A4", &file, "v2", "2026-09-21T15:40:00.000Z");
+    act(&root, "A7", &file, "v9", "2026-09-21T15:45:00.000Z");
+    decline(&root, "A7", &file, "v2", "2026-09-21T15:50:00.000Z");
+    assert!(again(&mut recorder, &root, &resumed_view(), &mut all).is_empty(), "nothing recorded against the performed arrival");
+    assert!(waiting_arrivals(&all).is_empty());
+    // Qualifying: an A7 on the current content.
+    let next = act(&root, "A7", &file, "v2", LATER);
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[0].1, json!({"arrival":cp_rely(),"act":{"recordId":next,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control"},"relation":"after arrival","referents":[RELY]}));
+    assert_eq!(outputs[1].1, json!({"arrival":cp_rely(),"disposition":"performed","performanceOrdinal":2,"answeredBy":[next],"annotations":[]}));
+    assert!(again(&mut recorder, &root, &resumed_view(), &mut all).is_empty(), "no duplicate; the earlier command is no new resume point");
+    // A new resume point: the first run action started after the new act.
+    let outputs = again(&mut recorder, &root, &resumed_again_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["firstActionRef"], "item:thread/turn-1/c2");
+    // A second lapse after the new resume point is recorded against the new act and keeps ordinal 2.
+    std::fs::write(&file, "v3").unwrap();
+    let outputs = again(&mut recorder, &root, &resumed_again_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["act"]["recordId"].as_str(), outputs[0].1["when"].as_str()), (Some(next.as_str()), Some("after resume")));
+    assert_eq!((outputs[1].1["performanceOrdinal"].as_u64(), &outputs[1].1["answeredBy"]), (Some(2), &json!([next])));
+    // An act on the content now current captured before the arrival also answers (SP-6), with "by earlier act".
+    let earlier = act(&root, "A7", &file, "v3", BEFORE);
+    let outputs = again(&mut recorder, &root, &resumed_again_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["relation"].as_str(), outputs[1].1["performanceOrdinal"].as_u64()), (Some("earlier act"), Some(3)));
+    assert_eq!(outputs[1].1["annotations"][0]["label"], "by earlier act");
+    assert_eq!(outputs[1].1["answeredBy"], json!([earlier]));
+    assert!(again(&mut recorder, &root, &resumed_again_view(), &mut all).is_empty());
+    let _ = rely;
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A-9 / HD-5 for a performance after a lapse: its resume point is the first run action started
+// at or after both the capture of the act it cites and the lapse observation it answers. Here
+// an earlier act (captured before the arrival) performs the arrival again; a run action that
+// started between the original act and that performance, delivered only afterwards, is not
+// the new resume point; one started after the lapse observation is.
+#[test]
+fn a_re_performance_resumes_only_after_its_lapse_and_its_act() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["run_resumed"]);
+    std::fs::write(&file, "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    let earlier = act(&root, "A7", &file, "v2", BEFORE);
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["act"]["recordId"].as_str(), outputs[0].1["relation"].as_str(), outputs[1].1["performanceOrdinal"].as_u64()), (Some(earlier.as_str()), Some("earlier act"), Some(2)));
+    // Started at 16:30: after the original act (15:00), before the lapse observed now; delivered now.
+    let mut items = resumed_view()["items"].as_array().unwrap().clone();
+    let mut late = row("turn-1", command("c3", "agent"), 4, Some(40), None);
+    late["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":1_790_008_000_000i64}});
+    items.push(late);
+    let outputs = again(&mut recorder, &root, &view(items.clone()), &mut all);
+    assert!(!kinds(&outputs).contains(&"run_resumed"), "an action started before the re-performance is not its resume point: {outputs:#?}");
+    let mut next = row("turn-1", command("c4", "agent"), 5, Some(50), None);
+    next["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":after_now()}});
+    items.push(next);
+    let outputs = again(&mut recorder, &root, &view(items), &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["firstActionRef"], "item:thread/turn-1/c4");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// The same through the end paths' counting (end_observations): a performed arrival lapsed
+// after its resume point and an act on its current content before the end are counted.
+#[test]
+fn the_end_counts_an_act_on_lapsed_content_after_resume() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["run_resumed"]);
+    std::fs::write(&file, "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    let next = act(&root, "A7", &file, "v2", LATER);
+    let outputs = end_observations(&all, &root);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["act"]["recordId"].as_str(), outputs[1].1["performanceOrdinal"].as_u64()), (Some(next.as_str()), Some(2)));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A waiting arrival whose counted act's referent changes again: the act lapses against the
+// new content (EXEC §2.4.3 "waiting | CE-10"), and an act counts only on the content now
+// current: one on the content of the first lapse is "act on other content".
+#[test]
+fn a_waiting_arrival_follows_its_referents_current_content() {
+    let root = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &file_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    std::fs::write(root.join("out/summary.md"), "v3").unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["c0"].clone(), outputs[0].1["c1"].clone(), outputs[0].1["when"].as_str()), (digest("v1"), digest("v3"), Some("before resume")));
+    assert_eq!(outputs[1].1["disposition"], "waiting");
+    let stale = act(&root, "A7", &root.join("out/summary.md"), "v2", LATER);
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_not_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["act"]["recordId"].as_str(), outputs[0].1["reason"].as_str()), (Some(stale.as_str()), Some("act on other content")));
+    assert_eq!(waiting_arrivals(&all), vec![cp_rely()]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// RS L-4, §4.7: a missing file is "lapsed (subject absent)", waiting "subject absent", and no
+// act counts while it is absent; RS L-11: the content back at c0 after the observed lapse is
+// "matches c0 again after observed lapse", which changes no label (its effect is RS U-12).
+#[test]
+fn an_absent_subject_and_content_back_at_c0() {
+    let root = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    std::fs::remove_file(root.join("out/summary.md")).unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["state"].as_str(), &outputs[0].1["c1"]), (Some("lapsed (subject absent)"), &json!("subject absent")));
+    let labels: Vec<&str> = outputs[1].1["annotations"].as_array().unwrap().iter().map(|a| a["label"].as_str().unwrap()).collect();
+    assert_eq!((outputs[1].1["disposition"].as_str(), labels), (Some("waiting"), vec!["waiting — lapsed at", "subject absent"]));
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty());
+    std::fs::write(root.join("out/summary.md"), "v1").unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed"], "{outputs:#?}");
+    assert_eq!((outputs[0].1["state"].as_str(), outputs[0].1["c1"].clone()), (Some("matches c0 again after observed lapse"), digest("v1")));
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty(), "repeated: nothing");
+    assert_eq!(waiting_arrivals(&all), vec![cp_rely()], "the label stays as the lapse left it");
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"], "a change after the match is a new lapse: {outputs:#?}");
+    assert_eq!(outputs[0].1["c1"], digest("v2"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A-10 (RS L-2, L-3): a file that cannot be read, or an identity under another method, is
+// lapse state *unknown*: written once, with no label change, so neither lapse nor currency
+// is claimed; a known state afterwards that equals the last known one is not written again.
+#[test]
+fn unavailable_or_incomparable_content_claims_no_lapse() {
+    let root = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    let path = root.join("out/summary.md");
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    let outputs = again(&mut recorder, &root, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["state"], "unknown (unavailable)");
+    assert_eq!(outputs[0].1["c1"]["notObtainable"], true);
+    assert!(outputs[0].1["c1"]["reason"].as_str().unwrap().starts_with("not a regular file"));
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty(), "written once");
+    assert!(waiting_arrivals(&all).is_empty(), "still performed");
+    std::fs::remove_dir(&path).unwrap();
+    std::fs::write(&path, "v1").unwrap();
+    assert!(again(&mut recorder, &root, &file_view(), &mut all).is_empty(), "back to the bound content: not lapsed, nothing written");
+    // Another method designation (SB-1), observed directly: unknown (incomparable).
+    let id = "rec:app:legacy-act";
+    let arrival = json!({"checkpoint":"CP-rely","arrivalOrdinal":1,"referents":[{"subject":RELY,"content":digest("v1")}]});
+    let legacy = json!({"method":crate::util::LEGACY_FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(b"v1")});
+    let run = vec![json!({"kind":"checkpoint_arrival","body":arrival}),
+        json!({"kind":"disposition_change","body":{"arrival":cp_rely(),"disposition":"performed","performanceOrdinal":1,"answeredBy":[id]}})];
+    let read = ActRead::new(ActReadData { acts: vec![json!({"record":{"kind":"human_act","recordId":id,"body":{"actKind":"A7","captureTime":AFTER,"boundSubject":[file_str(&root)],"boundContent":[legacy]}}})], unresolved: vec![] });
+    let mut reads = Vec::new();
+    let outputs = observe_lapses(&run, &read, AFTER, &mut |p| { reads.push(p.to_path_buf()); Current::Present(crate::util::sha256_hex(b"v2")) });
+    valid(&outputs);
+    assert_eq!(kinds(&outputs), ["act_lapsed"]);
+    assert_eq!((outputs[0].1["state"].as_str(), outputs[0].1["c0"].clone()), (Some("unknown (incomparable)"), legacy));
+    assert_eq!(reads, [path.clone()], "the act's bound subject is read, as the act record names it");
+    // An act that is no longer a current verified act is not compared at all.
+    assert!(observe_lapses(&run, &ActRead::default(), AFTER, &mut |_| unreachable!()).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// The bound file is hashed again only when its metadata stamp changes (a change of bytes
+// changes its size or change time), and always while its change time is this recent.
+#[test]
+fn bound_files_are_read_again_only_when_their_stamp_changes() {
+    let root = project("v1");
+    let path = root.join("out/summary.md");
+    let key = path.to_str().unwrap().to_owned();
+    let mut cache = std::collections::BTreeMap::new();
+    assert_eq!(cached_content(&mut cache, &root, &path), Current::Present(crate::util::sha256_hex(b"v1")));
+    cache.get_mut(&key).unwrap().value = "cached".into();
+    assert_eq!(cached_content(&mut cache, &root, &path), Current::Present(crate::util::sha256_hex(b"v1")), "read within the change time's second: read again");
+    let seen = cache.get_mut(&key).unwrap();
+    seen.value = "cached".into();
+    seen.read_at = seen.stamp.5 + 2;
+    assert_eq!(cached_content(&mut cache, &root, &path), Current::Present("cached".into()), "unchanged stamp, read well after the change: not read");
+    std::fs::write(&path, "v22").unwrap();
+    assert_eq!(cached_content(&mut cache, &root, &path), Current::Present(crate::util::sha256_hex(b"v22")));
+    std::fs::remove_file(&path).unwrap();
+    assert_eq!(cached_content(&mut cache, &root, &path), Current::Absent);
+    assert!(cache.is_empty());
+    assert!(matches!(current_content(&root, std::path::Path::new("/etc/hosts")), Current::Unavailable(_)), "outside the project is never absent or read");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// At the person's end, a lapse since the last observation is written before the end with its
+// own time, and the arrival it made waiting is listed by run_ended (CE-17).
+#[test]
+fn the_end_observes_lapses_before_counting() {
+    let root = project("v1");
+    let (_, all, _) = performed_run(&root);
+    assert!(end_observations(&all, &root).is_empty(), "nothing changed, nothing waits");
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let rely = act(&root, "A7", &root.join("out/summary.md"), "v2", LATER);
+    let outputs = end_observations(&all, &root);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change", "act_counted", "disposition_change"], "lapsed, then counted on the current content: {outputs:#?}");
+    assert_eq!((outputs[2].1["act"]["recordId"].as_str(), outputs[3].1["performanceOrdinal"].as_u64()), (Some(rely.as_str()), Some(2)));
+    std::fs::write(root.join("out/summary.md"), "v3").unwrap();
+    let mut ended = all.clone();
+    ended.extend(entries(&outputs));
+    let outputs = end_observations(&ended, &root);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"]);
+    ended.extend(entries(&outputs));
+    assert_eq!(waiting_arrivals(&ended), vec![cp_rely()]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// B-1 (RC-8, HD-5, PH-7): when one observation delivers the run's first action after the act
+// and the file has also changed, the resume point is recorded first and the lapse, read
+// after every delivered item, is *after resume*: performed "act lapsed at", no continued_past.
+#[test]
+fn a_resume_and_a_lapse_in_one_observation_record_the_resume_first() {
+    let root = project("v1");
+    let (mut recorder, mut all, rely) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["run_resumed", "act_lapsed", "disposition_change"], "{outputs:#?}");
+    assert_eq!(outputs[1].1["when"], "after resume");
+    assert_eq!((outputs[2].1["disposition"].as_str(), outputs[2].1["annotations"][0]["label"].as_str(), &outputs[2].1["answeredBy"]), (Some("performed"), Some("act lapsed at"), &json!([rely])));
+    assert!(waiting_arrivals(&all).is_empty());
+    // A lapse before any run action, then an act on the new content in the same observation:
+    // the lapse is read after the items and the act is counted against the content now current.
+    let root2 = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root2);
+    std::fs::write(root2.join("out/summary.md"), "v2").unwrap();
+    let next = act(&root2, "A7", &root2.join("out/summary.md"), "v2", LATER);
+    let outputs = again(&mut recorder, &root2, &file_view(), &mut all);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+    assert_eq!((outputs[2].1["act"]["recordId"].as_str(), outputs[3].1["performanceOrdinal"].as_u64()), (Some(next.as_str()), Some(2)));
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(root2).unwrap();
+}
+
+// N-1 (EXEC §2.4.3, RH-2): an arrival waiting after a lapse whose file changes again and gets
+// an act on the new content within one observation: the new content is read before acts are
+// counted, so the act is counted (performed, ordinal 2), never "act on other content".
+#[test]
+fn a_waiting_arrivals_new_content_is_read_before_acts_are_counted() {
+    let root = project("v1");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    assert_eq!(kinds(&again(&mut recorder, &root, &file_view(), &mut all)), ["act_lapsed", "disposition_change"]);
+    std::fs::write(root.join("out/summary.md"), "v3").unwrap();
+    let next = act(&root, "A7", &root.join("out/summary.md"), "v3", LATER);
+    for view in [file_view(), resumed_view()] {
+        let (mut recorder, mut all) = (recorder.clone(), all.clone());
+        let outputs = again(&mut recorder, &root, &view, &mut all);
+        let shown: Vec<&str> = kinds(&outputs).into_iter().filter(|k| *k != "continued_past" && *k != "run_resumed").collect();
+        assert_eq!(shown, ["act_lapsed", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
+        assert_eq!((outputs[0].1["c1"].clone(), outputs[0].1["when"].as_str()), (digest("v3"), Some("before resume")));
+        let counted = outputs.iter().find(|(k, _)| *k == "act_counted").unwrap();
+        assert_eq!(counted.1["act"]["recordId"], next.as_str());
+        assert!(!kinds(&outputs).contains(&"act_not_counted"));
+        assert!(waiting_arrivals(&all).is_empty());
+        let after = again(&mut recorder, &root, &view, &mut all);
+        assert!(after.iter().all(|(k, _)| *k == "run_resumed"), "{after:#?}");
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// M-1 (RS W-2): an act_lapsed whose label was not written (an end after relaunch appends entry
+// by entry and stops at a failure) gets its label at the next observation, with the recorded
+// lapse's time; a labelled lapse gets none, so nothing is duplicated.
+#[test]
+fn a_recorded_lapse_without_its_label_is_labelled_once() {
+    let root = project("v1");
+    let (_, all, rely) = performed_run(&root);
+    std::fs::write(root.join("out/summary.md"), "v2").unwrap();
+    let outputs = end_observations(&all, &root);
+    assert_eq!(kinds(&outputs), ["act_lapsed", "disposition_change"]);
+    let mut partial = all.clone();
+    partial.extend(entries(&outputs[..1]));
+    let repaired = end_observations(&partial, &root);
+    conformant(&repaired);
+    assert_eq!(kinds(&repaired), ["disposition_change"], "{repaired:#?}");
+    assert_eq!(repaired[0].1, json!({"arrival":cp_rely(),"disposition":"waiting","annotations":[{"label":"waiting — lapsed at","actRefs":[rely],"time":outputs[0].1["time"],"referents":[RELY]}]}));
+    partial.extend(entries(&repaired));
+    assert_eq!(waiting_arrivals(&partial), vec![cp_rely()]);
+    assert!(end_observations(&partial, &root).is_empty(), "labelled: nothing more");
+    let mut whole = all.clone();
+    whole.extend(entries(&outputs));
+    assert!(end_observations(&whole, &root).is_empty());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// ---- Observation lost and recovered (CE-13, CE-14; AE-6, AW-12, RP-1) ----
+
+fn gen_ref(counter: u64) -> String {
+    crate::recovery::generation_ref(&g(counter)).unwrap()
+}
+/// DEL-01-02's custody `observation_lost` for generation `counter`, naming `threads`.
+fn lost_event(id: &str, counter: u64, threads: &[&str], items: Vec<Value>) -> Value {
+    json!({"kind":"observation_lost","eventId":id,"appSession":"session","at":"2026-09-21T16:00:00.000Z","standing":"App-observed","home":"H-acct",
+        "generation":gen_ref(counter),"cause":"supplier-exit","conversations":threads,"liveTurns":[{"threadId":"thread","turnId":"turn-1"}],"inFlightItems":items,"outstandingEntries":[]})
+}
+fn in_flight(id: &str, kind: &str) -> Value {
+    json!({"threadId":"thread","turnId":"turn-1","itemId":id,"itemType":kind,"lastObservedStatus":"inProgress"})
+}
+/// DEL-01-02's custody `observation_recovered` read in generation `counter`.
+fn recovered_event(id: &str, counter: u64, prior: &str) -> Value {
+    let mut e = json!({"kind":"observation_recovered","eventId":id,"appSession":"session","at":"2026-09-21T16:05:00.000Z","standing":"App-observed","threadId":"thread","home":"H-acct",
+        "generation":gen_ref(counter),"via":"thread/read","priorEvents":prior,"turns":[{"turnId":"turn-1","supplierStatus":"interrupted","appReading":"recovered from Codex: interrupted"}]});
+    if prior == "unavailable" {
+        e["unavailableReason"] = json!("fixture: thread not found");
+    }
+    e
+}
+fn with_custody(mut v: Value, events: Vec<Value>) -> Value {
+    v["custodyEvents"] = json!(events);
+    v
+}
+
+// AE-6, AW-12: a loss naming the run's conversation is written once; it is deciding only
+// when an item it left in flight may be a listed checkpoint's named event. Nothing else is
+// written for it (no label, no arrival): which arrival it would be is not established.
+#[test]
+fn a_loss_is_written_once_and_deciding_only_for_a_possible_production() {
+    let root = std::path::PathBuf::from("/project/root");
+    // The native view's shape: the started text stays empty; streamed deltas are the preview.
+    let mut partial = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    partial["preview"] = json!("Spac");
+    let mut other = row("turn-1", json!({"id":"m2","type":"agentMessage","text":""}), 3, Some(3), None);
+    other["preview"] = json!("Working on it\nSpacing report");
+    let elsewhere = row("turn-1", json!({"id":"f2","type":"fileChange","status":"inProgress","changes":[{"path":"out/other.md","kind":{"type":"add"},"diff":""}]}), 4, Some(4), None);
+    let items = vec![start_row(), partial, other, elsewhere];
+    let cases = [
+        (vec![in_flight("c1", "commandExecution")], false),
+        (vec![in_flight("m2", "agentMessage")], false), // its first line is settled and is not the designating line
+        (vec![in_flight("f2", "fileChange")], false),   // its changes produce no declared path
+        (vec![in_flight("m1", "agentMessage")], true),  // "Spac" may still become "Spacing report"
+        (vec![in_flight("f9", "fileChange")], true),    // not in the view: its changes are not known
+    ];
+    for (n, (flight, deciding)) in cases.into_iter().enumerate() {
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let id = format!("cev:lost:{n}");
+        let v = with_custody(view(items.clone()), vec![lost_event(&id, 1, &["thread"], flight)]);
+        let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+        conformant(&outputs);
+        assert_eq!(kinds(&outputs), ["observation_lost"], "case {n}: {outputs:#?}");
+        let body = &outputs[0].1;
+        assert_eq!(body["deciding"], deciding, "case {n}: {body}");
+        assert!(body["arrival"].is_null(), "no arrival is named");
+        assert!(body["scope"].as_str().unwrap().contains(&format!("(custody event {id})")));
+        assert!(body["cause"].as_str().unwrap().contains("supplier-exit"));
+        let mut all = entries(&listed);
+        all.extend(entries(&outputs));
+        assert!(obs(&mut recorder, &v, &scope(&root), &all).is_empty(), "case {n}: read once");
+        let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+        assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "case {n}: already in the record, not written again");
+        assert!(waiting_arrivals(&all).is_empty() && !kinds(&outputs).contains(&"disposition_change"));
+    }
+}
+
+// AE-6: a loss of another conversation, of a generation before the run opened, of another
+// App session or physical home is not this run's; a run with no listed checkpoint still
+// records its loss (RC-2).
+#[test]
+fn only_a_loss_of_the_runs_conversation_after_it_opened_is_its_own() {
+    let root = std::path::PathBuf::from("/project/root");
+    let items = vec![start_row()];
+    let mut foreign_session = lost_event("cev:s", 1, &["thread"], vec![]);
+    foreign_session["appSession"] = json!("earlier");
+    let mut foreign_home = lost_event("cev:h", 1, &["thread"], vec![]);
+    foreign_home["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"session","home":"other-home","spawnCounter":1})).unwrap());
+    for (event, start_spawn) in [(lost_event("cev:o", 1, &["other-thread"], vec![]), 1), (lost_event("cev:1", 1, &["thread"], vec![]), 2), (foreign_session, 1), (foreign_home, 1)] {
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut run = scope(&root);
+        run.start_spawn = start_spawn;
+        assert!(obs(&mut recorder, &with_custody(view(items.clone()), vec![event.clone()]), &run, &entries(&listed)).is_empty(), "{event}");
+    }
+    let (mut bare, none) = CheckpointRecorder::start(Err("bytes differ".into()));
+    assert!(none.is_empty());
+    let outputs = obs(&mut bare, &with_custody(view(items), vec![lost_event("cev:l", 2, &["thread", "other"], vec![])]), &scope(&root), &[]);
+    assert_eq!(kinds(&outputs), ["observation_lost"]);
+    assert_eq!(outputs[0].1["deciding"], false);
+}
+
+// CE-14 (RP-1): a recovery read of the run's conversation after its recorded loss is written
+// once with the read's own time; an unavailable read, or one with no loss recorded for the run
+// before it, writes nothing. It recovers no item, so no label changes and nothing is back-filled.
+#[test]
+fn a_recovery_is_written_once_after_a_recorded_loss() {
+    let root = std::path::PathBuf::from("/project/root");
+    let items = vec![start_row(), row("turn-1", message("m1", "Spacing report"), 2, Some(2), Some(3))];
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let mut all = entries(&listed);
+    // A recovery with no loss of this run before it: nothing.
+    let early = with_custody(view(items.clone()), vec![recovered_event("cev:r0", 2, "accessible")]);
+    let outputs = obs(&mut recorder, &early, &scope(&root), &all);
+    assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change"], "{outputs:#?}");
+    all.extend(entries(&outputs));
+    let events = vec![lost_event("cev:l1", 1, &["thread"], vec![in_flight("m9", "agentMessage")]), recovered_event("cev:r1", 2, "unavailable"), recovered_event("cev:r2", 2, "accessible"), recovered_event("cev:r3", 2, "accessible")];
+    let outputs = obs(&mut recorder, &with_custody(view(items.clone()), events.clone()), &scope(&root), &all);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["observation_lost", "observation_recovered"], "{outputs:#?}");
+    assert_eq!(outputs[0].1["deciding"], true);
+    let scope_text = outputs[1].1["scope"].as_str().unwrap();
+    assert!(scope_text.contains("(custody event cev:r2)") && scope_text.contains("at 2026-09-21T16:05:00.000Z") && scope_text.contains("turn turn-1: Codex reports interrupted"), "{scope_text}");
+    assert!(outputs[1].1.get("arrival").is_none());
+    all.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &with_custody(view(items.clone()), events.clone()), &scope(&root), &all).is_empty(), "read once");
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    let again: Vec<Output> = obs(&mut fresh, &with_custody(view(items), events), &scope(&root), &all).into_iter().filter(|(k, _)| k.starts_with("observation")).collect();
+    assert!(again.is_empty(), "already recorded: {again:#?}");
+    assert_eq!(disposition(&all, &[], &json!({"checkpoint":"CP-check","arrivalOrdinal":1})).as_deref(), Some("waiting"), "no label changes");
+}
+
+// F-1: the in-flight message row as the native view itself builds it from item/started and
+// item/agentMessage/delta: the deltas decide, not the started text. A settled first line that
+// is not the designating line is not deciding; one still growing, or the designating line, is.
+#[test]
+fn a_loss_reads_the_native_views_streamed_message_text() {
+    let root = std::path::PathBuf::from("/project/root");
+    let decides = |deltas: &[&str]| {
+        let mut native = crate::native_items::NativeView::new("native-home".into()).unwrap();
+        native.ready(g(1), json!("codex 0.160.0"), json!("unverified-development")).unwrap();
+        let frames = [json!({"method":"turn/started","params":{"threadId":"thread","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null,"itemsView":"summary"}}}),
+            json!({"method":"item/started","params":{"threadId":"thread","turnId":"turn-1","item":{"id":"m1","type":"agentMessage","text":""}}})];
+        let deltas = deltas.iter().map(|d| json!({"method":"item/agentMessage/delta","params":{"threadId":"thread","turnId":"turn-1","itemId":"m1","delta":d}}));
+        for (n, frame) in frames.into_iter().chain(deltas).enumerate() {
+            native.consume(&json!({"generation":g(1),"position":n + 1,"frame":frame})).unwrap();
+        }
+        let v = with_custody(native.snapshot(), vec![lost_event("cev:native", 1, &["thread"], vec![in_flight("m1", "agentMessage")])]);
+        let row = v["items"].as_array().unwrap().iter().find(|r| r["native"]["id"] == "m1").unwrap().clone();
+        assert_eq!(row["native"]["text"], "", "the started text stays as started: {row}");
+        let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+        let mut run = scope(&root);
+        run.start = crate::run_offers::RunStart::BeforeView; // the turn is in the run
+        let outputs: Vec<Output> = obs(&mut recorder, &v, &run, &entries(&listed)).into_iter().filter(|(k, _)| *k == "observation_lost").collect();
+        conformant(&outputs);
+        outputs[0].1["deciding"].as_bool().unwrap()
+    };
+    assert!(!decides(&["Working on it", "\nSp"]), "a settled first line other than the designating line");
+    assert!(decides(&["Spacing rep"]), "still growing");
+    assert!(decides(&["Spacing report\n", "The findings"]), "the designating line");
+    assert!(decides(&[]), "nothing received yet");
+    // A truncated preview has lost its start: its first line is not known.
+    let mut truncated = row("turn-1", json!({"id":"m1","type":"agentMessage","text":""}), 2, Some(2), None);
+    truncated["preview"] = json!("…tail\nmore");
+    truncated["previewTruncated"] = json!(true);
+    assert_eq!(received_text(&truncated), None);
+}
+
+// F-2: a recovery read is matched to a loss of this run by the turn it reports, the live turn
+// at that loss (the custody event names no lost generation): the recovery of a loss from
+// before the run, or one whose read was unavailable, is not this run's.
+#[test]
+fn a_recovery_matches_the_runs_loss_by_its_live_turn() {
+    let root = std::path::PathBuf::from("/project/root");
+    let mut run = scope(&root);
+    run.start_spawn = 2;
+    let mut before = lost_event("cev:g1", 1, &["thread"], vec![]);
+    before["liveTurns"] = json!([{"threadId":"thread","turnId":"turn-0"}]);
+    let mut of_before = recovered_event("cev:r-g1", 3, "accessible");
+    of_before["turns"][0]["turnId"] = json!("turn-0");
+    let mut events = vec![before, lost_event("cev:g2", 2, &["thread"], vec![]), of_before, recovered_event("cev:r-g2", 3, "unavailable")];
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let mut all = entries(&listed);
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events.clone()), &run, &all);
+    assert_eq!(kinds(&outputs), ["observation_lost"], "only g2's loss; g1's recovery is not this run's: {outputs:#?}");
+    all.extend(entries(&outputs));
+    events.push(recovered_event("cev:r-g2-retry", 3, "accessible"));
+    let outputs = obs(&mut recorder, &with_custody(view(vec![start_row()]), events), &run, &all);
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["observation_recovered"]);
+    assert!(outputs[0].1["scope"].as_str().unwrap().contains("(custody event cev:r-g2-retry)"));
+}
+
+// F-3: the loss names the stop or loss that ended the process (RECOVERY §2).
+#[test]
+fn a_loss_names_its_definition() {
+    for (cause, definition) in [("supplier-exit", "DEF-5 (b)"), ("supplier-stop", "DEF-5 (a)"), ("app-quit", "DEF-6"), ("system-termination", "DEF-5")] {
+        let mut event = lost_event("cev:c", 1, &["thread"], vec![]);
+        event["cause"] = json!(cause);
+        let body = lost_body(&event, "cev:c", "thread", &[]);
+        assert!(body["cause"].as_str().unwrap().contains(definition) && body["scope"].as_str().unwrap().contains(definition), "{cause}: {body}");
+    }
+}
+
+#[test]
+fn a_settled_first_line_needs_its_line_break() {
+    assert_eq!(settled_first_line("Spacing rep"), None);
+    assert_eq!(settled_first_line("\n  \n Spacing report \nrest"), Some("Spacing report"));
+    assert_eq!(settled_first_line("  \n"), None);
+}
+
+// ---- Tool-permission settlements (RS R13) and lost acknowledgements (R11) ----
+
+/// A register record (HOSTING server-request entry) of `thread` in generation `counter`.
+fn request(id: Value, counter: u64, turn: &str, method: &str, class: &str, state: &str, origin: Option<Value>) -> Value {
+    let mut r = json!({"recordKind":"server-request-entry","requestIdentity":id,"generation":g(counter),"method":method,"classification":"known-answerable","originClass":class,
+        "nativeParameters":{"threadId":"thread","turnId":turn,"itemId":"item-1"},"receiptPosition":9,"state":state,"replyWriteResult":null,"acknowledgmentObservation":{"status":"not-observed"}});
+    if let Some(origin) = origin {
+        r["settlement"] = json!({"kind":if state == "declined" {"decline"} else if state == "errored" {"error"} else {"answer"},"origin":origin,"nativeContent":null});
+        r["replyWriteResult"] = json!("written");
+    }
+    r
+}
+const APPROVAL: &str = "item/commandExecution/requestApproval";
+fn person() -> Option<Value> { Some(json!({"class":"person-via-interaction","actorRef":"person:p (identity not verified)"})) }
+fn rule(name: &str) -> Option<Value> { Some(json!({"class":"app-rule","ruleName":name})) }
+/// DEL-01-02's RQ-04 or RQ-05 custody event for request `id` of generation `counter`.
+fn request_event(kind: &str, id: &Value, counter: u64, context: &str) -> Value {
+    let identity = serde_json::to_string(id).unwrap();
+    let tag = if kind == "request_ended_unanswered" { "rq04" } else { "rq05" };
+    let mut e = json!({"kind":kind,"eventId":format!("cev:{tag}:{}:{identity}", gen_ref(counter)),"appSession":"session","at":"2026-09-21T16:00:00.000Z","standing":"App-observed",
+        "entry":{"generation":gen_ref(counter),"requestIdentity":identity,"method":APPROVAL,"subject":{"threadId":"thread","turnId":"turn-1","itemId":"item-1"}},"context":context});
+    if kind == "acknowledgment_not_observed" {
+        e["settlementOrigin"] = json!("person-via-interaction");
+    }
+    e
+}
+fn settlement_view(requests: Vec<Value>, events: Vec<Value>) -> Value {
+    let mut v = with_custody(view(vec![start_row(), row("turn-0", message("m0", "earlier"), 0, Some(0), Some(0))]), events);
+    v["serverRequests"] = json!(requests);
+    v
+}
+
+// R13: each A14 request of the run is written once with its settlement origin, when the
+// register shows it settled; never a human act; open, unwritten or non-A14 requests are not.
+#[test]
+fn tool_permission_settlements_are_written_once_with_their_origin() {
+    let root = std::path::PathBuf::from("/project/root");
+    let mut other = request(json!(20), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    other["nativeParameters"]["threadId"] = json!("other-thread");
+    let mut foreign = request(json!(21), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    foreign["generation"]["appSession"] = json!("earlier-session");
+    let requests = vec![
+        request(json!(1), 1, "turn-1", APPROVAL, "a14", "answered", person()),
+        request(json!(2), 1, "turn-1", "item/fileChange/requestApproval", "a14", "declined", person()),
+        request(json!(3), 1, "turn-1", "item/permissions/requestApproval", "a14", "declined", rule("deny-network")),
+        request(json!(4), 1, "turn-1", APPROVAL, "a14", "errored", rule("refuse-outside-project")),
+        request(json!(5), 1, "turn-1", "execCommandApproval", "a14", "errored", Some(json!({"class":"app-explicit-error"}))),
+        request(json!(6), 1, "turn-1", "applyPatchApproval", "a14", "resolved-by-supplier", None),
+        request(json!("seven"), 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None),
+        // Not written: ended with no custody event yet, open, settling, write failed,
+        // person input, a turn before the run, another conversation, another App session.
+        request(json!(8), 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None),
+        request(json!(9), 1, "turn-1", APPROVAL, "a14", "outstanding", None),
+        request(json!(10), 1, "turn-1", APPROVAL, "a14", "settling", person()),
+        request(json!(11), 1, "turn-1", APPROVAL, "a14", "settle-write-failed", person()),
+        request(json!(12), 1, "turn-1", "item/tool/requestUserInput", "person-input", "answered", person()),
+        request(json!(13), 1, "turn-0", APPROVAL, "a14", "answered", person()),
+        other, foreign,
+    ];
+    let v = settlement_view(requests, vec![request_event("request_ended_unanswered", &json!("seven"), 1, "supplier-exit")]);
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert!(outputs.iter().all(|(k, _)| *k == "tool_permission_settlement"), "never a human act: {outputs:#?}");
+    let bodies: Vec<&Value> = outputs.iter().map(|(_, b)| b).collect();
+    assert_eq!(bodies, [
+        &json!({"request":"server-request:1/1","settledBy":"the person via interaction","settlement":"answered"}),
+        &json!({"request":"server-request:1/2","settledBy":"the person via interaction","settlement":"declined"}),
+        &json!({"request":"server-request:1/3","settledBy":"App named-rule decline","settlement":"declined","ruleName":"deny-network"}),
+        &json!({"request":"server-request:1/4","settledBy":"explicit error","settlement":"errored","ruleName":"refuse-outside-project"}),
+        &json!({"request":"server-request:1/5","settledBy":"explicit error","settlement":"errored"}),
+        &json!({"request":"server-request:1/6","settledBy":"the supplier","settlement":"resolved by supplier"}),
+        &json!({"request":"server-request:1/seven","settledBy":"none — ended unanswered","settlement":"ended unanswered (process exit)","context":"supplier exit",
+            "custodyEventRef":format!("cev:rq04:{}:\"seven\"", gen_ref(1))}),
+    ]);
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    assert!(obs(&mut recorder, &v, &scope(&root), &all).is_empty(), "each settlement is written once");
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "a fresh recorder reads the run's entries");
+    // A later tick: request 8's custody event arrives, request 9 is answered.
+    let mut later = v.clone();
+    later["custodyEvents"].as_array_mut().unwrap().push(request_event("request_ended_unanswered", &json!(8), 1, "app-quit"));
+    later["serverRequests"][8] = request(json!(9), 1, "turn-1", APPROVAL, "a14", "answered", person());
+    let outputs = obs(&mut recorder, &later, &scope(&root), &all);
+    conformant(&outputs);
+    assert_eq!(outputs.iter().map(|(_, b)| (b["request"].as_str().unwrap(), b["settledBy"].as_str().unwrap(), b["context"].as_str())).collect::<Vec<_>>(),
+        [("server-request:1/8", "none — ended unanswered", Some("App quit")), ("server-request:1/9", "the person via interaction", None)]);
+    // A request of a generation before the run opened is not the run's.
+    let earlier = RunScope { start_spawn: 2, ..scope(&root) };
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &later, &earlier, &entries(&listed)).is_empty());
+}
+
+// RQ-04 context spellings become RS's; an unknown context writes nothing.
+#[test]
+fn an_ended_request_carries_its_context_and_custody_event() {
+    let root = std::path::PathBuf::from("/project/root");
+    for (context, written) in [("supplier-exit", Some("supplier exit")), ("supplier-stop", Some("supplier stop")), ("app-quit", Some("App quit")),
+        ("system-termination", Some("system termination")), ("app-ended-without-record", Some("App ended without record")), ("unknown", None)] {
+        let id = json!(1);
+        let event = request_event("request_ended_unanswered", &id, 1, context);
+        let v = settlement_view(vec![request(id, 1, "turn-1", APPROVAL, "a14", "ended-unanswered", None)], vec![event.clone()]);
+        let (mut recorder, _) = CheckpointRecorder::start(Ok(declaration()));
+        let outputs = obs(&mut recorder, &v, &scope(&root), &[]);
+        conformant(&outputs);
+        match written {
+            Some(spelling) => {
+                assert_eq!(outputs.len(), 1, "{context}");
+                assert_eq!((outputs[0].1["context"].as_str(), &outputs[0].1["custodyEventRef"]), (Some(spelling), &event["eventId"]), "{context}");
+            }
+            None => assert!(outputs.is_empty(), "{context}"),
+        }
+    }
+}
+
+// R11 "lost acknowledgement" from DEL-01-02's acknowledgment_not_observed (RQ-05), on the
+// run whose conversation the request names; written once, alongside the request's R13.
+#[test]
+fn a_reply_never_acknowledged_is_a_lost_acknowledgement() {
+    let root = std::path::PathBuf::from("/project/root");
+    let id = json!(1);
+    let v = settlement_view(vec![request(id.clone(), 1, "turn-1", APPROVAL, "a14", "answered", person())],
+        vec![request_event("acknowledgment_not_observed", &id, 1, "app-quit")]);
+    let (mut recorder, listed) = CheckpointRecorder::start(Ok(declaration()));
+    let outputs = obs(&mut recorder, &v, &scope(&root), &entries(&listed));
+    conformant(&outputs);
+    assert_eq!(kinds(&outputs), ["tool_permission_settlement", "evidence_limit"]);
+    let limit = &outputs[1].1;
+    assert_eq!((limit["label"].as_str(), limit["subjectRef"].as_str()), (Some("lost acknowledgement"), Some("server-request:1/1")));
+    assert!(limit["detail"].as_str().unwrap().contains(&format!("cev:rq05:{}:1", gen_ref(1))), "{limit}");
+    let mut all = entries(&listed);
+    all.extend(entries(&outputs));
+    let (mut fresh, _) = CheckpointRecorder::start(Ok(declaration()));
+    assert!(obs(&mut fresh, &v, &scope(&root), &all).is_empty(), "written once");
+}
+
+// The act read is kept while no act record and no capture it read has changed; then it
+// equals a fresh read. A new act, or a capture changed on disk, makes it read again.
+#[test]
+fn the_act_read_is_kept_only_while_its_records_and_captures_are_unchanged() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", "2026-09-21T14:13:21.000Z");
+    let fresh = |root: &std::path::Path| { forget_act_read_for_test(); project_act_records(root).unwrap() };
+    let first = project_act_records(&root).unwrap();
+    assert_eq!(first.acts.len(), 1);
+    crate::records::append_project(&root, Some("run:cache"), "app-writer:local", "evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"x"})).unwrap();
+    let kept = project_act_records(&root).unwrap();
+    assert_eq!(format!("{kept:?}"), format!("{:?}", fresh(&root)), "a run entry leaves the act read as a fresh read finds it");
+    act(&root, "A7", &file, "v1", "2026-09-21T14:13:22.000Z");
+    assert_eq!(project_act_records(&root).unwrap().acts.len(), 2, "a new act record is read");
+    let capture = crate::storage::write_capture_path(&root, capture_reference(&first.acts[0])).unwrap();
+    let mut bytes: Value = serde_json::from_slice(&std::fs::read(&capture).unwrap()).unwrap();
+    bytes["purpose"] = json!("Another purpose.");
+    std::fs::write(&capture, serde_json::to_vec(&bytes).unwrap()).unwrap();
+    let changed = project_act_records(&root).unwrap();
+    assert_eq!((changed.acts.len(), changed.unresolved.len()), (1, 1), "a changed capture is verified again: {changed:?}");
+    assert_eq!(format!("{changed:?}"), format!("{:?}", fresh(&root)));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A reader may finish with an earlier observation after its cache has been
+// replaced. Rechecking the source must not mutate that observation or let the
+// new read count the capture that has since ceased to resolve.
+#[test]
+fn a_held_act_observation_survives_cache_replacement_unchanged() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let valid = act(&root, "A7", &file, "v1", AFTER);
+    record_for(&root, &capture_of("act", "A7", &file, &digest("v1"), LATER), &crate::records::APP_INTERFACE);
+    let (all, _, held) = observe_with(&root);
+    assert_eq!((held.acts.len(), held.unresolved.len()), (1, 1));
+    let original_acts = serde_json::to_vec(&held.acts).unwrap();
+    let original_unresolved = serde_json::to_vec(&held.unresolved).unwrap();
+    let waiting: Vec<_> = all.iter().take_while(|e| e["kind"] != "act_counted").cloned().collect();
+    let counted = count_acts(&waiting, &held, &root);
+    assert!(counted.iter().any(|(kind, body)| *kind == "act_counted" && body["act"]["recordId"] == valid));
+
+    let capture = crate::storage::write_capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let mut changed: Value = serde_json::from_slice(&std::fs::read(&capture).unwrap()).unwrap();
+    changed["purpose"] = json!("Changed after the earlier observation.");
+    std::fs::write(&capture, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let current = project_act_records(&root).unwrap();
+    assert_eq!((current.acts.len(), current.unresolved.len()), (0, 2));
+    assert!(!count_acts(&waiting, &current, &root).iter().any(|(kind, _)| *kind == "act_counted"));
+    assert_eq!(serde_json::to_vec(&held.acts).unwrap(), original_acts);
+    assert_eq!(serde_json::to_vec(&held.unresolved).unwrap(), original_unresolved);
+    assert_eq!(count_acts(&waiting, &held, &root), counted);
+    let unreadable = crate::storage::project_log(&root, None, "incomplete-observation").unwrap();
+    std::fs::create_dir_all(unreadable.parent().unwrap()).unwrap();
+    std::fs::write(&unreadable, b"not a record\n").unwrap();
+    assert!(project_act_records(&root).unwrap_err().contains("record set is incomplete"), "an immutable cached observation cannot answer a new incomplete source read");
+    assert_eq!(serde_json::to_vec(&held.unresolved).unwrap(), original_unresolved);
+    forget_act_read_for_test();
+    assert_eq!(serde_json::to_vec(&held.acts).unwrap(), original_acts, "dropping the cached observation leaves a reader's snapshot intact");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A failed evidence read cannot permanently settle an otherwise unchanged act
+// record. Restoring the exact capture must count it without another record write.
+#[test]
+fn capture_failures_are_retried_when_their_original_evidence_is_restored() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let id = act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let capture = stored_capture(&root, &held.acts[0]);
+    let path = crate::storage::capture_path(&root, capture["captureId"].as_str().unwrap()).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    let mut schema = capture.clone();
+    schema["formatVersion"] = json!("not a capture version");
+    let mut identity = capture.clone();
+    identity["captureId"] = json!("cap:another-identity");
+    let mut seal = capture.clone();
+    seal["purpose"] = json!("A changed purpose without a new seal.");
+    let failures = [None, Some(b"not JSON".to_vec()), Some(serde_json::to_vec(&schema).unwrap()),
+        Some(serde_json::to_vec(&identity).unwrap()), Some(serde_json::to_vec(&seal).unwrap())];
+    for damaged in failures {
+        if let Some(bytes) = damaged { std::fs::write(&path, bytes).unwrap(); }
+        else { std::fs::remove_file(&path).unwrap(); }
+        let (_, outputs, failed) = observe_with(&root);
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+        assert!(!kinds(&outputs).contains(&"act_counted"), "{outputs:?}");
+        let row = crate::file_act_view::read(&root)["rows"][0].clone();
+        assert_eq!(row["captureCorrespondence"], false, "{row}");
+        std::fs::write(&path, &original).unwrap();
+        let (_, outputs, restored) = observe_with(&root);
+        assert_eq!((restored.acts.len(), restored.unresolved.len()), (1, 0));
+        assert!(outputs.iter().any(|(kind, b)| *kind == "act_counted" && b["act"]["recordId"] == id));
+        assert_eq!(restored.acts, held.acts);
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1), "held refusals stay immutable");
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_replaced_before_its_named_file_check_is_refused_and_then_retried() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let next = path.with_extension("replacement");
+    std::fs::write(&next, std::fs::read(&path).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::BeforeNamedCheck, move || std::fs::rename(&next, &named).unwrap());
+    let (_, outputs, raced) = observe_with(&root);
+    assert_eq!((raced.acts.len(), raced.unresolved.len()), (0, 1));
+    assert!(raced.unresolved[0]["reason"].as_str().unwrap().contains("File changed during observation"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    let (_, outputs, restored) = observe_with(&root);
+    assert_eq!(restored.acts, held.acts);
+    assert!(restored.unresolved.is_empty());
+    assert!(kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// Replacing a capture after its coherent read must not associate the decoded
+// old act with the replacement's later stamp and keep that act on another read.
+#[test]
+fn capture_replaced_after_its_read_invalidates_the_kept_observation() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let original_capture = stored_capture(&root, &held.acts[0]);
+    let mut invalid = original_capture.clone();
+    invalid["purpose"] = json!("Replacement bytes do not have the original seal.");
+    let next = path.with_extension("replacement");
+    std::fs::write(&next, serde_json::to_vec(&invalid).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let observed = project_act_records(&root).unwrap();
+    assert_eq!(observed.acts, held.acts, "the observation contains the bytes actually read");
+    let (_, outputs, current) = observe_with(&root);
+    assert_eq!((current.acts.len(), current.unresolved.len()), (0, 1));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    assert_eq!(observed.acts, held.acts, "rechecking does not mutate an earlier observation");
+    forget_act_read_for_test();
+    assert_eq!(project_act_records(&root).unwrap().unresolved, current.unresolved);
+    // The same opened-byte binding applies to a refusal: a valid replacement
+    // must not be stamped onto the old invalid JSON and pin that refusal.
+    std::fs::write(&path, b"invalid capture JSON").unwrap();
+    let next = path.with_extension("restored");
+    std::fs::write(&next, serde_json::to_vec(&original_capture).unwrap()).unwrap();
+    forget_act_read_for_test();
+    let named = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let refused = project_act_records(&root).unwrap();
+    assert_eq!((refused.acts.len(), refused.unresolved.len()), (0, 1));
+    let restored = project_act_records(&root).unwrap();
+    assert_eq!(restored.acts, held.acts);
+    assert!(restored.unresolved.is_empty());
+    assert_eq!(refused.unresolved.len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_aliases_refuse_a_warm_act_and_restoring_the_physical_source_retries_it() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    for target in [&path, path.parent().unwrap()] {
+        let moved = target.with_extension("original");
+        std::fs::rename(target, &moved).unwrap();
+        std::os::unix::fs::symlink(&moved, target).unwrap();
+        let (_, outputs, aliased) = observe_with(&root);
+        assert_eq!((aliased.acts.len(), aliased.unresolved.len()), (0, 1));
+        assert!(aliased.unresolved[0]["reason"].as_str().unwrap().contains("symlink"));
+        assert!(!kinds(&outputs).contains(&"act_counted"));
+        assert_eq!(crate::file_act_view::read(&root)["rows"][0]["captureCorrespondence"], false);
+        std::fs::remove_file(target).unwrap();
+        std::fs::rename(&moved, target).unwrap();
+        assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_capture_source_resolution_failure_does_not_pin_an_unwatched_refusal() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    struct Reset;
+    impl Drop for Reset { fn drop(&mut self) { crate::records_store::use_store_for_test(None); } }
+    let _reset = Reset;
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, || {
+        crate::records_store::use_store_for_test(Some(Err("invented temporary store refusal after the records read".into())));
+    });
+    let failed = project_act_records(&root).unwrap();
+    assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+    assert!(failed.unresolved[0]["reason"].as_str().unwrap().contains("invented temporary store refusal"));
+    crate::records_store::use_store_for_test(None);
+    let (_, outputs, restored) = observe_with(&root);
+    assert_eq!((restored.acts.len(), restored.unresolved.len()), (1, 0));
+    assert!(kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_kept_capture_is_refused_after_key_loss_or_permissions_change_and_recovers() {
+    use std::os::unix::fs::PermissionsExt;
+    struct Reset;
+    impl Drop for Reset { fn drop(&mut self) { crate::capture_seal::set_folder_for_test(None); } }
+    let _reset = Reset;
+    let root = project("v1");
+    let keys = root.with_extension("keys");
+    crate::capture_seal::set_folder_for_test(Some(Some(keys.clone())));
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let key = keys.join("keys.json");
+    let moved = key.with_extension("removed");
+    std::fs::rename(&key, &moved).unwrap();
+    let (_, outputs, lost) = observe_with(&root);
+    assert_eq!((lost.acts.len(), lost.unresolved.len()), (0, 1));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::rename(&moved, &key).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o644)).unwrap();
+    let (_, outputs, exposed) = observe_with(&root);
+    assert_eq!((exposed.acts.len(), exposed.unresolved.len()), (0, 1));
+    assert!(exposed.unresolved[0]["reason"].as_str().unwrap().contains("open to other users"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(keys).unwrap();
+}
+
+// Import changes the owning source without changing the historical capture's
+// content. Retained originals must not answer the store's capture observation.
+#[test]
+fn importing_an_act_moves_its_capture_watch_and_disposal_refuses_the_warm_read() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let mut capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    crate::capture_seal::seal(&root, &mut capture).unwrap();
+    let original_capture = crate::storage::library_capture_path(&root, capture["captureId"].as_str().unwrap());
+    std::fs::create_dir_all(original_capture.parent().unwrap()).unwrap();
+    std::fs::write(&original_capture, serde_json::to_vec(&capture).unwrap()).unwrap();
+    let log = root.join(crate::storage::LEGACY_RECORDS).join(crate::storage::log_rel(None, "app-writer:fixture"));
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let record = crate::records::envelope("human_act", &crate::records::APP_INTERFACE,
+        crate::act_control::act_body(&capture), "rec:app:imported-capture".into(), 1, None, None);
+    std::fs::write(&log, format!("{record}\n")).unwrap();
+    let held = project_act_records(&root).unwrap();
+    assert_eq!((held.acts.len(), held.unresolved.len()), (1, 0));
+    crate::records_store::import(&root).unwrap();
+    let imported_capture = crate::storage::capture_path(&root, capture["captureId"].as_str().unwrap()).unwrap();
+    assert_ne!(imported_capture, original_capture);
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::write(&original_capture, b"retained original cannot answer the imported capture").unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    let valid = std::fs::read(&imported_capture).unwrap();
+    std::fs::remove_file(&imported_capture).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().unresolved.len(), 1);
+    std::fs::write(&imported_capture, valid).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+
+    let actor = crate::act_control::person(Some("Invented capture fixture"), Some("invented-fixture-os"));
+    let observed = json!({"fixture":"native callback test seam; no live person's act"});
+    let close = crate::records_retention::prepare(&root, "close", None, &actor, &observed).unwrap();
+    crate::records_retention::apply(close, &actor, &observed).unwrap();
+    // A closed project's kept evidence can still be read before its disposal.
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    let output = root.with_extension("export");
+    std::fs::create_dir(&output).unwrap();
+    let bag = output.join("bag");
+    crate::records_export::export(&root, &bag).unwrap();
+    let dispose = crate::records_retention::prepare(&root, "dispose", Some(&bag), &actor, &observed).unwrap();
+    crate::records_retention::apply(dispose, &actor, &observed).unwrap();
+    assert!(project_act_records(&root).is_err(), "a warm capture cannot resurrect disposed evidence");
+    assert_eq!(held.acts[0]["record"], record, "an earlier observation remains immutable");
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(output).unwrap();
+}
+
+// Unchanged proved absence preserves the fast repeat path. This checks actual
+// capture-source read attempts, not an Arc or cache representation detail.
+#[test]
+fn a_proved_missing_capture_is_kept_until_its_file_or_owning_folder_changes() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    let missing = project_act_records(&root).unwrap();
+    assert_eq!((missing.acts.len(), missing.unresolved.len()), (0, 1));
+    let attempts = std::rc::Rc::new(std::cell::Cell::new(0));
+    let count = attempts.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+    let repeated = project_act_records(&root).unwrap();
+    assert_eq!(repeated.unresolved, missing.unresolved);
+    assert_eq!(attempts.get(), 0, "an unchanged proved missing file is not reread");
+    std::fs::write(&path, &original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    assert_eq!(attempts.get(), 1, "creating the absent file retries its source");
+    drop(hook);
+
+    std::fs::remove_file(&path).unwrap();
+    project_act_records(&root).unwrap(); // New proved absence in this folder.
+    let folder = path.parent().unwrap();
+    let moved = folder.with_extension("before-replacement");
+    std::fs::rename(folder, &moved).unwrap();
+    std::fs::create_dir(folder).unwrap(); // Different physical owner, still absent.
+    let count = attempts.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+    let replacement = project_act_records(&root).unwrap();
+    assert_eq!((replacement.acts.len(), replacement.unresolved.len()), (0, 1));
+    assert_eq!(attempts.get(), 2, "a new physical folder re-proves absence");
+    drop(hook);
+    std::fs::remove_dir(folder).unwrap();
+    std::os::unix::fs::symlink(&moved, folder).unwrap();
+    let aliased = project_act_records(&root).unwrap();
+    assert!(aliased.unresolved[0]["reason"].as_str().unwrap().contains("symlink"));
+    std::fs::remove_file(folder).unwrap();
+    // An unavailable owning folder supplies no stable absence, even on repeat.
+    for expected in [3, 4] {
+        let count = attempts.clone();
+        let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || count.set(count.get() + 1));
+        assert_eq!(project_act_records(&root).unwrap().unresolved.len(), 1);
+        assert_eq!(attempts.get(), expected, "an unavailable folder is tried again");
+    }
+    std::fs::rename(&moved, folder).unwrap();
+    std::fs::write(&path, original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn a_nonregular_capture_appearing_at_a_proved_absent_path_is_not_kept_as_absent() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    use std::os::unix::ffi::OsStrExt;
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    for kind in ["directory", "fifo", "symlink"] {
+        let missing = project_act_records(&root).unwrap(); // A specifically proved absence.
+        match kind {
+            "directory" => std::fs::create_dir(&path).unwrap(),
+            "fifo" => {
+                let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            }
+            _ => std::os::unix::fs::symlink(&file, &path).unwrap(),
+        }
+        let failed = project_act_records(&root).unwrap();
+        assert_eq!((failed.acts.len(), failed.unresolved.len()), (0, 1));
+        assert_ne!(failed.unresolved[0]["reason"], missing.unresolved[0]["reason"], "{kind}: refusal must describe the appeared nonregular member");
+        let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+        let observed = attempted.clone();
+        let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+        project_act_records(&root).unwrap();
+        assert!(attempted.get(), "{kind}: an ambiguous/nonregular failure is tried again");
+        if kind == "directory" { std::fs::remove_dir(&path).unwrap(); }
+        else { std::fs::remove_file(&path).unwrap(); }
+    }
+    std::fs::write(path, original).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn restoring_a_capture_after_the_proved_absence_invalidates_that_observation() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    let restored = path.clone();
+    let _hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterAbsenceRead, move || std::fs::write(restored, original).unwrap());
+    let missing = project_act_records(&root).unwrap();
+    assert_eq!((missing.acts.len(), missing.unresolved.len()), (0, 1));
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    assert_eq!(missing.unresolved.len(), 1, "the prior observation remains immutable");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn capture_permission_failures_are_not_reused_as_proved_absence() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    use std::os::unix::fs::PermissionsExt;
+    // Root bypasses this discretionary-read refusal; ordinary App users do not.
+    if unsafe { libc::geteuid() } == 0 { return; }
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let permissions = std::fs::metadata(&path).unwrap().permissions();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = project_act_records(&root).unwrap();
+    assert_eq!((denied.acts.len(), denied.unresolved.len()), (0, 1));
+    let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+    let observed = attempted.clone();
+    let _hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+    assert_eq!(project_act_records(&root).unwrap().unresolved, denied.unresolved);
+    assert!(attempted.get(), "permission failures retry the actual source");
+    std::fs::set_permissions(&path, permissions).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().acts, held.acts);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+
+#[test]
+fn compact_snapshot_keeps_exact_records_decline_content_order_and_public_file_view() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let other = root.join("out/other.md");
+    std::fs::write(&other, b"other bytes").unwrap();
+    let positive = act(&root, "A4", &file, "v1", "2026-09-21T13:00:00.000Z");
+    let mut capture = capture_of("decline", "A7", &file, &digest("v1"), AFTER);
+    let mut first = digest("other bytes");
+    first["method"] = json!("invented:first-content-identity/0.1");
+    let second = digest("v1");
+    capture["boundSubject"] = json!([other.to_str().unwrap(), file.to_str().unwrap()]);
+    capture["boundContent"] = json!([first, second]);
+    capture["scope"] = json!("Both invented files, in their recorded order.");
+    capture["purpose"] = json!("An exact decline-content receiving control.");
+    store(&root, &capture);
+    let declined = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    let public_before = crate::file_act_view::read(&root);
+    let (all, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert!(read.unresolved.is_empty());
+    for id in [&positive, &declined] {
+        let claim = read.acts.iter().find(|a| a["record"]["recordId"] == id.as_str()).unwrap();
+        assert_eq!(&claim["record"], source.iter().find(|r| r["recordId"] == id.as_str()).unwrap(), "every original record field survives");
+        assert!(claim.get("capture").is_none(), "unused full capture bytes must not remain in the kept snapshot");
+    }
+    let decline = read.acts.iter().find(|a| a["record"]["recordId"] == declined.as_str()).unwrap();
+    assert_eq!(decline["declineBoundContent"], capture["boundContent"], "retain the whole exact array, including method/value fields and order");
+    assert!(outputs.iter().any(|(k,b)| *k == "arrival_declined" && b["declinedEventRef"] == declined.as_str()), "the matching summary content is the second original fact: {outputs:?}");
+    assert!(waiting_arrivals(&all).is_empty());
+    assert_eq!(crate::file_act_view::read(&root), public_before, "private compaction cannot change public quoted capture scope, purpose or content");
+    let row = public_before["rows"].as_array().unwrap().iter().find(|r| r["recordId"] == declined.as_str()).unwrap();
+    assert_eq!(row["scope"], capture["scope"]);
+    assert_eq!(row["purpose"], capture["purpose"]);
+    assert!(read.same_observation(&project_act_records(&root).unwrap()));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn compact_snapshot_follows_full_capture_duplicate_and_backlink_resolution() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let capture = capture_of("decline", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &capture);
+    let first = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let held = project_act_records(&root).unwrap();
+    let mut original = stored_capture(&root, &held.acts[0]);
+    let second = record_for(&root, &capture, &crate::records::APP_INTERFACE);
+    let (_, outputs, refused) = observe_with(&root);
+    assert!(refused.acts.is_empty(), "both fully verified claims share one capture");
+    assert_eq!(refused.unresolved.len(), 2);
+    assert!(refused.unresolved.iter().all(|r| r["reason"] == "several records cite one capture (RS R-8)"));
+    assert!(!kinds(&outputs).contains(&"arrival_declined"));
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    for claim in &refused.unresolved {
+        assert_eq!(&claim["record"], source.iter().find(|r| r["recordId"] == claim["record"]["recordId"]).unwrap());
+    }
+    // The backlink is excluded from the MAC, but remains an independent full
+    // correspondence check before R-8 and before private snapshot compaction.
+    original["recordId"] = json!(first);
+    store_as_is(&root, &original);
+    let (_, outputs, linked) = observe_with(&root);
+    assert_eq!(linked.acts.len(), 1);
+    assert_eq!(linked.acts[0]["record"]["recordId"], first.as_str());
+    assert_eq!(linked.acts[0]["declineBoundContent"], capture["boundContent"]);
+    assert_eq!(linked.unresolved.len(), 1);
+    assert_eq!(linked.unresolved[0]["record"]["recordId"], second.as_str());
+    assert_eq!(linked.unresolved[0]["reason"], "the record differs from the capture it cites");
+    assert!(outputs.iter().any(|(k,b)| *k == "arrival_declined" && b["declinedEventRef"] == first.as_str()));
+    assert_eq!(held.acts[0]["record"], linked.acts[0]["record"], "held source records remain exact and immutable");
+    assert_eq!(held.acts[0]["declineBoundContent"], capture["boundContent"]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn compact_snapshot_still_verifies_unused_full_capture_fields_and_retries_restoration() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    act(&root, "A7", &file, "v1", AFTER);
+    let held = project_act_records(&root).unwrap();
+    let path = crate::storage::capture_path(&root, capture_reference(&held.acts[0])).unwrap();
+    let original_bytes = std::fs::read(&path).unwrap();
+    let mut capture: Value = serde_json::from_slice(&original_bytes).unwrap();
+    capture["offerId"] = json!("offer:schema-valid-unused-field-tamper");
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    assert!(crate::file_act_view::corresponds(&capture, &held.acts[0]["record"]), "this field is outside the record correspondence and retained facts");
+    store_as_is(&root, &capture);
+    let (_, outputs, failed) = observe_with(&root);
+    assert!(failed.acts.is_empty(), "the full original capture must be MAC-checked before compaction");
+    assert_eq!(failed.unresolved.len(), 1);
+    assert_eq!(failed.unresolved[0]["record"], held.acts[0]["record"]);
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::write(&path, original_bytes).unwrap();
+    let (_, outputs, restored) = observe_with(&root);
+    assert_eq!(restored.acts, held.acts);
+    assert!(restored.unresolved.is_empty());
+    assert!(kinds(&outputs).contains(&"act_counted"));
+    assert_eq!(failed.unresolved.len(), 1, "an earlier refusal stays immutable");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verified_candidates_keep_late_duplicate_and_interleaved_failure_order() {
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let shared = capture_of("decline", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &shared);
+    let first = record_for(&root, &shared, &crate::records::APP_INTERFACE);
+    let schema = act(&root, "A7", &file, "v1", AFTER);
+    let kept = act(&root, "A4", &file, "v1", AFTER);
+    let seal = act(&root, "A7", &file, "v1", AFTER);
+    let last = record_for(&root, &shared, &crate::records::APP_INTERFACE);
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    let original = |id: &str| source.iter().find(|r| r["recordId"] == id).unwrap().clone();
+    for (id, field, value) in [(&schema, "surface", "invented invalid surface"), (&seal, "offerId", "offer:tampered-after-sealing")] {
+        let record = original(id);
+        let mut capture = crate::file_act_view::capture(&root, &record["body"]).unwrap();
+        capture[field] = json!(value);
+        store_as_is(&root, &capture);
+    }
+    let failure = |id: &str| format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &original(id)["body"]).unwrap_err());
+    let (_, outputs, read) = observe_with(&root);
+    assert_eq!(read.acts, vec![json!({"record":original(&kept)})]);
+    assert_eq!(read.unresolved, vec![
+        json!({"record":original(&schema),"reason":failure(&schema)}),
+        json!({"record":original(&seal),"reason":failure(&seal)}),
+        json!({"record":original(&first),"reason":"several records cite one capture (RS R-8)"}),
+        json!({"record":original(&last),"reason":"several records cite one capture (RS R-8)"}),
+    ], "ordinary failures precede R-8 refusals; each retains the complete original record");
+    assert!(!kinds(&outputs).contains(&"arrival_declined"));
+    assert!(!kinds(&outputs).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verified_candidates_refuse_coherent_same_id_replacements_and_recheck_both_watches() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let first_capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+    store(&root, &first_capture);
+    let first = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+    let mut replacement = first_capture.clone();
+    replacement["choice"] = json!("decline");
+    replacement["boundSubject"] = json!([root.join("out/other.md").to_str().unwrap(), file.to_str().unwrap()]);
+    replacement["boundContent"] = json!([{"method":"invented:first-method/0.1","value":"first identity"},digest("v1")]);
+    replacement["scope"] = json!("Both files, in original order.");
+    replacement["purpose"] = json!("A distinct coherent decline at the same capture identity.");
+    crate::capture_seal::seal(&root, &mut replacement).unwrap();
+    let second = record_for(&root, &replacement, &crate::records::APP_INTERFACE);
+    let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+    let path = crate::storage::capture_path(&root, first_capture["captureId"].as_str().unwrap()).unwrap();
+    let next = root.join("replacement.json");
+    std::fs::write(&next, serde_json::to_vec(&replacement).unwrap()).unwrap();
+    let named = path.clone();
+    let hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+    let raced = project_act_records(&root).unwrap();
+    drop(hook);
+    assert!(raced.acts.is_empty(), "different fully verified capture bodies with one ID are still both R-8 refusals");
+    assert_eq!(raced.unresolved, source.iter().map(|r| json!({"record":r,"reason":"several records cite one capture (RS R-8)"})).collect::<Vec<_>>());
+    let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+    let observed = attempted.clone();
+    let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+    let (_, outputs, current) = observe_with(&root);
+    drop(hook);
+    assert!(attempted.get(), "each observed stamp is kept; the first source replacement invalidates the kept snapshot");
+    assert!(!current.same_observation(&raced));
+    assert_eq!(current.acts, vec![json!({"record":source[1],"declineBoundContent":replacement["boundContent"]})]);
+    assert_eq!(current.unresolved, vec![json!({"record":source[0],"reason":"the record differs from the capture it cites"})]);
+    assert!(outputs.iter().any(|(k,b)| *k == "arrival_declined" && b["declinedEventRef"] == second.as_str()), "the exact second content fact reaches the consumer");
+    assert_eq!(raced.unresolved[0]["record"]["recordId"], first.as_str(), "the earlier refused snapshot stays immutable");
+    assert_eq!(raced.unresolved.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verified_candidates_do_not_add_failed_later_reads_to_duplicate_membership() {
+    use crate::file_act_view::{capture_read_hook_for_test, CaptureReadStage};
+    for failure in ["seal", "backlink"] {
+        let root = project("v1");
+        let file = root.join("out/summary.md");
+        let first_capture = capture_of("act", "A7", &file, &digest("v1"), AFTER);
+        store(&root, &first_capture);
+        let first = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+        let second = record_for(&root, &first_capture, &crate::records::APP_INTERFACE);
+        let source = crate::records::read_log(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap()).0;
+        let mut replacement = first_capture.clone();
+        crate::capture_seal::seal(&root, &mut replacement).unwrap();
+        if failure == "seal" { replacement["offerId"] = json!("offer:unused-field-tamper"); }
+        else { replacement["recordId"] = json!(first); }
+        crate::schema_validation::validate_capture(&replacement).unwrap();
+        let path = crate::storage::capture_path(&root, first_capture["captureId"].as_str().unwrap()).unwrap();
+        let next = root.join("replacement.json");
+        std::fs::write(&next, serde_json::to_vec(&replacement).unwrap()).unwrap();
+        let named = path.clone();
+        let hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
+        let (_, outputs, raced) = observe_with(&root);
+        drop(hook);
+        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "the later {failure} refusal is not successful duplicate membership");
+        let reason = if failure == "seal" {
+            format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &source[1]["body"]).unwrap_err())
+        } else { "the record differs from the capture it cites".into() };
+        assert_eq!(raced.unresolved, vec![json!({"record":source[1],"reason":reason})]);
+        assert!(outputs.iter().any(|(k,b)| *k == "act_counted" && b["act"]["recordId"] == first.as_str()));
+        let attempted = std::rc::Rc::new(std::cell::Cell::new(false));
+        let observed = attempted.clone();
+        let hook = capture_read_hook_for_test(&root, CaptureReadStage::BeforeResolve, move || observed.set(true));
+        let changed = project_act_records(&root).unwrap();
+        drop(hook);
+        assert!(attempted.get(), "the changed first watch invalidates the cache even though the last watch matches");
+        assert!(!changed.same_observation(&raced));
+        assert_eq!(changed.unresolved.last().unwrap()["record"]["recordId"], second.as_str());
+        if failure == "seal" { assert!(changed.acts.is_empty()); }
+        else { assert_eq!(changed.acts, raced.acts); }
+        store(&root, &first_capture);
+        let restored = project_act_records(&root).unwrap();
+        assert!(restored.acts.is_empty(), "restoration verifies both claims and restores their R-8 refusal");
+        assert_eq!(restored.unresolved.len(), 2);
+        assert!(restored.unresolved.iter().all(|r| r["reason"] == "several records cite one capture (RS R-8)"));
+        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "held original records do not change after source replacement or restoration");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

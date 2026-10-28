@@ -1,0 +1,45 @@
+{
+  "format": "chirality.app.roles/1",
+  "roles": [
+    {
+      "name": "HELP_HUMAN",
+      "meaning": "Alignment with the human",
+      "guidance_file": "agents/AGENT_HELP_HUMAN.md",
+      "delegation": "may-delegate",
+      "child_roles": [
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "default_for_new_chat": false
+    },
+    {
+      "name": "HELPS_HUMANS",
+      "meaning": "Design",
+      "guidance_file": "agents/AGENT_HELPS_HUMANS.md",
+      "delegation": "may-delegate",
+      "child_roles": [
+        "TASK"
+      ],
+      "default_for_new_chat": false
+    },
+    {
+      "name": "WORKING_ITEMS",
+      "meaning": "Managed execution",
+      "guidance_file": "agents/AGENT_WORKING_ITEMS.md",
+      "delegation": "may-delegate",
+      "child_roles": [
+        "TASK"
+      ],
+      "default_for_new_chat": false
+    },
+    {
+      "name": "TASK",
+      "meaning": "Bounded execution; does not delegate",
+      "guidance_file": "agents/AGENT_TASK.md",
+      "delegation": "does-not-delegate",
+      "child_roles": [],
+      "default_for_new_chat": false
+    }
+  ]
+}

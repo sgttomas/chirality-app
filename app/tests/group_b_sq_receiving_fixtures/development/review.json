@@ -1,0 +1,61 @@
+{
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "INVENTED-SQ-REVIEW",
+  "subject": {
+    "kind": "candidate",
+    "identity": "INVENTED-SQ-CANDIDATE-ALIAS"
+  },
+  "evidence_set": [
+    "INVENTED-SQ-DOSSIER",
+    "INVENTED-SQ-J-1",
+    "INVENTED-SQ-J-2",
+    "INVENTED-SQ-J-3",
+    "INVENTED-SQ-J-4",
+    "INVENTED-SQ-J-5",
+    "INVENTED-SQ-J-6",
+    "INVENTED-SQ-J-7",
+    "INVENTED-SQ-J-8",
+    "INVENTED-SQ-J-8R",
+    "INVENTED-SQ-J-9",
+    "INVENTED-SQ-J-9R",
+    "INVENTED-SQ-S11-1",
+    "INVENTED-SQ-S11-2",
+    "INVENTED-SQ-S11-3",
+    "INVENTED-SQ-S11-4",
+    "INVENTED-SQ-S11-5",
+    "INVENTED-SQ-S11-6",
+    "INVENTED-SQ-M12-1",
+    "INVENTED-SQ-M12-2",
+    "INVENTED-SQ-M12-3",
+    "INVENTED-SQ-M12-4",
+    "INVENTED-SQ-M12-5",
+    "INVENTED-SQ-M12-6"
+  ],
+  "authors": [
+    {
+      "identity": "INVENTED author",
+      "kind": "agent",
+      "model_identity": "not_exposed"
+    }
+  ],
+  "reviewer": {
+    "identity": "INVENTED reviewer",
+    "kind": "agent",
+    "model_identity": "not_exposed",
+    "separation": "not_separate"
+  },
+  "family_claim": "not_established",
+  "findings": [],
+  "standing": "no_findings",
+  "date": "2026-10-08",
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": false,
+  "preference": {
+    "preferred": "codex",
+    "used": "codex"
+  },
+  "limits": [
+    "INVENTED schema-valid fixture; no actual review"
+  ]
+}

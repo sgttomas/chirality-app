@@ -1,0 +1,62 @@
+[
+  {
+    "case": "INV-AS-1",
+    "why": "A person-set state without an A12 reference is a defect, not an established setting (AS §6 comparison; S1; R2-6)",
+    "instance": {
+      "settingsVersionId": "set:set-2",
+      "sourceOfControl": "host",
+      "changeKind": "during-work change",
+      "operationClassGrants": [
+        {"policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"}, "classValue": "may apply within granted autonomy", "grantValue": "direct", "scope": {"modelOrWorkspace": "FX-W1", "objectSet": ["S-4"]}, "displayState": "effective (person-set)", "requester": "person", "settingActor": "person", "establishment": {"controlEffect": "established", "evidenceRef": "cap:T15"}}
+      ]
+    }
+  },
+  {
+    "case": "INV-AS-2",
+    "why": "An agent request presented as a setting with an A12 reference: an A8 creates no A12 (HA-5)",
+    "instance": {
+      "settingsVersionId": "set:req-1",
+      "sourceOfControl": "host",
+      "changeKind": "agent request",
+      "operationClassGrants": [
+        {"policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"}, "classValue": "may apply within granted autonomy", "grantValue": "direct", "scope": {"modelOrWorkspace": "FX-W1"}, "displayState": "requested by agent", "requester": "agent (A8)", "settingActor": "none", "settingActRef": "rec:agent:fake-a12", "establishment": {"controlEffect": "not applicable"}}
+      ]
+    }
+  },
+  {
+    "case": "INV-AS-3",
+    "why": "An in-work destination grant with a scope outside once / this run / always (LOOP NW-11; ACT ND-A2)",
+    "instance": {
+      "settingsVersionId": "set:dest-1",
+      "sourceOfControl": "host",
+      "changeKind": "during-work change",
+      "operationClassGrants": [],
+      "destinationSettings": {
+        "hostAgent": "host-agent:E",
+        "modelService": {"service": "local model server", "allowedBy": "model choice"},
+        "categorySwitches": [],
+        "namedEntries": [],
+        "alwaysOffItems": [],
+        "inWorkGrants": [{"settingActRef": "rec:host-control:act-9", "requestRef": "rec:host-loop:run-12:0031", "target": {"destination": "A-1"}, "scope": "forever", "state": "in force"}]
+      }
+    }
+  },
+  {
+    "case": "INV-AS-4",
+    "why": "An always-off item shown on with no A12 reference: each is off unless an A12 turned it on (AS §6 = RS §8; LOOP NW-14; V18-1 m-16; RP-4)",
+    "instance": {
+      "settingsVersionId": "set:dest-2",
+      "sourceOfControl": "host",
+      "changeKind": "during-work change",
+      "operationClassGrants": [],
+      "destinationSettings": {
+        "hostAgent": "host-agent:E",
+        "modelService": {"service": "local model server", "allowedBy": "model choice"},
+        "categorySwitches": [],
+        "namedEntries": [],
+        "alwaysOffItems": [{"item": "analytics or usage reporting", "on": true}],
+        "inWorkGrants": []
+      }
+    }
+  }
+]

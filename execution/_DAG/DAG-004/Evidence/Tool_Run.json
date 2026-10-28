@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "workflow": "chirality-root:bundled:workflow:project-dag",
+  "trigger": "SUCCESSOR",
+  "run": "APP-V4-SCA003-20261002",
+  "node": "D1",
+  "actor": "Type 2 TASK executor, Claude Code Agent subagent (node D1)",
+  "parent": "HELP_HUMAN integrator under a recorded WORKING_ITEMS consultation",
+  "role": "TASK",
+  "mechanism": "Claude Code Agent subagent; no descendants",
+  "source_revision": "75764184b99ab006cd46c1d1c328cf7d5c4d0c8d",
+  "selected_context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
+    },
+    {
+      "path": "workflows/project-dag/WORKFLOW.md",
+      "sha256": "e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b"
+    },
+    {
+      "path": "workflows/project-dag/resources/contract.md",
+      "sha256": "a55edc3b89a2b641dda90457528fae626a5d2fae5850e96a77b2322fd55ed24d"
+    },
+    {
+      "path": "workflows/project-dag/resources/method.md",
+      "sha256": "4a5566bfbc9f3d6b12f8faa574c5187d22a27bb913b0ff1302e68c220d698d6b"
+    },
+    {
+      "path": "workflows/project-dag/resources/graph-version.md",
+      "sha256": "ff6b7ba5b455e5e26cfb08a00ab119dfa35b19a56610987a40b4142738a856bf"
+    },
+    {
+      "path": "workflows/project-dag/resources/currency.md",
+      "sha256": "d2927ed4ac96ebc750c1917726bc0b598832d414d0cd2f31343ddc994deac466"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/BRIEFS.md",
+      "sha256": "445ef26003592fda3063447f3d67a7002c59f94a435f2ef14612f380f7d4427a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md",
+      "sha256": "29c0a07b50d695a15bbff52b36d5925725cc7f3e78d0caf997ee9fd3c3b28c2e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DISPATCH.md",
+      "sha256": "4198350facc17ad419aa74aeabe774afb9d6f17f7abb7b8b72c00b8a329f7dd3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/AMENDMENT_PACKET/ARC_EFFECT.md",
+      "sha256": "25073317e9cde08ea38d90a37be8823c74bcf32d00d4490fffe9e743320894e7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/AMENDMENT_PACKET/OWNER_ITEMS.md",
+      "sha256": "72c53db208ff42cce271816df9b22898405ff53ca8e5618a1216c21e3877db86"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DX/DX_SCC-CHECK.md",
+      "sha256": "6006fbb39b082bd4c2c3928ed8df10e487053328c25238556f8edf21abc8a9ed"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA002-20260929/DAG_PREP/CHECKPOINT_C.md",
+      "sha256": "f8f63e80cdb46e62ca35d25fbd527589c55dba4da95d8410692abfce664061b9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA002-20260929/DAG_PREP/REVIEW_PACKET.md",
+      "sha256": "6536ef45b2ca73f396521086b39dfa4b1648fc951e18ba7faaccd47776544481"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA002-20260929/DISPATCH.md",
+      "sha256": "5808c89f74a7e416b2fb9fb4a3a23910dcc240b91bdbdd57225bb7d66f75c0fb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/HANDOFF_STATE.md",
+      "sha256": "56d849b6d078d8d5282beb054d612f7fa058d30db408c48dc3900d10f67bb0b0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/ACCEPTANCE_RECORD.md",
+      "sha256": "5cca4c8fb68f23c1142b3fe91b5fb6b4756f62a0bb529c4bf66078e0c5c29aa9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/GRAPH_BASIS.md",
+      "sha256": "f61d72993528178a5dd7daa7e3e36f9284221b061c32162efdf8d11883c506ca"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/MANIFEST.sha256",
+      "sha256": "38050884ba2a778bc539b0830b6c20eea9985c0258addd47db35b294a9aec400"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/SOURCE_MANIFEST.sha256",
+      "sha256": "d0fc611d95ee80ba64b86ea5b0eaa1a1ba90e85e461fb18459dd8162df6a40c5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/Evidence/assemble_graph.py",
+      "sha256": "eb14621c4c01716bd0699e92c6e1dfdb8c59d90437dca47968e711b26da3de34"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+      "sha256": "4d381ba4e87b41a83b9d0d2dc591c4bf04eacb84df0b5c27314091cd2a992f56"
+    }
+  ],
+  "assembly_script": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/assemble_graph.py",
+    "sha256": "008e9ed1c4b503faa1c474b21988add53e9d23851cb4c5a132a6ca3955af2d58"
+  },
+  "adapted_from": {
+    "path": "projects/chirality-app-v4/execution/_DAG/DAG-003/Evidence/assemble_graph.py",
+    "sha256": "eb14621c4c01716bd0699e92c6e1dfdb8c59d90437dca47968e711b26da3de34"
+  },
+  "python": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+  "runs": [
+    {
+      "name": "admissible_audit",
+      "tool": {
+        "path": "tools/coordination/audit_dag.py",
+        "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+      },
+      "arguments": [
+        "python3",
+        "tools/coordination/audit_dag.py",
+        "--edges",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/admissible_edges.csv",
+        "--nodes",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/DeliverableNodes.csv",
+        "--canonical",
+        "--json-out",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/admissible_audit.json"
+      ],
+      "cwd": "<repository root>",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "FAIL_RAW_ACYCLIC_OBJECTIVE; CHARACTERIZED_UNRESOLVED_CYCLES",
+      "stdout": "admissible_audit.stdout.txt",
+      "stderr": "admissible_audit.stderr.txt"
+    },
+    {
+      "name": "dag_audit",
+      "tool": {
+        "path": "tools/coordination/audit_dag.py",
+        "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+      },
+      "arguments": [
+        "python3",
+        "tools/coordination/audit_dag.py",
+        "--dag-dir",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004",
+        "--canonical",
+        "--strict",
+        "--json-out",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/dag_audit.json"
+      ],
+      "cwd": "<repository root>",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "PASS_ADMITTED_LAYER_ONLY",
+      "stdout": "dag_audit.stdout.txt",
+      "stderr": "dag_audit.stderr.txt"
+    },
+    {
+      "name": "candidate_audit",
+      "tool": {
+        "path": "tools/coordination/audit_dag.py",
+        "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+      },
+      "arguments": [
+        "python3",
+        "tools/coordination/audit_dag.py",
+        "--dag-dir",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004",
+        "--edges",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/CandidateEdges.csv",
+        "--canonical",
+        "--json-out",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/candidate_audit.json"
+      ],
+      "cwd": "<repository root>",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "FAIL_ACYCLIC_OBJECTIVE_EXPECTED; NON_GATING_CANDIDATE_LAYER",
+      "stdout": "candidate_audit.stdout.txt",
+      "stderr": "candidate_audit.stderr.txt"
+    }
+  ],
+  "script_command": [
+    "python3",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/Evidence/assemble_graph.py"
+  ],
+  "finished_at": "2026-10-04T01:49:12.708732+00:00",
+  "process_subject_distinction": "Non-strict audits exit 0 with cyclic subjects; the strict admitted audit exits 0 and passes only its subject. Neither accepts the graph.",
+  "tool_limits": "No --markdown-out output is published (its title and front matter are DEV-001-specific). The dev001_projection JSON section is preserved but not relied on.",
+  "host_vs_brief": "The host permits wider workspace writes. The D1 brief narrows writes to the run folder DAG_PREP/ and scratch; the candidate is staged there instead of _DAG/_Candidates/. No OS-level confinement is claimed. Git is read-only; no delegation; no network."
+}

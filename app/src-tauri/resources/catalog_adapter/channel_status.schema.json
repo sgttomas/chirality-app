@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:channel-status",
+  "title": "External channel status as recorded and shown (DEL-03-03 ADAPTER-v0.6 §3.2, §3.6; PROPOSED)",
+  "description": "PROPOSED schema (R12-1). The channel-level summary the App records and shows for one host's external channel, with the facts behind it. The state never replaces a request's own outcome (C §4.1). Property names are Chirality's semantic labels, not a host or supplier wire field.",
+  "type": "object",
+  "required": ["host_identity", "channel_state", "reporter", "host_enablement", "app_side_configuration", "endpoint", "model_destination", "since", "evidence_limits"],
+  "additionalProperties": false,
+  "properties": {
+    "host_identity": {"type": "string", "minLength": 1},
+    "channel_state": {"enum": ["disabled", "enabled", "endpoint_unavailable"]},
+    "disabled_sub_case": {"enum": ["app_side_not_configured", "host_reports_off", "never_enabled", "disabled_by_A13", "host_has_no_A13_facility", "enablement_not_reobserved"]},
+    "enablement_unconfirmed": {"type": "boolean"},
+    "reporter": {"enum": ["app", "host"]},
+    "reason": {"type": "string", "minLength": 1},
+    "host_enablement": {
+      "type": "object",
+      "required": ["record"],
+      "additionalProperties": false,
+      "properties": {
+        "record": {"enum": ["in_force", "not_in_force", "not_readable", "no_facility"]},
+        "capture_evidence_reference": {"type": "string", "minLength": 1}
+      }
+    },
+    "app_side_configuration": {
+      "type": "object",
+      "required": ["present", "directed_by"],
+      "additionalProperties": false,
+      "properties": {
+        "present": {"type": "boolean"},
+        "path": {"enum": ["N-MCP", "N-CLI"]},
+        "locus": {"enum": ["user_codex_configuration", "per_thread_configuration", "codex_plugin", "command_on_path", "unknown"]},
+        "directed_by": {"enum": ["person", "agent_observed", "unknown", "none"]}
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "required": ["reachable", "locality"],
+      "additionalProperties": false,
+      "properties": {
+        "reachable": {"enum": ["yes", "no", "not_observed"]},
+        "locality": {"enum": ["local_process", "local_socket", "loopback_origin", "non_loopback", "not_observed"]},
+        "observed_reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "model_destination": {
+      "type": "object",
+      "required": ["requested", "effective"],
+      "additionalProperties": false,
+      "properties": {
+        "requested": {"type": "string", "minLength": 1},
+        "effective": {"type": "string", "minLength": 1},
+        "destination_class": {"enum": ["local_model_server", "user_chosen_cloud", "unknown"]}
+      }
+    },
+    "since": {"type": "string", "minLength": 1},
+    "evidence_limits": {"type": "array", "uniqueItems": true, "items": {"enum": ["host_reachable_without_evidenced_A13", "agent_written_configuration"]}}
+  },
+  "allOf": [
+    {"if": {"properties": {"channel_state": {"const": "enabled"}}},
+     "then": {"properties": {
+       "host_enablement": {"properties": {"record": {"const": "in_force"}}, "required": ["capture_evidence_reference"]},
+       "app_side_configuration": {"properties": {"present": {"const": true}}},
+       "endpoint": {"properties": {"reachable": {"const": "yes"}, "locality": {"enum": ["local_process", "local_socket", "loopback_origin"]}}}
+     }, "not": {"required": ["disabled_sub_case"]}}},
+    {"if": {"properties": {"channel_state": {"const": "disabled"}}}, "then": {"required": ["disabled_sub_case"]}},
+    {"if": {"properties": {"channel_state": {"const": "endpoint_unavailable"}}}, "then": {"required": ["reason"], "properties": {"reporter": {"const": "app"}}}}
+  ]
+}

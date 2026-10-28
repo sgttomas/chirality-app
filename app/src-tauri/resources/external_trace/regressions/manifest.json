@@ -1,0 +1,13 @@
+{
+  "source": "projects/chirality-app-v4/app/src-tauri/resources/external_trace/exam.result-record.valid.examples.json",
+  "source_sha256": "fcbd53d8936b9c73d8177a403795e438aab9dbc5e71b32f7f87ef4b121bec72e",
+  "source_record_id": "EXP-EX-08",
+  "mutation": {
+    "json_pointer": "/parts_not_applicable/0/part",
+    "before": "P22-G",
+    "after": "P22-A"
+  },
+  "fixture": "EXP-EX-08-overlap.invalid.json",
+  "fixture_sha256": "d52546701cbbd35eeb4b651da68e563211db0c96a7120b213a9c4009f7a5d337",
+  "expected": "schema-valid; EXP-R1 applicability-overlap semantic refusal; original illustrative material only"
+}

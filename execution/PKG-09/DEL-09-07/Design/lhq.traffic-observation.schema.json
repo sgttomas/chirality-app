@@ -1,0 +1,988 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-07:traffic-observation:0.1",
+  "title": "Traffic observation record (DEL-09-07 TOP-v0.1 §6; PROPOSED)",
+  "description": "One record per observed LHQ-20 run for LHQ-23. Holds no payload bytes and no names of the person's other applications. The raw capture stays on the examination machine and is identified here by its sha256. Comparison outcomes follow TOP §7; the schema checks what it can of the completeness rule: calibration not held makes the window incomplete; a complete window has no drops; a flagged annex entry carries its limit and resolution. The rest (no unresolved flagged entry for P23-C; matched-allowed contacts) is TOP §7's rule over the record.",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "record_id",
+    "cir_ref",
+    "run_ref",
+    "capture",
+    "calibration",
+    "window",
+    "subject_processes",
+    "contacts",
+    "record_without_capture",
+    "system_unattributed",
+    "app_codex_set_aside",
+    "other_counts",
+    "limits",
+    "calibration_setup"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "lhq_traffic_observation"
+    },
+    "format": {
+      "const": "TOP-v0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cir_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture": {
+      "type": "object",
+      "required": [
+        "sha256",
+        "retained",
+        "tool",
+        "os",
+        "interfaces",
+        "snap_length",
+        "privilege"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "retained": {
+          "const": "examination_machine_only"
+        },
+        "tool": {
+          "type": "object",
+          "required": [
+            "name",
+            "version"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interfaces": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snap_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "privilege": {
+          "type": "object",
+          "required": [
+            "granted_by",
+            "granted_at",
+            "source"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "granted_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "granted_at": {
+              "$ref": "#/$defs/utcTime"
+            },
+            "source": {
+              "const": "stated_by_person"
+            }
+          },
+          "description": "R23-14 item 1: asked for when it runs; the person authenticates."
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "required": [
+        "OV-1",
+        "OV-2",
+        "OV-3",
+        "OV-4",
+        "OV-5",
+        "B-0"
+      ],
+      "additionalProperties": false,
+      "description": "TOP §5: one entry per check, so each is present exactly once. B-0 is the baseline window (resolves annex flags only).",
+      "properties": {
+        "OV-1": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "OV-2": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "OV-3": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "OV-4": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "OV-5": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "B-0": {
+          "type": "object",
+          "required": [
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "enum": [
+                "held",
+                "not_held",
+                "not_run"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "start",
+        "end",
+        "drop_count",
+        "complete"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/utcTime"
+        },
+        "end": {
+          "$ref": "#/$defs/utcTime"
+        },
+        "drop_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "incompleteness": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "capture_started_after_host": {
+              "const": true
+            },
+            "capture_stopped_before_subject_exit": {
+              "const": true
+            },
+            "kernel_drops": {
+              "const": true
+            },
+            "calibration_not_held": {
+              "const": true
+            },
+            "cross_check_mismatch": {
+              "const": true
+            },
+            "relay_configured": {
+              "const": true
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "capture_started_after_host"
+              ]
+            },
+            {
+              "required": [
+                "capture_stopped_before_subject_exit"
+              ]
+            },
+            {
+              "required": [
+                "kernel_drops"
+              ]
+            },
+            {
+              "required": [
+                "calibration_not_held"
+              ]
+            },
+            {
+              "required": [
+                "cross_check_mismatch"
+              ]
+            },
+            {
+              "required": [
+                "relay_configured"
+              ]
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "complete": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "incompleteness"
+              ]
+            },
+            "properties": {
+              "drop_count": {
+                "const": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "complete": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "incompleteness"
+            ]
+          }
+        }
+      ]
+    },
+    "subject_processes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "pid",
+          "name",
+          "lineage_source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "pid": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "process_uuid": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lineage_source": {
+            "enum": [
+              "pktap_metadata",
+              "host_outside_process_record",
+              "process_start_observation"
+            ]
+          },
+          "role": {
+            "enum": [
+              "host",
+              "outside_process",
+              "other_child"
+            ]
+          }
+        }
+      }
+    },
+    "contacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/contact"
+      }
+    },
+    "record_without_capture": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "record_entry_ref",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "record_entry_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "enum": [
+              "non_network_ipc",
+              "window_incomplete",
+              "not_found_in_capture"
+            ]
+          }
+        }
+      }
+    },
+    "system_unattributed": {
+      "type": "array",
+      "description": "TOP §3 'System, not attributed' and BS-10 unattributed packets. A flagged entry carries the limit and its resolution (U2-R1, U2-R6).",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "destination_address",
+          "time",
+          "possibly_caused_by_host"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "system_process",
+              "unattributed_packet"
+            ]
+          },
+          "process_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destination_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time": {
+            "$ref": "#/$defs/utcTime"
+          },
+          "possibly_caused_by_host": {
+            "type": "boolean"
+          },
+          "limit": {
+            "const": "possibly caused by the host, not attributed"
+          },
+          "resolution": {
+            "enum": [
+              "unresolved",
+              "not_host_caused_baseline",
+              "resolved_by_evidence"
+            ]
+          },
+          "resolution_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "possibly_caused_by_host": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "limit",
+                "resolution"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "limit"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "resolution"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "system_process"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "process_name"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "resolution"
+              ],
+              "properties": {
+                "resolution": {
+                  "enum": [
+                    "not_host_caused_baseline",
+                    "resolved_by_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "resolution_ref"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "app_codex_set_aside": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "destination_address",
+          "pid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "destination_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pid": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "other_counts": {
+      "type": "object",
+      "required": [
+        "processes",
+        "packets"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "processes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "packets": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "label",
+          "vocabulary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vocabulary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "calibration_setup": {
+      "type": "object",
+      "required": [
+        "endpoints",
+        "interval"
+      ],
+      "additionalProperties": false,
+      "description": "TOP §5 (step 5) and §7 CB-1: the examiner's declared calibration test endpoints and the marked calibration interval. A contact tagged calibration_check counts as calibration only if its destination is a declared endpoint and it lies within the interval; otherwise it is a run contact (checked by prototype/top_check.py).",
+      "properties": {
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "interval": {
+          "type": "object",
+          "required": [
+            "start",
+            "end"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/utcTime"
+            },
+            "end": {
+              "$ref": "#/$defs/utcTime"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "contact": {
+      "type": "object",
+      "required": [
+        "destination_address",
+        "name_source",
+        "process_name",
+        "pid",
+        "attribution",
+        "first_seen",
+        "last_seen",
+        "comparison"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "destination_address": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_source": {
+          "enum": [
+            "dns_answer",
+            "tls_server_name",
+            "not_observed"
+          ]
+        },
+        "process_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_process_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attribution": {
+          "enum": [
+            "subject",
+            "system_attributed",
+            "outside_process_unsandboxed"
+          ]
+        },
+        "first_seen": {
+          "$ref": "#/$defs/utcTime"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/utcTime"
+        },
+        "comparison": {
+          "enum": [
+            "matched_allowed",
+            "matched_not_allowed",
+            "unrecorded",
+            "unmatched_name_not_observed",
+            "reported_within_limit"
+          ]
+        },
+        "record_entry_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowing_entry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_check": {
+          "enum": [
+            "OV-1",
+            "OV-2",
+            "OV-3",
+            "OV-4"
+          ],
+          "description": "Present only on a calibration contact (TOP §5). Binding to the declared endpoints and interval is CB-1 (TOP §7), checked by prototype/top_check.py; a contact that fails CB-1 is compared as a run contact."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "name_source": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "name"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "name"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attribution": {
+                "const": "system_attributed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "effective_process_name",
+              "effective_pid"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparison": {
+                "enum": [
+                  "matched_allowed",
+                  "matched_not_allowed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "record_entry_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparison": {
+                "const": "matched_allowed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "allowing_entry"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparison": {
+                "enum": [
+                  "unrecorded",
+                  "unmatched_name_not_observed",
+                  "reported_within_limit"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "record_entry_ref"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attribution": {
+                "const": "outside_process_unsandboxed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "comparison": {
+                "const": "reported_within_limit"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "comparison": {
+                "not": {
+                  "const": "reported_within_limit"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "A calibration contact is the host's (subject) contact to a test endpoint; it carries no host-record comparison of its own.",
+          "if": {
+            "required": [
+              "calibration_check"
+            ]
+          },
+          "then": {
+            "properties": {
+              "attribution": {
+                "const": "subject"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "utcTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "description": "TOP §6: one ISO-8601 UTC form, YYYY-MM-DDThh:mm:ss[.fraction]Z."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "calibration": {
+            "properties": {
+              "OV-1": {
+                "properties": {
+                  "outcome": {
+                    "const": "held"
+                  }
+                }
+              },
+              "OV-2": {
+                "properties": {
+                  "outcome": {
+                    "const": "held"
+                  }
+                }
+              },
+              "OV-3": {
+                "properties": {
+                  "outcome": {
+                    "const": "held"
+                  }
+                }
+              },
+              "OV-4": {
+                "properties": {
+                  "outcome": {
+                    "const": "held"
+                  }
+                }
+              },
+              "OV-5": {
+                "properties": {
+                  "outcome": {
+                    "const": "held"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "window": {
+            "properties": {
+              "complete": {
+                "const": false
+              },
+              "incompleteness": {
+                "required": [
+                  "calibration_not_held"
+                ]
+              }
+            },
+            "required": [
+              "incompleteness"
+            ]
+          }
+        }
+      },
+      "description": "U2-R6: any calibration check OV-1…OV-5 other than held makes the window incomplete, with calibration_not_held."
+    },
+    {
+      "description": "U2-R11: a flag resolved 'by baseline' requires B-0 held (TOP §5).",
+      "if": {
+        "properties": {
+          "calibration": {
+            "properties": {
+              "B-0": {
+                "properties": {
+                  "outcome": {
+                    "not": {
+                      "const": "held"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "system_unattributed": {
+            "items": {
+              "properties": {
+                "resolution": {
+                  "not": {
+                    "const": "not_host_caused_baseline"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

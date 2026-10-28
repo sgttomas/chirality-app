@@ -1,0 +1,15 @@
+# Actual LT-12 publication
+
+The Host can publish a single-event S1 envelope for its actual ready → child-ended-without-stop-record → exited-unexpectedly LT-12, including zero exit status. It captures the whole emitted event and its original closure counts under the existing source gates, then schedules artifact work after releasing those gates. It does not add a descendant census or change the original pre-spawn observation.
+
+The private original installed LT-09 reference is retained separately from the latest receipt. Both LT-12 and LT-23 require that predecessor for the same full generation. Only a genuine native-held reference can supply this authority; serialized references do not restore it. One App-lifetime worker permit is shared across both rows and all homes. There is no queue, automatic retry, worker join, cancellation or production deadline. Busy, missing custody/predecessor, errors and caught panics produce unavailable evidence. Pending is established before worker launch; installation requires the captured attempt, full generation, event sequence and exact row/state pair, with App closing excluded.
+
+Every successor LT-12 reserves its event sequence, including ineligible cases, so late LT-09 publication cannot become current. Stop beginning after LT-12 advances that reservation at its actual stop-request event. Late LT-12 completion cannot overwrite that later transition or a restarted source. Stop that wins the EOF source gate retains the existing exit-journal branch and produces no LT-12. Direct restart from exited-unexpectedly remains refused.
+
+An established Runtime receiver can read the closed-source receipt. A fresh receiver first created after closure remains unavailable. Existing LT-09 and LT-23 exchange formats are unchanged and do not accept LT-12. A new consumer exchange would require separate treatment. Changed producer/reader sources require fresh committed-source evidence and Group B adoption; this implementation does not update its pins.
+
+## Existing source limitations
+
+Stop from exited-unexpectedly still emits the existing fallback LT-19 with a from-state that does not match the LT-19 transition-table tuple. The ready EOF branch does not create the stopping-branch exit journal entry; later Stop may therefore retain null fallback exit facts. This slice does not repair that row, copy earlier exit facts into it, or claim the complete trace passes S1 validation. Individually supported LT-12 and LT-23 envelopes preserve their actual events. REC execution/request closure ordering and counts remain source-owned and are never recomputed by publication.
+
+All controls use invented offline children. Production selection/installed custody issuer remain absent; no S3, SEAL-2, restored custody, native App operation or supplier qualification follows. A blocked filesystem operation can retain the sole permit and namespace lease; Stop does not wait for it, and namespace admission can remain retryably busy. Existing audits remain bounded, not atomic snapshots.

@@ -1,0 +1,7 @@
+{
+  "app/examination/support_identity/canonical.py": "e08f3d633e9476ce1073e050545f2b8e99bc71c65cd93b2d4bf0fe2a8346c470",
+  "app/examination/support_identity/canonical-pins.v1.json": "5fedcaa0908ff4aa320bc415965c00aad273cac241b731f660a36600e494901c",
+  "app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
+  "app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+  "app/src-tauri/resources/distribution-successor/distribution-closure-transport.s3.schema.json": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"
+}

@@ -1,0 +1,17 @@
+Filename,PackageRole,Description,ConsumedBy
+SOFTWARE_DECOMP.md,working surface,Concise Group2 control surface and checkpoint question,Human/WORKING_ITEMS at Group2
+ScopeLedger.csv,authoritative companion register,Atomic SSOW; proposed Package/Deliverable allocation,Human and independent reviewer at Group2; Group3 auditor after actual structural confirmation
+Objectives.csv,authoritative companion register,Proposed testable objectives and scope mapping,Human at Group2; later production allocation
+Vocabulary_Map.csv,authoritative companion register,Canonical terms and retained distinctions,Human/reviewer and later contract authors
+Open_Issues.csv,authoritative companion register,"Accepted open matters, resolution responsibility and point of need",Human/manager at checkpoint and dependent definition
+External_Dependencies.csv,authoritative companion register,"External providers, receiving duties and points of need",Manager and human-relayed coordination
+Source_Coverage.csv,authoritative companion register,Every original V4 definition plus accepted HTML-D01-D07/J-O mapped,Independent fidelity reviewer
+Scope_Classification.csv,authoritative companion register,Product versus ProjectMethodConstraint classification; Administration lives in source coverage,Human/reviewer at Group2
+Source_Sections.csv,authoritative companion register,Unnumbered source-section coverage and context treatment,Independent fidelity reviewer
+Companion_Inventory.csv,authoritative companion register,Package roles and named consumption points,Group2 reader and future snapshot preparer
+Consolidated_Coverage.csv,authoritative companion register,144 consolidated clause aliases reconciled to accepted-composite scope; no independent authority,Independent fidelity reviewer and Group2 reader
+Packages.csv,authoritative companion register,"Proposed flat work-domain homes, inclusions and exclusions",Human and reviewer at Group2; later local SoW authors
+Deliverables.csv,authoritative companion register,"Proposed bounded outputs, interfaces, owners, artifacts and verification context",Human/reviewer at Group2; Group3 auditor; future setup
+ContextBudgetQA.csv,authoritative companion register,"Proposed context envelopes, risks and treatment",Human/reviewer at Group2; later dispatch and local SoW authors
+Allocation_Rationale.csv,authoritative companion register,"One proposed home and production mapping for each accepted scope item, with rationale",Human/reviewer comparing structure to frozen Group1
+Coverage_Telemetry.json,derived check artifact,Actual Group2 identity/coverage/context/check results,Human/reviewer at Group2

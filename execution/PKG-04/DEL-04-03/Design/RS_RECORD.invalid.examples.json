@@ -1,0 +1,154 @@
+[
+  {
+    "case": "INV-RS-1",
+    "why": "A human-act record with no capture evidence is non-conformant (RS §6.1; HA-1)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0901", "kind": "human_act", "recorder": {"role": "agent", "identity": "app-agent-seat:1"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 1, "writtenAt": "w001",
+      "body": {"actKind": "A5", "decisionActor": {"hostActor": "Engineer A", "identityVerified": false}, "recordingMode": "faithful recording", "boundSubject": ["PR-2/1"], "boundContent": [{"method": "m-fx", "value": "ci:PR-2/1"}], "scope": "PR-2 item 1", "purpose": "accept", "captureEvidence": [], "captureTime": "T10", "evidenceLimits": []}}
+  },
+  {
+    "case": "INV-RS-2",
+    "why": "A14 is never a human-act record (R2-8; RS §6.1)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0902", "kind": "human_act", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001",
+      "body": {"actKind": "A14", "decisionActor": {"displayName": "Engineer A", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["tool call 5"], "boundContent": [{"method": "x", "value": "y"}], "scope": "one call", "purpose": "tool permission", "captureEvidence": [{"kind": "supplier settlement", "ref": "s:5", "resolutionAtWrite": "resolved"}], "captureTime": "t", "evidenceLimits": []}}
+  },
+  {
+    "case": "INV-RS-3",
+    "why": "An A15 registration that names neither its reviewed draft nor its prior revision (R12-5; R17-11; C-01; RS-v0.9)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0903", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001",
+      "body": {"actKind": "A15", "decisionActor": {"displayName": "Engineer A", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "unselected", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": []}}
+  },
+  {
+    "case": "INV-RS-4",
+    "why": "An in-work destination grant with no scope and no request (ACT §2.7; LOOP NW-11)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0904", "kind": "destination_grant", "recorder": {"role": "host control", "identity": "host-control:E"}, "context": {"surface": "host"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"form": "in-work grant", "target": {"destination": "A-1"}, "time": "t4", "source": "in-work", "a12ActRef": "rec:host-E:run-13:0007"}}
+  },
+  {
+    "case": "INV-RS-5",
+    "why": "A non-canonical wording of the not-counted label (R12-10: the one wording is 'prior act not counted', with its reason)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0905", "kind": "disposition_change", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 1, "writtenAt": "w001",
+      "body": {"arrival": {"checkpoint": "CP-row-check", "arrivalOrdinal": 1}, "disposition": "waiting", "annotations": [{"label": "prior act on this subject, not counted", "actRef": "rec:app:run-12:0005", "reason": "content no longer current"}]}}
+  },
+  {
+    "case": "INV-RS-6",
+    "why": "An unknown record kind ('hold') is not in format 0.1",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0906", "kind": "hold", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {}}
+  },
+  {
+    "case": "INV-RS-7",
+    "why": "A correction that gives no reason (OF-5; RS §14.3)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0907", "kind": "run_ended", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "corrects": "rec:app:run-12:0016",
+      "body": {"stoppedBy": "the person", "cause": "person stopped", "waitingArrivals": []}}
+  },
+  {
+    "case": "INV-RS-8",
+    "why": "A decline reported to the agent in other words than V4-EXM-23's 'destination not allowed by the person'",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0908", "kind": "destination_declined", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"target": {"destination": "A-2"}, "time": "t7", "requestingCall": "call:22", "actDeclinedRef": "rec:host-E:run-13:0011", "reportedToAgent": "denied"}}
+  },
+  {
+    "case": "INV-RS-9",
+    "why": "A person-set settings version without an A12 reference, carried in the run record (AS §6 comparison; the AS schema is applied through $ref)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0909", "kind": "settings_version", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001",
+      "body": {"settingsVersionId": "set:set-2", "sourceOfControl": "host", "changeKind": "during-work change", "operationClassGrants": [{"policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"}, "classValue": "may apply within granted autonomy", "grantValue": "direct", "scope": {"modelOrWorkspace": "FX-W1"}, "displayState": "effective (person-set)", "requester": "person", "settingActor": "person", "establishment": {"controlEffect": "established", "evidenceRef": "cap:T15"}}]}}
+  },
+  {
+    "case": "INV-RS-10",
+    "why": "A destination request that ended unanswered without its cause (run ended or turn cancelled); LOOP-v0.8 §5.3 DF-6 (node B5)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:e-14:0990", "kind": "destination_request_closed", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-14", "seq": 1, "writtenAt": "w001", "body": {"requestRef": "rec:host-E:e-14:0011", "state": "unanswered at end", "carriedCallSent": false, "time": "t9"}}
+  },
+  {
+    "case": "INV-RS-11",
+    "why": "A destination request with scope once that carries no call; ACT ND-A2 (once is consumed by the one requesting call) and LOOP-v0.8 §5.3 DF-1 (node B5)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:e-14:0991", "kind": "destination_requested", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-14", "seq": 1, "writtenAt": "w001", "body": {"requester": "host-agent:E", "target": {"destination": "W-2", "category": "web access"}, "purpose": "read an invented table", "scopeSought": "once", "requestingCall": "call:40", "time": "t4"}}
+  },
+  {
+    "case": "INV-RS-12",
+    "why": "Workflow origin 'host-supplied': the origin value is 'host' (WD §6.1; RS R2; R14-3)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0912", "kind": "run_opened", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"runId": "run:E-13", "startedBy": {"kind": "person", "identity": "Engineer A"}, "surface": "host-loop run", "workflow": {"kind": "workflow", "origin": "host-supplied", "sourceRoot": "fx-root", "name": "supports-adjust", "revision": "rev-3", "revisionVerification": "verified"}, "conversationRef": "conv:K-13", "declaredCheckpoints": [{"name": "CP-L4", "requiredAct": "A4", "subjectClass": "objects changed by a named outcome"}]}}
+  },
+  {
+    "case": "INV-RS-13",
+    "why": "A request identified from agent message text: an App run records a request only from a structured observation (EXEC RC-5; R14-2)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0913", "kind": "act_request", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 7, "writtenAt": "w007",
+      "body": {"requester": {"kind": "agent", "identity": "app-agent-seat:1"}, "form": "agent message naming kind, subject and purpose", "actKind": "not named by the request", "subject": "not named by the request", "purpose": "not named by the request", "association": "associated with the current arrival", "arrival": {"checkpoint": "CP-row-check", "arrivalOrdinal": 1}, "evidence": {"kind": "conversation item", "ref": "item:tool/requestUserInput-12", "resolutionAtWrite": "resolved"}, "time": "T4a+1"}}
+  },
+  {
+    "case": "INV-RS-14",
+    "why": "Underscored disposition spelling: dispositions are WD §4.3.4's spaced words (R14-1)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0914", "kind": "disposition_change", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 6, "writtenAt": "w006",
+      "body": {"arrival": {"checkpoint": "CP-row-check", "arrivalOrdinal": 1}, "disposition": "resolved_negatively", "annotations": [{"label": "by earlier act", "actRef": "rec:app:run-12:0005", "time": "T2", "referents": ["S-2"]}]}}
+  },
+  {
+    "case": "INV-RS-15",
+    "why": "Workflow identity without its source root (WD §6.1; RS R2; R14-3)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0915", "kind": "run_opened", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"runId": "run:E-13", "startedBy": {"kind": "person", "identity": "Engineer A"}, "surface": "host-loop run", "workflow": {"kind": "workflow", "origin": "host", "name": "supports-adjust", "revision": "rev-3", "revisionVerification": "verified"}, "conversationRef": "conv:K-13", "declaredCheckpoints": [{"name": "CP-L4", "requiredAct": "A4", "subjectClass": "objects changed by a named outcome"}]}}
+  },
+  {
+    "case": "INV-RS-16",
+    "why": "An A15 that names its draft under the retired relation derivedFrom: derived-from is WD's parent workflow identity, not the A15's relation (R17-11; C-01; RS-v0.9)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0916", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"derivedFrom": "draft:supports-adjust@d-12"}}}
+  },
+  {
+    "case": "INV-RS-17",
+    "why": "An A15 whose prior revision is a free string: it is RS's workflowTuple or null (C-01; K-6)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0917", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": "project:supports-adjust@rev-3"}}}
+  },
+  {
+    "case": "INV-RS-18",
+    "why": "An A15 that gives both the one-entry relations and registeredEntries (L-4: one form or the other)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0918", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": null, "registeredEntries": [{"subject": "workflow revision project:row-review@rr-1", "reviewedDraft": {"draft": "entry:project:row-review@wfrev:rr-1", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rr-1"}}, "priorRevision": null}, {"subject": "workflow revision project:span-check@sc-1", "reviewedDraft": {"draft": "entry:project:span-check@wfrev:sc-1", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:sc-1"}}, "priorRevision": null}]}}}
+  },
+  {
+    "case": "INV-RS-19",
+    "why": "A tool-permission request ended unanswered at a process exit, without its context and custody event (RECOVERY-v0.2 §8.2; FR-02)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0919", "kind": "tool_permission_settlement", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"request": "tool-request:13", "settledBy": "none — ended unanswered", "settlement": "ended unanswered (process exit)"}}
+  },
+  {
+    "case": "INV-RS-20",
+    "why": "A request ended at a process exit recorded as the App's named-rule decline: no automatic decline (R17-9); an ended request is settled by no one",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0920", "kind": "tool_permission_settlement", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"request": "tool-request:13", "settledBy": "App named-rule decline", "settlement": "ended unanswered (process exit)", "context": "App quit", "custodyEventRef": "cev:0042"}}
+  },
+  {
+    "case": "INV-RS-21",
+    "why": "A workflow supplied as turn text without its check against thread/read (R19-7)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0921", "kind": "supplied_guidance", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"supplyForm": "workflow run start (turn text)", "thread": "conv:K-7", "turn": 6, "sourceIdentity": "workflow:project:FX-W1:span-summary@rev-2", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:ss-2"}, "supplyRecord": {"kind": "supply record", "ref": "wr-supply:run-R-100-13", "resolutionAtWrite": "resolved"}}}
+  },
+  {
+    "case": "INV-RS-22",
+    "why": "A Codex account recorded with its plan type: codexAccount is the reported email or 'ChatGPT account (no email reported)'; plan type is not recorded (R18-1 C-10)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0922", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "codexAccount": "plus (enga@example.invalid)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": null}}}
+  },
+  {
+    "case": "INV-RS-23",
+    "why": "A role limit observation attributed by inference: a child without a role type is never attributed TASK (ROLE-v0.2 §6.3 DL-1; IL-6)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0923", "kind": "role_limit_observation", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"limit": "L-TASK-1", "roleInForce": "TASK", "basis": "inherited", "standing": "stated-not-enforced", "item": {"kind": "conversation item", "ref": "item:collabAgentToolCall-31", "resolutionAtWrite": "resolved"}, "observedAt": "T-c3"}}
+  },
+  {
+    "case": "INV-RS-24",
+    "why": "An A4 that carries the A15 relation reviewedDraft (the A15 relations are A15's only; RS-v0.9)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0924", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A4", "actClass": {"value": "reserved to the person"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["AF-1"], "boundContent": [{"method": "file content identity (method unselected)", "value": "AF-1@f1"}], "scope": "AF-1", "purpose": "App output checked", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:app-AF-1", "resolutionAtWrite": "resolved"}], "captureTime": "d2", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:af@AF-1@f1", "content": {"method": "file content identity (method unselected)", "value": "AF-1@f1"}}}}}
+  },
+  {
+    "case": "INV-RS-25",
+    "why": "An A16 without the alternative chosen (A16 names the package and the alternative chosen; R23-8, pass 4)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0925", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A16", "actClass": {"value": "person's act (V4-PM-04)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["decision package rec:app:requests:0001"], "boundContent": [{"method": "file content identity (method unselected)", "value": "PKG-1@p1"}], "scope": "undertaking FX-U1", "purpose": "choose the route for the undertaking's next stage", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:decide-pkg-1", "resolutionAtWrite": "resolved"}], "captureTime": "d5", "evidenceLimits": ["identity not verified"], "relations": {"requestRef": "rec:app:requests:0001"}}}
+  },
+  {
+    "case": "INV-RS-26",
+    "why": "An A16 without requestRef to the decision package it decides (R23-8, pass 4)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0926", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A16", "actClass": {"value": "person's act (V4-PM-04)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["decision package rec:app:requests:0001"], "boundContent": [{"method": "file content identity (method unselected)", "value": "PKG-1@p1"}], "scope": "undertaking FX-U1", "purpose": "choose the route for the undertaking's next stage", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:decide-pkg-1", "resolutionAtWrite": "resolved"}], "captureTime": "d5", "evidenceLimits": ["identity not verified"], "relations": {"alternativeChosen": "ALT-2"}}}
+  },
+  {
+    "case": "INV-RS-27",
+    "why": "An A4 that carries the A16 relation alternativeChosen (A16's only; pass 4)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0927", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A4", "actClass": {"value": "reserved to the person"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["AF-1"], "boundContent": [{"method": "file content identity (method unselected)", "value": "AF-1@f1"}], "scope": "AF-1", "purpose": "App output checked", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:decide-pkg-1", "resolutionAtWrite": "resolved"}], "captureTime": "d5", "evidenceLimits": ["identity not verified"], "relations": {"alternativeChosen": "ALT-2"}}}
+  },
+  {
+    "case": "INV-RS-28",
+    "why": "An act_declined of kind A16: no act-declined event exists for A16; the person closes the control (ACT §2.1 A16 row; pass 4)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0928", "kind": "act_declined", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "declinedKind": "A16", "subject": ["decision package rec:app:requests:0001"], "time": "d5", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:decide-pkg-1", "resolutionAtWrite": "resolved"}], "requestRef": "rec:app:requests:0001"}}
+  }
+]

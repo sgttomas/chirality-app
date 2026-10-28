@@ -1,0 +1,11 @@
+{
+  "model_interface_basis": "FB-CC-1",
+  "position_in_response": 0,
+  "call_correlation_identity": "call-fx-m1-0",
+  "operation_reference": "OP-C4",
+  "argument_text": "{\"run\": \"R-100\", \"loca",
+  "argument_value": null,
+  "parse_state": "truncated",
+  "response_termination": "length-truncated",
+  "rejection": null
+}

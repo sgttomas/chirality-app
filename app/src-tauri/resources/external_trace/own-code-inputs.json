@@ -1,0 +1,20 @@
+{
+  "candidate": "I4-OBS-path:sha256:1d93deb47887962f796ad3c25e4a42e85be51d45f8e9fab5d1683e40c87d7388",
+  "origin": "APP-V4-GROUP-A-20261004/I4",
+  "kind": "own_code",
+  "results": [
+    {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/I4.md",
+      "sha256": "d8b510bb2abc5a1b2064e7b0a4283a0dabfbf97173e03863362764dd8491f204"
+    },
+    {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V2-I4-R1.md",
+      "sha256": "7038b35762c8736d7210044b14e4e0b1b91b22767e1d456c6aadfe13b456ed89"
+    },
+    {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/I4-OBSERVATION.md",
+      "sha256": "6aa6370941185a761c0f64c3ab3f7da18e466dc5cd22508f9e449fb4fde97e47"
+    }
+  ],
+  "claimed_scope": "offline receiving checks and reviewed I4 core; no native supplier or host join"
+}

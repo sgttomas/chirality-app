@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2",
+  "title": "Source-qualified native conversation relationship observation",
+  "description": "FR §4 owner direction: native conversation identity is the native thread ID qualified by its stable actual home/source. Native generation and request identity are observation context, not an objective/undertaking key. Only correlated App Continue-as/start or fork facts are written. No dispatch, work state, role supply or current authority is established. Earlier 0.1 records remain quoted compatibility sources.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "formatVersion",
+    "observationId",
+    "kind",
+    "recorder",
+    "observedAt",
+    "body"
+  ],
+  "properties": {
+    "format": {
+      "const": "chirality.fleet.record"
+    },
+    "formatVersion": {
+      "const": "0.2"
+    },
+    "observationId": {
+      "type": "string",
+      "pattern": "^fl:app:[A-Za-z0-9._:/-]+$"
+    },
+    "kind": {
+      "enum": [
+        "related_conversation",
+        "recording_limit",
+        "recording_recovered"
+      ]
+    },
+    "recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "properties": {
+        "kind": {
+          "const": "App"
+        },
+        "identity": {
+          "const": "app-writer:local"
+        }
+      }
+    },
+    "observedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "description": "Descriptive text only; never an identity or association key.",
+      "type": "string"
+    },
+    "body": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ],
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threadId",
+        "generation"
+      ],
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/generation"
+        }
+      }
+    },
+    "nativePath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encoding",
+        "bytes"
+      ],
+      "properties": {
+        "encoding": {
+          "const": "unix_bytes"
+        },
+        "bytes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "related_conversation"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relation",
+              "source",
+              "thread",
+              "nativeHome",
+              "rpc",
+              "typesPin"
+            ],
+            "properties": {
+              "relation": {
+                "enum": [
+                  "continued from",
+                  "forked from"
+                ]
+              },
+              "source": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "thread": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "nativeHome": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "homeId",
+                  "root",
+                  "physical"
+                ],
+                "properties": {
+                  "homeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "root": {
+                    "$ref": "#/$defs/nativePath"
+                  },
+                  "physical": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "device",
+                      "inode"
+                    ],
+                    "properties": {
+                      "device": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "inode": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              },
+              "rpc": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "requestId",
+                  "requestRef"
+                ],
+                "properties": {
+                  "method": {
+                    "enum": [
+                      "thread/start",
+                      "thread/fork"
+                    ]
+                  },
+                  "requestId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    ]
+                  },
+                  "requestRef": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "typesPin": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "recording_limit",
+              "recording_recovered"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "originalObservationId",
+              "phase",
+              "statement"
+            ],
+            "properties": {
+              "originalObservationId": {
+                "type": "string",
+                "pattern": "^fl:app:[A-Za-z0-9._:/-]+$"
+              },
+              "phase": {
+                "enum": [
+                  "store",
+                  "project"
+                ]
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

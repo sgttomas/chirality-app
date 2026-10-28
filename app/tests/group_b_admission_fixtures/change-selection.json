@@ -1,0 +1,64 @@
+{
+  "from_alias": "INVENTED revision A / build A",
+  "to_alias": "INVENTED revision B / build B",
+  "before_basis": {
+    "subject": {
+      "kind": "candidate",
+      "app_candidate": {
+        "revision": "INVENTED-REV-A",
+        "build_identity": "INVENTED-BUILD-A"
+      }
+    },
+    "configuration": {
+      "codex_pin": "0.160.0",
+      "model": "not_applicable",
+      "model_server": "not_applicable",
+      "route": {
+        "kind": "interface_chromium",
+        "engine": {
+          "name": "Chromium",
+          "version": "ILLUSTRATIVE"
+        },
+        "platform": {
+          "os": "macOS",
+          "arch": "arm64"
+        },
+        "runner_definition_check": "EXP-EX-06"
+      }
+    },
+    "criterion": {
+      "source": "EXAMINATION.md V4-EXM-04",
+      "identity": "sha256:605ea00e3b56c9e930c5d6c8bbfdbdd544e5402a18304ede1b28c5e7468fd58d"
+    }
+  },
+  "rerun_basis": {
+    "subject": {
+      "kind": "candidate",
+      "app_candidate": {
+        "revision": "INVENTED-REV-B",
+        "build_identity": "INVENTED-BUILD-B"
+      }
+    },
+    "configuration": {
+      "codex_pin": "0.160.0",
+      "model": "not_applicable",
+      "model_server": "not_applicable",
+      "route": {
+        "kind": "interface_chromium",
+        "engine": {
+          "name": "Chromium",
+          "version": "ILLUSTRATIVE"
+        },
+        "platform": {
+          "os": "macOS",
+          "arch": "arm64"
+        },
+        "runner_definition_check": "EXP-EX-06"
+      }
+    },
+    "criterion": {
+      "source": "EXAMINATION.md V4-EXM-04",
+      "identity": "sha256:605ea00e3b56c9e930c5d6c8bbfdbdd544e5402a18304ede1b28c5e7468fd58d"
+    }
+  }
+}

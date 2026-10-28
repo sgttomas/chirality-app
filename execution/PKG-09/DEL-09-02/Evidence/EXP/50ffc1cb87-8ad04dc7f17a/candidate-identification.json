@@ -1,0 +1,170 @@
+{
+  "format": "chirality.app-v4.candidate-identification/v2",
+  "candidate_key": "50ffc1cb87-8ad04dc7f17a",
+  "app_candidate": {
+    "revision": "50ffc1cb87bc41b707981ccd57b565ff3d36e5ea",
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:8ad04dc7f17aeae9a79cd25bedaff634274710363a01953771b4faf0ce1169b4",
+    "packaged": false
+  },
+  "route": "native_development",
+  "source": {
+    "repository": "sgttomas/chirality",
+    "revision": "50ffc1cb87bc41b707981ccd57b565ff3d36e5ea",
+    "commit_tree": "fcea13ba230367eafd814bc985ee645325132d20",
+    "exported_prefix": "projects/chirality-app-v4",
+    "tree": "20d18f83d667d714f8754f0b1ac1726f94830c61",
+    "tracked_files_verified": 2333
+  },
+  "build": {
+    "procedure": "projects/chirality-app-v4/app/packaging/unsigned/README.md: exact git archive export; isolated Cargo home/target and COW-cloned prepared offline caches; own App artifacts removed before build; debug --no-sign custom-protocol, supplier not bundled",
+    "profile": "debug",
+    "signing": "--no-sign; executable independently reports adhoc,linker-signed; TeamIdentifier not set; resources not sealed; no Developer ID signing or manual signing",
+    "features": [
+      "custom-protocol"
+    ],
+    "command": [
+      "node",
+      "node_modules/@tauri-apps/cli/tauri.js",
+      "build",
+      "--debug",
+      "--no-sign",
+      "--bundles",
+      "app",
+      "--features",
+      "custom-protocol",
+      "--config",
+      "packaging/unsigned/tauri.development.conf.json",
+      "--config",
+      "<scratch>/candidate.conf.json",
+      "--",
+      "--offline",
+      "--locked"
+    ],
+    "config_overlays": [
+      {
+        "path": "projects/chirality-app-v4/app/packaging/unsigned/tauri.development.conf.json",
+        "sha256": "c0a947f0e5db49e74d9a9a7559ba0d9656551c982ba37decd38fdb541d7288b8"
+      },
+      {
+        "path": "<scratch>/candidate.conf.json",
+        "sha256": "de147a43db51069a56583be52b3c626ce405ead7ba8d43fdd8dc31b8a2dc6899",
+        "content": {
+          "productName": "Chirality App v4 (development candidate C3)",
+          "identifier": "dev.chirality.app-v4.candidate-c3-50ffc1cb87"
+        }
+      }
+    ],
+    "toolchain": {
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "node": "v24.18.0",
+      "npm": "11.16.0",
+      "tauri_cli": "tauri-cli 2.11.1",
+      "macos": "26.6.2",
+      "arch": "arm64"
+    },
+    "lockfiles": {
+      "projects/chirality-app-v4/app/src-tauri/Cargo.lock": "c097b5bfa301ddd91c12e27ab87972f98e99a9bc289588f08ec8558526c75dd9",
+      "projects/chirality-app-v4/app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa"
+    },
+    "offline": true,
+    "environment": {
+      "inheritance": "exact subprocess environment allowlist; no inherited variables; exact private argv/environment recorded in logs/invocation.json",
+      "HOME": "fresh isolated scratch home",
+      "PATH": "explicit installed Node/Rust toolchain directories and system bins only",
+      "CARGO_HOME": "isolated home with COW-cloned prepared offline registry (not a symlink to original cache)",
+      "CARGO_TARGET_DIR": "isolated target seeded with dependency cache; App/build-script artifacts removed before build",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_BUILD_JOBS": "4",
+      "NPM_CONFIG_OFFLINE": "true",
+      "NPM_CONFIG_UPDATE_NOTIFIER": "false",
+      "npm_configs": "distinct empty user and global files; no personal npm configuration",
+      "dependencies": "COW clone of prepared installed tree matching unchanged package-lock; no install/download",
+      "signing_and_notary_variables": "absent from process allowlist"
+    },
+    "started_at": "2026-10-18T04:45:39.572307+00:00",
+    "finished_at": "2026-10-18T04:46:40.934885+00:00",
+    "phases": {
+      "interval_basis": "successful Tauri command only, including frontend/Cargo/bundling; executed source/cache preparation separately recorded",
+      "whole_command_seconds": "61.363049",
+      "exit_code": "0",
+      "cargo_reported_elapsed": "57.22s",
+      "build.log_sha256": "c0fe65598bef9bc57bd65da8f8f997b1dbe1c92b5827374f640928c08075dfa1",
+      "build-started.txt_sha256": "fa9bd969327a5cd116dbedd66cfc3635cae2ce8c268cda5154387bf85aa56baa",
+      "build-finished.txt_sha256": "c89e813f27e1adff9449bc7e4ae6c8d0ffa9f68c459a24cd536b83255a5b2e83",
+      "invocation.json_sha256": "ac653ed1df7de45783913c963fcab2f29dd1efa80dbde1de891124a192338fd2",
+      "preparation.json_sha256": "d42c826e0772a8db241b08fa20ee89794e9a378f6a05de06bc8b60c8c23da8f5",
+      "codesign.txt_sha256": "a76a11fe61da51bcb4e622e316835fc6b3daa61479cad602b59a5a39b47ed569",
+      "arch.txt_sha256": "c1669e1d8edca98769c37d494b76442a1d6e5ffffd7b4da1fb63aef8ebaf6f01",
+      "resource-comparison.json_sha256": "8553af5183b96dfce90c6a9fd37c2bcff291ab0c2e51bf990df1124e85fee0fe"
+    }
+  },
+  "bundle": {
+    "name": "Chirality App v4 (development candidate C3).app",
+    "identifier": "dev.chirality.app-v4.candidate-c3-50ffc1cb87",
+    "version": "0.0.0",
+    "executable": {
+      "path": "Contents/MacOS/chirality-app-v4",
+      "sha256": "81c92d8140f1c49eaa4e00f686ec155bad9e14cd541c13ae45cb17124ce0491a"
+    },
+    "info_plist_sha256": "eb3cb92c7d10052812faba9d9c34635a625c85460b68a51045584c0180521ecd",
+    "file_manifest_sha256": "6d7b207b7d0c1f1bd9ed701fdd8684d4322b286292cabc4d540a0afc835ebbb0",
+    "counts": {
+      "dir": 7,
+      "file": 14,
+      "symlink": 0
+    },
+    "metadata_state": {
+      "entries_including_root": 22,
+      "acl_entries": 0,
+      "nonzero_flags": 0,
+      "set_id_bits": 0,
+      "extended_attributes": {
+        "com.apple.provenance": 22
+      },
+      "xattr_allowlist": [
+        "com.apple.provenance"
+      ],
+      "owners": [
+        {
+          "uid": 501,
+          "gid": 0
+        }
+      ],
+      "symlinks": 0
+    },
+    "inventory": {
+      "path": "bundle-inventory.json",
+      "sha256": "332c54adf9353dc7a40be0347526f5b480fed4344e7caaee489cc056abeb10c5"
+    }
+  },
+  "app_data": {
+    "directory": "~/Library/Application Support/dev.chirality.app-v4.candidate-c3-50ffc1cb87",
+    "checked": [
+      "~/Library/Application Support/dev.chirality.app-v4.candidate-c3-50ffc1cb87",
+      "~/Library/WebKit/dev.chirality.app-v4.candidate-c3-50ffc1cb87",
+      "~/Library/Caches/dev.chirality.app-v4.candidate-c3-50ffc1cb87"
+    ],
+    "present_at_identification": []
+  },
+  "supplier": {
+    "bundled": false,
+    "binding": "per examination record configuration (codex_pin, codex_distribution_identity)"
+  },
+  "identified_by": {
+    "tool": "projects/chirality-app-v4/app/examination/candidate_identity/identify.py",
+    "tool_sha256": "fa55cd85b8a1762860b3e3699710eaceb71e2c81f169a5c691b439562ce23f84",
+    "method": "chirality.app.bundle-tree.sha256/v2"
+  },
+  "identified_at": "2026-10-18T04:47:47.261268+00:00",
+  "limits": [
+    "Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.",
+    "Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.",
+    "File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.",
+    "ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.",
+    "Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.",
+    "The Codex supplier is not part of the bundle; each examination record binds its own supplier pin, distribution identity and configuration.",
+    "No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.",
+    "App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state."
+  ]
+}

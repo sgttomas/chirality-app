@@ -1,0 +1,191 @@
+{
+ "host_identity": "SH-1",
+ "edition": "e-dest-1",
+ "completeness": "complete",
+ "basis_profile": {
+  "workspace_identity": "supplied",
+  "generation": "supplied",
+  "model_revision": "supplied",
+  "canonical_content_identity": "supplied",
+  "subject_content_identity": "per_subject",
+  "staleness_scope": "per_item_relied_on_targets"
+ },
+ "entries": [
+  {
+   "operation_identity": "OP-W1",
+   "operation_version": "v1",
+   "purpose": "Fetches an invented reference table from a web origin for the agent (invented; LOOP-v0.8 §5.2 MS-23, MS-24)",
+   "input": {
+    "arguments": [
+     {
+      "argument_name": "url",
+      "meaning": "the address to fetch; its origin is the destination",
+      "value_kind": "text",
+      "unit": null,
+      "required": true,
+      "identifies_target": true
+     }
+    ],
+    "accepts_requested_basis": false
+   },
+   "availability": [],
+   "effects": {
+    "kind": "none",
+    "external_contact": {
+     "category": "web access",
+     "destination_form": "from_argument",
+     "argument_name": "url"
+    }
+   },
+   "result": {
+    "content_kinds": [
+     "result_value"
+    ],
+    "named_host_checks": []
+   },
+   "errors": [
+    {
+     "error_identity": "E-fetch-failed",
+     "meaning": "the origin did not answer",
+     "raised_at": "evaluation",
+     "effect": "none"
+    }
+   ],
+   "class": {
+    "class_value": "none",
+    "value_standing": "PROPOSED",
+    "consequence_statement": null,
+    "host_adoption": "not_evidenced",
+    "policy_record_reference": "fixture-read"
+   },
+   "exposure": {
+    "H": "not_exposed_on_this_surface",
+    "E": "exposed",
+    "X": "not_exposed_on_this_surface"
+   }
+  },
+  {
+   "operation_identity": "OP-M1",
+   "operation_version": "v1",
+   "purpose": "Looks up an invented section property through MCP server M-1 (invented; LOOP MS-15, MS-26)",
+   "input": {
+    "arguments": [
+     {
+      "argument_name": "section",
+      "meaning": "the section name",
+      "value_kind": "text",
+      "unit": null,
+      "required": true,
+      "identifies_target": false
+     }
+    ],
+    "accepts_requested_basis": false
+   },
+   "availability": [],
+   "effects": {
+    "kind": "none",
+    "external_contact": {
+     "category": "MCP servers",
+     "destination_form": "fixed",
+     "destinations": [
+      "M-1"
+     ],
+     "served_by_outside_process": "M-1"
+    }
+   },
+   "result": {
+    "content_kinds": [
+     "result_value"
+    ],
+    "named_host_checks": []
+   },
+   "errors": [],
+   "class": {
+    "class_value": "none",
+    "value_standing": "PROPOSED",
+    "consequence_statement": null,
+    "host_adoption": "not_evidenced",
+    "policy_record_reference": "fixture-read"
+   },
+   "exposure": {
+    "H": "not_exposed_on_this_surface",
+    "E": "exposed",
+    "X": "not_exposed_on_this_surface"
+   }
+  },
+  {
+   "entry_kind": "destination_request",
+   "operation_identity": "OP-DR",
+   "operation_version": "v1",
+   "purpose": "Asks the person for a network destination (the agent's A8); contacts nothing and changes no host object (LOOP-v0.8 §5.3 DF-1, DF-5)",
+   "input": {
+    "arguments": [
+     {
+      "argument_name": "target_category",
+      "meaning": "the destination category asked for",
+      "value_kind": "text",
+      "unit": null,
+      "required": true,
+      "identifies_target": false
+     },
+     {
+      "argument_name": "target_destination",
+      "meaning": "the destination asked for, if not the whole category",
+      "value_kind": "text",
+      "unit": null,
+      "required": false,
+      "identifies_target": false
+     },
+     {
+      "argument_name": "purpose",
+      "meaning": "why the agent needs it",
+      "value_kind": "text",
+      "unit": null,
+      "required": true,
+      "identifies_target": false
+     },
+     {
+      "argument_name": "scope_sought",
+      "meaning": "once, this run or always",
+      "value_kind": "enumeration",
+      "unit": null,
+      "required": true,
+      "identifies_target": false
+     },
+     {
+      "argument_name": "carried_call",
+      "meaning": "the call that needs the destination; required for once",
+      "value_kind": "carried_call",
+      "unit": null,
+      "required": false,
+      "identifies_target": false
+     }
+    ],
+    "accepts_requested_basis": false
+   },
+   "availability": [],
+   "effects": {
+    "kind": "none"
+   },
+   "result": {
+    "content_kinds": [
+     "result_value"
+    ],
+    "named_host_checks": []
+   },
+   "errors": [],
+   "class": {
+    "class_value": "none",
+    "value_standing": "PROPOSED",
+    "consequence_statement": null,
+    "host_adoption": "not_evidenced",
+    "policy_record_reference": "fixture-read"
+   },
+   "exposure": {
+    "H": "not_exposed_on_this_surface",
+    "E": "exposed",
+    "X": "not_exposed_on_this_surface"
+   }
+  }
+ ]
+}

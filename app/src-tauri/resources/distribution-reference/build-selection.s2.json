@@ -1,0 +1,16 @@
+{
+  "format": "build-selection.s2",
+  "method": "codex-vendor-tree-v1",
+  "schema_ids": [
+    "expected-reference.s1",
+    "adoption-attestation.s1"
+  ],
+  "expected": {
+    "path": "distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+    "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37"
+  },
+  "attestation": {
+    "path": "distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+    "sha256": "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9"
+  }
+}

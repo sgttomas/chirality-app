@@ -1,0 +1,165 @@
+{
+  "candidate_id": "APP-V4-GROUP3-20260927-CANDIDATE-1",
+  "standing": "FINAL_DECOMPOSITION_CANDIDATE_NOT_ACCEPTED",
+  "purpose": "Separate Group3 final audit and actual final-acceptance subject",
+  "accepted_group1": {
+    "snapshot": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP1-20260927T222641Z",
+    "pointer": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md",
+    "decision_sha256": "b8ddaab0466ca6fc1600b5f9756abac453bc4d726657d94ddb88fac08ede4dc1",
+    "accepted_manifest_sha256": "e7ece4931c1acc28d55152445afb6cc1acce973029615fc30f1c0bdfee29fae7",
+    "handoff_sha256": "b2a78e53227543624b654446ab107cd660cf8e6555345d79e63a3cac57278eac",
+    "presented_candidate_id": "APP-V4-GROUP1-20260927-CANDIDATE-2",
+    "source_recovery_commit": "434f31863e8bc82a40797115fc915a59f2b39732"
+  },
+  "accepted_group2": {
+    "snapshot": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z",
+    "pointer": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md",
+    "decision_sha256": "e05df41f16a6d638308562d03f63377e3c4e8fa8d82738ff472c70fcfa7f5045",
+    "manifest_sha256": "ac212672f6d12cdfa53a763b4fe7e1404b381656cbeddcf2e9d79bcb6b0e9ff5",
+    "handoff_sha256": "f507f1e804e6851706909a0869a595c941ecf061952032c79bac480bac70cf16",
+    "consolidation_source_commit": "ece7fbe84395284167845067c3c0e1c67a61773c",
+    "custody": "Actual owner approval of presented Candidate1 plus discussed clarification; Candidate2 is independently checked faithful consolidation, not prior owner hash review"
+  },
+  "selected_method": {
+    "identity": "chirality-root:bundled:workflow:software-decomp",
+    "stage": "Group3",
+    "original_definition_basis": "4087a4f8c500a84b85dc9e8652b632550ab21a5a",
+    "unchanged_current_method_resources": [
+      {
+        "path": "workflows/software-decomp/WORKFLOW.md",
+        "sha256": "f08ae6ea7ead63e2325945cff4740e613c0e2b304122c8166b0b7a96a74681e4"
+      },
+      {
+        "path": "workflows/software-decomp/execution.json",
+        "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+      },
+      {
+        "path": "workflows/software-decomp/resources/contract.md",
+        "sha256": "26f783694801d99606d1212ed899f7a239d154b5e9ccbbcb90982c8a224b98ba"
+      },
+      {
+        "path": "workflows/software-decomp/resources/method.md",
+        "sha256": "2ff2af63e756f1dbe09951836764acc4a7e8d481dcb3b8861c8c608bf4082804"
+      }
+    ]
+  },
+  "counts": {
+    "ScopeItems": 262,
+    "IN": 234,
+    "OUT": 15,
+    "TBD": 13,
+    "Packages": 11,
+    "Deliverables": 41,
+    "Objectives": 10,
+    "ContextEnvelopes": {
+      "S": 2,
+      "M": 31,
+      "L": 8,
+      "XL": 0
+    }
+  },
+  "canonical_files": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md",
+      "package_role": "working surface",
+      "sha256": "9d44c2ad12f484f3d13901f28d99725ac7fc538dfacc85b832cdbe3c62b8fb81"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Packages.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Deliverables.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ScopeLedger.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Objectives.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Vocabulary_Map.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "af6c21872119f299516fb63b68914a0293d4f028b3bb6c93d2e26976e866d8ba"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ContextBudgetQA.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "837ae64f74fac345f861491196c0953a1f677684d077489cd98700553bfa0641"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Allocation_Rationale.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "b3969e6363a4f60452410994dfa61ae6e8a08da9cafac9a746304694301f68e2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Companion_Inventory.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "ee9d8542bcf536e4111fa09bc44fd9bc6e34eb740bbcb93107336dd572107902"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Source_Coverage.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "20e717cc62cd16a7dc2a8b11cccc3a2a194a64b404db6db7ddbac972d7621adc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Source_Sections.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "2e57c3678f484f3920f1b4777d7117615c7298bdbeebcbf4236d359654ab2045"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Scope_Classification.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "d884ed9833572dc4e3dc7a4990edc158762ca5829810c01f5a485e8652420ed8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Consolidated_Coverage.csv",
+      "package_role": "authoritative companion register within final candidate",
+      "sha256": "df7a204581a1f95beab3a1d1bae5c715940e8fc6fe128a3ad4cfb3b81b6e5f7f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Coverage_Telemetry.json",
+      "package_role": "derived check artifact",
+      "sha256": "178ec20abeddfb55e558869f0b33157106f7da95b71b804fda80a302a5f2f620"
+    }
+  ],
+  "reader": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP3-20260927/READER.md",
+    "package_role": "derived publication artifact",
+    "sha256": "b5bd5ca22efb38a2cf5b19b97d6bdb53854b331c80026eaacfd77720daa10aeb"
+  },
+  "final_audit_record": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP3-20260927/REVIEW.md",
+  "human_group3_decision": "NOT_YET_OBSERVED",
+  "later_stage_limit": "No accepted-final pointer or downstream setup before actual Group3 acceptance",
+  "housekeeping_delta": [
+    "current standing and decision links",
+    "objective notes reflect accepted mappings",
+    "OI-025 stage deferral resolved by Group2",
+    "DEP-002 completed workflow comparison status",
+    "OI-022/DEP-002 retain subsequent PEC RV1 OPEN MAJOR at receiving point",
+    "current vocabulary/companion/DEL-10 staging labels",
+    "OpenIssuesByType counts and IDs, Revision/date and explicit XL zero"
+  ],
+  "substantive_change": "None to accepted scope, structure, mappings, anticipated artifacts, interfaces or context envelopes",
+  "prior_review_evidence": [
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/presentation/REVIEW.md",
+    "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md"
+  ]
+}

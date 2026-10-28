@@ -1,0 +1,1201 @@
+//! J4 (APP-V4-GROUP-A-20261004): one maintained offline end-to-end journey.
+//!
+//! J1 (publication and supply check), J2 (compatibility) and J3 (lifecycle and
+//! reopen) keep their own component tests. This file is the evidence for the
+//! complete journey only: select a workflow, register it, prepare and send a
+//! run, inspect what was supplied, end it, and reopen the work after the loss
+//! of every in-memory session object, in one scenario.
+//!
+//! Every step goes through the production Root API that the App commands in
+//! `lib.rs` call (`WorkflowRootSession`, `WorkflowRun`, `start_workflow_run`,
+//! `send_with_pending_notice`, `send_conversation_text`). The Tauri command
+//! bodies themselves take `tauri::State`/`AppHandle` and are not callable here;
+//! each step names the command whose body it follows. Two test doubles are
+//! used, both already used by the existing Root tests: the owned Python
+//! app-server peer (a verbatim copy of the script in `runtime_session.rs`
+//! `workflow_root_tests::Peer`, which is private to that module) and the A15
+//! act-control double (`ConfirmedA15Event::synthetic_for_test`).
+//!
+//! Not established here:
+//! - native supplier behaviour (the peer is a fixture), any real model, the UI,
+//!   or a person's native A15 confirmation;
+//! - a real App relaunch (process loss is simulated by stopping the supplier
+//!   child and dropping every in-memory session object in this test process);
+//! - the command-layer guards that run outside the Root API (V11 J4-1):
+//!   `AppState::validate_home_source` (review, prepare, send, check);
+//!   `workflow_review_observe`'s actor, home and library/review-selection
+//!   recheck before and after the native dialog; and the second
+//!   `session.current()` that `a15_native::confirm_native` takes after the
+//!   dialog (this test holds one `current` across the confirmation);
+//! - the real Tauri `app_data_dir()` and the `lib.rs` setup line that hands it
+//!   to `set_app_user_data` (V11 J5-7): `root_session` mimics that wiring with
+//!   a test folder.
+#![cfg(unix)]
+
+use super::*;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+const NAME: &str = crate::workflow_workspace::development_catalog::NAME;
+const THREAD: &str = "thread";
+
+/// Copy of the owned native-shaped app-server peer used by `runtime_session.rs`
+/// `workflow_root_tests::Peer` (that type is private to its module). One change:
+/// `clientUserMessageId` is read with `.get(...)`, so an ordinary text turn
+/// (which carries none) is answered instead of ending the peer. It logs every
+/// received frame to `wire.jsonl` and, at each `turn/start`, the WR record
+/// files it can see to `turn-start-wr.jsonl`.
+const PEER: &str = r#"#!/usr/bin/python3
+import sys,json,os
+if '--version' in sys.argv:
+ print('codex-cli 0.160.0');sys.exit(0)
+def emit(v):print(json.dumps(v),flush=True)
+starts=[0]
+def thread(tid='thread'):return {'id':tid,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
+text='';client=''
+def mode(name):
+ return open(name).read().strip() if os.path.exists(name) else ''
+def wr():
+ d=mode('wr-dir') or '.chirality/records/workflow'
+ return sorted(n for n in os.listdir(d) if n.endswith('.json') and not n.startswith('.')) if os.path.isdir(d) else []
+for line in sys.stdin:
+ f=json.loads(line)
+ with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
+ method=f.get('method')
+ if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
+ elif method=='thread/start':
+  starts[0]+=1
+  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ elif method=='turn/start':
+  # Publish-before-send witness: the WR records the peer can see when the turn arrives.
+  with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
+  if mode('turn-mode')=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture refused turn/start'}});continue
+  if mode('turn-mode')=='exit':
+   sys.exit(0)
+  text=f['params']['input'][0]['text'];client=f['params'].get('clientUserMessageId','');result={'turn':turn()}
+ elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
+ elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
+ elif method=='thread/items/list':
+  m=mode('items-mode');seen=text;cid=client
+  if m=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
+  if m=='framing':seen=text.replace('[Chirality] Workflow run start:','[Chirality] Workflow run started:',1)
+  if m=='differ':seen=text.replace('\n','\r\n')
+  if m=='noclient':cid='other-client'
+  message={'type':'userMessage','id':'message','clientId':cid,'content':[{'type':'text','text':seen}]}
+  data=[] if m=='absent' else [{'turnId':'turn','item':message}]
+  if m=='finished':data.append({'turnId':'turn','item':{'type':'agentMessage','id':'reply','text':'Done.\nWorkflow finished: project:coordinated-knowledge-work\nNext workflow: project:coordinated-knowledge-work'}})
+  if m=='paged' and f['params'].get('cursor') is None:result={'data':[],'nextCursor':'page-2'}
+  else:result={'data':data,'nextCursor':None}
+ else:continue
+ emit({'id':f['id'],'result':result})
+"#;
+
+/// The durable side of the journey: the explicit App project (the
+/// `CHIRALITY_WORKSPACE` stand-in), the development holding copy, the peer
+/// script, the Codex account/probe homes and the App user-data folder (which
+/// keeps App-kept draft bases, WR §3). It outlives every simulated App process.
+struct Disk {
+    base: PathBuf,
+    project: PathBuf,
+    package: PathBuf,
+    script: PathBuf,
+    app_data: PathBuf,
+}
+impl Disk {
+    fn new() -> Self {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(crate::util::opaque_id("workflow-journey-").unwrap());
+        let project = base.join("project");
+        let app_data = base.join("app-data");
+        for dir in [&base, &project, &base.join("account"), &base.join("probe"), &app_data] {
+            std::fs::create_dir(dir).unwrap();
+        }
+        // The peer sees the WR records where the App publishes them (RS §13.8).
+        std::fs::write(project.join("wr-dir"), crate::storage::project_file(&project, "workflow").unwrap().to_str().unwrap()).unwrap();
+        let package = project.join(NAME);
+        std::fs::create_dir(&package).unwrap();
+
+        let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();
+        for (name, bytes) in catalog.select_embedded().snapshot().files() {
+            std::fs::write(package.join(name), bytes).unwrap();
+        }
+        let script = base.join("owned-peer.py");
+        std::fs::write(&script, PEER).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+        Self { base, project, package, script, app_data }
+    }
+    /// Every frame the peer received, across all simulated processes, in order.
+    fn wire(&self) -> Vec<Value> {
+        std::fs::read_to_string(self.project.join("wire.jsonl"))
+            .unwrap_or_default()
+            .lines()
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect()
+    }
+    fn frames(&self, method: &str) -> Vec<Value> {
+        self.wire().into_iter().filter(|f| f["method"] == method).collect()
+    }
+    /// WR record files the peer saw at each `turn/start`, in arrival order.
+    fn wr_at_turn_start(&self) -> Vec<Vec<String>> {
+        std::fs::read_to_string(self.project.join("turn-start-wr.jsonl"))
+            .unwrap_or_default()
+            .lines()
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect()
+    }
+    fn wr_dir(&self) -> PathBuf {
+        crate::storage::project_file(&self.project, "workflow").unwrap()
+    }
+    fn wr_files(&self) -> Vec<String> {
+        let mut v: Vec<String> = std::fs::read_dir(self.wr_dir())
+            .map(|d| {
+                d.filter_map(|e| e.ok())
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|n| n.ends_with(".json") && !n.starts_with('.'))
+                    .collect()
+            })
+            .unwrap_or_default();
+        v.sort();
+        v
+    }
+    /// The file name a WR reference is published under.
+    fn wr_file(&self, reference: &str) -> String {
+        format!("{}.json", reference.strip_prefix("wr-record:v1:").expect("WR reference form"))
+    }
+    /// Every RS entry in the project, complete (no read limits).
+    fn rs(&self) -> Vec<Value> {
+        let (entries, limits) = crate::storage::read_all(&self.project);
+        assert!(limits.is_empty(), "RS record set incomplete: {limits:?}");
+        entries
+    }
+    fn rs_for(&self, run: &str) -> Vec<Value> {
+        self.rs().into_iter().filter(|e| e["runId"] == run).collect()
+    }
+}
+/// `AppState.workflows` with lib.rs setup's wiring: the App user-data root.
+fn root_session(disk: &Disk) -> Mutex<WorkflowRootSession> {
+    let mut root = WorkflowRootSession::default();
+    root.set_app_user_data(disk.app_data.clone());
+    Mutex::new(root)
+}
+impl Drop for Disk {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.base);
+    }
+}
+
+/// One simulated App process: its own Host (and supplier child), its own home
+/// session, its current generation and the conversation loaded in it.
+struct Process {
+    host: Arc<crate::hosting::Host>,
+    home: Arc<HomeSession>,
+    generation: Value,
+}
+impl Process {
+    fn start(disk: &Disk, actor: &str) -> Self {
+        let mut cfg = crate::hosting::HostConfig::new(
+            disk.script.clone(),
+            disk.base.join("account"),
+            disk.base.join("probe"),
+            disk.project.clone(),
+        );
+        cfg.allow_unverified_dev = true;
+        cfg.wait_limit = Duration::from_secs(2);
+        let host = Arc::new(crate::hosting::Host::new());
+        host.start(&cfg, actor).unwrap();
+        assert_eq!(host.snapshot()["supplierStanding"], "unverified-development");
+        let generation = host.snapshot()["generation"].clone();
+        host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(), "fixture-model", "fixture-provider", "existing role unchanged")
+            .unwrap();
+        let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host.clone(), Ok(cfg)).unwrap());
+        Self { host, home, generation }
+    }
+    /// The person selects the conversation in native History and loads its turns
+    /// (required before a supply check reads native item pages).
+    fn select_history(&self) {
+        let list = {
+            let mut receiver = self.home.history.lock().unwrap();
+            receiver.reconcile(&self.host);
+            receiver.history_mut().unwrap().list_threads(None, crate::native_history::Direction::Asc).unwrap()
+        };
+        self.receive(list);
+        self.home.history.lock().unwrap().history_mut().unwrap().select(THREAD).unwrap();
+        let turns = self
+            .home
+            .history
+            .lock()
+            .unwrap()
+            .history_mut()
+            .unwrap()
+            .turns_page(None, crate::native_history::Direction::Asc)
+            .unwrap();
+        self.receive(turns);
+    }
+    fn receive(&self, query: crate::native_history::HistoryQuery) {
+        let dispatch = self.host.history_dispatch(&query).unwrap();
+        self.home.history.lock().unwrap().dispatched(dispatch.clone());
+        self.host.history_wait(&dispatch, Duration::from_secs(2)).unwrap();
+        self.home.history.lock().unwrap().reconcile(&self.host);
+    }
+    /// Process loss: the supplier child stops and this process's Host and home
+    /// session are dropped. The caller has already dropped its Root session.
+    fn lose(self) {
+        let home = Arc::downgrade(&self.home);
+        let host = Arc::downgrade(&self.host);
+        self.host.stop_scoped(&self.generation, "journey fixture", "App process lost").unwrap();
+        drop(self);
+        assert!(home.upgrade().is_none(), "a dropped session object still holds the lost process's home");
+        // The Host's own reader threads release their handles as the stopped child's
+        // streams close; give them a bounded moment.
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while host.upgrade().is_some() && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(host.upgrade().is_none(), "something still holds the lost process's Host");
+    }
+}
+impl Drop for Process {
+    fn drop(&mut self) {
+        let _ = self.host.stop("journey fixture cleanup", "test ended");
+    }
+}
+
+/// `conversation_send_text` command body (lib.rs): a pending end notice goes
+/// first, exactly once; otherwise ordinary text is sent unchanged.
+fn conversation_send_text(root: &Mutex<WorkflowRootSession>, process: &Process, text: &str) -> Result<Value, String> {
+    if let Some(result) = send_with_pending_notice(root, &process.generation, THREAD, text) {
+        return result;
+    }
+    send_conversation_text(&process.host.snapshot(), &process.generation, THREAD, text, |generation, thread, text| {
+        process.home.host.turn_start_text(generation, thread, text)
+    })
+}
+
+/// `workflow_reopen` command body (lib.rs), with the REC restart facts this
+/// process holds.
+fn workflow_reopen(root: &Mutex<WorkflowRootSession>, process: &Process, project: &Path) -> Value {
+    let recovery = process.home.recovery_startup.lock().unwrap().snapshot();
+    let events = crate::restart_events(&recovery);
+    root.lock().unwrap().reopen(project, &events).unwrap()
+}
+
+/// Step 2: draft, review, hot A15 and the registration transaction, with
+/// the act-control double used by
+/// `workflow_root_closed_selection_real_review_hot_receipt_and_transaction`,
+/// then selection of the hot registered revision. Requires the development
+/// copy to be selected. Returns (review reference, registered revision).
+fn register_and_select(
+    root: &Mutex<WorkflowRootSession>,
+    home: &Arc<HomeSession>,
+    library: &Path,
+    origin: &str,
+    project: &Path,
+    workspace_control: Arc<Mutex<Option<crate::act_control::ActControl>>>,
+) -> (String, String) {
+    let mut r = root.lock().unwrap();
+    // workflow_open_library, workflow_create_draft, workflow_review.
+    r.open_library(library.to_path_buf(), origin, Some(project), workspace_control).unwrap();
+    let draft = r.create_selected_draft(Some(&crate::workflow_selection::Chat::in_home(home, THREAD)),NAME).unwrap();
+    assert_eq!(draft["name"], NAME);
+    r.begin_review(home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
+        .unwrap();
+    let (reference, revision) = capture_and_register(&mut r, library, origin);
+    drop(r);
+    (reference, revision)
+}
+
+/// `workflow_register_native` (through the act-control double), the ledger
+/// checks and `workflow_select_registered` for the review `begin_review` just
+/// opened. Returns (review reference, registered revision).
+/// `workflow_register_native`'s act through the act-control double, for the
+/// review `begin_review` just opened.
+/// Returns the native statement and its act-button label (J6's variant).
+fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> (String, &'static str) {
+    let review = r.reviews[reference].clone();
+    let mut review = review.lock().unwrap();
+    let library_ctx = review.library.clone();
+    let offer = review.offer.as_ref().unwrap();
+    let current = review.review.as_ref().unwrap().current().unwrap();
+    let actor = crate::act_control::person(Some("synthetic native fixture"), Some("fixture OS"));
+    let context = json!({"library":library_ctx.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
+    let mut owner_guard = library_ctx.control.lock().unwrap();
+    let owner = owner_guard.as_mut().unwrap();
+    let statement = owner.a15_confirmation_text(offer, &current, &actor, &context).unwrap();
+    let act_label = owner.a15_variant(offer).unwrap().act;
+    owner.present_a15(offer).unwrap();
+    let event = crate::a15_native::ConfirmedA15Event::synthetic_for_test(
+        offer.id().into(),
+        owner.frozen_a15_offer_digest(offer).unwrap().clone(),
+        actor,
+        context,
+    );
+    let result = owner.confirm_a15_after_native_event(offer, event, &current).unwrap();
+    drop(current);
+    drop(owner_guard);
+    review.attempted_native = true;
+    review.accept_result(result).unwrap();
+    (statement, act_label)
+}
+
+fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &str) -> (String, String) {
+    let reference = r.active_review.clone().unwrap();
+    // workflow_register_native, through the act-control double.
+    let revision = {
+        let (_, act_label) = confirm_with_double(r, &reference);
+        assert_eq!(act_label, "Register", "a registration keeps J6's Register label");
+        let review = r.reviews[&reference].clone();
+        let review = review.lock().unwrap();
+        assert_eq!(review.status["entries"][0]["state"], "registered", "{}", review.status);
+        // J5: only this act's own revision becomes a registered value; a disclosed prior is never promoted.
+        assert_eq!(review.registered.len(), 1, "{:?}", review.registered.keys().collect::<Vec<_>>());
+        review.registered.values().next().unwrap().identity().revision.clone()
+    };
+    // The library's registration ledger holds the registered line, bound to the A15 act.
+    let ledger: Vec<Value> = std::fs::read_to_string(library.join(".chirality/workflow-registry.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let line = ledger.last().unwrap();
+    assert_eq!(line["outcome"], "registered");
+    assert_eq!(line["identity"]["revision"], revision.as_str());
+    assert_eq!(line["identity"]["origin"], origin);
+    let (acts, limits) = crate::records::read_log(&crate::storage::library_log(library));
+    assert!(limits.is_empty(), "{limits:?}");
+    assert!(acts.iter().any(|e| e["recordId"] == line["act"]["record_id"]), "the ledger cites the recorded A15 act");
+    // workflow_select_registered: the hot registered revision, resolved from its revision store (SL-4).
+    let chat = crate::workflow_selection::Chat::in_home(&r.reviews[&reference].lock().unwrap().home, THREAD);
+    let snapshot = r.select_hot_registered_copy(&chat, &reference, &revision).unwrap();
+    assert_eq!(snapshot["choice"]["standing"], "registered revision");
+    assert_eq!(snapshot["choice"]["runnable"], true);
+    assert_eq!(snapshot["choice"]["identity"]["revision"], revision.as_str());
+    assert_eq!(snapshot["choice"]["identity"]["origin"], origin);
+    let store = library.join(".chirality/workflow-revisions").join(NAME).join(crate::storage::key(&revision)).join(NAME);
+    assert_eq!(r.selected.values().next().unwrap().package, store, "resolved from the revision store");
+    (reference, revision)
+}
+
+/// J4 finding 1 (J5): after process loss the person registers the same workflow
+/// again in the SAME library, through a new genuine A15 on the hot draft route
+/// (WR RB-6, DS-2). The draft from the earlier process is kept (D-1: the App
+/// never overwrites it) and refined, because identical content is DS-4. The
+/// prior ledger line and the App-kept base are disclosed observations, frozen at
+/// review and checked under the ledger lock; they never select the old revision.
+fn refine_register_and_select(
+    root: &Mutex<WorkflowRootSession>,
+    home: &Arc<HomeSession>,
+    library: &Path,
+    origin: &str,
+    project: &Path,
+    workspace_control: Arc<Mutex<Option<crate::act_control::ActControl>>>,
+    previous: &str,
+    refinement: &str,
+) -> (String, String) {
+    let mut r = root.lock().unwrap();
+    r.open_library(library.to_path_buf(), origin, Some(project), workspace_control).unwrap();
+    let context = json!({"hostState":"fixture","identityVerified":false});
+    // The published copy has registration history: in place is not offered (WR ME-1 / LS-2 only).
+    let in_place = r.begin_review(home.clone(), context.clone(), vec![NAME.into()], true);
+    assert!(in_place.as_ref().is_err_and(|e| e.contains("registration history")), "{in_place:?}");
+    // D-1: the kept draft is never overwritten by an App action.
+    assert!(r.create_selected_draft(None,NAME).is_err_and(|e| e.contains("no overwrite")));
+    // The person refines the kept draft (J-8), then reviews it.
+    let workflow = library.join(".chirality/workflow-drafts").join(NAME).join("WORKFLOW.md");
+    let mut text = std::fs::read_to_string(&workflow).unwrap();
+    text.push_str(refinement);
+    std::fs::write(&workflow, text).unwrap();
+    r.begin_review(home.clone(), context, vec![NAME.into()], false)
+        .expect("same-library review after relaunch: DS-2 from the App-kept base");
+    let reference = r.active_review.clone().unwrap();
+    let presentation = r.reviews[&reference].lock().unwrap().status["presentation"].clone();
+    let entry = &presentation["entries"][0];
+    assert_eq!(entry["disposition"], "new revision", "{entry}");
+    assert_eq!(entry["prior_revision"]["revision"], previous, "the prior is the slot's latest ledger line");
+    assert_eq!(entry["base"]["revision"], previous, "the App-kept base survived the process loss");
+    assert!(entry.to_string().contains("no earlier native-act authentication"), "{entry}");
+    let (reference, revision) = capture_and_register(&mut r, library, origin);
+    assert_ne!(revision, previous);
+    let ledger: Vec<Value> = std::fs::read_to_string(library.join(".chirality/workflow-registry.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let line = ledger.last().unwrap();
+    assert_eq!(line["disposition"], "new revision");
+    assert_eq!(line["prior_revision"]["revision"], previous, "the new act names the disclosed prior");
+    assert_eq!(line["identity"]["derived_from"]["revision"], previous, "derived from the App-kept base");
+    // The disclosed prior is not promoted: the old revision is not selectable, even through the new review.
+    assert!(r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(home, THREAD), &reference, previous).is_err(), "old revision stays cold");
+    r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(home, THREAD), &reference, &revision).unwrap();
+    (reference, revision)
+}
+
+fn text_identity(text: &str) -> Value {
+    crate::role_supply::content(text.as_bytes())
+}
+fn kinds(entries: &[Value]) -> Vec<&str> {
+    entries.iter().map(|e| e["kind"].as_str().unwrap()).collect()
+}
+/// RS run-log order: strictly increasing `seq`, non-decreasing `observedAt`.
+fn assert_log_order(entries: &[Value]) {
+    for pair in entries.windows(2) {
+        assert!(pair[0]["seq"].as_u64().unwrap() < pair[1]["seq"].as_u64().unwrap(), "seq order: {pair:?}");
+        assert!(
+            pair[0]["observedAt"].as_str().unwrap() <= pair[1]["observedAt"].as_str().unwrap(),
+            "observation order: {pair:?}"
+        );
+    }
+}
+
+#[test]
+fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
+    let disk = Disk::new();
+    let project = disk.project.clone();
+
+    // ---- Step 1. Open a project and a library; select the development copy; it cannot be run.
+    let one = Process::start(&disk, "journey process 1");
+    let generation_one = one.generation.clone();
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project)))); // AppState.act
+    let root = root_session(&disk); // AppState.workflows
+    {
+        let mut r = root.lock().unwrap();
+        r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
+        let selected = r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
+        assert_eq!(selected["choice"]["standing"], crate::workflow_workspace::development_catalog::STANDING);
+        assert_eq!(selected["choice"]["runnable"], false);
+        // workflow_prepare_run on a development selection (TT-1/TX-1, WR TT-1/TX-1).
+        let refused = r.prepare_run(one.home.clone(), &one.generation, THREAD, "person".into(), Some(&project));
+        assert!(refused.as_ref().is_err_and(|e| e.contains("TT-1") && e.contains("TX-1")), "{refused:?}");
+        assert!(r.runs.is_empty());
+    }
+    assert!(disk.frames("turn/start").is_empty(), "nothing sent");
+    assert!(disk.wr_files().is_empty(), "nothing recorded");
+    assert!(disk.rs().iter().all(|e| e.get("runId").is_none()), "no run log");
+
+    // ---- Step 2. Draft, review, hot A15 and transaction; select the hot registered revision.
+    let (review_one, revision_one) = register_and_select(&root, &one.home, &project, "project", &project, act.clone());
+
+    // ---- Step 3. Prepare a run: CK-1 is advisory, no R14, nothing published or sent yet.
+    let person = "person exact\r\ntext";
+    let a = root.lock().unwrap().prepare_run(one.home.clone(), &one.generation, THREAD, person.into(), Some(&project)).unwrap();
+    let run_a = root.lock().unwrap().runs[&a].clone();
+    let (selection_ref, text_ref) = {
+        let run = run_a.lock().unwrap();
+        assert_eq!(run.lifecycle, RunLifecycle::Prepared);
+        assert!(!run.attempted);
+        let view = run.view(&a);
+        let compatibility = view["compatibility"].as_array().unwrap();
+        assert_eq!(compatibility.len(), 1, "{}", view["compatibility"]);
+        assert_eq!(compatibility[0]["occasionLabel"], "CK-1 selection");
+        assert_eq!(compatibility[0]["advisory"], true);
+        assert_eq!(compatibility[0]["publication"]["state"], "not published");
+        assert!(compatibility[0]["r14"].as_str().unwrap().contains("no R14 written"));
+        (
+            view["publication"]["selection"].as_str().unwrap().to_owned(),
+            view["publication"]["runText"].as_str().unwrap().to_owned(),
+        )
+    };
+    {
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+        // Reserved identities only: neither resolves before send (the WR store does not exist yet).
+        assert!(records.resolve(&selection_ref).is_err() && records.resolve(&text_ref).is_err());
+        assert!(!disk.wr_dir().exists());
+    }
+    assert!(disk.wr_files().is_empty() && disk.frames("turn/start").is_empty(), "preparing records and sends nothing");
+    assert!(disk.rs().iter().all(|e| e["kind"] != "compatibility_report_ref"), "no R14");
+
+    // ---- Step 4. Send through the owned peer (workflow_send_run): records durable at turn/start; CK-2; run_opened.
+    let sent = start_workflow_run(&root, &a).unwrap();
+    assert_eq!(sent["observedStatus"], "failed", "the peer reports a failed native turn");
+    let starts = disk.frames("turn/start");
+    assert_eq!(starts.len(), 1);
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let selection = records.resolve(&selection_ref).unwrap();
+    let run_text = records.resolve(&text_ref).unwrap();
+    let client_id = {
+        let run = run_a.lock().unwrap();
+        assert_eq!(starts[0]["params"], run.prepared().turn_params(person, &run.client_id).unwrap(), "exact wire frame");
+        assert_eq!(run.lifecycle, RunLifecycle::Open, "a failed native turn does not end the run");
+        assert_eq!(run.turn_id.as_deref(), Some("turn"));
+        let occasions: Vec<Value> = run.view(&a)["compatibility"].as_array().unwrap().iter().map(|c| c["occasionLabel"].clone()).collect();
+        assert_eq!(occasions, [json!("CK-1 selection"), json!("CK-2 run start")]);
+        for c in run.view(&a)["compatibility"].as_array().unwrap() {
+            assert_eq!(c["advisory"], true);
+            assert_eq!(c["publication"]["state"], "not published");
+        }
+        run.client_id.clone()
+    };
+    let wire_text = starts[0]["params"]["input"][0]["text"].as_str().unwrap();
+    assert_eq!(text_identity(wire_text), run_text.body()["text_identity"], "sent bytes are the published run_text");
+    assert_eq!(starts[0]["params"]["input"][1]["text"], person);
+    assert_eq!(starts[0]["params"]["threadId"], THREAD);
+    let mut published_pair = vec![disk.wr_file(&selection_ref), disk.wr_file(&text_ref)];
+    published_pair.sort();
+    assert_eq!(disk.wr_at_turn_start(), vec![published_pair.clone()], "selection and run_text durable at turn/start, nothing else");
+    assert_eq!(run_text.envelope()["basis_records"], json!([selection_ref]));
+    assert_eq!(selection.body()["standing"], "registered");
+    assert_eq!(selection.body()["identity"]["revision"], revision_one.as_str());
+    assert_eq!(selection.body()["conversation"], THREAD);
+    assert_eq!(run_text.body()["run"], a.as_str());
+    let log = disk.rs_for(&a);
+    assert_eq!(kinds(&log), ["run_opened"]);
+    let opened = &log[0];
+    assert_eq!(opened["body"]["runId"], a.as_str());
+    assert_eq!(opened["body"]["conversationRef"], THREAD);
+    assert_eq!(opened["body"]["startedBy"], json!({"kind":"person"}));
+    assert_eq!(opened["body"]["workflow"]["name"], NAME);
+    assert_eq!(opened["body"]["workflow"]["revision"], revision_one.as_str());
+    assert_eq!(opened["body"]["workflow"]["origin"], "project");
+    assert!(opened["body"].get("follows").is_none(), "first run in the conversation follows nothing");
+    assert!(opened["observedAt"].as_str().unwrap() >= run_text.envelope()["observed_at"].as_str().unwrap());
+    assert!(disk.rs().iter().all(|e| e["kind"] != "compatibility_report_ref"), "no R14 after CK-2");
+
+    // ---- Step 5. Check supply against native pages (workflow_check_supply); reread once.
+    // The peer's native history also holds an agent reply reporting the workflow
+    // finished; that report has no lifecycle effect (FN-3).
+    std::fs::write(project.join("items-mode"), "finished").unwrap();
+    one.select_history();
+    let first = run_a.lock().unwrap().check_native_supply().unwrap()["check"].clone();
+    assert_eq!(first["state"], "verified");
+    assert_eq!(first["published"], true);
+    assert_eq!(first["r3"]["state"], "recorded");
+    let first_ref = first["reference"].as_str().unwrap().to_owned();
+    let first_record = records.resolve(&first_ref).unwrap();
+    let first_bytes = first_record.bytes().to_vec();
+    assert_eq!(first_record.body()["record_kind"], "supply_check");
+    assert_eq!(first_record.body()["state"], "verified");
+    assert_eq!(first_record.body()["turn"], "turn");
+    assert_eq!(first_record.body()["client_user_message_id"], client_id.as_str());
+    assert_eq!(first_record.envelope()["basis_records"], json!([text_ref]), "the check cites the run text");
+    assert_eq!(first_record.envelope()["observed_at"], first_record.body()["read_at"]);
+    assert!(!first_record.envelope()["source_references"].as_array().unwrap().is_empty(), "native source receipts");
+    let r3_first = disk.rs().into_iter().find(|e| e["recordId"] == first["r3"]["recordId"]).unwrap();
+    assert_eq!(r3_first["kind"], "supplied_guidance");
+    assert_eq!(r3_first["runId"], a.as_str());
+    assert_eq!(r3_first["body"]["supplyRecord"]["ref"], text_ref.as_str(), "R3 cites the run text");
+    assert_eq!(r3_first["body"]["supplyCheckRecord"]["ref"], first_ref.as_str(), "R3 cites the check");
+    assert_eq!(r3_first["body"]["supplyCheck"], "verified");
+    assert_eq!(r3_first["body"]["adoption"], "unknown");
+    assert_eq!(r3_first["body"]["nativeTurn"], "turn");
+    assert_eq!(r3_first["body"]["thread"], THREAD);
+    assert_eq!(r3_first["observedAt"], first_record.body()["read_at"]);
+    let second = run_a.lock().unwrap().check_native_supply().unwrap()["check"].clone();
+    let second_ref = second["reference"].as_str().unwrap().to_owned();
+    assert_ne!(second_ref, first_ref, "a reread is a new check record");
+    let second_record = records.resolve(&second_ref).unwrap();
+    assert_ne!(second_record.body()["check"], first_record.body()["check"], "a reread is a new check identity");
+    assert_eq!(second_record.envelope()["basis_records"], json!([text_ref]));
+    assert_eq!(records.resolve(&first_ref).unwrap().bytes(), first_bytes.as_slice(), "the first check is unchanged");
+    assert_eq!(disk.wr_files().len(), 4);
+    assert_eq!(disk.frames("thread/items/list").len(), 2, "one native read per check");
+    assert_eq!(disk.frames("turn/start").len(), 1, "checks never send");
+    assert_eq!(run_a.lock().unwrap().lifecycle, RunLifecycle::Open, "a reported finish ends nothing");
+    let log = disk.rs_for(&a);
+    assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance"]);
+    assert_eq!(log[1]["body"]["supplyCheckRecord"]["ref"], first_ref.as_str());
+    assert_eq!(log[2]["body"]["supplyCheckRecord"]["ref"], second_ref.as_str());
+    assert_log_order(&log);
+
+    // The Stop/Restart Codex question (codex_stop command body) lists the run in
+    // force; assessing sends nothing.
+    let asked = crate::codex_stop::assess(&one.home, &root, &one.generation, false).unwrap();
+    let in_force = asked.view()["runsInForce"].as_array().unwrap().clone();
+    assert_eq!(in_force.len(), 1);
+    assert_eq!(in_force[0]["run"], a.as_str());
+    assert_eq!(in_force[0]["conversation"], THREAD);
+    assert_eq!(in_force[0]["state"], "open");
+    assert_eq!(in_force[0]["workflow"]["name"], NAME);
+    assert!(crate::act_control::native_statement::codex_stop_statement(asked.view()).unwrap().text.contains("Workflow run in force: "));
+    assert!(disk.frames("turn/interrupt").is_empty(), "assessing sends nothing");
+
+    // ---- Step 6. End explicitly (workflow_end_run); the next ordinary turn carries the notice once.
+    run_a.lock().unwrap().end_run(None, None).unwrap();
+    let asked = crate::codex_stop::assess(&one.home, &root, &one.generation, false).unwrap();
+    assert_eq!(asked.view()["runsInForce"], json!([]), "an ended run is not in force");
+    assert_eq!(run_a.lock().unwrap().lifecycle, RunLifecycle::Ended);
+    let log = disk.rs_for(&a);
+    assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance", "run_ended"]);
+    assert_eq!(log[3]["body"], json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
+    assert_log_order(&log);
+    // NIR TC-2 / WR TX-5: any new turn carries the pending notice first. A turn
+    // refused before its frame is written leaves it pending: a plan mode send
+    // that Codex has not offered (conversation_send_text with a mode), and an
+    // attachment-bearing turn (submit_attachments) whose list is unavailable.
+    // A steer starts no turn and neither carries nor claims it.
+    let mode = send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).expect("notice pending");
+    assert!(!mode.written && mode.result.unwrap_err().contains("plan mode not offered"));
+    let no_selection: Mutex<Result<AttachmentSelectionSession, String>> = Mutex::new(Err("fixture: no attachment selection".into()));
+    let submit = |expected: Option<&str>| submit_attachments_with_pending_notice(&no_selection, &root, &one.host, Err("fixture: no custody".into()), "owner", 1, &[], &one.generation, THREAD, expected, "with files", crate::recovery::ExplicitAppProjectContext::unknown(), None);
+    assert_eq!(submit(None).unwrap_err(), "fixture: no custody");
+    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no custody", "a steer is not held by the notice");
+    assert_eq!(disk.frames("turn/start").len(), 1, "the refused sends wrote nothing");
+    assert!(disk.frames("turn/steer").is_empty());
+    assert!(run_a.lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"), "still pending");
+    // Continue as (continue_as_begin command body): its one visible summary
+    // request is the next new turn, so it carries the notice first, once.
+    let handoffs = Mutex::new(crate::conversation_roles::Handoffs::default());
+    let opened = crate::conversation_roles::continue_as_begin(&handoffs, &root, &one.home, &one.generation, THREAD, None).unwrap();
+    assert_eq!(opened["request"]["state"], "sent", "{opened}");
+    assert_eq!(opened["request"]["turnId"], "turn");
+    let starts = disk.frames("turn/start");
+    assert_eq!(starts.len(), 2);
+    assert_eq!(starts[1]["params"]["input"][1]["text"], crate::conversation_roles::handoff_request_text(None).as_str());
+    assert_eq!(run_a.lock().unwrap().view(&a)["endNotice"]["state"], "sent once with the next ordinary turn");
+    let notice_file = {
+        let mut now = disk.wr_files();
+        now.retain(|f| ![disk.wr_file(&selection_ref), disk.wr_file(&text_ref), disk.wr_file(&first_ref), disk.wr_file(&second_ref)].contains(f));
+        assert_eq!(now.len(), 1, "exactly one new WR record: the end notice");
+        now.remove(0)
+    };
+    let notice_ref = format!("wr-record:v1:{}", notice_file.strip_suffix(".json").unwrap());
+    let notice = records.resolve(&notice_ref).unwrap();
+    assert_eq!(notice.body()["purpose"], "run end notice");
+    assert_eq!(notice.body()["run"], a.as_str());
+    assert_eq!(notice.envelope()["basis_records"], json!([text_ref]));
+    assert_eq!(disk.wr_at_turn_start()[1].contains(&notice_file), true, "notice record durable at its turn/start");
+    let notice_text = starts[1]["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+    assert_eq!(notice_text, notice.body()["lines"]["end_line"].as_str().unwrap(), "the turn carries the published notice text");
+    assert_eq!(text_identity(&notice_text), notice.body()["text_identity"]);
+    assert!(notice_text.contains(&a));
+    assert_eq!(starts[1]["params"]["input"].as_array().unwrap().len(), 2);
+    assert!(send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).is_none(), "after the notice went, nothing waits for it");
+    assert_eq!(submit(None).unwrap_err(), "fixture: no custody");
+    conversation_send_text(&root, &one, "later").unwrap();
+    let starts = disk.frames("turn/start");
+    assert_eq!(starts.len(), 3);
+    assert_eq!(starts[2]["params"]["threadId"], THREAD);
+    let later = starts[2]["params"]["input"].as_array().unwrap();
+    assert_eq!(later.len(), 1, "a later ordinary turn carries no notice: {later:?}");
+    assert_eq!(later[0]["text"], "later");
+    let carrying = disk
+        .wire()
+        .iter()
+        .filter(|f| f["params"]["input"].as_array().is_some_and(|input| input.iter().any(|i| i["text"] == notice_text.as_str())))
+        .count();
+    assert_eq!(carrying, 1, "exactly one frame carries the end notice");
+    assert_eq!(disk.wr_files().len(), 5);
+    assert_eq!(disk.rs_for(&a).len(), 4, "ordinary turns write nothing to the run log");
+
+    // ---- Step 7. Reopen after loss of every in-memory session object.
+    let log_before = disk.rs_for(&a);
+    let wr_before: Vec<(String, Vec<u8>)> =
+        disk.wr_files().into_iter().map(|f| (f.clone(), std::fs::read(disk.wr_dir().join(&f)).unwrap())).collect();
+    drop((selection, run_text, first_record, second_record, notice, records));
+    drop(run_a);
+    drop(root);
+    drop(act);
+    one.lose();
+    // The App-kept draft base survives in the App data folder (WR §3): one
+    // draft_reference, recorded by the App, naming the registered revision (G-6).
+    let base_records: Vec<PathBuf> = std::fs::read_dir(disk.app_data.join(crate::workflow_workspace::registration::BASE_STORE))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .map(|e| e.path())
+        .collect();
+    assert_eq!(base_records.len(), 1, "{base_records:?}");
+    let base_record: Value = serde_json::from_slice(&std::fs::read(&base_records[0]).unwrap()).unwrap();
+    assert_eq!(base_record["record_kind"], "draft_reference");
+    assert_eq!(base_record["base_recorded_by"], "app");
+    assert_eq!(base_record["base"]["revision"], revision_one.as_str());
+    assert_eq!(base_record["state"], "registered, unchanged since");
+
+    let two = Process::start(&disk, "journey process 2 (after loss)");
+    assert_ne!(two.generation, generation_one, "a new process generation");
+    assert_eq!(two.generation["home"], generation_one["home"], "the same Codex home");
+    let root = root_session(&disk);
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let reopened = workflow_reopen(&root, &two, &project);
+    assert_eq!(reopened["limits"], json!([]), "{reopened}");
+    let reading = crate::records::supply::read_project_runs(&records, &[]);
+    assert!(reading.limits.is_empty(), "{:?}", reading.limits);
+    assert_eq!(reading.runs.len(), 1);
+    let ra = &reading.runs[0];
+    assert_eq!(ra.run, a);
+    assert_eq!(
+        ra.lifecycle,
+        crate::records::supply::RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "ended by the person".into() },
+        "the run reads ended, with its cause"
+    );
+    assert_eq!(ra.conversation.as_deref(), Some(THREAD));
+    assert_eq!(ra.workflow["revision"], revision_one.as_str());
+    assert_eq!(reopened["runs"][0]["run"], a.as_str());
+    assert_eq!(reopened["runs"][0]["detail"], json!({"stoppedBy":"the person","cause":"ended by the person"}));
+    // Every published record resolves, byte for byte, in its recorded order.
+    let mut references = records.list_references().unwrap();
+    references.sort();
+    let mut expected = vec![selection_ref.clone(), text_ref.clone(), first_ref.clone(), second_ref.clone(), notice_ref.clone()];
+    expected.sort();
+    assert_eq!(references, expected);
+    for (file, bytes) in &wr_before {
+        let reference = format!("wr-record:v1:{}", file.strip_suffix(".json").unwrap());
+        assert_eq!(records.resolve(&reference).unwrap().bytes(), bytes.as_slice(), "{reference} resolves unchanged");
+    }
+    let chain = [&selection_ref, &text_ref, &first_ref, &second_ref, &notice_ref];
+    let at: Vec<String> =
+        chain.iter().map(|r| records.resolve(r).unwrap().envelope()["observed_at"].as_str().unwrap().to_owned()).collect();
+    assert!(at.windows(2).all(|w| w[0] <= w[1]), "selection, run text, checks, notice in observation order: {at:?}");
+    assert_eq!(records.resolve(&text_ref).unwrap().envelope()["basis_records"], json!([selection_ref]));
+    for r in [&first_ref, &second_ref, &notice_ref] {
+        assert_eq!(records.resolve(r).unwrap().envelope()["basis_records"], json!([text_ref]));
+    }
+    let supply = crate::records::supply::read_project_supply(&records);
+    let supply_records = supply["records"].as_array().unwrap();
+    assert_eq!(supply_records.len(), 5);
+    assert!(supply_records.iter().all(|r| r["resolution"] == "resolved"), "{supply}");
+    for check in [&first_ref, &second_ref] {
+        let view = supply_records.iter().find(|r| r["reference"] == check.as_str()).unwrap();
+        assert_eq!(view["r3"][0]["standing"], "HistoricalCorrespondence", "{view}");
+    }
+    let log_after = disk.rs_for(&a);
+    assert_eq!(log_after, log_before, "the run log is read back unchanged");
+    assert_log_order(&log_after);
+    // Nothing is inferred as completed from the native turn status ("failed" at send).
+    assert!(disk.rs().iter().all(|e| !(e["kind"] == "run_ended" && e["body"]["cause"] == "completed")));
+    // No live run exists: none in the record, none in the fresh process, no hot authority recreated.
+    assert!(reading.possibly_live_in(THREAD).is_empty());
+    assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty());
+    assert!(
+        root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_one, &revision_one).is_err(),
+        "the lost process's hot registration is not recreated from files"
+    );
+    // A new start in that conversation is allowed because the run ended. The fresh
+    // process has no hot registration, so the person registers again in the SAME
+    // library (a refinement of the kept draft, new genuine A15) and selects that
+    // registered revision (J4 finding 1).
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    root.lock().unwrap().select_development_copy(None,disk.package.clone()).unwrap();
+    let (review_two, revision_two) = refine_register_and_select(
+        &root,
+        &two.home,
+        &project,
+        "project",
+        &project,
+        act.clone(),
+        &revision_one,
+        "\nRefined after relaunch (journey step 7).\n",
+    );
+    assert!(
+        root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_one, &revision_one).is_err(),
+        "re-registration does not recreate the lost process's registration"
+    );
+    // The selection is the new revision; re-select it after the negative check.
+    root.lock().unwrap().select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&two.home, THREAD), &review_two, &revision_two).unwrap();
+    let b = root
+        .lock()
+        .unwrap()
+        .prepare_run(two.home.clone(), &two.generation, THREAD, "second run".into(), Some(&project))
+        .expect("a new start is allowed: the recorded run ended");
+
+    // ---- Step 8. A second run left open; reopen reads it open and interrupted; it blocks a new start.
+    start_workflow_run(&root, &b).unwrap();
+    let starts = disk.frames("turn/start");
+    assert_eq!(starts.len(), 4);
+    let (b_selection, b_text) = {
+        let run = root.lock().unwrap().runs[&b].clone();
+        let run = run.lock().unwrap();
+        assert_eq!(run.lifecycle, RunLifecycle::Open);
+        assert_eq!(starts[3]["params"], run.prepared().turn_params("second run", &run.client_id).unwrap());
+        let view = run.view(&b);
+        (view["publication"]["selection"].as_str().unwrap().to_owned(), view["publication"]["runText"].as_str().unwrap().to_owned())
+    };
+    let seen = disk.wr_at_turn_start();
+    assert_eq!(seen.len(), 4);
+    assert!(seen[3].contains(&disk.wr_file(&b_selection)) && seen[3].contains(&disk.wr_file(&b_text)), "B's records durable at its turn/start");
+    let b_log = disk.rs_for(&b);
+    assert_eq!(kinds(&b_log), ["run_opened"]);
+    assert_eq!(b_log[0]["body"]["workflow"]["revision"], revision_two.as_str());
+    // Was "user" (library-2); the re-registration is now in the same project library.
+    assert_eq!(b_log[0]["body"]["workflow"]["origin"], "project");
+    assert_eq!(b_log[0]["body"]["conversationRef"], THREAD);
+    let b_follows = b_log[0]["body"].get("follows").cloned();
+    let wr_count = disk.wr_files().len();
+    drop(records);
+    drop(root);
+    drop(act);
+    two.lose();
+
+    let three = Process::start(&disk, "journey process 3 (after loss)");
+    let root = root_session(&disk);
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let reopened = workflow_reopen(&root, &three, &project);
+    let reading = crate::records::supply::read_project_runs(&records, &[]);
+    assert!(reading.limits.is_empty(), "{:?}", reading.limits);
+    let state = |run: &str| reading.runs.iter().find(|r| r.run == run).unwrap().clone();
+    assert_eq!(state(&b).lifecycle, crate::records::supply::RecordedLifecycle::OpenInterrupted, "open; interrupted");
+    assert_eq!(state(&b).conversation.as_deref(), Some(THREAD));
+    assert!(matches!(state(&a).lifecycle, crate::records::supply::RecordedLifecycle::Ended { .. }), "A stays ended");
+    let b_view = reopened["runs"].as_array().unwrap().iter().find(|r| r["run"] == b.as_str()).unwrap().clone();
+    assert_eq!(b_view["state"], "open; interrupted (no run_ended recorded)");
+    assert_eq!(disk.rs_for(&b).len(), 1, "the native turn status ('failed') ended nothing");
+    assert_eq!(reading.possibly_live_in(THREAD).iter().map(|r| r.run.as_str()).collect::<Vec<_>>(), [b.as_str()]);
+    assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty(), "no live process run is recreated");
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    root.lock().unwrap().select_development_copy(None,disk.package.clone()).unwrap();
+    // Step 8 re-registration also stays in the same library: a second refinement.
+    let (review_three, revision_three) = refine_register_and_select(
+        &root,
+        &three.home,
+        &project,
+        "project",
+        &project,
+        act.clone(),
+        &revision_two,
+        "\nRefined again after the second relaunch (journey step 8).\n",
+    );
+    let (turns, wr) = (disk.frames("turn/start").len(), disk.wr_files().len());
+    assert_eq!(wr, wr_count);
+    let blocked = root.lock().unwrap().prepare_run(three.home.clone(), &three.generation, THREAD, "third".into(), Some(&project));
+    assert!(blocked.as_ref().is_err_and(|e| e.contains(&b)), "the interrupted run blocks a new start: {blocked:?}");
+    assert!(root.lock().unwrap().runs.is_empty());
+    assert_eq!((disk.frames("turn/start").len(), disk.wr_files().len()), (turns, wr), "nothing prepared, recorded or sent");
+    // workflow_end_recorded: the person's plain end of the interrupted run.
+    let ended = root.lock().unwrap().end_recorded_run(&project, &b, THREAD, false, None).unwrap();
+    assert_eq!(ended["cause"], "ended by the person");
+    let b_log = disk.rs_for(&b);
+    assert_eq!(kinds(&b_log), ["run_opened", "run_ended"]);
+    assert_eq!(b_log[1]["body"], json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
+    assert_log_order(&b_log);
+    let reading = crate::records::supply::read_project_runs(&records, &[]);
+    assert!(reading.possibly_live_in(THREAD).is_empty());
+    root.lock()
+        .unwrap()
+        .prepare_run(three.home.clone(), &three.generation, THREAD, "third".into(), Some(&project))
+        .expect("after the person's end a new start is allowed");
+    assert_eq!(disk.frames("turn/start").len(), turns, "preparing sends nothing");
+    // Recorded observation (not a contract assertion): a successor prepared in a fresh
+    // process after the predecessor ended carries no `follows` (the chain is hot-only).
+    assert_eq!(b_follows, None);
+    drop(records);
+    drop(root);
+    drop(act);
+    three.lose();
+
+    // ---- Step 9 (J8; WR §4.8, WR-VC-16). After a relaunch the unchanged registered
+    // draft (revision three's bytes, no edit) reviews as DS-8. A new genuine A15
+    // re-confirms revision three: no new revision, sequence, store or copy. It is
+    // then selectable in this process only and runs again in the same library.
+    let four = Process::start(&disk, "journey process 4 (after loss)");
+    let root = root_session(&disk);
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    let ledger_path = project.join(".chirality/workflow-registry.jsonl");
+    let read_ledger = || -> Vec<Value> {
+        std::fs::read_to_string(&ledger_path).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
+    };
+    let ledger_before = read_ledger();
+    let stores = || std::fs::read_dir(project.join(".chirality/workflow-revisions").join(NAME)).unwrap().count();
+    let stores_before = stores();
+    let copy = project.join(".chirality/workflows").join(NAME);
+    let copy_before = crate::workflow_workspace::Snapshot::capture(&copy).unwrap();
+    let draft_before = crate::workflow_workspace::Snapshot::capture(&project.join(".chirality/workflow-drafts").join(NAME)).unwrap();
+    assert_eq!(draft_before.revision(), revision_three, "the draft is unchanged since step 8");
+    let reference = {
+        let mut r = root.lock().unwrap();
+        r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
+        // Not selectable cold (RC-2, SEAL-2 deferred).
+        let cold = r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&four.home, THREAD), &review_three, &revision_three).unwrap_err();
+        assert!(cold.contains("re-confirm to use in this App session"), "{cold}");
+        r.begin_review(four.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
+            .expect("DS-8 after relaunch, with no edit");
+        let reference = r.active_review.clone().unwrap();
+        let presentation = r.reviews[&reference].lock().unwrap().status["presentation"].clone();
+        let entry = &presentation["entries"][0];
+        assert_eq!(entry["disposition"], "re-confirmation", "{entry}");
+        assert_eq!(entry["identity"]["revision"], revision_three.as_str());
+        assert_eq!(entry["reconfirmation"]["sequence"], 3);
+        assert!(entry["reconfirmation"]["statement"].as_str().unwrap().ends_with("This registers no new revision."));
+        // The offer's source: the re-confirmation descriptor (WR §4.8 RC-4). The
+        // rendered native statement is J6's and is not asserted here.
+        let descriptor = {
+            let review = r.reviews[&reference].lock().unwrap();
+            let view = review.review.as_ref().unwrap().current().unwrap();
+            view.descriptor().clone()
+        };
+        assert_eq!(descriptor["wording"], "re-confirm workflow revision for use");
+        assert_eq!(descriptor["disposition"], "re-confirmation");
+        assert_eq!(descriptor["purpose"], "make it available again in this App session from the project library");
+        assert_eq!(descriptor["subject"]["revision"], revision_three.as_str());
+        assert_eq!(descriptor["reconfirms"]["sequence"], 3);
+        // J6 integration (WR §4.8 / SQ-X (f)): the DS-8 descriptor this path composed
+        // selects J6's re-confirmation statement and its act label.
+        let (statement, act_label) = confirm_with_double(&mut r, &reference);
+        assert_eq!(act_label, "Re-confirm", "J6's re-confirm act label");
+        assert!(statement.starts_with("re-confirm workflow revision for use (A15)"), "{statement}");
+        assert!(
+            statement.contains("for use in this App session. This registers no new revision."),
+            "{statement}"
+        );
+        assert!(statement.contains(&format!("Re-confirm revision {} of project:{NAME}", &revision_three[..12])), "{statement}");
+        assert!(!statement.contains("Registering makes"), "{statement}");
+        reference
+    };
+    {
+        let r = root.lock().unwrap();
+        let review = r.reviews[&reference].lock().unwrap();
+        assert_eq!(review.status["entries"][0]["state"], "re-confirmed", "{}", review.status);
+        assert_eq!(review.status["entries"][0]["newRevision"], false);
+        assert_eq!(review.registered.len(), 1);
+        assert_eq!(review.registered[&revision_three].identity().revision, revision_three);
+    }
+    let ledger_after = read_ledger();
+    assert_eq!(ledger_after.len(), ledger_before.len() + 1, "one ledger line");
+    let line = ledger_after.last().unwrap();
+    let registered_three = ledger_before.iter().find(|l| l["outcome"] == "registered" && l["identity"]["revision"] == revision_three.as_str()).unwrap();
+    assert_eq!(line["outcome"], "re-confirmed");
+    assert_eq!(line["disposition"], "re-confirmation");
+    assert_eq!(line["identity"], registered_three["identity"]);
+    assert_eq!(line["sequence"], registered_three["sequence"]);
+    assert_eq!(line["reconfirms"]["ledger_seq"], registered_three["ledger_seq"]);
+    assert_ne!(line["act"], registered_three["act"], "a new act");
+    let (acts, limits) = crate::records::read_log(&crate::storage::library_log(&project));
+    assert!(limits.is_empty(), "{limits:?}");
+    let new_act = acts.iter().find(|e| e["recordId"] == line["act"]["record_id"]).expect("the ledger cites the new A15");
+    assert_eq!(new_act["body"]["purpose"], "make it available again in this App session from the project library");
+    assert_eq!(stores(), stores_before, "no new store folder");
+    assert_eq!(crate::workflow_workspace::Snapshot::capture(&copy).unwrap().files(), copy_before.files(), "no copy written");
+    {
+        let mut r = root.lock().unwrap();
+        let selected = r.select_hot_registered_copy(&crate::workflow_selection::Chat::in_home(&four.home, THREAD), &reference, &revision_three).unwrap();
+        assert_eq!(selected["choice"]["standing"], "registered revision");
+        assert_eq!(selected["choice"]["runnable"], true);
+        assert_eq!(selected["choice"]["identity"]["revision"], revision_three.as_str());
+        // WR-VC-17: in this process identical bytes are DS-4 ("select it instead").
+        let again = r.begin_review(four.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false);
+        assert!(again.as_ref().is_err_and(|e| e.contains("DS-4") && e.contains("select it instead")), "{again:?}");
+    }
+    let turns = disk.frames("turn/start").len();
+    let c = root
+        .lock()
+        .unwrap()
+        .prepare_run(four.home.clone(), &four.generation, THREAD, "run again".into(), Some(&project))
+        .expect("the re-confirmed revision runs again in the same library");
+    start_workflow_run(&root, &c).unwrap();
+    assert_eq!(disk.frames("turn/start").len(), turns + 1);
+    let c_log = disk.rs_for(&c);
+    assert_eq!(kinds(&c_log), ["run_opened"]);
+    assert_eq!(c_log[0]["body"]["workflow"]["revision"], revision_three.as_str());
+    assert_eq!(c_log[0]["body"]["workflow"]["origin"], "project");
+    assert_eq!(c_log[0]["body"]["conversationRef"], THREAD);
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let c_selection = {
+        let run = root.lock().unwrap().runs[&c].clone();
+        let run = run.lock().unwrap();
+        run.view(&c)["publication"]["selection"].as_str().unwrap().to_owned()
+    };
+    let selection = records.resolve(&c_selection).unwrap();
+    assert_eq!(selection.body()["identity"]["revision"], revision_three.as_str());
+    assert_eq!(selection.body()["standing"], "registered");
+    root.lock().unwrap().runs[&c].clone().lock().unwrap().end_run(None, None).unwrap();
+    drop(selection);
+    drop(records);
+    drop(root);
+    drop(four);
+}
+
+/// `workflow_register_native` through the act-control double for the review
+/// `begin_review` just opened, without selecting. Returns the registered revision.
+fn register_only(r: &mut WorkflowRootSession) -> String {
+    let reference = r.active_review.clone().unwrap();
+    confirm_with_double(r, &reference);
+    let review = r.reviews[&reference].clone();
+    let review = review.lock().unwrap();
+    assert_eq!(review.status["entries"][0]["state"], "registered", "{}", review.status);
+    review.registered.values().next().unwrap().identity().revision.clone()
+}
+
+/// WR §4.6 LS-1 / LS-5 "Select", SL-1…SL-5, §5.4 (PRD V4-REP-01 "save a
+/// workflow, reuse it"): a revision this process registered is selected from
+/// the library list (`workflow_select_listed`), resolved from the revision
+/// store; a draft is refused with its standing; a newer registered revision is
+/// shown beside the selection and changes nothing; following it
+/// (`workflow_follow_newer_revision`) is a new selection whose record cites the
+/// one it replaces, and the earlier selection record is left as written.
+#[test]
+fn workflow_reselection_select_from_list_newer_revision_and_follow() {
+    let disk = Disk::new();
+    let project = disk.project.clone();
+    let one = Process::start(&disk, "reselection process");
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    let root = root_session(&disk);
+    let store = |revision: &str| {
+        project.join(".chirality/workflow-revisions").join(NAME).join(crate::storage::key(revision)).join(NAME)
+    };
+    let revision_one = {
+        let mut r = root.lock().unwrap();
+        r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
+        r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
+        r.create_selected_draft(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),NAME).unwrap();
+        // SL-5: a draft is refused for selection with its standing and Review to register.
+        let draft = crate::workflow_workspace::Snapshot::capture(&project.join(".chirality/workflow-drafts").join(NAME)).unwrap();
+        let project_library = r.active_library.clone().unwrap();
+        let refused = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, draft.revision()).unwrap_err();
+        assert!(refused.contains("draft — not registered") && refused.contains("Review to register"), "{refused}");
+        // Review finding 3: another content identity of a name with a draft is not called the draft.
+        let unknown = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &"f".repeat(64)).unwrap_err();
+        assert!(!unknown.contains("draft") && unknown.contains("not registered in this slot"), "{unknown}");
+        assert_eq!(r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null)["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
+        r.begin_review(one.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false).unwrap();
+        let revision_one = register_only(&mut r);
+        let library = r.snapshot()["libraries"][0].clone();
+        let row = &library["registered"][0];
+        assert_eq!((row["selectable"].clone(), row["offered"].clone()), (json!(true), json!("Select; Refine (RF-1)")), "{library}");
+        // Review finding 1: a press for the project list that arrives after another
+        // library became active selects nothing in either library.
+        let user_root = disk.base.join("user-library");
+        std::fs::create_dir(&user_root).unwrap();
+        r.open_library(user_root, "user", Some(&project), act.clone()).unwrap();
+        assert_ne!(r.active_library.as_deref(), Some(project_library.as_str()));
+        let moved = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap_err();
+        assert!(moved.contains("active library changed"), "{moved}");
+        assert_eq!(r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null)["standing"], crate::workflow_workspace::development_catalog::STANDING, "nothing selected");
+        r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
+        assert_eq!(r.active_library.as_deref(), Some(project_library.as_str()), "reopening re-activates the same library");
+        // SL-4: the selection resolves from the revision store, not the published copy.
+        let published = project.join(".chirality/workflows").join(NAME).join("WORKFLOW.md");
+        let kept = std::fs::read(&published).unwrap();
+        std::fs::write(&published, b"edited outside registration").unwrap();
+        let selected = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap();
+        std::fs::write(&published, kept).unwrap();
+        let selection = &selected["choice"];
+        assert_eq!(selection["standing"], "registered revision");
+        assert_eq!(selection["runnable"], true);
+        assert_eq!(selection["identity"]["revision"], revision_one.as_str());
+        assert_eq!(r.selected.values().next().unwrap().package, store(&revision_one), "resolved from the revision store");
+        assert!(selection["replaces"].is_null(), "a development candidate is not cited: {selection}");
+        assert!(selection["newerRevision"].is_null(), "{selection}");
+        revision_one
+    };
+    let first_selection = root.lock().unwrap().selected.values().next().unwrap().reference.clone();
+
+    // A run of revision 1 records its selection (the record needs the run's conversation).
+    let a = root.lock().unwrap().prepare_run(one.home.clone(), &one.generation, THREAD, "first".into(), Some(&project)).unwrap();
+    start_workflow_run(&root, &a).unwrap();
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let a_selection = root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["publication"]["selection"].as_str().unwrap().to_owned();
+    let a_record = records.resolve(&a_selection).unwrap();
+    let a_bytes = std::fs::read(disk.wr_dir().join(disk.wr_file(&a_selection))).unwrap();
+    assert_eq!(a_record.body()["selection_id"], first_selection.as_str());
+    assert_eq!(a_record.body()["identity"]["revision"], revision_one.as_str());
+    assert!(a_record.body().get("replaces").is_none(), "{}", a_record.body());
+    root.lock().unwrap().runs[&a].clone().lock().unwrap().end_run(None, None).unwrap();
+
+    // Revision 2 is registered while revision 1 is selected.
+    let revision_two = {
+        let mut r = root.lock().unwrap();
+        let workflow = project.join(".chirality/workflow-drafts").join(NAME).join("WORKFLOW.md");
+        let mut text = std::fs::read_to_string(&workflow).unwrap();
+        text.push_str("\nRevision two (reselection).\n");
+        std::fs::write(&workflow, text).unwrap();
+        r.begin_review(one.home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false).unwrap();
+        let revision_two = register_only(&mut r);
+        assert_ne!(revision_two, revision_one);
+        // SL-2 / SL-4: the notice is shown; the selection is unchanged.
+        let selection = r.selected.values().next().map(|s|r.selection_view(s)).unwrap_or(Value::Null).clone();
+        assert_eq!(selection["reference"], first_selection.as_str());
+        assert_eq!(selection["identity"]["revision"], revision_one.as_str());
+        let newer = &selection["newerRevision"];
+        assert_eq!(newer["notice"], "newer revision 2 available", "{selection}");
+        assert_eq!(newer["sequence"], 2);
+        assert_eq!(newer["revision"], revision_two.as_str());
+        assert_eq!(newer["selectable"], true);
+        assert_eq!(newer["offered"], "Select revision 2");
+        // A stale notice selects nothing.
+        assert!(r.follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),"workflow-selection:other", &revision_two).is_err());
+        assert!(r.follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&first_selection, &revision_one).unwrap_err().contains("changed since the notice"));
+        assert_eq!(r.selected.values().next().unwrap().reference, first_selection, "still the first selection");
+        revision_two
+    };
+
+    // Following it: a new selection that cites the one it replaces.
+    let followed = root.lock().unwrap().follow_newer_revision(&crate::workflow_selection::Chat::in_home(&one.home, THREAD), &first_selection, &revision_two).unwrap();
+    let selection = &followed["choice"];
+    assert_eq!(selection["identity"]["revision"], revision_two.as_str());
+    assert_eq!(selection["replaces"], first_selection.as_str());
+    assert_ne!(selection["reference"], first_selection.as_str());
+    assert!(selection["newerRevision"].is_null(), "{selection}");
+    assert_eq!(root.lock().unwrap().selected.values().next().unwrap().package, store(&revision_two));
+    let b = root.lock().unwrap().prepare_run(one.home.clone(), &one.generation, THREAD, "second".into(), Some(&project)).unwrap();
+    start_workflow_run(&root, &b).unwrap();
+    let b_selection = root.lock().unwrap().runs[&b].lock().unwrap().view(&b)["publication"]["selection"].as_str().unwrap().to_owned();
+    // resolve() validates the record against the WR schema (selection_record).
+    let b_record = records.resolve(&b_selection).unwrap();
+    assert_eq!(b_record.body()["selection_id"], selection["reference"]);
+    assert_eq!(b_record.body()["identity"]["revision"], revision_two.as_str());
+    assert_eq!(b_record.body()["replaces"], first_selection.as_str(), "cites the replaced selection, whose record exists");
+    assert_eq!(b_record.body()["how"], "explicit");
+    let replaced = records.resolve(&a_selection).unwrap();
+    assert_eq!(replaced.body(), a_record.body(), "the replaced selection's record is unchanged");
+    assert_eq!(std::fs::read(disk.wr_dir().join(disk.wr_file(&a_selection))).unwrap(), a_bytes, "byte for byte");
+    let log = disk.rs_for(&b);
+    assert_eq!(log[0]["body"]["workflow"]["revision"], revision_two.as_str());
+    root.lock().unwrap().runs[&b].clone().lock().unwrap().end_run(None, None).unwrap();
+    drop(records);
+    // §5.4: selecting another tuple from the list cites the registered selection
+    // it replaces, also across a candidate inspected in between (never cited).
+    {
+        let mut r = root.lock().unwrap();
+        let second_selection = r.selected.values().next().unwrap().reference.clone();
+        r.select_development_copy(Some(&crate::workflow_selection::Chat::in_home(&one.home, THREAD)),disk.package.clone()).unwrap();
+        let project_library = r.active_library.clone().unwrap();
+        let back = r.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&project_library, NAME, &revision_one).unwrap();
+        assert_eq!(back["choice"]["identity"]["revision"], revision_one.as_str());
+        assert_eq!(back["choice"]["replaces"], second_selection.as_str());
+        assert_eq!(back["choice"]["newerRevision"]["notice"], "newer revision 2 available");
+    }
+
+    // Another App process: the revisions are registered but held by no result
+    // here (RC-2). The list offers no Select, and selecting is refused with
+    // the re-confirmation route.
+    let cold = root_session(&disk);
+    let mut c = cold.lock().unwrap();
+    c.open_library(project.clone(), "project", Some(&project), Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))))).unwrap();
+    let rows = c.snapshot()["libraries"][0]["registered"].clone();
+    assert!(rows.as_array().unwrap().iter().all(|row| row["selectable"] == false), "{rows}");
+    let cold_library = c.active_library.clone().unwrap();
+    let refused = c.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&cold_library, NAME, &revision_two).unwrap_err();
+    assert!(refused.contains("re-confirm to use in this App session") && refused.contains("Refine (RF-1)"), "{refused}");
+    assert!(c.snapshot()["selection"].is_null());
+    drop(c);
+    drop(cold);
+    drop(root);
+    drop(one);
+}
+
+/// V11 J5-2: `workflow_create_draft` (Root `create_selected_draft`) must not
+/// leave a draft whose App-kept base was not recorded: such a draft could only
+/// ever be DS-3, and Refine refuses to overwrite it (D-1), a dead end. A failed
+/// base write removes the App's own just-written copy and says so; once the App
+/// data folder is writable again, Refine works.
+#[test]
+fn v11_j5_2_draft_copy_is_not_left_without_its_app_kept_base() {
+    let disk = Disk::new();
+    let project = disk.project.clone();
+    // A file where the App data `runtime/` folder should be: the base write fails.
+    let blocker = disk.app_data.join("runtime");
+    std::fs::write(&blocker, b"not a directory").unwrap();
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    let root = root_session(&disk);
+    let mut r = root.lock().unwrap();
+    r.open_library(project.clone(), "project", Some(&project), act).unwrap();
+    r.select_development_copy(None,disk.package.clone()).unwrap();
+    let draft = project.join(".chirality/workflow-drafts").join(NAME);
+    let failed = r.create_selected_draft(None,NAME).unwrap_err();
+    assert!(failed.contains("App-kept base not recorded") && failed.contains("copy was removed"), "{failed}");
+    assert!(!draft.exists(), "no draft is left without its App-kept base");
+    // The way out: with the App data folder writable again, Refine succeeds and records the base.
+    std::fs::remove_file(&blocker).unwrap();
+    r.create_selected_draft(None,NAME).unwrap();
+    assert!(draft.join("WORKFLOW.md").is_file());
+    let records = std::fs::read_dir(disk.app_data.join(crate::workflow_workspace::registration::BASE_STORE))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .count();
+    assert_eq!(records, 1);
+}

@@ -1,0 +1,215 @@
+[
+ {
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-RX-01",
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": true,
+  "subject": {
+   "kind": "candidate",
+   "identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "evidence_set": [
+   "EXP-EX-04",
+   "EXP-EX-05"
+  ],
+  "authors": [
+   {
+    "identity": "ILLUSTRATIVE examination owner session",
+    "kind": "agent",
+    "model_identity": {
+     "model": "claude-opus-5-5",
+     "family": "Claude",
+     "exposed_by": "session metadata"
+    }
+   }
+  ],
+  "reviewer": {
+   "identity": "ILLUSTRATIVE reviewer session",
+   "kind": "agent",
+   "model_identity": {
+    "model": "claude-opus-5-5",
+    "family": "Claude",
+    "exposed_by": "session metadata"
+   },
+   "separation": "separate_session_no_authoring"
+  },
+  "preference": {
+   "preferred": "codex",
+   "used": "claude_fallback",
+   "fallback_reason": "No Codex reviewer session was available to this examination (ILLUSTRATIVE); fallback per V4-OPS-34 and R23-12"
+  },
+  "family_claim": "same_family",
+  "findings": [
+   {
+    "id": "F-1",
+    "claim": "EXP-EX-05 part 2 blocked",
+    "evidence": "no card capture",
+    "consequence": "V4-EXM-11 cannot pass",
+    "disposition": {
+     "state": "open"
+    }
+   }
+  ],
+  "standing": "findings_open",
+  "date": "2026-10-03"
+ },
+ {
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-RX-02",
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": true,
+  "subject": {
+   "kind": "candidate",
+   "identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "evidence_set": [
+   "EXP-EX-04",
+   "EXP-EX-05"
+  ],
+  "authors": [
+   {
+    "identity": "ILLUSTRATIVE examination owner session",
+    "kind": "agent",
+    "model_identity": {
+     "model": "claude-opus-5-5",
+     "family": "Claude",
+     "exposed_by": "session metadata"
+    }
+   }
+  ],
+  "reviewer": {
+   "identity": "ILLUSTRATIVE Codex reviewer",
+   "kind": "agent",
+   "model_identity": {
+    "model": "ILLUSTRATIVE-gpt",
+    "family": "GPT",
+    "exposed_by": "Codex thread model report"
+   },
+   "separation": "separate_session_no_authoring"
+  },
+  "preference": {
+   "preferred": "codex",
+   "used": "codex"
+  },
+  "family_claim": "different_family_observed",
+  "findings": [
+   {
+    "id": "F-1",
+    "claim": "c",
+    "evidence": "e",
+    "consequence": "q",
+    "disposition": {
+     "state": "repaired",
+     "by": "owner",
+     "confirmed_by": "ILLUSTRATIVE Codex reviewer",
+     "repair_ref": "EXP-EX-05 rerun"
+    }
+   }
+  ],
+  "standing": "findings_dispositioned",
+  "date": "2026-10-03"
+ },
+ {
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-RX-03",
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": false,
+  "subject": {
+   "kind": "candidate",
+   "identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "evidence_set": [
+   "EXP-EX-04",
+   "EXP-EX-05"
+  ],
+  "authors": [
+   {
+    "identity": "ILLUSTRATIVE examination owner session",
+    "kind": "agent",
+    "model_identity": {
+     "model": "claude-opus-5-5",
+     "family": "Claude",
+     "exposed_by": "session metadata"
+    }
+   }
+  ],
+  "reviewer": {
+   "identity": "ILLUSTRATIVE reviewer session",
+   "kind": "agent",
+   "model_identity": {
+    "model": "claude-opus-5-5",
+    "family": "Claude",
+    "exposed_by": "session metadata"
+   },
+   "separation": "not_separate"
+  },
+  "preference": {
+   "preferred": "codex",
+   "used": "claude_fallback",
+   "fallback_reason": "No Codex reviewer session was available to this examination (ILLUSTRATIVE); fallback per V4-OPS-34 and R23-12"
+  },
+  "family_claim": "same_family",
+  "findings": [
+   {
+    "id": "F-1",
+    "claim": "EXP-EX-05 part 2 blocked",
+    "evidence": "no card capture",
+    "consequence": "V4-EXM-11 cannot pass",
+    "disposition": {
+     "state": "open"
+    }
+   }
+  ],
+  "standing": "findings_open",
+  "date": "2026-10-03"
+ },
+ {
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-RX-04",
+  "review_kind": "additional_person",
+  "reported_as_independent": true,
+  "subject": {
+   "kind": "candidate",
+   "identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "evidence_set": [
+   "EXP-EX-04",
+   "EXP-EX-05"
+  ],
+  "authors": [
+   {
+    "identity": "ILLUSTRATIVE examination owner session",
+    "kind": "agent",
+    "model_identity": {
+     "model": "claude-opus-5-5",
+     "family": "Claude",
+     "exposed_by": "session metadata"
+    }
+   }
+  ],
+  "reviewer": {
+   "identity": "ILLUSTRATIVE the owner",
+   "kind": "person",
+   "model_identity": "not_applicable",
+   "separation": "separate_person"
+  },
+  "family_claim": "not_established",
+  "findings": [
+   {
+    "id": "F-1",
+    "claim": "EXP-EX-05 part 2 blocked",
+    "evidence": "no card capture",
+    "consequence": "V4-EXM-11 cannot pass",
+    "disposition": {
+     "state": "open"
+    }
+   }
+  ],
+  "standing": "findings_open",
+  "date": "2026-10-03"
+ }
+]

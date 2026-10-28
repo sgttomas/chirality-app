@@ -1,0 +1,9 @@
+{
+  "standing": "constructed verification material; not engineering advice or observed output",
+  "task": "Plan and revise an inventory count for a fictional test workshop; use real tools to read the supplied rows and write a count summary during the authorized future journey.",
+  "initial_inputs": [{"bin":"invented-A","items":4},{"bin":"invented-B","items":7}],
+  "reuse_inputs": [{"bin":"invented-C","items":3},{"bin":"invented-D","items":8}],
+  "revision_2_inputs": [{"bin":"invented-E","items":2},{"bin":"invented-F","items":6}],
+  "revision_3_inputs": [{"bin":"invented-G","items":5},{"bin":"invented-H","items":9}],
+  "staging": "Start the future journey in an empty scratch project; these are input values to supply, not files preinstalled there. Future workflow draft and same-name user-library collision are created/reviewed under their own authorized method, then their exact bytes are bound in the pre-run declaration. This helper creates or registers no workflow."
+}

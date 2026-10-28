@@ -1,0 +1,7 @@
+{
+  "format": "pre-run-form-pins.v1",
+  "sources": {
+    "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.py": "7a464ecbe5e9f4ab3af3e4bb0788c1d04378c5de8d6ccccf59cab95abd263ca3",
+    "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.pins.json": "e34407f4be1f061878842c5153d533551eca1d343ad85c01f900dbc00e7a3360"
+  }
+}

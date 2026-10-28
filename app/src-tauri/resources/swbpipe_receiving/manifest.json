@@ -1,0 +1,14 @@
+[
+  {
+    "file": "swbpipe-corpus-mapping.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03/DEL-03-02/Design/swbpipe-corpus-mapping.json",
+    "sha256": "c347df97063283126acb0e508d892f5d1fb864b99765a4164c51fd5e2d2d4446",
+    "kind": "corpus_mapping"
+  },
+  {
+    "file": "swbpipe-profile-documents.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03/DEL-03-01/Design/swbpipe-profile-documents.json",
+    "sha256": "af7bb985f1b02e1ad8bddf98895073cd5d3d4f3277d335f86e8c3a26cfa58f58",
+    "kind": "profile_documents"
+  }
+]

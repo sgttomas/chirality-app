@@ -1,0 +1,533 @@
+{
+  "account_kind": "xt_work_account",
+  "format": "proposed-0.1",
+  "operation": {
+    "operation_identity": "OP-C9",
+    "operation_version": "v1",
+    "edition_addition_event": {
+      "from_edition": "e1",
+      "to_edition": "e2",
+      "reporter": "host",
+      "observed_at": "t0002"
+    }
+  },
+  "evidence_label": "test_double",
+  "subject_of_run": "SH-1 (C-v0.8 §10.8), rehearsal TR-01",
+  "date": "2026-09-30",
+  "rows": [
+    {
+      "surface": "H",
+      "element": "entry_discovery",
+      "c8_row": "Entry discovery",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "no",
+      "effort_hours": 3
+    },
+    {
+      "surface": "H",
+      "element": "exposure",
+      "c8_row": "Exposure per surface",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "input_schema",
+      "c8_row": "Input schema / argument checking",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "availability_and_reason",
+      "c8_row": "Availability + reason",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "effects_and_resulting_objects",
+      "c8_row": "Effects / affected objects / resulting objects",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "result_and_standing",
+      "c8_row": "Result content + standing",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "errors",
+      "c8_row": "Errors",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "class_element",
+      "c8_row": "Class element",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "constraint_receipt",
+      "c8_row": "Governing checkpoint constraint",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "read_basis",
+      "c8_row": "Read basis, subject content identities, method designation",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "proposal_views",
+      "c8_row": "Proposal views",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "H",
+      "element": "catalog_level_interface",
+      "c8_row": "Catalog-level interface",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "entry_discovery",
+      "c8_row": "Entry discovery",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "exposure",
+      "c8_row": "Exposure per surface",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "input_schema",
+      "c8_row": "Input schema / argument checking",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "availability_and_reason",
+      "c8_row": "Availability + reason",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "effects_and_resulting_objects",
+      "c8_row": "Effects / affected objects / resulting objects",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "result_and_standing",
+      "c8_row": "Result content + standing",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "errors",
+      "c8_row": "Errors",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "class_element",
+      "c8_row": "Class element",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "constraint_receipt",
+      "c8_row": "Governing checkpoint constraint",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "read_basis",
+      "c8_row": "Read basis, subject content identities, method designation",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "proposal_views",
+      "c8_row": "Proposal views",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "E",
+      "element": "catalog_level_interface",
+      "c8_row": "Catalog-level interface",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "SH-1 has no H or E surface"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "X",
+      "element": "entry_discovery",
+      "c8_row": "Entry discovery",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'operation_identity'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "exposure",
+      "c8_row": "Exposure per surface",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "not exercised by the TR-01 rehearsal"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "X",
+      "element": "input_schema",
+      "c8_row": "Input schema / argument checking",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'input'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "availability_and_reason",
+      "c8_row": "Availability + reason",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'availability'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "effects_and_resulting_objects",
+      "c8_row": "Effects / affected objects / resulting objects",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'effects'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "result_and_standing",
+      "c8_row": "Result content + standing",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'result'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "errors",
+      "c8_row": "Errors",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'errors'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "class_element",
+      "c8_row": "Class element",
+      "contributor": "SH-1's own publish step (the double renders entries from its edition)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 catalog entry OP-C9 'class'"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "constraint_receipt",
+      "c8_row": "Governing checkpoint constraint",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "not exercised by the TR-01 rehearsal"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "X",
+      "element": "read_basis",
+      "c8_row": "Read basis, subject content identities, method designation",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "not exercised by the TR-01 rehearsal"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "X",
+      "element": "proposal_views",
+      "c8_row": "Proposal views",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "not exercised by the TR-01 rehearsal"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "X",
+      "element": "catalog_level_interface",
+      "c8_row": "Catalog-level interface",
+      "contributor": "SH-1's own publish step",
+      "evidence": {
+        "link": "B-E1/V-ED1-2 (edition event)"
+      },
+      "limits": "test-double; says nothing about any host",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "X",
+      "element": "native_mapping",
+      "c8_row": "Entry discovery",
+      "contributor": "SH-1 (host-supplied mapping in its tool list)",
+      "evidence": {
+        "link": "B-E1/V-ED1-3 tools/list"
+      },
+      "limits": "test-double; says nothing about any host or the App",
+      "production_route_before": "generated",
+      "change_made": "generated_automatically",
+      "other_changes_required": "no"
+    },
+    {
+      "surface": "E",
+      "element": "loop_tool_offering",
+      "c8_row": "none (receiving side)",
+      "contributor": "not observed",
+      "evidence": {
+        "not_observed": "no E surface on SH-1"
+      },
+      "limits": "test-double; says nothing about any host or the App",
+      "production_route_before": "not_observed",
+      "change_made": "not_observed",
+      "other_changes_required": "unknown"
+    },
+    {
+      "surface": "App-X",
+      "element": "app_receiving_configuration",
+      "c8_row": "none (receiving side)",
+      "contributor": "ADAPTER mapper (App-side double), unchanged",
+      "evidence": {
+        "link": "B-E1/V-ED1-4 dispatch record names OP-C9 v1"
+      },
+      "limits": "test-double; says nothing about any host or the App",
+      "production_route_before": "not_observed",
+      "change_made": "none",
+      "other_changes_required": "no"
+    }
+  ],
+  "disposition": {
+    "original_promise": "V4-PAR-05 / V4-HI-03: adding an operation makes it available to the person, the embedded agent and the external agent without separate work",
+    "status": "UNRESOLVED{OI-003}",
+    "while_unruled": "evidence only: no extension criterion and no pass are established; no weaker criterion is adopted",
+    "criterion_examined": "retain"
+  }
+}

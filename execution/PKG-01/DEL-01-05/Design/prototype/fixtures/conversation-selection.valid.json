@@ -1,0 +1,21 @@
+{
+  "description": "Valid (v0.2): K-3 offer shown, not applied; nothing selected; an ordinary message (no workflow selected) was refused with R18-2's ordinary-conversation wording.",
+  "instance": {
+    "schema": "chirality.access-selection/v0.2",
+    "conversation": "conv-0001",
+    "project": "example-project",
+    "state": "offer-shown",
+    "selection": null,
+    "offer": {
+      "entryId": "local-provider:example_lmstudio",
+      "model": "example-model",
+      "label": "your last choice for this project",
+      "applied": false
+    },
+    "refusal": {
+      "reason": "no-model-selected",
+      "runRequested": false,
+      "text": "not started — no model selected"
+    }
+  }
+}

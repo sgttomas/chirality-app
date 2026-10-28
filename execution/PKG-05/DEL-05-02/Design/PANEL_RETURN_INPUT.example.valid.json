@@ -1,0 +1,14 @@
+{
+  "input_identity": "in-0007",
+  "input_kind": "workflow selected for a run",
+  "actor_reference": "host-person:engineer-a",
+  "issued_at": "T3-",
+  "conversation_identity": "conv-fx-1",
+  "run_identity": null,
+  "content": {
+    "workflow_identity": {"kind": "workflow", "origin": "host", "source_root": "<fx-root>", "name": "supports-adjust", "revision": "<rev-3>", "derived_from": null},
+    "holding_library": null,
+    "continues_run": null
+  },
+  "loop_outcome": {"received": true, "refusal": null}
+}
