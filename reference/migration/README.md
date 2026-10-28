@@ -44,7 +44,10 @@ This is a dependency-comparison reference, not a product release.
 Verification before PR: exact import tree and ancestry, 30 frozen source hashes,
 102 examination tests, frontend build, eight Rust workflow-bundle tests, schema
 copy check and deliverable structure passed offline. Candidate identity, packaging
-and utility checks passed 47 tests with 22 connected-packaging skips because `DISTRIBUTION_STATIC_BIN` was unset. No live
+and utility checks passed 47 tests with 22 connected-packaging skips because `DISTRIBUTION_STATIC_BIN` was unset.
+After building that scanner offline and repairing the staging adapter, all 23
+static-packaging tests passed with no skips. The terminal export roundtrip passed
+on a clean committed candidate; both relocated Design self-tests also passed. No live
 examination, sign-in, supplier run or release was performed.
 
 The owner authorized migration Git operations through the existing administrator

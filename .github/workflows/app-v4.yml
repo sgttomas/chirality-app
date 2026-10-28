@@ -117,6 +117,11 @@ jobs:
             done
             node --test tests/desktop-setup.test.mjs
           fi
+      - name: Standalone terminal identity and connected static packaging
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib terminal_exchange_actual_selected_and_unselected_roundtrip -- --test-threads=1
+          cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
+          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
       - name: Workflow and fleet presentation
