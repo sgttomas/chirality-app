@@ -9,7 +9,8 @@ reads, subprocesses or scratch. The independent workflow
 `.github/workflows/windows-process-fixtures.yml` binds actual PR-head Git blobs,
 preserves raw bytes and retains bounded compiler/native traces. It does not
 enable the guest route or claim hostile-namespace/compiler parent-death safety.
-Native execution is pending parent publication; see
+All five cases passed on hosted native-x64 Windows at source `d26ecdae` in
+Actions run `40845322580`; see
 `execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md`
 for prerequisites, boundaries and artifact schema. Host-only checks:
 `python3 -B app/examination/windows_platform/test_hosted_fixture.py`.
@@ -54,15 +55,18 @@ result and ordering against death proof are logged without changing A's
 outcome. Unknown teardown logs `CLEANUP_UNKNOWN` and exits only the fixture
 controller/owned safety Job without manually closing a pending read HANDLE.
 No cancellation API or thread-ID lookup is used. Helpers retain sleep11s and
-timer12s. This setup has not been compiled or run natively; all three preserved
-Windows attempts remain FAILED, with B/C unreached.
+timer12s. This controlled setup compiled and passed all five hosted cases,
+including observed cleanup. The three earlier startup-stdout attempts remain
+FAILED, with B/C unreached in those earlier runs. The new pass neither explains
+their retention nor establishes production App/supplier behavior.
 
 ## Held guest profile
 
 **Guest access is held.** The former target is the owner's CAEPIPE VM and is
 permanently off-limits. All guest modes refuse before binding, contact or scratch.
-A separate owner-authorized build guest (at most 16 GiB RAM) must first be
-created and privately bound, with exclusive-window scheduling respected. No VM
+A separate owner-authorized build guest (16 GiB RAM) has been created and
+privately bound; it remains stopped without installation media or Windows.
+Future use must respect exclusive-window scheduling. No VM
 identifier is committed. A ready/unlocked legacy guest is not execution authority.
 The older observations below describe historical preparation, not a current route.
 

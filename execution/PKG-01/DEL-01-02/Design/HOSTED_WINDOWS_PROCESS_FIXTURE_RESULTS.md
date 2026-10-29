@@ -1,11 +1,11 @@
 # Supplemental hosted Windows process fixture lane
 
-Status: **THREE NATIVE ATTEMPTS FAILED AT P02-A; CONTROLLED STDOUT CANDIDATE NATIVE NOT RUN**. The
-source-bound first attempt and partial observations are appended below; the
-earlier preparation/checks retain their original scope. This is a separately
-attributed disposable GitHub-hosted native-x64 P01/P02 lane. Parent
-Agent 0 owns source integration/publication and later appending actual run
-identity/results. No push, PR or remote execution is part of this local return.
+Status: **CONTROLLED STDOUT PROFILE PASSED ALL FIVE CASES ON HOSTED NATIVE-X64
+WINDOWS**, run `40845322580` at exact source `d26ecdae630b07b94b4331e4041fdce18861edcb`.
+The final section records the inspected native evidence. The three earlier
+attempts remain FAILED at P02-A, and all earlier preparation/checks retain
+their original scope. This is separately attributed disposable GitHub-hosted
+P01/P02 fixture evidence, not Windows App or shared-guest qualification.
 
 ## Profile and source basis
 
@@ -479,3 +479,52 @@ These identities supersede only the unrun candidate above. Native compilation
 and execution of this corrected setup remain NOT RUN pending publication.
 P01/B/C, live-leader/deadline/cleanup requirements and the existing scope and
 dependency conditions are unchanged. No VM was accessed.
+
+## Controlled-stdout native result
+
+[Actions run 40845322580](https://github.com/sgttomas/chirality-app/actions/runs/40845322580)
+compiled and executed exact source
+`d26ecdae630b07b94b4331e4041fdce18861edcb` successfully. Agent 0 inspected
+the actual [result.json](hosted-windows-process-fixture-evidence/d26ecdae/result.json)
+and [raw trace](hosted-windows-process-fixture-evidence/d26ecdae/native.stdout),
+verified all five source identities against committed Git blobs, checked every
+compiler/native channel length and SHA-256, and independently reapplied the
+bound verifier to the saved raw bytes. All seven downloaded artifact files are
+preserved byte-for-byte. No success trace was synthesized.
+
+This was disposable GitHub `windows-2022`, image `20261026.347.1`, host build
+20348, native AMD64 (`processMachine=0`, `nativeMachine=0x8664`), with 8-byte
+pointers. The preinstalled C# compiler reported `4.8.9363.0` and the native
+fixture reported CLR `4.0.30319.42000`. The CLR's compatibility OS string is
+preserved in the raw identity; it does not change the separately observed host
+build. This is not Windows 11 or Parallels execution.
+
+- P01-positive observed the descendant inside the original inner and safety
+  Jobs after safety assignment at creation and inner assignment before resume,
+  then observed cleanup.
+- P01-negative observed the deliberately escaped descendant outside the late
+  inner Job but inside safety containment, rejected the broken launch and
+  observed its termination through the retained descendant HANDLE.
+- P02-A verified fresh type-3 pipe/reader correspondence and current Win32
+  stdout binding. The joined one-byte read returned FALSE/109 while the same
+  original leader HANDLE remained nonsignaled with exit query 259, inside the
+  original eight-second deadline and before any termination request. Successful
+  writer close metadata matched that binding; EOF was not inferred from it.
+- P02-B observed leader exit 0 while the retained descendant remained live and
+  the inherited stdout pipe had no EOF.
+- P02-C observed a signaled original process HANDLE and actual exit code 259.
+
+Every case recorded its required retained-process/inner-Job cleanup. Final
+safety cleanup observed all retained process HANDLEs signaled and active Job
+count zero; the A reader was joined and its earlier result remained unchanged.
+Compiler/native commands exited 0 without response-limit, deadline or teardown
+uncertainty. The bound verifier and adapter both returned PASS.
+
+This establishes those fixture observations under the declared trusted hosted
+profile. The controlled fresh-stdout stimulus does not repair or explain the
+three failed startup-stdout attempts. Production Rust/App process policy,
+supplier behavior, full-generation Stop, crash/hostile-namespace bootstrap,
+SQLite and durability remain outside this evidence. The protected CAEPIPE VM
+was not accessed; the separate build VM remains stopped without Windows media.
+DEL-01-02 commitments and dependency conditions remain unchanged; no owner
+acceptance or release qualification is implied.
