@@ -29,7 +29,10 @@ The source entry points are
 `.github/workflows/windows-process-fixtures.yml` and
 `app/examination/windows_platform/run_hosted_fixture.py`. The workflow checks
 out the actual PR head (or dispatch SHA), with read-only contents permission
-and no persisted checkout credential. It runs independently of existing App
+and no persisted checkout credential. Checkout alone receives a command-scoped
+`core.autocrlf=false` Git override so the workflow and `.gitattributes` also
+retain their committed bytes; no repository/global settings or attributes are
+changed. It runs independently of existing App
 and governance workflows and adds no macOS gate or production policy.
 
 ## Preconditions and execution
@@ -57,8 +60,9 @@ blob bytes. No expected-result/source-hash rewrite hides checkout conversion.
 
 Fresh exclusive `RUNNER_TEMP` leaves hold source, output, TEMP, TMP and
 CODEX_HOME. Compilation uses `/noconfig /nostdlib+ /platform:x64`, explicit
-framework references and explicit output. Compiler version and compiler/reference
-hashes are retained. A successful original compiler exit is mandatory before
+framework references and explicit output. The legacy compiler's supported
+`/noconfig /help` probe retains the version banner and bounded raw help output;
+compiler/reference hashes are retained. A successful original compiler exit is mandatory before
 launch. Version/Git commands have 15-second response bounds; compilation 60
 seconds; native supervisor 90 seconds; ordinary original-process teardown five
 seconds. Combined stdout/stderr per command is capped at 128 KiB. Process
@@ -125,6 +129,36 @@ including intentional CRLF, and an unprotected control still converts. Python
 AST parsing, workflow YAML parsing/read-only/native-image assertions,
 `git diff --check` and the deliverables check pass (41 deliverables, no errors).
 C# and verifier bytes match the starting commit and their recorded hashes.
-Host-only results never replace native proof. Independent source review remains
-pending at this preparation point; its actual result will be appended before
-local return.
+Host-only results never replace native proof.
+
+## Independent scrutiny and local repairs
+
+[Independent review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A2c97a15a-18fc-4e5c-899d-c6d1e85ed0e0%3Adelegate-task%3Ad99e6925-01c3-4385-93d9-4d0182857831)
+examined exact commit `02a329835183a44288edb57c929e5b823678cc31`, all six changed
+files and retained harness/contracts, using `codex-hub/gpt-6.1-sol`,
+`reasoningEffort=medium`, `serviceTier=default` under the owner's updated
+steering. Only one Type2 was active; no previous-setting reviewer was started.
+The Type1 manager inspected the actual completed return.
+
+The reviewer reproduced two unprotected bound inputs converting under
+`core.autocrlf=true` (`.gitattributes` 393 to 404 bytes, original workflow
+1,902 to 1,945 bytes). Strict source binding correctly refused them. The local
+repair scopes `core.autocrlf=false` to the checkout action's Git processes;
+it changes no existing shared file or expected source bytes. A new real Git
+checkout-index regression now covers every bound input: the negative checkout
+changes exactly those two inputs; the scoped override preserves all five.
+Existing attributes and the original byte-conversion regression remain intact.
+
+The reviewer also identified `/version` as incompatible with the legacy
+Framework compiler (source compatibility finding, not a native reproduction).
+The local repair uses `/noconfig /help`, requires a version banner and retains
+the bounded raw response. The compiler-failure regression checks that exact
+probe and still rejects nonzero, timeout or overflow before native launch.
+
+The reviewer found the profile, architecture checks, original-HANDLE/Job
+invariants, real descendant-membership requirement and false-pass protections
+intact. Review initially required these repairs before publication. These are
+small compatibility repairs inspected and checked by the Type1 owner; no
+second independent review or observed Windows compiler success is implied.
+Post-repair: eleven hosted regression methods pass, including actual Git
+checkout coverage of all bound inputs; native execution remains NOT RUN.

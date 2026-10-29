@@ -5,6 +5,7 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,41 @@ class HostedBoundaries(unittest.TestCase):
                 with self.subTest(revision=revision), self.assertRaises(ValueError):
                     DRIVER.bind_sources(revision)
 
+    def test_real_checkout_preserves_every_bound_input(self):
+        sources = {name: (DRIVER.ROOT / name).read_bytes() for name in DRIVER.SOURCE_PATHS}
+        workflow = sources['.github/workflows/windows-process-fixtures.yml'].decode()
+        checkout_env = dict(re.findall(
+            r"^\s+(GIT_CONFIG_(?:COUNT|KEY_0|VALUE_0)): '([^']*)'$", workflow, re.MULTILINE))
+        self.assertEqual(checkout_env, {'GIT_CONFIG_COUNT': '1',
+                         'GIT_CONFIG_KEY_0': 'core.autocrlf', 'GIT_CONFIG_VALUE_0': 'false'})
+        with tempfile.TemporaryDirectory(prefix='chirality-hosted-checkout-') as directory:
+            scratch = Path(directory)
+            codex_home = scratch / 'codex-home'
+            codex_home.mkdir()
+            env = dict(os.environ, CODEX_HOME=str(codex_home), GIT_CONFIG_NOSYSTEM='1',
+                       GIT_CONFIG_GLOBAL=os.devnull, GIT_ATTR_NOSYSTEM='1', GIT_NO_LAZY_FETCH='1')
+            for name in list(env):
+                if name in ('GIT_CONFIG_COUNT', 'GIT_CONFIG_PARAMETERS') or re.fullmatch(r'GIT_CONFIG_(KEY|VALUE)_\d+', name):
+                    del env[name]
+            def git(root, *args, data=None, override=None):
+                return subprocess.run(['git', '-C', str(root), *args], input=data,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                      env=dict(env, **(override or {})), timeout=15, check=True).stdout
+            def checkout(name, override):
+                root = scratch / name
+                root.mkdir()
+                git(root, 'init', '--quiet', '--template=')
+                git(root, 'config', 'core.autocrlf', 'true')
+                git(root, 'config', 'core.attributesFile', os.devnull)
+                for path, content in sources.items():
+                    oid = git(root, 'hash-object', '-w', '--stdin', data=content).decode().strip()
+                    git(root, 'update-index', '--add', '--cacheinfo', '100644', oid, path)
+                git(root, 'checkout-index', '--all', '--force', override=override)
+                return {path for path, content in sources.items() if (root / path).read_bytes() != content}
+            self.assertEqual(checkout('negative', {}),
+                             {'.gitattributes', '.github/workflows/windows-process-fixtures.yml'})
+            self.assertEqual(checkout('scoped-override', checkout_env), set())
+
     def test_empty_marker_only_refusal_and_unknown_trace_never_pass(self):
         verifier = (HERE / 'verify_results.py').read_bytes()
         for raw in (b'', b'1\tsuite\tnonce\tSUITE\tcases_complete\n',
@@ -127,11 +163,12 @@ class HostedBoundaries(unittest.TestCase):
                         patch.object(sys, 'argv', ['driver', '--source-commit', 'a' * 40]), \
                         patch.object(DRIVER, 'require_context', return_value={}), \
                         patch.object(DRIVER, 'bind_sources', return_value=(blobs, {})), \
-                        patch.object(DRIVER, 'capture', side_effect=[response(0, output=b'test-version'),
+                        patch.object(DRIVER, 'capture', side_effect=[response(0, output=b'Microsoft (R) Visual C# Compiler version 4.8.0\r\n'),
                                      response(returncode, failure)]) as capture, \
                         redirect_stderr(io.StringIO()):
                     self.assertEqual(DRIVER.main(), 1)
                     self.assertEqual(capture.call_count, 2)
+                    self.assertEqual(capture.call_args_list[0].args[0][-2:], ['/noconfig', '/help'])
                     import json
                     report = json.loads((runner / 'windows-process-fixture-evidence' / 'result.json').read_bytes())
                     self.assertEqual(report['status'], 'FAILED')

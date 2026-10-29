@@ -231,11 +231,15 @@ def main():
         env = dict(os.environ, TEMP=str(scratch / 'TEMP'), TMP=str(scratch / 'TMP'),
                    CODEX_HOME=str(scratch / 'CODEX_HOME'))
         report['commands'] = {}
-        version = capture([str(compiler), '/noconfig', '/nologo', '/version'], 15, cwd=scratch, env=env)
+        # The legacy Framework compiler supports /help, not Roslyn's /version.
+        # Keep its banner (no /nologo) and retain the entire bounded raw response.
+        version = capture([str(compiler), '/noconfig', '/help'], 15, cwd=scratch, env=env)
         report['commands']['compiler_version'] = persist_command(evidence, 'compiler-version', version)
         successful(version)
         require(version['stdout'].strip() and not version['stderr'], 'compiler version unavailable')
-        report['compiler_version'] = version['stdout'].decode('utf-8', errors='strict').strip()
+        banner = re.search(rb'(?m)^.*Compiler version [0-9][^\r\n]*', version['stdout'])
+        require(banner is not None, 'compiler version banner unavailable')
+        report['compiler_version'] = banner[0].decode('utf-8', errors='strict').strip()
         executable = scratch / 'ProcessFixture.exe'
         command = [str(compiler), '/noconfig', '/nologo', '/nostdlib+', '/platform:x64',
                    '/target:exe', '/out:' + str(executable)]
