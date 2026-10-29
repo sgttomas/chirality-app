@@ -59,8 +59,10 @@ still contain identifiers from before the private-identity direction.
   no further delegation.
 
 All Type 1 agents use `gpt-6.1-sol` with `reasoningEffort=high`.
-All Type 2 agents use `gpt-6.1-terra` with `reasoningEffort=xhigh` and
-`serviceTier=priority`, the available faster service setting. Managers and
+Following the owner's updated steer on 2026-10-29, all Type 2 agents use
+`gpt-6.1-sol` with `reasoningEffort=medium` and `serviceTier=default`
+(standard service). This supersedes the earlier Terra/xhigh/priority setting;
+historical review records retain the settings actually used. Managers and
 Agent 0 may decide when Type 2 contributions are useful. Do not substitute
 models or settings silently if unavailable. Initially cap active implementation
 contributors at two, with at most one independent reviewer alongside them.
