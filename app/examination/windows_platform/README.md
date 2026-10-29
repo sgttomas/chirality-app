@@ -13,10 +13,44 @@ for review evidence. Its write/compile/run route has been removed from the curre
 source rather than left available behind a warning. `--run` hard-refuses before
 any guest operation. The source harness has not been compiled or executed.
 
+The guarded-bootstrap follow-up adds `Controller.ps1` as an exact-byte **inline
+source asset**, never a script loaded from disk. It emits PInvoke definitions,
+validates 64-bit sequential structure sizes/offsets, and prepares a dedicated
+managed watchdog thread without PowerShell callbacks. The controller's source
+uses a creation-time Job list, retained original process/Job handles and one
+original guest deadline. Deadline expiry terminates its own controller root;
+closing the last non-inherited Job handle then requests descendant cleanup.
+That timeout path provides no observed-cleanup result. Ordinary cleanup requires
+original process signaling and Job active zero before stopping/joining the
+watchdog and closing handles. The controller lifecycle has not been invoked.
+Its future fixture integration still needs bounded stdout capture.
+
+The proposed sharing-only namespace guard has a specific documented conflict:
+CreateFile share modes do not restrict attribute/EA access, while MS-FSA
+2.1.5.10.37 permits setting reparse data with FILE_WRITE_ATTRIBUTES. Denying
+write sharing therefore does not itself prevent reparse mutation; permitting
+write sharing for pathname-based compiler output does not repair that gap.
+This rejects that guard, not every possible package-free implementation.
+See the owning results for exact citations, qualifications and remaining work.
+
+`run_fixture.py --bootstrap-check --source-commit <full-40-digit-commit>` makes
+one bounded in-memory attempt: it checks the exact transported source hash,
+emits/validates the API types and queries its own machine types through
+IsWow64Process2. It checks just the two known Roslyn stream-emitter assembly
+names beside the installed framework compiler; absence there is not a global
+inventory or proof of absence elsewhere. It invokes no compiler or controller
+lifecycle, creates no guest file, Job or fixture process, and leaves execution
+policy unchanged. The driver still refuses `--run` before guest contact.
+Gzip/base64 transport checks a 16 KiB compressed bound, exact decompressed
+length (at most 96 KiB), SHA-256 and strict UTF-8 before ScriptBlock creation.
+The encoded command stays below the Windows command-line bound.
+
 `run_fixture.py --inspect --source-commit <saved-revision>` only reads installed guest metadata via Windows
 PowerShell `-NoProfile -NonInteractive -EncodedCommand`. It writes a bounded
 raw response, source hashes, blockers and a fresh scratch CODEX_HOME on the host.
-All four fixture files must match that saved revision before guest contact.
+All six source files (C# harness, Python driver/verifier/regressions, this README
+and Controller.ps1) must match that saved full commit before guest contact, and
+the required input ebf71ce7 must be its ancestor.
 Both response channels together are capped at 32 KiB with a 25-second original
 monotonic deadline. No guest TEMP/user-profile path is captured.
 The existing Restricted policy stays unchanged; individual inline metadata
