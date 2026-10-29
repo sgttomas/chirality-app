@@ -634,3 +634,153 @@ test('late ordinary outcome cannot clear newer text/model, including away-and-ba
     }, async (...args) => {calls.push(args); return held.promise;}, async () => {throw Error('original observer failure');});
   }
 });
+
+// Deferred mocked IPC exercises the mounted App and its actual polling/home/
+// conversation handlers. No native producer, supplier or filesystem is invoked.
+async function withDeferredConversationAction(t, command, check, {refused = false, refreshFailed = false} = {}) {
+  const native = deferred(), read = deferred(), calls = [], unexpected = [];
+  let nativeFinished = false, readStarted = false, snapshot;
+  const makeSnapshot = (generation = g, mode = 'account', marker = 'original-view') => ({...host, generation,
+    supplierStanding: marker, homeRouting: {activeModeHomeClass: mode, entries: [{modeHomeClass: 'account'}, {modeHomeClass: 'api-key'}]},
+    threads: host.threads.map(row => ({...row, generation})),
+    conversationTurns: [{generation, threadId: 'thread-a', turnId: 'live-a', nativeTurn: {id: 'live-a', status: 'inProgress', items: []}}],
+    steeringTargets: [{generation, threadId: 'thread-a', target: {generation, threadId: 'thread-a', turnId: 'live-a'}}],
+  });
+  snapshot = makeSnapshot();
+  const idle = installIdleNativeWaiting(async (name, args) => {
+    calls.push({command: name, args: structuredClone(args)});
+    if (name === command) {
+      await native.promise; nativeFinished = true;
+      if (refused) throw Error('Original native refusal');
+      return {nativeAcknowledgment: 'original-request'};
+    }
+    if (name === 'host_status') {
+      if (nativeFinished && !readStarted) {
+        readStarted = true;
+        await read.promise;
+        if (refreshFailed) throw Error('Original refresh failure');
+        return makeSnapshot(g, 'account', 'original-command-refresh');
+      }
+      return structuredClone(snapshot);
+    }
+    if (name === 'decision_view') return {rows: []};
+    if (name === 'native_confirmation_content') return [];
+    if (name === 'select_home') {
+      snapshot = makeSnapshot(args.modeHomeClass === 'account' ? g : {...g, home: 'other-home'}, args.modeHomeClass, 'navigated-view');
+      return {};
+    }
+    unexpected.push(name); throw Error(`Unexpected IPC: ${name}`);
+  });
+  t.mock.timers.enable({apis: ['setInterval']});
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const panel = () => container.querySelectorAll(e => e.getAttribute('id') === 'conversation')[0];
+  const text = () => elements(panel(), 'textarea')[0];
+  const actionLabel = command === 'conversation_steer_text' ? 'Steer current live turn' : 'Interrupt selected live turn';
+  const ui = {container, calls, panel, text,
+    async start() {
+      await change(elements(panel(), 'select')[0], key('thread-a'));
+      await change(text(), 'original steering text');
+      if (command === 'conversation_interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
+      const control = button(panel(), actionLabel); assert.equal(!!props(control).disabled, false);
+      // Two deliveries before React commits busy state must still dispatch once.
+      await React.act(async () => {props(control).onClick(); props(control).onClick(); await flush();});
+    },
+    async releaseNative() {await React.act(async () => {native.resolve(); await flush();});},
+    async releaseRead() {await React.act(async () => {read.resolve(); await flush();});},
+    get readStarted() {return readStarted;},
+    async supersede(kind) {
+      if (kind === 'text' || kind === 'same-text') {
+        // Controlled edit delivery stresses the revision guard even while the
+        // composer is disabled; these are not claims about browser input timing.
+        await change(text(), 'newer steering text');
+        if (kind === 'same-text') await change(text(), 'original steering text');
+      } else if (kind === 'thread') {
+        await change(elements(panel(), 'select')[0], key('thread-b'));
+      } else if (kind === 'thread-away-back') {
+        // Other App navigation surfaces can change this shared selection. Drive
+        // the real handler twice before rendering: final thread/generation and
+        // object equality cannot detect this; the dispatch intent ticket must.
+        const choose = props(elements(panel(), 'select')[0]).onChange;
+        await React.act(() => {
+          choose({target: {value: key('thread-b')}});
+          choose({target: {value: key('thread-a')}});
+        });
+      } else if (kind === 'home' || kind === 'home-away-back') {
+        const away = button(container, 'Use api-key home'); assert.equal(!!props(away).disabled, false);
+        await React.act(async () => {await props(away).onClick();});
+        if (kind === 'home-away-back') await React.act(async () => {await props(button(container, 'Use account home')).onClick();});
+      } else if (kind === 'generation' || kind === 'snapshot') {
+        snapshot = makeSnapshot(kind === 'generation' ? {...g, spawnCounter: 2} : g, 'account', 'newer-poll-view');
+        await React.act(async () => {t.mock.timers.tick(1000); await flush();});
+      }
+    },
+  };
+  try {
+    await React.act(async () => {root.render(React.createElement(App));});
+    await check(ui);
+    const sent = calls.filter(row => row.command === command);
+    assert.equal(sent.length, 1, 'one dispatch, no double delivery or automatic retry');
+    assert.deepEqual(sent[0].args, command === 'conversation_steer_text'
+      ? {generation: g, threadId: 'thread-a', expectedTurnId: 'live-a', text: 'original steering text'}
+      : {generation: g, threadId: 'thread-a', turnId: 'live-a'});
+    assert.deepEqual(unexpected, []);
+  } finally {
+    await React.act(async () => {native.resolve(); read.resolve(); await flush();});
+    idle.assertClean(container); const rendered = container.textContent;
+    await React.act(async () => {root.unmount();}); document.body.removeChild(container); idle.restore(rendered);
+  }
+}
+
+for (const command of ['conversation_steer_text', 'conversation_interrupt']) {
+  test(`deferred ${command} dispatches once before busy commits`, async t => {
+    await withDeferredConversationAction(t, command, async ui => {
+      await ui.start(); await ui.releaseNative(); await ui.releaseRead();
+    });
+  });
+
+  test(`deferred ${command} preserves newer ownership, text and native outcome`, async t => {
+    for (const phase of ['native', 'refresh']) for (const kind of ['none', 'text', 'same-text', 'thread', 'home', 'generation', 'snapshot', 'home-away-back', 'thread-away-back']) {
+      await t.test(`${phase}: ${kind}`, async t => {
+        await withDeferredConversationAction(t, command, async ui => {
+          await ui.start();
+          if (phase === 'refresh') {await ui.releaseNative(); assert.equal(ui.readStarted, true);}
+          if (kind !== 'none') await ui.supersede(kind);
+          const shownBefore = ui.container.textContent;
+          await ui.releaseNative(); await ui.releaseRead();
+          const superseded = ['thread', 'home', 'generation', 'home-away-back', 'thread-away-back'].includes(kind);
+          const expectedText = kind === 'text' ? 'newer steering text'
+            : command === 'conversation_interrupt' || superseded || kind === 'same-text' ? 'original steering text' : '';
+          assert.equal(props(ui.text()).value, expectedText, 'only unchanged text owned by the original steering may clear');
+          if (kind === 'snapshot' || kind === 'generation') assert.ok(ui.container.textContent.includes('newer-poll-view'), 'late action read cannot replace the newer poll');
+          if (kind === 'home' || kind === 'home-away-back') assert.ok(ui.container.textContent.includes('navigated-view'), 'late action read cannot undo home navigation');
+          const outcome = region(ui.container, 'Original conversation action outcome');
+          assert.ok(outcome, 'result remains explicitly bound to the original request');
+          assert.match(outcome.textContent, /conversation thread-a · Home h · App session s · spawn 1 · turn live-a/);
+          assert.match(outcome.textContent, command === 'conversation_steer_text' ? /Native steering acknowledgment received/ : /Native interrupt acknowledgment received/);
+          assert.match(outcome.textContent, /No automatic retry/);
+          if (superseded || kind === 'snapshot') assert.match(outcome.textContent, /refresh.*superseded/i);
+          if (phase === 'native' && (superseded || kind === 'snapshot')) assert.equal(ui.readStarted, false, 'superseded dispatch does not start an old refresh');
+          if (phase === 'refresh') assert.match(shownBefore, /Native (steering|interrupt) acknowledgment received/, 'native result visible while refresh waits');
+        });
+      });
+    }
+  });
+
+  test(`deferred ${command} preserves refusal separately from refresh failure or supersession`, async t => {
+    for (const refused of [false, true]) for (const superseded of [false, 'thread', 'thread-away-back']) await t.test(`${refused ? 'refusal' : 'ack'}: ${superseded || 'refresh fails'}`, async t => {
+      await withDeferredConversationAction(t, command, async ui => {
+        await ui.start();
+        if (superseded) await ui.supersede(superseded);
+        await ui.releaseNative(); await ui.releaseRead();
+        assert.equal(props(ui.text()).value, refused || superseded || command === 'conversation_interrupt' ? 'original steering text' : '');
+        const outcome = region(ui.container, 'Original conversation action outcome');
+        assert.ok(outcome);
+        assert.match(outcome.textContent, refused ? /Original native refusal/ : /Native (steering|interrupt) acknowledgment received/);
+        assert.match(outcome.textContent, superseded ? /superseded/ : /Original refresh failure/);
+        assert.match(outcome.textContent, /command outcome.*unchanged/i);
+        assert.equal(ui.panel().querySelectorAll(e => e.getAttribute('role') === 'alert').filter(e => e.textContent.includes('Original native refusal')).length, 0,
+          'old refusal is not assigned to the selected conversation error');
+      }, {refused, refreshFailed: true});
+    });
+  });
+}
