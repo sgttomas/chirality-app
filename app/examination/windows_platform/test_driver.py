@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import re
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -58,6 +59,26 @@ class Admission(unittest.TestCase):
         self.assertLess(len(base64.b64encode(command.encode('utf-16le'))), 30000)
         self.assertNotIn('Invoke-FixtureContainedProcess;', command)
         self.assertNotIn(' -ExecutionPolicy ', command)
+
+    def test_response_overflow_and_timeout_are_unknown(self):
+        commands = [([sys.executable, '-c', "print('x' * 100000)"], 5),
+                    ([sys.executable, '-c', 'import time; time.sleep(2)'], 0.05)]
+        for command, deadline in commands:
+            with self.subTest(command=command):
+                result = DRIVER.capture_response(command, response_seconds=deadline)
+                self.assertIsNone(result['returncode'])
+                self.assertIn('guest command completion UNKNOWN', result['limitation'])
+                self.assertLessEqual(len(result['stdout']) + len(result['stderr']), 32768)
+
+    def test_failed_local_teardown_keeps_unknown_report(self):
+        with patch.object(DRIVER.subprocess, 'Popen') as popen, \
+                patch.object(DRIVER.selectors, 'DefaultSelector', side_effect=OSError('test selector failure')):
+            popen.return_value.kill.side_effect = OSError('test kill failure')
+            popen.return_value.wait.side_effect = DRIVER.subprocess.TimeoutExpired('test-client', 0)
+            result = DRIVER.capture_response(['never-executed'])
+            self.assertIsNone(result['returncode'])
+            self.assertIn('guest command completion UNKNOWN', result['limitation'])
+            self.assertIn('local exit not observed', result['limitation'])
 
 
 if __name__ == '__main__':

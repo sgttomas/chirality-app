@@ -121,4 +121,5 @@ checks:
 - execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
 - execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py
 - app/examination/windows_platform/verify_results.py
+- app/examination/windows_platform/test_driver.py
 - execution/PKG-01/DEL-01-02/Design/WINDOWS_PROCESS_FIXTURE_RESULTS.md

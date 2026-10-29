@@ -22,7 +22,8 @@ original guest deadline. Deadline expiry terminates its own controller root;
 closing the last non-inherited Job handle then requests descendant cleanup.
 That timeout path provides no observed-cleanup result. Ordinary cleanup requires
 original process signaling and Job active zero before stopping/joining the
-watchdog and closing handles. The controller lifecycle has not been invoked.
+watchdog and closing handles. After a stop wake the watchdog checks the original
+deadline before accepting cancellation. The controller lifecycle has not been invoked.
 Its future fixture integration still needs bounded stdout capture.
 
 The proposed sharing-only namespace guard has a specific documented conflict:
@@ -55,7 +56,9 @@ All six source files (C# harness, Python driver/verifier/regressions, this READM
 and Controller.ps1) must match that saved full commit before guest contact, and
 the required input ebf71ce7 must be its ancestor.
 Both response channels together are capped at 32 KiB with a 25-second original
-host response deadline, followed by up to five seconds of local client teardown.
+host response deadline, followed by an attempted local-client kill and five-second
+exit wait. Exceptional teardown remains reported as unknown, with no implicit
+unbounded Popen-context wait.
 Process creation itself is not interrupted by that deadline. A host timeout
 leaves guest PowerShell completion UNKNOWN; it proves no guest termination.
 No guest TEMP/user-profile path is captured.

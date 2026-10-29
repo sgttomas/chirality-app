@@ -90,6 +90,58 @@ controllerLifecycle='NOT INVOKED';namespaceAdmission='REFUSED: sharing-only guar
     return command
 
 
+def capture_response(argv, response_seconds=25, teardown_seconds=5, limit=32768):
+    """Bound host response bytes/waits; never infer guest exit from client exit."""
+    chunks = {'stdout': bytearray(), 'stderr': bytearray()}
+    until = time.monotonic() + response_seconds
+    proc = None
+    selector = None
+    outcome = {'returncode': None}
+    try:
+        # Process creation itself is not interruptible by this response budget.
+        proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        selector = selectors.DefaultSelector()
+        selector.register(proc.stdout, selectors.EVENT_READ, 'stdout')
+        selector.register(proc.stderr, selectors.EVENT_READ, 'stderr')
+        while selector.get_map():
+            remaining = until - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('host response deadline')
+            for key, _ in selector.select(min(remaining, 1)):
+                block = os.read(key.fileobj.fileno(), 4096)
+                if not block:
+                    selector.unregister(key.fileobj)
+                    continue
+                used = sum(map(len, chunks.values()))
+                chunks[key.data].extend(block[:max(0, limit - used)])
+                if used + len(block) > limit:
+                    raise ValueError('host response exceeded combined byte bound')
+        outcome['returncode'] = proc.wait(timeout=max(0.01, until - time.monotonic()))
+    except Exception as exc:
+        outcome.update(returncode=None, limitation=str(exc) + '; guest command completion UNKNOWN; no fixture launched')
+        if proc is not None:
+            # Only the original local client, never any guest PID or process name.
+            try:
+                proc.kill()
+            except Exception as teardown:
+                outcome['limitation'] += '; local kill failed: ' + str(teardown)
+            try:
+                proc.wait(timeout=teardown_seconds)
+            except Exception as teardown:
+                outcome['limitation'] += '; local exit not observed: ' + str(teardown)
+    finally:
+        # No Popen context manager: its implicit unbounded wait must not erase
+        # the report when local client teardown fails. Never retry the guest.
+        if selector is not None:
+            selector.close()
+        if proc is not None:
+            for stream in (proc.stdout, proc.stderr):
+                if stream is not None:
+                    stream.close()
+        outcome.update({k: bytes(v).decode('utf-8', 'replace') for k, v in chunks.items()})
+    return outcome
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     mode = ap.add_mutually_exclusive_group(required=True)
@@ -125,41 +177,13 @@ clrVersion=(Get-Item -LiteralPath ($r+'clr.dll')).VersionInfo.FileVersion} | Con
               'guestWrites': 'none requested', 'nativeCases': 'all not run',
               'commandSha256': hashlib.sha256(command.encode()).hexdigest(),
               'command': command, 'hostArtifacts': str(host)}
-    # Bound both channels together, and retain the original monotonic deadline.
-    chunks = {'stdout': bytearray(), 'stderr': bytearray()}
-    until = time.monotonic() + 25
-    limit = 32768
-    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
-        selector = selectors.DefaultSelector()
-        selector.register(proc.stdout, selectors.EVENT_READ, 'stdout')
-        selector.register(proc.stderr, selectors.EVENT_READ, 'stderr')
-        try:
-            while selector.get_map():
-                remaining = until - time.monotonic()
-                if remaining <= 0:
-                    raise TimeoutError('read-only metadata deadline')
-                for key, _ in selector.select(min(remaining, 1)):
-                    block = os.read(key.fileobj.fileno(), 4096)
-                    if not block:
-                        selector.unregister(key.fileobj)
-                        continue
-                    used = sum(map(len, chunks.values()))
-                    chunks[key.data].extend(block[:max(0, limit - used)])
-                    if used + len(block) > limit:
-                        raise ValueError('read-only metadata output exceeded 32768 bytes')
-            report['returncode'] = proc.wait(timeout=max(0.01, until - time.monotonic()))
-        except (TimeoutError, ValueError, subprocess.TimeoutExpired) as exc:
-            # Only the local client created above, never a guest PID/name action.
-            proc.kill()
-            proc.wait(timeout=5)
-            report.update(returncode=None, limitation=str(exc) + '; guest command completion UNKNOWN; no fixture launched')
-        finally:
-            selector.close()
-            report.update({k: bytes(v).decode('utf-8', 'replace') for k, v in chunks.items()})
-            (host / 'readiness.json').write_text(json.dumps(report, indent=2))
+    report.update(capture_response(argv))
     if report['returncode'] == 0:
-        report['metadata'] = json.loads(report['stdout'])
-        (host / 'readiness.json').write_text(json.dumps(report, indent=2))
+        try:
+            report['metadata'] = json.loads(report['stdout'])
+        except (ValueError, TypeError) as exc:
+            report.update(returncode=None, limitation='Incomplete response; guest command completion UNKNOWN: ' + str(exc))
+    (host / 'readiness.json').write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
     if report['returncode'] != 0:
         raise SystemExit(2)
