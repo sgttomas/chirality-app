@@ -295,6 +295,25 @@ and application support. Neither Git's switch nor NTFS makes Node, Python,
 MSVC, SQLite, WebView/Tauri or shell tools support every path. Test each
 actual command/API and preserve its refusals.
 
+Byte identity is a separate checkout condition. Root `.gitattributes` disables
+Git text conversion for the App's hashed resources, schemas, fixtures,
+examination/packaging sources, owning Designs/ScopeOfWork, migration references
+and pinned workflow test inputs. These are scoped input families, not a global
+Git or Windows setting. `-text` preserves committed LF, deliberate CRLF and
+binary bytes without rewriting them or marking textual diffs binary. Expected
+hashes and assertions remain unchanged. Run
+`python3 app/tests/check_git_checkout_bytes.py` from the repository root before
+Windows witnesses; CI runs it with its existing Python. It stages original
+committed blobs into temporary Git indexes and checks actual materialization
+with `core.autocrlf=true`, including deliberate CRLF and an unprotected text
+control. This proves Git conversion behavior, not a native Windows build or
+permission to run the otherwise deferred Python-dependent guest checks.
+The local regression at source `ec66648b` changed all ten selected committed
+LF inputs without attributes; with the scoped policy all eleven protected
+inputs (including an intentional CRLF control) matched exactly, while an
+unprotected text control still converted. Schema/source hash checks also pass.
+No reference bytes, expected hashes, assertions or user/global settings changed.
+
 **No App sparse selection is needed or selected at this pin.** SWB's
 historical monorepo MAX_PATH failure/product sparse CI is peer evidence,
 not an App checkout failure. A later sparse proposal must preserve all
