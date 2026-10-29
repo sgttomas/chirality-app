@@ -81,6 +81,13 @@ runtime witness remain absent. Do not insert a synthetic anchor. FP-1(b), FP-2/W
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
+Identify this complete-content development bundle using DEL-09-01's
+[candidate v3 profile](../../../execution/PKG-09/DEL-09-01/Design/candidate-identity-v3/METHOD.md):
+the existing identification command takes both `--supplier-archive` and
+`--supplier-acquisition`, compares the cached archive with bundled P1 and
+retains its acquisition account. The complete bundle inventory includes P1.
+The supplier-absent v2 format remains available for its original route.
+
 The default `tauri.conf.json` maps the same P2 and P3 trees (the governing
 PKG §4.1 P-2/P-3), so a bundle built without this overlay carries
 them too; the overlay repeats the mapping so this route reads whole. The test

@@ -1,0 +1,550 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-01:candidate-identification:3",
+  "title": "Complete-content development App candidate identification (candidate-identity-v3)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "candidate_key",
+    "app_candidate",
+    "route",
+    "source",
+    "build",
+    "bundle",
+    "app_data",
+    "supplier",
+    "identified_by",
+    "identified_at",
+    "limits"
+  ],
+  "properties": {
+    "format": {
+      "const": "chirality.app-v4.candidate-identification/v3"
+    },
+    "candidate_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{10}-[0-9a-f]{12}$"
+    },
+    "app_candidate": {
+      "description": "Exactly the EXP candidate_subject.app_candidate values for this build.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "build_identity",
+        "packaged"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "build_identity": {
+          "type": "string",
+          "pattern": "^chirality\\.app\\.bundle-tree\\.sha256/v2:[0-9a-f]{64}$"
+        },
+        "packaged": {
+          "const": false
+        }
+      }
+    },
+    "route": {
+      "const": "native_development"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "revision",
+        "commit_tree",
+        "exported_prefix",
+        "tree",
+        "tracked_files_verified"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "commit_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "exported_prefix": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "tracked_files_verified": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "procedure",
+        "profile",
+        "signing",
+        "features",
+        "command",
+        "config_overlays",
+        "toolchain",
+        "lockfiles",
+        "offline",
+        "environment",
+        "started_at",
+        "finished_at"
+      ],
+      "properties": {
+        "procedure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "const": "debug"
+        },
+        "signing": {
+          "const": "none"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "contains": {
+            "const": "custom-protocol"
+          }
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "config_overlays": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "content": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "toolchain": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "lockfiles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "offline": {
+          "const": true
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "finished_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "phases": {
+          "description": "Optional timing account of the build steps between started_at and finished_at.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "identifier",
+        "version",
+        "executable",
+        "info_plist_sha256",
+        "file_manifest_sha256",
+        "counts",
+        "metadata_state",
+        "inventory"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^/\\\\\\r\\n\\u0000]+\\.app$"
+        },
+        "identifier": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001f]*$"
+        },
+        "executable": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^Contents/MacOS/[^/\\\\\\r\\n\\u0000]+$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "info_plist_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "file_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dir",
+            "file",
+            "symlink"
+          ],
+          "properties": {
+            "dir": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "file": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "symlink": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "metadata_state": {
+          "description": "Observed metadata of the root and every entry: refused states are zero by construction; represented extended attributes and owners are listed.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entries_including_root",
+            "acl_entries",
+            "nonzero_flags",
+            "set_id_bits",
+            "extended_attributes",
+            "xattr_allowlist",
+            "owners",
+            "symlinks"
+          ],
+          "properties": {
+            "entries_including_root": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "acl_entries": {
+              "const": 0
+            },
+            "nonzero_flags": {
+              "const": 0
+            },
+            "set_id_bits": {
+              "const": 0
+            },
+            "extended_attributes": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "com.apple.provenance": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "xattr_allowlist": {
+              "const": [
+                "com.apple.provenance"
+              ]
+            },
+            "owners": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "uid",
+                  "gid"
+                ],
+                "properties": {
+                  "uid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "gid": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "uniqueItems": true
+            },
+            "symlinks": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "inventory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "const": "bundle-inventory.json"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "app_data": {
+      "description": "Historical absence observation at identification, limited to the three identifier-selected Tauri/WKWebView data and cache locations. No freshness promise after launch. The tool checks exact path/identifier correspondence.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "checked",
+        "present_at_identification"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^~/Library/Application Support/[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+        },
+        "checked": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "prefixItems": [
+            {
+              "type": "string",
+              "pattern": "^~/Library/Application Support/[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+            },
+            {
+              "type": "string",
+              "pattern": "^~/Library/WebKit/[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+            },
+            {
+              "type": "string",
+              "pattern": "^~/Library/Caches/[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+            }
+          ],
+          "items": false
+        },
+        "present_at_identification": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "supplier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundled",
+        "root",
+        "standing",
+        "pin",
+        "archive",
+        "acquisition",
+        "correspondence",
+        "binding"
+      ],
+      "properties": {
+        "bundled": {
+          "const": true
+        },
+        "root": {
+          "const": "Contents/Resources/codex"
+        },
+        "standing": {
+          "const": "unqualified-development"
+        },
+        "pin": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "archive": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "file",
+            "source",
+            "size_bytes",
+            "sha256"
+          ],
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "acquisition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "const": "supplier-acquisition.json"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "correspondence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "files",
+            "file_manifest_sha256"
+          ],
+          "properties": {
+            "method": {
+              "const": "codex-platform-tar-files/v1"
+            },
+            "files": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "file_manifest_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "binding": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "identified_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "tool_sha256",
+        "method",
+        "supplier_tool_sha256"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "tool_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "method": {
+          "const": "chirality.app.bundle-tree.sha256/v2"
+        },
+        "supplier_tool_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "identified_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "limits": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 calendar date-time with an explicit timezone and ordinary seconds 00-59; leap seconds are unsupported. The tool additionally validates the calendar date without optional format-checker dependencies.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "source_revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+  "command": [
+    "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/node",
+    "node_modules/@tauri-apps/cli/tauri.js",
+    "build",
+    "--debug",
+    "--no-sign",
+    "--bundles",
+    "app",
+    "--features",
+    "custom-protocol",
+    "--config",
+    "packaging/unsigned/tauri.development.conf.json",
+    "--config",
+    "/private/tmp/chirality-desktop-current-ukt5ir80/supplier.development.conf.json",
+    "--",
+    "--offline",
+    "--locked"
+  ],
+  "wrapper": "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+  "environment": {
+    "HOME": "/Users/ryan",
+    "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "LANG": "en_US.UTF-8",
+    "CARGO_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/cargo-home",
+    "CARGO_TARGET_DIR": "/private/tmp/chirality-desktop-current-ukt5ir80/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_NET_OFFLINE": "true",
+    "CODEX_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/codex-home",
+    "TMPDIR": "/private/tmp/chirality-desktop-current-ukt5ir80/tmp"
+  },
+  "started_at": "2026-10-29T17:38:40.337131+00:00",
+  "finished_at": "2026-10-29T17:40:00.424341+00:00",
+  "exit_code": 0,
+  "abort_reason": null,
+  "peak_shared_rss_kib": 2187424
+}

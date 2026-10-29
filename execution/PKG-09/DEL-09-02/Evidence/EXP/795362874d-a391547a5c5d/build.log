@@ -1,0 +1,1046 @@
+        Warn --no-sign flag detected: Signing will be skipped.
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `npm run build`
+
+> chirality-app-v4-skeleton@0.0.0 build
+> tsc --noEmit && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 58 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  0.34 kB │ gzip:   0.24 kB
+dist/assets/index-DjcbAKCL.js  577.88 kB │ gzip: 167.84 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 399ms
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling syn v2.0.119
+   Compiling syn v3.0.6
+   Compiling serde_derive v1.0.229
+   Compiling synstructure v0.13.2
+   Compiling serde_core v1.0.229
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling zerofrom v0.1.7
+   Compiling libc v0.2.189
+   Compiling memchr v2.8.3
+   Compiling zerovec-derive v0.11.3
+   Compiling displaydoc v0.2.5
+   Compiling smallvec v1.15.1
+   Compiling itoa v1.0.18
+   Compiling cfg-if v1.0.5
+   Compiling siphasher v1.0.3
+   Compiling litemap v0.8.2
+   Compiling writeable v0.6.3
+   Compiling phf_shared v0.13.1
+   Compiling utf8_iter v1.0.4
+   Compiling zmij v1.0.23
+   Compiling fastrand v2.4.1
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling cc v1.2.62
+   Compiling phf_generator v0.13.1
+   Compiling icu_properties_data v2.2.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling icu_normalizer_data v2.2.0
+   Compiling autocfg v1.5.0
+   Compiling serde v1.0.229
+   Compiling yoke v0.8.2
+   Compiling zerovec v0.11.6
+   Compiling regex-syntax v0.8.10
+   Compiling phf_macros v0.13.1
+   Compiling aho-corasick v1.1.4
+   Compiling version_check v0.9.5
+   Compiling equivalent v1.0.2
+   Compiling time-core v0.1.8
+   Compiling num-conv v0.2.1
+   Compiling parking_lot_core v0.9.12
+   Compiling powerfmt v0.2.0
+   Compiling winnow v1.0.2
+   Compiling deranged v0.5.8
+   Compiling toml_parser v1.1.2+spec-1.1.0
+   Compiling tinystr v0.8.3
+   Compiling phf_codegen v0.13.1
+   Compiling toml_writer v1.1.1+spec-1.1.0
+   Compiling typeid v1.0.3
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling serde_json v1.0.151
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.29
+   Compiling lock_api v0.4.14
+   Compiling darling_core v0.23.0
+   Compiling icu_locale_core v2.2.0
+   Compiling potential_utf v0.1.5
+   Compiling zerotrie v0.2.4
+   Compiling byteorder v1.5.0
+   Compiling erased-serde v0.4.10
+   Compiling thiserror v2.0.18
+   Compiling icu_provider v2.2.0
+   Compiling icu_collections v2.2.0
+   Compiling parking_lot v0.12.5
+   Compiling darling_macro v0.23.0
+   Compiling thiserror-impl v2.0.18
+   Compiling unic-char-range v0.9.0
+   Compiling thiserror v1.0.69
+   Compiling unic-common v0.9.0
+   Compiling fnv v1.0.7
+   Compiling new_debug_unreachable v1.0.6
+   Compiling unic-ucd-version v0.9.0
+   Compiling unic-char-property v0.9.0
+   Compiling darling v0.23.0
+   Compiling phf v0.13.1
+   Compiling string_cache_codegen v0.6.1
+   Compiling thiserror-impl v1.0.69
+   Compiling bytes v1.11.1
+   Compiling alloc-no-stdlib v2.0.4
+   Compiling getrandom v0.4.2
+   Compiling precomputed-hash v0.1.1
+   Compiling alloc-stdlib v0.2.2
+   Compiling web_atoms v0.2.4
+   Compiling serde_with_macros v3.19.0
+   Compiling unic-ucd-ident v0.9.0
+   Compiling icu_normalizer v2.2.0
+   Compiling icu_properties v2.2.0
+   Compiling serde_spanned v1.1.1
+   Compiling quick-xml v0.39.4
+   Compiling bitflags v2.11.1
+   Compiling anyhow v1.0.102
+   Compiling base64 v0.22.1
+   Compiling bit-vec v0.8.0
+   Compiling idna_adapter v1.2.2
+   Compiling brotli-decompressor v5.0.0
+   Compiling string_cache v0.9.0
+   Compiling http v1.4.0
+   Compiling objc2-exception-helper v0.1.1
+   Compiling semver v1.0.28
+   Compiling dtoa v1.0.11
+   Compiling dunce v1.0.5
+   Compiling same-file v1.0.6
+   Compiling ctor-proc-macro v0.0.7
+   Compiling utf-8 v0.7.6
+   Compiling percent-encoding v2.3.2
+   Compiling ctor v0.8.0
+   Compiling form_urlencoded v1.2.2
+   Compiling tendril v0.5.0
+   Compiling walkdir v2.5.0
+   Compiling dtoa-short v0.3.5
+   Compiling uuid v1.23.1
+   Compiling brotli v8.0.2
+   Compiling idna v1.1.0
+   Compiling selectors v0.36.1
+   Compiling indexmap v1.9.3
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling derive_more-impl v2.1.1
+   Compiling cssparser-macros v0.6.1
+   Compiling glob v0.3.3
+   Compiling camino v1.2.2
+   Compiling derive_more v2.1.1
+   Compiling cssparser v0.36.0
+   Compiling toml v1.1.2+spec-1.1.0
+   Compiling url v2.5.8
+   Compiling markup5ever v0.38.0
+   Compiling swift-rs v1.0.7
+   Compiling regex-automata v0.4.18
+   Compiling servo_arc v0.4.3
+   Compiling serde_derive_internals v0.29.1
+   Compiling rustc-hash v2.1.2
+   Compiling hashbrown v0.12.3
+   Compiling hashbrown v0.17.1
+   Compiling schemars v0.8.22
+   Compiling objc2 v0.6.4
+   Compiling indexmap v2.14.0
+   Compiling regex v1.12.3
+   Compiling schemars_derive v0.8.22
+   Compiling html5ever v0.38.0
+   Compiling cfb v0.7.3
+   Compiling bit-set v0.8.0
+   Compiling jsonptr v0.6.3
+   Compiling time v0.3.47
+   Compiling cargo-platform v0.1.9
+   Compiling dyn-clone v1.0.20
+   Compiling base64 v0.21.7
+   Compiling foldhash v0.2.0
+   Compiling objc2-encode v4.1.0
+   Compiling plist v1.9.0
+   Compiling dom_query v0.27.0
+   Compiling cargo_metadata v0.19.2
+   Compiling serde-untagged v0.1.9
+   Compiling infer v0.19.0
+   Compiling json-patch v3.0.1
+   Compiling urlpattern v0.3.0
+   Compiling serde_with v3.19.0
+   Compiling tauri-utils v2.9.1
+   Compiling once_cell v1.21.4
+   Compiling heck v0.5.0
+   Compiling option-ext v0.2.0
+   Compiling dirs-sys v0.5.0
+   Compiling block2 v0.6.2
+   Compiling objc2-core-foundation v0.3.2
+   Compiling objc2-foundation v0.3.2
+   Compiling dirs v6.0.0
+   Compiling rustc_version v0.4.1
+   Compiling toml_datetime v0.7.5+spec-1.1.0
+   Compiling getrandom v0.3.4
+   Compiling winnow v0.7.15
+   Compiling crc32fast v1.5.0
+   Compiling simd-adler32 v0.3.9
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling embed-resource v3.0.9
+   Compiling objc2-app-kit v0.3.2
+   Compiling generic-array v0.14.7
+   Compiling num-traits v0.2.19
+   Compiling allocator-api2 v0.2.21
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.8.9
+   Compiling cargo_toml v0.22.3
+   Compiling tauri-winres v0.3.6
+   Compiling time-macros v0.2.27
+   Compiling typenum v1.20.1
+   Compiling flate2 v1.1.9
+   Compiling tauri-build v2.6.1
+   Compiling fdeflate v0.3.7
+   Compiling raw-window-handle v0.6.2
+   Compiling zerocopy v0.8.59
+   Compiling crossbeam-utils v0.8.21
+   Compiling dpi v0.1.2
+   Compiling ahash v0.8.12
+   Compiling cookie v0.18.1
+   Compiling core-foundation-sys v0.8.7
+   Compiling core-foundation v0.10.1
+   Compiling tauri v2.11.1
+   Compiling num-integer v0.1.47
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling tauri-plugin v2.6.1
+   Compiling foreign-types-macros v0.2.3
+   Compiling foreign-types-shared v0.3.1
+   Compiling bitflags v1.3.2
+   Compiling png v0.17.16
+   Compiling foreign-types v0.5.0
+   Compiling digest v0.10.7
+   Compiling crossbeam-channel v0.5.15
+   Compiling core-graphics-types v0.2.0
+   Compiling objc2-web-kit v0.3.2
+   Compiling dispatch2 v0.3.1
+   Compiling cpufeatures v0.2.17
+   Compiling tauri-runtime v2.11.1
+   Compiling wry v0.55.1
+   Compiling sha2 v0.10.9
+   Compiling core-graphics v0.25.0
+   Compiling ico v0.5.0
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling num-bigint v0.4.8
+   Compiling ref-cast v1.0.25
+   Compiling tauri-runtime-wry v2.11.1
+   Compiling unicode-segmentation v1.13.2
+   Compiling keyboard-types v0.7.0
+   Compiling num-rational v0.4.2
+   Compiling tauri-codegen v2.6.1
+   Compiling tao v0.35.2
+   Compiling num-iter v0.1.46
+   Compiling png v0.18.1
+   Compiling num-complex v0.4.6
+   Compiling serialize-to-javascript-impl v0.1.2
+   Compiling ref-cast-impl v1.0.25
+   Compiling vcpkg v0.2.15
+   Compiling pin-project-lite v0.2.17
+   Compiling pkg-config v0.3.33
+   Compiling tokio v1.52.3
+   Compiling libsqlite3-sys v0.30.1
+   Compiling serialize-to-javascript v0.1.2
+   Compiling num v0.4.3
+   Compiling muda v0.19.1
+   Compiling tauri-macros v2.6.1
+   Compiling tauri-plugin-dialog v2.7.2
+   Compiling window-vibrancy v0.6.0
+   Compiling serde_repr v0.1.20
+   Compiling unicode-general-category v1.1.0
+   Compiling jsonschema-value v0.58.5
+   Compiling mime v0.3.17
+   Compiling embed_plist v1.2.2
+   Compiling borrow-or-share v0.2.4
+   Compiling rfd v0.16.0
+   Compiling fluent-uri v0.4.1
+   Compiling fraction v0.17.0
+   Compiling hashbrown v0.14.5
+   Compiling strum_macros v0.28.0
+   Compiling outref v0.5.2
+   Compiling bytecount v0.6.9
+   Compiling pulldown-cmark v0.13.4
+   Compiling vsimd v0.8.0
+   Compiling micromap v0.3.0
+   Compiling num-cmp v0.1.0
+   Compiling strum v0.28.0
+   Compiling referencing v0.58.5
+   Compiling uuid-simd v0.8.0
+   Compiling fancy-regex v0.19.2
+   Compiling hashlink v0.9.1
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri)
+   Compiling email_address v0.2.9
+   Compiling jsonschema-regex v0.58.5
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling data-encoding v2.11.1
+   Compiling unicase v2.9.0
+   Compiling fallible-iterator v0.3.0
+   Compiling rusqlite v0.32.1
+   Compiling jsonschema v0.58.5
+warning: unused import: `Composition`
+ --> src/hosting_call_custody.rs:3:26
+  |
+3 | use crate::role_supply::{Composition, Role};
+  |                          ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::os::unix::process::CommandExt`
+   --> src/hosting.rs:102:5
+    |
+102 | use std::os::unix::process::CommandExt;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Child`
+   --> src/hosting.rs:104:20
+    |
+104 | use std::process::{Child, ChildStdin, Command, Stdio};
+    |                    ^^^^^
+
+warning: unused import: `PathBuf`
+ --> src/records_export.rs:9:34
+  |
+9 | use std::path::{Component, Path, PathBuf};
+  |                                  ^^^^^^^
+
+warning: unused imports: `AdministrationRestore` and `PackageAdministration`
+  --> src/records_retention.rs:13:5
+   |
+13 |     AdministrationRestore, PackageAdministration,
+   |     ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ProductionBundlePackage`, `ProductionHoldingCopy`, and `RELEASE_SUBJECT`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+15 |         RELEASE_SUBJECT,
+   |         ^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src/recovery_store.rs:544:17
+    |
+544 |             let mut reading = json!({"state":"imported earlier","sourcePath":path,"byteLength":imported_length,
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `active_native_view` is never used
+    --> src/lib.rs:1909:4
+     |
+1909 | fn active_native_view(state:&AppState)->Value {
+     |    ^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `original_capture`, `durable_record`, and `original_offer` are never read
+   --> src/act_control_a15.rs:221:5
+    |
+220 | struct A15NativeWitness {
+    |        ---------------- fields in this struct
+221 |     original_capture: Value,
+    |     ^^^^^^^^^^^^^^^^
+222 |     durable_record: Value,
+    |     ^^^^^^^^^^^^^^
+223 |     original_offer: Value,
+    |     ^^^^^^^^^^^^^^
+
+warning: field `witness` is never read
+   --> src/act_control_a15.rs:230:5
+    |
+226 | pub(crate) struct HotA15Receipt {
+    |                   ------------- field in this struct
+...
+230 |     witness: std::sync::Arc<A15NativeWitness>,
+    |     ^^^^^^^
+
+warning: associated function `new` is never used
+   --> src/checkpoint_recorder.rs:240:8
+    |
+234 | impl ActRead {
+    | ------------ associated function in this implementation
+...
+240 |     fn new(data: ActReadData) -> Self {
+    |        ^^^
+
+warning: function `act_records_fingerprint` is never used
+    --> src/checkpoint_recorder.rs:1691:15
+     |
+1691 | pub(crate) fn act_records_fingerprint(root: &Path) -> Option<Vec<(String, u64, i64, i64)>> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `0` is never read
+   --> src/app_quit.rs:108:15
+    |
+108 |     Cancelled(Value),
+    |     --------- ^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `Decision` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+108 -     Cancelled(Value),
+108 +     Cancelled(()),
+    |
+
+warning: field `handoff` is never read
+  --> src/conversation_roles.rs:74:5
+   |
+71 | pub(crate) struct ContinuationSource {
+   |                   ------------------ field in this struct
+...
+74 |     handoff: String,
+   |     ^^^^^^^
+
+warning: method `handoff` is never used
+  --> src/conversation_roles.rs:80:19
+   |
+77 | impl ContinuationSource {
+   | ----------------------- method in this implementation
+...
+80 |     pub(crate) fn handoff(&self)->&str { &self.handoff }
+   |                   ^^^^^^^
+
+warning: method `continuation_source` is never used
+   --> src/conversation_roles.rs:198:19
+    |
+ 91 | impl Handoffs {
+    | ------------- method in this implementation
+...
+198 |     pub(crate) fn continuation_source(&self,id:&str,generation:&Value,role:Option<Role>)->Result<ContinuationSource,String> {self.c...
+    |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: field `source` is never read
+   --> src/conversation_roles.rs:344:46
+    |
+344 | pub(crate) struct AdmittedFork {result:Value,source:crate::hosting::SourceRequest}
+    |                   ------------               ^^^^^^
+    |                   |
+    |                   field in this struct
+
+warning: methods `result` and `source` are never used
+   --> src/conversation_roles.rs:346:19
+    |
+345 | impl AdmittedFork {
+    | ----------------- methods in this implementation
+346 |     pub(crate) fn result(&self)->&Value {&self.result}
+    |                   ^^^^^^
+347 |     pub(crate) fn source(&self)->&crate::hosting::SourceRequest {&self.source}
+    |                   ^^^^^^
+
+warning: function `fork_command` is never used
+   --> src/conversation_roles.rs:380:15
+    |
+380 | pub(crate) fn fork_command(homes: &std::sync::Mutex<crate::runtime_session::HomeRouter>, generation: &Value, source_thread: &str, w...
+    |               ^^^^^^^^^^^^
+
+warning: function `continuation_for_start` is never used
+   --> src/conversation_roles.rs:427:15
+    |
+427 | pub(crate) fn continuation_for_start(handoffs:&std::sync::Mutex<Handoffs>,home:&crate::runtime_session::HomeSession,continue_as:Opt...
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `select` is never used
+   --> src/connector_source.rs:181:8
+    |
+181 | pub fn select(
+    |        ^^^^^^
+
+warning: fields `admin` and `common` are never read
+  --> src/connector_git.rs:44:5
+   |
+42 | struct Association {
+   |        ----------- fields in this struct
+43 |     root: PathBuf,
+44 |     admin: PathBuf,
+   |     ^^^^^
+45 |     common: PathBuf,
+   |     ^^^^^^
+   |
+   = note: `Association` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: function `read` is never used
+   --> src/connector_git.rs:533:8
+    |
+533 | pub fn read(
+    |        ^^^^
+
+warning: methods `source_request_id` and `source_request_ref` are never used
+   --> src/hosting.rs:384:19
+    |
+381 | impl AcceptedNativeItemPage<'_> {
+    | ------------------------------- methods in this implementation
+...
+384 |     pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
+    |                   ^^^^^^^^^^^^^^^^^
+385 |     pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `finish_successor_handshake`, `write_frame`, `account_oauth_dismiss`, `collaboration_mode_element`, and `on_eof` are never used
+    --> src/hosting.rs:1651:8
+     |
+ 713 | impl Host {
+     | --------- methods in this implementation
+...
+1651 |     fn finish_successor_handshake(&self, generation: &Value, attempt: u64, caps: Value, response: Result<Value,String>) -> Result<...
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1784 |     fn write_frame(&self,frame:&Value)->Result<(),String>{ self.write_frame_scoped(frame,None) }
+     |        ^^^^^^^^^^^
+...
+2092 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+3374 |     pub(crate) fn collaboration_mode_element(&self, generation: &Value, thread_id: &str, mode: &str) -> Result<Value, String> {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3857 |     fn on_eof(&self, generation: &Value) {
+     |        ^^^^^^
+
+warning: methods `first`, `last`, `get`, and `is_empty` are never used
+   --> src/hosting_observer_journal.rs:185:19
+    |
+ 68 | impl ObserverJournal {
+    | -------------------- methods in this implementation
+...
+185 |     pub(super) fn first(&self) -> Option<&Value> {
+    |                   ^^^^^
+...
+189 |     pub(super) fn last(&self) -> Option<&Value> {
+    |                   ^^^^
+...
+193 |     pub(super) fn get(&self, index: usize) -> Option<&Value> {
+    |                   ^^^
+...
+201 |     pub(super) fn is_empty(&self) -> bool {
+    |                   ^^^^^^^^
+
+warning: variants `Duplicate` and `AlreadyAttempted` are never constructed
+  --> src/hosting_call_custody.rs:25:5
+   |
+19 | pub(crate) enum Refusal {
+   |                 ------- variants in this enum
+...
+25 |     Duplicate,
+   |     ^^^^^^^^^
+26 |     Origin,
+27 |     AlreadyAttempted,
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `Refusal` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: function `definition` is never used
+   --> src/hosting_call_custody.rs:114:15
+    |
+114 | pub(crate) fn definition() -> Value {
+    |               ^^^^^^^^^^
+
+warning: fields `turn`, `call_id`, and `frame` are never read
+   --> src/hosting_call_custody.rs:595:5
+    |
+591 | pub(super) struct CallFacts {
+    |                   --------- fields in this struct
+...
+595 |     turn: Box<str>,
+    |     ^^^^
+596 |     call_id: Box<str>,
+    |     ^^^^^^^
+...
+599 |     frame: [u8; 32],
+    |     ^^^^^
+
+warning: method `wait_exit` is never used
+   --> src/process_group_custody.rs:209:19
+    |
+ 57 | impl OwnedProcess {
+    | ----------------- method in this implementation
+...
+209 |     pub(crate) fn wait_exit(&self) -> Result<ExitStatus, String> {
+    |                   ^^^^^^^^^
+
+warning: method `thread_start_with_access_dispatch` is never used
+    --> src/access_provider.rs:1001:19
+     |
+ 681 | impl Host {
+     | --------- method in this implementation
+...
+1001 |     pub(crate) fn thread_start_with_access_dispatch(
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `staged_start` is never used
+   --> src/distribution_preflight.rs:472:4
+    |
+472 | fn staged_start(
+    |    ^^^^^^^^^^^^
+
+warning: constant `MANIFEST` is never used
+  --> src/distribution_store.rs:19:7
+   |
+19 | const MANIFEST: &str = "transport.json";
+   |       ^^^^^^^^
+
+warning: constant `ATTEMPT` is never used
+  --> src/distribution_store.rs:20:7
+   |
+20 | const ATTEMPT: &str = "attempt.json";
+   |       ^^^^^^^
+
+warning: struct `Reference` is never constructed
+  --> src/distribution_store.rs:24:19
+   |
+24 | pub(crate) struct Reference {
+   |                   ^^^^^^^^^
+
+warning: field `namespaces` is never read
+  --> src/distribution_store.rs:38:5
+   |
+33 | pub(crate) struct Store {
+   |                   ----- field in this struct
+...
+38 |     namespaces: Arc<NativeNamespaceBindings>,
+   |     ^^^^^^^^^^
+
+warning: associated items `with_reference_limit`, `publish_attempt`, `read`, and `read_leased` are never used
+   --> src/distribution_store.rs:296:19
+    |
+250 | impl Store {
+    | ---------- associated items in this implementation
+...
+296 |     pub(crate) fn with_reference_limit(mut store:Arc<Self>,limit:String)->Result<Arc<Self>,String>{
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+327 |     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
+    |                   ^^^^^^^^^^^^^^^
+...
+368 |     pub(crate) fn read(&self,g:&Value,reference:&Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_lease...
+    |                   ^^^^
+369 |     fn read_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &Reference) -> Result<Value, String> {
+    |        ^^^^^^^^^^^
+
+warning: methods `role` and `reference` are never used
+   --> src/role_record_source.rs:128:19
+    |
+118 | impl PublishedRoleSupply {
+    | ------------------------ methods in this implementation
+...
+128 |     pub(crate) fn role(&self) -> &str {
+    |                   ^^^^
+...
+168 |     pub(crate) fn reference(&self) -> &str {
+    |                   ^^^^^^^^^
+
+warning: function `append_project_reserved` is never used
+   --> src/records.rs:279:15
+    |
+279 | pub(crate) fn append_project_reserved(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `unit_refusal_limits` is never used
+   --> src/record_supply.rs:282:15
+    |
+282 | pub(crate) fn unit_refusal_limits(
+    |               ^^^^^^^^^^^^^^^^^^^
+
+warning: field `project` is never read
+   --> src/records_package.rs:141:5
+    |
+138 | pub(crate) struct Snapshot {
+    |                   -------- field in this struct
+...
+141 |     project: Value,
+    |     ^^^^^^^
+    |
+    = note: `Snapshot` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `project_record` is never used
+   --> src/records_package.rs:157:19
+    |
+147 | impl Snapshot {
+    | ------------- method in this implementation
+...
+157 |     pub(crate) fn project_record(&self) -> &Value {
+    |                   ^^^^^^^^^^^^^^
+
+warning: associated function `observe` is never used
+   --> src/child_roles.rs:474:19
+    |
+473 | impl Namespace {
+    | -------------- associated function in this implementation
+474 |     pub(crate) fn observe(config: &Value) -> Result<Self, String> {
+    |                   ^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:4447:9
+     |
+4446 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+4447 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: methods `end_and_start` and `start_proposed` are never used
+    --> src/runtime_session.rs:5509:12
+     |
+4568 | impl WorkflowRootSession {
+     | ------------------------ methods in this implementation
+...
+5509 |     pub fn end_and_start(
+     |            ^^^^^^^^^^^^^
+...
+5922 |     pub fn start_proposed(
+     |            ^^^^^^^^^^^^^^
+
+warning: method `send_end_notice_in_mode` is never used
+    --> src/runtime_session.rs:6436:19
+     |
+6408 | impl ReopenedEnd {
+     | ---------------- method in this implementation
+...
+6436 |     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `send_end_notice_in_mode` is never used
+    --> src/runtime_session.rs:7608:19
+     |
+6904 | impl WorkflowRun {
+     | ---------------- method in this implementation
+...
+7608 |     pub(crate) fn send_end_notice_in_mode(&mut self, generation: &Value, person_text: &str, mode: Option<&str>) -> NoticeSend {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `home_holding` is never used
+  --> src/trial_flows.rs:88:15
+   |
+88 | pub(crate) fn home_holding(homes: &[std::sync::Arc<HomeSession>], thread: &str) -> Option<std::sync::Arc<HomeSession>> {
+   |               ^^^^^^^^^^^^
+
+warning: methods `prepare_trial` and `abort_clean_start` are never used
+   --> src/trial_flows.rs:365:12
+    |
+312 | impl WorkflowRootSession {
+    | ------------------------ methods in this implementation
+...
+365 |     pub fn prepare_trial(
+    |            ^^^^^^^^^^^^^
+...
+506 |     pub fn abort_clean_start(&mut self, reference: &str) {
+    |            ^^^^^^^^^^^^^^^^^
+
+warning: function `learning_status` is never used
+    --> src/trial_flows.rs:2189:15
+     |
+2189 | pub(crate) fn learning_status(
+     |               ^^^^^^^^^^^^^^^
+
+warning: method `is_current` is never used
+   --> src/workflow_workspace.rs:486:12
+    |
+406 | impl Review {
+    | ----------- method in this implementation
+...
+486 |     pub fn is_current(&self, live: &Snapshot, latest: Option<&WorkflowIdentity>) -> bool {
+    |            ^^^^^^^^^^
+
+warning: struct `RegistrationAdapterClaim` is never constructed
+   --> src/workflow_workspace.rs:496:12
+    |
+496 | pub struct RegistrationAdapterClaim {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RegistrationClaimMatch` is never constructed
+   --> src/workflow_workspace.rs:504:12
+    |
+504 | pub struct RegistrationClaimMatch {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `compare`, `identity`, `snapshot`, `claimed_act_ref`, `selection_eligible`, and `evidence` are never used
+   --> src/workflow_workspace.rs:510:12
+    |
+509 | impl RegistrationClaimMatch {
+    | --------------------------- associated items in this implementation
+510 |     pub fn compare(
+    |            ^^^^^^^
+...
+538 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+541 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+544 |     pub fn claimed_act_ref(&self) -> &str {
+    |            ^^^^^^^^^^^^^^^
+...
+547 |     pub fn selection_eligible(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+550 |     pub fn evidence(&self) -> serde_json::Value {
+    |            ^^^^^^^^
+
+warning: method `run_turn_params` is never used
+   --> src/workflow_workspace.rs:688:12
+    |
+611 | impl Selection {
+    | -------------- method in this implementation
+...
+688 |     pub fn run_turn_params(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `collisions` is never used
+   --> src/workflow_workspace.rs:708:8
+    |
+708 | pub fn collisions<'a>(name: &str, entries: &'a [WorkflowIdentity]) -> Vec<&'a WorkflowIdentity> {
+    |        ^^^^^^^^^^
+
+warning: methods `standing` and `select_embedded` are never used
+  --> src/workflow_catalog.rs:55:12
+   |
+24 | impl DevelopmentCatalog {
+   | ----------------------- methods in this implementation
+...
+55 |     pub fn standing(&self) -> &'static str {
+   |            ^^^^^^^^
+...
+60 |     pub fn select_embedded(&self) -> Selection {
+   |            ^^^^^^^^^^^^^^^
+
+warning: methods `package_path` and `standing` are never used
+   --> src/workflow_catalog.rs:98:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- methods in this implementation
+...
+ 98 |     pub fn package_path(&self) -> &Path {
+    |            ^^^^^^^^^^^^
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: method `manifest` is never used
+   --> src/workflow_catalog.rs:175:12
+    |
+123 | impl ProductionCatalog {
+    | ---------------------- method in this implementation
+...
+175 |     pub fn manifest(&self) -> &'static [u8] {
+    |            ^^^^^^^^
+
+warning: method `library_root` is never used
+   --> src/workflow_library.rs:772:19
+    |
+746 | impl ReviewSession {
+    | ------------------ method in this implementation
+...
+772 |     pub(crate) fn library_root(&self) -> &Path {
+    |                   ^^^^^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1293:19
+     |
+1293 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1293 -     RepairPending(String),
+1293 +     RepairPending(()),
+     |
+
+warning: field `snapshot` is never read
+  --> src/workflow_trials.rs:64:9
+   |
+57 | pub(crate) struct PreparedTrial {
+   |                   ------------- field in this struct
+...
+64 |     pub snapshot: ContentCopy,
+   |         ^^^^^^^^
+   |
+   = note: `PreparedTrial` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `text` is never read
+    --> src/workflow_record_store.rs:1098:5
+     |
+1097 | pub struct PublishedEndNotice {
+     |            ------------------ field in this struct
+1098 |     text: String,
+     |     ^^^^
+     |
+     = note: `PublishedEndNotice` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+    --> src/workflow_record_store.rs:1103:12
+     |
+1102 | impl PreparedEndPublication {
+     | --------------------------- associated function in this implementation
+1103 |     pub fn new(
+     |            ^^^
+
+warning: method `text` is never used
+    --> src/workflow_record_store.rs:1260:12
+     |
+1259 | impl PublishedEndNotice {
+     | ----------------------- method in this implementation
+1260 |     pub fn text(&self) -> &str {
+     |            ^^^^
+
+warning: field `end` is never read
+  --> src/historical_run_learning.rs:35:9
+   |
+29 | pub(crate) struct HistoricalRun {
+   |                   ------------- field in this struct
+...
+35 |     pub end: Option<Boundary>,
+   |         ^^^
+
+warning: fields `run` and `recorded_ended` are never read
+  --> src/historical_run_learning.rs:47:9
+   |
+46 | pub(crate) struct HistoricalVersion {
+   |                   ----------------- fields in this struct
+47 |     pub run: String,
+   |         ^^^
+...
+51 |     pub recorded_ended: bool,
+   |         ^^^^^^^^^^^^^^
+
+warning: associated function `read` is never used
+   --> src/historical_run_learning.rs:381:19
+    |
+380 | impl HistoricalRun {
+    | ------------------ associated function in this implementation
+381 |     pub(crate) fn read(project: &ProjectRecords, run: &str) -> Result<Self, String> {
+    |                   ^^^^
+
+warning: variant `EditionChange` is never constructed
+  --> src/compatibility_report.rs:17:5
+   |
+10 | pub enum Occasion {
+   |          -------- variant in this enum
+...
+17 |     EditionChange {
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `Occasion` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Unreadable`, `Partial`, and `Complete` are never constructed
+  --> src/compatibility_report.rs:38:5
+   |
+34 | pub enum CatalogCoverage {
+   |          --------------- variants in this enum
+...
+38 |     Unreadable,
+   |     ^^^^^^^^^^
+39 |     Partial(BTreeMap<String, Operation>),
+   |     ^^^^^^^
+40 |     Complete(BTreeMap<String, Operation>),
+   |     ^^^^^^^^
+
+warning: methods `id` and `result` are never used
+   --> src/compatibility_report.rs:265:12
+    |
+219 | impl PreparedReport {
+    | ------------------- methods in this implementation
+...
+265 |     pub fn id(&self) -> &str {
+    |            ^^
+...
+268 |     pub fn result(&self) -> &Check {
+    |            ^^^^^^
+
+warning: variant `TestDouble` is never constructed
+   --> src/compatibility_report.rs:318:5
+    |
+314 | pub enum InventoryOrigin {
+    |          --------------- variant in this enum
+...
+318 |     TestDouble { fixture: String },
+    |     ^^^^^^^^^^
+    |
+    = note: `InventoryOrigin` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Local`, `Cloud`, and `Unknown` are never constructed
+   --> src/compatibility_report.rs:330:5
+    |
+329 | pub enum DestinationClass {
+    |          ---------------- variants in this enum
+330 |     Local,
+    |     ^^^^^
+331 |     Cloud,
+    |     ^^^^^
+332 |     Unknown,
+    |     ^^^^^^^
+    |
+    = note: `DestinationClass` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: fields `occasion` and `pass_result` are never read
+   --> src/compatibility_report.rs:429:5
+    |
+427 | pub struct PublishedReport {
+    |            --------------- fields in this struct
+428 |     report_id: String,
+429 |     occasion: &'static str,
+    |     ^^^^^^^^
+430 |     pass_result: &'static str,
+    |     ^^^^^^^^^^^
+    |
+    = note: `PublishedReport` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: methods `id`, `body`, and `r14_body` are never used
+   --> src/compatibility_report.rs:434:12
+    |
+433 | impl PublishedReport {
+    | -------------------- methods in this implementation
+434 |     pub fn id(&self) -> &str {
+    |            ^^
+...
+437 |     pub fn body(&self) -> &Value {
+    |            ^^^^
+...
+445 |     pub fn r14_body(&self, stored: Option<&[u8]>) -> Result<Value, String> {
+    |            ^^^^^^^^
+
+warning: constant `R14_TARGET` is never used
+   --> src/compatibility_report.rs:498:7
+    |
+498 | const R14_TARGET: &str =
+    |       ^^^^^^^^^^
+
+warning: function `r14_validator` is never used
+   --> src/compatibility_report.rs:516:4
+    |
+516 | fn r14_validator() -> Result<&'static jsonschema::Validator, String> {
+    |    ^^^^^^^^^^^^^
+
+warning: function `outcomes` is never used
+   --> src/stop_records.rs:419:15
+    |
+419 | pub(crate) fn outcomes(held: &[Value], live: &[(Value, String)], current: &str) -> Value {
+    |               ^^^^^^^^
+
+warning: `chirality-app-v4` (lib) generated 78 warnings (run `cargo fix --lib -p chirality-app-v4` to apply 7 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 16s
+       Built application at: /private/tmp/chirality-desktop-current-ukt5ir80/target/debug/chirality-app-v4
+    Bundling Chirality App v4 (development 20261029).app (/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app)
+        Warn Skipping signing due to --no-sign flag.
+    Finished 1 bundle at:
+        /private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app
+
