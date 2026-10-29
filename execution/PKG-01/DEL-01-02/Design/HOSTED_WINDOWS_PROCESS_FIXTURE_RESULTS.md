@@ -449,3 +449,33 @@ all three old failed traces remain refused by the new verifier, and their
 artifact directory has zero diff from the required ancestor. No fake native
 success trace was generated. Native compile/CI/execution remain NOT RUN;
 parent Agent 0 owns integration/publication and actual outcome recording.
+
+### Agent 0 integration correction: Win32 pipe type
+
+Before publication, Agent 0 found that the reviewed candidate used file type
+`2` for pipes. Win32 defines `FILE_TYPE_CHAR=2` and `FILE_TYPE_PIPE=3`, also
+confirmed in the cached Microsoft `windows-sys 0.61.2` FileSystem bindings.
+The source review above retains its actual no-findings outcome; this defect
+was caught during integration and does not change any historical run record.
+
+The integrated C# now uses named `FILE_TYPE_PIPE=3`, checks the observed types
+of both fresh endpoints, the duplicated reader and current stdout, and logs
+the actual API values. The verifier requires type 3 in each correspondence
+record. Invented parser units use type 3 and reject both character type 2 and
+disk type 1 at every such record. This is a focused API-constant/logging
+repair, locally checked by Agent 0 without another independent review.
+
+All 18 hosted methods and eight retained held-driver methods pass. The graph
+still has 41 deliverables, zero errors and six declared cycle groups. The
+three retained native channel pairs match their saved hashes, their failed
+traces remain refused, and their artifact directory is unchanged from
+`59a33c990f28d3a1847446574cff8353b4e56ea5`. Whitespace checks pass.
+
+Corrected C# is 37,157 bytes, SHA-256
+`e605e4a2c454655cadc176d3693547ddf5b3beeed1e62d305ace20faac4084ff`;
+verifier is 12,093 bytes, SHA-256
+`5048582b2be3e27ae690affaa2a97a66feebb056bc48816f3aaae7b52b8f1162`.
+These identities supersede only the unrun candidate above. Native compilation
+and execution of this corrected setup remain NOT RUN pending publication.
+P01/B/C, live-leader/deadline/cleanup requirements and the existing scope and
+dependency conditions are unchanged. No VM was accessed.

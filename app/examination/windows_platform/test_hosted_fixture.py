@@ -28,10 +28,10 @@ class AProofBoundaries(unittest.TestCase):
         details = [
             (101, 'A_DEADLINE', 'startQpc=100;untilQpc=8100;startMs=0;untilMs=8000;frequency=1000'),
             (105, 'CREATED_LEADER', 'suspended=True;safety=true;handle=80'),
-            (112, 'HELPER_A_PIPE', f'qpc=110;setup={setup};sourceRead=91;sourceWrite=92;startupStdin=89;startupStdout=90;startupStderr=90;readNoninherit=True;writeNoninherit=True;pipeType=2'),
-            (115, 'A_PIPE_READER', f'setup={setup};sourceLeaderHandle=80;sourceRead=91;sourceWrite=92;handle=70;noninherit=True;pipeType=2;sameAccess=True'),
+            (112, 'HELPER_A_PIPE', f'qpc=110;setup={setup};sourceRead=91;sourceWrite=92;startupStdin=89;startupStdout=90;startupStderr=90;readNoninherit=True;writeNoninherit=True;pipeType=3'),
+            (115, 'A_PIPE_READER', f'setup={setup};sourceLeaderHandle=80;sourceRead=91;sourceWrite=92;handle=70;noninherit=True;pipeType=3;sameAccess=True'),
             (116, 'A_PIPE_ACK', 'sourceLeaderHandle=80;reader=70;ownershipEstablished=True'),
-            (122, 'HELPER_ENTRY', f'qpc=120;setup={setup};stdout=92;sourceRead=91;ackQpc=117;readCloseQpc=118;bindQpc=119;setOk=True;getMatch=True;pipeType=2;startupStdout=90;startupStderr=90'),
+            (122, 'HELPER_ENTRY', f'qpc=120;setup={setup};stdout=92;sourceRead=91;ackQpc=117;readCloseQpc=118;bindQpc=119;setOk=True;getMatch=True;pipeType=3;startupStdout=90;startupStderr=90'),
             (123, 'A_READ_START', 'handle=70;leaderHandle=80;untilMs=8000;untilQpc=8100;pendingBytes=0;length=1'),
             (126, 'A_CLOSE_CONFIRMATION', f'qpc=124;setup={setup};stdout=92;sourceRead=91;bindQpc=119;entryQpc=120;attemptQpc=121;stdoutOk=True;stdoutError=0;writeComplete=True'),
             (127, 'A_READ_RESULT', 'ok=False;bytes=0;error=109;qpc=125;completedMs=25;workerStarted=True;workerJoined=True;failure=none'),
@@ -85,7 +85,8 @@ class AProofBoundaries(unittest.TestCase):
             with self.subTest(kind=kind, new=new), self.assertRaises(ValueError):
                 VERIFIER.verify_a(self.changed(kind, old, new))
         for kind in ('HELPER_A_PIPE', 'A_PIPE_READER', 'HELPER_ENTRY'):
-            for old, new in (('post-managed-start-stdout/v1', 'unbound/v0'), ('pipeType=2', 'pipeType=1')):
+            for old, new in (('post-managed-start-stdout/v1', 'unbound/v0'), ('pipeType=3', 'pipeType=1'),
+                             ('pipeType=3', 'pipeType=2')):
                 with self.subTest(kind=kind, new=new), self.assertRaises(ValueError):
                     VERIFIER.verify_a(self.changed(kind, old, new))
 

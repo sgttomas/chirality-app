@@ -24,6 +24,7 @@ public static class ProcessFixture {
     static SingleRead ARead;
     static readonly string CloseFile="P02-A-close.txt";
     const string ASetup="post-managed-start-stdout/v1";
+    const uint FILE_TYPE_PIPE=3;
 
     // A alone: one synchronous read on the actual stdout reader. No Poll or
     // CloseHandle may touch this handle until Thread.Join proves completion.
@@ -294,7 +295,7 @@ public static class ProcessFixture {
         string[] control=Event(c.Output,until);
         Require(control[0]=="A_PIPE","A expected startup control frame");
         string[] p=AFields(control[4],"setup sourceRead sourceWrite startupStdin startupStdout startupStderr readNoninherit writeNoninherit pipeType");
-        Require(p[0]==ASetup && p[6]=="True" && p[7]=="True" && p[8]=="2","A pipe setup/version");
+        Require(p[0]==ASetup && p[6]=="True" && p[7]=="True" && Number(p[8])==FILE_TYPE_PIPE,"A pipe setup/version");
         long read=Number(p[1]),write=Number(p[2]);
         Require(read>0 && write>0 && read!=write,"A pipe pair");
         for(int i=3;i<=5;i++) Require(Number(p[i])>0 && p[i]!=p[1] && p[i]!=p[2],"A pipe was startup stdio");
@@ -302,9 +303,10 @@ public static class ProcessFixture {
         IntPtr copy;
         // The retained original leader is the source authority, never a PID.
         Check(DuplicateHandle(c.Pi.process,new IntPtr(read),GetCurrentProcess(),out copy,0,false,2),"A DuplicateHandle reader SAME_ACCESS");
-        IO.Add(copy); NoInherit(copy); Require(GetFileType(copy)==2,"A duplicated reader not PIPE");
+        IO.Add(copy); NoInherit(copy); uint readerType=GetFileType(copy);
+        Require(readerType==FILE_TYPE_PIPE,"A duplicated reader not PIPE");
         Log("A_PIPE_READER","setup="+ASetup+";sourceLeaderHandle="+c.Pi.process+";sourceRead="+read+
-            ";sourceWrite="+write+";handle="+copy+";noninherit=True;pipeType=2;sameAccess=True");
+            ";sourceWrite="+write+";handle="+copy+";noninherit=True;pipeType="+readerType+";sameAccess=True");
         long ackSentQpc=Stopwatch.GetTimestamp();
         Log("A_PIPE_ACK","sourceLeaderHandle="+c.Pi.process+";reader="+copy+";ownershipEstablished=True");
         Command(c,"STDOUT-OWNED");
@@ -314,7 +316,7 @@ public static class ProcessFixture {
         Require(entry[0]=="ENTRY","A current stdout ENTRY");
         string[] bound=AFields(entry[4],"setup stdout sourceRead ackQpc readCloseQpc bindQpc setOk getMatch pipeType startupStdout startupStderr");
         Require(bound[0]==ASetup && bound[1]==p[2] && bound[2]==p[1] && bound[6]=="True" &&
-            bound[7]=="True" && bound[8]=="2" && bound[9]==p[4] && bound[10]==p[5],"A actual stdout binding mismatch");
+            bound[7]=="True" && Number(bound[8])==FILE_TYPE_PIPE && bound[9]==p[4] && bound[10]==p[5],"A actual stdout binding mismatch");
         Require(Number(control[3])<=ackSentQpc && ackSentQpc<=Number(bound[3]) && Number(bound[3])<=Number(bound[4]) &&
             Number(bound[4])<=Number(bound[5]) && Number(bound[5])<=Number(entry[3]) &&
             Number(entry[3])<=Stopwatch.GetTimestamp(),"A source binding time order");
@@ -439,22 +441,24 @@ public static class ProcessFixture {
             IntPtr read,output;
             Check(CreatePipe(out read,out output,ref sa,4096),"A fresh CreatePipe");
             NoInherit(read); NoInherit(output);
-            Require(GetFileType(read)==2 && GetFileType(output)==2,"A fresh pair not PIPE");
+            uint readType=GetFileType(read),writeType=GetFileType(output);
+            Require(readType==FILE_TYPE_PIPE && writeType==FILE_TYPE_PIPE,"A fresh pair not PIPE");
             foreach(IntPtr old in new IntPtr[]{startupInput,startupOutput,startupError})
                 Require(read!=old && output!=old,"A fresh pipe aliases startup stdio");
             Emit("A_PIPE","setup="+ASetup+";sourceRead="+read+";sourceWrite="+output+
                 ";startupStdin="+startupInput+";startupStdout="+startupOutput+";startupStderr="+startupError+
-                ";readNoninherit=True;writeNoninherit=True;pipeType=2");
+                ";readNoninherit=True;writeNoninherit=True;pipeType="+writeType);
             Ack(new Reader(startupInput),"STDOUT-OWNED"); long ackQpc=Stopwatch.GetTimestamp();
             Check(CloseHandle(read),"A close handed-off source reader"); long readCloseQpc=Stopwatch.GetTimestamp();
             Check(SetStdHandle(-11,output),"A SetStdHandle stdout");
-            Require(GetStdHandle(-11)==output && GetFileType(GetStdHandle(-11))==2,"A actual stdout slot mismatch");
+            IntPtr boundOutput=GetStdHandle(-11); uint boundType=GetFileType(boundOutput);
+            Require(boundOutput==output && boundType==FILE_TYPE_PIPE,"A actual stdout slot mismatch");
             long bindQpc=Stopwatch.GetTimestamp(),entryQpc=Stopwatch.GetTimestamp();
             // Raw WriteFile through a newly queried actual Win32 stdout. This
             // deliberately makes no claim about Console.Out's cached old stream.
             Send(GetStdHandle(-11),"ENTRY|"+Nonce+"|"+Case+"|"+entryQpc+"|setup="+ASetup+
                 ";stdout="+output+";sourceRead="+read+";ackQpc="+ackQpc+";readCloseQpc="+readCloseQpc+
-                ";bindQpc="+bindQpc+";setOk=True;getMatch=True;pipeType=2;startupStdout="+startupOutput+";startupStderr="+startupError);
+                ";bindQpc="+bindQpc+";setOk=True;getMatch=True;pipeType="+boundType+";startupStdout="+startupOutput+";startupStderr="+startupError);
             // The only new writer is closed exactly once. Startup stdout/stderr
             // remain control references until helper death; no old-pipe EOF claim.
             long attemptQpc=Stopwatch.GetTimestamp();

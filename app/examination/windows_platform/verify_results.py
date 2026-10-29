@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 import sys
 
+FILE_TYPE_PIPE = 3
+
 
 def verify_a(events):
     """Require the new A proof; this is never a replacement for the suite checks."""
@@ -34,7 +36,7 @@ def verify_a(events):
     ack = fields('A_PIPE_ACK', 'sourceLeaderHandle reader ownershipEstablished')
     entry = fields('HELPER_ENTRY', 'qpc setup stdout sourceRead ackQpc readCloseQpc bindQpc setOk getMatch pipeType startupStdout startupStderr')
     for record in (pipe, reader, entry):
-        if record['setup'] != setup or record['pipeType'] != '2':
+        if record['setup'] != setup or record['pipeType'] != str(FILE_TYPE_PIPE):
             raise ValueError('P02-A missing current-stdout setup/type')
     source_read, source_write = number(pipe['sourceRead']), number(pipe['sourceWrite'])
     startup = [number(pipe[k]) for k in ('startupStdin', 'startupStdout', 'startupStderr')]
