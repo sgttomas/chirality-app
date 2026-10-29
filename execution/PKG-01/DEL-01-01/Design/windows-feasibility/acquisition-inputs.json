@@ -1,0 +1,160 @@
+{
+  "observed_utc": "2026-10-29T05:05:28.202254+00:00",
+  "scope": "Proposal only. Public metadata/HEAD reads authorized; no installer/package payload downloaded, no guest install/reconfiguration. All byte sizes are observations or explicitly labelled estimates.",
+  "tool_payloads": [
+    {
+      "name": "rustc aarch64-pc-windows-msvc",
+      "url": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-aarch64-pc-windows-msvc.tar.xz",
+      "sha256": "63034fe17a2f7c7d6fadf3618600bc573cab94d56de85295225f2b7f86426317",
+      "content_length": "61558480",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "cargo aarch64-pc-windows-msvc",
+      "url": "https://static.rust-lang.org/dist/2026-07-16/cargo-1.97.1-aarch64-pc-windows-msvc.tar.xz",
+      "sha256": "f0a7bdfcea4ff8d5420e4ebb6f6522c4a2beab4e5b343d47fb0c3f417ad36f1b",
+      "content_length": "9981000",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "rust-std aarch64-pc-windows-msvc",
+      "url": "https://static.rust-lang.org/dist/2026-07-16/rust-std-1.97.1-aarch64-pc-windows-msvc.tar.xz",
+      "sha256": "2b920577f215e98e9b56f63e845fbf96b268f7b3c9151805a9e75c0dc250a327",
+      "content_length": "22621952",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "rust-std x86_64-pc-windows-msvc",
+      "url": "https://static.rust-lang.org/dist/2026-07-16/rust-std-1.97.1-x86_64-pc-windows-msvc.tar.xz",
+      "sha256": "05f356609926e663a81e9697077214236514b2f9ff7a36e63b0070f43f073f66",
+      "content_length": "22603560",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "rust-std wasm32-unknown-unknown",
+      "url": "https://static.rust-lang.org/dist/2026-07-16/rust-std-1.97.1-wasm32-unknown-unknown.tar.xz",
+      "sha256": "fa0edb6e9f34faae5735554d62d50875eded839dc707d0f1c01467a918d8453b",
+      "content_length": "21949220",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "rustup-init 1.29.2 ARM64",
+      "url": "https://static.rust-lang.org/rustup/archive/1.29.2/aarch64-pc-windows-msvc/rustup-init.exe",
+      "content_length": "11277824",
+      "sha256": "58005a321c5dcb9c4457c0a13bb5d6a56a5793efaef429004edaa1db33019b59",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "Node 24.18.0 ARM64 zip",
+      "url": "https://nodejs.org/dist/v24.18.0/node-v24.18.0-win-arm64.zip",
+      "sha256": "f274669adb93b1fd0fbf8f21fd078609e9dcc84333d4f2718d2dde3f9a161a01",
+      "content_length": "33361856",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "codex-x64",
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-win32-x64.tgz",
+      "integrity": "sha512-/gCFcuOmGlQkgGivWCtY8BNEDixh70Pue0HZOk9S8bj2vUIE1GLD9zcNB/KqqDJmn0S+lIttauLpzQnw6HOCHA==",
+      "unpacked_size": 450619016,
+      "content_length": null
+    },
+    {
+      "name": "codex-arm64",
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-win32-arm64.tgz",
+      "integrity": "sha512-tTvK9ZIGuj9WnYaYOAnfjJVSfPV7dKqWtDHqUPLf0Hadp6SgynTxx7S7iMXRieFeXVOI2XH76KxEHSOTOnz3zw==",
+      "unpacked_size": 389339784,
+      "content_length": null
+    },
+    {
+      "name": "VS 17.14.43 bootstrapper",
+      "url": "https://download.visualstudio.microsoft.com/download/pr/4bc08c27-bd31-470c-9a30-3b62707fbf0f/dbea89df9de387e415075d40d713ecc1a73091d03e81080c3a957101f390f499/vs_BuildTools.exe",
+      "content_length": "4474088",
+      "size_basis": "HTTP HEAD Content-Length; payload not downloaded"
+    },
+    {
+      "name": "Git-2.56.0.4-arm64.exe",
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/Git-2.56.0.4-arm64.exe",
+      "bytes": 64406136,
+      "sha256": "e7dcc4adbb0eb373064598cd18bc75e60128707d816ead51cd9bd98e356f0075",
+      "size_basis": "GitHub publisher release metadata; payload not downloaded"
+    },
+    {
+      "name": "wasm-bindgen-0.2.123-x86_64-pc-windows-msvc.tar.gz",
+      "url": "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.123/wasm-bindgen-0.2.123-x86_64-pc-windows-msvc.tar.gz",
+      "bytes": 7554935,
+      "sha256": "2b8efedaef0f89c849c743524c9381f319df0eb0c61d957e2b00982fd964f389",
+      "size_basis": "GitHub publisher release metadata; payload not downloaded"
+    }
+  ],
+  "vs_catalog_join": {
+    "channel_url": "https://aka.ms/vs/17/release/channel",
+    "channel_observed_sha256": "9312f33527b6f89ee6290ac59190584d137959dadd0a3334c40ea3de188ab5c4",
+    "version": "17.14.43+37824.6",
+    "catalog_url": "https://download.visualstudio.microsoft.com/download/pr/4bc08c27-bd31-470c-9a30-3b62707fbf0f/5bd3b0b2ae509af2e9559b852f78545df0bf2c081dd850caed76f1dc134c511e/VisualStudio.vsman",
+    "declared_bytes": 30443792,
+    "declared_sha256": "5bd3b0b2ae509af2e9559b852f78545df0bf2c081dd850caed76f1dc134c511e",
+    "observed_bytes": 17954808,
+    "observed_sha256": "87791000b1d6357e174f039ce9c2f03d150d4e90b45e8e52468d797dac62022c",
+    "attempts": 2,
+    "standing": "MISMATCH: do not use catalog as authenticated installation authority"
+  },
+  "vs_budget": {
+    "basis": "UNVERIFIED catalog SHA mismatch: estimate only, never installation authority",
+    "roots": [
+      "Microsoft.VisualStudio.Product.BuildTools",
+      "Microsoft.VisualStudio.Workload.VCTools",
+      "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+      "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+      "Microsoft.VisualStudio.Component.Windows11SDK.26100"
+    ],
+    "method": "Required dependencies recursively; keep ALL package variants and versions/architectures/languages for each reached ID; exclude Optional/Recommended except explicitly selected roots; deduplicate payload sha256; does not emulate Installer applicability or engine bootstrap",
+    "ids": 354,
+    "payloads": 1671,
+    "archive_bytes": 2691378431,
+    "install_sizes_sum": 8428814829,
+    "missing_ids": []
+  },
+  "proposed_caps_not_authorized": {
+    "vs_transfers_bytes": 4294967296,
+    "combined_npm_transfers_bytes": 1073741824,
+    "one_codex_x64_package_bytes": 536870912,
+    "overall_transfer_bytes": 6442450944
+  },
+  "source_metadata_digests": {
+    "vs-arm": "89f990bd9a88432b4b8bb5c1ecc28a71e1a76b0dba7338858913386d1d2594ad",
+    "vs-system": "5d1b48188fe087fb2d3bb9fd213a3c49d5deebd28d4acb3e2a129ab1db3bd5d3",
+    "vs-components": "c83298e194c05a4535093b13a7672bd6441cf26db3b4326e461cc8420e10adf7",
+    "vs-release": "c9ea25b06f1b4f4d503555c0e377a58d385b14124aef0cbded6efe782a73cd10",
+    "rust-channel": "03569b1886ceb5c05276b50c8431ab111de944cd6140fe1fa7d821dd8e0f29cf",
+    "rustup-release": "d6d9c15e4e0c252a4a391596e319636ac8231180e7156b6acd1184457c4a772d",
+    "rustup-sha": "7773075f99cd9c4989da810ec2b42afccb17e6de457ef5de310012f334e82a32",
+    "node-shas": "3927bab574a00ca0560c9583fe19655ba19603a1c5851414e4325d34ac50e469",
+    "git-release": "0fe5327bf2f0aaa6c0cdd672344d4fc053b48cad6f211c4a0c181dbca47c09c6",
+    "wasm-release": "0ede2f14c32d83fffa0051ae00a0475ca25365fa58f516ffe1c4a2fb92ded5c4",
+    "codex-npm": "d61a592473442230ebfa5cc32976967bd023c6ed1243871c38cedcbed26f0733",
+    "codex-x64": "4f0029035cbe3fbbd9887820643665f1f519a02b022389c4713a073b2b5ab7c0",
+    "codex-arm64": "85d50029f41eb8294d4dc74e9ab16c53bc2b8ff8568e13aa6b546b7f856949e9"
+  },
+  "proposed_guest_space_envelopes_gib": {
+    "vs_layout": 4,
+    "vs_installed_and_machine_cache": 15,
+    "other_tool_archives": 1,
+    "other_tools_installed": 2,
+    "separate_compressed_project_caches": 3,
+    "extracted_registry_sources_and_npm_trees": 4,
+    "two_source_checkouts_and_git_objects": 5,
+    "codex_extracted": 1,
+    "app_dev_test_targets": 20,
+    "swb_separate_root_outputs": 20,
+    "fixtures_homes_recovery_logs": 3
+  },
+  "guest_free_space_threshold": {
+    "units": "bytes",
+    "rounded_peak_envelope": 85899345920,
+    "os_user_reserve": 21474836480,
+    "required_initial_free": 107374182400,
+    "observed_free": 216054390784,
+    "filesystem": "NTFS",
+    "standing": "Estimate only; remeasure before each gate; revise before exceeding any envelope"
+  }
+}
