@@ -21,6 +21,38 @@ public static class ProcessFixture {
     static List<IntPtr> Jobs=new List<IntPtr>();
     static List<IntPtr> IO=new List<IntPtr>();
     static bool CleanupObserved;
+    static SingleRead ARead;
+    static readonly string CloseFile="P02-A-close.txt";
+
+    // A alone: one synchronous read on the actual stdout reader. No Poll or
+    // CloseHandle may touch this handle until Thread.Join proves completion.
+    sealed class SingleRead {
+        public IntPtr Handle;
+        public Thread Worker;
+        public bool Started,Ok;
+        public uint Count;
+        public int Error;
+        public long Qpc,CompletedMs;
+        public string Failure;
+        public SingleRead(IntPtr handle) { Handle=handle; }
+        public void Start() {
+            Worker=new Thread(delegate() {
+                try {
+                    byte[] b=new byte[1];
+                    Ok=ReadFile(Handle,b,1,out Count,IntPtr.Zero);
+                    Error=Marshal.GetLastWin32Error(); // immediately; meaningful only if !Ok
+                    Qpc=Stopwatch.GetTimestamp(); CompletedMs=Clock.ElapsedMilliseconds;
+                } catch(Exception e) { Failure=e.GetType().Name; }
+            });
+            Worker.IsBackground=true; Worker.Start(); Started=true;
+        }
+        public bool Join(int ms) { return !Started || Worker.Join(ms); }
+        public bool Eof { get { return Started && Failure==null && !Ok && Error==109 && Count==0; } }
+        public string Result() {
+            return "ok="+Ok+";bytes="+Count+";error="+Error+";qpc="+Qpc+
+                ";completedMs="+CompletedMs+";workerStarted="+Started+";workerJoined=True;failure="+(Failure??"none");
+        }
+    }
 
     [StructLayout(LayoutKind.Sequential)] struct SA { public int size; public IntPtr sd; public int inherit; }
     [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct SI {
@@ -237,8 +269,91 @@ public static class ProcessFixture {
         while(Clock.ElapsedMilliseconds<until) { if(Signaled(p)) return; Thread.Sleep(5); }
         throw new TimeoutException("original process exit observation unavailable");
     }
+    static long Number(string value) {
+        long n;
+        Require(Int64.TryParse(value,System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture,out n) && n.ToString()==value,"invalid diagnostic number");
+        return n;
+    }
+    static bool Boolean(string value) {
+        Require(value=="True" || value=="False","invalid diagnostic boolean"); return value=="True";
+    }
+    static bool CloseConfirmation(string[] entry) {
+        string raw;
+        try {
+            // Writer used CreateNew/FileShare.None. This succeeds only after its
+            // bounded write/flush/close; never accept a concurrently partial file.
+            using(FileStream f=new FileStream(Path.Combine(Root,CloseFile),FileMode.Open,FileAccess.Read,FileShare.None)) {
+                Require(f.Length>0 && f.Length<=512,"A close metadata size");
+                byte[] bytes=new byte[(int)f.Length]; int offset=0,n;
+                while(offset<bytes.Length && (n=f.Read(bytes,offset,bytes.Length-offset))>0) offset+=n;
+                Require(offset==bytes.Length && f.ReadByte()==-1,"A close metadata incomplete");
+                foreach(byte b in bytes) Require(b<128,"A close metadata non-ASCII");
+                raw=Encoding.ASCII.GetString(bytes);
+            }
+        } catch(FileNotFoundException) { return false; }
+        catch(IOException e) {
+            if((e.HResult&0xffff)==32) return false; // exclusive writer still owns file
+            throw;
+        }
+        Require(raw.EndsWith("|COMPLETE\n",StringComparison.Ordinal),"A close metadata unfinished");
+        string[] p=raw.Substring(0,raw.Length-1).Split('|');
+        Require(p.Length==13 && p[0]=="CLOSE" && p[1]==Nonce && p[2]=="P02-A" && p[12]=="COMPLETE","A close metadata fields/generation");
+        long qpc=Number(p[3]),output=Number(p[4]),error=Number(p[5]);
+        bool alias=Boolean(p[6]),outputOk=Boolean(p[7]),errorAttempted=Boolean(p[9]),errorOk=Boolean(p[10]);
+        long outputError=Number(p[8]),errorError=Number(p[11]);
+        Require(output>0 && error>0 && outputError<=Int32.MaxValue && errorError<=Int32.MaxValue,"A close metadata handle/error");
+        Require(entry[4]=="helper-entry;stdout="+output+";stderr="+error,"A close metadata ENTRY handle mismatch");
+        Require(alias==(output==error) && errorAttempted==!alias,"A close alias/attempt mismatch");
+        Require(!alias || (!errorOk && errorError==0),"A skipped alias fabricated close result");
+        Require(qpc>=Number(entry[3]) && qpc<=Stopwatch.GetTimestamp(),"A post-close time invalid");
+        Log("A_CLOSE_CONFIRMATION","qpc="+qpc+";stdout="+output+";stderr="+error+";alias="+alias+
+            ";stdoutOk="+outputOk+";stdoutError="+outputError+";stderrAttempted="+errorAttempted+
+            ";stderrOk="+errorOk+";stderrError="+errorError+";writeComplete=True");
+        Require(outputOk && (alias || errorOk),"A helper output close failed");
+        return true;
+    }
+    static void ObserveA(Child c,string[] entry,long until,long untilQpc) {
+        Require(c.Output.Pending.Length==0,"A pending partial/extra bytes after ENTRY");
+        Require(!c.Output.Eof,"A EOF before direct read");
+        ARead=new SingleRead(c.Output.Handle);
+        Log("A_READ_START","handle="+c.Output.Handle+";leaderHandle="+c.Pi.process+
+            ";untilMs="+until+";untilQpc="+untilQpc+";pendingBytes=0;length=1");
+        ARead.Start();
+        bool closed=false,joined=false;
+        while(Clock.ElapsedMilliseconds<until && Stopwatch.GetTimestamp()<untilQpc) {
+            if(!closed) closed=CloseConfirmation(entry);
+            joined=ARead.Join(0);
+            if(joined) {
+                Log("A_READ_RESULT",ARead.Result());
+                Require(ARead.Eof,"A direct read not FALSE/109: "+ARead.Result());
+                if(closed) break;
+                // Log the result only once, after joining; await metadata below.
+                while(!closed && Clock.ElapsedMilliseconds<until && Stopwatch.GetTimestamp()<untilQpc) {
+                    closed=CloseConfirmation(entry); if(!closed) Thread.Sleep(5);
+                }
+                break;
+            }
+            Thread.Sleep(5);
+        }
+        if(!joined) Log("A_READ_PENDING","atOriginalDeadline=True;joined=False");
+        bool eof=joined && ARead.Eof && ARead.CompletedMs<until && ARead.Qpc<untilQpc;
+        bool signaled=Signaled(c.Pi.process); uint code=Code(c.Pi.process);
+        long observed=Stopwatch.GetTimestamp();
+        Log("A_READ_PROOF","closeConfirmed="+closed+";workerJoined="+joined+";beforeDeadline="+
+            (Clock.ElapsedMilliseconds<until && observed<untilQpc)+";originalLeaderHandle="+c.Pi.process);
+        Log("OBSERVATION","leaderSignaled="+signaled+";exit="+code+";eof="+eof);
+        Require(closed && eof && !signaled && code==259 && Clock.ElapsedMilliseconds<until && observed<untilQpc,
+            "A live EOF/post-close proof not established by original deadline");
+    }
     static void P02(string variant) {
-        Case="P02-"+variant; long until=Clock.ElapsedMilliseconds+8000;
+        Case="P02-"+variant; long startQpc=Stopwatch.GetTimestamp(),until=Clock.ElapsedMilliseconds+8000;
+        long untilQpc=startQpc+8*Stopwatch.Frequency; // additional strict bound; never extends original until
+        if(variant=="A") {
+            Log("A_DEADLINE","startQpc="+startQpc+";untilQpc="+untilQpc+";startMs="+(until-8000)+
+                ";untilMs="+until+";frequency="+Stopwatch.Frequency);
+            Require(!File.Exists(Path.Combine(Root,CloseFile)) && !Directory.Exists(Path.Combine(Root,CloseFile)),"A stale close metadata");
+        }
         IntPtr inner=Job(false); Child c=Leader(variant,true); Bind(inner,c); Resume(c);
         IntPtr d=IntPtr.Zero;
         if(variant=="B") {
@@ -248,12 +363,9 @@ public static class ProcessFixture {
             Require(!Signaled(d),"B descendant no longer live");
             Log("OBSERVATION","leaderSignaled=true;exit="+Code(c.Pi.process)+";eof=false;descendantLive=true");
         } else {
-            Require(Event(c.Output,until)[0]=="ENTRY","P02 entry");
+            string[] entry=Event(c.Output,until); Require(entry[0]=="ENTRY","P02 entry");
             if(variant=="A") {
-                while(!c.Output.Eof && Clock.ElapsedMilliseconds<until) { Require(c.Output.Poll()==null,"unexpected A event"); Thread.Sleep(5); }
-                bool signaled=Signaled(c.Pi.process); uint code=Code(c.Pi.process);
-                Log("OBSERVATION","leaderSignaled="+signaled+";exit="+code+";eof="+c.Output.Eof);
-                Require(c.Output.Eof && !signaled,"A EOF versus exit not established");
+                ObserveA(c,entry,until,untilQpc);
             } else {
                 WaitExit(c.Pi.process,until); uint code=Code(c.Pi.process);
                 Log("OBSERVATION","leaderSignaled=true;exit="+code+";exit259IsExit=true");
@@ -283,12 +395,22 @@ public static class ProcessFixture {
         Deadline=new Timer(delegate { ExitProcess(91); },null,12000,Timeout.Infinite);
         if(mode=="leaf") { Emit("EFFECT","invented-nonce-effect"); Thread.Sleep(11000); return; }
         if(mode=="A") {
-            // Both standard outputs were assigned the same pipe. Close every
-            // distinct helper-side reference before asking the parent for EOF.
             IntPtr output=GetStdHandle(-11),error=GetStdHandle(-12);
             Emit("ENTRY","helper-entry;stdout="+output+";stderr="+error);
-            Check(CloseHandle(output),"close stdout");
-            if(error!=output) Check(CloseHandle(error),"close stderr output alias");
+            // A shared numeric value is one handle: never double-close it. The
+            // skipped alias has an explicit attempted=False, not invented success.
+            bool outputOk=CloseHandle(output); int outputError=Marshal.GetLastWin32Error();
+            bool alias=error==output,errorOk=false; int errorError=0;
+            if(!alias) { errorOk=CloseHandle(error); errorError=Marshal.GetLastWin32Error(); }
+            long qpc=Stopwatch.GetTimestamp(); // after all output-close attempts
+            try {
+                string record="CLOSE|"+Nonce+"|"+Case+"|"+qpc+"|"+output+"|"+error+"|"+alias+"|"+
+                    outputOk+"|"+outputError+"|"+!alias+"|"+errorOk+"|"+errorError+"|COMPLETE\n";
+                byte[] bytes=Encoding.ASCII.GetBytes(record); Require(bytes.Length<=512,"A close metadata bound");
+                using(FileStream f=new FileStream(Path.Combine(Root,CloseFile),FileMode.CreateNew,FileAccess.Write,FileShare.None)) {
+                    f.Write(bytes,0,bytes.Length); f.Flush();
+                }
+            } catch { ExitProcess(93); return; } // never try logging through closed stdout
             Thread.Sleep(11000); return;
         }
         Emit("ENTRY","helper-entry");
@@ -337,15 +459,27 @@ public static class ProcessFixture {
                     long until=Clock.ElapsedMilliseconds+5000;
                     foreach(IntPtr p in Processes) WaitExit(p,until);
                     while(Active(Safety)!=0 && Clock.ElapsedMilliseconds<until) Thread.Sleep(5);
-                    Require(Active(Safety)==0,"safety Job not observed empty"); CleanupObserved=true;
+                    Require(Active(Safety)==0,"safety Job not observed empty");
+                    long deathProofQpc=Stopwatch.GetTimestamp();
                     Log("SAFETY_CLEANUP","allRetainedHandlesSignaled=true;active=0");
+                    if(ARead!=null) {
+                        int remaining=(int)Math.Max(0,Math.Min(2000,until-Clock.ElapsedMilliseconds));
+                        Require(ARead.Join(remaining),"A read worker completion UNKNOWN after owned-writer death; handle retained");
+                        Log("A_READ_CLEANUP",ARead.Result()+";deathProofQpc="+deathProofQpc+
+                            ";eofAfterDeathProof="+(ARead.Eof && ARead.Qpc>=deathProofQpc)+
+                            ";liveEofOutcomeUnchanged=True");
+                    }
+                    CleanupObserved=true;
                 } catch(Exception e) { Log("CLEANUP_UNKNOWN",e.GetType().Name+":"+e.Message); }
+                // Unknown process/I/O teardown: exit this controller, retaining
+                // pending read HANDLEs until process death. No concurrent close,
+                // cancellation, cold thread lookup or arbitrary PID operation.
+                if(!CleanupObserved) { TerminateJobObject(Safety,73); ExitProcess(3); }
                 // Dispose watchdog only after cleanup attempt; crash/last-close still kills contained helpers.
                 if(Deadline!=null) Deadline.Dispose();
                 foreach(IntPtr h in IO) CloseHandle(h);
                 foreach(IntPtr h in Processes) CloseHandle(h);
                 foreach(IntPtr h in Jobs) CloseHandle(h);
-                if(!CleanupObserved) ExitProcess(3);
             }
         }
     }

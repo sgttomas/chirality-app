@@ -14,6 +14,25 @@ Native execution is pending parent publication; see
 for prerequisites, boundaries and artifact schema. Host-only checks:
 `python3 -B app/examination/windows_platform/test_hosted_fixture.py`.
 
+The next A-only candidate performs exactly one background synchronous
+`ReadFile(actual stdout reader, byte[1], 1)` after validated ENTRY with no
+pending bytes. An exclusively created, at-most-512-byte `P02-A-close.txt` in
+the fresh trusted hosted root confirms post-close results, generation, handles
+and QPC; it never establishes EOF. Aliased stderr is explicitly not closed
+twice. Immediate Win32 errors are meaningful only for failed close/read calls.
+Only joined FALSE/109 before the original eight-second deadline, valid close
+confirmation and the original leader HANDLE still live with query259 can pass
+A. TRUE/0, extra output, other errors, late or pending reads refuse.
+
+Failure is retained before safety cleanup. The stdout HANDLE remains owned
+while the read is pending. After retained-process/Job-zero proof, the worker
+has at most two seconds within the original five-second cleanup budget to join.
+Its result and ordering against death proof are logged without changing A's
+outcome. Unknown teardown logs `CLEANUP_UNKNOWN` and exits only the fixture
+controller/owned safety Job without manually closing a pending read HANDLE.
+No cancellation API or thread-ID lookup is used. This candidate has not been
+compiled or run natively; the two preserved Windows attempts remain FAILED.
+
 ## Held guest profile
 
 **Guest access is held.** The former target is the owner's CAEPIPE VM and is

@@ -222,3 +222,105 @@ hypothesis must not be reported as a confirmed diagnosis or successful fix.
 B/C were not reached. Safety cleanup again observed all retained handles
 signaled and active zero; the overall suite remains FAILED. A focused
 diagnosis must preserve the actual EOF/live-leader assertion and deadline.
+
+## Bounded direct-read candidate: native NOT RUN
+
+The next local candidate follows the independent source research on the two
+exact failed traces. Neither an extra writer, a CLR duplicate nor a
+`PeekNamedPipe` defect is established. The old Reader only reads when peek
+reports available bytes. A now stops polling after validated ENTRY and an
+empty pending buffer and starts exactly one background synchronous
+`ReadFile` on `c.Output.Handle`, the existing leader stdout `CreatePipe`
+read end, with one byte requested. P01/B/C retain their observation paths.
+
+The helper attempts each distinct stdout/stderr close and captures its actual
+Boolean and immediate Win32 error; successful calls' error values carry no
+meaning. Equal stdout/stderr values designate a single close: stderr is
+explicitly `attempted=False`, with no fabricated successful second close. QPC
+is captured after these attempts. The helper exclusively creates
+`P02-A-close.txt` under this profile's fresh validated Root using
+`CreateNew`/`FileShare.None`, writes at most 512 ASCII bytes with a terminal
+completion marker, flushes and closes. The supervisor requires an exclusive
+completed-file read, exact size/field/generation/case/ENTRY-handle/alias/time
+validation and successful distinct closes. Missing, malformed, stale or failed
+confirmation cannot pass. No post-close exception is logged via closed stdout.
+Validated metadata is included in native stdout; the raw metadata file is not
+a separate uploaded artifact. This trusted-root diagnostic establishes no
+hostile-namespace or durable-publication guarantee.
+
+The worker captures return Boolean, byte count, immediate failure error,
+completion QPC and elapsed milliseconds; successful `Thread.Join` supplies
+completion evidence. A requires FALSE/109 with zero bytes before the existing
+absolute eight-second deadline, valid post-close metadata, and the same original
+leader HANDLE unsignaled with exit query259. A second QPC bound, also eight
+seconds from before creation, only tightens the existing elapsed-time bound.
+TRUE/positive output, TRUE/zero, other errors and pending/late completion refuse.
+The exact required A observation remains
+`leaderSignaled=False;exit=259;eof=True`. The verifier additionally requires
+the close/read/deadline/original-HANDLE proof and joined-reader cleanup; no
+historical source hash, trace or expectation is rewritten.
+
+On refusal the failure precedes normal safety cleanup. The read HANDLE is kept
+alive until the worker joins. Following all retained process HANDLE signaling
+and safety Job active-zero proof, cleanup allows a join of at most two seconds
+within its existing five-second absolute budget, records the result and whether
+its QPC is at/after the recorded death proof. Completion earlier than that
+proof does not establish its precise ordering against process death. EOF only
+during cleanup cannot retroactively pass A or identify a retaining module.
+Unjoined or otherwise unknown teardown records `CLEANUP_UNKNOWN` and terminates
+only this fixture controller and its owned safety Job; it does not manually
+close an outstanding synchronous-I/O HANDLE. The independent watchdog remains
+armed on that path. No `CancelSynchronousIo`, cold thread lookup, global handle
+enumeration, PID cleanup, replacement stdout or speculative native helper is
+introduced. Helper sleep11s/timer12s and safety containment remain.
+
+Falsifiable next native outcomes: live FALSE/109 with all other proof supports
+this observer correction; pending at the original deadline followed by EOF
+during writer termination rejects live EOF and supports further bounded
+process-lifetime-associated retention investigation. Missing close metadata,
+nonproof reads or unknown cleanup remain failures. No module or supplier cause
+is inferred from any of those outcomes.
+
+Host-only checks currently pass 17 hosted regression methods, including six new
+parser-boundary methods for missing/duplicate proof, failed/stale/incomplete
+close confirmation, zero-byte success, unexpected output, cancellation995,
+other errors, late/unjoined completion, handle/deadline mismatch and unknown or
+rewritten read cleanup. Invented parser units are not native traces. The
+deliverables check reports 41 deliverables, no errors and the same six cycle
+groups; `git diff --check` passes. No C# compiler/runtime or Windows execution
+was used locally. Native CI for this candidate is NOT RUN and remains with
+parent Agent 0 after independent source review and publication.
+
+Reconciliation: this changes only the hosted diagnostic implementation and
+its proof checks. DEL-01-02 ScopeOfWork/dependency conditions and the proposed
+P-02 outcome in WINDOWS_PLATFORM_SERVICES remain unchanged. No production,
+guest, compiler-safety, filesystem, policy, commitment, acceptance or release
+claim follows; old evidence is preserved.
+
+### Independent candidate review and local repair
+
+[Independent Type2 review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A68530ca1-6352-497f-b9d9-11162eb7140f%3Adelegate-task%3A024c7a6a-b065-4bcb-bd11-7ff99209dfdc)
+examined saved candidate `63746e0d5dc88ec4d650caf015e361e889d89559`
+using `codex-hub/gpt-6.1-sol`, `reasoningEffort=medium`,
+`serviceTier=default`. One Type2 ran and did not delegate. The implementation
+owner inspected the completed return and full saved report. The reviewer found
+no P0/P1 or additional worker/handle/file/cleanup safety defect and identified
+one P2 verifier gap: `removeprefix` permitted a suffix-only cleanup record
+without the joined-worker result. The actual C# emitter included the result;
+the missing-proof boundary still needed refusal.
+
+The implementation owner reproduced that finding with a new suffix-only
+negative subcase, then required the exact prior read-result prefix before
+parsing cleanup metadata. All 17 hosted host-only methods pass after repair.
+This small verifier repair was locally checked; it did not change the reviewed
+C# worker, file or cleanup semantics and was not independently re-reviewed.
+Both prior native channel hashes were rechecked against their result records;
+the new verifier still refuses both failed traces. No native compilation or
+execution was performed by either contributor.
+
+Executable source identities for parent publication: `ProcessFixture.cs`
+SHA-256 `0fe3a1d38c032655e9803c861eabf1bffb6ba11f0051c237f81889d1df4057b5`
+(31,875 bytes); repaired `verify_results.py` SHA-256
+`742241038b0f78871bc6fb308119356c857c7acba2d1da4b5f40cb899a6ef205`
+(9,504 bytes). These are new candidate identities, not replacements for either
+historical artifact's source hashes. Native CI remains NOT RUN.
