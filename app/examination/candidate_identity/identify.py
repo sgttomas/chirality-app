@@ -19,10 +19,12 @@ import re
 import stat
 import subprocess
 import sys
+import tarfile
 from xml.parsers.expat import ExpatError
 
 METHOD = 'chirality.app.bundle-tree.sha256/v2'
 FORMAT = 'chirality.app-v4.candidate-identification/v2'
+BUNDLED_FORMAT = 'chirality.app-v4.candidate-identification/v3'
 INVENTORY_FORMAT = 'chirality.app-v4.bundle-inventory/v2'
 XATTR_ALLOWLIST = ('com.apple.provenance',)
 KINDS = ('dir', 'file', 'symlink')
@@ -630,16 +632,38 @@ def make_record(args):
         'identified_at': args.identified_at,
         'limits': LIMITS,
     }
+    acquisition = None
+    if bool(args.supplier_archive) != bool(args.supplier_acquisition):
+        raise ValueError('bundled supplier requires both archive and acquisition record')
+    if args.supplier_archive:
+        from bundled_supplier import identify_supplier
+        record['supplier'], acquisition = identify_supplier(inv, args.supplier_archive, args.supplier_acquisition)
+        record['format'] = BUNDLED_FORMAT
+        record['identified_by']['supplier_tool_sha256'] = sha(Path(__file__).with_name('bundled_supplier.py').read_bytes())
+        record['limits'] = [s for s in LIMITS if not s.startswith('The Codex supplier is not part')]
+        record['limits'] += [
+            'Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.',
+            'Unsigned development candidate only: no installed-custody issuer, supplier qualification, signing, notarisation, native launch or release follows from identification.',
+        ]
+    else:
+        from bundled_supplier import has_supplier
+        if has_supplier(inv):
+            raise ValueError('v2 excludes bundled Codex; supply archive and acquisition record for v3')
     validate_record(record)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=False)
     (out / 'bundle-inventory.json').write_bytes(inventory_bytes)
+    if acquisition is not None:
+        (out / 'supplier-acquisition.json').write_bytes(acquisition)
     (out / 'candidate-identification.json').write_bytes(json.dumps(record, indent=2, ensure_ascii=False).encode() + b'\n')
     return record
 
 
 def validate_record(record):
-    schema_path = Path(__file__).resolve().parents[3] / 'execution/PKG-09/DEL-09-01/Design/candidate-identity-v2/candidate-identification.schema.json'
+    version = {FORMAT: 'v2', BUNDLED_FORMAT: 'v3'}.get(record.get('format'))
+    if version is None:
+        raise ValueError('unknown candidate identification format')
+    schema_path = Path(__file__).resolve().parents[3] / f'execution/PKG-09/DEL-09-01/Design/candidate-identity-{version}/candidate-identification.schema.json'
     from jsonschema import Draft202012Validator
     errors = sorted(Draft202012Validator(json.loads(schema_path.read_text())).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:
@@ -676,6 +700,11 @@ def check(args):
     if sha(stored) != record['bundle']['inventory']['sha256']:
         raise ValueError('stored inventory differs from its recorded digest')
     expected = validate_inventory(json.loads(stored))
+    from bundled_supplier import check_supplier, has_supplier
+    if record['format'] == BUNDLED_FORMAT:
+        check_supplier(record['supplier'], expected, folder)
+    elif has_supplier(expected):
+        raise ValueError('v2 record cannot declare a bundled supplier absent')
     if identity(expected) != record['app_candidate']['build_identity']:
         raise ValueError('stored inventory does not yield the recorded build identity')
     observed = inventory(args.app)
@@ -701,6 +730,8 @@ def main(argv=None):
     p.add_argument('--export-root', required=True); p.add_argument('--build-facts', required=True)
     p.add_argument('--repository', default='sgttomas/chirality-app'); p.add_argument('--identified-at', required=True)
     p.add_argument('--out-dir', required=True)
+    p.add_argument('--supplier-archive', help='Existing official macOS arm64 platform tarball; never downloaded or executed')
+    p.add_argument('--supplier-acquisition', help='Exact acquisition record for that archive; retained with the v3 record')
     p = sub.add_parser('check'); p.add_argument('--record', required=True); p.add_argument('--app', required=True)
     args = parser.parse_args(argv)
     try:
@@ -718,7 +749,7 @@ def main(argv=None):
         ok = result['equal'] and result['build_identity'] == result['recorded_build_identity'] and not result.get('record_fields_mismatched')
         return 0 if ok else 1
     except (ValueError, TypeError, KeyError, AttributeError, OSError, subprocess.CalledProcessError,
-            json.JSONDecodeError, plistlib.InvalidFileException, ExpatError) as error:
+            json.JSONDecodeError, plistlib.InvalidFileException, ExpatError, tarfile.TarError) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
 

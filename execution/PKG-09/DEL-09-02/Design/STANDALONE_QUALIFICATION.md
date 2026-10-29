@@ -578,3 +578,14 @@ bound by SHA-256 in that record and retained in local scratch pending the
 owner's private-evidence-store choice. Identifying C1 opens no examination and selects no qualification
 candidate: U-SQ-3 (development build or package) and the run inputs in §2
 remain as stated.
+
+For a current complete-content unsigned development App, DEL-09-01's additive
+[v3 record profile](../../DEL-09-01/Design/candidate-identity-v3/METHOD.md)
+retains the same complete bundle-tree v2 identity and EXP candidate values,
+while truthfully declaring the bundled supplier and its measured archive
+correspondence. The older v2 record's `bundled: false` is that format's scope,
+not a product prohibition. Historical records and their observations remain
+unchanged. Source/build/configuration and supplier provenance must accompany
+the identified current artifact; this identification neither opens a scenario
+nor establishes workflow, recovery, access-mode or packaged qualification.
+ScopeOfWork SOW-195/196/197 and dependency conditions remain unchanged.

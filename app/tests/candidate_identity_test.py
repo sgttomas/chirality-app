@@ -19,6 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import tarfile
 import unittest
 from unittest import mock
 
@@ -768,6 +769,106 @@ class CandidateRecord(GitScratch):
                 self.assertFalse((self.tmp / ('r' + str(index))).exists())
             finally:
                 path.unlink()
+
+
+@unittest.skipUnless(MAC, 'live bundle metadata requires macOS')
+class BundledCandidateRecord(GitScratch):
+    def setUp(self):
+        super().setUp()
+        self.app = write_bundle(self.tmp / 'build')
+        self.facts = self.tmp / 'facts.json'
+        self.facts.write_text(json.dumps({
+            'procedure': 'test', 'profile': 'debug', 'signing': 'none', 'features': ['custom-protocol'],
+            'command': ['build'], 'config_overlays': [], 'toolchain': {}, 'lockfiles': {}, 'offline': True,
+            'environment': {}, 'started_at': WHEN, 'finished_at': WHEN}))
+        self.home_patch = mock.patch.object(Path, 'home', return_value=self.home)
+        self.home_patch.start(); self.addCleanup(self.home_patch.stop)
+        self.vendor = self.app / 'Contents/Resources/codex'
+        (self.vendor / 'bin').mkdir(parents=True)
+        (self.vendor / 'codex-path').mkdir()
+        (self.vendor / 'bin/codex').write_bytes(b'invented supplier, never executed')
+        (self.vendor / 'bin/codex').chmod(0o755)
+        (self.vendor / 'codex-path/rg').write_bytes(b'invented helper, never executed')
+        self.archive = self.tmp / 'supplier.tgz'
+        self.acquisition = self.tmp / 'acquisition.json'
+        self.refresh_archive()
+        facts = json.loads(self.facts.read_text()); facts['features'] = ['custom-protocol']
+        self.facts.write_text(json.dumps(facts))
+
+    def refresh_archive(self):
+        with tarfile.open(self.archive, 'w:gz') as archive:
+            archive.add(self.vendor, arcname='package/vendor/aarch64-apple-darwin')
+        self.acquisition.write_text(json.dumps({
+            'subject': {'file': 'codex-0.160.0-darwin-arm64.tgz',
+                        'official_source_locator': 'https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-darwin-arm64.tgz'},
+            'acquisition': {'size_bytes': self.archive.stat().st_size, 'sha256': identify.sha(self.archive.read_bytes())}}))
+
+    def record(self):
+        return self.run_tool('record', '--app', str(self.app), '--repo', str(self.repo), '--revision', 'HEAD',
+                             '--prefix', 'proj', '--export-root', str(self.export), '--build-facts', str(self.facts),
+                             '--identified-at', WHEN, '--out-dir', str(self.tmp / 'rec'),
+                             '--supplier-archive', str(self.archive), '--supplier-acquisition', str(self.acquisition))
+
+    check = CandidateRecord.check
+
+    def test_v3_binds_archive_provenance_and_bundle_without_executing_supplier(self):
+        code, out, err = self.record(); self.assertEqual(code, 0, out + err)
+        record = json.loads((self.tmp / 'rec/candidate-identification.json').read_bytes())
+        self.assertEqual(record['format'], identify.BUNDLED_FORMAT)
+        self.assertTrue(record['supplier']['bundled'])
+        self.assertEqual(record['supplier']['standing'], 'unqualified-development')
+        self.assertEqual(record['supplier']['correspondence']['files'], 2)
+        self.assertEqual((self.tmp / 'rec/supplier-acquisition.json').read_bytes(), self.acquisition.read_bytes())
+        self.assertFalse(record['app_candidate']['packaged'])
+        self.assertFalse(any(s.startswith('The Codex supplier is not part') for s in record['limits']))
+        self.assertEqual(self.check()[0], 0)
+        self.archive.unlink()  # later recheck uses retained evidence, no archive reacquisition
+        self.assertEqual(self.check()[0], 0)
+        (self.vendor / 'bin/codex').write_bytes(b'changed')
+        self.assertEqual(self.check()[0], 1)
+
+    def test_v2_refuses_to_record_a_bundled_supplier_as_absent(self):
+        code, _, err = CandidateRecord.record(self)
+        self.assertEqual(code, 2); self.assertIn('v2 excludes bundled Codex', err)
+
+    def test_archive_digest_and_complete_content_must_match(self):
+        mutations = {
+            'archive digest': lambda: self.archive.write_bytes(b'changed'),
+            'supplier bytes': lambda: (self.vendor / 'bin/codex').write_bytes(b'changed'),
+            'supplier mode': lambda: (self.vendor / 'codex-path/rg').chmod(0o755),
+            'extra file': lambda: (self.vendor / 'extra').write_text('extra'),
+            'extra directory': lambda: (self.vendor / 'extra-dir').mkdir(),
+            'missing file': lambda: (self.vendor / 'codex-path/rg').unlink(),
+            'link': lambda: (self.vendor / 'link').symlink_to('bin/codex'),
+        }
+        original = self.tmp / 'original'; shutil.copytree(self.vendor, original)
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                shutil.rmtree(self.vendor); shutil.copytree(original, self.vendor); self.refresh_archive()
+                mutate(); code, out, err = self.record()
+                self.assertEqual(code, 2, out + err); self.assertFalse((self.tmp / 'rec').exists())
+
+    def test_v3_recheck_rejects_provenance_and_manifest_tampering(self):
+        self.assertEqual(self.record()[0], 0)
+        path = self.tmp / 'rec/candidate-identification.json'; original = path.read_bytes()
+        for mutate in (
+            lambda r: r['supplier']['correspondence'].update(file_manifest_sha256='0' * 64),
+            lambda r: r['supplier'].update(pin='9.9.9'),
+            lambda r: r['supplier']['archive'].update(source='https://example.invalid/claim'),
+            lambda r: r['supplier']['acquisition'].update(path='../acquisition.json'),
+            lambda r: r['supplier'].update(standing='verified'),
+        ):
+            r = json.loads(original); mutate(r); path.write_text(json.dumps(r))
+            self.assertEqual(self.check()[0], 2)
+        path.write_bytes(original)
+        (path.parent / 'supplier-acquisition.json').write_text('{}')
+        self.assertEqual(self.check()[0], 2)
+
+    def test_complete_content_profile_refuses_release_or_missing_packaged_resource_feature(self):
+        original = json.loads(self.facts.read_text())
+        for change in ({'features': []}, {'profile': 'release'}, {'signing': 'Developer ID'}):
+            self.facts.write_text(json.dumps(dict(original, **change)))
+            code, _, _ = self.record(); self.assertEqual(code, 2)
 
 
 if __name__ == '__main__':

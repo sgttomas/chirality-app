@@ -555,6 +555,24 @@ and content identities are placeholders, labelled in `limits`.
 
 ## Current implementation conditions
 
+**Complete-content development identification (2026-10-29).** DEL-09-01's
+[additive candidate v3 profile](../../../PKG-09/DEL-09-01/Design/candidate-identity-v3/METHOD.md)
+identifies the complete unsigned development App, including its bundled stock
+supplier, without rewriting the older supplier-absent v2 records. It compares
+the measured cached archive with the acquisition account and all bundled
+vendor files. This is build/input correspondence, not FP-2/W-4, a package
+identity, authenticated acquisition custody or installed supplier custody.
+ScopeOfWork REQ-001/003/004 and existing needs remain unchanged: signed/notarised
+distribution identity, native install/launch and written terms are still owed.
+
+**Shared-Mac build guard limit.** The selected external `t3_slot.sh` and
+`memguard.sh` count command lines rooted in `chirality-t3`; the App checkout
+and its private target are outside that root. App builds therefore require the
+agreed serialized window and a scratch monitor that sums this build's process
+descendants with the wrapper-counted processes (deduplicated), aborting at
+shared 64 GiB, system free below 22%, or `exclusive.pending`. The root-based
+shared guard blind spot remains; fixing shared tools is outside App scope.
+
 **Explicit attested-reference resource placement.** The opt-in
 `app/packaging/unsigned/tauri.attested-reference.conf.json` maps the twelve-file
 compiled S3 closure to `resource_dir/distribution-reference`, preserving its
