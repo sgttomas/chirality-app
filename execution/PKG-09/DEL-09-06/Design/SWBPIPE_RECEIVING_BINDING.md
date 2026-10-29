@@ -1,6 +1,71 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Current joined receiving basis (2026-10-29)
+
+App receiving basis: merged PR #11, App
+`c5b33e37832364eaa04360540ea5e31bc08a9168`. Read-only inspection of the
+selected SWBPIPE contribution checkout's committed objects establishes the
+following source basis in `sgttomas/chirality`. No dirty host files are received.
+
+| Contribution | Exact merged source | What the App receives |
+|---|---|---|
+| #1732, RT-E1 and criterion 17 | `541446a9f16e4e020a5703cda76e7fb94fbec819` | Owner-approved release target; criterion 17 builds, solves and explains criterion 1's reference system |
+| #1736, catalog and host Design | `31084e1f792b0612013e508b30e2a5dabdc151e7` | Canonical catalog v2 and host-owned integration contract |
+| #1738, harmless local-model witness | `4d80a3fb51dee1f7203d643338a75168442e0cb5` | Maintained source and reported actual summary call/result/follow-up, with bounded denial observations |
+| #1747, Rust components | `f35601a16fc5de26c2571abc8ef775d10622fe80` | Catalog/schema validation, bounded framing/protocol and gated macOS custody components; no live desktop route |
+| #1753, portable transport/session components | `f1161705823e003df630db455aa2ea227f38e666` | Stdio pump and host-driven session driver; live coordinator, webview bridge and completion ingress still absent |
+| #1755, invented test-path repair | `3a4fa55369be67940b4d1de707b2bad8159dc0bd` | Inspected main snapshot; test placeholder repair, no new runtime capability |
+
+Paths below are relative to `projects/chirality-piping/` at that last snapshot.
+The canonical `execution/PKG-16/DEL-16-06/Design/agent-capability-catalog.json`
+and generated `apps/desktop/src-tauri/resources/agent-capability-catalog.json`
+both hash to `fe1439998d709e5f3e9641a4d39567000ced56c498fab5b6b8f2028df7c9f669`.
+They equal the existing receiving pin `c48efef77bbb799f3ebe902eb213a88330a5994e`;
+no repin or repeated catalog/schema suite is warranted. The App origin remains
+`64aad707acd1d409f3d255381fc597e2ee74e7a4d048aadc5382414d63c64f8c`.
+
+The committed [local witness account](https://github.com/sgttomas/chirality/blob/3a4fa55369be67940b4d1de707b2bad8159dc0bd/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-local-witness.md)
+(SHA256 `b3923ac169543472405f8314c604c3b382558ad3ff31d925a47889805dad19cc`)
+reports one actual local-model `swbpipe_read_model_summary` call with invented
+host-generated handle/count returned in the model's follow-up. Its
+[`agent-witness-pin.json`](https://github.com/sgttomas/chirality/blob/3a4fa55369be67940b4d1de707b2bad8159dc0bd/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-witness-pin.json)
+(SHA256 `c4f096777262711a3e38a4691988362a1ac955f07d32400249efba848915550b`)
+binds official stock Codex 0.160.0, oMLX 0.6.4/build 2529 and
+`mlx-community/Qwen3.6-35B-A3B-8bit`, including archive/binary/model digests,
+sizes and configuration. This is received host execution evidence, not a new
+App execution or independent reconstruction of raw exchanges. Its pin file's
+`pin_not_live_witness` label describes the pin artifact; the separate witness
+account describes the observed run. The four denied-tool turns and native
+component probes retain their stated limits; they establish neither universal
+supplier isolation nor complete same-run host traffic evidence.
+
+Source inspection of `embedded_agent/mod.rs`, `session_driver.rs`, `macos.rs`
+and the host Design confirms that no product start control, live domain
+dispatcher, webview model binding, completion command or panel is established.
+The passing Python witness's profile is not the Rust launcher's activation
+proof. Separately, unmerged fixture commit
+`d08bb9b656a5b2eaedcc9c7af45d9159c57f85ec` records aligned no-tools and
+summary-only thread admission failures (`configuration_load_error`) under the
+restricted fixture profile. No turn/inference ran in those cases; they do not
+disprove the earlier local witness, justify a catalog-schema change or establish
+a fork requirement.
+The host owner retains that investigation, native EOF/hard-death cleanup,
+credential diagnostics and activation decisions. No fallback is selected here.
+
+**Receiving gap addressed here:** a current, source-bound receiving and
+applicability account joining these sources to DEL-09-07 and the release packet.
+This Design repair supplies that account and
+[the qualification receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md).
+No App runtime adapter defect or missing standalone external controller is
+established by these sources. No App implementation prerequisite is needed for
+the current host fixture. Existing v2 specimen coverage remains applicable
+to the unchanged catalog; runtime host conformance is still owed by SWBPIPE.
+New host interface bytes or evidence require affected receiving verification,
+not silently following a mutable host branch.
+
 ## Publication verification (2026-10-29)
+
+Historical PR #11 publication checkpoint; current host evidence is above.
 
 The SWBPIPE Type 1 manager reconfirmed that its canonical catalog remains
 byte-identical to c48efef77bbb799f3ebe902eb213a88330a5994e, SHA256
@@ -66,13 +131,13 @@ status enum could not report applied/withdrawn/unknown despite its new policy.
 The counterpart resolved it in c48efef by adding exactly those three statuses.
 That final catalog's hash is checked by the receiving test before evaluation.
 
-The counterpart reports twelve expanded standalone schemas and claims lint
-passing and independent review confirming the commitment wording at ce6729f3.
-Agent 0 wording confirmation is requested through
+At the v2 receiving checkpoint, the counterpart reported twelve expanded
+standalone schemas, passing lint and independent review confirming the commitment
+wording at ce6729f3. Agent 0 wording confirmation was requested through
 [draft PR #1736](https://github.com/sgttomas/chirality/pull/1736).
-This is a received review account, not an App independent permissions review,
-merge, confirmation or runtime adoption. No interface objection remains to
-the resolved slice.
+That checkpoint was a received review account, not an App independent permissions
+review, merge, confirmation or runtime adoption. Subsequent merges are bound in
+the current basis above. No interface objection remained to the resolved slice.
 
 The App specimen now selects the catalog's version explicitly. Origin/v1 tests
 retain their original semantics. V2 behaves as follows:
@@ -227,13 +292,14 @@ still require host tests and independent permissions/persistence scrutiny.
 DEL-09-06/09-07 ScopeOfWork and deliverable.yaml commitments are unchanged:
 the repair supplies no joined live witness, qualification or acceptance.
 
-## Remaining receiving inputs
+## Remaining joined inputs
 
-The receiving checkout/revision/catalog hash are now verified above. Independent
-SWBPIPE review, Agent 0 confirmation and main integration remain unestablished.
-The actual harmless roundtrip additionally needs the exact
-supplier executable/schema hashes, oMLX version, model identity/artifact hash,
-endpoint/configuration and observed tool-call/result/follow-up transcript.
-Installation or selection alone does not establish tool isolation. The full
-reference-system and same-run host traffic obligations remain separately
-evidenced; W9-A remains development evidence only.
+The current basis above supersedes earlier pending-review, pending-merge and
+pending-harmless-roundtrip statements. SWBPIPE still owes the activated desktop
+route, actual proposal review/application and truthful stale/interruption/outcome
+evidence, native cleanup/isolation and full reference-system capability.
+DEL-09-07 still needs candidate-bound local journey, durable evidence joins and
+complete same-run traffic/native-enforcement observations. The
+[receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md) assigns these inputs
+and identifies acceptance reconciliation reserved to the owner. W9-A remains
+development evidence only. Source receipt does not qualify either product.
