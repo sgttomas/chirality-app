@@ -16,6 +16,91 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location('hosted_fixture', HERE / 'run_hosted_fixture.py')
 DRIVER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(DRIVER)
+VERIFY_SPEC = importlib.util.spec_from_file_location('fixture_verifier', HERE / 'verify_results.py')
+VERIFIER = importlib.util.module_from_spec(VERIFY_SPEC)
+VERIFY_SPEC.loader.exec_module(VERIFIER)
+
+
+class AProofBoundaries(unittest.TestCase):
+    """Invented parser units only; never emit/save a purported native suite."""
+    def proof(self):
+        details = [
+            ('A_DEADLINE', 'startQpc=100;untilQpc=8100;startMs=0;untilMs=8000;frequency=1000'),
+            ('CREATED_LEADER', 'suspended=True;safety=true;handle=80'),
+            ('HELPER_ENTRY', 'qpc=110;helper-entry;stdout=90;stderr=90'),
+            ('A_READ_START', 'handle=70;leaderHandle=80;untilMs=8000;untilQpc=8100;pendingBytes=0;length=1'),
+            ('A_CLOSE_CONFIRMATION', 'qpc=120;stdout=90;stderr=90;alias=True;stdoutOk=True;stdoutError=0;stderrAttempted=False;stderrOk=False;stderrError=0;writeComplete=True'),
+            ('A_READ_RESULT', 'ok=False;bytes=0;error=109;qpc=134;completedMs=25;workerStarted=True;workerJoined=True;failure=none'),
+            ('A_READ_PROOF', 'closeConfirmed=True;workerJoined=True;beforeDeadline=True;originalLeaderHandle=80'),
+            ('OBSERVATION', 'leaderSignaled=False;exit=259;eof=True'),
+        ]
+        return [(130 + i, 'P02-A', 'invented-parser-unit', kind, detail)
+                for i, (kind, detail) in enumerate(details)]
+
+    def changed(self, kind, old, new):
+        return [(time, case, nonce, key, detail.replace(old, new) if key == kind else detail)
+                for time, case, nonce, key, detail in self.proof()]
+
+    def test_complete_proof_and_distinct_stderr_parser_units(self):
+        VERIFIER.verify_a(self.proof())
+        rows = self.changed('HELPER_ENTRY', 'stderr=90', 'stderr=91')
+        rows = [(t, c, n, k, d.replace('stderr=90;alias=True', 'stderr=91;alias=False')
+                 .replace('stderrAttempted=False;stderrOk=False', 'stderrAttempted=True;stderrOk=True')
+                 if k == 'A_CLOSE_CONFIRMATION' else d) for t, c, n, k, d in rows]
+        VERIFIER.verify_a(rows)
+
+    def test_missing_or_duplicate_new_proof_never_passes(self):
+        for kind in ('A_DEADLINE', 'A_READ_START', 'A_CLOSE_CONFIRMATION', 'A_READ_RESULT', 'A_READ_PROOF'):
+            for duplicate in (False, True):
+                rows = self.proof()
+                row = next(r for r in rows if r[3] == kind)
+                rows = rows + [row] if duplicate else [r for r in rows if r != row]
+                with self.subTest(kind=kind, duplicate=duplicate), self.assertRaises(ValueError):
+                    VERIFIER.verify_a(rows)
+
+    def test_read_nonproof_cancellation_late_or_unjoined_refused(self):
+        for old, new in (('ok=False', 'ok=True'), ('bytes=0', 'bytes=1'),
+                         ('error=109', 'error=995'), ('error=109', 'error=6'),
+                         ('qpc=134', 'qpc=8100'), ('completedMs=25', 'completedMs=8000'),
+                         ('workerStarted=True', 'workerStarted=False'),
+                         ('workerJoined=True', 'workerJoined=False'), ('failure=none', 'failure=Exception')):
+            with self.subTest(new=new), self.assertRaises(ValueError):
+                VERIFIER.verify_a(self.changed('A_READ_RESULT', old, new))
+
+    def test_close_missing_failed_stale_malformed_or_incomplete_refused(self):
+        for old, new in (('stdoutOk=True', 'stdoutOk=False'), ('stdout=90', 'stdout=91'),
+                         ('qpc=120', 'qpc=109'), ('qpc=120', 'qpc=9000'),
+                         ('alias=True', 'alias=False'), ('stderrOk=False', 'stderrOk=True'),
+                         ('writeComplete=True', 'writeComplete=False'), ('qpc=120', 'qpc=0120'),
+                         ('stdoutError=0', 'stdoutError=2147483648')):
+            with self.subTest(new=new), self.assertRaises(ValueError):
+                VERIFIER.verify_a(self.changed('A_CLOSE_CONFIRMATION', old, new))
+
+    def test_deadline_handle_partial_output_or_missing_confirmation_refused(self):
+        for kind, old, new in (
+                ('A_DEADLINE', 'untilQpc=8100', 'untilQpc=9100'),
+                ('A_READ_START', 'leaderHandle=80', 'leaderHandle=81'),
+                ('A_READ_START', 'pendingBytes=0', 'pendingBytes=1'),
+                ('A_READ_START', 'length=1', 'length=0'),
+                ('A_READ_PROOF', 'closeConfirmed=True', 'closeConfirmed=False'),
+                ('A_READ_PROOF', 'beforeDeadline=True', 'beforeDeadline=False'),
+                ('A_READ_PROOF', 'originalLeaderHandle=80', 'originalLeaderHandle=81')):
+            with self.subTest(new=new), self.assertRaises(ValueError):
+                VERIFIER.verify_a(self.changed(kind, old, new))
+
+    def test_cleanup_missing_pending_or_rewritten_result_refused(self):
+        rows = self.proof()
+        result = next(r[4] for r in rows if r[3] == 'A_READ_RESULT')
+        safety = (200, 'suite', 'invented-parser-unit', 'SAFETY_CLEANUP', 'allRetainedHandlesSignaled=true;active=0')
+        cleanup = (210, 'suite', 'invented-parser-unit', 'A_READ_CLEANUP', result +
+                   ';deathProofQpc=190;eofAfterDeathProof=False;liveEofOutcomeUnchanged=True')
+        VERIFIER.verify_read_cleanup(rows + [safety, cleanup])
+        for changed in (None, cleanup[4].replace('workerJoined=True', 'workerJoined=False'),
+                        cleanup[4].replace('error=109', 'error=995'),
+                        cleanup[4].replace('eofAfterDeathProof=False', 'eofAfterDeathProof=True')):
+            candidate = rows + [safety] + ([] if changed is None else [(*cleanup[:4], changed)])
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                VERIFIER.verify_read_cleanup(candidate)
 
 
 class HostedBoundaries(unittest.TestCase):
