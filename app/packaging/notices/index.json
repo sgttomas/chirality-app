@@ -1,0 +1,559 @@
+{
+  "format": "chirality.app.direct-runtime-notices/v1",
+  "scope": "App MIT and direct runtime dependencies only; not a license election, complete dependency coverage or release/compliance finding",
+  "source_basis": {
+    "app_revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+    "manifest_sha256": {
+      "app/package.json": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac",
+      "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+      "app/src-tauri/Cargo.toml": "873ca7efd1f175e263bf082c6da08758359173b142f88ae365f95a311e9fee84",
+      "app/src-tauri/Cargo.lock": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+    }
+  },
+  "components": [
+    {
+      "ecosystem": "app",
+      "package": "chirality-app",
+      "version": "0.0.0",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "git",
+        "repository": "https://github.com/sgttomas/chirality-app",
+        "revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+        "blob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05"
+      },
+      "notices": [
+        {
+          "asset": "assets/app/LICENSE.md",
+          "source_path": "LICENSE.md",
+          "archive_member": null,
+          "size_bytes": 1067,
+          "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "pulldown-cmark",
+      "version": "0.13.4",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "e9f068eba8e7071c5f9511831b44f32c740d5adf574e990f946ddb53db2f314e",
+        "archive_size_bytes": 155043,
+        "manifest_sha256": "631421b4c7f58856cd6ec45a1e27da28b70154f69b268a62d70587c2068927d0",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "pulldown-cmark-0.13.4.crate",
+        "manifest_member": "pulldown-cmark-0.13.4/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/pulldown-cmark/0.13.4/LICENSE",
+          "source_path": "LICENSE",
+          "archive_member": "pulldown-cmark-0.13.4/LICENSE",
+          "size_bytes": 1089,
+          "sha256": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "tauri",
+      "version": "2.11.1",
+      "declared_license": "Apache-2.0 OR MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "b93bd86d231f0a8138f11a02a584769fe4b703dc36ae133d783228dbc4801405",
+        "archive_size_bytes": 297506,
+        "manifest_sha256": "7740847a00a13797a625c8b4081657853bb21b02b91d6984be1ab61f6fc73514",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "tauri-2.11.1.crate",
+        "manifest_member": "tauri-2.11.1/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0",
+          "source_path": "LICENSE_APACHE-2.0",
+          "archive_member": "tauri-2.11.1/LICENSE_APACHE-2.0",
+          "size_bytes": 10174,
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        },
+        {
+          "asset": "assets/cargo/tauri/2.11.1/LICENSE_MIT",
+          "source_path": "LICENSE_MIT",
+          "archive_member": "tauri-2.11.1/LICENSE_MIT",
+          "size_bytes": 1090,
+          "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "tauri-plugin-dialog",
+      "version": "2.7.2",
+      "declared_license": "Apache-2.0 OR MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "b2d3c1dbe38037e7f590cdf2492594d5ceebe031e7bc7e827509b22a999d2940",
+        "archive_size_bytes": 129548,
+        "manifest_sha256": "ce16b2966280692d752bf4c1bb1d05b1b6eefef668f7b5877bddd6937547c7d8",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "tauri-plugin-dialog-2.7.2.crate",
+        "manifest_member": "tauri-plugin-dialog-2.7.2/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0",
+          "source_path": "LICENSE_APACHE-2.0",
+          "archive_member": "tauri-plugin-dialog-2.7.2/LICENSE_APACHE-2.0",
+          "size_bytes": 10173,
+          "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9"
+        },
+        {
+          "asset": "assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx",
+          "source_path": "LICENSE.spdx",
+          "archive_member": "tauri-plugin-dialog-2.7.2/LICENSE.spdx",
+          "size_bytes": 888,
+          "sha256": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef"
+        },
+        {
+          "asset": "assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT",
+          "source_path": "LICENSE_MIT",
+          "archive_member": "tauri-plugin-dialog-2.7.2/LICENSE_MIT",
+          "size_bytes": 1089,
+          "sha256": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "raw-window-handle",
+      "version": "0.6.2",
+      "declared_license": "MIT OR Apache-2.0 OR Zlib",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539",
+        "archive_size_bytes": 20234,
+        "manifest_sha256": "16454e56cca25a5d66d5cfb070db6e3741138334e4f2546e9c5010e5221889f5",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "raw-window-handle-0.6.2.crate",
+        "manifest_member": "raw-window-handle-0.6.2/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md",
+          "source_path": "LICENSE-MIT.md",
+          "archive_member": "raw-window-handle-0.6.2/LICENSE-MIT.md",
+          "size_bytes": 1064,
+          "sha256": "9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4"
+        },
+        {
+          "asset": "assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md",
+          "source_path": "LICENSE-ZLIB.md",
+          "archive_member": "raw-window-handle-0.6.2/LICENSE-ZLIB.md",
+          "size_bytes": 836,
+          "sha256": "ae895c8576e682f310fb70d93d9f99b1dd82872094c54a8f6cdfe2ca5c2d6ecb"
+        },
+        {
+          "asset": "assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md",
+          "source_path": "LICENSE-APACHE.md",
+          "archive_member": "raw-window-handle-0.6.2/LICENSE-APACHE.md",
+          "size_bytes": 10174,
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "serde",
+      "version": "1.0.229",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+        "archive_size_bytes": 83669,
+        "manifest_sha256": "6883caefd46e86eb15d22d3a6d274ad304c5e7934ab70eb58d81b7c4a29ef9db",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "serde-1.0.229.crate",
+        "manifest_member": "serde-1.0.229/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/serde/1.0.229/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "serde-1.0.229/LICENSE-APACHE",
+          "size_bytes": 9723,
+          "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+        },
+        {
+          "asset": "assets/cargo/serde/1.0.229/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "serde-1.0.229/LICENSE-MIT",
+          "size_bytes": 1023,
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "serde_json",
+      "version": "1.0.151",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+        "archive_size_bytes": 156556,
+        "manifest_sha256": "00b920255c320a278bf25b962b491263a19d8c90e12e4a91c1d823db71eabb2f",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "serde_json-1.0.151.crate",
+        "manifest_member": "serde_json-1.0.151/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/serde_json/1.0.151/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "serde_json-1.0.151/LICENSE-APACHE",
+          "size_bytes": 9723,
+          "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+        },
+        {
+          "asset": "assets/cargo/serde_json/1.0.151/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "serde_json-1.0.151/LICENSE-MIT",
+          "size_bytes": 1023,
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "sha2",
+      "version": "0.10.9",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283",
+        "archive_size_bytes": 29271,
+        "manifest_sha256": "f5b86209df69360114aaee67a66c3fcd31d8c840b8f34b9ad383aacd63cd15da",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "sha2-0.10.9.crate",
+        "manifest_member": "sha2-0.10.9/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/sha2/0.10.9/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "sha2-0.10.9/LICENSE-APACHE",
+          "size_bytes": 10849,
+          "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+        },
+        {
+          "asset": "assets/cargo/sha2/0.10.9/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "sha2-0.10.9/LICENSE-MIT",
+          "size_bytes": 1138,
+          "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "libc",
+      "version": "0.2.189",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+        "archive_size_bytes": 851502,
+        "manifest_sha256": "95159789ef9c9aaee8230b13be5c89594833a7bf2db299e61eb23b512cb67144",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "libc-0.2.189.crate",
+        "manifest_member": "libc-0.2.189/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/libc/0.2.189/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "libc-0.2.189/LICENSE-APACHE",
+          "size_bytes": 9723,
+          "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+        },
+        {
+          "asset": "assets/cargo/libc/0.2.189/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "libc-0.2.189/LICENSE-MIT",
+          "size_bytes": 1066,
+          "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "uuid",
+      "version": "1.23.1",
+      "declared_license": "Apache-2.0 OR MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76",
+        "archive_size_bytes": 62932,
+        "manifest_sha256": "0a69d6a24add8b53e2216bbb919501510595d64cf3eb03e542791c8056a897e5",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "uuid-1.23.1.crate",
+        "manifest_member": "uuid-1.23.1/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "uuid-1.23.1/LICENSE-APACHE",
+          "size_bytes": 10847,
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+        },
+        {
+          "asset": "assets/cargo/uuid/1.23.1/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "uuid-1.23.1/LICENSE-MIT",
+          "size_bytes": 1157,
+          "sha256": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "getrandom",
+      "version": "0.4.2",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "0de51e6874e94e7bf76d726fc5d13ba782deca734ff60d5bb2fb2607c7406555",
+        "archive_size_bytes": 53905,
+        "manifest_sha256": "002ff7c091117de52e339a38db3e3ce6356caec3d693e6f427e02d129278b36b",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "getrandom-0.4.2.crate",
+        "manifest_member": "getrandom-0.4.2/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/getrandom/0.4.2/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "getrandom-0.4.2/LICENSE-APACHE",
+          "size_bytes": 10849,
+          "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+        },
+        {
+          "asset": "assets/cargo/getrandom/0.4.2/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "getrandom-0.4.2/LICENSE-MIT",
+          "size_bytes": 1130,
+          "sha256": "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "toml",
+      "version": "1.1.2+spec-1.1.0",
+      "declared_license": "MIT OR Apache-2.0",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee",
+        "archive_size_bytes": 56327,
+        "manifest_sha256": "ec298fe2ccf0808c95d9510077013b654b273037dff5b38a3fe66cddbf40fb3b",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "toml-1.1.2+spec-1.1.0.crate",
+        "manifest_member": "toml-1.1.2+spec-1.1.0/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE",
+          "source_path": "LICENSE-APACHE",
+          "archive_member": "toml-1.1.2+spec-1.1.0/LICENSE-APACHE",
+          "size_bytes": 11358,
+          "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+        },
+        {
+          "asset": "assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT",
+          "source_path": "LICENSE-MIT",
+          "archive_member": "toml-1.1.2+spec-1.1.0/LICENSE-MIT",
+          "size_bytes": 1062,
+          "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "jsonschema",
+      "version": "0.58.5",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "ea18b8d5e1469b1bdd6b349169305141316a7c26da27f239773b65c830c0f5d6",
+        "archive_size_bytes": 1069243,
+        "manifest_sha256": "eb28c386e084a7f954c7feb59ab5bcd40b3113261092b71e04016447f6fe823b",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "jsonschema-0.58.5.crate",
+        "manifest_member": "jsonschema-0.58.5/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/jsonschema/0.58.5/LICENSE",
+          "source_path": "LICENSE",
+          "archive_member": "jsonschema-0.58.5/LICENSE",
+          "size_bytes": 1075,
+          "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038"
+        }
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "rusqlite",
+      "version": "0.32.1",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "archive_sha256": "7753b721174eb8ff87a9a0e799e2d7bc3749323e773db92e0984debb00019d6e",
+        "archive_size_bytes": 155563,
+        "manifest_sha256": "c9766cee23342d0e29197ab11978056349e7ac6cadf21bacf8356fba1417b0ab",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "rusqlite-0.32.1.crate",
+        "manifest_member": "rusqlite-0.32.1/Cargo.toml"
+      },
+      "notices": [
+        {
+          "asset": "assets/cargo/rusqlite/0.32.1/LICENSE",
+          "source_path": "LICENSE",
+          "archive_member": "rusqlite-0.32.1/LICENSE",
+          "size_bytes": 1072,
+          "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e"
+        }
+      ]
+    },
+    {
+      "ecosystem": "npm",
+      "package": "@tauri-apps/api",
+      "version": "2.11.0",
+      "declared_license": "Apache-2.0 OR MIT",
+      "source": {
+        "kind": "npm",
+        "archive_sha256": "3e59c3fa34dec419ec6a9a14365a0f8cc96c1461bf63fac036c6bd673c4ae42c",
+        "archive_size_bytes": 135085,
+        "manifest_sha256": "c50936fca70c8817e00478d7cc9f16b663d318d6306518a233e0002aa8ba60d8",
+        "resolved": "https://registry.npmjs.org/@tauri-apps/api/-/api-2.11.0.tgz",
+        "integrity": "sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==",
+        "manifest_member": "package/package.json"
+      },
+      "notices": [
+        {
+          "asset": "assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0",
+          "source_path": "LICENSE_APACHE-2.0",
+          "archive_member": "package/LICENSE_APACHE-2.0",
+          "size_bytes": 10174,
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        },
+        {
+          "asset": "assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT",
+          "source_path": "LICENSE_MIT",
+          "archive_member": "package/LICENSE_MIT",
+          "size_bytes": 1090,
+          "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
+        }
+      ]
+    },
+    {
+      "ecosystem": "npm",
+      "package": "react",
+      "version": "19.2.7",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "npm",
+        "archive_sha256": "d0065884db7670ffb89046826995cf0d7754a31653d23908532e52671bf83d7d",
+        "archive_size_bytes": 24805,
+        "manifest_sha256": "51966ae9c8c377ff592b5d69c980966992101bc6791bf83a1e5c7ad9bcefa7f4",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
+        "integrity": "sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==",
+        "manifest_member": "package/package.json"
+      },
+      "notices": [
+        {
+          "asset": "assets/npm/react/19.2.7/LICENSE",
+          "source_path": "LICENSE",
+          "archive_member": "package/LICENSE",
+          "size_bytes": 1088,
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "ecosystem": "npm",
+      "package": "react-dom",
+      "version": "19.2.7",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "npm",
+        "archive_sha256": "e47bae602149b38b90b452c89e53d2d60639fee09361d90374983a6aac62739e",
+        "archive_size_bytes": 1276388,
+        "manifest_sha256": "447acd72cdb6a966d9db967729e286e7cbb4a09ea61fddd45e12c2a97fd4cfb6",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.7.tgz",
+        "integrity": "sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==",
+        "manifest_member": "package/package.json"
+      },
+      "notices": [
+        {
+          "asset": "assets/npm/react-dom/19.2.7/LICENSE",
+          "source_path": "LICENSE",
+          "archive_member": "package/LICENSE",
+          "size_bytes": 1088,
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    }
+  ],
+  "unresolved_supplier_inputs": [
+    {
+      "component": "Codex main",
+      "P1_path": "Contents/Resources/codex/bin/codex",
+      "size_bytes": 241555024,
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+      "available_evidence": "exact unchanged vendor/archive inventory and package version/layout metadata; package-level Apache declaration only outside P1",
+      "exact_notice_source": "not available locally within inspected inputs",
+      "single_missing_input": "Exact Codex LICENSE/NOTICE and applicable release notice inputs at declared buildCommit a956835d020762cb2b570053af06f643a11c0ecc; none available in inspected local source/package inputs.",
+      "branch": "stopped; no source acquisition or substitute version/license"
+    },
+    {
+      "component": "Code mode host",
+      "P1_path": "Contents/Resources/codex/bin/codex-code-mode-host",
+      "size_bytes": 65391216,
+      "sha256": "679eedaea70529aa1cffc9bc0a0788c186412663544fa76c09d63b57f383a65a",
+      "available_evidence": "exact unchanged vendor/archive inventory and package version/layout metadata; package-level Apache declaration only outside P1",
+      "exact_notice_source": "not available locally within inspected inputs",
+      "single_missing_input": "Exact release/source notice input bound to this helper digest; package metadata does not establish its complete component licenses.",
+      "branch": "stopped; no source acquisition or substitute version/license"
+    },
+    {
+      "component": "ripgrep",
+      "P1_path": "Contents/Resources/codex/codex-path/rg",
+      "size_bytes": 4030432,
+      "sha256": "7c7d5b09c3a57de864500c65dc2e9c4d2a5e96a3fc7b7d5318480c19887a739b",
+      "available_evidence": "exact unchanged vendor/archive inventory and package version/layout metadata; package-level Apache declaration only outside P1",
+      "exact_notice_source": "not available locally within inspected inputs",
+      "single_missing_input": "Exact source version/build/license notices bound to this rg digest; source version is not identified in package layout metadata.",
+      "branch": "stopped; no source acquisition or substitute version/license"
+    },
+    {
+      "component": "zsh",
+      "P1_path": "Contents/Resources/codex/codex-resources/zsh/bin/zsh",
+      "size_bytes": 754208,
+      "sha256": "d715e06edcf1661edb2e7767d65fbd1b44af505edfb217281b701f0a6ae93b15",
+      "available_evidence": "exact unchanged vendor/archive inventory and package version/layout metadata; package-level Apache declaration only outside P1",
+      "exact_notice_source": "not available locally within inspected inputs",
+      "single_missing_input": "Exact source version/build/license notices bound to this zsh digest; no zsh source/license metadata accompanies it in this archive.",
+      "branch": "stopped; no source acquisition or substitute version/license"
+    }
+  ],
+  "limits": [
+    "Keep existing stock supplier bytes and P1 voice notices unchanged.",
+    "Direct runtime dependencies only; transitive and bundled SQLite coverage unverified. Build/dev-only packages excluded.",
+    "Codex main/code-mode-host/rg/zsh exact notice inputs are unavailable in inspected local inputs; no substitute texts supplied.",
+    "Optional resource preparation only: no new built, shipped, signed, installed or qualified candidate; sign-in evidence and owner distribution decisions are separate."
+  ]
+}
