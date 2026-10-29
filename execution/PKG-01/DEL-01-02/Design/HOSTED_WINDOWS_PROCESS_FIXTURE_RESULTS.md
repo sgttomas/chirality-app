@@ -296,3 +296,31 @@ its proof checks. DEL-01-02 ScopeOfWork/dependency conditions and the proposed
 P-02 outcome in WINDOWS_PLATFORM_SERVICES remain unchanged. No production,
 guest, compiler-safety, filesystem, policy, commitment, acceptance or release
 claim follows; old evidence is preserved.
+
+### Independent candidate review and local repair
+
+[Independent Type2 review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A68530ca1-6352-497f-b9d9-11162eb7140f%3Adelegate-task%3A024c7a6a-b065-4bcb-bd11-7ff99209dfdc)
+examined saved candidate `63746e0d5dc88ec4d650caf015e361e889d89559`
+using `codex-hub/gpt-6.1-sol`, `reasoningEffort=medium`,
+`serviceTier=default`. One Type2 ran and did not delegate. The implementation
+owner inspected the completed return and full saved report. The reviewer found
+no P0/P1 or additional worker/handle/file/cleanup safety defect and identified
+one P2 verifier gap: `removeprefix` permitted a suffix-only cleanup record
+without the joined-worker result. The actual C# emitter included the result;
+the missing-proof boundary still needed refusal.
+
+The implementation owner reproduced that finding with a new suffix-only
+negative subcase, then required the exact prior read-result prefix before
+parsing cleanup metadata. All 17 hosted host-only methods pass after repair.
+This small verifier repair was locally checked; it did not change the reviewed
+C# worker, file or cleanup semantics and was not independently re-reviewed.
+Both prior native channel hashes were rechecked against their result records;
+the new verifier still refuses both failed traces. No native compilation or
+execution was performed by either contributor.
+
+Executable source identities for parent publication: `ProcessFixture.cs`
+SHA-256 `0fe3a1d38c032655e9803c861eabf1bffb6ba11f0051c237f81889d1df4057b5`
+(31,875 bytes); repaired `verify_results.py` SHA-256
+`742241038b0f78871bc6fb308119356c857c7acba2d1da4b5f40cb899a6ef205`
+(9,504 bytes). These are new candidate identities, not replacements for either
+historical artifact's source hashes. Native CI remains NOT RUN.

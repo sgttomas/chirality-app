@@ -75,7 +75,9 @@ def verify_read_cleanup(rows):
     safety = one('suite', 'SAFETY_CLEANUP')
     read = one('P02-A', 'A_READ_RESULT')
     cleanup = one('suite', 'A_READ_CLEANUP')
-    suffix = cleanup[4].removeprefix(read[4])
+    if not cleanup[4].startswith(read[4]):
+        raise ValueError('A reader cleanup missing exact joined-worker result')
+    suffix = cleanup[4][len(read[4]):]
     match = re.fullmatch(r';deathProofQpc=([0-9]+);eofAfterDeathProof=(True|False);liveEofOutcomeUnchanged=True', suffix)
     if (match is None or not int(match[1]) <= safety[0] <= cleanup[0] or
             match[2] != str(int(read[4].split(';qpc=')[1].split(';')[0]) >= int(match[1]))):

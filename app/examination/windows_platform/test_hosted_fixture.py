@@ -95,7 +95,8 @@ class AProofBoundaries(unittest.TestCase):
         cleanup = (210, 'suite', 'invented-parser-unit', 'A_READ_CLEANUP', result +
                    ';deathProofQpc=190;eofAfterDeathProof=False;liveEofOutcomeUnchanged=True')
         VERIFIER.verify_read_cleanup(rows + [safety, cleanup])
-        for changed in (None, cleanup[4].replace('workerJoined=True', 'workerJoined=False'),
+        for changed in (None, cleanup[4][len(result):],
+                        cleanup[4].replace('workerJoined=True', 'workerJoined=False'),
                         cleanup[4].replace('error=109', 'error=995'),
                         cleanup[4].replace('eofAfterDeathProof=False', 'eofAfterDeathProof=True')):
             candidate = rows + [safety] + ([] if changed is None else [(*cleanup[:4], changed)])
