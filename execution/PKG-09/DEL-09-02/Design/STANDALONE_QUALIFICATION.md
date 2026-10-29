@@ -578,3 +578,31 @@ bound by SHA-256 in that record and retained in local scratch pending the
 owner's private-evidence-store choice. Identifying C1 opens no examination and selects no qualification
 candidate: U-SQ-3 (development build or package) and the run inputs in §2
 remain as stated.
+
+For a current complete-content unsigned development App, DEL-09-01's additive
+[v3 record profile](../../DEL-09-01/Design/candidate-identity-v3/METHOD.md)
+retains the same complete bundle-tree v2 identity and EXP candidate values,
+while truthfully declaring the bundled supplier and its measured archive
+correspondence. The older v2 record's `bundled: false` is that format's scope,
+not a product prohibition. Historical records and their observations remain
+unchanged. Source/build/configuration and supplier provenance must accompany
+the identified current artifact; this identification neither opens a scenario
+nor establishes workflow, recovery, access-mode or packaged qualification.
+ScopeOfWork SOW-195/196/197 and dependency conditions remain unchanged.
+
+**Current development artifact (2026-10-29).** Candidate preparation
+[`795362874d-a391547a5c5d`](../Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json)
+identifies the one offline debug build of source
+`795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`. Its unique identifier is
+`dev.chirality.app-v4.candidate.20261029-ukt5ir80`; the full v2 tree identity,
+v3 identification, inventory, source/build/configuration, acquisition account,
+guard outcome and log digests are retained together. The build took 80.08721 s,
+used `--no-sign`, and launched no App, supplier or model. All 42 supplier files
+(30 Mach-O), eight instruction files and three workflow files match the actual
+build inputs, including modes and complete entry sets. Read-only candidate
+rechecking found no identity or derived-field differences. This is preparation,
+not an executed SQ scenario. The identifier reader's two review repairs are
+source `37f9f727`; they change no compiled App input and require no second build.
+The next native result is setup/save/relaunch with this artifact's exact
+supplier and source, followed by the joined workflow/recovery/access journeys;
+its actual execution and any required owner acts remain unsupplied.

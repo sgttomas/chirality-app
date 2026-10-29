@@ -1,0 +1,193 @@
+{
+  "format": "chirality.app-v4.candidate-identification/v3",
+  "candidate_key": "795362874d-a391547a5c5d",
+  "app_candidate": {
+    "revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:a391547a5c5d485fc07b286e4177279717b2fc43ad7deff2f8f5bd983f24ae91",
+    "packaged": false
+  },
+  "route": "native_development",
+  "source": {
+    "repository": "sgttomas/chirality-app",
+    "revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+    "commit_tree": "69bf0c0c338d5b65db88f35351292dc7c4dfebf0",
+    "exported_prefix": ".",
+    "tree": "69bf0c0c338d5b65db88f35351292dc7c4dfebf0",
+    "tracked_files_verified": 2519
+  },
+  "build": {
+    "command": [
+      "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/node",
+      "node_modules/@tauri-apps/cli/tauri.js",
+      "build",
+      "--debug",
+      "--no-sign",
+      "--bundles",
+      "app",
+      "--features",
+      "custom-protocol",
+      "--config",
+      "packaging/unsigned/tauri.development.conf.json",
+      "--config",
+      "/private/tmp/chirality-desktop-current-ukt5ir80/supplier.development.conf.json",
+      "--",
+      "--offline",
+      "--locked"
+    ],
+    "environment": {
+      "HOME": "/Users/ryan",
+      "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "LANG": "en_US.UTF-8",
+      "CARGO_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/chirality-desktop-current-ukt5ir80/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_NET_OFFLINE": "true",
+      "CODEX_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/codex-home",
+      "TMPDIR": "/private/tmp/chirality-desktop-current-ukt5ir80/tmp"
+    },
+    "started_at": "2026-10-29T17:38:40.337131+00:00",
+    "finished_at": "2026-10-29T17:40:00.424341+00:00",
+    "procedure": "One slot-wrapped offline Tauri debug build with App-aware scratch RSS/exclusive monitor",
+    "profile": "debug",
+    "signing": "none",
+    "features": [
+      "custom-protocol"
+    ],
+    "config_overlays": [
+      {
+        "path": "app/packaging/unsigned/tauri.development.conf.json",
+        "sha256": "c0a947f0e5db49e74d9a9a7559ba0d9656551c982ba37decd38fdb541d7288b8",
+        "content": {
+          "productName": "Chirality App v4 (development candidate)",
+          "version": "0.0.0",
+          "identifier": "dev.chirality.app-v4.skeleton",
+          "bundle": {
+            "active": true,
+            "targets": [
+              "app"
+            ],
+            "resources": {
+              "resources/instructions/": "instructions/",
+              "resources/production_workflows/": "workflows/"
+            },
+            "macOS": {
+              "minimumSystemVersion": "15.0",
+              "signingIdentity": null
+            }
+          }
+        }
+      },
+      {
+        "path": "/private/tmp/chirality-desktop-current-ukt5ir80/supplier.development.conf.json",
+        "sha256": "325593460895e36258f8aca36a30a1011fda01e5fba3d73f84cef7c5c1434953",
+        "content": {
+          "bundle": {
+            "resources": {
+              "/private/tmp/chirality-desktop-current-ukt5ir80/supplier/package/vendor/aarch64-apple-darwin/": "codex/"
+            }
+          },
+          "identifier": "dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+          "productName": "Chirality App v4 (development 20261029)"
+        }
+      }
+    ],
+    "toolchain": {
+      "node": "v24.18.0",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)"
+    },
+    "lockfiles": {
+      "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+      "app/src-tauri/Cargo.lock": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+    },
+    "offline": true
+  },
+  "bundle": {
+    "name": "Chirality App v4 (development 20261029).app",
+    "identifier": "dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "version": "0.0.0",
+    "executable": {
+      "path": "Contents/MacOS/chirality-app-v4",
+      "sha256": "a0b29cf7120e9fabb1fd2e6e553d69c1a010312db6ae1f1005d572110806d48e"
+    },
+    "info_plist_sha256": "5436a136773144adbb95a1497cc29d1c3d4b713ece85e1faa6d57b68766b1d81",
+    "file_manifest_sha256": "0b10420b172e703e3b662809c7fd6ee420cbfbdcc1223873dc6b9954199cd15b",
+    "counts": {
+      "dir": 18,
+      "file": 56,
+      "symlink": 0
+    },
+    "metadata_state": {
+      "entries_including_root": 75,
+      "acl_entries": 0,
+      "nonzero_flags": 0,
+      "set_id_bits": 0,
+      "extended_attributes": {
+        "com.apple.provenance": 75
+      },
+      "xattr_allowlist": [
+        "com.apple.provenance"
+      ],
+      "owners": [
+        {
+          "uid": 501,
+          "gid": 20
+        }
+      ],
+      "symlinks": 0
+    },
+    "inventory": {
+      "path": "bundle-inventory.json",
+      "sha256": "dedbec952a0a4f990242ffccc2dc31ffe66c01813541db98100bd04c170f5ec0"
+    }
+  },
+  "app_data": {
+    "directory": "~/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "checked": [
+      "~/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+      "~/Library/WebKit/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+      "~/Library/Caches/dev.chirality.app-v4.candidate.20261029-ukt5ir80"
+    ],
+    "present_at_identification": []
+  },
+  "supplier": {
+    "pin": "0.160.0",
+    "archive": {
+      "file": "codex-0.160.0-darwin-arm64.tgz",
+      "source": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-darwin-arm64.tgz",
+      "size_bytes": 134311083,
+      "sha256": "fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466"
+    },
+    "bundled": true,
+    "root": "Contents/Resources/codex",
+    "standing": "unqualified-development",
+    "acquisition": {
+      "path": "supplier-acquisition.json",
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8"
+    },
+    "correspondence": {
+      "method": "codex-platform-tar-files/v1",
+      "files": 42,
+      "file_manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12"
+    },
+    "binding": "Archive correspondence only; each examination binds actual supplier configuration and runtime standing."
+  },
+  "identified_by": {
+    "tool": "app/examination/candidate_identity/identify.py",
+    "tool_sha256": "d4ff1f2a6e9853c3315cd1ad5003baec7ceb3a61cf08fba657dc651856ae7f37",
+    "method": "chirality.app.bundle-tree.sha256/v2",
+    "supplier_tool_sha256": "6604fbe6efb7aa291b915a27d5a07270b5d96191090780ad88d2c195c5d4239f"
+  },
+  "identified_at": "2026-10-29T17:42:07.426731+00:00",
+  "limits": [
+    "Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.",
+    "Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.",
+    "File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.",
+    "ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.",
+    "Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.",
+    "No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.",
+    "App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state.",
+    "Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.",
+    "Unsigned development candidate only: no installed-custody issuer, supplier qualification, signing, notarisation, native launch or release follows from identification."
+  ]
+}
