@@ -122,8 +122,12 @@ needs:
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/desktop_startup.rs
+- app/packaging/notices/**
+- app/packaging/unsigned/tauri.notices.conf.json
 checks:
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs
 - execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py
 - app/src-tauri/tests/attested_reference_packaging.rs
+- app/packaging/notices/check.py
+- app/tests/notice_resources_test.py

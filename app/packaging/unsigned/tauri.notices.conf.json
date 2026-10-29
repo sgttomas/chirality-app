@@ -1,0 +1,50 @@
+{
+  "productName": "Chirality App v4 (development candidate)",
+  "version": "0.0.0",
+  "identifier": "dev.chirality.app-v4.skeleton",
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "resources": {
+      "resources/instructions/": "instructions/",
+      "resources/production_workflows/": "workflows/",
+      "../packaging/notices/index.json": "third-party-notices/index.json",
+      "../packaging/notices/assets/app/LICENSE.md": "third-party-notices/assets/app/LICENSE.md",
+      "../packaging/notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE": "third-party-notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE",
+      "../packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0": "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0",
+      "../packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_MIT": "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_MIT",
+      "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0",
+      "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx",
+      "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT",
+      "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md",
+      "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md",
+      "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md",
+      "../packaging/notices/assets/cargo/serde/1.0.229/LICENSE-APACHE": "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT": "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE": "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT": "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE": "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-MIT": "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/libc/0.2.189/LICENSE-APACHE": "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/libc/0.2.189/LICENSE-MIT": "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE": "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-MIT": "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE": "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT": "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE": "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE",
+      "../packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT": "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT",
+      "../packaging/notices/assets/cargo/jsonschema/0.58.5/LICENSE": "third-party-notices/assets/cargo/jsonschema/0.58.5/LICENSE",
+      "../packaging/notices/assets/cargo/rusqlite/0.32.1/LICENSE": "third-party-notices/assets/cargo/rusqlite/0.32.1/LICENSE",
+      "../packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0": "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0",
+      "../packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT": "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT",
+      "../packaging/notices/assets/npm/react/19.2.7/LICENSE": "third-party-notices/assets/npm/react/19.2.7/LICENSE",
+      "../packaging/notices/assets/npm/react-dom/19.2.7/LICENSE": "third-party-notices/assets/npm/react-dom/19.2.7/LICENSE"
+    },
+    "macOS": {
+      "minimumSystemVersion": "15.0",
+      "signingIdentity": null
+    }
+  }
+}
