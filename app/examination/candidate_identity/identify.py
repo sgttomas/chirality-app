@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Development App candidate identity (DEL-09-01 candidate-identity-v2: bundle-tree v2).
+"""Development App candidate identity (DEL-09-01 v2/v3 records, bundle-tree v2).
 
 Reads an already built, unpackaged App bundle without executing it, computes its
 tree identity and writes or checks a candidate identification record. It builds
@@ -749,7 +749,7 @@ def main(argv=None):
         ok = result['equal'] and result['build_identity'] == result['recorded_build_identity'] and not result.get('record_fields_mismatched')
         return 0 if ok else 1
     except (ValueError, TypeError, KeyError, AttributeError, OSError, subprocess.CalledProcessError,
-            json.JSONDecodeError, plistlib.InvalidFileException, ExpatError, tarfile.TarError) as error:
+            json.JSONDecodeError, plistlib.InvalidFileException, ExpatError, tarfile.TarError, EOFError) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
 

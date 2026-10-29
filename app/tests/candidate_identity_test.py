@@ -8,6 +8,7 @@ import copy
 import ctypes
 import errno
 import hashlib
+import gzip
 import importlib.util
 import io
 import json
@@ -863,6 +864,33 @@ class BundledCandidateRecord(GitScratch):
         path.write_bytes(original)
         (path.parent / 'supplier-acquisition.json').write_text('{}')
         self.assertEqual(self.check()[0], 2)
+
+    def test_duplicate_and_noncanonical_archive_paths_refuse(self):
+        for path in ('bin/codex', '/bin/codex', 'bin/./codex', 'bin/../bin/codex'):
+            with self.subTest(path=path):
+                with tarfile.open(self.archive, 'w:gz') as archive:
+                    archive.add(self.vendor, arcname='package/vendor/aarch64-apple-darwin')
+                    data = (self.vendor / 'bin/codex').read_bytes()
+                    entry = tarfile.TarInfo('package/vendor/aarch64-apple-darwin/' + path)
+                    entry.mode = 0o755; entry.size = len(data)
+                    archive.addfile(entry, io.BytesIO(data))
+                acquisition = json.loads(self.acquisition.read_bytes())
+                acquisition['acquisition'] = {'size_bytes': self.archive.stat().st_size,
+                                            'sha256': identify.sha(self.archive.read_bytes())}
+                self.acquisition.write_text(json.dumps(acquisition))
+                code, out, err = self.record()
+                self.assertEqual(code, 2, out + err); self.assertIn('duplicate or invalid', err)
+                self.assertFalse((self.tmp / 'rec').exists())
+
+    def test_truncated_gzip_has_structured_refusal_and_no_publication(self):
+        self.archive.write_bytes(gzip.compress(b'abc')[:12])
+        acquisition = json.loads(self.acquisition.read_bytes())
+        acquisition['acquisition'] = {'size_bytes': self.archive.stat().st_size,
+                                    'sha256': identify.sha(self.archive.read_bytes())}
+        self.acquisition.write_text(json.dumps(acquisition))
+        code, out, err = self.record()
+        self.assertEqual(code, 2, out + err); self.assertIn('EOFError', json.loads(err)['error'])
+        self.assertFalse((self.tmp / 'rec').exists())
 
     def test_complete_content_profile_refuses_release_or_missing_packaged_resource_feature(self):
         original = json.loads(self.facts.read_text())

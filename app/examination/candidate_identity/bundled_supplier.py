@@ -98,10 +98,10 @@ def identify_supplier(inv, archive, acquisition):
                 name = member.name.rstrip('/')
                 if name != TAR_ROOT and not name.startswith(TAR_ROOT + '/'):
                     continue  # platform package metadata outside the vendor tree
-                relative = name[len(TAR_ROOT):].lstrip('/')
-                if name in seen or any(p in ('', '.', '..') for p in relative.split('/')) and relative:
+                relative = '' if name == TAR_ROOT else name[len(TAR_ROOT) + 1:]
+                if relative in seen or relative and any(p in ('', '.', '..') for p in relative.split('/')):
                     raise ValueError('duplicate or invalid vendor archive path')
-                seen.add(name)
+                seen.add(relative)
                 if not member.isfile() and not member.isdir():
                     raise ValueError('supplier archive link or special file refused')
                 if not relative:
