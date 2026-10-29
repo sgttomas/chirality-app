@@ -1,5 +1,8 @@
 # Bounded package-free Windows process fixture return
 
+The historical return below remains intact. The later guarded-bootstrap attempt
+and its actual guest-session obstacle are recorded in the appended follow-up.
+
 2026-10-28 local undertaking (raw review timestamps are 2026-10-29 UTC).
 **Source prepared and independently scrutinized; native execution withheld.**
 No P01/P02 case, compiler, supplier, App or model was run. This return establishes
@@ -161,3 +164,152 @@ completion or acceptance. S01 exact SQLite 3.46.0, sidecar/open recovery,
 namespace durability, native-control, supplier, production adapter and App/x64
 checks remain deferred. No system SQLite substitution or VS catalog retry,
 repin, installer/download or provisioning was performed.
+
+## Guarded-bootstrap follow-up — 2026-10-29
+
+**One independently reviewed in-memory bootstrap attempt failed at guest-session
+admission. No compiler or P01/P02 case ran.** `prlctl` returned 255 with empty
+stdout and:
+
+```
+PrlVmGuest_RunProgram: Unable to open new session in this virtual machine.
+Make sure your virtual machine has finished booting, runs the latest version
+of Parallels Tools, and is not isolated from the host OS.
+```
+
+The exact stderr, source hashes and full guest command are preserved in
+[guarded_bootstrap_attempt.json](windows_process_fixture_evidence/guarded_bootstrap_attempt.json).
+[Outcome interpretation](windows_process_fixture_evidence/guarded_bootstrap_outcome.json)
+keeps that transport failure separate from compiler, fixture and cleanup facts.
+No retry, inventory repetition, guest repair, settings change, installation or
+workaround followed it. The VM was not stopped, reset or reconfigured. This is
+an actual execution-prerequisite obstacle, not an inferred missing compiler.
+
+### Local source, exact attempt and independent scrutiny
+
+Host-created worktree: `/Users/ryan/.t3/worktrees/chirality-app/t3-0721d905`.
+Branch: `t3/windows-fixture-guarded-bootstrap`. Required input
+`ebf71ce713e4d71a2b32193fd360cfda3cd1dab9` remains an ancestor. All work and
+commits are local; no push, PR change, merge or permission/release action occurred.
+Shared instructions retain the source identity already recorded above; no
+shared-library or packaged-asset write occurred.
+
+The source family is now six files under `app/examination/windows_platform/`:
+the unchanged `ProcessFixture.cs` and `verify_results.py`, repaired
+`run_fixture.py`, new `Controller.ps1` and `test_driver.py`, and `README.md`.
+The source asset ending `.ps1` is transported as exact bytes and evaluated only
+in memory; execution never loads a `.ps1` file or overrides Restricted policy.
+
+- Initial executable-source review examined
+  `21f35b693eb13f2eed4abb836da2494166a0bb16`. Its
+  [actual return](windows_process_fixture_evidence/guarded_bootstrap_review1.json)
+  found a late controller reread after source checking, unsigned-exit conversion,
+  cleanup settlement after the original deadline, and imprecise host-timeout
+  wording. The manager fixed these ordinarily and obtained a new review.
+- The [second actual return](windows_process_fixture_evidence/guarded_bootstrap_review2.json)
+  examined `c5e01df9d4a06fa6184841cb30d22ec539e30590` and found no source blocker
+  to the one zero-file bootstrap attempt under its stated controlled-invocation
+  conditions. It retained two limitations: exceptional local teardown could
+  escape the normal unknown report, and the dormant watchdog could accept a
+  stop event without checking time after that wake. It expressly did not endorse
+  the dormant controller for execution.
+- The actual attempt used that exact reviewed `c5e01df9` source. An inline Python
+  loader fetched the driver from that Git blob and executed it with the actual
+  worktree `__file__`, `__name__='__main__'`, `--bootstrap-check` and the full
+  `--source-commit`. The driver compared all six files to that commit and built
+  transport from retained verified Git bytes without reopening Controller.ps1.
+  The compressed payload was also compared locally with that saved Git blob.
+- Subsequent local source at
+  `c91621e09d118c001439d65d4425062bb856a913` repairs the two remaining findings:
+  exceptional local kill/wait failure retains UNKNOWN without a Popen-context
+  implicit wait; the emitted watchdog checks time after every wake, including
+  stop, before accepting cancellation. This source has not reached the guest.
+  Its final independent source scrutiny is retained separately with the return.
+- The [third actual return](windows_process_fixture_evidence/guarded_bootstrap_review3.json)
+  reviewed `c91621e0`, independently reproduced all six attempted source hashes,
+  the command hash and decompressed controller Git-blob equality, and confirmed
+  the failed-session/native-NOT-RUN account. It found one small remaining host
+  reporting bug: selector/pipe close exceptions could discard the prepared
+  UNKNOWN result. The manager repaired those closes and added a focused
+  regression. This final small driver/test delta was checked by the manager;
+  it was not independently re-reviewed or used for another guest attempt.
+
+All Type2 tasks used `codex-hub/gpt-6.1-terra`, xhigh/priority, at most one active
+at a time and no TASK delegation. Their actual returns were inspected; a
+preparatory contributor's incomplete launch refusal was repaired by the manager,
+not treated as proof of API impossibility.
+
+The attempted guest command SHA-256 is
+`f34d8a3142a14fcce05a1fb2984ad1e763a63ad08b4c05c2ed4e8db8fa156a33`.
+Its 19,218-byte controller source SHA-256 is
+`f4e5fb24a59ba81fb1c90d5259a4d8a8bc1345f47fa1b1b163b5cbbae32cb498`.
+These identify the attempted source, not later local source or actual guest
+copies. No guest hash response was received. The other five files were checked
+on the host, not staged to guest disk. The raw record retains every source hash.
+
+### Repairs and the remaining namespace gate
+
+Reflection.Emit now prepares documented 64-bit layouts and PInvoke types in
+memory, with sizes and offsets validated before use. Controller source starts
+a dedicated emitted-IL watchdog thread before native Job/process setup; it
+requires a distinct non-inheritable kill-on-close safety Job in the process's
+creation-time Job list, uses no breakaway or Job-handle duplication, and retains
+original process/thread/Job handles. It preserves true unsigned exit codes and
+requires process signaling plus Job active zero within the original deadline.
+After observed cleanup the watchdog accepts cancellation only after its own
+time check; handle disposal follows watchdog join. Deadline/unknown paths
+terminate only the controller root, whose last Job close requests cleanup.
+That path never claims observed cleanup. This is **source preparation**, not a
+runtime result or completed B integration; fixture stdout capture and actual
+compiler/launch/watchdog validation remain owed.
+
+The [API basis](windows_process_fixture_evidence/guarded_bootstrap_api_basis.md)
+records why the considered sharing-only A guard is insufficient: CreateFile
+share restrictions exclude attribute/EA access, and MS-FSA's reparse-setting
+access test accepts FILE_WRITE_ATTRIBUTES. A file-ID check does not prohibit
+metadata mutation on the same object. Denying FILE_SHARE_WRITE also conflicts
+with pathname-based output writes; enabling it supplies no unique writer or
+reparse exclusion. Other tag/size/privilege checks still apply. This is a
+documented proof gap for this guard, not a demonstrated guest exploit or a
+universal package-free impossibility claim. No continuously safe compiler
+namespace is implemented or admitted, and `--run` still refuses before contact.
+
+A caller-owned-stream compiler API is a candidate alternative. The attempted
+bootstrap would have checked only `Microsoft.CodeAnalysis.dll` and
+`Microsoft.CodeAnalysis.CSharp.dll` beside the framework compiler. Those checks
+were **not reached**. No global absence, assembly compatibility, compiler
+temporary behavior or availability of that alternative is claimed.
+
+### Observations, limits and next step
+
+The guest remains pinned to VM `2944eb77-696f-41ad-97e2-142ba0489535` via
+`prlctl exec`. Readiness at `da0a2802` remains historical metadata: Windows 11
+build 26200, PowerShell 5.1 FullLanguage/Restricted, ARM64 environment, 8-byte
+pointers, and installed FrameworkArm64 .NET 4.8.1 compiler. The failed session
+produced no new runtime, layout or `IsWow64Process2` process/native machine
+observation. No ARM managed fixture or native-x64 App evidence exists.
+
+P01-positive, the deliberate P01-negative and P02 A/B/C are all **NOT RUN**.
+There is no observed late-marker rejection, inner-Job exclusion, outer-safety
+inclusion, EOF/process-signaling distinction or true-exit259 result. Compiler,
+controller lifecycle, timeout observation, host-loss/crash and last-close
+experiments also remain unrun. The attempted route requested no guest fixture
+file, compiler, helper or Job creation, so no fixture-owned cleanup was required;
+no retained-HANDLE/Job-empty cleanup observation is invented. Guest PowerShell
+completion was not observed through the failed session.
+
+Host-only regression checks cover refusal/source binding, exact-byte bounded
+gzip transport, overflow/timeout UNKNOWN and failed local teardown reporting.
+The unchanged native verifier rejects an empty trace. Schema/hash checks and
+the Git checkout-byte regression pass; deliverable consistency is checked with
+the repository tool. Fresh mktemp CODEX_HOME directories were used. No App,
+supplier, peer or model execution, downloads or provisioning occurred.
+
+The next small step is restoring the authorized `prlctl` guest-session
+prerequisite without assuming permission for VM/tool/settings repair. Before
+any compiler or case attempt, independently establish A across every compiler
+open and integrate/validate B with bounded fixture-output capture. ScopeOfWork
+REQ-008/VER-008 and all dependency conditions remain unchanged; the new host
+regression is added only as a check pointer. This supplies no acceptance,
+production-policy decision, supplier qualification, storage/durability evidence
+or release advancement.
