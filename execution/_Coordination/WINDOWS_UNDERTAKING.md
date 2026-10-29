@@ -90,7 +90,7 @@ architecture/support commitment was made. SWBPIPE also reports passing host
 Windows-x64 cross-compilation checks for `curved_bend --tests` and
 `product_physics --lib`; these are not Windows execution or App evidence.
 
-### Common provisioning proposal in preparation
+### First feasibility return and common provisioning proposal
 
 SWBPIPE requested VS Build Tools 2022 17.14 LTSC, C++ x64/x86 and SDK
 10.0.26100, Rust 1.97.1 MSVC with `x86_64-pc-windows-msvc` and
@@ -109,6 +109,45 @@ the selected build path demonstrates a need. Source contradictions or unknown
 payload bounds must be exposed before authorization. Metadata/header research
 is permitted; installer/package payload downloads and installations are not.
 No AC-004 exclusive stack-witness window is currently planned by SWBPIPE.
+
+The first App feasibility return is committed at
+`716a8e795968b82c42f84cf67f26ad817d64bdfe` and integrated through a merge
+commit. Its owning records are
+`../PKG-01/DEL-01-01/Design/WINDOWS_FEASIBILITY.md` and
+`../PKG-01/DEL-01-01/Design/WINDOWS_PROVISIONING.md`, with source-pinned
+acquisition/package JSON beside them. Independent Type 2 scrutiny examined
+`61e12b8e92445903e5fb3edc90b9098d121fb043`; its two planning findings were
+repaired in the returned revision. Agent 0 inspected the actual review return,
+the repair delta and integration, including the 78 GiB estimated simultaneous
+footprint, 80 GiB rounded envelope and 100 GiB initial free-space threshold.
+This is development integration, not owner acceptance or installation approval.
+
+The proposed 6 GiB transfer ceiling remains an estimate. VS 17.14 is Current,
+not LTSC. Its channel/catalog byte identities disagree in the saved official
+metadata reads; this unresolved acquisition join blocks VS payload acquisition
+and installation. Python-dependent Windows checks are explicitly deferred.
+Mac offline build/check evidence is recorded; Windows cross-compilation stopped
+in the bundled SQLite C build before App Rust compilation. No Windows App,
+supplier, native-control or durable-reopen witness is established.
+
+### Process-policy coordination input
+
+SWBPIPE's current ordinary worker policy requires termination on spawning-App
+death, including memory-headroom-stopped workers. Source basis
+`1560bbf7f7add4637a20572a2b0d404ef121af63`, read independently by App Agent 0:
+`projects/chirality-piping/execution/PKG-04/DEL-04-07/Design/memory-budget-decision.md`
+and `projects/chirality-piping/apps/desktop/src-tauri/src/solve_worker.rs`
+(worker description and parent-exit handling). Cancellation/session reset
+termination does not release its pool reservation until exit/reap and the
+applicable result-custody condition. A Windows Job kill-on-close mechanism
+may preserve that policy; it does not select App's parent-death behavior.
+Neither EOF nor successful termination-request delivery proves process exit.
+
+SWB's counted-heap grant, measured process footprint and fresh host-headroom
+admission require separate Windows definitions and evidence. A Job OS memory
+limit is not an automatic replacement for those quantities. These are
+source-qualified peer constraints for subsequent design, not shared-library
+adoption or a change to App's custody contract.
 
 Align before dependent implementation on Windows architecture/evidence targets,
 shared VM/toolchain scheduling, process ownership and termination semantics,
