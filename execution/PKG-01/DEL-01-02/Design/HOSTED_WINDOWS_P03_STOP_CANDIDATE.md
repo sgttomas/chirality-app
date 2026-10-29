@@ -1,7 +1,9 @@
 # Hosted P-03 generation-bound Stop candidate
 
-2026-10-29: source candidate and host-only checks; **native execution NOT RUN**.
-Agent0 owns integration, publication and disposable hosted Windows execution.
+2026-10-29: **all three required hosted native-AMD64 scenarios completed** at
+source `0aec700dd15f961d358f9bcd9d6e1760905b20dd`, run `40922543448`.
+The final section records inspected native results. Earlier candidate/review
+accounts below retain their original unrun scope. Agent0 owns integration.
 No App Windows compile/launch, supplier, crash, durability or production policy
 qualification follows from this synthetic probe. The P-01/P-02 pass at
 `d26ecdae` and all three earlier failures retain their original bytes and limits
@@ -171,3 +173,50 @@ runner, workflow, host tests, result narrative and raw evidence compare
 byte-identical to baseline `735f65d3`; their unchanged parser units were not
 repeated or presented as native requalification. Both baseline and fetched main
 are committed ancestors. No push, PR or hosted run was performed by this manager.
+
+## Agent 0: inspected hosted native result
+
+[Actions run 40922543448](https://github.com/sgttomas/chirality-app/actions/runs/40922543448)
+compiled and ran exact integrated source
+`0aec700dd15f961d358f9bcd9d6e1760905b20dd` on disposable hosted
+`windows-2022`, image `20261026.347.1`, OS build 20348. Supported machine APIs
+observed native AMD64 (process machine 0, native machine 34404, 8-byte pointers).
+The preinstalled Framework64 compiler reported `4.8.9363.0`; Python was 3.12.10.
+This is not Windows 11, Parallels or production App execution.
+
+Agent 0 inspected [the exact result](hosted-windows-p03-evidence/0aec700d/result.json)
+and all three raw traces, verified all six source blob identities/lengths/SHA-256
+against the committed source, checked every compiler/native channel hash and
+length, and reapplied the bound verifier to the raw native bytes. All 19 artifact
+files are preserved byte-for-byte; no executable binary is committed.
+
+- [Positive](hosted-windows-p03-evidence/0aec700d/positive-native.stdout): the
+  original leader exited after stdin closed, its descendant remained live
+  through the fixture grace, and the current slot changed to g+1. Stop acted
+  on captured g; original leader/descendant HANDLEs signaled and original Job
+  active count reached zero while g+1 remained live with active count one.
+  Retirement was CONFIRMED only after those observations.
+- [Wrong-slot control](hosted-windows-p03-evidence/0aec700d/wrong-slot-native.stdout):
+  deliberately terminating g+1 left g's descendant live/active one and killed
+  the successor. Retirement remained UNKNOWN; mechanism_pass was false.
+- [Missing-observation control](hosted-windows-p03-evidence/0aec700d/missing-observation-native.stdout):
+  termination API success did not establish retirement when the authoritative
+  Job observation was withheld. Custody remained held and retirement UNKNOWN
+  until separately logged fixture cleanup; cleanup did not rewrite the outcome.
+
+Each trace rejected second binding, numeric/serialized PID authority and stale
+session/home/counter/generation admission, plus success-only/leader-only/zero-only
+retirement. Both control traces also reject when presented to the positive
+verifier. All three observed retained-actor exit/inner-Job-zero cleanup followed
+by retained controller exit/external safety-Job active zero within original
+deadlines. Compiler/native commands returned 0, with no stderr, timeout,
+response-bound or teardown uncertainty. The lane PASS means this positive
+synthetic mechanism and its required controls completed; neither control is a
+successful Stop result.
+
+No production App adapter, concurrent App source-gate race, crash policy,
+supplier, hostile namespace, SQLite/durability or owner qualification is
+established. The owner superseded the second-local-VM route: no further media,
+setup, boot or provisioning is planned/authorized under it. Dormant hardware
+is preserved without contact; CAEPIPE stays excluded. Current hosted work needs
+neither local media nor cloud provisioning. Commitments/dependencies are unchanged.
