@@ -138,4 +138,36 @@ bound verifier bytes, three distinct invented outcomes, required/unique events,
 generation/architecture/process/Job/cleanup mutations, negative-control promotion,
 deadline/grace bounds and raw channel/nonce refusals. Their invented traces are
 ephemeral test inputs and are never saved as purported native evidence.
-Independent review and final source binding are recorded below after completion.
+
+Actual independent Type 2 source scrutiny completed on exact commit
+`5be2c733c513a9da700b66464730ffda5f4d1f2c`, via host-managed isolated worktree,
+using `codex-hub/gpt-6.1-sol`, `reasoningEffort=medium`, `serviceTier=default`.
+The reviewer compared all nine changed files to committed blobs, inspected the
+actual original HANDLE/Job and generation paths, negative controls, observation
+rules, old-C# source/ABI plausibility, containment, deadlines and cleanup. It
+reported **no substantive findings or must-fix publication blockers**. No repair
+was required. It independently ran the eight host units, deliverable graph check
+(41 deliverables, zero errors, six existing cycle groups), committed-byte
+comparison and whitespace check. No native compilation/execution, guest work,
+download or remote operation was performed by that reviewer.
+
+Manager checks used a fresh `tempfile.TemporaryDirectory` CODEX_HOME and
+`PYTHONDONTWRITEBYTECODE=1`; no supplier or Codex process was launched:
+
+```text
+python3 -B -m unittest discover -s app/examination/windows_platform -p test_p03.py -v
+python3 -B -m tools.deliverables --project . check
+git diff --check
+```
+
+All pass (eight unit methods; graph errors empty). Calling the actual hosted
+`bind_sources` helper against committed `5be2c733` on the host verified all six
+inputs against exact Git blobs and SHA-256. The reviewed native source blob is
+`d4f46f4c5728a3d299e5696e67c28cf9d2454f0c`, SHA-256
+`9a3fa9a65138d2e28366610adaa422f6e26f661650048fcd6ed17c52c640f962`.
+The review-record follow-up changes only this document; runtime inputs and tests
+remain the independently checked bytes. P-01/P-02 implementation, verifier,
+runner, workflow, host tests, result narrative and raw evidence compare
+byte-identical to baseline `735f65d3`; their unchanged parser units were not
+repeated or presented as native requalification. Both baseline and fetched main
+are committed ancestors. No push, PR or hosted run was performed by this manager.
