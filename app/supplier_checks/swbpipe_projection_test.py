@@ -39,6 +39,26 @@ class Projection(unittest.TestCase):
         self.assertEqual(json.loads(wire["result"]["contentItems"][0]["text"]), RESULT)
         self.assertEqual(wire["id"], 7)
 
+    def test_initial_binding_matches_captured_basis(self):
+        for key, value in [("workspaceHandle", "invented:other"),
+                           ("applicationGeneration", 2), ("modelRevision", 3),
+                           ("applicationGeneration", True), ("requestRef", ""),
+                           ("rpcId", False)]:
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                Pending(CAT, dict(BINDING, **{key: value}), json.dumps(ARGS).encode(), BASIS)
+        for key in BINDING:
+            incomplete = dict(BINDING)
+            del incomplete[key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                Pending(CAT, incomplete, json.dumps(ARGS).encode(), BASIS)
+
+    def test_captured_binding_is_not_retargeted_by_caller(self):
+        binding, basis = copy.deepcopy(BINDING), copy.deepcopy(BASIS)
+        pending = Pending(CAT, binding, json.dumps(ARGS).encode(), basis)
+        binding["rpcId"] = 99
+        basis["applicationGeneration"] = 99
+        self.assertEqual(pending.complete(BINDING, RESULT, BASIS)["id"], 7)
+
     def test_wrong_binding_and_duplicate(self):
         pending = self.pending()
         for key in BINDING:

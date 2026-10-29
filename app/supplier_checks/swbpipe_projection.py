@@ -110,6 +110,17 @@ class Pending:
     def __init__(self, catalog, binding, args_raw, current_basis, current_units=None):
         self.catalog = catalog
         self.binding = copy.deepcopy(binding)
+        validate(current_basis, expand(catalog, catalog["definitions"]["basis"]))
+        if set(binding) != set(catalog["hostPolicy"]["binding"]):
+            raise ValueError("binding fields")
+        for key in ("workspaceHandle", "applicationGeneration", "modelRevision"):
+            if type(binding[key]) is not type(current_basis[key]) or binding[key] != current_basis[key]:
+                raise ValueError("binding basis")
+        for key in ("requestRef", "threadId", "turnId", "callId", "tool"):
+            if not isinstance(binding[key], str) or not binding[key]:
+                raise ValueError("binding identity")
+        if type(binding["rpcId"]) not in (str, int):
+            raise ValueError("RPC identity")
         self.tool = next(t for t in catalog["tools"] if t["name"] == binding["tool"])
         self.args = decode(args_raw, catalog["limits"]["argumentBytes"])
         validate(self.args, expand(catalog, self.tool["inputSchema"]))
