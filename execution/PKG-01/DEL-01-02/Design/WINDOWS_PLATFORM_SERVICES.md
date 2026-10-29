@@ -484,3 +484,11 @@ representation-checked, not independently re-reviewed or executed on Windows.
 The reviewer independently traced process/SQLite/App-peer claims and reproduced
 the path census; no build, Windows, supplier or live probe was run. Review and
 repair establish no owner acceptance or production adoption.
+
+2026-10-29: a separate hosted-only [P-03 Stop source candidate](HOSTED_WINDOWS_P03_STOP_CANDIDATE.md)
+implements the synthetic P-03 probe and falsifiable controls without changing
+P-01/P-02 stimulus or historical evidence. Its native compilation/execution is
+NOT RUN at the source-return stage. Subsequent hosted native run `40922543448`
+at `0aec700d` completed the positive case and both required controls, with raw
+source/channel verification and observed cleanup recorded in that result.
+Production capability/policy selection and qualification remain open.
