@@ -80,6 +80,20 @@ class Admission(unittest.TestCase):
             self.assertIn('guest command completion UNKNOWN', result['limitation'])
             self.assertIn('local exit not observed', result['limitation'])
 
+    def test_failed_stream_or_selector_close_keeps_unknown_report(self):
+        with patch.object(DRIVER.subprocess, 'Popen') as popen, \
+                patch.object(DRIVER.selectors, 'DefaultSelector') as selector:
+            selector.return_value.get_map.return_value = {}
+            selector.return_value.close.side_effect = OSError('test selector close failure')
+            popen.return_value.wait.return_value = 0
+            popen.return_value.stdout.close.side_effect = OSError('test stdout close failure')
+            result = DRIVER.capture_response(['never-executed'])
+            self.assertIsNone(result['returncode'])
+            self.assertIn('selector close failed', result['limitation'])
+            self.assertIn('stdout close failed', result['limitation'])
+            self.assertIn('guest command completion UNKNOWN', result['limitation'])
+            popen.return_value.stderr.close.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

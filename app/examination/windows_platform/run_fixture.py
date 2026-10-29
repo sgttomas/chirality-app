@@ -132,12 +132,17 @@ def capture_response(argv, response_seconds=25, teardown_seconds=5, limit=32768)
     finally:
         # No Popen context manager: its implicit unbounded wait must not erase
         # the report when local client teardown fails. Never retry the guest.
-        if selector is not None:
-            selector.close()
+        resources = [('selector', selector)]
         if proc is not None:
-            for stream in (proc.stdout, proc.stderr):
-                if stream is not None:
-                    stream.close()
+            resources += [('stdout', proc.stdout), ('stderr', proc.stderr)]
+        for label, resource in resources:
+            if resource is not None:
+                try:
+                    resource.close()
+                except Exception as exc:
+                    outcome['returncode'] = None
+                    outcome['limitation'] = outcome.get('limitation', '') + (
+                        '; ' + label + ' close failed: ' + str(exc) + '; guest command completion UNKNOWN')
         outcome.update({k: bytes(v).decode('utf-8', 'replace') for k, v in chunks.items()})
     return outcome
 
