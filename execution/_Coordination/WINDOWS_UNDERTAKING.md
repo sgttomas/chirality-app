@@ -74,11 +74,41 @@ manager, separate guest-native checkouts/build directories, and no duplicate
 installers or uncoordinated VM mutations. Download authorization remains
 required. This resource agreement establishes no technical contract adoption.
 
-SWBPIPE reported an arm64 Mac host with 128 GiB RAM; its VM inventory and
-Windows toolchain/execution evidence had not yet returned. Treat this as a
-peer report until independently observed. Both coordinators propose x64 as the
-primary Windows verification target, with Parallels Arm/emulated-x64 evidence
-labelled separately; no public architecture/support commitment was made.
+SWBPIPE reported an arm64 Mac host with 128 GiB RAM and subsequently supplied
+its checked, read-only inventory: Parallels 27.0.2; a running Windows 11 Pro
+10.0.26200 Arm64 guest with 32 GiB RAM; PowerShell execution through
+`prlctl exec` usable. Rust/cargo/rustup, Node/npm, Git, `cl`, CMake and `pwsh`
+were absent from PATH; VS Installer was absent, no Windows SDK was registered,
+and `winget` was absent. WebView2 156.0.4314.50 was registered. SWBPIPE states
+that inventory made no guest writes, downloads or VM changes. This is
+peer-supplied execution evidence, not an independent App observation; absence
+from PATH is not proof of absence everywhere on the machine.
+
+Both coordinators propose x64 as the primary Windows verification target,
+with Parallels Arm/emulated-x64 evidence labelled separately; no public
+architecture/support commitment was made. SWBPIPE also reports passing host
+Windows-x64 cross-compilation checks for `curved_bend --tests` and
+`product_physics --lib`; these are not Windows execution or App evidence.
+
+### Common provisioning proposal in preparation
+
+SWBPIPE requested VS Build Tools 2022 17.14 LTSC, C++ x64/x86 and SDK
+10.0.26100, Rust 1.97.1 MSVC with `x86_64-pc-windows-msvc` and
+`wasm32-unknown-unknown` targets, Node 24 LTS, Git 2.x and
+`wasm-bindgen-cli` exactly 0.2.123. These are proposed requirements, not
+resolved components, selected downloads or download/install authorization.
+
+The App implementation owner must resolve supported ARM-hosted x64 compiler
+components, Rust host architecture, exact patches, official sources and sizes,
+and subsequent payloads or credible bounded bootstrapper totals into one
+owner-reviewable proposal. Include project dependency acquisition, version
+verification, installation order and NTFS-local, separate project build paths.
+Distinguish measured, vendor-published and estimated sizes. Reuse existing
+WebView2 if sufficient; CMake, PowerShell 7 and winget are included only if
+the selected build path demonstrates a need. Source contradictions or unknown
+payload bounds must be exposed before authorization. Metadata/header research
+is permitted; installer/package payload downloads and installations are not.
+No AC-004 exclusive stack-witness window is currently planned by SWBPIPE.
 
 Align before dependent implementation on Windows architecture/evidence targets,
 shared VM/toolchain scheduling, process ownership and termination semantics,
