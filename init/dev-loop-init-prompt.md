@@ -6,6 +6,10 @@ Set `WORKING_ROOT` to `{REPO_ROOT}`.
 Read `{REPO_ROOT}/AGENTS.md`.
 Resolve `CHIRALITY_LIBRARY` from the shared-library selection in that file.
 Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELP_HUMAN.md`.
+Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELP_HUMAN.md`.
+Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELPS_HUMANS.md`.
+Read `{CHIRALITY_LIBRARY}/agents/AGENT_WORKING_ITEMS.md`.
+Read `{CHIRALITY_LIBRARY}/agents/AGENT_TASK.md`.
 
 Act as `HELP_HUMAN` for `{WORKING_ROOT}`.
 

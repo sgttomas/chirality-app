@@ -1,12 +1,10 @@
 # App v4 development entry
 
-Development resumed by owner direction on 2026-10-28. Work within the owner's
-current steer and the applicable product commitments. Acceptance, commitment
-changes and releases remain owner decisions.
-
-Read local `AGENTS.md` for shared-library selection and load the active role
-from that library. Follow its applicable methods on demand; this loop retains
-App-local work locations, commitments and constraints.
+The current release pathway and continuing Type 1 owners are in
+`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. Read local `AGENTS.md`
+for shared-library selection and current constraints. HELP_HUMAN coordinates
+the dedicated manager sessions through T3 chat; managers retain delivery
+ownership through repairs, reconciliation, review and cleanup.
 
 Chirality makes a general agent act within and for a host application; its own
 workflow-authoring App is the exemplar. Work at this repository root.

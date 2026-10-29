@@ -1,5 +1,12 @@
 # App v4 / SWBPIPE / Domains — interface coordination for human relay
 
+Current coordination uses the owner-authorized direct T3 routes and delivery
+owners in [CURRENT_EXECUTION_BASIS.md](CURRENT_EXECUTION_BASIS.md#current-release-pathway).
+Current source-bound host receiving/evidence is maintained in
+[DEL-09-06's receiving account](../PKG-09/DEL-09-06/Design/SWBPIPE_RECEIVING_BINDING.md).
+The September relay and readiness statements below retain their dated meaning;
+they are not current host status. PEC delivery is retired and adds no prerequisite.
+
 Status: **The consolidated questions (RELAY-v0.3, below) were relayed by the owner on 2026-09-28, per the owner's statement. SWBPIPE's answers were received on 2026-09-28 (see RELAY §4); nothing is adopted or committed by the outside session.** This file communicates App v4 interface needs; it does not assign or perform SWBPIPE, PEC or Domains implementation. The human coordinates the sessions, as recorded in [owner direction O](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md).
 
 The owner accepted HTML recommendation HTML-D05 with SWB implementation retained by its existing outside session. The intended first activity uses invented engineering material: inspect a model, propose an adjustment, request a non-mutating check, encounter an intervening edit, and recover the actual outcome/receipt. A reusable workflow carries its identity, assumptions, tool needs and human checkpoints between App and host. The useful operation, autonomy scope and candidate environment remain to be selected. This is a coordinated contract and staged examination, not a single all-or-nothing test or authorization to run a supplier experiment.
