@@ -11,6 +11,13 @@ package_objective_refs: [OBJ-001, OBJ-002, OBJ-004]
 
 ## Purpose and Objective Traceability
 
+Owner-directed Windows development investigation (2026-10-28) is recorded in
+`Design/WINDOWS_FEASIBILITY.md` and `Design/WINDOWS_PROVISIONING.md`. These
+records distinguish source findings, actual checks and proposed work; they do
+not broaden this contract, qualify a supplier/candidate, or select Windows
+shipping/support. Existing dependency conditions and macOS commitments remain
+unchanged.
+
 Provide the stock Codex hosting and supplier boundary for the standalone Chirality App. The responsible party is the **App supplier-integration owner**; the accepted type is BACKEND_FEATURE_SLICE in PKG-01, Native App and third-party harness integration. This contract defines the required contribution and later completion evidence. Its initialization is not product implementation or qualification. [D, P, G, C]
 
 | Objective | Local contribution | Scope basis |

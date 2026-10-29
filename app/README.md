@@ -5,8 +5,9 @@ Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
 supplies reviewed v4 common/role guidance, receives native requests and activity,
 loads external observations, records decision packages, and supplies native controls
 for A16 decisions, A15 workflow registration, and A4/A6/A7 App-file acts. Separate
-readers retain decision and file-act evidence limits. App v4 development is on hold;
-packaging, supplier qualification and the owner's stage gate are separate work.
+readers retain decision and file-act evidence limits. App v4 development resumed
+by owner direction on 2026-10-28; packaging, supplier qualification and the owner's
+stage gate remain separate work.
 
 Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
 confirmation tests are explicit stand-ins; they do not establish that a person

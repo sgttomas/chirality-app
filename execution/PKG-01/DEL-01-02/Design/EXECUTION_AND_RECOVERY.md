@@ -1,4 +1,13 @@
 # Durable execution and request recovery
+
+Windows development proposal, source-bound to App `79315c26`: see
+[Windows platform services](WINDOWS_PLATFORM_SERVICES.md) for custody,
+actual-opened-file SQLite identity, namespace/durability choices and unrun
+probe gates. It changes no implemented behavior, accepted guarantee or
+dependency completion condition. In particular, Windows file visibility is
+not yet this Design's confirmed file/directory durability, and App hard-death
+cleanup policy is not selected by SWB's worker contract.
+
 - Contribution: DEL-01-02/RECOVERY-v0.2 (supersedes DEL-01-02/RECOVERY-v0.1, written at node D1 round 1 on 2026-10-01, file sha256 455678a69929024980ad570c1bce3cac339cb249288261e8f7604374c81b6941, unchanged until this step)
 - **CC-REC-GEN (APP-V4-GROUP-A-20261004):** full H5 generation tuple has deterministic string references (§1); ledger/custody/stop schema shapes unchanged, independent review pending.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside it: three PROPOSED schemas (JSON Schema 2020-12), each with a valid and an invalid example instance, and a local design prototype in `prototype/` (not product code, not an App candidate; R12-3)

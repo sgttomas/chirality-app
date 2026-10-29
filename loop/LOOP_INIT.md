@@ -1,7 +1,8 @@
 # App v4 development entry
 
-Development is on hold. Only owner-authorized migration work and verification
-may proceed; migration does not lift the hold or authorize release.
+Development resumed by owner direction on 2026-10-28. Work within the owner's
+current steer and the applicable product commitments. Acceptance, commitment
+changes and releases remain owner decisions.
 
 Read local `AGENTS.md` for shared-library selection and load the active role
 from that library. Follow its applicable methods on demand; this loop retains
