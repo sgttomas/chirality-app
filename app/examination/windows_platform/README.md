@@ -13,9 +13,12 @@ for review evidence. Its write/compile/run route has been removed from the curre
 source rather than left available behind a warning. `--run` hard-refuses before
 any guest operation. The source harness has not been compiled or executed.
 
-`run_fixture.py --inspect` only reads installed guest metadata via Windows
+`run_fixture.py --inspect --source-commit <saved-revision>` only reads installed guest metadata via Windows
 PowerShell `-NoProfile -NonInteractive -EncodedCommand`. It writes a bounded
 raw response, source hashes, blockers and a fresh scratch CODEX_HOME on the host.
+All four fixture files must match that saved revision before guest contact.
+Both response channels together are capped at 32 KiB with a 25-second original
+monotonic deadline. No guest TEMP/user-profile path is captured.
 The existing Restricted policy stays unchanged; individual inline metadata
 commands load no `.ps1` file and invoke no compiler. No guest fixture scratch,
 source, compiler temporary files, binaries or logs are created by this route.
