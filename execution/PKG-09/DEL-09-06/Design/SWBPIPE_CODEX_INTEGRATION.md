@@ -32,6 +32,16 @@ as a later option.
 
 ## Purpose and current direction
 
+**Receiving status, 2026-10-29.** The [current receiving basis](SWBPIPE_RECEIVING_BINDING.md#current-joined-receiving-basis-2026-10-29)
+identifies merged host catalog/Design, the actual harmless local-model summary
+witness and unwired Rust transport/session components. Catalog bytes remain at
+the existing v2 pin. The earlier Python witness does not qualify the restrictive
+Rust launch profile, production desktop integration or full reference-system
+capability. SWBPIPE owns native fixture discrimination and activation; no App
+implementation prerequisite is identified for that fixture. The
+[DEL-09-07 receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md) names the
+remaining joined evidence and exact acceptance reconciliation still owed.
+
 The owner directed in the SWBPIPE session:
 
 > I want you to add the App v4 integration into SWBPIPE for the v1.0 target.
