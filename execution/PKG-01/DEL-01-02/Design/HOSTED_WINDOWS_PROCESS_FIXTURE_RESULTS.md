@@ -1,6 +1,6 @@
 # Supplemental hosted Windows process fixture lane
 
-Status: **TWO NATIVE ATTEMPTS FAILED AT P02-A; OWNERSHIP DIAGNOSIS PENDING**. The
+Status: **THREE NATIVE ATTEMPTS FAILED AT P02-A; CONTROLLED STDOUT SETUP PENDING**. The
 source-bound first attempt and partial observations are appended below; the
 earlier preparation/checks retain their original scope. This is a separately
 attributed disposable GitHub-hosted native-x64 P01/P02 lane. Parent
@@ -324,3 +324,31 @@ SHA-256 `0fe3a1d38c032655e9803c861eabf1bffb6ba11f0051c237f81889d1df4057b5`
 `742241038b0f78871bc6fb308119356c857c7acba2d1da4b5f40cb899a6ef205`
 (9,504 bytes). These are new candidate identities, not replacements for either
 historical artifact's source hashes. Native CI remains NOT RUN.
+
+## Direct-read native result
+
+[Actions run 40841278555](https://github.com/sgttomas/chirality-app/actions/runs/40841278555)
+executed exact source `91b80351c30beb2c502fc4c77125f0b74bf097aa`.
+The [result](hosted-windows-process-fixture-evidence/91b80351/result.json) and
+[raw trace](hosted-windows-process-fixture-evidence/91b80351/native.stdout)
+are exact source/channel-verified artifact bytes. Compilation and both P01
+controls completed again; the overall native suite remains FAILED.
+
+A confirmed successful output close, then its actual synchronous read stayed
+pending through the original deadline while the original leader remained live.
+After safety termination began, the read completed FALSE/109, and bounded
+worker join plus process-HANDLE/Job-empty cleanup were observed. Read completion
+was after termination request but before the later all-exited proof: the raw
+`eofAfterDeathProof=False` is not evidence of live EOF. Original acceptance
+deadlines were already exceeded. B/C were not reached.
+
+This run rejects a missed-peek-only explanation for its observation and supports
+process-lifetime-associated retention, without identifying any module, duplicate
+handle or universal CLR/kernel defect. Existing failed records remain intact.
+A next controlled fixture may create its test pipe inside the helper after
+managed startup, transfer the read HANDLE through its original owned process,
+and explicitly bind/verify the write end as actual STD_OUTPUT_HANDLE. That must
+be source-reviewed and prove parent/child pipe correspondence, real current
+stdout binding, live original leader, FALSE/109 within eight seconds, and cleanup.
+An unrelated private pipe or an EOF after death cannot satisfy A. This is a
+controlled-stimulus refinement, not a production fix or guarantee.
