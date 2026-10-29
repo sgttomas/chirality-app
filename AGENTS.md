@@ -1,8 +1,9 @@
 # Chirality App repository instructions
 
-This repository owns App v4. Development is on hold at the owner's direction;
-only the currently authorized migration and its verification may proceed. No
-feature work, qualification advancement or release is authorized by migration.
+This repository owns App v4. Development resumed by owner direction on
+2026-10-28. Work follows the owner's current steer and the applicable product
+commitments. Commitment changes, acceptance and releases remain owner decisions;
+migration alone does not authorize them.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Design/`
@@ -55,7 +56,7 @@ This App repository owns its work, commitments and Git lifecycle. Chirality's
 Root work locality, backlog, repository-specific duties and standing Git grant
 do not transfer here. Shared-library consultation does not authorize changing
 Chirality, SWBPIPE or another consumer, and adopting a shared method does not
-lift the App development hold.
+expand the authorized App scope.
 
 ## Product assets and local tools
 
@@ -88,3 +89,20 @@ Use a fresh scratch Codex home for development/tests, never `~/.codex`.
 Do not sign in or use credentials without the owner. Build offline by default;
 downloads require explicit permission identifying the file, source and size.
 No live examination is authorized merely to verify this repository migration.
+
+The existing Parallels guest is the owner's CAEPIPE validation VM and is
+permanently off-limits to Windows development: no guest-targeted discovery,
+sessions, probes, scratch, installation, configuration, Tools, power or reset
+operations. Do not clone/migrate it or use its private data, settings or exchange
+surfaces. Never auto-select an existing guest or publish guest identifiers.
+
+On 2026-10-29 the owner authorized a separate Windows build guest, capped at
+16 GiB RAM and run only when needed. App Agent 0 owns provisioning and private
+target binding; coordinate use with SWBPIPE Windows and suspend the new guest
+during exclusive windows announced by the macOS coordinator in
+`dev - piping` (thread `73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff`). Only a new,
+explicitly identified guest may become the build target. The Windows-image
+acquisition is authorized from Microsoft's official source; record the exact
+file, source, size and SHA-256 before installation. Other downloads retain
+their exact authorization requirements, and the VS metadata integrity hold
+remains. Licensing, purchases, activation and account sign-in remain owner acts.

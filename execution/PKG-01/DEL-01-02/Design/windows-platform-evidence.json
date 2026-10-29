@@ -1,0 +1,196 @@
+{
+  "standing": "local source/API-document investigation; not Windows execution or owner acceptance",
+  "app_revision": "79315c26b104b534a89ed8e9b1e716f3da3440d0",
+  "instruction_library": {
+    "path": "/Users/ryan/dev/chirality",
+    "revision": "1560bbf7f7add4637a20572a2b0d404ef121af63"
+  },
+  "peer": {
+    "read_only_checkout": "/Users/ryan/.t3/worktrees/chirality/t3-514d37a1",
+    "production_revision": "1560bbf7f7add4637a20572a2b0d404ef121af63",
+    "candidate_revision": "b78b0feac0aa1e6bbc4606597e10accc54b7eb51",
+    "candidate_diff": "CI/design/release wording only; no production source delta"
+  },
+  "path_census": {
+    "command": [
+      "git",
+      "ls-tree",
+      "-r",
+      "--name-only",
+      "-z",
+      "79315c26b104b534a89ed8e9b1e716f3da3440d0"
+    ],
+    "algorithm": "UTF-8 tracked names; UTF-16-LE byte length / 2. Absolute = root + separator + relative. Excludes generated/untracked paths. Lexical casefold is not Windows filesystem equivalence proof.",
+    "nul_delimited_path_list_sha256": "517b5eb283c5290c41ef43d72cf873abbc0a3c2ed6127f5987a7cd4377ba3a5a",
+    "tracked_leaves": 2464,
+    "by_top_level": {
+      ".github": 2,
+      ".gitignore": 1,
+      "AGENTS.md": 1,
+      "CLAUDE.md": 1,
+      "LICENSE.md": 1,
+      "README.md": 1,
+      "app": 1423,
+      "conceptual": 8,
+      "docs": 9,
+      "execution": 976,
+      "foundation": 20,
+      "init": 2,
+      "loop": 1,
+      "reference": 8,
+      "tools": 8,
+      "workflows": 2
+    },
+    "max_relative_utf16_units": 130,
+    "max_component_utf16_units": 62,
+    "longest_paths": [
+      {
+        "path": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+        "utf16_units": 130
+      },
+      {
+        "path": "execution/_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/presentation/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md",
+        "utf16_units": 130
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-01/Design/generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json",
+        "utf16_units": 118
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-01/Design/generated/0.160.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json",
+        "utf16_units": 118
+      },
+      {
+        "path": "app/tests/group_b_distribution_receiving_terminal_source_fixtures/selected/selected-source/reference/attestation.json",
+        "utf16_units": 117
+      }
+    ],
+    "proposed_roots": [
+      {
+        "root": "C:\\a",
+        "max_absolute_utf16_units": 135,
+        "tracked_absolute_at_least_260": 0
+      },
+      {
+        "root": "C:\\s\\app",
+        "max_absolute_utf16_units": 139,
+        "tracked_absolute_at_least_260": 0
+      }
+    ],
+    "casefold_collisions": [],
+    "reserved_special_or_trailing_components": [],
+    "windows_checkout_run": false,
+    "sparse_selection": "none; recommend full App checkout"
+  },
+  "sqlite": {
+    "crate": "libsqlite3-sys",
+    "version": "0.30.1",
+    "bundled_version": "3.46.0",
+    "crate_archive_sha256": "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149",
+    "archive_matches_app_lock": true,
+    "source_files": {
+      "sqlite3/sqlite3.c": {
+        "sha256": "c01235302fe80da901fb70c7622c39147e29d9f29b7f6eb746b23517f320c90d",
+        "matches_locked_crate_archive_bytes": true
+      },
+      "sqlite3/sqlite3.h": {
+        "sha256": "d088aa96aa70db50f02acc5c86eca61a5d17556e4c363b9c06079239bf7f87b1",
+        "matches_locked_crate_archive_bytes": true
+      },
+      "sqlite3/bindgen_bundled_version.rs": {
+        "sha256": "8a77e8d566d1637a551ab4e35837e016f6132aa64e9c92fd07b1039898734559",
+        "matches_locked_crate_archive_bytes": true
+      }
+    },
+    "documented_control": "SQLITE_FCNTL_WIN32_GET_HANDLE (29)",
+    "control_implemented_outside_SQLITE_TEST": true,
+    "windows_runtime_probe_run": false
+  },
+  "official_document_captures": [
+    {
+      "capture": "job-objects.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+      "bytes": 61310,
+      "sha256": "af941ad0c3f09731b2843a3a6adfa33f7faddb45d2c6d9e399178343e4695f32"
+    },
+    {
+      "capture": "maximum-file-path-limitation.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation",
+      "bytes": 55579,
+      "sha256": "326ad4a77e04909abc018556ff071990a39c202cb020dd318c6cbca839345966"
+    },
+    {
+      "capture": "nf-fileapi-createfilew.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+      "bytes": 115313,
+      "sha256": "4e9f36a893e4a03cf816b46f7bb14d6b40bb540fe4fa60e2028d813b91278336"
+    },
+    {
+      "capture": "nf-fileapi-flushfilebuffers.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+      "bytes": 54802,
+      "sha256": "ad724a92b1ea12e595b5aa41bc40e45ec33be95a4181a7a1a092b4c4b6bf165c"
+    },
+    {
+      "capture": "nf-fileapi-lockfileex.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex",
+      "bytes": 57294,
+      "sha256": "a8d5a2868c4c3c54935bb04515866ab2f2339e2cf519a0cd7373a11ede33ae2d"
+    },
+    {
+      "capture": "nf-jobapi2-assignprocesstojobobject.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-assignprocesstojobobject",
+      "bytes": 58056,
+      "sha256": "7908e14cd4544932d72757926d82daa4b3b35af8275e94bbc123c86ebdf897c1"
+    },
+    {
+      "capture": "nf-jobapi2-queryinformationjobobject.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject",
+      "bytes": 66460,
+      "sha256": "58f22cccc174b2f4405b32b7d90280a89d28e8cdc1a9a6c8783d324b42172d24"
+    },
+    {
+      "capture": "nf-processthreadsapi-createprocessw.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw",
+      "bytes": 76648,
+      "sha256": "b110836583ef8c0341f2b126a2d3755903cc0be63229a9210ea06f13e88758f4"
+    },
+    {
+      "capture": "nf-processthreadsapi-updateprocthreadattribute.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute",
+      "bytes": 85404,
+      "sha256": "66868dc94cf5034296b89986602ed22ba3a8d5dbf3b28d9f94649c96517e0e1d"
+    },
+    {
+      "capture": "nf-winbase-getfileinformationbyhandleex.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex",
+      "bytes": 58169,
+      "sha256": "41a4992ee3da2049215b78b5d3ab8fb1bbd480da37fc371c0d3b267c80500f2e"
+    },
+    {
+      "capture": "nf-winbase-movefileexw.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw",
+      "bytes": 63000,
+      "sha256": "8564f4acd6944c0a31ed6495e3c09548b70f3618d13684f978b02d5c6611babf"
+    },
+    {
+      "capture": "nf-winbase-replacefilew.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew",
+      "bytes": 62061,
+      "sha256": "c7b4c5238de917e23ae3366e157347c1c6cd34a6713841613e85b0a87316c82a"
+    },
+    {
+      "capture": "process-creation-flags.html",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/procThread/process-creation-flags",
+      "bytes": 60994,
+      "sha256": "5399482327cd03a1853539fcd5cd7b4e6e199721353436f0721c35aee271dc4c"
+    }
+  ],
+  "scratch_evidence_path": "/tmp/chirality-windows-contracts.2ifcOU",
+  "limitations": [
+    "No Windows/guest operations, supplier/model execution, payload acquisition or production changes",
+    "Document hashes identify consulted representation, not installed SDK/runtime behavior",
+    "Prior Mac checks retained in WINDOWS_FEASIBILITY.md; not repeated",
+    "Parent VS metadata follow-up remains unresolved; not investigated again"
+  ]
+}

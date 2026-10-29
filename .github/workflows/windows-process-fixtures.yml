@@ -1,0 +1,47 @@
+name: Supplemental Windows process fixtures
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/windows-process-fixtures.yml
+      - .gitattributes
+      - app/examination/windows_platform/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process-fixtures:
+    name: Hosted native-x64 P01/P02 (supplemental)
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        # Preserve the workflow/attributes bytes too, without global Git changes.
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: 'core.autocrlf'
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Require preinstalled Python and execute bound fixture
+        shell: pwsh
+        env:
+          FIXTURE_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $python = Get-Command python -CommandType Application -ErrorAction Stop
+          & $python.Source -I -B -c "import sys; assert sys.version_info >= (3,9), 'preinstalled Python >=3.9 required'"
+          if ($LASTEXITCODE -ne 0) { throw 'Preinstalled Python capability check failed; no acquisition permitted' }
+          & $python.Source -I -B app/examination/windows_platform/run_hosted_fixture.py --source-commit $env:FIXTURE_SOURCE_COMMIT
+          if ($LASTEXITCODE -ne 0) { throw 'Hosted process fixture failed/refused; inspect retained evidence' }
+      - name: Retain bounded raw trace and source/tool identities
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-process-fixture-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/windows-process-fixture-evidence/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,55 @@
+1109683702	suite	5e64019c99c14bc7bb6d594b6320dd62	IDENTITY	processMachine=0x0000;nativeMachine=0x8664;nativeSystemArchitecture=9;pointerBytes=8;runtime=4.0.30319.42000;os=Microsoft Windows NT 6.2.9200.0;stopwatchFrequency=10000000;launcherInJob=True
+1109777954	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	CREATED_LEADER	suspended=True;safety=true;handle=848
+1109781142	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	ASSIGN_ATTEMPT	original_inner
+1109782906	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	ASSIGNED	original_inner
+1109783106	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	BOUND	appSession=5e64019c99c14bc7bb6d594b6320dd62;home=fixture-home;spawnCounter=P01-positive
+1109784695	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	RESUME_ATTEMPT	original_thread
+1109785975	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	RESUMED	original_thread
+1110062159	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	HELPER_ENTRY	qpc=1110003687;helper-entry
+1110062449	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	HELPER_PRE	qpc=1110009298;before-actual-CreateProcessW
+1110062471	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	PRE_ACK	child creation permitted after private PRE
+1110261847	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	HELPER_CREATED	qpc=1110138432;776
+1110264983	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	DESCENDANT_HANDLE	noninherit=true;source=original_leader;handle=876
+1110418847	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	HELPER_EFFECT	qpc=1110344913;invented-nonce-effect
+1110421426	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	MEMBERSHIP	inner=True;safety=True;live=True
+1110575370	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	HELPER_FINAL	qpc=1110564978;late-marker
+1110575613	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	CONTAINMENT	PASS
+1110581813	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	TERMINATE_ATTEMPT	original_inner
+1110584369	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	TERMINATE_API	success;not_exit_proof
+1110740678	P01-positive	5e64019c99c14bc7bb6d594b6320dd62	CASE_CLEANUP	leaderSignaled=true;descendantSignaled=true;innerActive=0
+1110751710	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	CREATED_LEADER	suspended=True;safety=true;handle=880
+1110751936	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	RESUME_ATTEMPT	original_thread
+1110752218	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	RESUMED	original_thread
+1110968745	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	HELPER_ENTRY	qpc=1110961817;helper-entry
+1110969055	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	HELPER_PRE	qpc=1110967580;before-actual-CreateProcessW
+1110969092	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	PRE_ACK	child creation permitted after private PRE
+1111054509	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	HELPER_CREATED	qpc=1111025010;772
+1111054807	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	DESCENDANT_HANDLE	noninherit=true;source=original_leader;handle=896
+1111271383	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	HELPER_EFFECT	qpc=1111243547;invented-nonce-effect
+1111271735	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	ASSIGN_ATTEMPT	original_inner
+1111272351	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	ASSIGNED	original_inner
+1111272446	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	BOUND	appSession=5e64019c99c14bc7bb6d594b6320dd62;home=fixture-home;spawnCounter=P01-negative
+1111272490	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	MEMBERSHIP	inner=False;safety=True;live=True
+1111860395	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	HELPER_FINAL	qpc=1111372572;late-marker
+1111860669	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	CONTAINMENT	REJECT
+1111860781	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	TERMINATE_ATTEMPT	original_inner
+1111861288	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	TERMINATE_API	success;not_exit_proof
+1111861561	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	TERMINATE_DESCENDANT_ATTEMPT	retained source-bound handle
+1112005607	P01-negative	5e64019c99c14bc7bb6d594b6320dd62	CASE_CLEANUP	leaderSignaled=true;descendantSignaled=true;innerActive=0
+1112017834	P02-A	5e64019c99c14bc7bb6d594b6320dd62	A_DEADLINE	startQpc=1112017808;untilQpc=1192017808;startMs=241;untilMs=8241;frequency=10000000
+1112031704	P02-A	5e64019c99c14bc7bb6d594b6320dd62	CREATED_LEADER	suspended=True;safety=true;handle=872
+1112031918	P02-A	5e64019c99c14bc7bb6d594b6320dd62	ASSIGN_ATTEMPT	original_inner
+1112032060	P02-A	5e64019c99c14bc7bb6d594b6320dd62	ASSIGNED	original_inner
+1112032147	P02-A	5e64019c99c14bc7bb6d594b6320dd62	BOUND	appSession=5e64019c99c14bc7bb6d594b6320dd62;home=fixture-home;spawnCounter=P02-A
+1112032161	P02-A	5e64019c99c14bc7bb6d594b6320dd62	RESUME_ATTEMPT	original_thread
+1112032256	P02-A	5e64019c99c14bc7bb6d594b6320dd62	RESUMED	original_thread
+1112283819	P02-A	5e64019c99c14bc7bb6d594b6320dd62	HELPER_ENTRY	qpc=1112267572;helper-entry;stdout=888;stderr=888
+1112304912	P02-A	5e64019c99c14bc7bb6d594b6320dd62	A_READ_START	handle=856;leaderHandle=872;untilMs=8241;untilQpc=1192017808;pendingBytes=0;length=1
+1112344674	P02-A	5e64019c99c14bc7bb6d594b6320dd62	A_CLOSE_CONFIRMATION	qpc=1112274045;stdout=888;stderr=888;alias=True;stdoutOk=True;stdoutError=0;stderrAttempted=False;stderrOk=False;stderrError=0;writeComplete=True
+1192048966	P02-A	5e64019c99c14bc7bb6d594b6320dd62	A_READ_PENDING	atOriginalDeadline=True;joined=False
+1192051748	P02-A	5e64019c99c14bc7bb6d594b6320dd62	A_READ_PROOF	closeConfirmed=True;workerJoined=False;beforeDeadline=False;originalLeaderHandle=872
+1192052206	P02-A	5e64019c99c14bc7bb6d594b6320dd62	OBSERVATION	leaderSignaled=False;exit=259;eof=False
+1192054723	P02-A	5e64019c99c14bc7bb6d594b6320dd62	REFUSAL	InvalidOperationException:A live EOF/post-close proof not established by original deadline
+1192054929	suite	5e64019c99c14bc7bb6d594b6320dd62	SAFETY_TERMINATE_ATTEMPT	original safety Job
+1192206941	suite	5e64019c99c14bc7bb6d594b6320dd62	SAFETY_CLEANUP	allRetainedHandlesSignaled=true;active=0
+1192211566	suite	5e64019c99c14bc7bb6d594b6320dd62	A_READ_CLEANUP	ok=False;bytes=0;error=109;qpc=1192065815;completedMs=8246;workerStarted=True;workerJoined=True;failure=none;deathProofQpc=1192206937;eofAfterDeathProof=False;liveEofOutcomeUnchanged=True
