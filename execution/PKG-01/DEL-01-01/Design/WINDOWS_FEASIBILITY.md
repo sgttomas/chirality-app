@@ -12,7 +12,24 @@ source is repository `AGENTS.md` / `loop/LOOP_INIT.md` and shared Chirality
 knowledge-work. Packaged roles/workflows were not updated. Investigation date:
 2026-10-28 local / 2026-10-29 UTC.
 
-## Finding and immediate execution basis
+## Current owner route — local VM work on hold
+
+The owner's later correction supersedes the separate-local-VM route: they do
+not intend to run a second local Windows instance. No further image acquisition,
+attachment, setup, boot, provisioning or guest operation is authorized under
+that earlier route. Preserve the existing dormant hardware and private binding
+without deleting or changing them. The CAEPIPE guest remains permanently
+excluded. No guest was contacted to record this correction.
+
+Continue the current work through separately attributed hosted Windows CI;
+local installation media and tool provisioning are not prerequisites for that
+work. If a future concrete requirement cannot be met there, first present the
+exact missing capability and cloud options to the owner. This authorizes no
+cloud acquisition, provisioning or spend and changes no product/native
+qualification requirement. The VS integrity hold remains. Earlier preparation,
+measurements and acquisition proposals below retain their historical scope.
+
+## Initial finding and execution basis — historical
 
 Windows development can proceed in bounded platform-service slices alongside
 macOS. The initial connected Windows slice is **not executable yet**: the
@@ -180,7 +197,7 @@ qualified. Windows packaging/signing and native x64 verification remain later
 work, with owner support choices separate from DEL-01-06's existing macOS
 Apple Silicon requirement.
 
-## Proposed bounded sequence and effort
+## Initial proposed sequence and effort — historical
 
 These are engineering estimates after inspection, not commitments or elapsed
 agent-time promises. Missing acquisition/guest access and owner decision time

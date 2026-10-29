@@ -127,3 +127,7 @@ checks:
 - app/examination/windows_platform/test_hosted_fixture.py
 - .github/workflows/windows-process-fixtures.yml
 - execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md
+- app/examination/windows_platform/test_p03.py
+- app/examination/windows_platform/verify_p03.py
+- .github/workflows/windows-stop-fixtures.yml
+- execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md

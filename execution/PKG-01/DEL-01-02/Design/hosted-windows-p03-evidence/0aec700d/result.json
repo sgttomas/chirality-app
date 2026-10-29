@@ -1,0 +1,264 @@
+{
+  "schema": "chirality-hosted-p03/v1",
+  "profile": "github-hosted-native-amd64-p03-synthetic-stop/v1",
+  "status": "PASS",
+  "native_execution": "COMPLETED",
+  "host": {
+    "processMachine": 0,
+    "nativeMachine": 34404,
+    "pointerBytes": 8,
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "os": [
+      10,
+      0,
+      20348,
+      2,
+      ""
+    ]
+  },
+  "sources": {
+    ".gitattributes": {
+      "git_blob": "2a74413e169813fa73f0f65898bf51761d12bc69",
+      "sha256": "d6ec3d9ab2bb560bab9e372e111e13b81e38c0ed4d7fa9549803398e44d92b0b",
+      "bytes": 393
+    },
+    ".github/workflows/windows-stop-fixtures.yml": {
+      "git_blob": "d81e4d79186f08bd5e341bde0d6a8926b3abd35f",
+      "sha256": "224f64013c43f7b587fbf3e586475e20fe487b2f3782f711a2bc8842ad34ab41",
+      "bytes": 1909
+    },
+    "app/examination/windows_platform/run_hosted_fixture.py": {
+      "git_blob": "13d563a9c9bd283d33d82a654dc6a1f7eba518e0",
+      "sha256": "03f1cfa4a6b8bdfe10cc242460ca70f98b83158b9f7d94e0efba79aec0320859",
+      "bytes": 13491
+    },
+    "app/examination/windows_platform/run_hosted_p03.py": {
+      "git_blob": "cdced74c0c485d6d14393214d53e0bc8e81d4ec7",
+      "sha256": "41725a359c4fdfe73899f19e0817eb5db8586397e50fc523ab563824878543e5",
+      "bytes": 5974
+    },
+    "app/examination/windows_platform/P03Fixture.cs": {
+      "git_blob": "d4f46f4c5728a3d299e5696e67c28cf9d2454f0c",
+      "sha256": "9a3fa9a65138d2e28366610adaa422f6e26f661650048fcd6ed17c52c640f962",
+      "bytes": 23181
+    },
+    "app/examination/windows_platform/verify_p03.py": {
+      "git_blob": "a35e42bd647047741214946900b0b68fdc5b02f5",
+      "sha256": "f86d904cc8e63c1f87f26b7b22b712b2506a54b909b193092496d91f101fcebe",
+      "bytes": 4916
+    }
+  },
+  "source_commit": "0aec700dd15f961d358f9bcd9d6e1760905b20dd",
+  "runner_image": {
+    "ImageOS": "win22",
+    "ImageVersion": "20261026.347.1"
+  },
+  "tool_files": {
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe": "baef2676444878d5818628f46483f4e55241d6380ecff0bbb855c470852e1872",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll": "11ac114c43ecf6996bef58ba3c99fba3693a4560a84eeadde54d193060dc626c",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll": "15adc79ede47ebfa67c9cbac1bfdc98493cddfcdff743fcfc10f4be4224a14aa",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll": "8b898bed54ae8cc61f9c58cc3eb062724f8357d2bdda338b5d363654ecff333d"
+  },
+  "commands": {
+    "positive-compiler-version": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/help"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.06200000000001182,
+      "stdout_sha256": "0bdcb1b1671ecf3d9e0c5361cd599e8d9c26a8f156b376c263efe2a6d844054f",
+      "stdout_bytes": 5945,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "positive-compile": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/nologo",
+        "/nostdlib+",
+        "/platform:x64",
+        "/target:exe",
+        "/out:D:\\a\\_temp\\chirality-app-p03-31a6ab17886c46519b2c499c0b33aa80\\P03Fixture.exe",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "D:\\a\\_temp\\chirality-app-p03-31a6ab17886c46519b2c499c0b33aa80\\P03Fixture.cs"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.1409999999999627,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "positive-native": {
+      "argv": [
+        "D:\\a\\_temp\\chirality-app-p03-31a6ab17886c46519b2c499c0b33aa80\\P03Fixture.exe",
+        "supervisor",
+        "31a6ab17886c46519b2c499c0b33aa80",
+        "positive",
+        "D:\\a\\_temp\\chirality-app-p03-31a6ab17886c46519b2c499c0b33aa80",
+        "0",
+        "0"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.4689999999999941,
+      "stdout_sha256": "319641c4c983eb466bb07c467cce202db8bd274fddb9dfd2450ae1c4885c3077",
+      "stdout_bytes": 2612,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "wrong-slot-compiler-version": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/help"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.014999999999986358,
+      "stdout_sha256": "0bdcb1b1671ecf3d9e0c5361cd599e8d9c26a8f156b376c263efe2a6d844054f",
+      "stdout_bytes": 5945,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "wrong-slot-compile": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/nologo",
+        "/nostdlib+",
+        "/platform:x64",
+        "/target:exe",
+        "/out:D:\\a\\_temp\\chirality-app-p03-70637a9207f0426bb178464cd86bba70\\P03Fixture.exe",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "D:\\a\\_temp\\chirality-app-p03-70637a9207f0426bb178464cd86bba70\\P03Fixture.cs"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.07800000000003138,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "wrong-slot-native": {
+      "argv": [
+        "D:\\a\\_temp\\chirality-app-p03-70637a9207f0426bb178464cd86bba70\\P03Fixture.exe",
+        "supervisor",
+        "70637a9207f0426bb178464cd86bba70",
+        "wrong-slot",
+        "D:\\a\\_temp\\chirality-app-p03-70637a9207f0426bb178464cd86bba70",
+        "0",
+        "0"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.4689999999999941,
+      "stdout_sha256": "3b89b947e5d0a48fa9bc907508d24c4de4a042a0826cea72c04bcd658071f641",
+      "stdout_bytes": 2616,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "missing-observation-compiler-version": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/help"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.03100000000000591,
+      "stdout_sha256": "0bdcb1b1671ecf3d9e0c5361cd599e8d9c26a8f156b376c263efe2a6d844054f",
+      "stdout_bytes": 5945,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "missing-observation-compile": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/nologo",
+        "/nostdlib+",
+        "/platform:x64",
+        "/target:exe",
+        "/out:D:\\a\\_temp\\chirality-app-p03-86ed92fcfa1e4218adfb127a24dc369e\\P03Fixture.exe",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "D:\\a\\_temp\\chirality-app-p03-86ed92fcfa1e4218adfb127a24dc369e\\P03Fixture.cs"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.07800000000003138,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "missing-observation-native": {
+      "argv": [
+        "D:\\a\\_temp\\chirality-app-p03-86ed92fcfa1e4218adfb127a24dc369e\\P03Fixture.exe",
+        "supervisor",
+        "86ed92fcfa1e4218adfb127a24dc369e",
+        "missing-observation",
+        "D:\\a\\_temp\\chirality-app-p03-86ed92fcfa1e4218adfb127a24dc369e",
+        "0",
+        "0"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.4379999999999882,
+      "stdout_sha256": "3094451dbce4f7ca11d723dbc63402a9a929ff24f5d4f71a0de06039397cc98b",
+      "stdout_bytes": 2577,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    }
+  },
+  "cases": [
+    {
+      "scenario": "positive",
+      "outcome": "CONFIRMED",
+      "cleanup": "OBSERVED",
+      "mechanism_pass": true,
+      "nonce": "31a6ab17886c46519b2c499c0b33aa80",
+      "compiler_version": "Microsoft (R) Visual C# Compiler version 4.8.9363.0",
+      "executable_sha256": "042aaeee4345d774e3d3736fafa1e8ae0dbd5928c68132cd009dd52b7de8b198"
+    },
+    {
+      "scenario": "wrong-slot",
+      "outcome": "UNKNOWN",
+      "cleanup": "OBSERVED",
+      "mechanism_pass": false,
+      "nonce": "70637a9207f0426bb178464cd86bba70",
+      "compiler_version": "Microsoft (R) Visual C# Compiler version 4.8.9363.0",
+      "executable_sha256": "a2f4f579cafc3156285f1152b17f2e0043c3d5cb8d7dcc7e8dd78a4d043f0c5b"
+    },
+    {
+      "scenario": "missing-observation",
+      "outcome": "UNKNOWN",
+      "cleanup": "OBSERVED",
+      "mechanism_pass": false,
+      "nonce": "86ed92fcfa1e4218adfb127a24dc369e",
+      "compiler_version": "Microsoft (R) Visual C# Compiler version 4.8.9363.0",
+      "executable_sha256": "2d24b2b2a9bc19539d2767a1cb9dc06c904340122cb998f95befc6c596183f84"
+    }
+  ]
+}
