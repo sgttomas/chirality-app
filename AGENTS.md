@@ -5,6 +5,14 @@ This repository owns App v4. Development resumed by owner direction on
 commitments. Commitment changes, acceptance and releases remain owner decisions;
 migration alone does not authorize them.
 
+Current release pathway, delivery owners and remaining evidence are in
+`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. HELP_HUMAN retains Agent 0
+responsibility; Type 1 managers work in dedicated T3 sessions and communicate
+through T3 chat, owning delivery through repairs, reconciliation and integration
+preparation. All Type 2 TASKs/reviewers use `gpt-6.1-sol`, medium effort and
+standard service (`reasoningEffort: medium`, `serviceTier: default`). These are
+development-agent settings, not product model/provider selections.
+
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Design/`
 and `deliverable.yaml` conventions. Reconcile changed implementation meaning
