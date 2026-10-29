@@ -1296,6 +1296,19 @@ Closed at v0.5: the row on V4-WF-05 and the DEL-09-06 SoW REQ-003 / AC-004 / VER
 
 ## Current host coordination (2026-10-28)
 
+**Current receiving direction (2026-10-29).** The dated source account below
+is historical. The [current joined receiving basis](SWBPIPE_RECEIVING_BINDING.md#current-joined-receiving-basis-2026-10-29)
+verifies merged RT-E1/criterion 17, canonical v2, a bounded actual local summary
+tool witness and unwired Rust host components. No catalog repin is needed.
+The embedded CA/E route uses stock Codex dynamic tools and the host's existing
+webview-owned model session. Production activation, desktop review/application,
+cleanup and criterion 1's full reference-system witness remain host work;
+the [DEL-09-07 receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md) carries
+the joined evidence still owed. This supplies no external-controller dependency,
+new acceptance or release claim. Earlier no-catalog/no-transport and deferred-join
+statements below describe their dated basis rather than today's implementation
+authority. Existing commitments await explicit owner reconciliation where needed.
+
 **Received source, not a joined witness.** SWBPIPE HELP_HUMAN returned its
 current-state account through the owner-authorized T3 route from
 [dev - piping](t3-thread://v1/73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff) to
