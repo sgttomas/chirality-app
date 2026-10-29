@@ -91,6 +91,7 @@ jobs:
           PY
       - name: Build App and verify source-mapped schemas
         run: |
+          python tests/check_git_checkout_bytes.py
           npm run build
           python src-tauri/schemas/sync.py
       - name: Design schema conditional regressions

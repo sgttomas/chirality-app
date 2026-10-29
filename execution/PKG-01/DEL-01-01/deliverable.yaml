@@ -90,6 +90,7 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- .gitattributes
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/lib.rs
 - app/src-tauri/src/desktop_startup.rs
@@ -102,6 +103,7 @@ code_paths:
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/model_turn_recorder.rs
 checks:
+- app/tests/check_git_checkout_bytes.py
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs

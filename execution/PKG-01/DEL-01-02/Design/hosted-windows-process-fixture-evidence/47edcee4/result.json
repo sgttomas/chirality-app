@@ -1,0 +1,118 @@
+{
+  "schema": "chirality-hosted-process-fixture/v1",
+  "profile": "github-hosted-native-x64-trusted-checkout-process-only/v1",
+  "status": "FAILED",
+  "native_execution": "ATTEMPTED",
+  "host": {
+    "processMachine": 0,
+    "nativeMachine": 34404,
+    "pointerBytes": 8,
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "os": [
+      10,
+      0,
+      20348,
+      2,
+      ""
+    ]
+  },
+  "runner_image": {
+    "ImageOS": "win22",
+    "ImageVersion": "20261026.347.1"
+  },
+  "sources": {
+    ".gitattributes": {
+      "git_blob": "2a74413e169813fa73f0f65898bf51761d12bc69",
+      "sha256": "d6ec3d9ab2bb560bab9e372e111e13b81e38c0ed4d7fa9549803398e44d92b0b",
+      "bytes": 393
+    },
+    ".github/workflows/windows-process-fixtures.yml": {
+      "git_blob": "774228d0879168a4dd7de5cd6a7c17bdf2a0b3ba",
+      "sha256": "881596b590d5e7b59ed87baa4811660d691a29d31d77a9398b2af6c43b2d9961",
+      "bytes": 2111
+    },
+    "app/examination/windows_platform/run_hosted_fixture.py": {
+      "git_blob": "13d563a9c9bd283d33d82a654dc6a1f7eba518e0",
+      "sha256": "03f1cfa4a6b8bdfe10cc242460ca70f98b83158b9f7d94e0efba79aec0320859",
+      "bytes": 13491
+    },
+    "app/examination/windows_platform/ProcessFixture.cs": {
+      "git_blob": "68b9aa416f229e0d96911545958faf7cf7dfb857",
+      "sha256": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
+      "bytes": 23071
+    },
+    "app/examination/windows_platform/verify_results.py": {
+      "git_blob": "627fa67e2cbcef66efdae40de88b80181725d26a",
+      "sha256": "ecbe0dff2b6a67d7679f370c1589a88fcf7fbae25152ab4e3fc42f082d4a288f",
+      "bytes": 4488
+    }
+  },
+  "source_commit": "47edcee47eb04ec3d9b5a8445115e622e652fc16",
+  "tool_files": {
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe": "baef2676444878d5818628f46483f4e55241d6380ecff0bbb855c470852e1872",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll": "11ac114c43ecf6996bef58ba3c99fba3693a4560a84eeadde54d193060dc626c",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll": "15adc79ede47ebfa67c9cbac1bfdc98493cddfcdff743fcfc10f4be4224a14aa",
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll": "8b898bed54ae8cc61f9c58cc3eb062724f8357d2bdda338b5d363654ecff333d"
+  },
+  "nonce": "8ddee9ef864d4ecea770ebbd8abd3daa",
+  "commands": {
+    "compiler_version": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/help"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.09399999999999409,
+      "stdout_sha256": "0bdcb1b1671ecf3d9e0c5361cd599e8d9c26a8f156b376c263efe2a6d844054f",
+      "stdout_bytes": 5945,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "compile": {
+      "argv": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/noconfig",
+        "/nologo",
+        "/nostdlib+",
+        "/platform:x64",
+        "/target:exe",
+        "/out:D:\\a\\_temp\\chirality-app-process-fixture-8ddee9ef864d4ecea770ebbd8abd3daa\\ProcessFixture.exe",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "/reference:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "D:\\a\\_temp\\chirality-app-process-fixture-8ddee9ef864d4ecea770ebbd8abd3daa\\source\\ProcessFixture.cs"
+      ],
+      "returncode": 0,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 0.2650000000000432,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    "native": {
+      "argv": [
+        "D:\\a\\_temp\\chirality-app-process-fixture-8ddee9ef864d4ecea770ebbd8abd3daa\\ProcessFixture.exe",
+        "supervisor",
+        "8ddee9ef864d4ecea770ebbd8abd3daa",
+        "suite",
+        "D:\\a\\_temp\\chirality-app-process-fixture-8ddee9ef864d4ecea770ebbd8abd3daa"
+      ],
+      "returncode": 2,
+      "failure": null,
+      "teardown": "not_needed",
+      "elapsed_seconds": 8.281000000000006,
+      "stdout_sha256": "3f7a90c5ddd57f5825627d07e839b677ebea657c39d740fa223e6eab9c2beccf",
+      "stdout_bytes": 5126,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    }
+  },
+  "compiler_version": "Microsoft (R) Visual C# Compiler version 4.8.9363.0",
+  "executable_sha256": "9af6f2b7155ab921399850007578a0593dc1554c7d2166f1db11416cc5454289",
+  "error": "ValueError: command failed/unknown: 2"
+}

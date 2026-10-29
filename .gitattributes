@@ -1,0 +1,11 @@
+# Preserve committed bytes for hashed inputs, frozen evidence and fixtures.
+# -text disables Git newline conversion; it does not disable textual diffs.
+/app/src-tauri/resources/** -text
+/app/src-tauri/schemas/** -text
+/app/tests/** -text
+/app/examination/** -text
+/app/packaging/** -text
+/execution/**/Design/** -text
+/execution/**/ScopeOfWork.md -text
+/reference/** -text
+/workflows/** -text

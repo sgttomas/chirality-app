@@ -120,3 +120,10 @@ checks:
 - app/src-tauri/src/historical_trial_flows_tests.rs
 - execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
 - execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py
+- app/examination/windows_platform/verify_results.py
+- app/examination/windows_platform/test_driver.py
+- execution/PKG-01/DEL-01-02/Design/WINDOWS_PROCESS_FIXTURE_RESULTS.md
+- app/examination/windows_platform/run_hosted_fixture.py
+- app/examination/windows_platform/test_hosted_fixture.py
+- .github/workflows/windows-process-fixtures.yml
+- execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md
