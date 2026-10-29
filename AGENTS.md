@@ -104,13 +104,15 @@ sessions, probes, scratch, installation, configuration, Tools, power or reset
 operations. Do not clone/migrate it or use its private data, settings or exchange
 surfaces. Never auto-select an existing guest or publish guest identifiers.
 
-On 2026-10-29 the owner authorized a separate Windows build guest, capped at
-16 GiB RAM and run only when needed. App Agent 0 owns provisioning and private
-target binding; coordinate use with SWBPIPE Windows and suspend the new guest
-during exclusive windows announced by the macOS coordinator in
-`dev - piping` (thread `73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff`). Only a new,
-explicitly identified guest may become the build target. The Windows-image
-acquisition is authorized from Microsoft's official source; record the exact
-file, source, size and SHA-256 before installation. Other downloads retain
-their exact authorization requirements, and the VS metadata integrity hold
-remains. Licensing, purchases, activation and account sign-in remain owner acts.
+The owner's corrected Windows route on 2026-10-29 supersedes the earlier
+separate-build-guest/image approval: no second-local-instance acquisition,
+media retrieval, setup, boot or provisioning is active or authorized to resume.
+Preserve the dormant hardware and private target binding; do not alter or
+publish them. Media availability or an exclusive-window CLEAR does not lift
+this hold. Hosted CI is the current sufficient route for the P-03 fixture,
+not product App, namespace, SQLite or durability qualification. A future exact
+capability missing from hosted CI, including any cloud option, needs an owner
+decision before acquisition or spend; no cloud provisioning is authorized.
+The VS metadata integrity hold remains. Licensing, purchases, activation and
+account sign-in remain owner acts. No guest identifiers belong in repository
+files or public logs.

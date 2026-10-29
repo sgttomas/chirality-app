@@ -56,7 +56,10 @@ direction; a component pass does not silently satisfy or replace them.
   Agent 0. Do not duplicate its supplier acquisition or EOF/app-death fixtures.
 - **Windows counterpart:**
   [Windows Agent 0](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a).
-  Own Windows fixtures, platform evidence and private build-guest provisioning.
+  Own Windows fixtures, platform evidence and preservation of dormant private
+  build-guest hardware/binding. Earlier local-guest/media approval is superseded
+  and on hold: no acquisition, setup, boot or provisioning. Hosted CI is the
+  current sufficient P-03 route; media availability/CLEAR cannot resume a guest.
   Current P-03 scope is hosted-only full-generation Stop custody; it is disjoint
   from these App fronts. Its native fixture passes do not establish product
   App, guest namespace, SQLite or durability qualification.
@@ -118,8 +121,11 @@ downloads are approved with actual file/source/size/digest recorded; existing
 oMLX is selected for the local witness. Hosted use is allowed with owner-supplied
 credentials/sign-in, labelled separately from local evidence. Other downloads
 need explicit permission. Substantial UI choices and signing/release acts remain
-with the owner. The protected CAEPIPE guest and separately owned Windows build
-guest retain AGENTS.md's boundaries; these App fronts perform no guest operations.
+with the owner. The CAEPIPE guest remains permanently protected. Preserve the
+dormant Windows hardware/private binding under AGENTS.md's corrected hold;
+these App fronts perform no guest operations. Any exact unmet hosted capability
+or cloud option needs the owner's decision before acquisition/spend. No cloud
+provisioning or local VM prerequisite is part of the current pathway.
 
 ## Current manual selection
 
