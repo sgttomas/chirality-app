@@ -40,7 +40,7 @@ Actual readback establishes:
   established. This is hardware readiness with media missing.
 
 The successful CLI `create` operation returned no UUID in stdout/stderr. The
-owner clarified that canonical `Identification/VmUuid` in the exclusively
+App Agent 0 clarified that canonical `Identification/VmUuid` in the exclusively
 generated new bundle is valid creation-return identity. Extraction checked one
 fresh bundle/config, exact creation argv/name/destination, successful receipt,
 ownership, birthtime order, canonical field uniqueness and nonsymlink resolved

@@ -31,8 +31,9 @@ exclusive windows announced by [dev - piping](t3-thread://v1/73ba979f-d4c4-4e02-
 which remains the host/CAEPIPE scheduling and SWB interface contact while its
 implementation lanes finish and stop. Coordinate shared development use with
 SWBPIPE Windows Agent 0. Privately bind only the newly created identity; no
-existing-guest auto-selection or public VM identifiers. The current binding is
-unbound and retains the former identity only as a protected exclusion.
+existing-guest auto-selection or public VM identifiers. The newly created
+hardware is now privately bound after reviewed provenance/cap checks; the
+former identity remains only a protected exclusion. Fixture access stays held.
 
 Official Microsoft Windows-image acquisition/setup is authorized, with file,
 source, byte size and SHA-256 recorded before installation. The old 6 GiB
@@ -309,6 +310,26 @@ operation. Existing required App/Mac checks and policy are unaffected. Native
 P01/P02 behavior and observed cleanup remain pending until an actual run and
 source-bound artifact are inspected. The guest bootstrap/namespace and
 production App/SQLite/durability obligations remain separate.
+
+## New build guest hardware return
+
+The environment owner returned `a7f46d3b818bc22df2e58b149ae1676c14dcf273`:
+new ARM64/Windows11 hardware, 4 fixed vCPUs, 16384 MiB fixed RAM and a fresh
+sparse 256 GiB NVMe disk. The actual state is stopped/zero uptime, never
+booted, with no media or installed Windows. Private binding was atomically
+replaced and read back under its sole-writer lock; protected exclusion and
+other metadata remain. Agent 0 inspected the final review and proof-file
+digests, validated the private binding without printing identifiers, and
+confirmed the fixture source still refuses guest access. No VM operation or
+binding write was performed by that integration check.
+
+The public owning record/receipt retain dormant sharing child preferences
+separately from disabled parent/global gates; runtime isolation is untested.
+Only normal official media availability can advance attachment/setup. The
+owner cannot obtain it manually at present; do not pressure them, retry the
+rejected source API, or reuse any CAEPIPE state. Mac Agent 0's latest actual
+CLEAR ended the exclusive window, but no powered use is needed or scheduled
+while media is absent. Hosted work is independent.
 
 ## Publishing route
 

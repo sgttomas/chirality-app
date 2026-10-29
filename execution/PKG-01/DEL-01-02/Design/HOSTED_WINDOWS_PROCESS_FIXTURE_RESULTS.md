@@ -1,6 +1,6 @@
 # Supplemental hosted Windows process fixture lane
 
-Status: **FIRST NATIVE ATTEMPT FAILED AT P02-A; REPAIR RERUN PENDING**. The
+Status: **TWO NATIVE ATTEMPTS FAILED AT P02-A; OWNERSHIP DIAGNOSIS PENDING**. The
 source-bound first attempt and partial observations are appended below; the
 earlier preparation/checks retain their original scope. This is a separately
 attributed disposable GitHub-hosted native-x64 P01/P02 lane. Parent
@@ -205,3 +205,20 @@ Result-only documentation is removed from the supplemental workflow's path
 triggers to avoid rerunning native cases solely to append their evidence.
 Workflow/source/attribute changes still select the lane; required App/Mac
 checks are unchanged. The exact repaired candidate must now run on Windows.
+
+## Second native attempt: alias-close hypothesis not sufficient
+
+[Actions run 40836454447](https://github.com/sgttomas/chirality-app/actions/runs/40836454447)
+executed exact source `47953d358ce7448f10c12244fcb1402716bbe8b9`.
+Agent 0 checked all five recorded source hashes against those Git blobs and
+native-channel digests before preserving the [result](hosted-windows-process-fixture-evidence/47953d35/result.json)
+and [trace](hosted-windows-process-fixture-evidence/47953d35/native.stdout).
+Compilation succeeded. Both P01 controls and their cleanup were observed
+again, but P02-A still refused with the leader live and EOF false. The new
+diagnostic shows stdout and stderr had the same handle value, so closing a
+distinct second output reference did not resolve this run. The remaining
+writer ownership or EOF-observation cause is unestablished; the earlier alias
+hypothesis must not be reported as a confirmed diagnosis or successful fix.
+B/C were not reached. Safety cleanup again observed all retained handles
+signaled and active zero; the overall suite remains FAILED. A focused
+diagnosis must preserve the actual EOF/live-leader assertion and deadline.

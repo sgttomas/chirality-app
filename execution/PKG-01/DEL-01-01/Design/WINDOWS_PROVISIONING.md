@@ -30,6 +30,14 @@ source and size authorization, and the VS channel/catalog integrity hold remains
 Reinventory OS/runtime and free space only on the new, privately bound guest.
 Do not assume its WebView2, compiler, Tools or caches match the former guest.
 
+Powered-off hardware preparation is now recorded in
+[WINDOWS_BUILD_GUEST.md](WINDOWS_BUILD_GUEST.md) and its sanitized receipt:
+fresh ARM64 hardware, 4 fixed vCPUs, 16 GiB fixed RAM and sparse 256 GiB disk,
+privately bound with protected exclusion preserved. The guest is stopped,
+never booted, without media or Windows installed. Official media access is
+blocked; no normal ISO locator/size/actual file hash is available. The owner's
+present inability to obtain it manually does not authorize using CAEPIPE.
+
 ## Decision proposed
 
 Use a separately created Windows ARM64 build guest, **native ARM64 development tools and
