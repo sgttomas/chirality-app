@@ -14,24 +14,48 @@ Native execution is pending parent publication; see
 for prerequisites, boundaries and artifact schema. Host-only checks:
 `python3 -B app/examination/windows_platform/test_hosted_fixture.py`.
 
-The next A-only candidate performs exactly one background synchronous
-`ReadFile(actual stdout reader, byte[1], 1)` after validated ENTRY with no
-pending bytes. An exclusively created, at-most-512-byte `P02-A-close.txt` in
-the fresh trusted hosted root confirms post-close results, generation, handles
-and QPC; it never establishes EOF. Aliased stderr is explicitly not closed
-twice. Immediate Win32 errors are meaningful only for failed close/read calls.
-Only joined FALSE/109 before the original eight-second deadline, valid close
-confirmation and the original leader HANDLE still live with query259 can pass
-A. TRUE/0, extra output, other errors, late or pending reads refuse.
+The A-only setup `post-managed-start-stdout/v1` creates a fresh anonymous
+pipe inside the helper **after managed startup and root/nonce checks**. Both
+ends are noninheritable and differ from every startup standard handle. The
+original startup stdout is now control only: its bounded generation/case frame
+supplies the fresh pair's source values. The parent duplicates only the read
+end from its retained original leader PROCESS HANDLE (SAME_ACCESS,
+noninherit), checks PIPE type, owns it, then sends the private acknowledgment.
+The helper closes its source reader, calls `SetStdHandle(STD_OUTPUT_HANDLE,
+freshWriter)`, requires exact `GetStdHandle` match and PIPE type, and sends
+raw `WriteFile` ENTRY through that newly queried actual stdout. The transferred
+reader must receive it. No A descendant, writer duplication or inheritance is
+introduced. P01/B/C and the original process launch are unchanged.
 
-Failure is retained before safety cleanup. The stdout HANDLE remains owned
-while the read is pending. After retained-process/Job-zero proof, the worker
-has at most two seconds within the original five-second cleanup budget to join.
-Its result and ordering against death proof are logged without changing A's
+The parent retains the startup reader without further reads until cleanup.
+Startup stdout/stderr references remain until helper death; neither their EOF
+nor rebinding of cached .NET `Console.Out` is claimed. This openly changes A's
+stimulus to controlled **current Win32 stdout**, preserving the required outcome;
+it does not diagnose or repair startup stdio, stock Codex or the App.
+
+After ENTRY with no pending bytes, exactly one background synchronous
+`ReadFile(transferred actual stdout reader, byte[1], 1)` observes EOF. The sole
+fresh writer closes exactly once. An exclusively created, at-most-512-byte
+`P02-A-close.txt` in the owned trusted root confirms setup/generation, source
+pair, bind/ENTRY/close-attempt/post-close QPC and actual close outcome. It is
+metadata, never EOF proof. Successful CloseHandle has normalized error0; Win32
+last error otherwise matters only on failure. Source and observer ordering,
+reader correspondence, binding, metadata and joined FALSE/109 must all pass
+before the original eight-second deadline, with the same original leader
+HANDLE nonsignaled and query259. TRUE/0, extra output, other errors, missing
+binding or metadata, late or pending reads refuse. Read completion may race
+with the helper's post-close timestamp, so the pre-call close timestamp must
+precede EOF; the later return timestamp need not precede it.
+
+Failure is retained before safety cleanup. The read HANDLE remains owned while
+the read is pending. After retained-process/Job-zero proof, the worker has at
+most two seconds within the original five-second cleanup budget to join. Its
+result and ordering against death proof are logged without changing A's
 outcome. Unknown teardown logs `CLEANUP_UNKNOWN` and exits only the fixture
 controller/owned safety Job without manually closing a pending read HANDLE.
-No cancellation API or thread-ID lookup is used. This candidate has not been
-compiled or run natively; the two preserved Windows attempts remain FAILED.
+No cancellation API or thread-ID lookup is used. Helpers retain sleep11s and
+timer12s. This setup has not been compiled or run natively; all three preserved
+Windows attempts remain FAILED, with B/C unreached.
 
 ## Held guest profile
 

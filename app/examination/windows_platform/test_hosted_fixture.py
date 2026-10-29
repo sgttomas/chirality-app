@@ -24,33 +24,35 @@ VERIFY_SPEC.loader.exec_module(VERIFIER)
 class AProofBoundaries(unittest.TestCase):
     """Invented parser units only; never emit/save a purported native suite."""
     def proof(self):
+        setup = 'post-managed-start-stdout/v1'
         details = [
-            ('A_DEADLINE', 'startQpc=100;untilQpc=8100;startMs=0;untilMs=8000;frequency=1000'),
-            ('CREATED_LEADER', 'suspended=True;safety=true;handle=80'),
-            ('HELPER_ENTRY', 'qpc=110;helper-entry;stdout=90;stderr=90'),
-            ('A_READ_START', 'handle=70;leaderHandle=80;untilMs=8000;untilQpc=8100;pendingBytes=0;length=1'),
-            ('A_CLOSE_CONFIRMATION', 'qpc=120;stdout=90;stderr=90;alias=True;stdoutOk=True;stdoutError=0;stderrAttempted=False;stderrOk=False;stderrError=0;writeComplete=True'),
-            ('A_READ_RESULT', 'ok=False;bytes=0;error=109;qpc=134;completedMs=25;workerStarted=True;workerJoined=True;failure=none'),
-            ('A_READ_PROOF', 'closeConfirmed=True;workerJoined=True;beforeDeadline=True;originalLeaderHandle=80'),
-            ('OBSERVATION', 'leaderSignaled=False;exit=259;eof=True'),
+            (101, 'A_DEADLINE', 'startQpc=100;untilQpc=8100;startMs=0;untilMs=8000;frequency=1000'),
+            (105, 'CREATED_LEADER', 'suspended=True;safety=true;handle=80'),
+            (112, 'HELPER_A_PIPE', f'qpc=110;setup={setup};sourceRead=91;sourceWrite=92;startupStdin=89;startupStdout=90;startupStderr=90;readNoninherit=True;writeNoninherit=True;pipeType=2'),
+            (115, 'A_PIPE_READER', f'setup={setup};sourceLeaderHandle=80;sourceRead=91;sourceWrite=92;handle=70;noninherit=True;pipeType=2;sameAccess=True'),
+            (116, 'A_PIPE_ACK', 'sourceLeaderHandle=80;reader=70;ownershipEstablished=True'),
+            (122, 'HELPER_ENTRY', f'qpc=120;setup={setup};stdout=92;sourceRead=91;ackQpc=117;readCloseQpc=118;bindQpc=119;setOk=True;getMatch=True;pipeType=2;startupStdout=90;startupStderr=90'),
+            (123, 'A_READ_START', 'handle=70;leaderHandle=80;untilMs=8000;untilQpc=8100;pendingBytes=0;length=1'),
+            (126, 'A_CLOSE_CONFIRMATION', f'qpc=124;setup={setup};stdout=92;sourceRead=91;bindQpc=119;entryQpc=120;attemptQpc=121;stdoutOk=True;stdoutError=0;writeComplete=True'),
+            (127, 'A_READ_RESULT', 'ok=False;bytes=0;error=109;qpc=125;completedMs=25;workerStarted=True;workerJoined=True;failure=none'),
+            (128, 'A_READ_PROOF', 'closeConfirmed=True;workerJoined=True;beforeDeadline=True;originalLeaderHandle=80'),
+            (129, 'OBSERVATION', 'leaderSignaled=False;exit=259;eof=True'),
         ]
-        return [(130 + i, 'P02-A', 'invented-parser-unit', kind, detail)
-                for i, (kind, detail) in enumerate(details)]
+        return [(time, 'P02-A', 'invented-parser-unit', kind, detail)
+                for time, kind, detail in details]
 
     def changed(self, kind, old, new):
         return [(time, case, nonce, key, detail.replace(old, new) if key == kind else detail)
                 for time, case, nonce, key, detail in self.proof()]
 
-    def test_complete_proof_and_distinct_stderr_parser_units(self):
+    def test_complete_bound_proof_parser_unit_and_close_completion_race(self):
         VERIFIER.verify_a(self.proof())
-        rows = self.changed('HELPER_ENTRY', 'stderr=90', 'stderr=91')
-        rows = [(t, c, n, k, d.replace('stderr=90;alias=True', 'stderr=91;alias=False')
-                 .replace('stderrAttempted=False;stderrOk=False', 'stderrAttempted=True;stderrOk=True')
-                 if k == 'A_CLOSE_CONFIRMATION' else d) for t, c, n, k, d in rows]
-        VERIFIER.verify_a(rows)
+        # The read may return before the helper timestamps CloseHandle's return.
+        VERIFIER.verify_a(self.changed('A_CLOSE_CONFIRMATION', 'qpc=124', 'qpc=126'))
 
     def test_missing_or_duplicate_new_proof_never_passes(self):
-        for kind in ('A_DEADLINE', 'A_READ_START', 'A_CLOSE_CONFIRMATION', 'A_READ_RESULT', 'A_READ_PROOF'):
+        for kind in ('A_DEADLINE', 'HELPER_A_PIPE', 'A_PIPE_READER', 'A_PIPE_ACK', 'HELPER_ENTRY',
+                     'A_READ_START', 'A_CLOSE_CONFIRMATION', 'A_READ_RESULT', 'A_READ_PROOF'):
             for duplicate in (False, True):
                 rows = self.proof()
                 row = next(r for r in rows if r[3] == kind)
@@ -58,21 +60,52 @@ class AProofBoundaries(unittest.TestCase):
                 with self.subTest(kind=kind, duplicate=duplicate), self.assertRaises(ValueError):
                     VERIFIER.verify_a(rows)
 
+    def test_unbound_unrelated_inherited_or_wrong_source_pipe_refused(self):
+        for kind, old, new in (
+                ('HELPER_A_PIPE', 'sourceWrite=92', 'sourceWrite=90'),
+                ('HELPER_A_PIPE', 'sourceRead=91', 'sourceRead=92'),
+                ('HELPER_A_PIPE', 'readNoninherit=True', 'readNoninherit=False'),
+                ('HELPER_A_PIPE', 'writeNoninherit=True', 'writeNoninherit=False'),
+                ('A_PIPE_READER', 'sourceRead=91', 'sourceRead=93'),
+                ('A_PIPE_READER', 'sourceWrite=92', 'sourceWrite=93'),
+                ('A_PIPE_READER', 'sourceLeaderHandle=80', 'sourceLeaderHandle=81'),
+                ('A_PIPE_READER', 'noninherit=True', 'noninherit=False'),
+                ('A_PIPE_READER', 'sameAccess=True', 'sameAccess=False'),
+                ('A_PIPE_ACK', 'reader=70', 'reader=71'),
+                ('A_PIPE_ACK', 'ownershipEstablished=True', 'ownershipEstablished=False'),
+                ('HELPER_ENTRY', 'stdout=92', 'stdout=90'),
+                ('HELPER_ENTRY', 'sourceRead=91', 'sourceRead=93'),
+                ('HELPER_ENTRY', 'setOk=True', 'setOk=False'),
+                ('HELPER_ENTRY', 'getMatch=True', 'getMatch=False'),
+                ('HELPER_ENTRY', 'startupStdout=90', 'startupStdout=93'),
+                ('HELPER_ENTRY', 'ackQpc=117', 'ackQpc=114'),
+                ('HELPER_ENTRY', 'readCloseQpc=118', 'readCloseQpc=120'),
+                ('HELPER_ENTRY', 'bindQpc=119', 'bindQpc=121'),
+                ('A_READ_START', 'handle=70', 'handle=71')):
+            with self.subTest(kind=kind, new=new), self.assertRaises(ValueError):
+                VERIFIER.verify_a(self.changed(kind, old, new))
+        for kind in ('HELPER_A_PIPE', 'A_PIPE_READER', 'HELPER_ENTRY'):
+            for old, new in (('post-managed-start-stdout/v1', 'unbound/v0'), ('pipeType=2', 'pipeType=1')):
+                with self.subTest(kind=kind, new=new), self.assertRaises(ValueError):
+                    VERIFIER.verify_a(self.changed(kind, old, new))
+
     def test_read_nonproof_cancellation_late_or_unjoined_refused(self):
         for old, new in (('ok=False', 'ok=True'), ('bytes=0', 'bytes=1'),
                          ('error=109', 'error=995'), ('error=109', 'error=6'),
-                         ('qpc=134', 'qpc=8100'), ('completedMs=25', 'completedMs=8000'),
+                         ('qpc=125', 'qpc=8100'), ('completedMs=25', 'completedMs=8000'),
                          ('workerStarted=True', 'workerStarted=False'),
                          ('workerJoined=True', 'workerJoined=False'), ('failure=none', 'failure=Exception')):
             with self.subTest(new=new), self.assertRaises(ValueError):
                 VERIFIER.verify_a(self.changed('A_READ_RESULT', old, new))
 
     def test_close_missing_failed_stale_malformed_or_incomplete_refused(self):
-        for old, new in (('stdoutOk=True', 'stdoutOk=False'), ('stdout=90', 'stdout=91'),
-                         ('qpc=120', 'qpc=109'), ('qpc=120', 'qpc=9000'),
-                         ('alias=True', 'alias=False'), ('stderrOk=False', 'stderrOk=True'),
-                         ('writeComplete=True', 'writeComplete=False'), ('qpc=120', 'qpc=0120'),
-                         ('stdoutError=0', 'stdoutError=2147483648')):
+        for old, new in (('stdoutOk=True', 'stdoutOk=False'), ('stdout=92', 'stdout=93'),
+                         ('sourceRead=91', 'sourceRead=93'), ('bindQpc=119', 'bindQpc=118'),
+                         ('entryQpc=120', 'entryQpc=119'), ('attemptQpc=121', 'attemptQpc=119'),
+                         ('attemptQpc=121', 'attemptQpc=126'), ('qpc=124', 'qpc=119'),
+                         ('qpc=124', 'qpc=9000'), ('qpc=124', 'qpc=0124'),
+                         ('writeComplete=True', 'writeComplete=False'), ('stdoutError=0', 'stdoutError=6'),
+                         ('post-managed-start-stdout/v1', 'unbound/v0')):
             with self.subTest(new=new), self.assertRaises(ValueError):
                 VERIFIER.verify_a(self.changed('A_CLOSE_CONFIRMATION', old, new))
 
@@ -84,7 +117,9 @@ class AProofBoundaries(unittest.TestCase):
                 ('A_READ_START', 'length=1', 'length=0'),
                 ('A_READ_PROOF', 'closeConfirmed=True', 'closeConfirmed=False'),
                 ('A_READ_PROOF', 'beforeDeadline=True', 'beforeDeadline=False'),
-                ('A_READ_PROOF', 'originalLeaderHandle=80', 'originalLeaderHandle=81')):
+                ('A_READ_PROOF', 'originalLeaderHandle=80', 'originalLeaderHandle=81'),
+                ('OBSERVATION', 'leaderSignaled=False', 'leaderSignaled=True'),
+                ('OBSERVATION', 'exit=259', 'exit=0')):
             with self.subTest(new=new), self.assertRaises(ValueError):
                 VERIFIER.verify_a(self.changed(kind, old, new))
 
