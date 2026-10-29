@@ -23,6 +23,7 @@ public static class ProcessFixture {
     static bool CleanupObserved;
     static SingleRead ARead;
     static readonly string CloseFile="P02-A-close.txt";
+    const string ASetup="post-managed-start-stdout/v1";
 
     // A alone: one synchronous read on the actual stdout reader. No Poll or
     // CloseHandle may touch this handle until Thread.Join proves completion.
@@ -99,6 +100,8 @@ public static class ProcessFixture {
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool ReadFile(IntPtr h,byte[] buffer,uint size,out uint read,IntPtr ov);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool WriteFile(IntPtr h,byte[] buffer,uint size,out uint written,IntPtr ov);
     [DllImport("kernel32.dll")] static extern IntPtr GetStdHandle(int kind);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern bool SetStdHandle(int kind,IntPtr handle);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern uint GetFileType(IntPtr handle);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool DuplicateHandle(IntPtr source,IntPtr handle,IntPtr target,out IntPtr copy,uint access,bool inherit,uint options);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool InitializeProcThreadAttributeList(IntPtr list,int count,uint flags,ref IntPtr size);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool UpdateProcThreadAttribute(IntPtr list,uint flags,IntPtr attr,IntPtr value,IntPtr size,IntPtr previous,IntPtr returned);
@@ -278,7 +281,47 @@ public static class ProcessFixture {
     static bool Boolean(string value) {
         Require(value=="True" || value=="False","invalid diagnostic boolean"); return value=="True";
     }
-    static bool CloseConfirmation(string[] entry) {
+    static string[] AFields(string detail,string keys) {
+        string[] parts=detail.Split(';'),names=keys.Split(' '),values=new string[parts.Length];
+        Require(parts.Length==names.Length,"A field count");
+        for(int i=0;i<parts.Length;i++) {
+            Require(parts[i].StartsWith(names[i]+"=",StringComparison.Ordinal),"A field name/order");
+            values[i]=parts[i].Substring(names[i].Length+1);
+        }
+        return values;
+    }
+    static Reader CurrentStdoutA(Child c,long until,out string[] entry) {
+        string[] control=Event(c.Output,until);
+        Require(control[0]=="A_PIPE","A expected startup control frame");
+        string[] p=AFields(control[4],"setup sourceRead sourceWrite startupStdin startupStdout startupStderr readNoninherit writeNoninherit pipeType");
+        Require(p[0]==ASetup && p[6]=="True" && p[7]=="True" && p[8]=="2","A pipe setup/version");
+        long read=Number(p[1]),write=Number(p[2]);
+        Require(read>0 && write>0 && read!=write,"A pipe pair");
+        for(int i=3;i<=5;i++) Require(Number(p[i])>0 && p[i]!=p[1] && p[i]!=p[2],"A pipe was startup stdio");
+        Require(c.Output.Pending.Length==0 && !c.Output.Eof,"A extra startup control bytes");
+        IntPtr copy;
+        // The retained original leader is the source authority, never a PID.
+        Check(DuplicateHandle(c.Pi.process,new IntPtr(read),GetCurrentProcess(),out copy,0,false,2),"A DuplicateHandle reader SAME_ACCESS");
+        IO.Add(copy); NoInherit(copy); Require(GetFileType(copy)==2,"A duplicated reader not PIPE");
+        Log("A_PIPE_READER","setup="+ASetup+";sourceLeaderHandle="+c.Pi.process+";sourceRead="+read+
+            ";sourceWrite="+write+";handle="+copy+";noninherit=True;pipeType=2;sameAccess=True");
+        long ackSentQpc=Stopwatch.GetTimestamp();
+        Log("A_PIPE_ACK","sourceLeaderHandle="+c.Pi.process+";reader="+copy+";ownershipEstablished=True");
+        Command(c,"STDOUT-OWNED");
+        // Keep c.Output and its original startup HANDLE owned, with no further
+        // reads. Only the transferred reader may supply the current-stdout ENTRY.
+        Reader output=new Reader(copy); entry=Event(output,until);
+        Require(entry[0]=="ENTRY","A current stdout ENTRY");
+        string[] bound=AFields(entry[4],"setup stdout sourceRead ackQpc readCloseQpc bindQpc setOk getMatch pipeType startupStdout startupStderr");
+        Require(bound[0]==ASetup && bound[1]==p[2] && bound[2]==p[1] && bound[6]=="True" &&
+            bound[7]=="True" && bound[8]=="2" && bound[9]==p[4] && bound[10]==p[5],"A actual stdout binding mismatch");
+        Require(Number(control[3])<=ackSentQpc && ackSentQpc<=Number(bound[3]) && Number(bound[3])<=Number(bound[4]) &&
+            Number(bound[4])<=Number(bound[5]) && Number(bound[5])<=Number(entry[3]) &&
+            Number(entry[3])<=Stopwatch.GetTimestamp(),"A source binding time order");
+        return output;
+    }
+    static bool CloseConfirmation(string[] entry,out long attemptQpc) {
+        attemptQpc=0;
         string raw;
         try {
             // Writer used CreateNew/FileShare.None. This succeeds only after its
@@ -298,31 +341,28 @@ public static class ProcessFixture {
         }
         Require(raw.EndsWith("|COMPLETE\n",StringComparison.Ordinal),"A close metadata unfinished");
         string[] p=raw.Substring(0,raw.Length-1).Split('|');
-        Require(p.Length==13 && p[0]=="CLOSE" && p[1]==Nonce && p[2]=="P02-A" && p[12]=="COMPLETE","A close metadata fields/generation");
-        long qpc=Number(p[3]),output=Number(p[4]),error=Number(p[5]);
-        bool alias=Boolean(p[6]),outputOk=Boolean(p[7]),errorAttempted=Boolean(p[9]),errorOk=Boolean(p[10]);
-        long outputError=Number(p[8]),errorError=Number(p[11]);
-        Require(output>0 && error>0 && outputError<=Int32.MaxValue && errorError<=Int32.MaxValue,"A close metadata handle/error");
-        Require(entry[4]=="helper-entry;stdout="+output+";stderr="+error,"A close metadata ENTRY handle mismatch");
-        Require(alias==(output==error) && errorAttempted==!alias,"A close alias/attempt mismatch");
-        Require(!alias || (!errorOk && errorError==0),"A skipped alias fabricated close result");
-        Require(qpc>=Number(entry[3]) && qpc<=Stopwatch.GetTimestamp(),"A post-close time invalid");
-        Log("A_CLOSE_CONFIRMATION","qpc="+qpc+";stdout="+output+";stderr="+error+";alias="+alias+
-            ";stdoutOk="+outputOk+";stdoutError="+outputError+";stderrAttempted="+errorAttempted+
-            ";stderrOk="+errorOk+";stderrError="+errorError+";writeComplete=True");
-        Require(outputOk && (alias || errorOk),"A helper output close failed");
+        Require(p.Length==13 && p[0]=="CLOSE" && p[1]==Nonce && p[2]=="P02-A" && p[4]==ASetup && p[12]=="COMPLETE","A close metadata fields/generation");
+        long qpc=Number(p[3]),output=Number(p[5]),sourceRead=Number(p[6]),bindQpc=Number(p[7]),entryQpc=Number(p[8]);
+        attemptQpc=Number(p[9]); bool outputOk=Boolean(p[10]); long outputError=Number(p[11]);
+        string[] bound=AFields(entry[4],"setup stdout sourceRead ackQpc readCloseQpc bindQpc setOk getMatch pipeType startupStdout startupStderr");
+        Require(output>0 && sourceRead>0 && outputError<=Int32.MaxValue,"A close metadata handle/error");
+        Require(p[5]==bound[1] && p[6]==bound[2] && p[7]==bound[5] && p[8]==entry[3],"A close metadata binding mismatch");
+        Require(entryQpc<=attemptQpc && attemptQpc<=qpc && qpc<=Stopwatch.GetTimestamp(),"A post-close time invalid");
+        Log("A_CLOSE_CONFIRMATION","qpc="+qpc+";setup="+ASetup+";stdout="+output+";sourceRead="+sourceRead+
+            ";bindQpc="+bindQpc+";entryQpc="+entryQpc+";attemptQpc="+attemptQpc+";stdoutOk="+outputOk+";stdoutError="+outputError+";writeComplete=True");
+        Require(outputOk,"A helper output close failed");
         return true;
     }
-    static void ObserveA(Child c,string[] entry,long until,long untilQpc) {
-        Require(c.Output.Pending.Length==0,"A pending partial/extra bytes after ENTRY");
-        Require(!c.Output.Eof,"A EOF before direct read");
-        ARead=new SingleRead(c.Output.Handle);
-        Log("A_READ_START","handle="+c.Output.Handle+";leaderHandle="+c.Pi.process+
+    static void ObserveA(Child c,Reader output,string[] entry,long until,long untilQpc) {
+        Require(output.Pending.Length==0,"A pending partial/extra bytes after ENTRY");
+        Require(!output.Eof,"A EOF before direct read");
+        ARead=new SingleRead(output.Handle);
+        Log("A_READ_START","handle="+output.Handle+";leaderHandle="+c.Pi.process+
             ";untilMs="+until+";untilQpc="+untilQpc+";pendingBytes=0;length=1");
         ARead.Start();
-        bool closed=false,joined=false;
+        bool closed=false,joined=false; long closeAttemptQpc=0;
         while(Clock.ElapsedMilliseconds<until && Stopwatch.GetTimestamp()<untilQpc) {
-            if(!closed) closed=CloseConfirmation(entry);
+            if(!closed) closed=CloseConfirmation(entry,out closeAttemptQpc);
             joined=ARead.Join(0);
             if(joined) {
                 Log("A_READ_RESULT",ARead.Result());
@@ -330,14 +370,14 @@ public static class ProcessFixture {
                 if(closed) break;
                 // Log the result only once, after joining; await metadata below.
                 while(!closed && Clock.ElapsedMilliseconds<until && Stopwatch.GetTimestamp()<untilQpc) {
-                    closed=CloseConfirmation(entry); if(!closed) Thread.Sleep(5);
+                    closed=CloseConfirmation(entry,out closeAttemptQpc); if(!closed) Thread.Sleep(5);
                 }
                 break;
             }
             Thread.Sleep(5);
         }
         if(!joined) Log("A_READ_PENDING","atOriginalDeadline=True;joined=False");
-        bool eof=joined && ARead.Eof && ARead.CompletedMs<until && ARead.Qpc<untilQpc;
+        bool eof=closed && joined && ARead.Eof && ARead.Qpc>=closeAttemptQpc && ARead.CompletedMs<until && ARead.Qpc<untilQpc;
         bool signaled=Signaled(c.Pi.process); uint code=Code(c.Pi.process);
         long observed=Stopwatch.GetTimestamp();
         Log("A_READ_PROOF","closeConfirmed="+closed+";workerJoined="+joined+";beforeDeadline="+
@@ -362,15 +402,14 @@ public static class ProcessFixture {
             string line=c.Output.Poll(); Require(line==null && !c.Output.Eof,"B pipe already EOF or unexpected event");
             Require(!Signaled(d),"B descendant no longer live");
             Log("OBSERVATION","leaderSignaled=true;exit="+Code(c.Pi.process)+";eof=false;descendantLive=true");
+        } else if(variant=="A") {
+            string[] entry; Reader output=CurrentStdoutA(c,until,out entry);
+            ObserveA(c,output,entry,until,untilQpc);
         } else {
             string[] entry=Event(c.Output,until); Require(entry[0]=="ENTRY","P02 entry");
-            if(variant=="A") {
-                ObserveA(c,entry,until,untilQpc);
-            } else {
-                WaitExit(c.Pi.process,until); uint code=Code(c.Pi.process);
-                Log("OBSERVATION","leaderSignaled=true;exit="+code+";exit259IsExit=true");
-                Require(code==259,"C real exit259 not established");
-            }
+            WaitExit(c.Pi.process,until); uint code=Code(c.Pi.process);
+            Log("OBSERVATION","leaderSignaled=true;exit="+code+";exit259IsExit=true");
+            Require(code==259,"C real exit259 not established");
         }
         Log("CASE","PASS"); CleanupCase(inner,c.Pi.process,d);
     }
@@ -395,17 +434,36 @@ public static class ProcessFixture {
         Deadline=new Timer(delegate { ExitProcess(91); },null,12000,Timeout.Infinite);
         if(mode=="leaf") { Emit("EFFECT","invented-nonce-effect"); Thread.Sleep(11000); return; }
         if(mode=="A") {
-            IntPtr output=GetStdHandle(-11),error=GetStdHandle(-12);
-            Emit("ENTRY","helper-entry;stdout="+output+";stderr="+error);
-            // A shared numeric value is one handle: never double-close it. The
-            // skipped alias has an explicit attempted=False, not invented success.
+            IntPtr startupInput=GetStdHandle(-10),startupOutput=GetStdHandle(-11),startupError=GetStdHandle(-12);
+            SA sa=new SA(); sa.size=Marshal.SizeOf(typeof(SA)); // inherit=0, after managed startup
+            IntPtr read,output;
+            Check(CreatePipe(out read,out output,ref sa,4096),"A fresh CreatePipe");
+            NoInherit(read); NoInherit(output);
+            Require(GetFileType(read)==2 && GetFileType(output)==2,"A fresh pair not PIPE");
+            foreach(IntPtr old in new IntPtr[]{startupInput,startupOutput,startupError})
+                Require(read!=old && output!=old,"A fresh pipe aliases startup stdio");
+            Emit("A_PIPE","setup="+ASetup+";sourceRead="+read+";sourceWrite="+output+
+                ";startupStdin="+startupInput+";startupStdout="+startupOutput+";startupStderr="+startupError+
+                ";readNoninherit=True;writeNoninherit=True;pipeType=2");
+            Ack(new Reader(startupInput),"STDOUT-OWNED"); long ackQpc=Stopwatch.GetTimestamp();
+            Check(CloseHandle(read),"A close handed-off source reader"); long readCloseQpc=Stopwatch.GetTimestamp();
+            Check(SetStdHandle(-11,output),"A SetStdHandle stdout");
+            Require(GetStdHandle(-11)==output && GetFileType(GetStdHandle(-11))==2,"A actual stdout slot mismatch");
+            long bindQpc=Stopwatch.GetTimestamp(),entryQpc=Stopwatch.GetTimestamp();
+            // Raw WriteFile through a newly queried actual Win32 stdout. This
+            // deliberately makes no claim about Console.Out's cached old stream.
+            Send(GetStdHandle(-11),"ENTRY|"+Nonce+"|"+Case+"|"+entryQpc+"|setup="+ASetup+
+                ";stdout="+output+";sourceRead="+read+";ackQpc="+ackQpc+";readCloseQpc="+readCloseQpc+
+                ";bindQpc="+bindQpc+";setOk=True;getMatch=True;pipeType=2;startupStdout="+startupOutput+";startupStderr="+startupError);
+            // The only new writer is closed exactly once. Startup stdout/stderr
+            // remain control references until helper death; no old-pipe EOF claim.
+            long attemptQpc=Stopwatch.GetTimestamp();
             bool outputOk=CloseHandle(output); int outputError=Marshal.GetLastWin32Error();
-            bool alias=error==output,errorOk=false; int errorError=0;
-            if(!alias) { errorOk=CloseHandle(error); errorError=Marshal.GetLastWin32Error(); }
-            long qpc=Stopwatch.GetTimestamp(); // after all output-close attempts
+            if(outputOk) outputError=0; // Win32 last error is undefined on success
+            long qpc=Stopwatch.GetTimestamp();
             try {
-                string record="CLOSE|"+Nonce+"|"+Case+"|"+qpc+"|"+output+"|"+error+"|"+alias+"|"+
-                    outputOk+"|"+outputError+"|"+!alias+"|"+errorOk+"|"+errorError+"|COMPLETE\n";
+                string record="CLOSE|"+Nonce+"|"+Case+"|"+qpc+"|"+ASetup+"|"+output+"|"+read+"|"+
+                    bindQpc+"|"+entryQpc+"|"+attemptQpc+"|"+outputOk+"|"+outputError+"|COMPLETE\n";
                 byte[] bytes=Encoding.ASCII.GetBytes(record); Require(bytes.Length<=512,"A close metadata bound");
                 using(FileStream f=new FileStream(Path.Combine(Root,CloseFile),FileMode.CreateNew,FileAccess.Write,FileShare.None)) {
                     f.Write(bytes,0,bytes.Length); f.Flush();

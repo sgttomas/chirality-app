@@ -27,25 +27,42 @@ def verify_a(events):
     start, until, start_ms, until_ms, frequency = [number(deadline[k]) for k in deadline]
     if frequency <= 0 or until - start != 8 * frequency or until_ms - start_ms != 8000:
         raise ValueError('P02-A original deadline invalid')
-    read = fields('A_READ_START', 'handle leaderHandle untilMs untilQpc pendingBytes length')
+    setup = 'post-managed-start-stdout/v1'
     leader = fields('CREATED_LEADER', 'suspended safety handle')
-    if (number(read['handle']) == 0 or read['leaderHandle'] != leader['handle'] or
+    pipe = fields('HELPER_A_PIPE', 'qpc setup sourceRead sourceWrite startupStdin startupStdout startupStderr readNoninherit writeNoninherit pipeType')
+    reader = fields('A_PIPE_READER', 'setup sourceLeaderHandle sourceRead sourceWrite handle noninherit pipeType sameAccess')
+    ack = fields('A_PIPE_ACK', 'sourceLeaderHandle reader ownershipEstablished')
+    entry = fields('HELPER_ENTRY', 'qpc setup stdout sourceRead ackQpc readCloseQpc bindQpc setOk getMatch pipeType startupStdout startupStderr')
+    for record in (pipe, reader, entry):
+        if record['setup'] != setup or record['pipeType'] != '2':
+            raise ValueError('P02-A missing current-stdout setup/type')
+    source_read, source_write = number(pipe['sourceRead']), number(pipe['sourceWrite'])
+    startup = [number(pipe[k]) for k in ('startupStdin', 'startupStdout', 'startupStderr')]
+    if (source_read == 0 or source_write == 0 or source_read == source_write or
+            0 in startup or source_read in startup or source_write in startup or
+            pipe['readNoninherit'] != 'True' or pipe['writeNoninherit'] != 'True'):
+        raise ValueError('P02-A fresh noninherited pipe invalid')
+    if (leader['suspended'] != 'True' or leader['safety'] != 'true' or number(leader['handle']) == 0 or
+            reader['sourceLeaderHandle'] != leader['handle'] or
+            reader['sourceRead'] != pipe['sourceRead'] or reader['sourceWrite'] != pipe['sourceWrite'] or
+            number(reader['handle']) == 0 or reader['noninherit'] != 'True' or reader['sameAccess'] != 'True' or
+            ack != dict(sourceLeaderHandle=leader['handle'], reader=reader['handle'], ownershipEstablished='True')):
+        raise ValueError('P02-A original-leader reader transfer invalid')
+    if (entry['stdout'] != pipe['sourceWrite'] or entry['sourceRead'] != pipe['sourceRead'] or
+            entry['setOk'] != 'True' or entry['getMatch'] != 'True' or
+            any(entry[k] != pipe[k] for k in ('startupStdout', 'startupStderr'))):
+        raise ValueError('P02-A actual Win32 stdout binding invalid')
+    read = fields('A_READ_START', 'handle leaderHandle untilMs untilQpc pendingBytes length')
+    if (read['handle'] != reader['handle'] or read['leaderHandle'] != leader['handle'] or
             read['untilMs'] != deadline['untilMs'] or read['untilQpc'] != deadline['untilQpc'] or
             read['pendingBytes'] != '0' or read['length'] != '1'):
-        raise ValueError('P02-A direct reader binding invalid')
-    entry = re.fullmatch(r'qpc=([0-9]+);helper-entry;stdout=([0-9]+);stderr=([0-9]+)', one('HELPER_ENTRY')[4])
-    if entry is None:
-        raise ValueError('P02-A missing ENTRY handles')
-    close = fields('A_CLOSE_CONFIRMATION', 'qpc stdout stderr alias stdoutOk stdoutError stderrAttempted stderrOk stderrError writeComplete')
-    output, error = number(close['stdout']), number(close['stderr'])
-    alias = output == error
-    if (output == 0 or error == 0 or close['stdout'] != entry[2] or close['stderr'] != entry[3] or
-            close['alias'] != str(alias) or close['stdoutOk'] != 'True' or
-            close['stderrAttempted'] != str(not alias) or close['stderrOk'] != str(not alias) or
-            close['writeComplete'] != 'True' or (alias and close['stderrError'] != '0')):
-        raise ValueError('P02-A post-close proof invalid')
-    if any(number(close[k]) > 2**31 - 1 for k in ('stdoutError', 'stderrError')):
-        raise ValueError('P02-A invalid close error')
+        raise ValueError('P02-A direct reader correspondence invalid')
+    close = fields('A_CLOSE_CONFIRMATION', 'qpc setup stdout sourceRead bindQpc entryQpc attemptQpc stdoutOk stdoutError writeComplete')
+    if (close['setup'] != setup or close['stdout'] != entry['stdout'] or
+            close['sourceRead'] != entry['sourceRead'] or close['bindQpc'] != entry['bindQpc'] or
+            close['entryQpc'] != entry['qpc'] or close['stdoutOk'] != 'True' or
+            close['stdoutError'] != '0' or close['writeComplete'] != 'True'):
+        raise ValueError('P02-A bound post-close proof invalid')
     result = fields('A_READ_RESULT', 'ok bytes error qpc completedMs workerStarted workerJoined failure')
     if any(result[k] != v for k, v in dict(ok='False', bytes='0', error='109',
             workerStarted='True', workerJoined='True', failure='none').items()):
@@ -54,16 +71,26 @@ def verify_a(events):
     if proof != dict(closeConfirmed='True', workerJoined='True', beforeDeadline='True',
                      originalLeaderHandle=read['leaderHandle']):
         raise ValueError('P02-A live EOF proof incomplete')
-    ordered = ['A_DEADLINE', 'CREATED_LEADER', 'HELPER_ENTRY', 'A_READ_START', 'A_READ_RESULT', 'A_READ_PROOF', 'OBSERVATION']
+    if one('OBSERVATION')[4] != 'leaderSignaled=False;exit=259;eof=True':
+        raise ValueError('P02-A original leader not live/query259 at EOF proof')
+    ordered = ['A_DEADLINE', 'CREATED_LEADER', 'HELPER_A_PIPE', 'A_PIPE_READER', 'A_PIPE_ACK',
+               'HELPER_ENTRY', 'A_READ_START', 'A_READ_RESULT', 'A_READ_PROOF', 'OBSERVATION']
     positions = [events.index(one(k)) for k in ordered]
     if positions != sorted(set(positions)) or not (events.index(one('A_READ_START')) <
             events.index(one('A_CLOSE_CONFIRMATION')) < events.index(one('A_READ_PROOF'))):
         raise ValueError('P02-A proof order invalid')
-    if (not start <= number(entry[1]) <= number(close['qpc']) <= one('A_CLOSE_CONFIRMATION')[0] < until or
-            not one('A_READ_START')[0] <= number(result['qpc']) <= one('A_READ_RESULT')[0] < until or
+    # Source times and observer times are on the same native QPC clock. Close
+    # return and read completion may race: only the pre-call close timestamp is
+    # required before ReadFile completion, never the later post-close timestamp.
+    if (not start <= one('CREATED_LEADER')[0] <= number(pipe['qpc']) <= one('HELPER_A_PIPE')[0] <=
+            one('A_PIPE_READER')[0] <= one('A_PIPE_ACK')[0] <= number(entry['ackQpc']) <=
+            number(entry['readCloseQpc']) <= number(entry['bindQpc']) <= number(entry['qpc']) <=
+            one('HELPER_ENTRY')[0] <= one('A_READ_START')[0] <= number(result['qpc']) <= one('A_READ_RESULT')[0] < until or
+            not number(entry['qpc']) <= number(close['attemptQpc']) <= number(close['qpc']) <= one('A_CLOSE_CONFIRMATION')[0] < until or
+            number(close['attemptQpc']) > number(result['qpc']) or
             not start_ms <= number(result['completedMs']) < until_ms or
             not start <= one('A_DEADLINE')[0] <= one('OBSERVATION')[0] < until):
-        raise ValueError('P02-A proof outside original deadline')
+        raise ValueError('P02-A proof time/causality outside original deadline')
 
 
 def verify_read_cleanup(rows):

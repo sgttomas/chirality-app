@@ -1,6 +1,6 @@
 # Supplemental hosted Windows process fixture lane
 
-Status: **THREE NATIVE ATTEMPTS FAILED AT P02-A; CONTROLLED STDOUT SETUP PENDING**. The
+Status: **THREE NATIVE ATTEMPTS FAILED AT P02-A; CONTROLLED STDOUT CANDIDATE NATIVE NOT RUN**. The
 source-bound first attempt and partial observations are appended below; the
 earlier preparation/checks retain their original scope. This is a separately
 attributed disposable GitHub-hosted native-x64 P01/P02 lane. Parent
@@ -352,3 +352,100 @@ be source-reviewed and prove parent/child pipe correspondence, real current
 stdout binding, live original leader, FALSE/109 within eight seconds, and cleanup.
 An unrelated private pipe or an EOF after death cannot satisfy A. This is a
 controlled-stimulus refinement, not a production fix or guarantee.
+
+
+## Controlled current-stdout candidate: native NOT RUN
+
+The next A-only implementation uses setup identity
+`post-managed-start-stdout/v1`. This is an explicit controlled-stimulus change,
+not evidence that the startup stdout pipe has been fixed. The three historical
+native failures and their exact source/artifact bytes remain unchanged.
+The required P-02 A observation remains actual intended stdout FALSE/109 while
+the same retained original leader PROCESS HANDLE is nonsignaled with query259,
+within the original eight seconds starting before leader creation. Neither
+absence of data nor EOF after process death qualifies.
+
+After managed startup and existing root/nonce/environment validation, the A
+helper creates a fresh anonymous pipe with noninheritable ends, checks both
+PIPE types and rejects equality with any startup standard handle. It sends a
+strict bounded generation/case control frame over startup stdout naming the
+pair and startup handles. The parent duplicates only the read end from the
+actual retained original leader PROCESS HANDLE, with SAME_ACCESS and
+noninheritance; it owns and type-checks the copy before private acknowledgment.
+No PID lookup, writer duplication, A descendant or new inheritance is added.
+The helper closes its source read end only after that acknowledgment, calls
+supported `SetStdHandle(-11, freshWriter)`, checks `GetStdHandle(-11)` equals
+that writer and is PIPE, then raw-writes ENTRY through a newly queried actual
+stdout. Only ENTRY received on the transferred corresponding reader can bind
+the test stream. Source/observer QPC order covers control, transfer, ack,
+source-reader close, stdout bind, ENTRY, close attempt/return and direct read.
+
+The startup reader remains in owned IO with no further/concurrent reads, and
+startup stdout/stderr remain control references until helper death. The new
+writer closes exactly once. No claim is made about old-pipe EOF, all runtime
+copies, .NET `Console.Out` caches or startup-stdio root cause. The bounded
+exclusive metadata file now carries the setup identity, generation, source
+pair, bind/ENTRY/close timestamps and close result; it never supplies EOF.
+The verifier refuses missing/duplicate/mismatched binding and reader evidence,
+failed/missing close proof, zero-byte success, other read errors, unknown or
+late worker completion and dead original leaders. Read completion can race
+with CloseHandle return timestamping: close-attempt QPC must precede the read
+completion, while post-close QPC is separately bounded and ordered.
+
+The existing one-read background worker, original deadline, original leader
+HANDLE authority, helper sleep11s/watchdog12s, joined-reader cleanup,
+creation-time safety Job/HANDLE_LIST/four arguments, no-breakaway and all
+retained-HANDLE/Job-zero invariants remain. P01/B/C launch/observation behavior
+is unchanged. No read HANDLE is manually closed while its ReadFile is pending;
+unknown teardown still fails and exits only the fixture controller/owned Job.
+
+Reconciliation: this refines only the existing hosted P-02 A stimulus and its
+source-bound verification. WINDOWS_PLATFORM_SERVICES P-02 expected observation,
+DEL-01-02 ScopeOfWork and deliverable.yaml dependency conditions remain
+unchanged. The trusted disposable hosted namespace/profile remains the limit;
+no hostile namespace, durability, SQLite, shared/protected guest, supplier,
+App, production policy, commitment, acceptance or release result follows.
+Native compilation/CI/execution for this setup is NOT RUN until parent
+integration/publication. Historical B/C observations remain NOT REACHED.
+
+Host-only verification on this candidate: 18 hosted test methods and eight
+retained guest-driver refusal tests pass using a fresh scratch CODEX_HOME.
+Mutation units explicitly labelled invented cover missing/duplicate setup,
+wrong source leader/read/write/observer HANDLE, inherited endpoints, absent or
+failed SetStdHandle/GetStdHandle proof, unknown setup/type, impossible source
+ordering, stale/mismatched metadata, nonproof/late/unjoined reads, dead leader
+and rewritten/unknown cleanup. They do not generate a native success trace.
+The deliverables check reports 41 deliverables, no errors and the same six
+cycle groups; `git diff --check` passes. Independent source review and final placement checks are recorded below.
+
+
+### Independent controlled-stdout source review
+
+[Independent Type2 source review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A7fdf66b7-ae31-457d-bed4-1dafe1c8294f%3Adelegate-task%3Aef2a79dc-893e-445d-b194-c4ec0acbe7f0)
+examined exact saved commit `44f209a34ca42f00401597496483090acc9b596e`
+with required ancestor `59a33c990f28d3a1847446574cff8353b4e56ea5`, using
+`codex-hub/gpt-6.1-sol`, `reasoningEffort=medium`, `serviceTier=default`.
+One Type2 ran and did not delegate. The implementation owner inspected its
+actual completed return through the host completion mechanism.
+
+The reviewer identified no blocking findings or ordinary repairs. It judged
+that the actual source ties the transferred reader to current Win32 stdout,
+retains the original live-EOF counterexample and expressly changes the stimulus
+rather than weakening the outcome. It found no new ownership/cleanup or
+Framework 4.8 source/ABI compatibility defect by inspection. Native compilation
+remains unverified. The reviewer independently ran the 18 hosted tests, eight
+held-driver refusal tests, deliverables check (41/no errors/six cycle groups)
+and whitespace check, with fresh scratch CODEX_HOME and no repository edits.
+
+The final review-record commit changes only this owning result document;
+the four reviewed implementation/test/README files are byte-identical to the
+reviewed candidate. Current C# is 36,844 bytes, SHA-256
+`161b054e890e7f233fbf5194a826ba1d42538f344baec478bf2e446b9f27d43c`;
+verifier is 12,057 bytes, SHA-256
+`808e99df691a286c1f662d0d726330e43e2b6fb2739936ff37325befd983ca56`.
+These are new candidate identities, not edits to historical expected hashes.
+All three retained native channel pairs still match their result.json hashes,
+all three old failed traces remain refused by the new verifier, and their
+artifact directory has zero diff from the required ancestor. No fake native
+success trace was generated. Native compile/CI/execution remain NOT RUN;
+parent Agent 0 owns integration/publication and actual outcome recording.
