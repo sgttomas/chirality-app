@@ -65,8 +65,12 @@ their retention nor establishes production App/supplier behavior.
 **Guest access is held.** The former target is the owner's CAEPIPE VM and is
 permanently off-limits. All guest modes refuse before binding, contact or scratch.
 A separate owner-authorized build guest (16 GiB RAM) has been created and
-privately bound; it remains stopped without installation media or Windows.
-Future use must respect exclusive-window scheduling. No VM
+privately bound; it remains dormant without installation media or Windows.
+The owner superseded the second-local-instance route: no further image
+acquisition, setup, boot or provisioning, and preserve the hardware without
+deleting it. Hosted Windows CI is the current route. Any future unmet hosted
+capability and cloud options go to the owner before acquisition/spend; cloud
+provisioning is not authorized. No VM
 identifier is committed. A ready/unlocked legacy guest is not execution authority.
 The older observations below describe historical preparation, not a current route.
 
