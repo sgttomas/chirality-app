@@ -224,6 +224,39 @@ recorded OS/architecture/harness behavior, not Rust-adapter/App parity,
 supplier/native-control evidence, or a durability guarantee. Exact pinned
 SQLite probes remain deferred until their real prerequisite is available.
 
+## Fixture preparation and byte-preserving checkout
+
+The package-free process-fixture tranche returned local source
+`3ad9ac047df21358b223a3d744f9df77eac64fda`, integrated with ancestry preserved.
+The C# P01/P02 harness is prepared, but its initial execution driver failed
+independent scrutiny: continuous scratch namespace guards did not span
+compilation, and the compiler lifetime was not bounded independently of host
+command survival. The unsafe route was removed; `--run` refuses before guest
+contact. Read-only metadata establishes the installed ARM64 .NET compiler,
+PowerShell FullLanguage and unchanged Restricted policy, not compilation or
+native test results. Both blocking guards remain repairs, not waived conditions.
+No guest fixture files, compiler, helper processes or Jobs were created.
+
+The next minimal implementation is the guarded bootstrap, with independent
+review of the actual repaired version before any write/compile/run. Existing
+Reflection.Emit facilities may permit the needed Win32 guard calls in memory
+before invoking the installed compiler; this is an investigation option, not
+a verified solution or authority to weaken either guard. Continue the saved
+fixture suite only after those conditions hold. No package acquisition or
+production policy change follows from this preparation.
+
+SWBPIPE reported native-x64 fixture results at
+`226de96777a1f7e8c5ba5ce3fe1e31f82839fe00`; those peer results do not qualify
+App's source or memory policy. Its separate checkout failure exposed a relevant
+App risk: Git newline conversion can change exact-byte inputs. App had no
+attributes policy. The scoped `.gitattributes` correction and
+`app/tests/check_git_checkout_bytes.py` preserve hashed input families without
+global settings or fixture/reference rewrites. A real temporary-index checkout
+with `core.autocrlf=true` changed ten selected committed LF inputs without the
+policy; after it, all eleven protected inputs (including intentional CRLF)
+matched, while unprotected text still converted. This host Git regression and
+passing schema/hash checks are not native Windows execution evidence.
+
 ## Publishing route
 
 The initial ordinary feature-branch push reported a server-side bypass because
