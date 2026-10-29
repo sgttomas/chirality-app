@@ -1,5 +1,11 @@
 # Local host candidate qualification — cases, candidate record and host gap sheet
 
+Current receiving supplement (2026-10-29): [SWBPIPE_RECEIVING.md](SWBPIPE_RECEIVING.md)
+binds the authorized Codex embedding, merged summary-model witness and unwired
+host components. The dated definition below retains its original pins and cases;
+its Chat-Completions-only premise and deferred-host account are historical.
+No case result or acceptance is changed by the supplement.
+
 - Contribution: DEL-09-07/LHQ-v0.2 (supersedes LHQ-v0.1, sha256 20361a0be76904d4b8ac745f055755cd27455d13d7625a559de1b44ff386e8f8, confirmed READY by RV). **v0.2 change (R23-33, R23-36; run `APP-V4-DESIGN-PASS-4-20261003`, tranche 2, owner O-C):** §3 gains rule CI-5 and the optional CIR element `app_candidate_subject`, mapping `app_candidate` to EXP-v0.2's `candidate_subject.app_candidate`. Additive: nothing else changed
 - Status: DRAFT DEFINITION — proposed, unsupplied, not run, not accepted. No case below has run; every outcome is *not run*. Frozen as LHQ-U1 at sha256 2668d955…0ecc; repaired in place for review RV-LHQ-U1 (`reviews/RV-LHQ-U1.md` in the run folder); see "Changes at repair" at the end.
 - Run and node: `APP-V4-DESIGN-PASS-4-20261003`, owner O-C (Type 2 TASK, Claude Opus 5.5, high effort), unit LHQ-U1, written 2026-10-03.
