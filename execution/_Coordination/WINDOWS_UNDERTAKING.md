@@ -189,6 +189,41 @@ Completion returns through the host's delegated-task mechanism to Agent 0;
 the host's durable task state and completion notification carry continuity
 independently of a wait or timer inside the coordinator's current turn.
 
+## Platform-contract return and next bounded fixture
+
+The platform-contract tranche returned
+`974aa66893f2c0a53a5df87e46eb3c3c0db185d5` and is integrated through a
+merge commit. Agent 0 inspected the independent review of `13c12063` and the
+local P-01 repair: ordered creation instrumentation, retained descendant
+HANDLE/membership proof and a deliberate early-escape negative control.
+The returned contract/trace/evidence files were preserved byte for byte.
+
+`execution/PKG-01/DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md` records proposed process,
+namespace, lock, publication and SQLite probe gates. SQLite 3.46.0 supports
+actual opened-main HANDLE retrieval through its public file-control API;
+that does not resolve open-time/sidecar races or the Windows directory-sync
+gap. App crash cleanup and Windows durable confirmation remain reserved,
+unselected policy/profile questions. Fixtures may compare candidate behavior
+without selecting a production policy or inventing durable success.
+
+`execution/PKG-03/DEL-03-03/Design/WINDOWS_APP_SWB_TRACE.md` identifies production App receiving
+of person-selected documents and test-compiled submission seams. No live
+App-to-SWB transport or durable external submission receipt is established.
+The first Windows App milestone remains standalone. The provisioning
+amendment proposes a full short-path App checkout; generated paths remain
+untested and no global long-path setting is selected.
+
+The next bounded implementation may investigate package-free Windows fixtures
+using existing PowerShell/.NET facilities, with independent code scrutiny
+before execution. Limit writes to fresh task-owned guest scratch and actions
+to fixture-owned process/Job HANDLEs; do not install packages, change guest
+settings, inspect user data or affect unrelated applications. If existing
+facilities cannot support the fixture, report that precise prerequisite and
+continue repository-only preparation. Fixture results establish only the
+recorded OS/architecture/harness behavior, not Rust-adapter/App parity,
+supplier/native-control evidence, or a durability guarantee. Exact pinned
+SQLite probes remain deferred until their real prerequisite is available.
+
 ## Publishing route
 
 The initial ordinary feature-branch push reported a server-side bypass because
