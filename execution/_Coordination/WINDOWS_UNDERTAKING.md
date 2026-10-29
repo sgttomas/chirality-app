@@ -16,6 +16,37 @@ Initial source baseline: `25979a63995c59b818f56804203e5c5069306887`, including
 the development-resumption entry-document changes. Source findings from the
 preceding assessment are inputs to verify, not Windows execution evidence.
 
+## Current target and resource authority — 2026-10-29
+
+The former target was privately confirmed SAME as the owner's CAEPIPE VM.
+It is permanently off-limits to both Windows efforts, including discovery,
+guest sessions, scratch/probes, installers, Tools/configuration, power/reset
+and cloning/migration. Its CAEPIPE data/settings/exchange surfaces are not
+development inputs. Earlier readiness questions and guest-probe briefs do not
+authorize access, even if that guest is running or unlocked.
+
+The owner selected a **new separate Windows build VM**, provisioned by App
+Agent 0, capped at **16 GiB RAM** and run only when needed. Suspend it during
+exclusive windows announced by [dev - piping](t3-thread://v1/73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff),
+which remains the host/CAEPIPE scheduling and SWB interface contact while its
+implementation lanes finish and stop. Coordinate shared development use with
+SWBPIPE Windows Agent 0. Privately bind only the newly created identity; no
+existing-guest auto-selection or public VM identifiers. The current binding is
+unbound and retains the former identity only as a protected exclusion.
+
+Official Microsoft Windows-image acquisition/setup is authorized, with file,
+source, byte size and SHA-256 recorded before installation. The old 6 GiB
+tool/package estimate did not include an OS image. Other acquisitions retain
+their exact authorization and VS metadata-integrity prerequisites. Windows
+licence, purchases, activation and account sign-in remain owner acts. Do not
+create/clone the old VM or duplicate the already settled guest-route question.
+Repository-only preparation and separately attributed hosted tests may continue.
+
+Earlier identifier-bearing evidence projections are now redacted, with
+original digests and privately retained originals noted. Outcomes and original
+source hashes are preserved. Existing Git history is not rewritten; it can
+still contain identifiers from before the private-identity direction.
+
 ## Ownership and execution
 
 - HELP_HUMAN / Agent 0: purpose, scope, cross-project alignment, inspection of

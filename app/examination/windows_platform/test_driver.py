@@ -18,6 +18,31 @@ SPEC.loader.exec_module(DRIVER)
 
 
 class Admission(unittest.TestCase):
+    def test_private_binding_excludes_legacy_and_over_budget_guests(self):
+        binding = {
+            'alias': DRIVER.TARGET_ALIAS, 'created_for_builds': True, 'ram_mib': 16384,
+            'vm_id': '00000000-0000-0000-0000-000000000001',
+            'protected_legacy_vm_id': '00000000-0000-0000-0000-000000000002',
+        }
+        self.assertEqual(DRIVER.build_guest_id(binding), binding['vm_id'])
+        for changed in ({'vm_id': binding['protected_legacy_vm_id']}, {'ram_mib': 16385},
+                        {'created_for_builds': False}, {'alias': 'legacy'}, {'vm_id': None}):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                DRIVER.build_guest_id(dict(binding, **changed))
+
+    def test_guest_hold_precedes_binding_contact_and_scratch(self):
+        for mode in ('--inspect', '--bootstrap-check', '--run'):
+            with self.subTest(mode=mode), \
+                    patch('sys.argv', ['driver', mode, '--source-commit', 'a' * 40]), \
+                    patch.object(DRIVER, 'bind_sources') as bind, \
+                    patch.object(DRIVER.subprocess, 'Popen') as popen, \
+                    patch.object(DRIVER.tempfile, 'mkdtemp') as scratch:
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    DRIVER.main()
+                bind.assert_not_called()
+                popen.assert_not_called()
+                scratch.assert_not_called()
+
     def test_run_and_ambiguous_modes_never_contact_guest_or_make_scratch(self):
         for args in ([], ['--run'], ['--run', '--inspect'], ['--bootstrap-check'],
                      ['--inspect', '--source-commit', 'HEAD']):

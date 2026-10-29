@@ -1,5 +1,14 @@
 # Bounded package-free Windows process fixture return
 
+Current execution hold: the earlier target was confirmed to be the protected
+CAEPIPE VM. It is permanently off-limits. The owner selected a separate build
+guest (at most 16 GiB RAM); no target is bound yet. All guest driver modes now
+refuse before contact. Historical evidence below is not permission to reuse
+the former guest. Identifier-bearing evidence projections are redacted, with
+their original file digests and privately retained originals identified; no
+observed outcome or original source hash was rewritten. Earlier Git history
+has not been rewritten. The new guest requires its own runtime observations.
+
 The historical return below remains intact. The later guarded-bootstrap attempt
 and its actual guest-session obstacle are recorded in the appended follow-up.
 
@@ -64,7 +73,7 @@ the already saved P01/P02 suite once; do not expand to storage or provisioning.
 ## Actual environment and bounded observation
 
 The selected running peer is Parallels VM
-`2944eb77-696f-41ad-97e2-142ba0489535` (`Windows 11`), via installed
+`[redacted: private target binding]` (`Windows 11`), via installed
 `/usr/local/bin/prlctl`; earlier authorized inventory identifies Parallels
 27.0.2 and Windows 11 Pro ARM64, 32 GiB. This tranche read only VM list/status
 and installed PowerShell/.NET metadata; it did not independently remeasure RAM,
@@ -282,7 +291,7 @@ temporary behavior or availability of that alternative is claimed.
 
 ### Observations, limits and next step
 
-The guest remains pinned to VM `2944eb77-696f-41ad-97e2-142ba0489535` via
+The guest remains pinned to VM `[redacted: private target binding]` via
 `prlctl exec`. Readiness at `da0a2802` remains historical metadata: Windows 11
 build 26200, PowerShell 5.1 FullLanguage/Restricted, ARM64 environment, 8-byte
 pointers, and installed FrameworkArm64 .NET 4.8.1 compiler. The failed session

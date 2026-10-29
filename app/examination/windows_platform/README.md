@@ -1,5 +1,12 @@
 # Package-free Windows process fixtures
 
+**Guest access is held.** The former target is the owner's CAEPIPE VM and is
+permanently off-limits. All guest modes refuse before binding, contact or scratch.
+A separate owner-authorized build guest (at most 16 GiB RAM) must first be
+created and privately bound, with exclusive-window scheduling respected. No VM
+identifier is committed. A ready/unlocked legacy guest is not execution authority.
+The older observations below describe historical preparation, not a current route.
+
 This examination harness exercises invented P01/P02 process semantics only.
 It neither runs App/suppliers/models nor selects production Job/crash policy.
 The owning design and results are in

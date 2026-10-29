@@ -6,9 +6,33 @@ guest. App's WORKING_ITEMS manager owns this proposal and any subsequently
 authorized common-guest provisioning. Agent 0 carries the owner decision and
 cross-project agreement. This document does not authorize execution.
 
+## Superseding owner route — 2026-10-29
+
+The owner selected a **new, separate Windows build guest**. The former
+inventoried guest is the CAEPIPE validation VM and is permanently off-limits:
+no discovery/sessions, probes, files, installs, Tools/configuration or power
+operations, and no cloning/migration as a development base. Its identity stays
+in private local coordination only. Earlier observations below are historical
+evidence; they do not carry over to the new guest or permit reusing the old one.
+
+App Agent 0 owns creation and private binding of the distinct build guest,
+at most **16 GiB RAM**, running only when needed and suspended during exclusive
+windows announced by the macOS `dev - piping` coordinator. That coordinator
+remains the contact for host scheduling, CAEPIPE custody and SWB interfaces;
+its implementation-lane wind-down does not change these boundaries.
+
+The new Windows image acquisition/setup is authorized from Microsoft's official
+source. Record exact file, source, byte size and SHA-256 before installation;
+this OS image is outside the former 6 GiB tool/package estimate. Licensing,
+purchases, activation and account sign-in are owner acts. No credential or
+CAEPIPE state may be imported. Other acquisitions retain their exact-file,
+source and size authorization, and the VS channel/catalog integrity hold remains.
+Reinventory OS/runtime and free space only on the new, privately bound guest.
+Do not assume its WebView2, compiler, Tools or caches match the former guest.
+
 ## Decision proposed
 
-Use the existing Windows 11 ARM64 guest, **native ARM64 development tools and
+Use a separately created Windows ARM64 build guest, **native ARM64 development tools and
 x64 application output**, for development and explicitly labelled emulated-x64
 execution. Keep x64 on an actual x64 Windows machine as a proposed later
 verification target; Parallels ARM results cannot establish that evidence.
@@ -29,6 +53,10 @@ scripts and proc macros execute on the native ARM64 Rust host. Availability
 on this particular guest still needs an installed-tool verification.
 
 ## Observed environment and source identity
+
+The guest measurements in this section describe the now-protected CAEPIPE VM.
+They are retained as dated observations, not a current execution target or
+new-build-guest readiness evidence.
 
 App basis: `36bd5d6eecbe1b835249cfce2722c0710f777c20`, branch
 `t3/windows-feasibility`. The required baseline is HEAD and the initial tree
@@ -87,7 +115,7 @@ None is a payload verification performed in this tranche.
 | Node/npm | Node **24.18.0**, Windows ARM64 ZIP | Matches observed App development Node patch; official ZIP HEAD 33,361,856; retain bundled npm and record its version on extraction |
 | Git | **2.56.0.windows.4**, ARM64 | Official `Git-2.56.0.4-arm64.exe`; GitHub asset 64,406,136; retain full runtime layout |
 | wasm-bindgen CLI | **0.2.123**, x64 MSVC prebuilt | Official release `wasm-bindgen-0.2.123-x86_64-pc-windows-msvc.tar.gz`; 7,554,935; runs through guest x64 emulation |
-| WebView2 | existing 156.0.4314.50 | Reuse; zero new payload proposed |
+| WebView2 | new guest not inventoried | Reuse only if present/compatible there; otherwise separately inventory and authorize the official runtime. Former CAEPIPE runtime is not transferable evidence. |
 | Codex supplier | **0.160.0**, complete Windows x64 npm platform package | Published npm alias resolves `@openai/codex@0.160.0-win32-x64`; compressed HEAD size unavailable; published unpacked 450,619,016 |
 
 Node 24 satisfies both current Vite 7 lanes; no lock update is proposed. The
@@ -347,7 +375,9 @@ independent metadata follow-up does not authorize a retry or provisioning.
    payloads and repository archives. Public metadata research is the only
    network work authorized by the current brief.
 2. Read guest-native NTFS filesystem and free-space facts, existing installation
-   inventory and pending-reboot status. Coordinate a provisioning window through
+   inventory and pending-reboot status on the **new privately bound guest only**.
+   Re-evaluate prerequisites missing from its fresh OS; the earlier tool budget
+   is not a complete OS/runtime acquisition inventory. Coordinate a use window through
    Agent 0; do not reset, power off, resize or close user applications. Any
    reboot requirement is a return condition, not permission to reboot.
 3. Acquire a pinned en-US ARM64-aware VS layout with the VCTools workload and

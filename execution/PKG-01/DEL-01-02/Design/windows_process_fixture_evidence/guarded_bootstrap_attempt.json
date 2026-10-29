@@ -1,5 +1,5 @@
 {
-  "vm": "2944eb77-696f-41ad-97e2-142ba0489535",
+  "vm": "[redacted: private target binding]",
   "sourceRevision": "c5e01df9d4a06fa6184841cb30d22ec539e30590",
   "sourceSha256": {
     "ProcessFixture.cs": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
@@ -21,5 +21,13 @@
   "hostArtifacts": "/var/folders/96/1_3ww0012pv5ptwwsd1990yw0000gn/T/chirality-app-process-readiness-9rg967xa",
   "returncode": 255,
   "stdout": "",
-  "stderr": "PrlVmGuest_RunProgram: Unable to open new session in this virtual machine. Make sure your virtual machine has finished booting, runs the latest version of Parallels Tools, and is not isolated from the host OS.\n"
+  "stderr": "PrlVmGuest_RunProgram: Unable to open new session in this virtual machine. Make sure your virtual machine has finished booting, runs the latest version of Parallels Tools, and is not isolated from the host OS.\n",
+  "_privacy_redaction": {
+    "reason": "Shared guest identifiers stay local; observed outcomes and original source hashes preserved",
+    "originalSha256": "1fc62828ad72ac44e5ab792d50a954dacbdc1eaf7e8512b16f1ae10124bcb83a",
+    "originalRetainedPrivately": true,
+    "fields": [
+      "vm"
+    ]
+  }
 }

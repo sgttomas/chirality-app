@@ -12,8 +12,10 @@ import time
 import tempfile
 import gzip
 import re
+import uuid
 
-VM = '2944eb77-696f-41ad-97e2-142ba0489535'
+TARGET_ALIAS = 'chirality-windows-build'
+GUEST_ACCESS_ON_HOLD = True
 HERE = Path(__file__).resolve().parent
 SOURCE_FILES = ('ProcessFixture.cs', 'run_fixture.py', 'verify_results.py',
                 'Controller.ps1', 'test_driver.py', 'README.md')
@@ -27,6 +29,21 @@ BLOCKERS = [
     'The in-memory controller is source preparation, not observed compiler/launch containment. '
     'Its integration, fixture stdout capture, timeout and host-loss experiments remain unrun.',
 ]
+
+
+def build_guest_id(binding):
+    """Private selection must explicitly identify a new build guest, never CAEPIPE."""
+    try:
+        selected = str(uuid.UUID(binding.get('vm_id', '')))
+        protected = str(uuid.UUID(binding.get('protected_legacy_vm_id', '')))
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError('A complete private build-guest binding is required') from None
+    if (selected == protected or binding.get('alias') != TARGET_ALIAS
+            or binding.get('created_for_builds') is not True
+            or type(binding.get('ram_mib')) is not int
+            or not 1024 <= binding['ram_mib'] <= 16384):
+        raise ValueError('Private target is not an admitted separate build guest')
+    return selected
 
 
 def bind_sources(source_commit):
@@ -157,10 +174,17 @@ def main():
     args = ap.parse_args()
     if args.run:
         ap.error('Native fixture execution withheld: ' + ' '.join(BLOCKERS))
+    if GUEST_ACCESS_ON_HOLD:
+        ap.error('Guest access withheld: the legacy CAEPIPE guest is permanently off-limits; '
+                 'a separate authorized build guest must be privately bound before any session')
     try:
+        binding_path = os.environ.get('CHIRALITY_WINDOWS_VM_BINDING')
+        if not binding_path:
+            raise ValueError('An explicit private build-guest binding is required')
+        vm = build_guest_id(json.loads(Path(binding_path).read_text()))
         revision, verified_bytes = bind_sources(args.source_commit)
         sources = {name: hashlib.sha256(data).hexdigest() for name, data in verified_bytes.items()}
-    except (ValueError, subprocess.CalledProcessError) as exc:
+    except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         ap.error(str(exc))
     host = Path(tempfile.mkdtemp(prefix='chirality-app-process-readiness-'))
     (host / 'CODEX_HOME').mkdir()
@@ -175,9 +199,9 @@ clrVersion=(Get-Item -LiteralPath ($r+'clr.dll')).VersionInfo.FileVersion} | Con
 """
     if args.bootstrap_check:
         command = bootstrap_command(verified_bytes['Controller.ps1'])
-    argv = ['prlctl', 'exec', VM, 'powershell.exe', '-NoProfile', '-NonInteractive',
+    argv = ['prlctl', 'exec', vm, 'powershell.exe', '-NoProfile', '-NonInteractive',
             '-EncodedCommand', base64.b64encode(command.encode('utf-16le')).decode('ascii')]
-    report = {'vm': VM, 'sourceRevision': revision, 'sourceSha256': sources, 'blockers': BLOCKERS,
+    report = {'targetAlias': TARGET_ALIAS, 'sourceRevision': revision, 'sourceSha256': sources, 'blockers': BLOCKERS,
               'mode': 'bootstrap-check' if args.bootstrap_check else 'inspect',
               'guestWrites': 'none requested', 'nativeCases': 'all not run',
               'commandSha256': hashlib.sha256(command.encode()).hexdigest(),

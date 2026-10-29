@@ -1,5 +1,5 @@
 {
-  "vm": "2944eb77-696f-41ad-97e2-142ba0489535",
+  "vm": "[redacted: private target binding]",
   "sourceRevision": "da0a2802a87ff3f4d71fbc816c93526801eefafd",
   "sourceSha256": {
     "ProcessFixture.cs": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
@@ -34,5 +34,13 @@
       "Version": "4.8.9221.0 built by: NET481REL1LAST_25H2"
     },
     "clrVersion": "4.8.9363.0 built by: NET481REL1LAST_25H2_B"
+  },
+  "_privacy_redaction": {
+    "reason": "Shared guest identifiers stay local; observed outcomes and original source hashes preserved",
+    "originalSha256": "7e56c614b81f7a2a66eae268de07606e723423f7bd72db3be83e15ebefb899e1",
+    "originalRetainedPrivately": true,
+    "fields": [
+      "vm"
+    ]
   }
 }
