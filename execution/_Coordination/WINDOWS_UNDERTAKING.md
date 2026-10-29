@@ -126,6 +126,13 @@ The proposed 6 GiB transfer ceiling remains an estimate. VS 17.14 is Current,
 not LTSC. Its channel/catalog byte identities disagree in the saved official
 metadata reads; this unresolved acquisition join blocks VS payload acquisition
 and installation. Python-dependent Windows checks are explicitly deferred.
+An independent metadata-only Type 2 investigation reproduced the catalog
+response exactly with no content coding or redirects; Agent 0 inspected the
+actual return, raw body, channel and headers. The root cause remains unknown;
+no authenticated alternative or repin was established. The acquisition record
+retains the source/digests and scratch-evidence references. Resolve official
+matching metadata and trust before acquisition; do not repeat identical reads
+or treat unverified signatures as proof.
 Mac offline build/check evidence is recorded; Windows cross-compilation stopped
 in the bundled SQLite C build before App Rust compilation. No Windows App,
 supplier, native-control or durable-reopen witness is established.

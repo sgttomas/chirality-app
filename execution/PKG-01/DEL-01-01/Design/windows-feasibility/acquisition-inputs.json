@@ -96,7 +96,29 @@
     "observed_bytes": 17954808,
     "observed_sha256": "87791000b1d6357e174f039ce9c2f03d150d4e90b45e8e52468d797dac62022c",
     "attempts": 2,
-    "standing": "MISMATCH: do not use catalog as authenticated installation authority"
+    "standing": "MISMATCH: do not use catalog as authenticated installation authority",
+    "independent_follow_up": {
+      "source_revision": "79315c26b104b534a89ed8e9b1e716f3da3440d0",
+      "report": "/tmp/chirality-vs-forensics.7BqOwdJ1/REPORT.md",
+      "catalog_body": "/tmp/chirality-vs-forensics.7BqOwdJ1/catalog-identity.body",
+      "catalog_headers": "/tmp/chirality-vs-forensics.7BqOwdJ1/catalog-identity.headers",
+      "channel_body": "/tmp/chirality-vs-forensics.7BqOwdJ1/channel.body",
+      "additional_catalog_bodies": 1,
+      "observed_bytes": 17954808,
+      "observed_sha256": "87791000b1d6357e174f039ce9c2f03d150d4e90b45e8e52468d797dac62022c",
+      "channel_observed_sha256": "9312f33527b6f89ee6290ac59190584d137959dadd0a3334c40ea3de188ab5c4",
+      "http_status": 200,
+      "redirects": 0,
+      "content_encoding": null,
+      "content_length": 17954808,
+      "server_date": "Thu, 29 Oct 2026 05:17:38 GMT",
+      "tls_verification_disabled": false,
+      "signature_or_payload_verification_performed": false,
+      "root_cause": "Unresolved: origin publication, cache or intermediary transformation cannot be distinguished; original collection provenance unavailable",
+      "alternative_or_repin_established": false,
+      "agent0_checks": "Saved raw catalog and channel lengths/digests inspected; response headers and actual delegated return inspected",
+      "standing": "MISMATCH reproduced; no installation authority; no further identical retry loop"
+    }
   },
   "vs_budget": {
     "basis": "UNVERIFIED catalog SHA mismatch: estimate only, never installation authority",

@@ -120,6 +120,21 @@ the mismatch. Do not use these bytes as authenticated installation authority.
 Resolve the channel/catalog join before acquiring or executing VS payloads;
 do not bypass verification or guess that JSON formatting explains it.
 
+A subsequent independent Type 2 metadata investigation reproduced the same
+catalog bytes through a raw HTTP capture with normal TLS verification,
+`Accept-Encoding: identity`, no automatic decompression, no redirects and
+no response Content-Encoding. Agent 0 rechecked the saved body and channel
+digests. This rules out client-side decompression for that capture; it does
+not identify whether origin publication, caching or an intermediary produced
+the discrepancy. Original collection provenance remains unavailable. Embedded
+signature presence and the matching version label are not signature or payload
+verification. No authenticated alternative or proposed repin was established.
+The independent capture identities and remaining verification boundary are
+recorded in `windows-feasibility/acquisition-inputs.json`; raw evidence and
+the report remain in `/tmp/chirality-vs-forensics.7BqOwdJ1/`. Further identical
+retries are not a resolution. Obtain an official matching catalog/reference
+and establish its verification procedure before relying on this acquisition.
+
 For planning only, a deliberately conservative traversal of that **unverified**
 catalog follows required dependencies from the product, VCTools workload and
 three explicit components above. It retains *all* versions, architectures and
