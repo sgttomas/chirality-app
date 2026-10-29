@@ -1,6 +1,11 @@
 # Windows platform services: proposed contracts and probe gates
 
 Development design, 2026-10-28. **Proposed, unimplemented, unrun on Windows.**
+A subsequent bounded fixture source/readiness return is recorded in
+[WINDOWS_PROCESS_FIXTURE_RESULTS.md](WINDOWS_PROCESS_FIXTURE_RESULTS.md).
+Its native cases remain unrun because independent scrutiny found unresolved
+bootstrap safety prerequisites; it does not revise the prior design evidence.
+
 This does not select Windows shipping/support, change a guarantee, qualify a
 supplier, record acceptance or authorize provisioning/execution. macOS remains
 independently finishable. No production behavior changes accompany this document.

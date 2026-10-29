@@ -1,0 +1,38 @@
+{
+  "vm": "2944eb77-696f-41ad-97e2-142ba0489535",
+  "sourceRevision": "da0a2802a87ff3f4d71fbc816c93526801eefafd",
+  "sourceSha256": {
+    "ProcessFixture.cs": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
+    "run_fixture.py": "5fe68b72cb9a7d743b8263c461cc64784ed076e7d41f8ba6177fe3140807af4d",
+    "verify_results.py": "ecbe0dff2b6a67d7679f370c1589a88fcf7fbae25152ab4e3fc42f082d4a288f",
+    "README.md": "75b5a48e1702f3d0bd17955be5388c5c716714f2361ee1eb94eaa24aa28e317e"
+  },
+  "blockers": [
+    "No continuously retained namespace guards from exclusive guest scratch creation through compilation/execution. Path attributes plus a nonce/sentinel alone do not confine later opens, compiler output, or compiler temporary files.",
+    "No guest-side compiler lifetime guard that survives loss of the host command. A prlctl timeout is not compiler termination or observed cleanup. The native supervisor timer begins too late to cover compilation."
+  ],
+  "guestWrites": "none requested",
+  "nativeCases": "all not run",
+  "commandSha256": "7e21436f0addd4c5ec61a83a1bb6042743c41c42bf3a90e878002ddd01cf22fe",
+  "command": "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue';\n$r=[System.Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory();\n[ordered]@{language=$ExecutionContext.SessionState.LanguageMode.ToString(); policy=(Get-ExecutionPolicy).ToString();\nps=$PSVersionTable.PSVersion.ToString(); runtime=$r; runtimeVersion=[Environment]::Version.ToString(); pointerBytes=[IntPtr]::Size;\narchitecture=$env:PROCESSOR_ARCHITECTURE; os=[Environment]::OSVersion.VersionString;\ncompiler=(Get-Item -LiteralPath ($r+'csc.exe') | Select-Object FullName,Length,@{n='Version';e={$_.VersionInfo.FileVersion}});\nclrVersion=(Get-Item -LiteralPath ($r+'clr.dll')).VersionInfo.FileVersion} | ConvertTo-Json -Compress\n",
+  "hostArtifacts": "/var/folders/96/1_3ww0012pv5ptwwsd1990yw0000gn/T/chirality-app-process-readiness-mxwmesxf",
+  "returncode": 0,
+  "stdout": "{\"language\":\"FullLanguage\",\"policy\":\"Restricted\",\"ps\":\"5.1.26100.9457\",\"runtime\":\"C:\\\\Windows\\\\Microsoft.NET\\\\FrameworkArm64\\\\v4.0.30319\\\\\",\"runtimeVersion\":\"4.0.30319.42000\",\"pointerBytes\":8,\"architecture\":\"ARM64\",\"os\":\"Microsoft Windows NT 10.0.26200.0\",\"compiler\":{\"FullName\":\"C:\\\\Windows\\\\Microsoft.NET\\\\FrameworkArm64\\\\v4.0.30319\\\\csc.exe\",\"Length\":2841096,\"Version\":\"4.8.9221.0 built by: NET481REL1LAST_25H2\"},\"clrVersion\":\"4.8.9363.0 built by: NET481REL1LAST_25H2_B\"}\r\n",
+  "stderr": "",
+  "metadata": {
+    "language": "FullLanguage",
+    "policy": "Restricted",
+    "ps": "5.1.26100.9457",
+    "runtime": "C:\\Windows\\Microsoft.NET\\FrameworkArm64\\v4.0.30319\\",
+    "runtimeVersion": "4.0.30319.42000",
+    "pointerBytes": 8,
+    "architecture": "ARM64",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "compiler": {
+      "FullName": "C:\\Windows\\Microsoft.NET\\FrameworkArm64\\v4.0.30319\\csc.exe",
+      "Length": 2841096,
+      "Version": "4.8.9221.0 built by: NET481REL1LAST_25H2"
+    },
+    "clrVersion": "4.8.9363.0 built by: NET481REL1LAST_25H2_B"
+  }
+}
