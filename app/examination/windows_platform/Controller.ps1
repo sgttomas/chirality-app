@@ -263,7 +263,7 @@ function Invoke-FixtureContainedProcess {
         } while ($wait -eq 258)
         $exit=Allocate-FixtureBuffer 4
         Check-FixtureApi ($n::GetExitCodeProcess($process,$exit)) 'GetExitCodeProcess'
-        $result=[ordered]@{originalHandleSignaled=$true; exitCode=[uint32][Runtime.InteropServices.Marshal]::ReadInt32($exit); creationSafetyMembership=$true}
+        $result=[ordered]@{originalHandleSignaled=$true; exitCode=[BitConverter]::ToUInt32([BitConverter]::GetBytes([Runtime.InteropServices.Marshal]::ReadInt32($exit)),0); creationSafetyMembership=$true}
     } finally {
         # Native API success alone is never cleanup. Keep the watchdog live and
         # every original handle owned until both original HANDLE signaling and
@@ -279,6 +279,7 @@ function Invoke-FixtureContainedProcess {
                     $active=[Runtime.InteropServices.Marshal]::ReadInt32($accounting,40)
                     if (-not $signaled -or $active -ne 0) { [Threading.Thread]::Sleep(10) }
                 } while (-not $signaled -or $active -ne 0)
+                Assert-FixtureDeadline
                 $cleanup=$true
             } catch {
                 # Unknown: root termination closes the last Job handle; actual
@@ -288,6 +289,9 @@ function Invoke-FixtureContainedProcess {
             }
         } else { $cleanup=$true }
         if ($cleanup) {
+            if ($clock.ElapsedMilliseconds -ge $DeadlineMilliseconds) {
+                [void]$n::TerminateProcess($n::GetCurrentProcess(),94); $n::ExitProcess(95)
+            }
             [void]$stop.Set()
             if (-not $watchdog.Join(1000)) { [void]$n::TerminateProcess($n::GetCurrentProcess(),96); $n::ExitProcess(97) }
             if ($initialized) { $n::DeleteProcThreadAttributeList($attributes) }

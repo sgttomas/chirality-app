@@ -35,18 +35,19 @@ def bind_sources(source_commit):
     revision = subprocess.check_output(['git', 'rev-parse', '--verify', source_commit + '^{commit}'], cwd=HERE, text=True).strip()
     repo = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], cwd=HERE, text=True).strip())
     subprocess.run(['git', 'merge-base', '--is-ancestor', REQUIRED_ANCESTOR, revision], cwd=repo, check=True)
-    sources = {}
+    verified_bytes = {}
     for name in SOURCE_FILES:
         path = HERE / name
         saved = subprocess.check_output(['git', 'show', revision + ':' + str(path.relative_to(repo))], cwd=repo)
         if saved != path.read_bytes():
             raise ValueError('source differs from recorded revision: ' + name)
-        sources[name] = hashlib.sha256(saved).hexdigest()
-    return revision, sources
+        verified_bytes[name] = saved
+    return revision, verified_bytes
 
 
-def bootstrap_command():
-    source = (HERE / 'Controller.ps1').read_bytes()
+def bootstrap_command(source):
+    if not isinstance(source, bytes):
+        raise ValueError('bootstrap requires verified source bytes')
     if not 1 <= len(source) <= 98304:
         raise ValueError('bootstrap source length bound')
     packed = gzip.compress(source, mtime=0)
@@ -100,7 +101,8 @@ def main():
     if args.run:
         ap.error('Native fixture execution withheld: ' + ' '.join(BLOCKERS))
     try:
-        revision, sources = bind_sources(args.source_commit)
+        revision, verified_bytes = bind_sources(args.source_commit)
+        sources = {name: hashlib.sha256(data).hexdigest() for name, data in verified_bytes.items()}
     except (ValueError, subprocess.CalledProcessError) as exc:
         ap.error(str(exc))
     host = Path(tempfile.mkdtemp(prefix='chirality-app-process-readiness-'))
@@ -115,7 +117,7 @@ compiler=(Get-Item -LiteralPath ($r+'csc.exe') | Select-Object FullName,Length,@
 clrVersion=(Get-Item -LiteralPath ($r+'clr.dll')).VersionInfo.FileVersion} | ConvertTo-Json -Compress
 """
     if args.bootstrap_check:
-        command = bootstrap_command()
+        command = bootstrap_command(verified_bytes['Controller.ps1'])
     argv = ['prlctl', 'exec', VM, 'powershell.exe', '-NoProfile', '-NonInteractive',
             '-EncodedCommand', base64.b64encode(command.encode('utf-16le')).decode('ascii')]
     report = {'vm': VM, 'sourceRevision': revision, 'sourceSha256': sources, 'blockers': BLOCKERS,
@@ -150,7 +152,7 @@ clrVersion=(Get-Item -LiteralPath ($r+'clr.dll')).VersionInfo.FileVersion} | Con
             # Only the local client created above, never a guest PID/name action.
             proc.kill()
             proc.wait(timeout=5)
-            report.update(returncode=None, limitation=str(exc) + '; no fixture launched')
+            report.update(returncode=None, limitation=str(exc) + '; guest command completion UNKNOWN; no fixture launched')
         finally:
             selector.close()
             report.update({k: bytes(v).decode('utf-8', 'replace') for k, v in chunks.items()})

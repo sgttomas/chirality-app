@@ -44,6 +44,9 @@ policy unchanged. The driver still refuses `--run` before guest contact.
 Gzip/base64 transport checks a 16 KiB compressed bound, exact decompressed
 length (at most 96 KiB), SHA-256 and strict UTF-8 before ScriptBlock creation.
 The encoded command stays below the Windows command-line bound.
+Command construction uses the verified Git-blob bytes without reopening the
+controller pathname. Keep the invocation unchanged; recorded execution uses a
+Python loader that executes the driver bytes from the exact saved Git revision.
 
 `run_fixture.py --inspect --source-commit <saved-revision>` only reads installed guest metadata via Windows
 PowerShell `-NoProfile -NonInteractive -EncodedCommand`. It writes a bounded
@@ -52,7 +55,10 @@ All six source files (C# harness, Python driver/verifier/regressions, this READM
 and Controller.ps1) must match that saved full commit before guest contact, and
 the required input ebf71ce7 must be its ancestor.
 Both response channels together are capped at 32 KiB with a 25-second original
-monotonic deadline. No guest TEMP/user-profile path is captured.
+host response deadline, followed by up to five seconds of local client teardown.
+Process creation itself is not interrupted by that deadline. A host timeout
+leaves guest PowerShell completion UNKNOWN; it proves no guest termination.
+No guest TEMP/user-profile path is captured.
 The existing Restricted policy stays unchanged; individual inline metadata
 commands load no `.ps1` file and invoke no compiler. No guest fixture scratch,
 source, compiler temporary files, binaries or logs are created by this route.

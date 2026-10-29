@@ -46,7 +46,10 @@ class Admission(unittest.TestCase):
                 popen.assert_not_called()
 
     def test_transport_matches_exact_committed_family_bytes(self):
-        command = DRIVER.bootstrap_command()
+        verified_source = (HERE / 'Controller.ps1').read_bytes()
+        # No later pathname read may replace bytes already verified from Git.
+        with patch.object(Path, 'read_bytes', side_effect=AssertionError('late source reread')):
+            command = DRIVER.bootstrap_command(verified_source)
         payload = re.search(r"FromBase64String\('([^']+)'\)", command)[1]
         source = gzip.decompress(base64.b64decode(payload, validate=True))
         self.assertEqual(source, (HERE / 'Controller.ps1').read_bytes())
