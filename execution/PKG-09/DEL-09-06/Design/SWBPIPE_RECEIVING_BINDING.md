@@ -1,6 +1,48 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Current fixture admission and remaining activation boundary
+
+This subsequent receiving update preserves the merged host basis below. It
+receives committed fixture evidence, not a product-profile merge or activation.
+At host `cc436e9fcf5a96e6a0d79336497817de129f1a5e`,
+[`agent-libinfo-elimination.md`](https://github.com/sgttomas/chirality/blob/cc436e9fcf5a96e6a0d79336497817de129f1a5e/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-libinfo-elimination.md)
+has SHA256 `7edb2afec07e39c55f76e7b63638c08aab3892046c5e70840d3928b8a0c71361`.
+It records the following distinct observations and dispositions:
+
+| Source | Received observation | Limit |
+|---|---|---|
+| `26c5b24e59efbb351038791fb4d7b27da0a87e3e`, executed source `ee81da5261e18d5500734120a2070bb037adcd25` | Resealed A+sys preflight: three C EPERM outcomes, Rust 14/14; no-tools A refused with `configuration_load_error`, A+sys accepted | No turn/inference/tool compatibility or EOF/crash case. Both overall case verdicts remain false because app cleanup acknowledgments were unconfirmed |
+| `68707f5d517e01d3a5bbf9f651edec72cca201ff` | Later owner-authorized removal of those two stopped-scope runtime/marker pairs after App confirmed no dependency | Original result unchanged, SHA256 `a354dad943aeeafd5e9b5f88282feda998e15fac8f4bd05ec0dff9e10650d286`; separate cleanup record SHA256 `62e210d3f15b3c0f4b4d2788a48cd87691a8ea8d7920b5bfd147967361e63a72` records no PID signals. Artifact deletion supplies no missing acknowledgment or lifecycle proof |
+| `0a70e5d42fd2a1223b0e7ce2f81c523bb58ed46e` | Synthetic-identity no-tools diagnostic under plain A also refused; no config snapshot | No allow was added; denied lookups alone establish neither cause nor necessity |
+| `a87121f993c832e4296ca839f9ec406c577acda9`, executed source `fa9416939ed648636d4ef314b89fc090ea1dd93b` | Exact reviewed A-plus-single-libinfo candidate: C three EPERM outcomes and Rust 14/14, then accepted no-tools `thread/start` with matching loaded configuration | No oMLX, model, keychain read, tools, turn or EOF/crash test. Overall verdict remains false: supplier scope stopped through deliberate anchor cleanup, app acknowledgment unconfirmed |
+
+The last candidate adds only
+`(allow mach-lookup (global-name "com.apple.system.opendirectoryd.libinfo"))`;
+normalized profile SHA256 is
+`be2fe1d54fcc5c60a00ed7d304bf2e4c4885d662d84bfe5a9c7fe6ff9c6f4d7c`.
+It is not the A+sys import and does not combine synthetic-identity settings.
+The loaded snapshot matched provider/model, private cwd and approval/sandbox
+policies. Newly observed `/dev/autofs_nowait` and `/dev/dtracehelper` reads stay
+denied under the host Agent 0 disposition; success did not require allowing them.
+
+Independent review of the exact old/new proposal found no confirmed defect.
+Host Agent 0 subsequently selected it for fixture qualification, retaining the
+directory-broker limitation and reopening review if directory binding changes.
+This is not owner risk acceptance for production. The host owns the exact
+product-profile PR, its integration, remaining native cleanup/isolation proof
+and activation decision. No App implementation prerequisite is identified.
+Canonical Design/runtime catalog objects still equal the existing receiving
+pin; no repin or catalog/schema test rerun is required.
+
+The next App receiving check is the
+[first actual desktop trace](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md#first-desktop-trace-receiving-checks),
+after the host establishes the native route. The exact proposed acceptance
+staging in App PR #14 remains unadopted; this update changes no requirement.
+
 ## Current joined receiving basis (2026-10-29)
+
+Merged host/source baseline received with App PR #14; later fixture evidence
+and its activation limits are above.
 
 App receiving basis: merged PR #11, App
 `c5b33e37832364eaa04360540ea5e31bc08a9168`. Read-only inspection of the
