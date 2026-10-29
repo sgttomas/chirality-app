@@ -25,23 +25,20 @@ and cloning/migration. Its CAEPIPE data/settings/exchange surfaces are not
 development inputs. Earlier readiness questions and guest-probe briefs do not
 authorize access, even if that guest is running or unlocked.
 
-The owner selected a **new separate Windows build VM**, provisioned by App
-Agent 0, capped at **16 GiB RAM** and run only when needed. Suspend it during
-exclusive windows announced by [dev - piping](t3-thread://v1/73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff),
-which remains the host/CAEPIPE scheduling and SWB interface contact while its
-implementation lanes finish and stop. Coordinate shared development use with
-SWBPIPE Windows Agent 0. Privately bind only the newly created identity; no
-existing-guest auto-selection or public VM identifiers. The newly created
-hardware is now privately bound after reviewed provenance/cap checks; the
-former identity remains only a protected exclusion. Fixture access stays held.
+The owner subsequently corrected the route: they do not intend to run a
+second local Windows instance. The separate-local-VM route is superseded and
+on hold, including further image acquisition, attachment, setup, boot and
+provisioning. Preserve its existing dormant hardware and private binding;
+do not delete, access or change them. No media availability or prior CLEAR
+revives that earlier authorization. Earlier hardware/acquisition records below
+are historical and do not create a live provisioning dependency.
 
-Official Microsoft Windows-image acquisition/setup is authorized, with file,
-source, byte size and SHA-256 recorded before installation. The old 6 GiB
-tool/package estimate did not include an OS image. Other acquisitions retain
-their exact authorization and VS metadata-integrity prerequisites. Windows
-licence, purchases, activation and account sign-in remain owner acts. Do not
-create/clone the old VM or duplicate the already settled guest-route question.
-Repository-only preparation and separately attributed hosted tests may continue.
+Current Windows development continues through hosted native-Windows CI and
+repository-local work. If a concrete future requirement cannot be met there,
+Agent 0 must bring the exact unmet capability and cloud options to the owner
+before any acquisition or spend. Cloud provisioning is not authorized. Product,
+supplier and native qualification requirements remain unchanged, as do the VS
+metadata-integrity hold and the CAEPIPE exclusion. No new work front is opened.
 
 Earlier identifier-bearing evidence projections are now redacted, with
 original digests and privately retained originals noted. Outcomes and original
@@ -54,8 +51,8 @@ still contain identifiers from before the private-identity direction.
   integrated returns and escalation of reserved choices.
 - One WORKING_ITEMS / Type 1 owner per bounded tranche: implementation,
   ordinary repairs, checks and affected-deliverable reconciliation. The
-  provisioning owner is the sole private-binding/guest writer; a disjoint
-  hosted-fixture owner has no VM authority. Agent 0 integrates their returns.
+  provisioning route is held, with no active guest writer. Hosted-fixture
+  owners have no VM authority. Agent 0 integrates their returns.
 - HELPS_HUMANS / Type 1: bounded design contributions when an actual question
   warrants them; no compulsory additional management layer.
 - TASK / Type 2: bounded implementation, investigation or independent scrutiny;
@@ -337,7 +334,8 @@ binding write was performed by that integration check.
 
 The public owning record/receipt retain dormant sharing child preferences
 separately from disabled parent/global gates; runtime isolation is untested.
-Only normal official media availability can advance attachment/setup. The
+That earlier media-dependent next step is superseded by the current owner hold;
+media availability cannot advance attachment/setup. The
 owner cannot obtain it manually at present; do not pressure them, retry the
 rejected source API, or reuse any CAEPIPE state. Mac Agent 0's latest actual
 CLEAR ended the exclusive window, but no powered use is needed or scheduled

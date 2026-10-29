@@ -1,4 +1,4 @@
-# Dedicated Windows build guest — hardware ready, media pending
+# Dedicated Windows build guest — dormant, route on hold
 
 Recorded 2026-10-29 against `de122cc4a768ea8ae5ebb9bbba11a169aad9d94e`.
 The owner authorized a separate Windows build guest for Chirality App and
@@ -6,6 +6,23 @@ SWBPIPE Windows. This record owns this bounded preparation tranche; it does
 not establish Windows product support, supplier qualification or acceptance.
 Machine-readable evidence is in `WINDOWS_BUILD_GUEST_RECEIPT.json` beside this
 file. Public records identify the new target only as `chirality-windows-build`.
+
+## Current owner route — local VM work on hold
+
+The owner's later correction supersedes the separate-local-VM route: they do
+not intend to run a second local Windows instance. No further image acquisition,
+attachment, setup, boot, provisioning or guest operation is authorized under
+that earlier route. Preserve the existing dormant hardware and private binding
+without deleting or changing them. The CAEPIPE guest remains permanently
+excluded. No guest was contacted to record this correction.
+
+Continue the current work through separately attributed hosted Windows CI;
+local installation media and tool provisioning are not prerequisites for that
+work. If a future concrete requirement cannot be met there, first present the
+exact missing capability and cloud options to the owner. This authorizes no
+cloud acquisition, provisioning or spend and changes no product/native
+qualification requirement. The VS integrity hold remains. Earlier preparation,
+measurements and acquisition proposals below retain their historical scope.
 
 ## Actual result
 
@@ -134,14 +151,14 @@ with normalized exclusion checks before each dispatch.
 
 Mac Agent0's actual **CLEAR** was relayed after the exclusive memory-witness
 window ended; elapsed time was not used as clearance. This tranche performed
-no power operations. The new guest stays off while media is unavailable. A
-later on-demand powered-use window remains capped at 16 GiB and must respect
-new exclusive announcements; only this new target may be suspended/stopped.
+no power operations. The preparation return left the guest off and proposed
+later use capped at 16 GiB subject to exclusive-window scheduling. That
+proposed use is now held by the owner's correction above.
 
-Resume acquisition/attachment only when the normal authorized official media
-becomes available. Establish its exact file/source/length, compute SHA-256,
-compare the publisher expectation exactly, and stop on mismatch **before
-attachment/installation**. No further route/image approval is requested here.
+Historical next step, now superseded by the current owner hold above:
+acquisition/attachment had been conditional on official media becoming available,
+with exact file/source/length and a matching publisher SHA-256 before use.
+Media availability alone no longer authorizes this route to resume.
 Licence/EULA acceptance, edition/product-key decisions, purchases, activation
 and account sign-in remain owner acts. No Express/unattended acceptance,
 account import, OOBE or execution-policy bypass is authorized.
