@@ -51,8 +51,10 @@ still contain identifiers from before the private-identity direction.
 
 - HELP_HUMAN / Agent 0: purpose, scope, cross-project alignment, inspection of
   integrated returns and escalation of reserved choices.
-- One WORKING_ITEMS / Type 1 owner: feasibility, implementation sequence,
-  integration, ordinary repairs, checks and affected-deliverable reconciliation.
+- One WORKING_ITEMS / Type 1 owner per bounded tranche: implementation,
+  ordinary repairs, checks and affected-deliverable reconciliation. The
+  provisioning owner is the sole private-binding/guest writer; a disjoint
+  hosted-fixture owner has no VM authority. Agent 0 integrates their returns.
 - HELPS_HUMANS / Type 1: bounded design contributions when an actual question
   warrants them; no compulsory additional management layer.
 - TASK / Type 2: bounded implementation, investigation or independent scrutiny;
@@ -289,6 +291,24 @@ with `core.autocrlf=true` changed ten selected committed LF inputs without the
 policy; after it, all eleven protected inputs (including intentional CRLF)
 matched, while unprotected text still converted. This host Git regression and
 passing schema/hash checks are not native Windows execution evidence.
+
+## Supplemental hosted fixture publication
+
+The hosted process-fixture tranche returned
+`0b7afaede2a6b1a0cbf76498307e24ad4832fdd0` and is integrated with ancestry
+preserved. Agent 0 inspected the independent Sol/medium/default review of
+`02a32983` and the small compatibility repairs: checkout-scoped
+`core.autocrlf=false` for every bound input and the legacy compiler's supported
+bounded `/help` version probe. The five integrated source inputs bind exactly
+to HEAD blobs. Eleven hosted and eight retained guest-driver host regressions
+passed in the tranche; they are not native results.
+
+The new workflow is supplemental, disposable GitHub-hosted native-x64 Windows
+only, with preinstalled compiler/Python and no package acquisition or Parallels
+operation. Existing required App/Mac checks and policy are unaffected. Native
+P01/P02 behavior and observed cleanup remain pending until an actual run and
+source-bound artifact are inspected. The guest bootstrap/namespace and
+production App/SQLite/durability obligations remain separate.
 
 ## Publishing route
 
