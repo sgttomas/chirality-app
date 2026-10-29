@@ -4,15 +4,28 @@ Status: revised design proposal from App HELP_HUMAN, 2026-10-28, incorporating
 SWBPIPE HELP_HUMAN's native-interface review at Chirality `1560bbf7f7`.
 The coordinators agree on a small host-owned adapter, a minimal functional
 panel and dynamic-tool dispatch through the existing webview-owned session.
-Implementation remains with the respective owners; SWBPIPE's demo pause remains
-in force. No live check was run here.
+Implementation remains with the respective owners. After the closure-only
+resume, the owner explicitly authorized the new SWBPIPE coordination manager to
+build shared integration needs with the App manager. Host adoption and
+implementation are authorized. The source-qualified catalog adoption and offline
+App checks are recorded in [the receiving account](SWBPIPE_RECEIVING_BINDING.md).
+This proposal itself is not evidence of live operation.
 
 Current authorization: the owner opened Type 1 integration and desktop
-publication fronts. During the demo pause, App-side preparation is limited to
-light source/document work, offline fixtures and small checks. No heavy builds
-or tests; SWBPIPE host implementation waits for the owner's resume. SWBPIPE owns
-the eventual catalog source of truth. The integration front supplies one
-adoptable catalog proposal in the stateless MCP 2026-07-28 shape with explicit
+publication fronts. Their initial App-side preparation used light source/document
+work, offline fixtures and small checks during the demo pause. The later owner
+steer permits the joint integration's host implementation. Coordinate interfaces
+and heavy-build load through
+[SWBPIPE's Type 1 counterpart](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028),
+which routes reserved choices and merges to its Agent 0. RT-E1/criterion 17
+were owner-approved and merged through #1732 at Chirality
+`541446a9f16e4e020a5703cda76e7fb94fbec819`, verified locally by App HELP_HUMAN.
+The owner approved stock Codex binary downloads from official releases and
+selected the existing oMLX server for the local witness. Hosted-model use is
+also allowed, with any sign-in/credential supplied by the owner. No other
+downloads are authorized. SWBPIPE owns
+the catalog source of truth. The App contribution retains its frozen origin
+catalog proposal in the stateless MCP 2026-07-28 shape with explicit
 handles, projected through dynamic tools; full MCP transport is separate.
 Decisions API work is entirely excluded by the owner, including consideration
 as a later option.
@@ -34,8 +47,8 @@ The owner then directed in the App session:
 > better examples now elsewhere and just from your own ideas.
 
 These statements govern this proposal. DEC-041 and the older App minimal-loop
-design explain history; neither dictates the new architecture. SWBPIPE's draft
-PR #1732 carries RT-E1 and exit criterion 17 for owner confirmation. The intended
+design explain history; neither dictates the new architecture. SWBPIPE's merged
+PR #1732 carries the owner-approved RT-E1 and exit criterion 17. The intended
 experience is a request in the desktop, useful model operations, solve, and an
 explanation grounded in the actual results. Workflow governance is not a
 prerequisite to the first functional slice.
@@ -183,8 +196,9 @@ That is a reason to test the new pair early, not a claim about today's server.
    follow-up answer grounded in the result. Check malformed arguments and
    interruption with controlled protocol tests, and exercise the built-in tool
    isolation described above. Do not infer success from a
-   greeting, tool listing or captured model request. New downloads and
-   credentials still require the owner's authorization. No supplier upgrade is
+   greeting, tool listing or captured model request. Only the approved official
+   stock Codex binary downloads are permitted; other downloads and credentials
+   still require the owner. No supplier upgrade is
    selected merely by reading current docs.
 2. **Connect the live desktop.** Bind the catalog to the existing model session,
    add the minimal functional panel and route proposals through the existing
@@ -201,13 +215,15 @@ That is a reason to test the new pair early, not a claim about today's server.
    is separate. Then test corrections and representative use cases, not only
    one scripted happy path. Package and native launch evidence remain release work.
 
-Before a live run, identify the exact Codex binary, local server and model and
-check available authorized artifacts. Any required download needs the owner's
-authorization naming file, source and size; this proposal grants none. If the
-local model cannot operate the full reference system effectively, return that
-evidence and a hosted-provider proposal to the owner. Do not silently substitute
-a hosted provider for the retained local-model replacement witness. The owner's
-focused UI discussion also precedes substantive interaction/visual design.
+Before a live run, identify the exact Codex binary and the existing oMLX
+server/model, and check available authorized artifacts. Official stock Codex
+binary downloads are approved; record the exact file, source, size and digest.
+No other download is approved. Coordinate acquisition and model load through
+the SWBPIPE witness owner. Hosted-model use is also allowed, with any credential
+or sign-in supplied by the owner; keep hosted evidence distinct from the local
+witness rather than silently substituting it. Report actual model capability
+against the full reference system. The owner's focused UI discussion still
+precedes substantive interaction/visual design.
 
 SWBPIPE owns adapter, panel, catalog, model operations, numerical checks and its
 release-target reconciliation. App HELP_HUMAN owns the App-side definition and

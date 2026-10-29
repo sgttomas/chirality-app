@@ -1,14 +1,21 @@
 # Catalog proposal and offline witness preparation
 
-Standing: App-side proposal, 2026-10-28; no product adoption or live witness.
+Standing: original App-side preparation, 2026-10-28; no live witness in this file.
+Later SWBPIPE adoption and v2 checks are recorded in
+[the receiving account](SWBPIPE_RECEIVING_BINDING.md). The observations and open
+inputs below retain their original preparation basis, not current host status.
 SWBPIPE_CATALOG_PROPOSAL.json is the single source offered for SWBPIPE adoption.
 The Python specimen reads that file, not another catalog. Copying the JSON
 requires no App runtime or sibling checkout. Expand catalog-local schema
 references before publishing standalone MCP-style descriptors or dynamic tools.
 
-SWBPIPE_CODEX_INTEGRATION.md retains the exact parent proposal bytes, SHA256
-7d6dd0a0c3b11bb8ec14394ae890de0cf3c6a239aed9b55d01ef03c38b9117ab.
-Current execution steering was read from the parent, SHA256
+The assignment's integration-proposal input had SHA256
+7d6dd0a0c3b11bb8ec14394ae890de0cf3c6a239aed9b55d01ef03c38b9117ab;
+its exact copy is preserved in contribution commit
+e1e3f4615b6f766b313c3492506f68254afd8a06 at SWBPIPE_CODEX_INTEGRATION.md's
+repository path. The current proposal may carry later owner steering; those
+edits do not rebind the original witness input. Execution steering was read
+from the parent at dispatch, SHA256
 0a33bbba6a898ed22a801db48267fbb85b2a0b2638f298a01f2f1db401b06e90.
 Neither copy nor consultation updates bundled product instructions.
 

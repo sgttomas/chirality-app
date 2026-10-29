@@ -1,5 +1,50 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Publication verification (2026-10-29)
+
+The SWBPIPE Type 1 manager reconfirmed that its canonical catalog remains
+byte-identical to c48efef77bbb799f3ebe902eb213a88330a5994e, SHA256
+fe1439998d709e5f3e9641a4d39567000ced56c498fab5b6b8f2028df7c9f669.
+There is no replacement pin. The catalog is SWBPIPE-owned; this App PR publishes
+its frozen origin, receiving record and offline specimen, not a second catalog.
+
+The counterpart reported #1736 merged at 31084e1f79. This supersedes the earlier
+local-only/review-pending account retained below. Subsequent host/witness work
+is separate evidence: the manager is currently investigating pinned supplier
+stdin EOF and hard app death in fixtures, with launcher activation gated and
+SMAppService an unselected fallback. This App publication neither duplicates
+that investigation nor establishes actual process cleanup or live capabilities.
+
+Publication rerun in a fresh scratch Codex home: 10 origin tests passed in
+0.011 s; 6 exact-source receiving tests passed in 0.001 s. SHA256 checks passed
+for both catalogs. The installed jsonschema Draft202012Validator.check_schema
+accepted all 12 expanded input/output schemas in each catalog (24 total).
+Whitespace checks passed. No dependency installation, supplier/model/GUI run,
+heavy build or broad suite was performed.
+
+To reproduce the optional receiving input, export it from any explicitly chosen
+Chirality checkout containing the pinned commit, without changing that checkout:
+
+    scratch_codex_home=$(mktemp -d /tmp/swbpipe-publication.XXXXXX)
+    git -C "<selected Chirality checkout>" show c48efef77bbb799f3ebe902eb213a88330a5994e:projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-capability-catalog.json > "$scratch_codex_home/receiving-catalog.json"
+    CODEX_HOME="$scratch_codex_home" PYTHONDONTWRITEBYTECODE=1 python3 app/supplier_checks/swbpipe_receiving_test.py --catalog "$scratch_codex_home/receiving-catalog.json"
+
+The receiving test verifies the exact SHA256 before executing. Its input is an
+explicit export, not a mutable sibling lookup or default build/test dependency.
+The origin test requires only this App checkout:
+
+    CODEX_HOME="$scratch_codex_home" PYTHONDONTWRITEBYTECODE=1 python3 app/supplier_checks/swbpipe_projection_test.py
+
+The specimen parses JSON values; it is not a lexical numeric-fidelity guard.
+It cannot recover model number tokens normalized upstream, nor establish full
+supplier tool isolation. The pinned protocol exposes arbitrary JSON arguments
+without a raw model-argument carrier. Production numeric admission, native
+operation-string validation, record custody and permissions remain host work.
+
+DEL-09-06/09-07 ScopeOfWork and deliverable.yaml conditions remain unchanged.
+This contribution supplies no standalone App external-controller implementation,
+platform qualification, acceptance, release or main-policy bypass.
+
 ## Current receiving revision: v2
 
 This section supersedes the v1 equality/admission account below; that account
