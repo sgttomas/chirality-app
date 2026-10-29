@@ -37,16 +37,22 @@ direction; a component pass does not silently satisfy or replace them.
 - **Desktop release delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:7d4423ab96eb63909c64ead28201edafa921eec9683ce62de4849edb4ab0466a>.
   Own the standalone create/trial/review/register/reuse/refine experience,
   interruption/restart and access-mode evidence through an identified candidate,
-  then distribution readiness. Next: validate cached supplier/build inputs,
-  coordinate the offline build window, identify a current unsigned candidate,
-  and resolve the first demonstrated startup/native gap. Attested resource
+  then distribution readiness. One coordinated offline unsigned build is now
+  retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
+  identity support and input/bundle correspondence, not native qualification.
+  Next: the prepared two-launch setup/save/relaunch witness awaits separate
+  owner authorization and GUI presence. While held, prepare the exact current
+  supplier-terms inquiry/action without sending it externally. Attested resource
   placement does not supply installed custody; production successor startup
   still requires its actual issuer/evidence.
 - **App-side joined delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:e263974c69d95c07f824f21aba5371b4bdd0a58c8653fb3a8457cecd1441adf4>.
   Own App receiving interfaces, source-bound host evidence and reconciliation
-  with DEL-09-06/09-07. Next: inspect merged SWBPIPE host artifacts, classify
-  current evidence and repair stale current-status clauses or a demonstrated
-  interface gap. Preserve historical preparation and frozen catalog origin;
+  with DEL-09-06/09-07. PR #14's source applicability repair is merged; PR #16
+  prepares current profile-admission and first-desktop-trace receiving checks.
+  Next: receive host product-profile integration, activation/cleanup proof and
+  actual desktop evidence. No missing App implementation has been identified
+  for the host fixture. The three proposed acceptance-staging changes remain
+  owner decisions. Preserve historical preparation and frozen catalog origin;
   repin only when current canonical bytes or meaning require it.
 - **SWBPIPE implementation counterpart:**
   [SWBPIPE Type 1](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028).
