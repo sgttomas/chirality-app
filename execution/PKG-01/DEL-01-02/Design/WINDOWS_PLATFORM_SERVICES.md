@@ -353,9 +353,33 @@ produce unknown/refusal, never success; fixed test deadlines are not support
 guarantees. Helpers self-report through private fixture pipes/files, not process
 name searches. The harness retains original process HANDLEs for cleanup proof.
 
+P-01 must expose early execution even if a later marker is delayed. Use an
+ordered private fixture trace: record successful leader assignment and full
+generation binding before the harness calls resume; the helper's first fixture
+action reports entry, then reports/acknowledges the child-creation attempt
+**before** calling `CreateProcessW`. Capture the creation result and the child's
+first observable nonce-bearing effect separately. Transfer a non-inheritable
+duplicate of the actual returned child process HANDLE to the harness, with only
+the query/wait/cleanup rights needed; do not reopen by PID. Keep the child alive
+until the harness checks `IsProcessInJob(childHandle, originalJob)` and captures
+the result, or report membership unavailable. A final helper marker cannot
+substitute for those events or prove the earlier creation order.
+
+Include a deliberately broken **running-before-assignment negative control**:
+allow the helper to create its child and require the child's first effect and
+retained HANDLE before assigning the leader; delay the helper's final marker
+until after assignment/binding. The checker must reject this run despite that
+late marker, establish that the preexisting child is outside the original Job,
+and clean it up through its retained HANDLE with exit observation. Failure to
+observe the negative control's ordering/membership is an inconclusive probe,
+never a passing launch contract. The positive runs require assignment/bind
+before helper entry/creation attempt, every created descendant in the original
+Job, and explicit ordering/observation of its first effect. The test harness's
+extra control handles are fixture-only and confer no production Job authority.
+
 | ID | Setup and falsifiable operation | Pass / required refusal |
 |---|---|---|
-| P-01 assignment | Helper's first instruction creates a child and emits a marker. Exercise suspended assign/resume and creation-time Job list; inject Job setup/assignment/resume failures and incompatible outer job. | No helper marker before membership/bind; failure child never resumed; original exit observed or cleanup explicitly unknown. No running-then-assign or breakaway fallback. Record parent-crash window separately. |
+| P-01 assignment | Use the ordered entry/creation-attempt/child-effect trace and retained descendant HANDLE above. Exercise suspended assign/resume and creation-time Job list; inject Job setup/assignment/resume failures and incompatible outer job; run the deliberate early-escape negative control. | Positive assignment/bind precedes helper execution/creation attempt; actual descendant membership established. Negative control rejected even with delayed final marker. Failure child never resumed; original exit observed or cleanup explicitly unknown. No running-then-assign or breakaway production fallback. Record parent-crash window separately. |
 | P-02 independent observations | Helper A closes stdout then waits; B exits while descendant holds stdout; C exits with code 259. | A: EOF but leader running; B: leader exited independent of EOF, descendant live; C: signaled handle plus 259 means exited. None implies empty Job or observed supplier result. |
 | P-03 Stop/generation | Helper descendant survives stdin EOF; Stop after recorded cause/grace. Replace current Host slot with g+1 while g Stop waits; attempt second bind, serialized PID input and stale-generation Stop. | Only g's Job terminated; g+1 untouched; no second bind/cold authority; termination success alone not confirmed exit. Observe original leader and Job zero before confirmed retirement. |
 | P-04 custody/unknown | Deny/inject query error; force PID-list buffer overflow/churn; delay completion messages; cancel cleanup; attempt inherited/duplicate Job handle and descendant breakaway. | Unknown never zero, no released authority reused; no Job handle in child; no breakaway. Confirm retirement only with authoritative zero/leader proof; fail safely on nesting restriction. |
@@ -442,3 +466,16 @@ the App Cargo lock. ScopeOfWork/dependency reconciliation: hosting, recovery,
 adapter and their consumers keep existing requirements and conditions; these
 proposals supply no completion or qualification witness. No production tests
 were added or rerun for this documentation-only tranche.
+
+Independent scrutiny reviewed saved revision
+`13c1206311aa8d527ec57e96e53858b79b251b9c` with
+`codex-hub/gpt-6.1-terra`, `reasoningEffort=xhigh`, `serviceTier=priority`.
+It found no critical/high issue and one medium: the former P-01 final-marker
+condition could miss a child created before assignment but reported afterward.
+The WORKING_ITEMS owner repaired that specification with ordered pre-creation
+instrumentation, actual descendant HANDLE/Job membership and the deliberately
+broken negative control above. This narrow repair was locally inspected and
+representation-checked, not independently re-reviewed or executed on Windows.
+The reviewer independently traced process/SQLite/App-peer claims and reproduced
+the path census; no build, Windows, supplier or live probe was run. Review and
+repair establish no owner acceptance or production adoption.
