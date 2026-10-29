@@ -1,8 +1,9 @@
 # Chirality App repository instructions
 
-This repository owns App v4. Development is on hold at the owner's direction;
-only the currently authorized migration and its verification may proceed. No
-feature work, qualification advancement or release is authorized by migration.
+This repository owns App v4. Development resumed by owner direction on
+2026-10-28. Work follows the owner's current steer and the applicable product
+commitments. Commitment changes, acceptance and releases remain owner decisions;
+migration alone does not authorize them.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Design/`
@@ -55,7 +56,7 @@ This App repository owns its work, commitments and Git lifecycle. Chirality's
 Root work locality, backlog, repository-specific duties and standing Git grant
 do not transfer here. Shared-library consultation does not authorize changing
 Chirality, SWBPIPE or another consumer, and adopting a shared method does not
-lift the App development hold.
+expand the authorized App scope.
 
 ## Product assets and local tools
 
