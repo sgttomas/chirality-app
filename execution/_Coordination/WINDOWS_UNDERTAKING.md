@@ -311,6 +311,18 @@ P01/P02 behavior and observed cleanup remain pending until an actual run and
 source-bound artifact are inspected. The guest bootstrap/namespace and
 production App/SQLite/durability obligations remain separate.
 
+Two hosted native attempts compiled and observed both P01 controls and safety
+cleanup, then failed P02-A with a live leader but no EOF observation. The
+additional stderr-alias close was not a solution; the second trace showed
+equal standard-handle values. Neither an extra writer nor a PeekNamedPipe
+defect is established. Research led to bounded direct-read diagnostic source
+`f9f042a8f455a51902a78d3ce8d6dbba157bf4fd`, now integrated byte for byte.
+Agent 0 inspected the Sol/medium/default independent review and exact-prefix
+verifier repair. A uses one synchronous read on the same stdout HANDLE,
+post-close metadata, original eight-second/live-leader checks, and joined-reader
+cleanup; EOF after cleanup cannot become a pass. Seventeen host tests passed.
+The repaired candidate's native compilation/execution remains pending.
+
 ## New build guest hardware return
 
 The environment owner returned `a7f46d3b818bc22df2e58b149ae1676c14dcf273`:
