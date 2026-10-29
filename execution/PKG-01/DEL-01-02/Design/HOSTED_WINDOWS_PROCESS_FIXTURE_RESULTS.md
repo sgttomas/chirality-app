@@ -416,5 +416,36 @@ failed SetStdHandle/GetStdHandle proof, unknown setup/type, impossible source
 ordering, stale/mismatched metadata, nonproof/late/unjoined reads, dead leader
 and rewritten/unknown cleanup. They do not generate a native success trace.
 The deliverables check reports 41 deliverables, no errors and the same six
-cycle groups; `git diff --check` passes. Independent source review is the next
-local gate before returning a publication candidate to parent Agent 0.
+cycle groups; `git diff --check` passes. Independent source review and final placement checks are recorded below.
+
+
+### Independent controlled-stdout source review
+
+[Independent Type2 source review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A7fdf66b7-ae31-457d-bed4-1dafe1c8294f%3Adelegate-task%3Aef2a79dc-893e-445d-b194-c4ec0acbe7f0)
+examined exact saved commit `44f209a34ca42f00401597496483090acc9b596e`
+with required ancestor `59a33c990f28d3a1847446574cff8353b4e56ea5`, using
+`codex-hub/gpt-6.1-sol`, `reasoningEffort=medium`, `serviceTier=default`.
+One Type2 ran and did not delegate. The implementation owner inspected its
+actual completed return through the host completion mechanism.
+
+The reviewer identified no blocking findings or ordinary repairs. It judged
+that the actual source ties the transferred reader to current Win32 stdout,
+retains the original live-EOF counterexample and expressly changes the stimulus
+rather than weakening the outcome. It found no new ownership/cleanup or
+Framework 4.8 source/ABI compatibility defect by inspection. Native compilation
+remains unverified. The reviewer independently ran the 18 hosted tests, eight
+held-driver refusal tests, deliverables check (41/no errors/six cycle groups)
+and whitespace check, with fresh scratch CODEX_HOME and no repository edits.
+
+The final review-record commit changes only this owning result document;
+the four reviewed implementation/test/README files are byte-identical to the
+reviewed candidate. Current C# is 36,844 bytes, SHA-256
+`161b054e890e7f233fbf5194a826ba1d42538f344baec478bf2e446b9f27d43c`;
+verifier is 12,057 bytes, SHA-256
+`808e99df691a286c1f662d0d726330e43e2b6fb2739936ff37325befd983ca56`.
+These are new candidate identities, not edits to historical expected hashes.
+All three retained native channel pairs still match their result.json hashes,
+all three old failed traces remain refused by the new verifier, and their
+artifact directory has zero diff from the required ancestor. No fake native
+success trace was generated. Native compile/CI/execution remain NOT RUN;
+parent Agent 0 owns integration/publication and actual outcome recording.
