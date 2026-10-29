@@ -1,5 +1,13 @@
 # Stock Codex hosting boundary
 
+Windows development proposal, source-bound to App `79315c26`: the
+[platform-service contract](../../DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md)
+separates ready EOF, observed original leader exit, explicit Stop, normal quit
+and hard App death. Job assignment/retirement and kill-on-close are probe and
+policy questions, not adopted behavior or supplier qualification. Existing
+H5/H10/H11 and lifecycle meanings remain the comparison basis.
+
+
 **SUP1 current supplier basis (proposed controlled adoption):** owner-authorized
 development/definition pin 0.160.0; §7.0/generated/0.160.0 govern maintained
 identity. Historical 0.158.0 evidence below remains dated; qualification absent.

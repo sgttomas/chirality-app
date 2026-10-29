@@ -247,6 +247,65 @@ frontend/wasm build; never bypass it. SWBPIPE owns its fixes and build evidence.
 
 ## Ordered execution plan, after exact owner authorization
 
+### Checkout and path-length amendment (platform-contract tranche)
+
+Source measured: App `79315c26b104b534a89ed8e9b1e716f3da3440d0`, using
+`git ls-tree -r --name-only -z <revision>` and UTF-16 code-unit lengths, not
+the host's generated/untracked tree. There are **2,464 tracked leaves**,
+maximum relative path **130** units and maximum component **62**; no
+case-fold collisions, Windows reserved basenames, forbidden component
+characters or trailing dot/space were found in this lexical census. It is not
+a Windows checkout witness. Counts, longest paths and source digests are in
+[`windows-platform-evidence.json`](../../DEL-01-02/Design/windows-platform-evidence.json).
+
+Recommend a **full App checkout at `C:\a`**: longest tracked absolute name
+is **135** UTF-16 units (139 at `C:\s\app`), below ordinary MAX_PATH.
+Keep separate short task-scoped App build/cache/home roots, for example
+`C:\t\a`, `C:\c\a`, `C:\h\a`; SWB chooses its own separate roots.
+These are proposed guest paths; none was created. Guest-native NTFS does not
+itself solve path limits. npm extraction, Cargo registry/OUT_DIR, linker/PDB,
+Tauri staging and test-created paths are **not** in this census. Measure and
+exercise them after authorized provisioning; a short target directory does
+not shorten registry source or test paths.
+
+Git's `core.longpaths` affects Git for Windows, not every tool/API. Prefer
+short paths first. If needed for an authorized checkout, use per-command
+`git -c core.longpaths=true ...`, or recorded repository-local
+`git config --local core.longpaths true` before materialization
+(`clone --no-checkout` avoids an initial checkout failure). A per-command
+setting does not persist. No global/system Git configuration or Windows
+registry/group-policy changes. Extended-length UTF-16 APIs and application
+manifests are separate: ordinary-API long-path opt-in requires both registry
+and application support. Neither Git's switch nor NTFS makes Node, Python,
+MSVC, SQLite, WebView/Tauri or shell tools support every path. Test each
+actual command/API and preserve its refusals.
+
+**No App sparse selection is needed or selected at this pin.** SWB's
+historical monorepo MAX_PATH failure/product sparse CI is peer evidence,
+not an App checkout failure. A later sparse proposal must preserve all
+`app/` resources/schemas/fixtures/tests/scripts/icons/locks, `execution/`
+Design includes/prototypes/reference evidence, `reference/`, `docs/`,
+`tools/`, `workflows/`, `loop/`, root instructions/manifests and CI inputs.
+Validate actual `include_str!`/`include_bytes!`, schema sync manifests,
+packaging inputs and fixture source checks before excluding anything.
+For example `app/src-tauri/tests/record_semantics.rs` consumes execution
+evidence. Packaged role/workflow bytes keep their source identity. Full
+checkout avoids an unproved exclusion list; foundation/history stay unchanged.
+Never drop evidence or bypass a guard to claim portability.
+
+After authorization: record exact revision and dirty/sparse state, materialize
+at short roots, verify tracked names against the pinned tree, run the normal
+offline build/schema/resource entry points, and exercise invented names at
+240/259/260/300 UTF-16 units plus non-ASCII and long dependency/output names.
+Report each tool/API's actual success/refusal. Git checkout success is not a
+broader App path-support promise. Windows Python-dependent checks remain
+deferred as recorded above. Process/file/SQLite probe gates are owned by
+[`WINDOWS_PLATFORM_SERVICES.md`](../../DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md).
+VS integrity and acquisition authorization remain separate holds; Agent 0's
+independent metadata follow-up does not authorize a retry or provisioning.
+
+### Provisioning sequence
+
 1. Resolve the VS metadata mismatch; refresh fixed catalog/channel identities,
    component closure, engine dependencies and package budget. Confirm the
    fixed bootstrapper's ProductVersion and Microsoft Authenticode signature.

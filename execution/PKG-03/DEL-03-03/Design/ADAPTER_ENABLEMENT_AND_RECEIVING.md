@@ -1,4 +1,11 @@
 # Adapter enablement and receiving
+
+Current source investigation for the Windows undertaking:
+[`WINDOWS_APP_SWB_TRACE.md`](WINDOWS_APP_SWB_TRACE.md), App `79315c26`,
+distinguishes production native-selected supplied documents, test-compiled
+dispatch/proposal seams and SWB's local services. No working external join or
+new transport is established; original interface commitments remain unchanged.
+
 - Contribution: DEL-03-03/ADAPTER-v0.7. It supersedes ADAPTER-v0.6 (last changed at `fffae12915` and unchanged at `83a3989850`, file sha256 7cad04c873c0f1154a7a8ea8427772497a863f57167d420c485ea00373acca0c), which superseded ADAPTER-v0.5 (last changed at `c896a99d90` and unchanged at `86cafc0e1c`, file sha256 0db1d3934926025d005db671d04809061a7622d89e90ee79f793f75e710c7202), which superseded ADAPTER-v0.4 (last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, file sha256 6e13ab117271b12512f64aab82e99839d1884abb4a43481f7382b67faf253043), which superseded ADAPTER-v0.3 (last changed at `c6f81a4f2` and unchanged at `94aa9181b`, file sha256 8ef2126df2b9afff0a70b36e5b4eed8492eaae0baf6563ce422d3b9d05170f5a), which superseded ADAPTER-v0.2 (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc, 1,015 lines, committed at `cc58211c5`), which superseded ADAPTER-v0.1 (sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074, 944 lines, `e20a3ae8d`).
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Retired run records (2026-10-17): the run records this file cites under `_Coordination/AgentRuns/` (including short forms such as `WAVE_B/…`, `closeout/…` or `F/…`) were removed from the working tree in commit 11718e61a2. They are recoverable at tag `archive/pre-efficiency-cleanup-2026-10-09`, under `projects/chirality-app-v4/execution/_Coordination/AgentRuns/`. The citations are unchanged
