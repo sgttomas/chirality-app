@@ -134,5 +134,27 @@
     "codex-npm": "d61a592473442230ebfa5cc32976967bd023c6ed1243871c38cedcbed26f0733",
     "codex-x64": "4f0029035cbe3fbbd9887820643665f1f519a02b022389c4713a073b2b5ab7c0",
     "codex-arm64": "85d50029f41eb8294d4dc74e9ab16c53bc2b8ff8568e13aa6b546b7f856949e9"
+  },
+  "proposed_guest_space_envelopes_gib": {
+    "vs_layout": 4,
+    "vs_installed_and_machine_cache": 15,
+    "other_tool_archives": 1,
+    "other_tools_installed": 2,
+    "separate_compressed_project_caches": 3,
+    "extracted_registry_sources_and_npm_trees": 4,
+    "two_source_checkouts_and_git_objects": 5,
+    "codex_extracted": 1,
+    "app_dev_test_targets": 20,
+    "swb_separate_root_outputs": 20,
+    "fixtures_homes_recovery_logs": 3
+  },
+  "guest_free_space_threshold": {
+    "units": "bytes",
+    "rounded_peak_envelope": 85899345920,
+    "os_user_reserve": 21474836480,
+    "required_initial_free": 107374182400,
+    "observed_free": 216054390784,
+    "filesystem": "NTFS",
+    "standing": "Estimate only; remeasure before each gate; revise before exceeding any envelope"
   }
 }

@@ -235,3 +235,24 @@ adoption is established. Historical `HANDOFF_SWBPIPE_DOMAINS.md` remains
 source-qualified input; PEC remains retired. The App manager is the sole
 common provisioning writer only after inventory and exact authorization;
 SWBPIPE owns its separate checkout, implementation and evidence.
+
+## Independent scrutiny and repair
+
+Independent Type 2 review examined actual revision
+`61e12b8e92445903e5fb3edc90b9098d121fb043` using
+`codex-hub / gpt-6.1-terra / xhigh / priority`, separately from the author;
+no model-family diversity is claimed. The host's delegated review return is
+the review route, not a new acceptance act. The reviewer reproduced all 11
+lockfile hashes, 533/354 deduplicated package counts and reported byte totals,
+and found the process/SQLite/namespace proposals retained refusal/unknown
+boundaries and the VS mismatch hold.
+
+Two findings were repaired by the integration owner: P2 incomplete installed
+space became a componentized 78 GiB simultaneous estimate, rounded to an
+80 GiB envelope with a 100 GiB initial free-space threshold and mandatory
+remeasurement/stop conditions; P3 missing Python treatment became an explicit
+deferral of Python-dependent Windows checks, with interpreter/command-name
+verification and separately authorized acquisition required before reliance.
+The repair changes planning text and recorded budgets only; the manager checks
+the scoped diff and arithmetic. It is not a new independent re-review or a
+Windows execution result. No persistence/permissions/destructive code changed.

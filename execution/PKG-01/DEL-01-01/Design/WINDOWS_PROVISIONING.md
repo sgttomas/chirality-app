@@ -169,6 +169,38 @@ This is a concrete plan for owner review, **not a ready request to execute
 unverified VS acquisition**. Scope excludes browser downloads,
 Tauri bundling/signing/installers and cargo-install CLI expansion.
 
+Peak guest-space planning must include simultaneous inputs and outputs, not
+just installed programs. The following **estimates are operating envelopes**,
+not vendor minimums or measured Windows footprints. The vendor catalog's
+8,428,814,829-byte installSizes sum remains unverified; Microsoft's generic
+2.3–60 GB range is the only consulted system-wide published installed range.
+
+| Simultaneously retained component | Proposed space envelope |
+|---|---:|
+| VS downloaded layout, metadata and engine/bootstrap inputs | 4 GiB |
+| Installed VS, SDK and machine package cache | 15 GiB |
+| Rust/Node/Git/CLI acquisition archives | 1 GiB |
+| Installed Rust toolchain/targets, Node, Git and wasm-bindgen | 2 GiB |
+| Separate per-project compressed registry/npm caches, including duplication | 3 GiB |
+| Extracted Cargo source trees and separate npm dependency trees | 4 GiB |
+| Two source checkouts and Git object stores | 5 GiB |
+| Extracted complete Codex supplier | 1 GiB (publisher x64 unpacked size 450,619,016 bytes) |
+| App Cargo dev/test outputs | 20 GiB |
+| SWB core/desktop/wasm outputs across its separate roots | 20 GiB |
+| Invented fixtures, scratch homes, recovery DBs and bounded logs | 3 GiB |
+| **Subtotal / rounded peak envelope** | **78 GiB / 80 GiB** |
+
+Require **100 GiB free on guest-native NTFS before provisioning**: the rounded
+80 GiB peak plus a 20 GiB OS/user headroom reserve. The observed free space is
+about 201 GiB, so it passes this planning threshold at observation time only.
+Recheck immediately before execution. Actual archive/layout/install/dependency
+and target-directory sizes must be recorded at each gate; if an envelope is
+unsupported or would be exceeded, stop that step and revise the proposal
+before proceeding. Do not delete user files, silently share mutable caches,
+resize the VM disk or count future cleanup as already freed space. OS updates,
+other applications and later release/bundler/browser outputs are outside this
+envelope and must not consume the reserved headroom unnoticed.
+
 ## Repository roots and package requirements
 
 App uses `app/{package.json,package-lock.json}` and
@@ -195,6 +227,19 @@ with `apps/desktop` as local workspace. The eight current Cargo locks and
 workspace npm lock, not historical provenance/build-artifact locks, define
 the recorded inventory. No git/custom registry source was found in those
 locks. Do not import host user configuration or credentials.
+
+Python availability in the guest was **not established**. `app/README.md`
+requires Python 3 for schema and supplier checks, and some existing tests invoke
+`python3`. This initial acquisition proposal deliberately defers those Windows
+checks: native compile-blocker discovery and the Vite build do not authorize
+claiming the deferred suite passes. Keep Python-dependent checks **not run**.
+Before a later fixture/supplier-check gate depends on them, inspect nonsecret
+`py`/`python`/`python3` command availability and actual interpreter identity;
+if no compatible interpreter exists, pin and budget an official Python
+acquisition through a revised owner-reviewed proposal. Resolve the Windows
+command-name/harness differences without removing checks or silently treating
+the Store execution alias as an installed interpreter. No Python payload is
+included or authorized here.
 
 SWBPIPE's `/bin/ps` and process-group worktree build-lock guard is a known
 Windows blocker. Port it in its owning repository before claiming a full
