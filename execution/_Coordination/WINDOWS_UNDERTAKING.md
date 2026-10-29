@@ -188,3 +188,16 @@ changes may use short-lived branches/PRs; no long-lived Windows fork is selected
 Completion returns through the host's delegated-task mechanism to Agent 0;
 the host's durable task state and completion notification carry continuity
 independently of a wait or timer inside the coordinator's current turn.
+
+## Publishing route
+
+The initial ordinary feature-branch push reported a server-side bypass because
+the active `protect-main` ruleset matched `~ALL` branches. The owner authorized
+the proposed scope correction. An independent Type 2 reviewer checked the
+exact before/proposed writable JSON and current default branch; Agent 0 then
+changed only the include selector to `~DEFAULT_BRANCH`. API readback preserved
+the name, active enforcement, branch target, creation/update/deletion rules,
+exclusions and every bypass actor/mode. Effective-rule queries confirm these
+three rules still apply to `main` and do not apply to this feature branch.
+Ordinary feature-branch publication may resume; protection bypasses and
+unrelated rule/permission changes remain unauthorized.
