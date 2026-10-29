@@ -1,0 +1,181 @@
+{
+  "schema": "chirality-windows-build-guest-receipt/v1",
+  "recorded_utc": "2026-10-29T07:35:30.845712+00:00",
+  "status": "hardware-ready-media-missing",
+  "alias": "chirality-windows-build",
+  "source_basis_revision": "de122cc4a768ea8ae5ebb9bbba11a169aad9d94e",
+  "host": {
+    "architecture": "arm64",
+    "ram_bytes": 137438953472,
+    "logical_cpus": 18,
+    "parallels_version": "27.0.2 (58673)",
+    "initial_free_bytes": 816671096832,
+    "free_bytes_at_receipt": 813500420096
+  },
+  "media": {
+    "canonical_source": "https://www.microsoft.com/en-us/software-download/windows11arm64",
+    "metadata_endpoints": [
+      "https://www.microsoft.com/software-download-connector/api/getskuinformationbyproductedition",
+      "https://www.microsoft.com/software-download-connector/api/GetProductDownloadLinksBySku"
+    ],
+    "product_edition_id": "3816",
+    "sku_id": "27162",
+    "product": "Windows 11 multi-edition ISO for Arm64",
+    "release": "26H2",
+    "build": "26300.9457",
+    "language": "English (United States)",
+    "edition_selection": "owner act; no installed edition selected",
+    "filename": null,
+    "download_locator": null,
+    "published_byte_size": null,
+    "actual_byte_size": null,
+    "actual_sha256": null,
+    "iso_bytes_transferred": 0,
+    "publisher_expected_sha256": "8992f2d2cfd2fa647e579e9eb31fc21f34da8333c29b6170fde17d2ed6623e9c",
+    "publisher_hash_basis": "English 64-bit row on official ARM64 download page retrieved over normal TLS",
+    "publisher_verification": "Expected hash recorded; no ISO exists to compare; no signature or downloaded-media verification claimed",
+    "access_obstacle": {
+      "key": "ErrorSettings.SentinelReject",
+      "value": "Sentinel marked this request as rejected.",
+      "type": 8,
+      "response": "Errors only; no locator or size; cause not established"
+    },
+    "api_retries_after_rejection": 0,
+    "known_installer_candidate_checks": [
+      {
+        "standard_location": "Downloads",
+        "filename": "Win11_26H2_English_Arm64.iso",
+        "exists": false,
+        "symlink": false
+      },
+      {
+        "standard_location": "Downloads",
+        "filename": "Win11_26H2_English_Arm64v2.iso",
+        "exists": false,
+        "symlink": false
+      },
+      {
+        "standard_location": "Downloads",
+        "filename": "Win11_25H2_English_Arm64.iso",
+        "exists": false,
+        "symlink": false
+      },
+      {
+        "standard_location": "Downloads",
+        "filename": "Windows 11.iso",
+        "exists": false,
+        "symlink": false
+      }
+    ]
+  },
+  "hardware": {
+    "utc": "2026-10-29T07:33:31.683647+00:00",
+    "alias": "chirality-windows-build",
+    "state": "hardware-ready-media-missing",
+    "power_state": "stopped",
+    "uptime_seconds": 0,
+    "cpu_architecture": "arm64",
+    "os_preset": "win-11",
+    "vcpus": 4,
+    "automatic_cpu_count": false,
+    "ram_mib": 16384,
+    "automatic_ram_size": false,
+    "disk_virtual_bytes": 274877906944,
+    "disk_type": "new expandable sparse NVMe",
+    "bundle_allocated_bytes_at_verification": 2154496,
+    "network_adapters": 0,
+    "optical_drives": 0,
+    "usb_devices": 0,
+    "sound_devices": 0,
+    "host_isolation": true,
+    "host_and_guest_sharing": false,
+    "dormant_guest_sharing_child_preferences": {
+      "AutoMountCloudDrives": true,
+      "ShareRemovableDrives": true
+    },
+    "shared_profile": false,
+    "automatic_gamepad_sharing": false,
+    "secure_boot": true,
+    "tpm_type": "crb",
+    "autostart": false,
+    "tools_installed": false,
+    "tools_auto_update": false,
+    "default_answers": false,
+    "iso_attached": false,
+    "booted": false,
+    "windows_installed": false,
+    "free_bytes_after_hardware": 813493145600,
+    "private_binding_updated": true
+  },
+  "private_binding": {
+    "updated": true,
+    "durable_atomic_replacement_read_back": true,
+    "created_for_builds": true,
+    "ram_mib": 16384,
+    "protected_exclusion_preserved": true,
+    "identifiers": "withheld outside Git"
+  },
+  "verification": {
+    "guest_runtime_isolation_tested": false,
+    "effective_exposure_basis": "Powered-off configuration: disabled sharing parents, host isolation, absent Tools/network/USB; dormant child flags recorded separately",
+    "fixture_guest_access_hold_lifted": false,
+    "protected_guest_operations": 0,
+    "media_attached": false,
+    "boot_operations": 0,
+    "windows_setup_readiness_established": false,
+    "windows_installed": false
+  },
+  "review_provenance": [
+    {
+      "scope": "source obstacle and initial future plan",
+      "model": "gpt-6.1-terra",
+      "reasoning_effort": "xhigh",
+      "service_tier": "priority",
+      "standing": "source obstacle supported; initial creation plan needed repairs"
+    },
+    {
+      "scope": "powered-off creation/configuration script",
+      "model": "gpt-6.1-terra",
+      "reasoning_effort": "xhigh",
+      "service_tier": "priority",
+      "standing": "pre-create corrections applied before create-only execution"
+    },
+    {
+      "scope": "canonical fresh artifact identity and exact powered-off configuration",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "standing": "no blocker before cap; gamepad repair required and actual off readback established"
+    },
+    {
+      "scope": "actual final hardware verifier and atomic private binding",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "standing": "no blocker; three nonblocking hardening findings applied before successful verifier/binding execution"
+    }
+  ],
+  "public_evidence_hashes": {
+    "microsoft-page.html": "1601266afbc13997f4871e859520bee104c9dee4cb1c225e78141b6259232c3c",
+    "microsoft-skus.json": "fbb619edc43de59ea189baf398d1a96f611e06d83402e3f27a487fb08cb3a65d",
+    "microsoft-links-private.json": "1114688f6c55ea73b7bf4f137aa8dd06c67e2f813ea53f7d474adc3177ea8c48",
+    "review.md": "f42c8400615bd7dc1a88e8faa92385b97d0fef07f926016f49bd86d50b290265",
+    "review-powered-off.md": "3a0eb3907500d8d0095c3b4f6c51be85201f36ef3830876de3f13a7210520c1f",
+    "review-fresh-config.md": "d9b6756d6ea0eb7d9cc30e645d812b2e372db681da7c80f82e870d50cf76a941",
+    "review-final-binding.md": "c303f3807ba65cfb79b1340afe37d8e8497ee608d3201ce8148939bf42f33b6d",
+    "verify_bind.py": "f9b3694598ab3b7257e556067f57f570db50efc6047dd45a879744fb20b631f2"
+  },
+  "next_boundary": "Official Microsoft media availability and exact filename/bytes/hash verification before attach/install; later bounded powered-use window and owner licence/account acts; no new route approval requested",
+  "repository_checks": {
+    "deliverables_check": {
+      "command": "python3 -m tools.deliverables --project . check",
+      "deliverables": 41,
+      "errors": 0,
+      "reported_dependency_cycles": 6,
+      "dependency_declarations_changed": false
+    },
+    "json_and_readiness_consistency": "passed",
+    "public_identity_redaction_check": "passed",
+    "diff_whitespace_check": "passed"
+  }
+}
