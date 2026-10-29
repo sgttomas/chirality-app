@@ -5,22 +5,30 @@ It neither runs App/suppliers/models nor selects production Job/crash policy.
 The owning design and results are in
 `execution/PKG-01/DEL-01-02/Design/WINDOWS_PROCESS_FIXTURE_RESULTS.md`.
 
-`run_fixture.py --run` is an explicit, offline, single-run driver for the
-already selected running guest. It uses Python on the host, Windows PowerShell
-`-NoProfile -NonInteractive -EncodedCommand` for individual commands, and the
-existing ARM64 .NET Framework C# compiler. It does not load `.ps1` files,
-override execution policy, use profiles, provision packages or contact a model.
-Restricted policy permits individual commands and native executable invocation;
-if existing language/application controls refuse commands/compiler/fixture,
-stop rather than weaken them. This driver is not a portable guest selector.
+**Native execution is withheld.** Independent scrutiny of `0e3db4a5`
+found two blocking driver safety gaps: no continuously retained namespace guards
+through scratch use/compilation, and no compiler lifetime guard surviving loss
+of the host command. The original executable driver is preserved in Git history
+for review evidence. Its write/compile/run route has been removed from the current
+source rather than left available behind a warning. `--run` hard-refuses before
+any guest operation. The source harness has not been compiled or executed.
 
-Do not run before independent scrutiny of the actual saved revision. No run is
-implicit in normal builds/tests. The source and all compiler/output/temp files
-are copied into fresh `C:\Windows\TEMP\chirality-app-process-fixture-<nonce>`
-on fixed local NTFS. An ownership sentinel precedes artifacts. No guest directory
-is enumerated. Host command responses and hashes are saved in a fresh host
-scratch directory, printed before execution. A failed/timed-out invocation stops
-further commands; its raw response is retained. No compiled binary is committed.
+`run_fixture.py --inspect` only reads installed guest metadata via Windows
+PowerShell `-NoProfile -NonInteractive -EncodedCommand`. It writes a bounded
+raw response, source hashes, blockers and a fresh scratch CODEX_HOME on the host.
+The existing Restricted policy stays unchanged; individual inline metadata
+commands load no `.ps1` file and invoke no compiler. No guest fixture scratch,
+source, compiler temporary files, binaries or logs are created by this route.
+Normal builds/tests do not invoke it. No binary is committed.
+
+The following describes the saved **unrun** C# fixture design. Before any future
+native attempt, independently review the repaired bootstrap/driver and bind all
+source/driver/verifier identities to that exact revision. Establish continuously
+held, no-follow namespace guards from exclusive guest-local NTFS scratch
+creation through all source/output/temp operations. Establish a supported
+compiler/launch lifetime guard independent of host callback survival. Do not
+weaken policy, use breakaway, install prerequisites, or treat command timeout as
+cleanup. If either guard cannot be established, stop with a precise refusal.
 
 Every leader is born suspended into a distinct unnamed safety Job through
 `PROC_THREAD_ATTRIBUTE_JOB_LIST`. Its last handle is non-inheritable and held
@@ -32,7 +40,7 @@ stays in the safety Job. Explicit standard input/output handle lists confer no
 Job authority. The supervisor duplicates the actual child HANDLE from its
 original leader HANDLE, using a private source-bound handle value, never a PID.
 
-Helper entry, pre-creation private acknowledgment, actual returned creation
+Intended helper entry, pre-creation private acknowledgment, actual returned creation
 HANDLE, first nonce effect, inner/safety membership and delayed final marker
 are separate observations. `verify_results.py` refuses missing/unknown evidence
 and requires rejection of the broken launch. P02 covers stdout closure with
