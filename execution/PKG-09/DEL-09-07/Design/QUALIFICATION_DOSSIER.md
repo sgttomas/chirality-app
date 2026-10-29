@@ -1,5 +1,10 @@
 # Local host qualification dossier — structure, applicability and handoffs
 
+Current receiving supplement (2026-10-29): [SWBPIPE_RECEIVING.md](SWBPIPE_RECEIVING.md)
+classifies received host evidence and the joined dossier still owed. The dated
+definition and pins below remain historical design inputs; no qualification
+dossier or completed desktop witness is inferred from the local summary run.
+
 - Contribution: DEL-09-07/DOS-v0.1 (unit LHQ-U2, with `TRAFFIC_OBSERVATION_PLAN.md`; repaired in place for RV-LHQ-U2)
 - Status: DRAFT DEFINITION — proposed, not assembled. No dossier exists; no case has run.
 - Run and node: `APP-V4-DESIGN-PASS-4-20261003`, owner O-C, 2026-10-03.
