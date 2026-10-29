@@ -569,9 +569,16 @@ distribution identity, native install/launch and written terms are still owed.
 `memguard.sh` count command lines rooted in `chirality-t3`; the App checkout
 and its private target are outside that root. App builds therefore require the
 agreed serialized window and a scratch monitor that sums this build's process
-descendants with the wrapper-counted processes (deduplicated), aborting at
+descendants with the wrapper-counted processes (deduplicated, sampled once per
+second), aborting at
 shared 64 GiB, system free below 22%, or `exclusive.pending`. The root-based
 shared guard blind spot remains; fixing shared tools is outside App scope.
+The current build's [actual preparation evidence](../../../PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json)
+names the omitted checkout/private-target paths, direct disclosure and explicit
+SWB clearance approving that monitor. It records the selected slot wrapper,
+allowlisted environment, jobs2 and 2,187,424 KiB sampled shared peak, with no
+abort. This is sampled accounting of the named process sets, not instantaneous
+whole-machine coverage or custody of escaped processes.
 
 **Explicit attested-reference resource placement.** The opt-in
 `app/packaging/unsigned/tauri.attested-reference.conf.json` maps the twelve-file

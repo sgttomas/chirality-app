@@ -1,0 +1,119 @@
+{
+  "kind": "development_candidate_preparation",
+  "candidate_key": "795362874d-a391547a5c5d",
+  "source_revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+  "identifier_tool_source_revision": "37f9f727bd8418ed7000f3eb5863337d7bc399ca",
+  "candidate": {
+    "revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:a391547a5c5d485fc07b286e4177279717b2fc43ad7deff2f8f5bd983f24ae91",
+    "packaged": false
+  },
+  "bundle_identifier": "dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+  "bundle_path": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app",
+  "build_outcome": {
+    "exit_code": 0,
+    "duration_seconds": 80.08721,
+    "cargo_reported_duration_seconds": 76,
+    "bundles": 1,
+    "downloads": false,
+    "supplier_execution": false,
+    "model_execution": false,
+    "gui_launch": false
+  },
+  "guard": {
+    "shared_tool_root": "/Users/ryan/dev/chirality-t3/",
+    "outside_shared_root": [
+      "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery",
+      "/private/tmp/chirality-desktop-current-ukt5ir80/target"
+    ],
+    "prior_disclosure": "Desktop manager directly disclosed command-line-root blind spot to SWB Type1 before build",
+    "approval": "SWB Type1 explicitly relayed Agent0 approval of own-descendant plus shared-root scratch monitor, then fresh FINAL exact fixture done, oMLX down clearance after probe/fixture shutdown",
+    "admission": "One serialized build; CARGO_BUILD_JOBS=2; t3_slot.sh live-guard/start checks and slot lock; allowlisted offline environment",
+    "monitor": "Sample once/second, deduplicate own process-tree PIDs and shared-root command lines; TERM original process group then KILL if required",
+    "abort_conditions": [
+      "sampled shared RSS >= 64 GiB",
+      "kern.memorystatus_level < 22",
+      "exclusive.pending exists"
+    ],
+    "peak_sampled_shared_rss_kib": 2187424,
+    "abort_reason": null,
+    "limit": "Root-based shared guard alone omits this App checkout/private target. Scratch monitor is sampled, not instantaneous whole-machine accounting or escaped-process custody. Shared tools not repaired."
+  },
+  "correspondence": {
+    "supplier": "All 42 regular vendor files and modes matched measured archive; 30 Mach-O files; no supplier execution or origin authentication",
+    "resources": "P1/P2/P3 full entry/path/type/mode/byte comparison equal against actual physical build inputs",
+    "export_copy_limit": "Intermediate comparison to a later git-archive export found mode-only 0664/0775 versus actual build-input/bundle 0644/0755 differences. Git tracks executable status, not those bits. Original build input sources and bundle match exactly; failed copy comparison retained, no check weakened."
+  },
+  "checks": {
+    "identity_source_before_review": "37 passed at 79536287",
+    "independent_review": "GPT-6.1-sol medium/default separate context; two P2 findings repaired (aliased archive paths and EOFError); no model-family diversity claim",
+    "independent_tests": "36 passed; existing set-ID-bit chmod fixture errored with macOS EPERM, not a pass. New profile cases passed. Log retained.",
+    "review_repair_checks": "7 focused v3 tests passed at 37f9f727; includes both reviewer reproductions",
+    "live_bundle_recheck": "equal tree/build identity and all derived fields; no mismatches",
+    "earlier_checks_limit": "Earlier tsc and 110 conversation/history tests concern their examined source and are not candidate/native qualification"
+  },
+  "remaining": [
+    "No native launch, setup save/relaunch, workflow/trial/register/reuse/refinement, interruption/recovery or three-mode qualification has run on this artifact.",
+    "Production installed-custody issuer/refusal unchanged; attested mapping, package signing/notary, install/quarantine and applicable native witnesses remain owed.",
+    "OpenAI written distributed-sign-in response and owner public distribution decision remain unresolved.",
+    "Owner release-criteria proposals remain pending; existing commitments unchanged."
+  ],
+  "artifacts": {
+    "build-facts.json": {
+      "size_bytes": 3052,
+      "sha256": "0539df0b3bc8f7cd1e796564c496d3d83d6666234da8864642f9b9d3c01223f0"
+    },
+    "build-invocation.json": {
+      "size_bytes": 1386,
+      "sha256": "9b6a092870e1d0db4c3273e9596cf746a2377de822839cbd20dd637d9d28d014"
+    },
+    "build.log": {
+      "size_bytes": 35230,
+      "sha256": "f4f2874c46ca510666fffbd67b7f5ec2f5b72bce02080ff07b8d2fafdd8f538d"
+    },
+    "build_guard.py": {
+      "size_bytes": 3074,
+      "sha256": "cdb4bdbec6a1ca3816bb05573c47e475523f7fa8d86632c1c94b1f6b955401f3"
+    },
+    "bundle-inventory.json": {
+      "size_bytes": 23110,
+      "sha256": "dedbec952a0a4f990242ffccc2dc31ffe66c01813541db98100bd04c170f5ec0"
+    },
+    "candidate-identification.json": {
+      "size_bytes": 8321,
+      "sha256": "87550b899d5ffb0e65f1053e06eb849ee2d5d41e5f56b134c2361fb25c125073"
+    },
+    "identification-check.json": {
+      "size_bytes": 382,
+      "sha256": "49c385991194f7e2fd009b812a820564618a472f8cf3801c0f82a476cb7505b5"
+    },
+    "identification.log": {
+      "size_bytes": 173,
+      "sha256": "67258b508e6ac4846d7bda685db367a046c07de6148f8d622095bd06b320fe1f"
+    },
+    "identity-review-fixes.log": {
+      "size_bytes": 105,
+      "sha256": "60ec9bf4121ddeb66bd8e5752505aa1274c3ae12c995f25fee3bcbbe3acd6987"
+    },
+    "identity-tests.log": {
+      "size_bytes": 136,
+      "sha256": "481dc70714b8a673c72f42ddf3abf9f016e601338388f8901ce4f62652f9225a"
+    },
+    "independent-identity-tests.log": {
+      "size_bytes": 911,
+      "sha256": "059166d38b410abf9f445c0be91ded7937440ba91dac0324407930d28749d7ad"
+    },
+    "resource-comparison-export-copy.json": {
+      "size_bytes": 1657,
+      "sha256": "e5213e3cf56b4dc7acdbb4cf59a6299e03a4c3054b7a64d64949c5f4c3539d7c"
+    },
+    "resource-comparison.json": {
+      "size_bytes": 1571,
+      "sha256": "741a064774683fbd5a8dbae2326dba83d4fd16fbff530dc1dfd0a2683d622346"
+    },
+    "supplier-acquisition.json": {
+      "size_bytes": 2266,
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8"
+    }
+  }
+}

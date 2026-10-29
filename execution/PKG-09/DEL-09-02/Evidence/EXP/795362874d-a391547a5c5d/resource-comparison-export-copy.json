@@ -1,0 +1,56 @@
+{
+  "codex": {
+    "comparison": {
+      "equal": true,
+      "differing": [],
+      "missing": [],
+      "extra": [],
+      "root_mode_equal": true
+    },
+    "source_manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+    "bundled_manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+    "files": 42,
+    "macho_files": 30
+  },
+  "instructions": {
+    "comparison": {
+      "equal": false,
+      "differing": [
+        "AGENTS.md",
+        "ROLE_SET_SOURCE_BINDING.json",
+        "SOURCE_MAP.json",
+        "agents",
+        "agents/AGENT_HELPS_HUMANS.md",
+        "agents/AGENT_HELP_HUMAN.md",
+        "agents/AGENT_TASK.md",
+        "agents/AGENT_WORKING_ITEMS.md",
+        "roles.json"
+      ],
+      "missing": [],
+      "extra": [],
+      "root_mode_equal": false
+    },
+    "source_manifest_sha256": "50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18",
+    "bundled_manifest_sha256": "50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18",
+    "files": 8,
+    "macho_files": 0
+  },
+  "workflows": {
+    "comparison": {
+      "equal": false,
+      "differing": [
+        "MANIFEST.json",
+        "coordinated-knowledge-work",
+        "coordinated-knowledge-work/REVIEW-NOTES.md",
+        "coordinated-knowledge-work/WORKFLOW.md"
+      ],
+      "missing": [],
+      "extra": [],
+      "root_mode_equal": false
+    },
+    "source_manifest_sha256": "cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29",
+    "bundled_manifest_sha256": "cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29",
+    "files": 3,
+    "macho_files": 0
+  }
+}

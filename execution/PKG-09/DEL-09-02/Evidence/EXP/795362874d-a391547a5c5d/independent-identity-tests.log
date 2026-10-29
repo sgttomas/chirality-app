@@ -1,0 +1,14 @@
+...........E.........................
+======================================================================
+ERROR: test_set_id_bits_refuse_and_sticky_bit_is_represented (candidate_identity_test.BundleIdentity.test_set_id_bits_refuse_and_sticky_bit_is_represented)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/tests/candidate_identity_test.py", line 376, in test_set_id_bits_refuse_and_sticky_bit_is_represented
+    os.chmod(path, original | bit, follow_symlinks=False)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted: '/private/tmp/chirality-review-79536287-we8zQ0/tmpszj7s5h_/Test.app'
+
+----------------------------------------------------------------------
+Ran 37 tests in 1.702s
+
+FAILED (errors=1)
