@@ -65,6 +65,8 @@ def validate(value, schema):
             if isinstance(rule, dict):
                 validate(item, rule)
     if kind == "array":
+        if schema.get("uniqueItems") and len({json.dumps(item, sort_keys=True) for item in value}) != len(value):
+            raise ValueError("uniqueItems")
         if not schema.get("minItems", 0) <= len(value) <= schema.get("maxItems", float("inf")):
             raise ValueError("items")
         for item in value:
@@ -105,16 +107,42 @@ def response(catalog, tool, result):
             "success": not internal["isError"]}
 
 
+def validate_assumptions(operations, assumptions):
+    operation_ids = [op["operation_id"] for op in operations]
+    if len(set(operation_ids)) != len(operation_ids):
+        raise ValueError("ambiguous operation ids")
+    ids = [a["assumptionId"] for a in assumptions]
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicate assumption ids")
+    for assumption in assumptions:
+        if not set(assumption["affectedOperationIds"]) <= set(operation_ids):
+            raise ValueError("unknown affected operation")
+
+
 class Pending:
     """One invented pending call. Production must also own queues, cursors and budgets."""
-    def __init__(self, catalog, binding, args_raw, current_basis, current_units=None):
+    def __init__(self, catalog, binding, args_raw, current_basis, current_units=None, retained_record=None):
         self.catalog = catalog
+        if catalog["catalogVersion"] not in ("swbpipe-catalog-proposal/1", "swbpipe-catalog/1", "swbpipe-catalog/2"):
+            raise ValueError("unsupported catalog version")
+        self.retained_policy = catalog["catalogVersion"] == "swbpipe-catalog/2"
+        historical = self.retained_policy and binding.get("tool") in (
+            "swbpipe_observe_proposal", "swbpipe_read_results")
+        captured_basis = current_basis
+        if historical:
+            if retained_record is None:
+                raise ValueError("missing retained record")
+            captured_basis = retained_record["basis"]
+            validate(captured_basis, expand(catalog, catalog["definitions"]["basis"]))
+            for key in ("workspaceHandle", "applicationGeneration"):
+                if captured_basis[key] != current_basis[key]:
+                    raise ValueError("retained session mismatch")
         self.binding = copy.deepcopy(binding)
         validate(current_basis, expand(catalog, catalog["definitions"]["basis"]))
         if set(binding) != set(catalog["hostPolicy"]["binding"]):
             raise ValueError("binding fields")
         for key in ("workspaceHandle", "applicationGeneration", "modelRevision"):
-            if type(binding[key]) is not type(current_basis[key]) or binding[key] != current_basis[key]:
+            if type(binding[key]) is not type(captured_basis[key]) or binding[key] != captured_basis[key]:
                 raise ValueError("binding basis")
         for key in ("requestRef", "threadId", "turnId", "callId", "tool"):
             if not isinstance(binding[key], str) or not binding[key]:
@@ -124,15 +152,21 @@ class Pending:
         self.tool = next(t for t in catalog["tools"] if t["name"] == binding["tool"])
         self.args = decode(args_raw, catalog["limits"]["argumentBytes"])
         validate(self.args, expand(catalog, self.tool["inputSchema"]))
-        self.basis = copy.deepcopy(current_basis)
+        self.basis = copy.deepcopy(captured_basis)
+        if historical:
+            handle_key = "proposalHandle" if binding["tool"] == "swbpipe_observe_proposal" else "runHandle"
+            if self.args[handle_key] != retained_record["handle"]:
+                raise ValueError("retained handle mismatch")
         if self.args.get("workspaceHandle", current_basis["workspaceHandle"]) != current_basis["workspaceHandle"]:
             raise ValueError("workspace")
-        if self.args.get("basis", current_basis) != current_basis:
+        if self.args.get("basis", captured_basis) != captured_basis:
             raise ValueError("stale basis")
         if "claimedModelHash" in self.args and (self.args["claimedModelHash"] != current_basis["modelHash"]):
             raise ValueError("claimed hash")
         if len(self.args.get("operations", [])) > catalog["limits"]["proposalOperations"]:
             raise ValueError("configured batch limit")
+        if self.retained_policy and "operations" in self.args:
+            validate_assumptions(self.args["operations"], self.args["assumptions"])
         if "operations" in self.args:
             if not current_units or not current_units.get("length"):
                 raise ValueError("units unavailable")
@@ -141,15 +175,30 @@ class Pending:
                     raise ValueError("document unit mismatch")
         self.completed = False
 
-    def complete(self, binding, result, current_basis):
+    def complete(self, binding, result, current_basis, retained_record=None, session_attached=True):
+        if not session_attached:
+            raise ValueError("detached session")
         if self.completed:
             raise ValueError("duplicate")
         if binding != self.binding:
             raise ValueError("correspondence")
-        # Run/state ids may advance after a solve; model generation/revision/hash cannot.
-        for key in ("workspaceHandle", "applicationGeneration", "modelRevision", "modelHash"):
+        for key in ("workspaceHandle", "applicationGeneration"):
             if current_basis[key] != self.basis[key] or result["basis"][key] != self.basis[key]:
+                raise ValueError("session changed")
+        historical_completion = self.retained_policy and self.binding["tool"] not in (
+            "swbpipe_read_model_summary", "swbpipe_read_nodes")
+        for key in ("modelRevision", "modelHash"):
+            if result["basis"][key] != self.basis[key]:
+                raise ValueError("result rebased")
+            if not historical_completion and current_basis[key] != self.basis[key]:
                 raise ValueError("basis changed")
+        if historical_completion and result["data"] is not None:
+            # Fixture-only host-owned record, supplied separately from the untrusted completion.
+            # This is NOT an extra field in the webview completion wire.
+            if retained_record is None or retained_record["binding"] != self.binding:
+                raise ValueError("missing or mismatched retained completion")
+            if retained_record["basis"] != self.basis or retained_record["result"] != result:
+                raise ValueError("forged retained outcome")
         wire = response(self.catalog, self.tool, result)
         self.completed = True
         return {"id": self.binding["rpcId"], "result": wire}

@@ -1,6 +1,77 @@
 # SWBPIPE receiving source and admission correspondence
 
-## Origin and receiving standing
+## Current receiving revision: v2
+
+This section supersedes the v1 equality/admission account below; that account
+retains the initial receiving history.
+
+Verified local receiving commit: c48efef77bbb799f3ebe902eb213a88330a5994e,
+same checkout and catalog/Design paths identified below. Catalog identity:
+swbpipe-catalog/2 / design_contract_not_live. Exact committed catalog SHA256:
+fe1439998d709e5f3e9641a4d39567000ced56c498fab5b6b8f2028df7c9f669.
+
+Independent SWBPIPE review prompted version 2 at
+ce6729f3d67139baf137fff042eee6ba9908171a (catalog SHA256
+6451dce8d37778e54b86eb9cdee4e3c035f904947e09c78c276fbe6fbb3bdc89).
+The App manager inspected its catalog and Design diff from v1 and verified the
+committed hash. V2 requires bounded proposal-level assumptions, preserves the
+native operationIntent shape, and distinguishes current live basis from retained
+proposal/job/run basis. App raised a concrete mismatch: proposal submission's
+status enum could not report applied/withdrawn/unknown despite its new policy.
+The counterpart resolved it in c48efef by adding exactly those three statuses.
+That final catalog's hash is checked by the receiving test before evaluation.
+
+The counterpart reports twelve expanded standalone schemas and claims lint
+passing and independent review confirming the commitment wording at ce6729f3.
+Agent 0 wording confirmation is requested through
+[draft PR #1736](https://github.com/sgttomas/chirality/pull/1736).
+This is a received review account, not an App independent permissions review,
+merge, confirmation or runtime adoption. No interface objection remains to
+the resolved slice.
+
+The App specimen now selects the catalog's version explicitly. Origin/v1 tests
+retain their original semantics. V2 behaves as follows:
+
+- Summary/node/new-proposal/solve admission uses live basis. Historical proposal
+  observation and result reads instead require a separately supplied, host-owned
+  retained record with matching handle and captured basis.
+- Workspace and application generation must still match the admitted session.
+  Summary/node completion rejects live revision drift. Other completions bind
+  original revision/hash and the host-retained outcome, allowing later live edits.
+- Original RPC/call binding, duplicate and detached-session refusals remain.
+  A completion cannot rebase its result to the newer live model or forge a
+  different outcome from the supplied host record.
+- Required bounded assumptions retain stable ids and operation references;
+  duplicate assumption ids, duplicate/unknown affected operation references
+  and ambiguous operation ids are refused. Native intent shape is unchanged.
+
+The retained-record arguments are fixture-only representations of authoritative
+host lookup, not new fields accepted from the webview or supplier. The specimen
+does not implement a production record store, cursor registry, queue/apply race,
+durable assumptions storage or general JSON Schema validation. Actual receiving
+implementation still needs those targeted checks and independent scrutiny.
+The v1 blanket current-revision equality is not evidence of v2 conformance.
+
+App verification: 10 origin tests passed (0.016 s), plus 6 opt-in receiving tests
+(0.001 s) against catalog bytes exported directly from c48efef, with SHA256
+checked before loading. The receiving tests cover applied observation after
+edit, solve completion after edit, historical result pages, stale live reads,
+wrong generation/workspace/handles, rebasing/forgery/detachment/duplicates,
+assumption bounds/references and the resolved proposal status enum.
+Whitespace checks passed. No supplier, server, model, build or network run.
+
+Reproduce the optional receiving check by exporting that exact committed JSON
+to a fresh scratch directory, then running:
+
+    CODEX_HOME="<fresh scratch home>" PYTHONDONTWRITEBYTECODE=1 python3 app/supplier_checks/swbpipe_receiving_test.py --catalog "<exported JSON>"
+
+The test rejects a different catalog hash. Ordinary origin tests remain
+self-contained; the optional check adds no sibling dependency to default tests.
+The App catalog stays unchanged origin evidence at 64aad707… and is not a
+second evolving source. Later receiving revisions require explicit rebinding
+and affected verification, not silently following a mutable file.
+
+## Initial v1 origin and receiving standing
 
 The App origin is commit e1e3f4615b6f766b313c3492506f68254afd8a06.
 Its four contribution files are:
