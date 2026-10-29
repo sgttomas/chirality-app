@@ -1016,6 +1016,33 @@ RS's own schema.
 
 ## Current implementation conditions
 
+**Steering/interrupt completion and supersession.** These controls capture the
+original conversation, turn and full source identity before native dispatch.
+Their view-refresh ticket retains the conversation-choice revision, home-choice
+epoch and observed source epoch from dispatch, including away-and-back choices.
+A changed ticket or a newer host observation prevents the old action from
+starting or applying its refresh. A matching final home/thread alone does not
+revive that ticket. An immediate pending guard prevents duplicate control
+dispatches before the rendered busy state catches up.
+
+The original native acknowledgment or refusal remains separately labelled with
+its conversation, home, App session, spawn and turn while a refresh waits or
+reports failure/supersession. A refusal is not reassigned to the newly selected
+conversation's error. Steering clears the global ordinary draft only on an
+acknowledgment still owned by the original navigation and unchanged composer
+revision; editing away and back to identical text also retains it. Interrupt
+never clears that draft. A skipped or failed refresh changes neither the native
+result nor its limits: acknowledgment establishes no turn end, rollback or
+completion. Neither control automatically retries.
+
+The mounted `app/tests/conversation-panel.test.mjs` checks these deferred
+responses with invented IPC, including source/navigation changes during both
+the native call and refresh, newer text and snapshots, refusals, refresh errors
+and single dispatch. Controlled edit/navigation deliveries also stress changes
+before React commits or while a local control is disabled; they are not native
+input-timing witnesses. These checks require no supplier, model or Rust process
+and establish no native recovery or candidate qualification.
+
 **Current ordinary-text model choice (ACCESS I-3/CS-18/Q-11; TC-2,
 TC-4/TC-5).** An empty optional model identifier beside the ordinary text
 controls belongs to the actual full conversation reference (home, App session,
