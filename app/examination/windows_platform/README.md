@@ -1,5 +1,21 @@
 # Package-free Windows process fixtures
 
+## Supplemental hosted profile
+
+`run_hosted_fixture.py` is a separate, additive process-only adapter for
+disposable GitHub-hosted native-x64 Windows, with trusted checkout/namespace and
+preinstalled Python/Framework compiler. It refuses other contexts before source
+reads, subprocesses or scratch. The independent workflow
+`.github/workflows/windows-process-fixtures.yml` binds actual PR-head Git blobs,
+preserves raw bytes and retains bounded compiler/native traces. It does not
+enable the guest route or claim hostile-namespace/compiler parent-death safety.
+Native execution is pending parent publication; see
+`execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md`
+for prerequisites, boundaries and artifact schema. Host-only checks:
+`python3 -B app/examination/windows_platform/test_hosted_fixture.py`.
+
+## Held guest profile
+
 **Guest access is held.** The former target is the owner's CAEPIPE VM and is
 permanently off-limits. All guest modes refuse before binding, contact or scratch.
 A separate owner-authorized build guest (at most 16 GiB RAM) must first be
