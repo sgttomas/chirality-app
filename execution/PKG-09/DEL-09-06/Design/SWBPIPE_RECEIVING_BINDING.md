@@ -31,19 +31,32 @@ and small offline checks.
 
 The direct counterpart is
 [SWBPIPE: App v4 coordination (Type 1)](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028).
-That manager reports receiving files locally prepared at these SWBPIPE paths:
+The receiving files are committed locally at these SWBPIPE paths:
 
 - execution/PKG-16/DEL-16-06/Design/agent-capability-catalog.json
 - execution/PKG-16/DEL-16-06/Design/embedded-agent-host.md
 
-Reported receiving identity is swbpipe-catalog/1 with standing
-design_contract_not_live and origin e1e3f461. Schemas, limits and host policies
-are reported unchanged from the App catalog hash above. Exact receiving
-checkout path, committed revision and resulting catalog hash are still awaited;
-the App manager has not inspected receiving bytes. This is a reported local
-receiving preparation, not a verified committed adoption or live implementation.
-On receipt, compare semantic schemas/limits/policies separately from intentional
-identity metadata changes, then bind the receiving revision and hash.
+Verified receiving checkout: /Users/ryan/dev/chirality-t3/swbpipe-appv4-host,
+reported branch codex/swbpipe-appv4-host, exact local commit
+4d2c8254b534aed1490c02fa3db1d2aea741b52f. The App manager read both files
+directly from that Git commit, not the mutable working tree. Catalog SHA256 is
+eed9efa8db72f29b018e0715fa15e40f0e97bdf956cf2f0aba0b566d2417a8aa.
+
+Receiving identity is swbpipe-catalog/1 with standing design_contract_not_live.
+A parsed comparison with the frozen App origin found exactly three changed
+top-level fields: catalogVersion, standing and source. Source retains the prior
+provenance and adds appProposal repository/revision/path/hash. Definitions,
+tools, limits, hostPolicy and projection compare equal; all remaining fields
+are unchanged. The receiving Design explicitly preserves webview authority,
+initial binding checks, claimed hash before queue registration, native intents,
+proposal-only review and honest interruption/outcome semantics.
+
+Standing: verified local design-contract adoption by SWBPIPE, not main-branch
+integration or runtime adoption. The counterpart reports twelve expanded
+standalone schemas and claims lint passing; those checks were not rerun by the
+App manager. Commitment wording and Design enter independent SWBPIPE review,
+then Agent 0 confirmation. The App comparison is receiving-source verification,
+not that independent review or confirmation.
 
 SWBPIPE owns the evolving catalog after adoption. The App proposal stays frozen
 as origin evidence; this continuation changes no catalog bytes and creates no
@@ -100,8 +113,9 @@ the repair supplies no joined live witness, qualification or acceptance.
 
 ## Remaining receiving inputs
 
-The counterpart owns supplying the receiving checkout/revision/catalog hash and
-review standing. The actual harmless roundtrip additionally needs the exact
+The receiving checkout/revision/catalog hash are now verified above. Independent
+SWBPIPE review, Agent 0 confirmation and main integration remain unestablished.
+The actual harmless roundtrip additionally needs the exact
 supplier executable/schema hashes, oMLX version, model identity/artifact hash,
 endpoint/configuration and observed tool-call/result/follow-up transcript.
 Installation or selection alone does not establish tool isolation. The full
