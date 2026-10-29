@@ -1294,6 +1294,68 @@ Closed at v0.4: "Host restriction of its own channel by model destination" (SWBP
 
 Closed at v0.5: the row on V4-WF-05 and the DEL-09-06 SoW REQ-003 / AC-004 / VER-004 hold wording. The accepted basis now carries the phasing (PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001), and the SoW was revised under the same amendment (REQ-003, AC-004, VER-004; TBD-003; AX-004). What stays open is taking up the governance phase, under the `UNRESOLVED{D6}` row (F-22 closed, §12.8).
 
+## Current host coordination (2026-10-28)
+
+**Received source, not a joined witness.** SWBPIPE HELP_HUMAN returned its
+current-state account through the owner-authorized T3 route from
+[dev - piping](t3-thread://v1/73ba979f-d4c4-4e02-a2aa-71fd6dfb04ff) to
+[Public Release Pathway](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619),
+at `sgttomas/chirality@1560bbf7f7add4637a20572a2b0d404ef121af63`.
+The return labels committed text, implementation and tested behavior separately;
+it ran no new builds or live examinations. App HELP_HUMAN checked the cited
+release target, PRD, CONTRACT and acceptance-history scope at that checkout.
+Product implementation and test claims below remain the supplier's reported
+evidence. This account supplements the dated September answers without changing
+their original standing or claiming host adoption of this Design.
+
+**Current scope and receiving gaps.** Paths in the SWBPIPE column are under
+`projects/chirality-piping/` at the source revision above.
+
+**Subsequent owner direction:** SWBPIPE v1.0 now includes the embedded
+integration, with effective agent operation prioritized over complete workflow
+governance. The owner directed that past designs be context rather than designs
+to inherit. The release-allocation gap and separate-increment proposal in this
+dated account are superseded by that direction. See
+[the current connection proposal](SWBPIPE_CODEX_INTEGRATION.md) for the actual
+source findings, agreed technical direction and remaining contract reconciliation.
+
+| Subject | SWBPIPE return and source | App receiving consequence |
+|---|---|---|
+| Release allocation | Owner-accepted `docs/RELEASE_TARGET_v1.0.md` has no embedded-agent or App-join row; RT-R3 defers plugin/adapter runtime. PRD FR-AGENT-001…004 are Should; FR-AGENT-005 is Must | The owner's full App v4 target does not itself add a SWBPIPE v1.0 Must row. Scope and sequencing require an owner decision; the host lanes remain paused for the demo |
+| Existing operation path | Reported native/wasm validation and application engine; desktop Offline Proposal Intake, review queue and explicit person application; session-only AcceptanceRecord | Useful groundwork for the operation binding. It supplies neither an embedded model loop nor a durable acceptance/outcome witness |
+| Persistent outcomes | Immutable model snapshots and analysis runs reported. SWBPIPE DEL-16-03:2 explicitly retains missing acceptance decisions, batch grouping, receipts and timestamps; CLM-029 assigns persistence to DEL-02-05 and application outcomes to DEL-16-06 | Saved model/run hashes and autosave do not establish who accepted which proposal or its recovered actual outcome. DEL-16-03/16-06 and persistence must supply the applicable joined evidence |
+| Host agent and tools | No provider, capability catalog or external operation-apply route reported; public API is a draft | CA/E needs the embedded loop, panel and catalog under App V4-ARC-10…14 and V4-HOST-04. A new headless verb or desktop IPC surface alone would not fulfill those commitments |
+| Available rehearsal | W9-A L-frame operation batch authored externally, imported/reviewed/applied by the person, then saved and solved | Candidate fixture proposal only. File-mediated operation review and UI automation cannot establish V4-EXM-20. OI-021 still binds a useful operation and environment to all applicable criteria, including stale refusal and recovery |
+| Network and professional boundaries | SWBPIPE CONTRACT OPS-K-PRIV-1 permits private data to the configured provider under DEC-051; F-PIP-3 and FR-AGENT-005 preserve human professional authority | Compare with App V4-HOST-02/V4-ARC-12 destination control, recording and display before adopting the loop. Permission to send data to the chosen provider is compatible in principle; fulfillment of the destination obligations is unestablished. Never infer human acceptance from agent activity |
+
+**Technical interpretation.** CA/E is the embedded-agent expression; CA/X and
+V4-EXM-25 concern the external controller. A local language-model server is the
+model source for the replacement witness. An embedded implementation could call
+the host's operation facilities through its native layer; it need not introduce
+an external TCP or Unix listener merely to satisfy CA/E. No mechanism is selected
+here. Frozen Runtime rules are not adopted by this coordination, and RT-R3's
+plugin deferral is not presumed to prohibit every native embedding design.
+
+**Earlier proposal, superseded by the owner direction above.** Define a bounded joint
+integration increment now, preserving SWBPIPE's accepted v1.0 Must scope unless
+the owner chooses to expand it. Full App v4 depends on an identified SWBPIPE
+candidate that completes the embedded journey and its applicable records,
+recovery, workflow and network obligations. Decide whether that increment must
+land for SWBPIPE v1.0 or follows its existing target before committing host
+implementation or schedule. The proposed increment does not narrow the existing
+App criteria to the available file-mediated path. Domains remains subsequent;
+PEC adds no prerequisite. Independent App work can continue.
+
+**Publication receiving update (2026-10-29).** The dated account above remains
+source-qualified history. SWBPIPE now owns catalog v2; the App retains the
+original proposal as origin evidence. Exact receiving commits/hashes, the
+merged-design report and bounded offline verification are in
+[SWBPIPE_RECEIVING_BINDING.md](SWBPIPE_RECEIVING_BINDING.md). These fixtures do
+not establish the standalone App external controller, a joined live witness,
+platform qualification or host process cleanup. The SWBPIPE manager owns the
+current stdin-EOF/hard-app-death investigation; its SMAppService fallback is
+unselected. No acceptance or dependency condition is changed here.
+
 ## Verification cases
 
 Designed, **not run**. Passing them later shows definition completeness only;

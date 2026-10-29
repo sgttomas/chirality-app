@@ -85,7 +85,7 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -93,6 +93,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
   const ordinaryPending = useRef(false);
+  const controlPending = useRef(false);
   const ordinaryView = useRef({ owner: "", epoch: 0, ready: false });
   const [ownBusy, setBusy] = useState<string>("");
   const [forkBusy, setForkBusy] = useState(false);
@@ -145,11 +146,19 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     finally { ordinaryPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
-    if (!selected || !steeringTarget || !text || busy) return;
+    if (!selected || !steeringTarget || !text || busy || controlPending.current) return;
+    const view = ordinaryView.current, revision = textRevision.current;
+    const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
+    controlPending.current = true;
     setBusy("steering"); setError("");
-    try { await steer(selected.generation, selected.threadId, steeringTarget.turnId, text); setText(""); }
-    catch (e) { setError(String(e)); }
-    finally { setBusy(""); }
+    try {
+      const currentAcknowledgment = await steer(selected.generation, selected.threadId, steeringTarget.turnId, text);
+      // The parent also guards navigation intents that leave and return before
+      // this panel renders. A later edit, even to identical text, stays unsent.
+      if (currentAcknowledgment !== false && isCurrent() && textRevision.current === revision) setText(current => current === text ? "" : current);
+    }
+    catch (e) { if (isCurrent()) setError(String(e)); }
+    finally { controlPending.current = false; setBusy(""); }
   };
   const attachmentText = async (expected: string | null) => {
     const selection = host?.attachmentSelections;
@@ -174,11 +183,13 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
   const interruptTurn = async () => {
-    if (!selected || !live || ownBusy || alreadyRequested) return;
+    if (!selected || !live || busy || controlPending.current || alreadyRequested) return;
+    const view = ordinaryView.current;
+    controlPending.current = true;
     setBusy("interrupting"); setError("");
     try { await interrupt(live.generation, live.threadId, live.turnId); }
-    catch (e) { setError(String(e)); }
-    finally { setBusy(""); }
+    catch (e) { if (ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready) setError(String(e)); }
+    finally { controlPending.current = false; setBusy(""); }
   };
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
   const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
@@ -1181,6 +1192,12 @@ export function App() {
   const homePendingRef = useRef(false);
   const currentHost = useRef(host);
   currentHost.current = host;
+  const actionSource = useRef({ identity: "", epoch: 0 });
+  const actionSourceIdentity = JSON.stringify([host?.generation, host?.state, host?.generationClosed]);
+  if (actionSource.current.identity !== actionSourceIdentity) actionSource.current = { identity: actionSourceIdentity, epoch: actionSource.current.epoch + 1 };
+  const [conversationOutcome, setConversationOutcome] = useState<{
+    command: string; args: Json; native: "pending" | "acknowledged" | "failed"; error?: string; observationLimit?: string;
+  } | null>(null);
   const endpointRevision = useRef(0);
   const endpointOperation = useRef(0);
   const endpointMounted = useRef(true);
@@ -1593,16 +1610,34 @@ export function App() {
     }
     setHost(snapshot);
   };
-  const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>) => {
-    let failed = false;
-    let failure: unknown;
+  const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>): Promise<boolean> => {
+    // Capture before native dispatch, not after it. Epochs also invalidate an
+    // away-and-back choice whose final generation/thread happens to match.
+    const sourceAtDispatch = currentHost.current;
+    const choiceRevision = threadChoiceRevision.current, homeEpoch = chooserHome.current.epoch, sourceEpoch = actionSource.current.epoch;
+    const current = () => threadChoiceRevision.current === choiceRevision && chooserHome.current.epoch === homeEpoch
+      && actionSource.current.epoch === sourceEpoch && !homePendingRef.current
+      && sameActivityGeneration(currentHost.current?.generation, args.generation);
+    const original = { command, args: structuredClone(args) };
+    setConversationOutcome({ ...original, native: "pending" });
+    let acknowledged = false, error: string | undefined;
+    try { await invoke(command, args); acknowledged = true; }
+    catch (e) { error = String(e); }
+    const outcome = { ...original, native: acknowledged ? "acknowledged" as const : "failed" as const, error };
+    // The result is readable while its optional observer read waits, and keeps
+    // the original source even when the selected conversation has changed.
+    setConversationOutcome(outcome);
     try {
-      await invoke(command, args);
-      setMessage(command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events." : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment.");
-    } catch (e) { failed = true; failure = e; setMessage(`${command}: ${String(e)}`); }
-    try { setHost(await invoke("host_status")); }
-    catch (e) { setMessage(`${command}: ${failed ? "request failed" : "native response received"}; view refresh failed: ${String(e)}`); }
-    if (failed) throw failure;
+      if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
+      const snapshot = await invoke<Json>("host_status");
+      if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
+        throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
+      }
+      setHost(snapshot);
+    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: String(e) }); }
+    // A refusal never clears text. A skipped/failed read never rewrites the
+    // native result, and a superseded acknowledgment never clears a new owner.
+    return acknowledged && current();
   };
 
   const readOriginalRequest: ReadRequestCustody = async r => {
@@ -1950,7 +1985,7 @@ export function App() {
               setHost(await invoke("host_status"));
           }
       }} steer={async (generation, threadId, expectedTurnId, text) => {
-          await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
+          return await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
@@ -1966,8 +2001,16 @@ export function App() {
           }
           setHost(snapshot);
       }} interrupt={async (generation, threadId, turnId) => {
-          await conversationAction("conversation_interrupt", { generation, threadId, turnId });
+          return await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }}/>
+            {conversationOutcome && <div aria-label="Original conversation action outcome">
+              <p>Original {conversationOutcome.command === "conversation_steer_text" ? "steering" : "interrupt"} request · conversation {conversationOutcome.args.threadId} · Home {conversationOutcome.args.generation?.home} · App session {conversationOutcome.args.generation?.appSession} · spawn {conversationOutcome.args.generation?.spawnCounter} · turn {conversationOutcome.args.expectedTurnId ?? conversationOutcome.args.turnId}.</p>
+              <p role="status">{conversationOutcome.native === "pending" ? "Waiting for the original native response."
+                : conversationOutcome.native === "failed" ? `Original native request failed: ${conversationOutcome.error}`
+                : conversationOutcome.command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events."
+                : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment."} No automatic retry.</p>
+              {conversationOutcome.observationLimit && <p role="status">{conversationOutcome.observationLimit}. The original command outcome is unchanged.</p>}
+            </div>}
             <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
               <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
           try {

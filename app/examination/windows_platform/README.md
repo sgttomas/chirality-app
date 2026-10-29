@@ -179,3 +179,10 @@ an ordered fixture binding record, not the production Rust custody capability.
 S01/sidecars/durability, App native controls and supplier evidence remain deferred.
 The installed managed runtime's actual machine/native machine and pointer width
 are logged; ARM64/AnyCPU evidence does not establish Windows-x64 App execution.
+
+The separate [P-03 source candidate](../../../execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md)
+adds `P03Fixture.cs`, `run_hosted_p03.py`, `verify_p03.py` and the supplemental
+`windows-stop-fixtures.yml`. Native P-03 remains NOT RUN. Host-only checks:
+`python3 -B -m unittest discover -s app/examination/windows_platform -p test_p03.py -v`
+from the repository root with a fresh scratch CODEX_HOME. This does not execute
+or requalify P-01/P-02 and does not use any VM or supplier.
