@@ -66,8 +66,19 @@ operations. Do not weaken or bypass a check to claim portability.
 
 App Agent 0: [Chirality App for windows](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a).
 Peer: [SWBPIPE for windows](t3-thread://v1/533ebf43-c41f-41e8-bfd7-91517fff8a7e).
-Agent 0 sent the initial coordination proposal on 2026-10-28. Delivery is
-established; agreement or adoption is not yet established.
+Agent 0 sent the initial coordination proposal on 2026-10-28. SWBPIPE Agent 0
+returned a compatible feasibility plan and proposed the App manager as the
+single provisioning writer for a common Windows guest/toolchain. App Agent 0
+accepted that allocation: inventory first, SWB requirements supplied by its
+manager, separate guest-native checkouts/build directories, and no duplicate
+installers or uncoordinated VM mutations. Download authorization remains
+required. This resource agreement establishes no technical contract adoption.
+
+SWBPIPE reported an arm64 Mac host with 128 GiB RAM; its VM inventory and
+Windows toolchain/execution evidence had not yet returned. Treat this as a
+peer report until independently observed. Both coordinators propose x64 as the
+primary Windows verification target, with Parallels Arm/emulated-x64 evidence
+labelled separately; no public architecture/support commitment was made.
 
 Align before dependent implementation on Windows architecture/evidence targets,
 shared VM/toolchain scheduling, process ownership and termination semantics,
