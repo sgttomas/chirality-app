@@ -1,15 +1,16 @@
 # Supplemental hosted Windows process fixture lane
 
-Status: **PENDING NATIVE CI — NOT RUN**. This record prepares a separately
-attributed disposable GitHub-hosted native-x64 P01/P02 lane. No native outcome,
-compiler success, cleanup observation or App qualification is claimed. Parent
+Status: **FIRST NATIVE ATTEMPT FAILED AT P02-A; REPAIR RERUN PENDING**. The
+source-bound first attempt and partial observations are appended below; the
+earlier preparation/checks retain their original scope. This is a separately
+attributed disposable GitHub-hosted native-x64 P01/P02 lane. Parent
 Agent 0 owns source integration/publication and later appending actual run
 identity/results. No push, PR or remote execution is part of this local return.
 
 ## Profile and source basis
 
 The source-only starting point is `de122cc4a768ea8ae5ebb9bbba11a169aad9d94e`.
-The retained `ProcessFixture.cs` is unchanged (344 lines, SHA-256
+At that initial source-only point, `ProcessFixture.cs` was unchanged (344 lines, SHA-256
 `a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646`),
 as is `verify_results.py`. Prior harness scrutiny at `0e3db4a5` and the
 unrun/held guest route remain documented in
@@ -108,7 +109,8 @@ owner home, private VM identity or complete environment dump is uploaded.
 Actual run fields to append after parent publication: Git SHA, Actions run URL
 and attempt, image version, artifact digest/identity, observed native identities,
 compiler/runtime versions, five case results, cleanup evidence, and any error.
-Until then all five cases and compiler/native cleanup observations are NOT RUN.
+Those fields were initially NOT RUN. The actual first-attempt observations are
+recorded in the follow-up below; they do not establish a passing full suite.
 
 ## Reconciliation and limits
 
@@ -162,3 +164,44 @@ small compatibility repairs inspected and checked by the Type1 owner; no
 second independent review or observed Windows compiler success is implied.
 Post-repair: eleven hosted regression methods pass, including actual Git
 checkout coverage of all bound inputs; native execution remains NOT RUN.
+
+## First native attempt and targeted fixture repair
+
+[Actions run 40835385560](https://github.com/sgttomas/chirality-app/actions/runs/40835385560)
+executed source `47edcee47eb04ec3d9b5a8445115e622e652fc16` on hosted
+Windows Server 2022. The retained [result](hosted-windows-process-fixture-evidence/47edcee4/result.json)
+and [raw native trace](hosted-windows-process-fixture-evidence/47edcee4/native.stdout)
+are exact artifact bytes. Agent 0 compared all five recorded source SHA-256s
+with that commit's blobs and both native-channel digests with the result.
+Artifact ID was 12880158540; the upload reported ZIP digest
+`d784d106dc6d93ec9f168d9401e2edfbacb469ea9d3386010039b3e76b9acf39`.
+The digest is a provider report, not an independently hashed local ZIP.
+
+Preinstalled Python 3.12.10 observed native AMD64 (processMachine 0,
+nativeMachine 0x8664, pointer width 8); Framework C# compiler 4.8.9363.0
+compiled successfully. The native trace independently reports the same ISA.
+The managed Environment.OSVersion compatibility value is retained raw and
+is not the OS-build authority. Actual observations:
+
+- P01-positive emitted PASS with descendant inner/safety membership and
+  observed case cleanup.
+- P01-negative emitted REJECT with descendant outside the original inner Job
+  but inside safety containment, followed by observed case cleanup.
+- P02-A failed: leader still live, exit-code query 259 and pipe EOF false.
+- P02-B and P02-C were not reached.
+- The failure path observed every retained process HANDLE signaled and safety
+  Job active zero. This is that attempt's cleanup, not runner-death proof.
+
+The adapter correctly failed the suite on native exit 2; no partial trace is
+accepted as a complete pass. The fixture assigns stdout and stderr to one
+pipe, while A originally closed only stdout. The small root-owned repair
+closes every distinct helper-side standard-output/error reference and logs
+their identities before closure; the EOF/live-process assertion, original
+deadline, membership verifier and cleanup requirements are unchanged. Its
+C# SHA-256 is `77b7359bbc0f61c7a741d609a743028de2bfae929044248564808ea95276efaa`. This is a local
+fixture repair, not a new independent review or a successful rerun.
+
+Result-only documentation is removed from the supplemental workflow's path
+triggers to avoid rerunning native cases solely to append their evidence.
+Workflow/source/attribute changes still select the lane; required App/Mac
+checks are unchanged. The exact repaired candidate must now run on Windows.

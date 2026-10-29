@@ -6,7 +6,6 @@ on:
       - .github/workflows/windows-process-fixtures.yml
       - .gitattributes
       - app/examination/windows_platform/**
-      - execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md
   workflow_dispatch:
 
 permissions:

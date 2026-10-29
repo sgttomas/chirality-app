@@ -282,8 +282,16 @@ public static class ProcessFixture {
         // Timer self-expiry is independent of private ack waits or host connection.
         Deadline=new Timer(delegate { ExitProcess(91); },null,12000,Timeout.Infinite);
         if(mode=="leaf") { Emit("EFFECT","invented-nonce-effect"); Thread.Sleep(11000); return; }
+        if(mode=="A") {
+            // Both standard outputs were assigned the same pipe. Close every
+            // distinct helper-side reference before asking the parent for EOF.
+            IntPtr output=GetStdHandle(-11),error=GetStdHandle(-12);
+            Emit("ENTRY","helper-entry;stdout="+output+";stderr="+error);
+            Check(CloseHandle(output),"close stdout");
+            if(error!=output) Check(CloseHandle(error),"close stderr output alias");
+            Thread.Sleep(11000); return;
+        }
         Emit("ENTRY","helper-entry");
-        if(mode=="A") { Check(CloseHandle(GetStdHandle(-11)),"close stdout"); Thread.Sleep(11000); return; }
         if(mode=="C") { ExitProcess(259); return; }
         Reader input=new Reader(GetStdHandle(-10));
         Emit("PRE","before-actual-CreateProcessW"); Ack(input,"CREATE");
