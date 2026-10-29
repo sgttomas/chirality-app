@@ -6,7 +6,24 @@ guest. App's WORKING_ITEMS manager owns this proposal and any subsequently
 authorized common-guest provisioning. Agent 0 carries the owner decision and
 cross-project agreement. This document does not authorize execution.
 
-## Superseding owner route — 2026-10-29
+## Current owner route — local VM work on hold
+
+The owner's later correction supersedes the separate-local-VM route: they do
+not intend to run a second local Windows instance. No further image acquisition,
+attachment, setup, boot, provisioning or guest operation is authorized under
+that earlier route. Preserve the existing dormant hardware and private binding
+without deleting or changing them. The CAEPIPE guest remains permanently
+excluded. No guest was contacted to record this correction.
+
+Continue the current work through separately attributed hosted Windows CI;
+local installation media and tool provisioning are not prerequisites for that
+work. If a future concrete requirement cannot be met there, first present the
+exact missing capability and cloud options to the owner. This authorizes no
+cloud acquisition, provisioning or spend and changes no product/native
+qualification requirement. The VS integrity hold remains. Earlier preparation,
+measurements and acquisition proposals below retain their historical scope.
+
+## Earlier separate-guest route — superseded
 
 The owner selected a **new, separate Windows build guest**. The former
 inventoried guest is the CAEPIPE validation VM and is permanently off-limits:
@@ -38,7 +55,7 @@ never booted, without media or Windows installed. Official media access is
 blocked; no normal ISO locator/size/actual file hash is available. The owner's
 present inability to obtain it manually does not authorize using CAEPIPE.
 
-## Decision proposed
+## Historical decision proposed — not current execution authority
 
 Use a separately created Windows ARM64 build guest, **native ARM64 development tools and
 x64 application output**, for development and explicitly labelled emulated-x64

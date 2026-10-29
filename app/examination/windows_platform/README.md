@@ -65,8 +65,12 @@ their retention nor establishes production App/supplier behavior.
 **Guest access is held.** The former target is the owner's CAEPIPE VM and is
 permanently off-limits. All guest modes refuse before binding, contact or scratch.
 A separate owner-authorized build guest (16 GiB RAM) has been created and
-privately bound; it remains stopped without installation media or Windows.
-Future use must respect exclusive-window scheduling. No VM
+privately bound; it remains dormant without installation media or Windows.
+The owner superseded the second-local-instance route: no further image
+acquisition, setup, boot or provisioning, and preserve the hardware without
+deleting it. Hosted Windows CI is the current route. Any future unmet hosted
+capability and cloud options go to the owner before acquisition/spend; cloud
+provisioning is not authorized. No VM
 identifier is committed. A ready/unlocked legacy guest is not execution authority.
 The older observations below describe historical preparation, not a current route.
 
@@ -174,8 +178,18 @@ unknown; no PID/name cleanup is permitted. At most one leader and one descendant
 run concurrently. No crash/last-close experiment is included in this tranche.
 
 P01 setup/assignment/resume failure injection, incompatible outer Job testing,
-P03 full-generation Stop, and P04/P05 remain unrun. The invented generation is
+P03 in this held guest profile, and P04/P05 remain unrun. The invented generation is
 an ordered fixture binding record, not the production Rust custody capability.
 S01/sidecars/durability, App native controls and supplier evidence remain deferred.
 The installed managed runtime's actual machine/native machine and pointer width
 are logged; ARM64/AnyCPU evidence does not establish Windows-x64 App execution.
+
+The separate [P-03 source candidate](../../../execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md)
+adds `P03Fixture.cs`, `run_hosted_p03.py`, `verify_p03.py` and the supplemental
+`windows-stop-fixtures.yml`. Hosted native-AMD64 P-03 run `40922543448` at
+`0aec700d` completed the positive case, wrong-slot negative and missing-observation
+control with observed cleanup. This synthetic pass is not a production Stop or
+App qualification result. Host-only checks:
+`python3 -B -m unittest discover -s app/examination/windows_platform -p test_p03.py -v`
+from the repository root with a fresh scratch CODEX_HOME. This does not execute
+or requalify P-01/P-02 and does not use any VM or supplier.
