@@ -13,6 +13,16 @@ preparation. All Type 2 TASKs/reviewers use `gpt-6.1-sol`, medium effort and
 standard service (`reasoningEffort: medium`, `serviceTier: default`). These are
 development-agent settings, not product model/provider selections.
 
+The owner's 2026-10-30 handoff direction selects a fresh project Agent 0 from
+the standard init entry. macOS remains the release baseline; App Agent 0 owns
+shared code and design. Windows continues as Type 1 work within that same
+project loop, adding implementations at native boundaries while preserving
+macOS checks. The separate Windows Agent 0 session is retired; its historical
+session link is not an active dispatch route. Preserve unfinished work in
+reviewable PRs and integrate and reconcile contributions before cleaning up
+their owned branches, worktrees and scratch. Keep named recovery inputs and
+evidence still needed by consumers.
+
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Design/`
 and `deliverable.yaml` conventions. Reconcile changed implementation meaning
@@ -91,7 +101,10 @@ releases and lifting holds remain owner decisions.
 Use isolated migration branches and PRs. The migration must preserve existing
 release tags and imported ancestry through merge commits; do not squash it.
 No force pushes, protection bypasses, permission changes or release actions.
-SWBPIPE remains in `sgttomas/chirality` and is outside this repository's scope.
+SWBPIPE implementation is outside this repository's scope. The owner directed
+its move from `sgttomas/chirality` to `sgttomas/SWBPIPE`; bind the actual receiving
+revision before relying on the new location. Historical Chirality commits and
+catalog provenance retain their original identities.
 
 Use a fresh scratch Codex home for development/tests, never `~/.codex`.
 Do not sign in or use credentials without the owner. Build offline by default;

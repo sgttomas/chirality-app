@@ -2,7 +2,7 @@
 
 ## Current release pathway
 
-Updated 2026-10-29. HELP_HUMAN/Agent 0 owns purpose, cross-front sequencing,
+Updated 2026-10-30. HELP_HUMAN/Agent 0 owns purpose, cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
 the PRD and owning deliverables. Historical selections below retain their
@@ -16,6 +16,14 @@ the owner's replacement decision. Replacement, public release and professional
 reliance are distinct acts. Domains follows a later increment; PEC adds no
 delivery prerequisite. Windows development is authorized separately; Windows
 shipping is unselected and adds no Mac release gate.
+
+The owner directed a project handoff on 2026-10-30: after SWBPIPE's repository
+cutover, each project starts a fresh Agent 0 through its standard init entry.
+macOS is the App release baseline. App Agent 0 owns shared code and design;
+Windows continues as Type 1 work within that project loop, implementing native
+boundaries while preserving macOS checks. The separate Windows Agent 0 session
+is retired. This changes development ownership, not product commitments,
+release authority or the existing VM and acquisition holds.
 
 The owner included embedded integration in SWBPIPE v1.0; RT-E1/criterion 17
 was approved and merged in Chirality #1732 at
@@ -40,41 +48,60 @@ direction; a component pass does not silently satisfy or replace them.
   then distribution readiness. One coordinated offline unsigned build is now
   retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
   identity support and input/bundle correspondence, not native qualification.
-  Next: the prepared two-launch setup/save/relaunch witness awaits separate
-  owner authorization and GUI presence. While held, prepare the exact current
-  supplier-terms inquiry/action without sending it externally. Attested resource
-  placement does not supply installed custody; production successor startup
-  still requires its actual issuer/evidence.
+  Next: preserve the source-bound headless setup/save/fresh-start result and
+  the failed native-selector attempt in a reviewable evidence contribution.
+  The owner authorized unattended agent operation of the bounded setup/relaunch
+  check, including actual UI confirmation and quit; attendance and manual entry
+  of synthetic test paths are no longer gates. Automated actions must retain
+  their agent attribution and do not establish personal human acts. Routine
+  headless tests may exercise production setup/storage joins with injected
+  presentation and IPC; they do not qualify AppKit/WebKit, native dialogs or
+  supplier startup. Live continuation still requires an actual coordinated
+  resource interval, current artifact/input/state checks and the agreed
+  containment. Preserve failed attempts and partial cache state; do not delete
+  state to manufacture freshness. The supplier-terms action remains a proposal,
+  with no external message authorized. Attested resource placement does not
+  supply installed custody; production successor startup still requires its
+  actual issuer/evidence.
 - **App-side joined delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:e263974c69d95c07f824f21aba5371b4bdd0a58c8653fb3a8457cecd1441adf4>.
   Own App receiving interfaces, source-bound host evidence and reconciliation
-  with DEL-09-06/09-07. PR #14's source applicability repair is merged; PR #16
-  prepares current profile-admission and first-desktop-trace receiving checks.
+  with DEL-09-06/09-07. PRs #14 and #16 merged the source applicability repair
+  and current profile-admission/first-desktop-trace receiving preparation.
   Next: receive host product-profile integration, activation/cleanup proof and
   actual desktop evidence. No missing App implementation has been identified
   for the host fixture. The three proposed acceptance-staging changes remain
   owner decisions. Preserve historical preparation and frozen catalog origin;
   repin only when current canonical bytes or meaning require it.
-- **SWBPIPE implementation counterpart:**
+- **SWBPIPE implementation counterpart at the cutover:**
   [SWBPIPE Type 1](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028).
-  Own host catalog adoption, adapter/dispatcher, session bridge, queue and
-  functional panel. It supplies exact merged source, live-provider and cleanup
-  evidence. Shared load and reserved SWBPIPE choices route through it to its
-  Agent 0. Do not duplicate its supplier acquisition or EOF/app-death fixtures.
-- **Windows counterpart:**
-  [Windows Agent 0](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a).
-  Own Windows fixtures, platform evidence and preservation of dormant private
-  build-guest hardware/binding. Earlier local-guest/media approval is superseded
-  and on hold: no acquisition, setup, boot or provisioning. Hosted CI is the
+  Host catalog adoption, adapter/dispatcher, session bridge, queue and functional
+  panel remain host-owned. Implementation is paused for the owner-directed move
+  to `sgttomas/SWBPIPE`; this route has supplied separate App resource windows,
+  not authority to resume host implementation. The incoming App Agent 0 must
+  bind the actual post-cutover source and active counterpart before relying on
+  the new route. Historical source pins are not automatically repinned. Do not
+  duplicate supplier acquisition or EOF/app-death fixtures.
+- **Windows Type 1 continuation:** assigned within the incoming App Agent 0's
+  project loop. The [retired Windows Agent 0 session](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a)
+  retains its historical PR and evidence provenance; it is not the next work
+  dispatch route. PRs #9 and #13 are merged. Windows fixtures and native-boundary
+  implementations must preserve macOS checks and shared design ownership.
+  Preserve the dormant private build-guest hardware/binding without operations.
+  Earlier local-guest/media approval is superseded and on hold: no acquisition,
+  setup, boot or provisioning. Hosted CI is the
   current sufficient P-03 route; media availability/CLEAR cannot resume a guest.
-  Current P-03 scope is hosted-only full-generation Stop custody; it is disjoint
-  from these App fronts. Its native fixture passes do not establish product
-  App, guest namespace, SQLite or durability qualification.
+  Merged P-03 evidence covers hosted-only full-generation Stop custody. These
+  fixture passes do not establish product App, guest namespace, SQLite or
+  durability qualification.
 
-The Type 1 managers have dedicated top-level T3 sessions and continuing delivery
-ownership. They send substantive returns and concrete obstacles to
-[App Agent 0](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619).
-They retain ordinary repair and integration-preparation responsibility after a
-slice completes; Agent 0 owns final App merges. Type 2 TASKs, reviewers and test
+The named App Type 1 managers retain their already assigned delivery and
+integration-preparation work through this transition; the incoming Agent 0
+reconciles actual PRs, retained inputs and live assignments before issuing more
+work. [The outgoing App Agent 0 session](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619)
+remains the return route for those existing assignments during closure, not a
+permanent identity for future project ownership. No new Agent 0 session ID or
+Windows manager assignment is implied here. Final App merges belong to the
+project Agent 0. Type 2 TASKs, reviewers and test
 executors use `gpt-6.1-sol`, medium effort, standard service
 (`reasoningEffort: medium`, `serviceTier: default`). Type 1 choices are separate.
 
@@ -108,7 +135,7 @@ parents/tree and keep needed evidence before cleaning owned integrated
 branches/worktrees/scratch. Specific ownership/merge/resource agreements live
 in affected PR descriptions; there is no blanket reservation of common files.
 
-PRs #9, #10 and #11 merged in order. Main at this transition is
+PRs #9, #10 and #11 merged in order. Main at that earlier transition was
 `c5b33e37832364eaa04360540ea5e31bc08a9168`; #10 supplied the tested
 steering/interrupt supersession repair and #11 the catalog/receiving specimens.
 The frozen App catalog origin remains `e1e3f461` / `64aad707…`; current

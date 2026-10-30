@@ -6,6 +6,11 @@ for shared-library selection and current constraints. HELP_HUMAN coordinates
 the dedicated manager sessions through T3 chat; managers retain delivery
 ownership through repairs, reconciliation, review and cleanup.
 
+At the owner's 2026-10-30 transition, start the fresh App Agent 0 through this
+entry. macOS is the release baseline; Windows is a Type 1 contribution under
+the same project Agent 0, who owns shared code and design. Use actual current
+PRs and assigned manager routes; do not dispatch to a retired Windows session.
+
 Chirality makes a general agent act within and for a host application; its own
 workflow-authoring App is the exemplar. Work at this repository root.
 Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
