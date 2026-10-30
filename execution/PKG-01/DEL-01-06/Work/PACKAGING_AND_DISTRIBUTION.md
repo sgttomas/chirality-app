@@ -736,7 +736,7 @@ The actual implementation still invokes local stock-Codex-managed
 selected. Repository MIT licensing does not establish the business offering.
 
 The owner selected the initial macOS offering on 2026-10-30: “Free, locally run,
-open-source App using the current sign-in flow.” This resolves classification
+open-source App using the current sign-in flow”. This resolves classification
 only, not applicability or terms/release approval. The remaining concrete
 decision is the draft's proposed acceptance of the retained official continuation
 as applicable to that exact offering and unchanged local stock-Codex-managed

@@ -58,7 +58,8 @@ These are source facts, not live authentication qualification.
 ## Selected first offering and retained source, 2026-10-30
 
 The owner answered the initial macOS offering question: **“Free, locally run,
-open-source App using the current sign-in flow.”** This is an owner selection,
+open-source App using the current sign-in flow”** (selected from the presented
+options). This is an owner selection,
 not an inference from MIT licensing. Source custody is the actual user answer
 at position 618 in
 [App Agent 0's thread](t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/0f35714c-46fb-45d8-9c97-c927c6587c1e),
@@ -79,6 +80,12 @@ remain usable if that full response is unavailable; they do not claim to retain
 the entire page. No statement publication date was established. The response's
 Last-Modified header is recorded as HTTP metadata, not a publication date.
 The 2026-10-29 SIWC findings above were not refreshed or adopted.
+Retain the full response at
+`/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/openai-app-server.html`
+as a named recovery input until the owner's retention is recorded or a
+replacement preserved copy is verified and its consumers release this input.
+It is an ordinary saved file, not immutable storage; its recorded digest permits
+change detection. The checked-in excerpts preserve the cited content separately.
 
 The full retained notice begins: “If you’ve built a local or open-source
 application using Codex app-server authentication, you can continue using it,
@@ -92,7 +99,18 @@ The source-to-offering comparison for the owner's disposition is:
 - The owner-selected App is free, locally run and open source; the notice's
   continuation addresses an existing local or open-source app using this auth.
   This proposal covers only that selected initial macOS offering, not a future
-  commercial or hosted service.
+  commercial or hosted service. The owner's free/local/open-source selection is
+  the proposed basis for treating this offering as outside the stated commercial
+  or hosted exclusion; “free” alone is not substituted for that exclusion.
+- Existing implementation is evidenced by Git
+  `67aecd7fe7ab92bd0359784607f0037eeb5cf235` (2026-10-05), which adds
+  `hosting.rs::account_oauth_start` with both managed-login modes; the earlier
+  2026-10-29 source finding in this draft also reported the continuation notice.
+  These facts establish pre-existing App source, not a prior public release or
+  supplier cutoff. The notice supplies no cutoff or known publication date.
+  Whether “continue using it” covers this App's **first public distribution**
+  is explicitly part of the owner's pending applicability judgment, not a new
+  automatic supplier-inquiry gate.
 - Actual source `fdcf608fb57c4f8299c7440ffc56519314046cff`,
   `app/src-tauri/src/hosting.rs::account_oauth_start`, sends
   `account/login/start` with `chatgpt` or `chatgptDeviceCode`. The retained page
@@ -118,7 +136,9 @@ Proposed decision, **not yet made**:
 > using the unchanged local stock-Codex-managed sign-in—I obtain and retain the
 > identified 2026-10-30 official-publication capture above and accept its local/
 > open-source continuation as the applicable written supplier position for this
-> scope. I approve the exact OLD→NEW clauses and necessary correspondence below,
+> scope, including this App's first public distribution, subject to its stated
+> exclusion of commercial or hosted services. Its Sign in with ChatGPT migration
+> recommendation is noted, not adopted. I approve the exact OLD→NEW clauses and necessary correspondence below,
 > and direct preparation of the versioned terms-record successor they describe.
 > No additional product-specific reply is required for this disposition. This
 > does not approve public distribution, replace v3.0.1, change authentication,
