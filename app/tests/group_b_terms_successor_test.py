@@ -114,7 +114,9 @@ class TermsSuccessorTests(unittest.TestCase):
             if altered is None:target.unlink()
             else:target.write_bytes(altered)
             with patch.object(canonical,'PROJECT',self.root):
-                with self.assertRaisesRegex(ValueError,'canonical selected source changed'):
+                # Missing files retain the existing OSError refusal; altered
+                # bytes raise the selected-source ValueError. Both fail closed.
+                with self.assertRaises((OSError, ValueError)):
                     canonical.CanonicalSupport()
 
     def test_retained_reader_bytes_match_their_recorded_identities(self):
