@@ -47,10 +47,8 @@ On another machine, use an explicitly selected checkout of
 and `.agents/skills/` references in this section against that library, not this
 App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
 workflow and skill bodies are on demand. Roles and methods come from these local
-instructions and the selected library, not host-side agent definitions. Roles
-grant no additional host permissions; use actual host capabilities and return
-mechanisms. Development-agent model, effort and service-tier settings belong
-only in session steering, never in AGENTS.md or other governing repository text.
+instructions and the selected library, not host-side agent definitions.
+Roles grant no host permissions; model/effort choices come from session steering.
 
 Use the library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when
 coordinating related contributions into a usable result. Other methods are
