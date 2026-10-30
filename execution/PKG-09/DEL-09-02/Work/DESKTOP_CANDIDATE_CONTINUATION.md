@@ -1,6 +1,6 @@
 # Current desktop candidate continuation
 
-Native setup/save/normal quit passed at 2026-10-30 21:00:48–21:00:57 UTC on
+Original-candidate native setup/save/normal quit passed at 2026-10-30 21:00:48–21:00:57 UTC on
 the retained candidate. The actual native confirmation was an agent action.
 Supplier startup, saved-request relaunch and the complete joined qualification
 remain unobserved by this contribution.
@@ -29,9 +29,10 @@ is `target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).a
 The new identifier is `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`.
 Its three declared App-data/WebKit/cache locations were absent at identification.
 
-Successor native A/B have **not run**. Fresh invented inputs and the
-[successor A-only adapter](native_successor_setup.py) are prepared for independent
-scrutiny. Six invented-file admission tests and a complete bundle inventory
+Successor native A **passed** on its first attempt at
+2026-10-30 22:28:05.925–22:28:16.912 UTC. B has **not run**.
+The [successor A-only adapter](native_successor_setup.py) uses fresh invented
+inputs. Seven invented-file admission tests and a complete bundle inventory
 recheck passed. The adapter reuses the maintained A execution, supervision,
 settlement, form and AX code, binding its dependencies and explicit successor
 record/input bytes. It retains fork/exec/network/home containment and actual
@@ -47,6 +48,26 @@ base admission path and a second execution preserving the first snapshot.
 B remains a separately reviewed fork-admitting route with actual
 owned-process settlement and explicit detached-helper limits. No workflow,
 recovery, access-mode or personal-human-act outcome follows from the build.
+
+The [native A result](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/result.json)
+retains full prelaunch inventory, native snapshots, owned-window captures,
+confirmation, saved bindings, controller sources and SHA256SUMS. The agent
+confirmed the actual native setup question at 22:28:16.227 UTC. The saved
+version-1 request's SHA-256 is
+`ef606ee5cf6dfe3bcd9b6c2b150a89e7a2710c6289c56d180c8e6ea5dd7705de`;
+its full native references, private metadata and three shared links were
+validated. Normal native Quit reaped the original App with code 0, without
+forced termination, guard abort or logging failure. No separate Quit question
+was observed in this idle setup state. No supplier ran under A's deny-fork
+and exact-App-exec policy; the repaired supplier-settlement path is not
+qualified by this idle quit.
+
+Retain successful root
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/` and the
+new saved App-data/account state as B input. Never rerun A or remove that state
+to manufacture absence. Setup and Quit were agent actions under owner
+direction, not personally performed human acts. The raw `preview.txt` retains
+rendered trailing spaces; its bytes and digests are not trimmed.
 
 The packaging/distribution manager may inspect this exact bundle and its
 records read-only for inclusion/readiness work; that lane does not mutate the
