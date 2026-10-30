@@ -1520,7 +1520,7 @@ impl Host {
         let successor_reference = if let Some(p) = &prepared {
             let store = self.distribution_store.lock().unwrap().clone();
             match store {
-                Some(Ok(store)) => match (|| { p.revalidate()?; let (observation,facts)=p.observation(cfg,prospective.as_ref().unwrap()); store.publish_observed(prospective.as_ref().unwrap(),observation,facts) })() {
+                Some(Ok(store)) => match (|| { p.revalidate()?; let (observation,facts)=p.observation(cfg,prospective.as_ref().unwrap()); store.publish_observed_with_installed(prospective.as_ref().unwrap(),observation,facts,p.installed.as_ref()) })() {
                     Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, e),
                 },
                 Some(Err(e)) => return self.refuse_successor(attempt, e),
@@ -1588,7 +1588,7 @@ impl Host {
                 json!({"verificationResult": result,
                        "reason": "U-06 development run: unverified distribution, not the pinned supplier"})
             };
-            i.supplier_standing = Some(if verified { "verified" } else { "unverified-development" }.into());
+            i.supplier_standing = Some(successor::supplier_standing(verified,prepared.is_some()).into());
             self.lt(&mut i, if verified { "LT-04" } else { "LT-24" },
                 if verified { "verification-passed" } else { "development-start-authorized" }, "spawning", extra);
             i.version_identity = Some(json!({

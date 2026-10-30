@@ -322,8 +322,8 @@ impl Store {
     }
     fn generation(&self,lease:&NamespaceLease<'_>,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;lease.contains_home_id(g["home"].as_str().ok_or("missing home")?)}
     /// Development evidence only: no caller can turn it into a qualified closure.
-    /// Selected-closure transport machinery is a separate implementation residual;
-    /// production still lacks an installed-custody issuer.
+    /// S4 typed installed observation and selected-closure publication are separate;
+    /// this legacy attempt envelope cannot confer production authority.
     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
         let lease=self.authority.lease()?;
         self.generation(&lease,g)?;

@@ -183,3 +183,14 @@ S5/OI-011. Historical S4 packets remain correspondence evidence for their own
 producer identities. A new compiled cohort needs its actual executable/candidate
 and packet identities; unrelated current Host/Design bytes do not renew those
 historical packets.
+
+## S4 installed-integrity implementation (2026-10-30)
+
+[S4-INSTALLED-INTEGRITY-01](../INSTALLED_INTEGRITY_S4.md) adds the None-gated
+compiled publisher requirement, typed own-bundle/process observer and new
+observed/lifecycle S4 evidence semantics. The three S4 schemas are a separately
+named extension, not a rewrite of PUBLICATION.json or its frozen S1 cohort.
+Production still refuses with the publisher requirement None. Complete EXP/SQ
+and package receiving adoption and S5 native qualification remain open. The
+legacy reader still rejects custody pass; no serialized evidence grants live
+start authority. No external installed issuer is required by this mechanism.
