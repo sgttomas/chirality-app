@@ -1,12 +1,13 @@
 # OpenAI distributed sign-in: current source finding and owner draft
 
-Read-only supplier-documentation check, 2026-10-29. Draft for the owner; not
+Read-only supplier-documentation findings, 2026-10-29, with a bounded app-server
+source refresh and owner offering selection recorded 2026-10-30. Draft for the owner; not
 sent, not a registration, legal conclusion, changed commitment or supplier
 approval of this product. `Evidence/PKG/terms/OpenAI.json` remains `unresolved`
 and `distribution_decision: not_made`; OI-007/DEP-004/SOW-117 remain unchanged.
 This finding is separate from PR15 and its immutable candidate evidence.
 
-## What the current official sources establish
+## Official sources examined on 2026-10-29
 
 1. [Codex app-server, Auth endpoints](https://learn.chatgpt.com/docs/app-server#auth-endpoints)
    expressly says local or open-source applications using app-server
@@ -54,22 +55,80 @@ controls/presentation; it does not currently implement SIWC dynamic registration
 or its own token exchange. API-key and local-provider modes are separate.
 These are source facts, not live authentication qualification.
 
-## First-release disposition, not a new inquiry gate
+## Selected first offering and retained source, 2026-10-30
 
-Agent0/owner first confirms the actual first offering and unchanged existing
-managed-login flow. If it is free/local/OSS within the published continuation,
-the proposed route is to accept that identified official statement as the
-written-position evidence, retain its exact source/date/scope and separately
-assess actual bundled-component notices. A possible official contact is not a
-reason to demand a project-specific reply. Commercial/hosted or changed-auth
-scope uses its applicable documented route only when actually selected.
+The owner answered the initial macOS offering question: **“Free, locally run,
+open-source App using the current sign-in flow.”** This is an owner selection,
+not an inference from MIT licensing. Source custody is the actual user answer
+at position 618 in
+[App Agent 0's thread](t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/0f35714c-46fb-45d8-9c97-c927c6587c1e),
+timestamp `2026-10-30T22:26:28.073Z`, read by this recorder and relayed to this
+lane by Agent 0. It selects the offering/current flow only; it does not approve
+the proposed clauses, a terms-record successor, applicability or public release.
 
-The previous external inquiry is optional, **only for a real unanswered issue**:
-“Chirality App uses the existing local stock-Codex managed sign-in flow.
-Our selected offering is [actual offering]. The published local/OSS continuation
-states [exact applicable scope]. Please clarify [one specific unresolved
-condition], and identify the authoritative written basis.” Nothing is sent,
-registered or signed in by preparing this draft.
+The packaging recorder fetched
+[Auth endpoints](https://learn.chatgpt.com/docs/app-server#auth-endpoints)
+over HTTPS without credentials at `2026-10-30T22:27:28.120160+00:00`.
+[`openai-app-server-publication-20261030.json`](openai-app-server-publication-20261030.json)
+retains the complete continuation paragraph and managed-login list item as
+exact HTML substrings and decoded text, source URLs, retrieval metadata and
+hashes. Full HTTP response: 982,933 bytes, SHA-256
+`45066e6ad75795ef8ff658c9a40540efbfcc843e38bcee9d0e2cf5ea6259e343`,
+retained at the explicit scratch path in that capture. The checked-in excerpts
+remain usable if that full response is unavailable; they do not claim to retain
+the entire page. No statement publication date was established. The response's
+Last-Modified header is recorded as HTTP metadata, not a publication date.
+The 2026-10-29 SIWC findings above were not refreshed or adopted.
+
+The full retained notice begins: “If you’ve built a local or open-source
+application using Codex app-server authentication, you can continue using it,
+though we recommend migrating to Sign in with ChatGPT so users have greater
+control over and visibility into their usage.” It also says: “App-server
+authentication has never been permitted for commercial or hosted services.”
+The migration is a recommendation in this notice, not a selected App change.
+
+The source-to-offering comparison for the owner's disposition is:
+
+- The owner-selected App is free, locally run and open source; the notice's
+  continuation addresses an existing local or open-source app using this auth.
+  This proposal covers only that selected initial macOS offering, not a future
+  commercial or hosted service.
+- Actual source `fdcf608fb57c4f8299c7440ffc56519314046cff`,
+  `app/src-tauri/src/hosting.rs::account_oauth_start`, sends
+  `account/login/start` with `chatgpt` or `chatgptDeviceCode`. The retained page
+  describes those exact modes as Codex-managed OAuth, persistence and refresh.
+  This is source correspondence, not an account test or confirmation of every
+  capability in the pinned `0.160.0` binary.
+- This is an identified official publication, **not** a product-specific reply.
+  It does not settle binary/component redistribution, supplier qualification,
+  package signing, installation, acceptance or the owner's publication act.
+  No supplier legal terms beyond the documentation sources were examined.
+
+The agent obtained this capture as preparation. An owner obtaining/retention
+and applicability act is still to be recorded if actually supplied; the
+classification answer is not substituted for it. The supplier is the publication
+author, the agent is the capture/recording actor, and the owner remains the
+applicability and distribution decision-maker.
+
+## Concrete pending owner disposition
+
+Proposed decision, **not yet made**:
+
+> For the selected initial macOS offering—free, locally run, open-source App
+> using the unchanged local stock-Codex-managed sign-in—I obtain and retain the
+> identified 2026-10-30 official-publication capture above and accept its local/
+> open-source continuation as the applicable written supplier position for this
+> scope. I approve the exact OLD→NEW clauses and necessary correspondence below,
+> and direct preparation of the versioned terms-record successor they describe.
+> No additional product-specific reply is required for this disposition. This
+> does not approve public distribution, replace v3.0.1, change authentication,
+> settle component notices or qualify the supplier/package.
+
+The owner may accept that bounded proposal or identify the specific remaining
+applicability issue. The statement is proposed decision wording, not an attributed
+owner act. No current evidence requires a blanket new supplier inquiry. External
+contact is reserved for a real unanswered issue and separate instruction; no
+message, registration, sign-in or SIWC migration is performed here.
 
 ## Proposed OLD → NEW clauses — PENDING OWNER DISPOSITION
 

@@ -100,7 +100,9 @@ from inventory import scan, compare
 actual = scan('/absolute/received.app/Contents/Resources/codex')
 expected = scan('/absolute/selected/vendor')
 result = compare(actual, expected)
-print(json.dumps(result, indent=2))
+summary = lambda tree: {key: tree[key] for key in ('files', 'macho_files', 'manifest_sha256')}
+print(json.dumps({'comparison': result, 'actual': summary(actual),
+                  'expected': summary(expected)}, indent=2))
 raise SystemExit(0 if result['equal'] else 1)
 PY
 ```
@@ -108,7 +110,16 @@ PY
 Retain the exact subject/tool identities, input paths, comparison output and
 date with the owning Work/evidence. This comparison covers bytes, modes, types,
 links and missing/extra entries; it does not prove signature validity, acquisition
-authority or installed custody. Do not add `--signature-display` when signing
+authority or installed custody. The retained `successor-content-check.json`
+uses paths relative to its `input_root` for `record`, `bundle` and
+`source_export`; `supplier_tree` is absolute. Inspection paths must use their
+resolved spelling (for example `/private/tmp`, not the symlink `/tmp`). The
+retained supplier tree there is non-durable across cleanup/reboot: preserve it
+until consumers release it. If unavailable, its recorded archive correspondence
+remains historical evidence, but a live rerun waits for recovery by the native
+input owner; do not silently substitute another tree.
+
+Do not add `--signature-display` to `prepare.py inventory` when signing
 identity disclosure is outside the authorized scope. A later signed App/DMG is
 a separately identified package: these commands neither create its package
 record nor satisfy FP-1(b), FP-2/W-4, FP-3/4/5 or native examination.

@@ -593,7 +593,7 @@ issuer, signing evidence or qualification result.
 
 ## macOS publication preparation, 2026-10-30
 
-This is current preparation under OUT-001/002 and REQ-001/002/003, not a
+This is current preparation under OUT-001/002/004 and REQ-001/002/003/004, not a
 replacement of the historical observations above. macOS is the first publication
 target; later Windows delivery does not gate it. ScopeOfWork commitments and
 `deliverable.yaml` conditions remain unchanged: packaging must still receive
@@ -610,7 +610,8 @@ Native qualification supplied candidate `fdcf608fb5-23c6c3f22f5e`, built from
 `93ccd285a63312c861a7da47e3ab002b13c29a50`; the source identity is **not** relabelled
 to that merge. The bundle is retained under
 `/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
-Its adjacent build-root `identified/` records are owned by native qualification;
+Its three build-root `identified/` records are owned by native qualification;
+build, preparation and npm records are retained separately in that build root;
 the repository location is
 `execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/`
 (committed in native qualification PR #35 at `306262af`, not yet integrated at
@@ -653,6 +654,12 @@ candidate remains `native_development`, `packaged: false`, stock `0.160.0`
 to the native qualification manager; none is asserted here. The historical
 three-namespace absence observation is not renewed by these checks.
 
+The P1 input under `/private/tmp` is non-durable and must use that resolved path,
+not symlink `/tmp`. Its archive correspondence remains recorded against archive
+SHA-256 `fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466`
+and manifest `327effb9…8d12` if the tree disappears. A fresh live comparison
+then requires recovery by the native input owner, not an inferred new pass.
+
 ### Concrete remaining inputs and order of work
 
 1. **Production hosting/custody, owned through App Agent 0 and DEL-01-01.**
@@ -660,8 +667,8 @@ three-namespace absence observation is not renewed by these checks.
    The standalone `DISTRIBUTION_IDENTITY.md` remains PROPOSED STAGING ONLY;
    the selected `distribution-s1/README.md` defines its specific source selection
    and open production/receiving conditions. Neither establishes adopted
-   production issuer authority. Parent is obtaining independent architecture
-   scrutiny before allocating implementation; packaging does not activate it.
+   production issuer authority. Implementation allocation and independent
+   architecture scrutiny belong to App Agent 0; packaging does not activate it.
    `distribution_s1.rs` rejects installed-custody and verified outcomes;
    `distribution_preflight.rs` keeps verified unavailable. Installing the twelve
    attested-reference resources cannot remove this limit. Receive a reviewed
@@ -692,7 +699,7 @@ three-namespace absence observation is not renewed by these checks.
    candidate immutable. On the selected production basis, prepare a new bundle
    and CF-1…8 configuration digest, inventory every supplier Mach-O and retain
    candidate FP-0/FP-1(a). The existing §6 sequence then calls for the owner's
-   P0/outer signing without `--deep`, P1 comparison FP-1(b), deep strict
+   P-0/outer signing without `--deep`, P1 comparison FP-1(b), deep strict
    verification, signed DMG and notarisation log FP-3, followed by stapling.
    Those commands are reviewable in §4.3; none is authorized or run by this
    preparation. Preserve pre-notarisation and post-stapling installer digests,
@@ -713,20 +720,22 @@ three-namespace absence observation is not renewed by these checks.
 
 Use the existing
 [`OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md`](OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md),
-not a duplicate supplier inquiry. Its 2026-10-29 official-source findings are
-retained as dated findings; no new documentation retrieval is claimed here.
+not a duplicate supplier inquiry. Its 2026-10-29 findings remain dated; the
+2026-10-30 app-server continuation/managed-login capture and selected offering
+are now bound there with the exact source, content, retrieval date and custody.
 The actual implementation still invokes local stock-Codex-managed
 `account/login/start` (`chatgpt` / `chatgptDeviceCode`); no SIWC migration is
 selected. Repository MIT licensing does not establish the business offering.
 
-The concrete decision for the owner is: confirm the first offering and unchanged
-managed-login scope; if within the draft's published local/OSS continuation,
-disposition the exact proposed OLD→NEW clauses allowing an applicable identified
-official publication or direct response. Record actual obtaining/retention,
-scope/conditions and applicability separately from public distribution. If the
-selected offering is outside that continuation, identify only its actual
-unanswered condition before considering separately instructed contact. Do not
-demand a product-specific reply solely because contact is possible.
+The owner selected the initial macOS offering on 2026-10-30: “Free, locally run,
+open-source App using the current sign-in flow.” This resolves classification
+only, not applicability or terms/release approval. The remaining concrete
+decision is the draft's proposed acceptance of the retained official continuation
+as applicable to that exact offering and unchanged local stock-Codex-managed
+login, together with the exact proposed OLD→NEW clauses. Record the owner's
+actual obtaining/retention and applicability act separately from the agent's
+capture and from public distribution. Do not demand a product-specific reply
+solely because contact is possible.
 
 The proposal is not accepted by this preparation. No governing terms clauses,
 closed schemas or `OpenAI.json` state change: `unresolved`, distribution decision
