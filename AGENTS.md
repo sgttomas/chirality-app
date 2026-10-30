@@ -2,8 +2,7 @@
 
 This repository owns App v4. Development resumed by owner direction on
 2026-10-28. Work follows the owner's current steer and the applicable product
-commitments. Commitment changes, acceptance and releases remain owner decisions;
-migration alone does not authorize them.
+commitments. Commitment changes, acceptance and releases remain owner decisions.
 
 Current release pathway, delivery owners and remaining evidence are in
 `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. HELP_HUMAN retains Agent 0
@@ -73,6 +72,10 @@ do not transfer here. Shared-library consultation does not authorize changing
 Chirality, SWBPIPE or another consumer, and adopting a shared method does not
 expand the authorized App scope.
 
+Root (the shared Chirality library), App v4 and SWBPIPE each have their own
+top-level Agent 0. When work needs another project, send that project's Agent 0
+a message in T3 Code; it owns changes in its own repository.
+
 ## Product assets and local tools
 
 Agent instructions for work on this project are separate from the instructions
@@ -95,18 +98,15 @@ targeted regression checks and independent scrutiny. Preserve truthful source
 identity and report unrun checks as limitations. Commitments, acceptance,
 releases and lifting holds remain owner decisions.
 
-Use isolated migration branches and PRs. The migration must preserve existing
-release tags and imported ancestry through merge commits; do not squash it.
+Use isolated branches and PRs, and preserve existing release tags.
 No force pushes, protection bypasses, permission changes or release actions.
-SWBPIPE implementation is outside this repository's scope. The owner directed
-its move from `sgttomas/chirality` to `sgttomas/SWBPIPE`; bind the actual receiving
-revision before relying on the new location. Historical Chirality commits and
-catalog provenance retain their original identities.
+SWBPIPE is a separate project in `sgttomas/SWBPIPE`; its implementation is outside
+this repository's scope. Historical Chirality commits and catalog provenance
+retain their original identities.
 
 Use a fresh scratch Codex home for development/tests, never `~/.codex`.
 Do not sign in or use credentials without the owner. Build offline by default;
 downloads require explicit permission identifying the file, source and size.
-No live examination is authorized merely to verify this repository migration.
 
 The existing Parallels guest is the owner's CAEPIPE validation VM and is
 permanently off-limits to Windows development: no guest-targeted discovery,

@@ -11,8 +11,8 @@ implementations at native boundaries and must preserve the macOS checks.
 Windows shipping, changed commitments, acceptance and releases remain owner
 decisions. No Windows gate is added to the macOS release.
 
-SWBPIPE is moving to its own repository, `sgttomas/SWBPIPE`; coordinate future
-cross-project interfaces through each project's Agent 0. Historical source
+SWBPIPE has moved to its own repository, `sgttomas/SWBPIPE`; coordinate
+cross-project interfaces as `AGENTS.md` describes. Historical source
 pins and findings below retain their original repositories and revisions;
 this ownership change does not repin evidence or adopt a shared runtime.
 Retired session links below are historical contacts, not continuing owners.
