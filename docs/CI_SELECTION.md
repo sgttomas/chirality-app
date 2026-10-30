@@ -17,6 +17,7 @@ exact documentary paths select repository checks without product verification:
 
 - `AGENTS.md`
 - `README.md`
+- `init/init-prompt.md`
 - `loop/LOOP_INIT.md`
 - `docs/CI_SELECTION.md`
 - `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`

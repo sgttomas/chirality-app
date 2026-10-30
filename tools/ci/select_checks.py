@@ -16,6 +16,7 @@ import sys
 PROSE_PATHS = frozenset({
     "AGENTS.md",
     "README.md",
+    "init/init-prompt.md",
     "loop/LOOP_INIT.md",
     "docs/CI_SELECTION.md",
     "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
