@@ -5,6 +5,51 @@ the retained candidate. The actual native confirmation was an agent action.
 Supplier startup, saved-request relaunch and the complete joined qualification
 remain unobserved by this contribution.
 
+## Successor after the startup/quit custody repair
+
+PR #33 integrated the focused repair as `93ccd285a63312c861a7da47e3ab002b13c29a50`.
+Its tree is identical to checked build source
+`fdcf608fb57c4f8299c7440ffc56519314046cff`; that actual source identity is
+preserved for successor **`fdcf608fb5-23c6c3f22f5e`**, rather than relabelled to
+the merge commit. The offline debug/custom-protocol `--no-sign` build completed
+successfully on 2026-10-30. It includes the retained stock 0.160.0 package,
+whose bundled files/modes matched the measured authorized archive. This remains
+an unsigned, unqualified development candidate, not a supplier qualification
+pin or installed-custody issuer.
+
+The [identity record](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/candidate-identification.json)
+binds bundle-tree v2
+`23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3`,
+75 inventory entries including root, and source tree
+`2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` (2,788 tracked files verified).
+Build invocation/configuration, source preparation, supplier acquisition and
+inventory records are retained alongside it. The build root is
+`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/`; its bundle
+is `target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
+The new identifier is `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`.
+Its three declared App-data/WebKit/cache locations were absent at identification.
+
+Successor native A/B have **not run**. Fresh invented inputs and the
+[successor A-only adapter](native_successor_setup.py) are prepared for independent
+scrutiny. Six invented-file admission tests and a complete bundle inventory
+recheck passed. The adapter reuses the maintained A execution, supervision,
+settlement, form and AX code, binding its dependencies and explicit successor
+record/input bytes. It retains fork/exec/network/home containment and actual
+native setup confirmation; no injected startup request is made. First launch
+requires all three new namespace locations absent. Failure preserves observed
+namespace metadata; automatic partial-state retries are refused without deletion.
+B remains a separately reviewed fork-admitting route with actual
+owned-process settlement and explicit detached-helper limits. No workflow,
+recovery, access-mode or personal-human-act outcome follows from the build.
+
+The packaging/distribution manager may inspect this exact bundle and its
+records read-only for inclusion/readiness work; that lane does not mutate the
+qualification artifact, state or scratch and does not supply installed custody.
+Preserve this successor root, the original candidate/A state below, and repair
+and review scratch until consumers and integration release them. The original
+candidate's applicability comparison below is historical to its named main;
+the changed startup/quit runtime requires affected A/B checks on this successor.
+
 The owner's 2026-10-30 steering selects release evidence item 1 through
 reviewed, merged results. App HELP_HUMAN owns integration. This continuation
 supersedes the previous assignment's closure-only restriction, not its observed

@@ -1,0 +1,17 @@
+{
+  "revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+  "source_export": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/source",
+  "source_archive_sha256": "05fab84dc0dc2332c0c63c20c80af7ffd443798fac03f224befa1ff3c875edff",
+  "identifier": "dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+  "configuration": {
+    "identifier": "dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+    "productName": "Chirality App v4 (development 20261030 eqxsxv4n)",
+    "bundle": {
+      "resources": {
+        "/private/tmp/chirality-desktop-current-ukt5ir80/supplier/package/vendor/aarch64-apple-darwin/": "codex/"
+      }
+    }
+  },
+  "root": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n",
+  "standing": "unbuilt successor development candidate, no native qualification"
+}
