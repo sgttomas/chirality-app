@@ -12,49 +12,176 @@ on:
 permissions:
   contents: read
 
+env:
+  RUST_TEST_THREADS: '1'
+  CARGO_INCREMENTAL: '0'
+  CARGO_BUILD_JOBS: '2'
+  CHIRALITY_CODEX_EXPECTED_SHA256: 112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b
+
+defaults:
+  run:
+    working-directory: app
+
 concurrency:
   group: app-v4-${{ github.event.pull_request.number || github.ref }}
   # Only the newest PR candidate needs verification.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+
+# Pull requests split the focused checks across parallel macOS jobs. Every
+# former cohort filter appears in exactly one shard; libtest runs the union of a
+# shard's filters once, in one process, serially. A new focused cohort joins the
+# shard with the shorter recorded runtime. Manual dispatch keeps the full route.
 jobs:
-  product:
-    name: App v4 product
+  rust-integration:
+    name: Rust compile, integration and lib shard A
+    if: github.event_name != 'workflow_dispatch'
     # Match the tested arm64 environment and system Git no-lazy-fetch contract.
     runs-on: macos-26
     timeout-minutes: 45
     env:
-      RUST_TEST_THREADS: '1'
-      CARGO_INCREMENTAL: '0'
-      CARGO_BUILD_JOBS: '2'
-      CHIRALITY_CODEX_EXPECTED_SHA256: 112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b
-    defaults:
-      run:
-        working-directory: app
+      LIB_COHORTS: >-
+          role_supply child_roles::tests native_child_guidance::tests
+          startup_request_tests desktop_setup_confirmation p3_role_set_tests
+          p2_production_catalog_tests recovery_reads::tests observer_journal
+          observation_custody_tests checkpoint_recorder checkpoint_lapse
+          checkpoint_custody trial_reads_route_to_the_home_holding_the_trial_conversation
+          model_turn model_rerouted execution_custody_tests records::durability_tests
+          record_relations records_index u_store_2 recovery::store::tests stop_records
+          a15_single_entry file_act role_observations host_tick role_r3
+          home_qualified_hot_run
+          runtime_session::workflow_root_tests::supply_dispatch_tests
+          runtime_session::workflow_root_tests::trial_restart_source_tests
+          tc2_mode_turn_carries_the_end_notice_with_its_collaboration_mode
+          v10_r1_notice_accepted_but_never_written_stays_pending
+          handoff_notice_sources_survive_native_error_and_observation_loss
+          hosting::conversation_transport_tests::attachment_outcome_tests
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
-      - name: Provision fixed examination source objects
-        run: python3 examination/support_identity/provision_ci_objects.py
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: '1.97.1'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install locked App and pinned Python dependencies
+      - uses: ./.github/actions/app-v4-setup
+      - name: Build App frontend
         run: |
-          npm ci
-          python -m pip install pytest==9.1.1 jsonschema==4.26.0 referencing==0.37.0
+          python tests/check_git_checkout_bytes.py
+          npm run build
+      - name: Compile every Rust test target once
+        # Supersedes the separate `cargo check --tests` pass; later runs reuse these artifacts.
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --tests --no-run
+      - name: Focused persistence and authority boundaries
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml \
+              --test attachments --test catalog_adapter --test external_trace --test swbpipe_receiving \
+              --test act_storage --test recovery_startup --test access_integration \
+              --test policy_standing --test decision_standing --test record_semantics --test record_relations \
+              --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation -- --test-threads=1
+      - name: Focused lib cohorts (shard A)
+        run: |
+          set -f
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --test-threads=1 $LIB_COHORTS
+
+  rust-lib-node:
+    name: Lib shard B and Node presentation
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      LIB_COHORTS: >-
+          continuation_context::tests history_bridge conversation_roles::tests
+          workflow_role_tests desktop_startup instruction_seed_tests
+          workflow_catalog_tests recorded_replay_tests native_delivery::tests
+          native_projection_delivery observer_rebuild
+          native_history_error_content_is_not_durable workflow_reselection
+          trial_authoring_source_tests records_access record_lines records_store
+          records_export records_retention installation::tests connector_route_store
+          recovery::tests records_continuity fleet_ reply_close native_requests::tests
+          call_custody after_run_end chat_workflow after_end_file_lapse native_links
+          startup_refusal process_group_custody access_provider recovery_root_cold_
+          waiting_requests_tests::
+          runtime_session::workflow_root_tests::library_entries_tests
+          act_control::a15::tests::listed_a15_
+          runtime_session::workflow_root_tests::proposal_disclosure_tests
+          handoff_send_tests
+          j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once
+          runtime_session::workflow_root_tests::selected_chain_disclosure_tests
+          runtime_session::workflow_root_tests::action_result_tests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          filter: blob:none
+      - uses: ./.github/actions/app-v4-setup
+      - name: Build App frontend
+        run: |
+          python tests/check_git_checkout_bytes.py
+          npm run build
+      - name: Focused lib cohorts (shard B)
+        run: |
+          set -f
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --test-threads=1 $LIB_COHORTS
+      - name: Standalone terminal identity
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib terminal_exchange_actual_selected_and_unselected_roundtrip -- --test-threads=1
+      - name: Desktop setup presentation
+        run: node --test tests/desktop-setup.test.mjs
+      - name: Role history and portable export verification
+        run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
+      - name: Workflow and fleet presentation
+        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs
+      - name: Native history and conversation presentation
+        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs
+
+  sources-packaging:
+    name: Schemas, successor feature, packaging and examination
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          filter: blob:none
+      - uses: ./.github/actions/app-v4-setup
+      - name: Build App and verify source-mapped schemas
+        run: |
+          python tests/check_git_checkout_bytes.py
+          npm run build
+          python src-tauri/schemas/sync.py
+      - name: Design schema conditional regressions
+        run: python3 -m unittest discover -s ../execution/PKG-04/DEL-04-03/Design/prototype -p 'test_minischema.py'
+      - name: Supplier carriage detector regressions (no supplier required)
+        run: |
+          python3 supplier_checks/test_records_delivery.py
+          python3 supplier_checks/test_local_auth.py
+          python3 supplier_checks/test_recorded_replay.py
+          python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
+      - name: Examination preparation and receiving against pinned sources
+        # Fail closed when a pinned Design source changes meaning. Dispatch runs these in the full Python set.
+        run: >-
+          python -m pytest -q tests/group_b_standalone_test.py tests/group_b_pre_run_inputs_test.py
+          tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
+          tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
+          tests/group_b_support_identity_canonical_test.py
+          && python3 -B tests/candidate_identity_test.py
+      - name: Staged distribution successor
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib s2_ -- --test-threads=1
+      - name: Connected static packaging
+        run: |
+          cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
+          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py
+
+  product:
+    name: App v4 product
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          filter: blob:none
+      - uses: ./.github/actions/app-v4-setup
       - name: Prepare adopted supplier in scratch storage
-        if: github.event_name == 'workflow_dispatch'
         env:
           SUPPLIER_ROOT: ${{ runner.temp }}/app-v4-supplier
           CHIRALITY_CODEX_HOME: ${{ runner.temp }}/app-v4-codex-home
@@ -102,23 +229,8 @@ jobs:
           python3 supplier_checks/test_local_auth.py
           python3 supplier_checks/test_recorded_replay.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
-      - name: Focused persistence and authority boundaries (full suite on request)
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
-          else
-            cargo test --locked --manifest-path src-tauri/Cargo.toml \
-              --test attachments --test catalog_adapter --test external_trace --test swbpipe_receiving \
-              --test act_storage --test recovery_startup --test access_integration \
-              --test policy_standing --test decision_standing --test record_semantics --test record_relations \
-              --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation -- --test-threads=1
-            cargo check --tests --locked --manifest-path src-tauri/Cargo.toml
-            cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib s2_ -- --test-threads=1
-            for cohort in role_supply child_roles::tests native_child_guidance::tests continuation_context::tests history_bridge conversation_roles::tests workflow_role_tests startup_request_tests desktop_setup_confirmation desktop_startup instruction_seed_tests p3_role_set_tests p2_production_catalog_tests workflow_catalog_tests recovery_reads::tests recorded_replay_tests native_delivery::tests native_projection_delivery observer_journal observer_rebuild observation_custody_tests native_history_error_content_is_not_durable checkpoint_recorder checkpoint_lapse checkpoint_custody workflow_reselection trial_authoring_source_tests trial_reads_route_to_the_home_holding_the_trial_conversation model_turn model_rerouted execution_custody_tests records::durability_tests record_relations records_access records_index record_lines records_store records_export records_retention installation::tests u_store_2 connector_route_store recovery::tests recovery::store::tests stop_records a15_single_entry records_continuity fleet_ file_act reply_close native_requests::tests call_custody after_run_end role_observations host_tick chat_workflow after_end_file_lapse role_r3 native_links home_qualified_hot_run startup_refusal process_group_custody access_provider runtime_session::workflow_root_tests::supply_dispatch_tests runtime_session::workflow_root_tests::trial_restart_source_tests recovery_root_cold_ waiting_requests_tests:: runtime_session::workflow_root_tests::library_entries_tests act_control::a15::tests::listed_a15_ runtime_session::workflow_root_tests::proposal_disclosure_tests handoff_send_tests j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once tc2_mode_turn_carries_the_end_notice_with_its_collaboration_mode v10_r1_notice_accepted_but_never_written_stays_pending handoff_notice_sources_survive_native_error_and_observation_loss runtime_session::workflow_root_tests::selected_chain_disclosure_tests runtime_session::workflow_root_tests::action_result_tests hosting::conversation_transport_tests::attachment_outcome_tests; do
-              cargo test --locked --manifest-path src-tauri/Cargo.toml --lib "$cohort" -- --test-threads=1
-            done
-            node --test tests/desktop-setup.test.mjs
-          fi
+      - name: Full Rust suite
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Standalone terminal identity and connected static packaging
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --lib terminal_exchange_actual_selected_and_unselected_roundtrip -- --test-threads=1
@@ -130,22 +242,11 @@ jobs:
         run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs
-      - name: Examination preparation and receiving against pinned sources
-        # Fail closed when a pinned Design source changes meaning. Dispatch runs these in the full Python set below.
-        if: github.event_name != 'workflow_dispatch'
-        run: >-
-          python -m pytest -q tests/group_b_standalone_test.py tests/group_b_pre_run_inputs_test.py
-          tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
-          tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
-          tests/group_b_support_identity_canonical_test.py
-          && python3 -B tests/candidate_identity_test.py
       - name: Node schemas and presentation with mandatory supplier
-        if: github.event_name == 'workflow_dispatch'
         run: |
           test -x "$CHIRALITY_CODEX_BIN"
           npm test
       - name: Python receiving and custody behavior
-        if: github.event_name == 'workflow_dispatch'
         env:
           BROAD: ${{ inputs.broad_python }}
         run: |
@@ -162,11 +263,19 @@ jobs:
 
   result:
     name: App v4 checks
-    needs: product
+    needs: [rust-integration, rust-lib-node, sources-packaging, product]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require product verification to succeed
+      - name: Require the event's product verification to succeed
+        working-directory: .
         env:
-          PRODUCT_RESULT: ${{ needs.product.result }}
-        run: test "$PRODUCT_RESULT" = success
+          DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          FOCUSED: ${{ needs.rust-integration.result }} ${{ needs.rust-lib-node.result }} ${{ needs.sources-packaging.result }}
+          FULL: ${{ needs.product.result }}
+        run: |
+          if [ "$DISPATCH" = true ]; then
+            test "$FULL" = success && test "$FOCUSED" = 'skipped skipped skipped'
+          else
+            test "$FOCUSED" = 'success success success' && test "$FULL" = skipped
+          fi

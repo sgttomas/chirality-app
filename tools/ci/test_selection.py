@@ -268,3 +268,20 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert set(gate["needs"]) == {"repository-checks", "app-v4"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
+
+
+def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
+    root = Path(subject.__file__).resolve().parents[2]
+    jobs = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]
+    gate = jobs.pop("result")
+    assert gate["if"] == "always()" and set(gate["needs"]) == set(jobs)
+    focused = {"rust-integration", "rust-lib-node", "sources-packaging"}
+    assert set(jobs) == focused | {"product"}
+    assert jobs["product"]["if"] == "github.event_name == 'workflow_dispatch'"
+    assert all(jobs[name]["if"] == "github.event_name != 'workflow_dispatch'" for name in focused)
+    shards = [jobs[name]["env"]["LIB_COHORTS"].split() for name in ("rust-integration", "rust-lib-node")]
+    cohorts = [cohort for shard in shards for cohort in shard]
+    assert all(shards) and len(cohorts) == len(set(cohorts))
+    for name in ("rust-integration", "rust-lib-node"):
+        run = next(step["run"] for step in jobs[name]["steps"] if "$LIB_COHORTS" in step.get("run", ""))
+        assert run.startswith("set -f\n") and "--lib -- --test-threads=1 $LIB_COHORTS" in run
