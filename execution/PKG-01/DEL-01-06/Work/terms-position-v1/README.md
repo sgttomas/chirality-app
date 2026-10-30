@@ -50,6 +50,13 @@ names the agent and cannot be relabelled without contradicting its exact bytes.
 Recorded distribution decisions need a separate event/answer. Even
 then the checker reports `release_authorized: false`: it reports recorded
 evidence consistency, not execution authority.
+Its `recorded_distribution_decision` reports `not_made`, `approved` or `declined`
+without converting that recorded statement into authority. A distribution event
+can be recorded alongside unresolved terms; it does not settle them. Dates are
+calendar-validated without optional JSON Schema format dependencies. Records
+cannot predate their evidence/adoption/distribution events, and a recorded
+release following an applicability disposition must have a separate message
+and content and cannot predate that disposition.
 
 Run from the repository root with the existing Python `jsonschema` dependency:
 

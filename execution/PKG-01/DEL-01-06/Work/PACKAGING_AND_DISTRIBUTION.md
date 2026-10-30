@@ -788,6 +788,73 @@ Neither chooses the qualified production minimum. Retain this capability
 requirement for the owner's future minimum-OS and publisher decisions. No
 publisher identity is selected or inspected by this preparation.
 
+### Concrete producer/consumer migration scope for App Agent 0 allocation
+
+Read-only interface basis: PR #36 `7b9f8cd6`, including
+`INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md` and the new S4 schemas; runtime scrutiny
+and adoption remain with its owner. This is a proposed division of the next
+results, not activation of those consumers or a signed-package witness.
+
+1. **Immediate documentary receiving repair — parent to allocate DEL-09-01
+   examination/support ownership, coordinated with DEL-09-02 SQ.** PR #34's
+   approved PK-R4 and §9 amendments change the two selected passages used by
+   standalone preparation, pre-run inputs and current canonical/SQ declarations.
+   The selected projection changes from
+   `5312e36e02749cd3397dc8aa71385a1f6705833528afcd7bb76039e5bdd951f1`
+   to `151f43890c48b986bec5382a675e054f7d05821a65aeab2e216c22d149f1a7c4`.
+   Hosted job `124352901206` at `a9291e44` correctly refuses it (65 failures,
+   12 errors); new terms tests pass. The next result is a named reviewed source-
+   condition successor/compatibility selection for these exact amended terms
+   passages, with unchanged historical publication/reader identities and
+   passing standalone/native-form/pre-run/canonical/SQ source-drift regressions.
+   Relevant current selections are `app/examination/standalone/sources.json`,
+   `pre_run_inputs.pins.json`, `support_identity/canonical-pins.v1.json` and
+   DEL-09-01 `support-identity-v1/documentary-condition.v2.json`; the latter's
+   groups are `canonical` and `sq`. No frozen file, selector or pin is changed
+   here. This reconciliation is required before PR #34 integration, not deferred
+   until signing or excused by the new terms approval.
+2. **Packaging producer and static terms consumption — proposed delivery here,
+   after parent confirms the consumer boundary.** Deliver an explicit successor
+   request/report for `app/packaging/static_distribution` that selects the new
+   terms-position reader, plus a package-record producer with actual CF-1…8,
+   every-Mach-O/FP-0/1/3 and exact inventory/installer inputs. Keep the existing
+   input/1 and `pkg-identity.s1` semantics unchanged; its static
+   `verification_artifact` remains null. Missing signing/installer inputs remain
+   missing, not fabricated from the development candidate. The next reviewable
+   result can use invented positive/negative fixtures before owner signing.
+3. **Package-to-S4 binding — proposed packaging ownership, S4 owner supplying
+   the exact observed-verification/lifecycle reader revision.** A distinct
+   versioned witness binding should reference the exact static package envelope,
+   S4 observation and custody artifact. It must independently join App source/
+   build/version/identifier, actual static and dynamic signing facts, compiled
+   selection/reference/attestation, full supplier inventory/generation,
+   package-record ID and pre-notary installer digest, retaining post-staple
+   digest and actual installed subject. The frozen S1 model resolves its
+   `verification_artifact` specifically as `observed-verification.s1`; do not
+   put S4 bytes there or re-label them. Negative fixtures must reject different
+   App, package, installer, generation, inventory, publisher or reference,
+   missing evidence and disk-payload authority. Success means consistent
+   evidence joins only; actual FP-2/W-4 and S5 still require the qualified
+   candidate and authorized quarantined installation.
+4. **EXP/SQ receiving — parent to allocate DEL-09-01 and DEL-09-02 separately
+   from packaging/runtime implementation.** `app/examination/check.py` selects
+   the legacy package schema; `package_link` checks legacy EXP-v0.2 candidate,
+   pin, package reference and FP prerequisites. `sq_receiving/worker.py` calls
+   that join conditionally for current native-packaged results using canonical
+   support bindings. The next result is explicit versioned selection and reader
+   support for the new package/S4 witness and terms account, preserving old
+   result/review/change/package interpretation and historical-correspondence
+   routes. It must retain missing external/native/owner evidence as gaps,
+   not convert static or fixture passes into qualification. Delivery requires
+   joined package→EXP→SQ fixtures with mismatched/missing cases and exact
+   independent review, followed by a separately recorded actual package witness.
+
+App Agent 0 owns allocation and technical adoption of these interfaces. No
+publisher, production minimum/version, qualification pin, release or replacement
+act is selected by this migration proposal. Packaging retains its authorized
+terms implementation and preparation while the immediate documentary receiving
+allocation is resolved.
+
 Focused preparation verification: 16 packaging tests and 9 notice-resource
 tests pass; the notice verifier reports 17 components including App, 30 texts,
 zero source archives checked and no Tauri SDK mapper execution. Deliverable

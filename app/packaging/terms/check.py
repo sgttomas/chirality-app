@@ -1,6 +1,6 @@
 """Opt-in terms-position/v1 consistency reader. Never grants release authority."""
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -104,6 +104,27 @@ def actor(value):
 def validate(value, schema, kind=None):
     selected = schema if kind is None else {'$ref': '#/$defs/' + kind, '$defs': schema['$defs']}
     Draft202012Validator(selected, format_checker=FormatChecker()).validate(value)
+    # date-time format support is optional in jsonschema. Calendar validity must
+    # not depend on an uninstalled RFC3339 extra.
+    def dates(item):
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if key in {'recorded_at', 'retrieved_or_received_at', 'retrieved_at',
+                           'received_at', 'decided_at', 'recorded_timestamp'}:
+                    timestamp(child)
+                elif key in {'publication_or_response_date', 'publication_date', 'response_date'} and child is not None:
+                    date.fromisoformat(child)
+                dates(child)
+        elif isinstance(item, list):
+            for child in item:
+                dates(child)
+    dates(value)
+
+
+def timestamp(value):
+    result = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    require(result.tzinfo is not None, 'timestamp must include timezone')
+    return result
 
 
 class Text(HTMLParser):
@@ -131,6 +152,7 @@ def check_capture(position, evidence, schema):
             require(digest(excerpt['html'].encode()) == excerpt['html_sha256'], 'excerpt digest mismatch')
             parser = Text()
             parser.feed(excerpt['html'])
+            parser.close()
             require(''.join(parser.parts) == excerpt['text'], 'excerpt text mismatch')
     else:
         require(capture['format'] == 'chirality.supplier-response-capture/v1', 'unknown response capture')
@@ -168,6 +190,8 @@ def check(record_path, evidence_root):
         require(position['supplier'] == record['supplier'], 'position supplier mismatch')
         require(actor(position['captured_by']) != supplier, 'supplier authorship is not capture')
         check_capture(position, evidence, schema)
+        require(timestamp(record['recorded_at']) >= timestamp(position['retrieved_or_received_at']),
+                'record predates evidence capture')
     owner = record['owner_disposition']
     if owner is not None:
         require(actor(owner['actor']) not in {recorder, supplier},
@@ -186,10 +210,12 @@ def check(record_path, evidence_root):
         applicability_answer = answer
         require(answer['content'].endswith('\n' + approval['answer']), 'owner answer mismatch')
         require(proposal['revision'] in answer['content'], 'approved revision absent from question')
-        require(datetime.fromisoformat(approval['decided_at'].replace('Z', '+00:00'))
-                >= datetime.fromisoformat(position['retrieved_or_received_at'].replace('Z', '+00:00')),
+        require(timestamp(approval['decided_at']) >= timestamp(position['retrieved_or_received_at']),
                 'owner adoption predates evidence capture')
+        require(timestamp(record['recorded_at']) >= timestamp(approval['decided_at']),
+                'record predates owner disposition')
     decision = record['distribution_decision']
+    recorded_decision = 'not_made'
     if decision != 'not_made':
         require(actor(decision['actor']) not in {recorder, supplier}, 'recorder/supplier cannot decide release')
         release = parse(evidence.artifact(decision['evidence']))
@@ -197,15 +223,20 @@ def check(record_path, evidence_root):
         require(release['actor'] == decision['actor'] and release['scope'] == record['scope'], 'release subject mismatch')
         release_answer = owner_answer(evidence, release['owner_answer'], release['decided_at'], schema)
         require(release_answer['content'].endswith('\n' + release['answer']), 'release answer mismatch')
+        require(timestamp(record['recorded_at']) >= timestamp(release['decided_at']), 'record predates release event')
+        recorded_decision = release['decision']
         if approval:
             require(release['actor'] == approval['actor'], 'release owner differs from applicability owner')
-            require((release_answer['thread'], release_answer['message_id'])
-                    != (applicability_answer['thread'], applicability_answer['message_id']),
+            require(release_answer['message_id'] != applicability_answer['message_id']
+                    and release_answer['content'].strip() != applicability_answer['content'].strip(),
                     'applicability answer is not release approval')
+            require(timestamp(release['decided_at']) >= timestamp(approval['decided_at']),
+                    'release event predates applicability')
     evidence.recheck()
     return {'format': 'chirality.terms-position-check/v1', 'record_sha256': digest(raw),
             'recorded_state': record['state'], 'source_kind': position['kind'] if position else None,
             'distribution_decision_recorded': decision != 'not_made',
+            'recorded_distribution_decision': recorded_decision,
             'release_authorized': False, 'artifacts': evidence.seen,
             'standing': 'retained evidence and value consistency only; no authentication of actors, legal judgment or release authority'}
 
@@ -218,8 +249,14 @@ def main():
     try:
         print(json.dumps(check(args.record, args.evidence_root), indent=2))
         return 0
-    except (ValueError, OSError, KeyError, TypeError, ValidationError) as error:
-        print(json.dumps({'standing': 'refused', 'error': str(error), 'release_authorized': False}))
+    except (ValueError, OSError, KeyError, TypeError, RecursionError, ValidationError) as error:
+        # ValidationError.__str__ pretty-prints the entire instance and can itself
+        # recurse on malformed deep input. Report the rule/path, not the payload.
+        if isinstance(error, ValidationError):
+            message = 'schema validation failed: ' + str(error.validator) + ' at ' + '/'.join(map(str, error.path))
+        else:
+            message = str(error)
+        print(json.dumps({'standing': 'refused', 'error': message, 'release_authorized': False}))
         return 2
 
 

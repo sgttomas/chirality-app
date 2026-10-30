@@ -176,8 +176,13 @@ class TermsPosition(unittest.TestCase):
         self.approval['owner_answer'] = self.ref('answer.json')
         self.save_approval()
         self.refuses()  # adoption before capture
-        self.record['recorded_at'] = '2026-02-30T12:00:00Z'
-        self.refuses()
+
+    def test_record_dates_fail_independently_of_other_validations(self):
+        for value in ('2026-02-30T12:00:00Z', '2026-10-30T25:00:00Z',
+                      '2020-01-01T00:00:00Z', '2026-10-30T10:30:00Z'):
+            with self.subTest(value=value):
+                self.record['recorded_at'] = value
+                self.refuses()
 
     def test_agent_message_cannot_replace_owner_answer(self):
         self.answer['created_by'] = 'agent'
@@ -219,7 +224,57 @@ class TermsPosition(unittest.TestCase):
         self.record['distribution_decision']['evidence'] = self.ref('release.json')
         result = self.check()
         self.assertTrue(result['distribution_decision_recorded'])
+        self.assertEqual(result['recorded_distribution_decision'], 'approved')
         self.assertFalse(result['release_authorized'])
+
+    def release_event(self, answer, when='2026-10-30T11:30:00Z'):
+        answer = dict(answer, recorded_timestamp=when)
+        self.write('release-answer.json', answer)
+        release = {'format': 'chirality.public-distribution-decision/v1', 'purpose': 'public_distribution_decision',
+                   'actor': 'Example owner', 'actor_role': 'owner', 'decided_at': when,
+                   'scope': self.scope, 'decision': 'approved', 'owner_answer': self.ref('release-answer.json'),
+                   'answer': answer['content'].rsplit('\n', 1)[1]}
+        self.write('release.json', release)
+        self.record['distribution_decision'] = {'actor': 'Example owner', 'evidence': self.ref('release.json')}
+
+    def test_respelled_thread_and_reused_applicability_text_cannot_be_release(self):
+        for answer in (dict(self.answer, thread='invented-thread/'),
+                       dict(self.answer, message_id='different-id')):
+            self.release_event(answer)
+            self.refuses()
+
+    def test_release_dates_are_calendar_valid_and_ordered(self):
+        answer = dict(self.answer, message_id='distinct', content='INVENTED release question\nApprove release')
+        for when in ('2026-02-30T12:00:00Z', '2026-10-30T25:00:00Z', '2026-01-01T00:00:00Z'):
+            self.release_event(answer, when)
+            self.refuses()
+
+    def test_unresolved_release_record_reports_value_without_authority(self):
+        self.record.update(state='unresolved', position=None, owner_disposition=None)
+        self.release_event(dict(self.answer, message_id='distinct', content='INVENTED question\nApprove release'))
+        result = self.check()
+        self.assertEqual(result['recorded_state'], 'unresolved')
+        self.assertEqual(result['recorded_distribution_decision'], 'approved')
+        self.assertFalse(result['release_authorized'])
+
+    def test_unfinished_html_entity_cannot_hide_content(self):
+        excerpt = self.capture['excerpts'][0]
+        excerpt['html'] += ' &amp'
+        excerpt['html_sha256'] = reader.digest(excerpt['html'].encode())
+        self.write('capture.json', self.capture)
+        self.record['position']['content'] = self.ref('capture.json')
+        self.approval['content'] = self.ref('capture.json')
+        self.save_approval()
+        self.refuses()
+
+    def test_deep_json_cli_refuses_without_traceback(self):
+        (self.root / 'deep.json').write_text('[' * 2000 + '0' + ']' * 2000)
+        run = subprocess.run([sys.executable, str(ROOT / 'app/packaging/terms/check.py'),
+                              '--record', 'deep.json', '--evidence-root', str(self.root)],
+                             capture_output=True, text=True)
+        self.assertEqual(run.returncode, 2)
+        self.assertEqual(json.loads(run.stdout)['standing'], 'refused')
+        self.assertNotIn('Traceback', run.stderr)
 
     def test_paths_symlinks_hardlinks_special_and_bounds_refuse(self):
         for path in ('../capture.json', '/capture.json', './capture.json', 'x//capture.json'):
