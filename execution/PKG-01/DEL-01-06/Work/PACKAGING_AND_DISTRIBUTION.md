@@ -667,15 +667,23 @@ then requires recovery by the native input owner, not an inferred new pass.
    The standalone `DISTRIBUTION_IDENTITY.md` remains PROPOSED STAGING ONLY;
    the selected `distribution-s1/README.md` defines its specific source selection
    and open production/receiving conditions. Neither establishes adopted
-   production issuer authority. Implementation allocation and independent
-   architecture scrutiny belong to App Agent 0; packaging does not activate it.
-   `distribution_s1.rs` rejects installed-custody and verified outcomes;
-   `distribution_preflight.rs` keeps verified unavailable. Installing the twelve
-   attested-reference resources cannot remove this limit. Receive a reviewed
-   implementation/assurance basis for actual trusted installed custody and its
-   exact candidate before claiming FP-2/W-4. Do not fabricate an attestation or
-   weaken that refusal to make packaging pass. This requires shared hosting
-   ownership, outside this packaging lane's allowed runtime edits.
+   production issuer authority. App Agent 0 has allocated ordinary S4 work to
+   the installed-supplier-integrity manager: a narrow typed, process-local macOS
+   installed-integrity observation under the selected README and original
+   `d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290`
+   clauses. An external issuer is not required. The independently compiled
+   publisher requirement stays `None` until the owner selects the publisher
+   Developer ID team and production bundle identifier; serialized evidence
+   cannot grant live runtime authority.
+   At this preparation's source, `distribution_s1.rs` rejects installed-custody
+   and verified outcomes, and `distribution_preflight.rs` keeps verified
+   unavailable. The allocated implementation is not a delivered witness.
+   Installing the twelve attested-reference resources cannot remove this limit.
+   Receive the reviewed implementation and precise signing-fact/package joins
+   before claiming FP-2/W-4. Do not fabricate an attestation or weaken the
+   refusal to make packaging pass. Runtime/reader/store implementation belongs
+   to that manager, technical adoption to App Agent 0, and packaging records,
+   signing configuration, P1/FP checks and install witness remain here.
 2. **Release configuration choices.** The owner/implementation owner selects
    the production bundle identifier (and continuity implications under I-4),
    release version and minimum supported macOS. `15.0` is currently proposed;
