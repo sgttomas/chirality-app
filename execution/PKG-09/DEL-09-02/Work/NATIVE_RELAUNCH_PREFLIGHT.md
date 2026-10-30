@@ -117,7 +117,7 @@ The prepared Rust repair reuses actual `OwnedProcess` custody for both label
 probe routes, retains unknown reservations, cancels by start attempt, and gates
 ordinary Quit on actual owned-process settlement before its session-end record.
 DEL-01-01's `HOSTING_BOUNDARY.md`, DEL-01-02's
-`EXECUTION_AND_RECOVERY.md`, and DEL-01-04's native-interaction receiving account
+`EXECUTION_AND_RECOVERY.md`, and DEL-01-04's `NATIVE_QUIT_SETTLEMENT.md`
 carry the changed implementation meaning. Their ScopeOfWork commitments and
 dependency conditions are unchanged. The preflight evidence review at
 `e4a16bdbb89895b4324ef51dfa06643260d0c9b9` found no issues and independently
@@ -144,3 +144,41 @@ no successor bundle or native A/B result is claimed here.
 Retain this repair scratch and its check logs through review/integration in
 addition to the original candidate/A inputs. Do not reuse the original bundle
 identifier or namespace for the successor, or relabel historical A evidence.
+
+### Independent repair review and disposition
+
+Claude Opus 5.5 at high effort (fast mode off) reviewed
+`fa69b98cbe007196608adb54b5fdad6c25abe9ab`. It found the retained custody,
+cancellation, unknown handling, home enrollment and Q-7/AS-10 mechanics sound,
+but identified four findings. That head's CI failed; it is not a passing basis.
+
+- CI exposed slow legacy fixture startup exceeding the reused two-second
+  handshake timeout. Probe waiting now has a separate budget, defaulting to
+  and capped at 20 seconds; handshake/request limits are unchanged. A real
+  label-probe regression verifies independence from a zero handshake budget.
+  Hang/noisy fixtures explicitly set their shorter probe budget.
+- The added receiving paragraph changed a frozen examination source digest.
+  `NATIVE_INTERACTION_RECEIVING.md` is restored byte-for-byte to main
+  `b20a0c37`; the implementation note lives in the companion
+  `NATIVE_QUIT_SETTLEMENT.md`. No examination pin or adopted source is changed.
+- A probe could publish refusal between Quit's state observation and Stop.
+  The repair judges a raced idle-state Stop refusal after actual retained
+  process settlement. Unknown custody still fails; a deterministic hook test
+  exercises that interleaving without requiring a spurious Quit retry.
+- PR CI now includes the probe, Quit, Codex Stop, LT-12 and stalled-probe
+  regressions. The real-host Quit tests again assert the specific closed-turn
+  refusal between confirmation and settlement, before checking final exit
+  permission. The reviewer found the LT-12 hook synchronization sound.
+
+The manager repairs these bounded findings directly. The earlier review's
+actual model, head and limits remain preserved; no clean review is claimed for
+the failed head. Updated checks and hosted CI must establish the repaired
+head's standing before a ready integration return.
+
+Post-repair local checks passed: seven probe cases, 37 Codex Stop cases,
+18 App Quit cases, 15 LT-12 cases, 21 conversation-role cases, the stalled
+probe case and all nine access-integration cases. The complete CI pinned-source
+pytest group passed 106 tests and 382 subtests after the byte-exact restoration;
+62 CI-selection tests and deliverable validation also passed. These checks
+use the retained repair scratch, offline caches and serial Rust test execution.
+Hosted CI on the new head remains separate from these local results.

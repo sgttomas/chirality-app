@@ -1425,8 +1425,9 @@ distribution-aware startup routes use the same bounded label reader and actual
 owned process-group custody. The probe is retained against its start-attempt
 identity before a supplier generation exists. Its fixed H-probe environment
 and credential removal remain in force; probe cwd is H-probe. Reads cap combined
-stdout/stderr at 64 KiB and elapsed waiting at the configured wait limit or
-20 seconds, whichever is shorter. Timeout, noisy output, cancellation or failed
+stdout/stderr at 64 KiB and elapsed waiting at a separate probe limit,
+defaulting to and capped at 20 seconds. The handshake/request wait limit does
+not shorten process startup; focused fixtures can set a shorter probe limit. Timeout, noisy output, cancellation or failed
 cleanup cannot supply a usable version label. Stop revokes the matching start
 attempt and settles its actual probe reservation. A stale return cannot publish
 verification or start a successor. Unavailable cleanup remains held and reported;

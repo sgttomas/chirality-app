@@ -147,6 +147,8 @@ pub struct HostConfig {
     pub session_flags: Vec<String>,
     /// Wait limit for the handshake and for requests (value unselected in HOSTING).
     pub wait_limit: Duration,
+    /// Independent label-probe budget; capped at 20 seconds by the reader.
+    pub(crate) probe_wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
     pub(crate) require_distribution_artifacts: bool,
 }
@@ -165,6 +167,7 @@ impl HostConfig {
             // person's own setting (L-3), so the App passes nothing for them.
             session_flags: vec!["analytics.enabled=false".into()],
             wait_limit: Duration::from_secs(20),
+            probe_wait_limit: Duration::from_secs(20),
             distribution: None,
             require_distribution_artifacts: false,
         }
@@ -653,6 +656,8 @@ pub struct Host {
     retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
     probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
     quit_fence: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
@@ -742,6 +747,8 @@ impl Host {
             retired_processes: Mutex::new(Vec::new()),
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            before_quit_stop: Mutex::new(None),
             records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
@@ -1369,9 +1376,14 @@ impl Host {
         if !generation.is_null() && self.child.lock().unwrap().is_none() {
             limits.push("source generation has no actual retained process settlement; state text is not custody".into());
         }
-        if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
-            if let Err(error) = self.stop(actor, reason) { limits.push(error); }
-        }
+        // A probe may observe the fence and publish refusal between the
+        // snapshot and Stop. Judge a raced refusal after actual settlement,
+        // rather than interpreting an idle-state Stop refusal as cleanup loss.
+        #[cfg(test)]
+        if let Some(hook) = self.before_quit_stop.lock().unwrap().take() { hook(); }
+        let stop_error = if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
+            self.stop(actor, reason).err()
+        } else { None };
         let mut processes: Vec<_> = self.probe_processes.lock().unwrap().iter()
             .map(|(attempt, p)| (json!({"kind":"label-probe","startAttempt":attempt}), Arc::clone(p))).collect();
         let generation = self.inner.0.lock().unwrap().generation.clone();
@@ -1389,6 +1401,12 @@ impl Host {
         }
         self.probe_processes.lock().unwrap().retain(|(_, p)| !p.settled());
         self.retired_processes.lock().unwrap().retain(|p| !p.settled());
+        if let Some(error) = stop_error {
+            let current = self.inner.0.lock().unwrap().state.clone();
+            if !matches!(current.as_str(), "absent" | "stopped" | "refused") {
+                limits.push(error);
+            }
+        }
         let observation = json!({"generation":generation,"ownedProcesses":observations,"limits":limits,
             "standing":"original owned groups only; detached or escaped descendants unobserved"});
         self.inner.0.lock().unwrap().journal.push(json!({"class":"quit-process-settlement","observation":observation}));
@@ -1404,7 +1422,7 @@ impl Host {
         probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
             .current_dir(&cfg.probe_home).stdin(Stdio::null())
             .stdout(Stdio::piped()).stderr(Stdio::piped());
-        let label = match self.run_label_probe(attempt, &mut probe, cfg.wait_limit) {
+        let label = match self.run_label_probe(attempt, &mut probe, cfg.probe_wait_limit) {
             Ok(label) => label.trim().to_owned(),
             Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
         };

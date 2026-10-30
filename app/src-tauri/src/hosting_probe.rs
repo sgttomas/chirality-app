@@ -132,12 +132,47 @@ for line in sys.stdin:
     const HANG: &str = "open('entered','w').close(); time.sleep(5)";
 
     #[test]
+    fn legacy_label_budget_is_independent_of_handshake_wait() {
+        let mut f = Fixture::new("time.sleep(0.05)");
+        f.cfg.wait_limit = Duration::ZERO;
+        let host = Host::new();
+        {
+            let mut inner = host.inner.0.lock().unwrap();
+            inner.state = "verifying".into();
+            inner.start_attempt = 1;
+            inner.start_admission = Some(super::super::StartAdmission::NotSpawned(1));
+        }
+        let (_, label, _) = host.verify(1, &f.cfg);
+        assert_eq!(label.as_deref(), Some("codex-cli 0.160.0"));
+        assert!(host.probe_processes.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn quit_refusal_between_state_snapshot_and_stop_is_not_cleanup_failure() {
+        let host = Arc::new(Host::new());
+        {
+            let mut inner = host.inner.0.lock().unwrap();
+            inner.state = "verifying".into();
+            inner.start_attempt = 1;
+            inner.start_admission = Some(super::super::StartAdmission::NotSpawned(1));
+        }
+        let source = host.clone();
+        *host.before_quit_stop.lock().unwrap() = Some(Box::new(move || {
+            // Same publication as a successor probe observing the Quit fence.
+            assert!(source.refuse_successor(1, "probe cancelled by quit".into()).is_err());
+        }));
+        host.begin_quit();
+        assert!(host.settle_for_quit("fixture", "quit").is_ok());
+        assert_eq!(host.snapshot()["state"], "refused");
+    }
+
+    #[test]
     fn legacy_probe_hang_and_both_noisy_pipes_are_bounded_without_generation() {
         for (body, expected) in [("time.sleep(5)", "timed out"),
             ("sys.stdout.write('x'*100000); sys.stdout.flush()", "output limit"),
             ("sys.stderr.write('x'*100000); sys.stderr.flush()", "output limit")] {
             let mut f = Fixture::new(body);
-            f.cfg.wait_limit = Duration::from_millis(500);
+            f.cfg.probe_wait_limit = Duration::from_millis(500);
             let host = Arc::new(Host::new());
             let start = Instant::now();
             let error = host.start(&f.cfg, "fixture").unwrap_err();

@@ -297,7 +297,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig, run: impl FnOnce(&mut Command, Dur
     command.arg("--version").env("CODEX_HOME", &cfg.probe_home)
         .current_dir(&cfg.probe_home).stdin(Stdio::null())
         .stdout(Stdio::piped()).stderr(Stdio::piped());
-    run(&mut command, cfg.wait_limit)
+    run(&mut command, cfg.probe_wait_limit)
 }
 
 #[cfg(test)]
@@ -610,7 +610,7 @@ for line in sys.stdin:
         let mut f = Fixture::new(
             "open(os.path.join(os.environ['CODEX_HOME'],'entered'),'w').close(); time.sleep(10)",
         );
-        f.cfg.wait_limit = Duration::from_millis(150);
+        f.cfg.probe_wait_limit = Duration::from_millis(150);
         let host = Arc::new(Host::new());
         let h = Arc::clone(&host);
         let cfg = f.cfg.clone();

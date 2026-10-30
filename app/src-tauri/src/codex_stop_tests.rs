@@ -763,7 +763,12 @@ for line in sys.stdin:
         assert_eq!(shown.len(), 1);
         assert_eq!(shown[0]["observedLiveTurns"][0]["turnId"], "turn-1", "the question lists the live turn");
         let app = crate::app_quit::AppQuit::default();
-        assert!(app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))).unwrap());
+        assert!(app.allow(&decision, |ids| {
+            assert!(app.proceeding().is_none());
+            let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
+            assert!(late.contains("Quit was confirmed"), "new turns closed before settlement: {late}");
+            crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
+        }).unwrap());
         let ids = app.proceeding().unwrap();
         assert_eq!(ids.len(), 1);
         assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
@@ -824,7 +829,12 @@ for line in sys.stdin:
         let decision = crate::app_quit::quit_sequence(&mut ops, Duration::from_secs(1));
         drop(ops);
         let app = crate::app_quit::AppQuit::default();
-        assert!(app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))).unwrap());
+        assert!(app.allow(&decision, |ids| {
+            assert!(app.proceeding().is_none());
+            let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
+            assert!(late.contains("Quit was confirmed"), "new turns closed before settlement: {late}");
+            crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
+        }).unwrap());
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
         assert!(!late.is_empty(), "AS-03 settled quit rejects new turns");
         let rows = ledger_rows(&f);

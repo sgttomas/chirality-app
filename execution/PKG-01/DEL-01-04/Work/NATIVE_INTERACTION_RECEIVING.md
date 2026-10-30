@@ -489,16 +489,6 @@ Under DECISION-L L-1 the App runs one Codex process per App-owned home
 each, named by the conversations it serves; quitting the App stops all of
 them (R19-4).
 
-For ordinary native Quit, the 2026-10-30 repair receives actual owned-process
-settlement from DEL-01-02 before allowing App exit. Failure or unknown cleanup
-shows a native **Quit Chirality — still running** message with the supplied
-limit; the App remains available and Host diagnostics retain source/custody
-facts. A `stopped` rendering alone is not proof of cleanup. Starting a supplier
-or adding a key home while Quit is under way is refused; a pending key setup
-causes Quit to remain unstarted with a retry message. These are operational
-outcomes, not new human-act or release criteria. System termination retains
-DEL-01-02's separate observation limits.
-
 Observer loss (window close, reload) and connection loss are not stops and
 show nothing of the kind.
 
