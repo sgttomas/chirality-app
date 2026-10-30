@@ -38,4 +38,8 @@ this prototype.
 python3 observe_map.py --run "$TMPDIR/b3-sh1-run"
 ```
 
+`observe_map.py` keeps its recorded pre-rename bytes, so run it from the
+repository root as
+`python3 tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run DIR`.
+
 The observed output of the run of 2026-09-30 is recorded in `WAVE_B/B3.md`.
