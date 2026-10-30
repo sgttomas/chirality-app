@@ -77,6 +77,26 @@ and review scratch until consumers and integration release them. The original
 candidate's applicability comparison below is historical to its named main;
 the changed startup/quit runtime requires affected A/B checks on this successor.
 
+PR #36's production S4 change was subsequently integrated from actual main
+`3cb060164ec8544bdd7ef700d9e095314d63a7e1` without rebuilding or relabelling
+this retained debug candidate. Integration comparison against reviewed native
+head `bc6929e1` found the native controllers/evidence, probe custody, Quit,
+process-group custody, desktop startup, frontend, instruction/workflow resources,
+locks and debug packaging configuration byte-identical. The two hosting edits
+pass a typed installed observer only for a prepared successor publication and
+use a standing helper whose legacy/development values are unchanged. The new
+observer's compiled publisher requirement remains `None`; production S4/FP2
+execution is not established by this comparison or by debug A.
+
+Focused post-merge checks passed: four installed-custody fixtures, six S4
+successor fixtures (including legacy/development standing compatibility), the
+production-override refusal case, seven probe fixtures, all 25 native-controller
+tests and 62 CI-selection tests. These support integration of the reviewed
+source changes; they do not convert the retained `fdcf608f` build into a
+current-main or verified-production artifact. B and later joined journeys
+remain bound to its exact recorded source/configuration. Exact-head CI is
+rerun for the integration return. Original and successor saved state stay intact.
+
 The owner's 2026-10-30 steering selects release evidence item 1 through
 reviewed, merged results. App HELP_HUMAN owns integration. This continuation
 supersedes the previous assignment's closure-only restriction, not its observed
