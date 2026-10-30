@@ -6,12 +6,24 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import os
+import re
 import sys
 import subprocess
 import tempfile
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
+
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
+
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
@@ -54,7 +66,8 @@ class CanonicalSupport:
             if data is None:
                 try:
                     source_root = original_root if path.endswith('.md') else PROJECT
-                    data = self.legacy.publication_source(source_root, path, expected)
+                    read = path if path.endswith('.md') else deliverable_path(source_root, path)
+                    data = self.legacy.publication_source(source_root, read, expected)
                 except ValueError as error:
                     raise ValueError('canonical selected source changed: ' + path) from error
             if sha(data) != expected:
@@ -91,7 +104,8 @@ class CanonicalSupport:
         module = importlib.util.module_from_spec(spec)
         exec(compile(self.captured[path], str(PROJECT / path), 'exec'), module.__dict__)
         manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
-        return module.Condition(self.documentary_root, manifest, self.legacy.relative_file).capture(group)
+        read = lambda root, path: self.legacy.relative_file(root, deliverable_path(root, path))
+        return module.Condition(self.documentary_root, manifest, read).capture(group)
 
     def binding(self, kind, data, purpose):
         self.legacy.require(purpose in PURPOSES, 'unknown binding purpose')

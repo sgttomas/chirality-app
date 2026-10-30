@@ -9,7 +9,7 @@ import unittest
 
 APP = Path(__file__).resolve().parents[1]
 PROJECT = APP.parent
-MANIFEST = PROJECT / 'execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json'
+MANIFEST = PROJECT / 'execution/PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v2.json'
 
 
 def load(name, path):
@@ -30,7 +30,7 @@ class DocumentaryConditionTests(unittest.TestCase):
 
     def test_every_selected_passage_refuses_changed_meaning_and_duplicate_selector(self):
         for source in self.manifest['sources']:
-            raw = (PROJECT / source['path']).read_bytes()
+            raw = (PROJECT / canonical.deliverable_path(PROJECT, source['path'])).read_bytes()
             text = raw.decode()
             for selector in source['selectors']:
                 key = selector.get('heading', selector.get('case', selector.get('paragraphPrefix')))
@@ -55,7 +55,7 @@ class DocumentaryConditionTests(unittest.TestCase):
 
     def test_unread_sections_and_result_status_cells_do_not_change_meaning(self):
         for source in self.manifest['sources']:
-            raw = (PROJECT / source['path']).read_bytes()
+            raw = (PROJECT / canonical.deliverable_path(PROJECT, source['path'])).read_bytes()
             with self.subTest(source=source['path']):
                 self.assertEqual(subject.project(raw, source['selectors']),
                                  subject.project(raw + b'\n# Unrelated implementation note\nChanged observation.\n', source['selectors']))
@@ -85,7 +85,7 @@ class DocumentaryConditionTests(unittest.TestCase):
             documents = root / 'documents'
             for source in self.manifest['sources']:
                 target = documents / source['path']; target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((PROJECT / source['path']).read_bytes())
+                target.write_bytes((PROJECT / canonical.deliverable_path(PROJECT, source['path'])).read_bytes())
             support = canonical.CanonicalSupport(documentary_root=documents)
             records, selected = fixtures.selection_for(support)
             current = root / 'current'; current.mkdir()
@@ -121,7 +121,7 @@ class DocumentaryConditionTests(unittest.TestCase):
         ]
         for name, needle in dependencies:
             source = next(s for s in self.manifest['sources'] if s['path'].endswith('/' + name))
-            raw = (PROJECT / source['path']).read_bytes()
+            raw = (PROJECT / canonical.deliverable_path(PROJECT, source['path'])).read_bytes()
             text = raw.decode()
             line = next(line for line in text.splitlines(keepends=True) if needle in line)
             altered = (line + 'CHANGED GOVERNING REQUIREMENT\n' if line.startswith('#')

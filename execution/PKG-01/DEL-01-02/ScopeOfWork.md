@@ -92,7 +92,7 @@ Use recorded native exchanges for deterministic seam checks where possible and d
 - **TBD-003** — Apply the first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2/D3, carried by [DEL-04-01's adopted policy][policy]. D2 reserves marking checked, accepting a proposal where autonomy requires it, engineering approval, professional reliance, and changing the grant or enabling external access; hosts name and enforce their own list. D3 leaves routine tool-permission and sandbox modes, including classifier-based modes, as the person's own Codex setting in the App, never a substitute for a reserved or professional act; hosts have no classifier permission mode in this increment. No pending OI-001/OI-002 first-increment selection remains. OI-021 operation-specific additions remain with the owner via the outside SWB session and App/shared owner before the connected-activity SoW and affected additional criteria. This slice carries the applicable policy and preserves actual request evidence without deciding additions or inferring an act. Independent recovery work can proceed. Sources: CLM-003, CLM-004; [adopted policy][policy]; [PRD][prd] V4-AUT-03/04 and OQ-02; [current issues][current-issues] OI-021.
 
 Windows development fixture preparation and exact native-execution blockers are
-recorded in [Windows process fixture results](Design/WINDOWS_PROCESS_FIXTURE_RESULTS.md).
+recorded in [Windows process fixture results](Work/WINDOWS_PROCESS_FIXTURE_RESULTS.md).
 All native cases remain unrun; REQ-008/VER-008 and supplier/dependency conditions
 are unchanged, with no completion or acceptance advancement.
 
@@ -132,4 +132,4 @@ are unchanged, with no completion or acceptance advancement.
 
 [supplier]: ../DEL-01-01/ScopeOfWork.md
 [policy]: ../../PKG-04/DEL-04-01/ScopeOfWork.md
-[recovery-design]: Design/EXECUTION_AND_RECOVERY.md
+[recovery-design]: Work/EXECUTION_AND_RECOVERY.md

@@ -194,7 +194,7 @@ class PortableValidation(Scratch):
 
     def test_manifest_matches_independent_packaging_reader(self):
         app = write_bundle(self.tmp, extra={'Contents/Resources/é.txt': b'unicode', 'Contents/Resources/A': b'A'})
-        prototype = Path(__file__).resolve().parents[2] / 'execution/PKG-01/DEL-01-06/Design/prototype/read_tree.py'
+        prototype = Path(__file__).resolve().parents[2] / 'execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py'
         spec = importlib.util.spec_from_file_location('packaging_read_tree', prototype)
         pkg = importlib.util.module_from_spec(spec); spec.loader.exec_module(pkg)
         entries = pkg.read(str(app), signatures=False)

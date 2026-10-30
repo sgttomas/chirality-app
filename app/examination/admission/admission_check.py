@@ -5,11 +5,23 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import os
+import re
 import sys
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
 from admission_rules import impact_violations, review_violations, rule_violations
+
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
+
 
 HERE=Path(__file__).resolve().parent
 PROJECT=HERE.parents[2]
@@ -65,7 +77,7 @@ class Support:
         self.manifest_bytes=Path(manifest).read_bytes()
         pins=parse(self.manifest_bytes); schemas={}
         for source,pin in pins['sources'].items():
-            data=(Path(project)/source).read_bytes()
+            data=(Path(project)/deliverable_path(project,source)).read_bytes()
             if sha(data)!=pin: raise ValueError(f'canonical source drift: {source}')
             for kind,name in SCHEMAS.items():
                 if source.endswith('/'+name): schemas[kind]=parse(data)

@@ -12,9 +12,19 @@ import stat
 import sys
 import tempfile
 
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
+
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-PINS_SHA256 = '6cc9702691ce06774563c1af57385f67182197f8a9d47b8f058340eb0e7fbf56'
+PINS_SHA256 = 'b9fd95e2c9dd688fb6640ba99b4cef6fbee05b6b4366357d9d6b2fc44350eb0d'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',
@@ -70,7 +80,7 @@ def relative_file(root, relative):
     require(isinstance(relative, str) and relative, 'empty source path')
     require(not PurePosixPath(relative).is_absolute() and '\\' not in relative
             and all(x not in ('', '.', '..') for x in relative.split('/')), 'invalid relative source path')
-    return read_file(Path(root) / relative)
+    return read_file(Path(root) / deliverable_path(root, relative))
 
 
 def load_module(name, path, raw=None):
@@ -117,7 +127,8 @@ class PreRunInputs:
         condition = load_module('_pre_run_current_documentary', ROOT / condition_path, self.captured[condition_path])
         manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
         current_root = ROOT if current_documentary_root is None else Path(current_documentary_root)
-        current_documents, self.documentary_condition = condition.Condition(current_root, manifest, publication.relative_file).capture('sq')
+        read = lambda root, path: publication.relative_file(root, deliverable_path(root, path))
+        current_documents, self.documentary_condition = condition.Condition(current_root, manifest, read).capture('sq')
         self.captured.update({'original-support/' + name: data for name, data in original_sources.items()})
         self.captured.update({'current-documentary-inputs/' + name: data for name, data in current_documents.items()})
         # Each selected package is exactly the maintained two-file fixture;

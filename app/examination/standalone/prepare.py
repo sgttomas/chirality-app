@@ -5,8 +5,19 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import os
 import re
 import sys
+
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
+
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -53,7 +64,7 @@ def source_input(source, raw):
 def verified_sources(root=ROOT, captured=None):
     lock = read_json(HERE / 'sources.json')
     for source in lock['sources']:
-        path = root / source['path']
+        path = root / deliverable_path(root, source['path'])
         if not path.is_file():
             raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
         raw = path.read_bytes()

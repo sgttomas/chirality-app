@@ -5,7 +5,7 @@
 /app/tests/** -text
 /app/examination/** -text
 /app/packaging/** -text
-/execution/**/Design/** -text
+/execution/**/Work/** -text
 /execution/**/ScopeOfWork.md -text
 /reference/** -text
 /workflows/** -text

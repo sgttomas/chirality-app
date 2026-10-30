@@ -203,7 +203,7 @@ fn checkpoint_correction_refusals_and_branches_preserve_warranted_order() {
 #[test]
 fn checkpoint_a15_semantic_correction_limits_do_not_become_capture_authority() {
     let first_line = include_str!(
-        "../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.act-log.example.jsonl"
+        "../../../execution/PKG-04/DEL-04-03/Work/RS_RECORD.valid.act-log.example.jsonl"
     )
     .lines()
     .next()

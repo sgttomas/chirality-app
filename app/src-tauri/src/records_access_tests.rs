@@ -84,7 +84,7 @@ fn capability(f: &Scratch, project: &Path) -> RecordsCapability {
 
 #[test]
 fn the_definition_is_a_valid_dynamic_tool_and_the_log_schema_is_the_design_copy() {
-    assert_eq!(LOG_SCHEMA.as_bytes(), include_bytes!("../../../execution/PKG-04/DEL-04-03/Design/records-read-log.entry.schema.json"), "the resource copy is byte-identical to the Design schema");
+    assert_eq!(LOG_SCHEMA.as_bytes(), include_bytes!("../../../execution/PKG-04/DEL-04-03/Work/records-read-log.entry.schema.json"), "the resource copy is byte-identical to the Design schema");
     let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
     schema["$ref"] = json!("#/definitions/v2/DynamicToolSpec");
     jsonschema::options().offline().build(&schema).unwrap().validate(&definition()).unwrap();
@@ -271,7 +271,7 @@ fn probe_refused_lines_large_identities_and_large_workflow_names_stay_bounded() 
     assert!(f.logged().iter().all(|e| serde_json::to_string(e).unwrap().len() < 8 * 1024), "the read log's entries are bounded too");
     // (c) a 60 KB workflow name in run_opened.
     let c = f.project("project-c");
-    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
+    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Work/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
     opened["runId"] = json!("run:c");
     opened["body"]["runId"] = json!("run:c");
     opened["body"]["workflow"]["name"] = json!("W".repeat(60 * 1024));
@@ -509,7 +509,7 @@ fn only_path_fields_are_rewritten_as_typed_markers_and_free_text_is_exact() {
     std::os::unix::fs::symlink(&a, &alias).unwrap();
     let other = f.0.join("other-link");
     std::os::unix::fs::symlink(&a, &other).unwrap();
-    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
+    let mut opened: Value = serde_json::from_str(include_str!("../../../execution/PKG-04/DEL-04-03/Work/RS_RECORD.valid.app-run.example.jsonl").lines().next().unwrap()).unwrap();
     opened["runId"] = json!("run:p");
     opened["body"]["runId"] = json!("run:p");
     opened["body"]["workflow"]["sourceRoot"] = json!(format!("{}/workflows/lib", alias.display()));

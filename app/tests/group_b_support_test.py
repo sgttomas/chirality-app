@@ -35,7 +35,7 @@ class GroupBSupport(unittest.TestCase):
     def test_all_canonical_examples_and_false_pass_vectors(self):
         for kind, filename in support_module.SCHEMAS.items():
             source = next(p for p in self.support.sources['sources'] if p.endswith('/' + filename))
-            directory = support_module.PROJECT / Path(source).parent
+            directory = support_module.PROJECT / Path(support_module.deliverable_path(support_module.PROJECT, source)).parent
             prefix = filename.removesuffix('.schema.json')
             for record in json.loads((directory / f'{prefix}.valid.examples.json').read_text()):
                 with self.subTest(kind=kind, record=record['record_id']):

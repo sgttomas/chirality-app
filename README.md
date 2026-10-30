@@ -57,7 +57,7 @@ its companions and the deliverable Scopes of Work and Designs.
 
 Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
-criteria, `Design/` holds contracts and open implementation conditions, and
+criteria, `Work/` holds contracts and open implementation conditions, and
 `deliverable.yaml` states needs and code/check pointers. Query their inputs and
 consumers with the [deliverables tools](tools/deliverables/README.md).
 For the toolchain, build and launch instructions, start with the
@@ -67,7 +67,7 @@ describes the current product path, checks and remaining qualification limits.
 The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
 applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
 retains its undelivered and unadopted standing. New contract gaps belong in their
-owning Design; PR descriptions carry the history of their fixes.
+owning deliverable's `Work/`; PR descriptions carry the history of their fixes.
 
 ### User documentation
 

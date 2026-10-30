@@ -17,6 +17,8 @@ exact documentary paths select repository checks without product verification:
 
 - `AGENTS.md`
 - `README.md`
+- `init/README.md`
+- `init/init-prompt.md`
 - `loop/LOOP_INIT.md`
 - `docs/CI_SELECTION.md`
 - `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`
@@ -24,7 +26,7 @@ exact documentary paths select repository checks without product verification:
 
 Everything else retains the existing App product verification. This includes
 Rust and frontend code, dependencies/locks, workflows, the selector and its
-tests, schemas, packaging resources, examination/evidence/Design inputs,
+tests, schemas, packaging resources, examination/evidence/Work inputs,
 packaged Markdown and unknown paths. Mixed changes select the union: one
 product-relevant path selects the product workflow. Deletions, executable-mode
 changes, symlinks and other file-type changes select product checks even at an

@@ -121,6 +121,6 @@ checks:
 - app/src-tauri/src/hosting_startup_refusal_tests.rs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/tests/validate-records.test.mjs
-- execution/PKG-01/DEL-01-01/Design/distribution-s1/test_model.py
-- execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py
-- execution/PKG-01/DEL-01-01/Design/prototype/distribution_identity/test_inventory.py
+- execution/PKG-01/DEL-01-01/Work/distribution-s1/test_model.py
+- execution/PKG-01/DEL-01-01/Work/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py
+- execution/PKG-01/DEL-01-01/Work/prototype/distribution_identity/test_inventory.py

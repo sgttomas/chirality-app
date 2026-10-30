@@ -82,7 +82,7 @@ M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
 Identify this complete-content development bundle using DEL-09-01's
-[candidate v3 profile](../../../execution/PKG-09/DEL-09-01/Design/candidate-identity-v3/METHOD.md):
+[candidate v3 profile](../../../execution/PKG-09/DEL-09-01/Work/candidate-identity-v3/METHOD.md):
 the existing identification command takes both `--supplier-archive` and
 `--supplier-acquisition`, compares the cached archive with bundled P1 and
 retains its acquisition account. The complete bundle inventory includes P1.

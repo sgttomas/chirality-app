@@ -64,5 +64,5 @@ code_paths:
 checks:
 - app/src-tauri/src/connector_route_store_tests.rs
 - app/tests/connector-route-presentation.test.mjs
-- execution/PKG-07/DEL-07-02/Design/check_record_reconstruction_v04.py
-- execution/PKG-07/DEL-07-02/Design/check_route_account_v02.py
+- execution/PKG-07/DEL-07-02/Work/check_record_reconstruction_v04.py
+- execution/PKG-07/DEL-07-02/Work/check_route_account_v02.py

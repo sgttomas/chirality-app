@@ -75,7 +75,7 @@ implemented behavior and qualification limits.
    from that frozen guidance, withholding colliding or unsupported names and
    rechecking configuration/source currentness before dispatch. The opt-in
    [supplier child-carrier check](supplier_checks/child_roles.py) and its
-   [receiving account](../execution/PKG-02/DEL-02-04/Design/CHILD_ROLE_CARRIER_0.160.0.md)
+   [receiving account](../execution/PKG-02/DEL-02-04/Work/CHILD_ROLE_CARRIER_0.160.0.md)
    distinguish production preparation and scripted stock-supplier carriage
    from the App's private-receipt/live-association checks and qualification.
 3. The recorder validates package files, records source-faithful requests and
@@ -1125,7 +1125,7 @@ files are cleaned after consumers finish.
 ## Recorded ST-5 and NV-04 seam replay
 
 The offline recorded peer and actual Host/recovery tests are described in
-[Recorded seam replay](../execution/PKG-01/DEL-01-01/Design/RECORDED_SEAM_REPLAY.md).
+[Recorded seam replay](../execution/PKG-01/DEL-01-01/Work/RECORDED_SEAM_REPLAY.md).
 They exercise preserved redacted supplier traffic against current App source,
 including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
@@ -1526,7 +1526,7 @@ in force and showed its three buttons with Keep Codex running as the default.
 Restart Codex was pressed, and Cancel and Keep Codex running were not. The
 Stop Codex question and a stop with live work remain unwitnessed.
 
-A [first native App witness](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) was taken on 2026-10-10. It used an improvised
+A [first native App witness](../execution/PKG-01/DEL-01-02/Work/NATIVE_WITNESS_2026-10-10.md) was taken on 2026-10-10. It used an improvised
 debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
 `gpt-6-luna` on a ChatGPT account signed in by the owner. It observed:
 - ChatGPT sign-in;
@@ -1548,9 +1548,9 @@ fixed: the default configuration declares the instruction and workflow
 resources).
 
 Open contract conditions live beside their governing clauses in each
-deliverable's `Design/`. Implementation discoveries are added there; the PR
+deliverable's `Work/`. Implementation discoveries are added there; the PR
 describes the repair and its verification. Retain a witness or capture in
-Design only while a current requirement, test or ruling uses it.
+`Work/` only while a current requirement, test or ruling uses it.
 
 ## Recorded connector route accounts
 

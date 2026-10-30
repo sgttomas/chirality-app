@@ -442,7 +442,7 @@ code_paths:
 - app/examination/sq_receiving/receive.py
 - app/examination/sq_receiving/worker.py
 checks:
-- execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py
+- execution/PKG-09/DEL-09-02/Work/prototype/check_sq.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py

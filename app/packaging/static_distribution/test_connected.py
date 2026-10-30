@@ -147,7 +147,9 @@ class Connected(unittest.TestCase):
         pins=json.loads((HERE/'sources.json').read_text())
         paths=list(pins['sources']) + [str(p.relative_to(ROOT)) for p in (PREPARE,HERE.parent/'inventory.py',HERE/'check.py',HERE/'__init__.py',HERE/'sources.json')]
         for name in paths:
-            destination=clone/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+            # Keep the pinned layout in the clone; a deliverable's former Design/ now reads from Work/.
+            source=ROOT/name if (ROOT/name).exists() else ROOT/name.replace('/Design/','/Work/',1)
+            destination=clone/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,destination)
         return clone,clone/PREPARE.relative_to(ROOT),pins
     def mutation_scanner_seam(self,target):
         # Explicit test-only race seam; the golden test invokes the actual Rust binary directly.
@@ -163,7 +165,7 @@ class Connected(unittest.TestCase):
     def test_unread_design_notes_and_rust_source_are_not_operational_inputs(self):
         clone,prepare,pins=self.clone_consumer()
         for name in ('app/src-tauri/src/distribution_preflight.rs',
-                     'execution/PKG-01/DEL-01-01/Design/DISTRIBUTION_IDENTITY.md'):
+                     'execution/PKG-01/DEL-01-01/Work/DISTRIBUTION_IDENTITY.md'):
             self.assertNotIn(name,pins['sources'])
             target=clone/name;target.parent.mkdir(parents=True,exist_ok=True)
             target.write_text('Unrelated changed bytes; this command does not read this file.\n')

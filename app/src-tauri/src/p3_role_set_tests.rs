@@ -258,7 +258,7 @@ fn p3_production_binding_matches_current_guidance_and_sources() {
             .unwrap()
             .strip_prefix("projects/chirality-app-v4/")
             .expect("source binding must name this App project");
-        let bytes = std::fs::read(repo.join(relative)).unwrap();
+        let bytes = std::fs::read(repo.join(work_locality(relative))).unwrap();
         let input = if source.get("selectors").is_some() {
             documentary_input(&bytes, &source["selectors"]).unwrap()
         } else {
@@ -347,4 +347,18 @@ fn p3_actual_package_correspondence_refuses_missing_tampered_and_linked_files() 
         assert!(verify_production_instructions_root(&root).is_err());
     }
     std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+fn work_locality(path: &str) -> String {
+    let parts: Vec<&str> = path.splitn(4, '/').collect();
+    match parts.as_slice() {
+        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
+            match rest.strip_prefix("Design/") {
+                Some(tail) => format!("execution/{package}/{deliverable}/Work/{tail}"),
+                None => path.to_string(),
+            }
+        }
+        _ => path.to_string(),
+    }
 }

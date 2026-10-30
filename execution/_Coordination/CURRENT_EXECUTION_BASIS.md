@@ -48,7 +48,7 @@ direction; a component pass does not silently satisfy or replace them.
   then distribution readiness. One coordinated offline unsigned build is now
   retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
   identity support and input/bundle correspondence, not native qualification.
-  PR #20 is merged: [the bounded headless result](../PKG-09/DEL-09-02/Design/HEADLESS_SETUP_RESULT.md)
+  PR #20 is merged: [the bounded headless result](../PKG-09/DEL-09-02/Work/HEADLESS_SETUP_RESULT.md)
   preserves two Rust cases and seven React/miniDOM checks at source `d908cbec5b`,
   plus the failed native-selector attempt. This is test-profile evidence, not
   qualification of the retained desktop bundle. Remaining work in the outgoing
@@ -138,7 +138,7 @@ Keep unfinished work reviewable in PRs; retain exact evidence and named recovery
 inputs before removing owned integrated worktrees, refs and disposable scratch.
 
 Use isolated branches/PRs and exact checked heads. Before a ready return,
-reconcile affected ScopeOfWork, Design and dependency meaning; obtain focused
+reconcile affected ScopeOfWork, Work and dependency meaning; obtain focused
 checks and independent scrutiny for persistence/permission/destructive changes.
 Agent 0 inspects the actual return and consumer fit. Merge main into later lanes,
 preserve ancestry and rederive affected generated artifacts. Verify merge
@@ -150,7 +150,7 @@ PRs #9, #10 and #11 merged in order. Main at that earlier transition was
 `c5b33e37832364eaa04360540ea5e31bc08a9168`; #10 supplied the tested
 steering/interrupt supersession repair and #11 the catalog/receiving specimens.
 The frozen App catalog origin remains `e1e3f461` / `64aad707…`; current
-receiving pin/evidence is in DEL-09-06 Design/SWBPIPE_RECEIVING_BINDING.md.
+receiving pin/evidence is in DEL-09-06 Work/SWBPIPE_RECEIVING_BINDING.md.
 
 The owner authorized the exact `protect-main` change on 2026-10-29:
 normal PRs, GitHub Actions `harness` success, strict up-to-date branches,

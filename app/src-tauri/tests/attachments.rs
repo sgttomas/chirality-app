@@ -386,7 +386,7 @@ fn embedded_assets_match_canonical_sources_and_produced_input_matches_actual_sup
         assert_eq!(independent_hash(&asset), row["sha256"]);
         assert_eq!(
             asset,
-            std::fs::read(repo.join(row["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project"))).unwrap()
+            std::fs::read(repo.join(work_locality(row["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project")))).unwrap()
         );
     }
     let mut schema: Value = serde_json::from_str(include_str!(
@@ -501,4 +501,18 @@ fn initial_fifo_without_writer_is_held_before_any_blocking_read() {
 #[test]
 fn selected_regular_source_replaced_by_fifo_is_held_without_blocking() {
     fifo_case_has_bounded_completion("replacement");
+}
+
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+fn work_locality(path: &str) -> String {
+    let parts: Vec<&str> = path.splitn(4, '/').collect();
+    match parts.as_slice() {
+        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
+            match rest.strip_prefix("Design/") {
+                Some(tail) => format!("execution/{package}/{deliverable}/Work/{tail}"),
+                None => path.to_string(),
+            }
+        }
+        _ => path.to_string(),
+    }
 }

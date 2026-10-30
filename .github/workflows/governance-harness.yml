@@ -39,6 +39,7 @@ jobs:
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m pytest -q tools/deliverables/test_cli.py
           python -m pytest -q tools/ci/test_selection.py
+          python -m pytest -q tools/test_run_recorded_prototype.py
       - name: Conflict, credential and private-term checks
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

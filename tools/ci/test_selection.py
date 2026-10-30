@@ -70,9 +70,9 @@ def test_ordinary_prose_modification(repo):
     ".github/workflows/governance-harness.yml", "tools/ci/select_checks.py",
     "tools/ci/test_selection.py", ".gitattributes", "unknown.md",
     "app/src-tauri/resources/AGENTS.md", "workflows/example/WORKFLOW.md",
-    "execution/PKG-09/DEL-09-02/Design/README.md",
-    "execution/PKG-04/DEL-04-03/Design/prototype/README.md",
-    "execution/PKG-09/DEL-09-01/Design/example.schema.json",
+    "execution/PKG-09/DEL-09-02/Work/README.md",
+    "execution/PKG-04/DEL-04-03/Work/prototype/README.md",
+    "execution/PKG-09/DEL-09-01/Work/example.schema.json",
     "execution/_Coordination/nested/README.md", "app/packaging/README.md",
     "README.MD", "docs/CI_SELECTION.md.py", "unusual\npath\r.md",
 ])

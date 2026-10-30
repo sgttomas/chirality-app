@@ -106,4 +106,4 @@ needs:
   gating: false
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 checks:
-- execution/PKG-10/DEL-10-01/Design/prototype/eb1_check.py
+- execution/PKG-10/DEL-10-01/Work/prototype/eb1_check.py

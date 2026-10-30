@@ -277,4 +277,4 @@ code_paths:
 - app/src/RunPanel.tsx
 checks:
 - app/tests/run-panel.test.mjs
-- execution/PKG-04/DEL-04-02/Design/prototype/validate_settings_in.py
+- execution/PKG-04/DEL-04-02/Work/prototype/validate_settings_in.py

@@ -4,12 +4,24 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import os
+import re
 import sys
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
 
 from rules import identity_violations, rule_violations
+
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
+
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent.parent
@@ -48,7 +60,7 @@ class Support:
         self.schemas = {}
         self.prototype_digest = None
         for relative, pin in self.sources['sources'].items():
-            data = (Path(project) / relative).read_bytes()
+            data = (Path(project) / deliverable_path(project, relative)).read_bytes()
             if digest(data) != pin['sha256']:
                 raise ValueError(f'canonical source changed; reviewed adoption required: {relative}')
             if relative.endswith('/prototype/check_exp.py'):
