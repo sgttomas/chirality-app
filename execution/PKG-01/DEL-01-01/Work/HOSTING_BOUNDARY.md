@@ -1,7 +1,7 @@
 # Stock Codex hosting boundary
 
 Windows development proposal, source-bound to App `79315c26`: the
-[platform-service contract](../../DEL-01-02/Work/WINDOWS_PLATFORM_SERVICES.md)
+[platform-service contract](../../DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md)
 separates ready EOF, observed original leader exit, explicit Stop, normal quit
 and hard App death. Job assignment/retirement and kill-on-close are probe and
 policy questions, not adopted behavior or supplier qualification. Existing

@@ -556,7 +556,7 @@ and content identities are placeholders, labelled in `limits`.
 ## Current implementation conditions
 
 **Complete-content development identification (2026-10-29).** DEL-09-01's
-[additive candidate v3 profile](../../../PKG-09/DEL-09-01/Work/candidate-identity-v3/METHOD.md)
+[additive candidate v3 profile](../../../PKG-09/DEL-09-01/Design/candidate-identity-v3/METHOD.md)
 identifies the complete unsigned development App, including its bundled stock
 supplier, without rewriting the older supplier-absent v2 records. It compares
 the measured cached archive with the acquisition account and all bundled
