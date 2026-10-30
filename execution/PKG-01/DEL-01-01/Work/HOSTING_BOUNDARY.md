@@ -1420,6 +1420,21 @@ separate App-owned **probe home**, H-probe, which is never an account home
 (v0.9; ACCESS-v0.2 §3; K-1); the content-identity check does not execute the
 binary and has no such effect.
 
+**Bounded probe custody (2026-10-30 repair).** The legacy development and
+distribution-aware startup routes use the same bounded label reader and actual
+owned process-group custody. The probe is retained against its start-attempt
+identity before a supplier generation exists. Its fixed H-probe environment
+and credential removal remain in force; probe cwd is H-probe. Reads cap combined
+stdout/stderr at 64 KiB and elapsed waiting at a separate probe limit,
+defaulting to and capped at 20 seconds. The handshake/request wait limit does
+not shorten process startup; focused fixtures can set a shorter probe limit. Timeout, noisy output, cancellation or failed
+cleanup cannot supply a usable version label. Stop revokes the matching start
+attempt and settles its actual probe reservation. A stale return cannot publish
+verification or start a successor. Unavailable cleanup remains held and reported;
+it is not converted to an empty group or a successful development admission.
+These bounds are implementation safeguards, not new supplier qualification
+criteria. Detached/escaped descendants remain outside original-group census.
+
 ### 7.3 Generated output, reference choice and supplement (SOW-121, REQ-002)
 
 - Output is produced by the supplier's own generators (at 0.158.0

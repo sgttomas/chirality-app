@@ -67,10 +67,15 @@ fn lt12_pending_stop_invalidates_before_terminal_and_late_result_cannot_install(
         let (_f,h,cap,g)=ready();let (rx,go)=pause_at(&cap.terminal_publication.before_work);
         exit(&h,&g);rx.recv_timeout(Duration::from_secs(10)).unwrap();
         assert_eq!(h.distribution_evidence(&g)["state"],"pending");
+        let (stop_rx,stop_go)=pause_at(&h.before_stop_cleanup);
         let source=h.clone();let stop=std::thread::spawn(move||source.stop("synthetic","pending LT12"));
-        let end=std::time::Instant::now()+Duration::from_secs(5);while h.snapshot()["state"]!="stopping"{assert!(std::time::Instant::now()<end);std::thread::yield_now();}
+        // A settled group can move through `stopping` before a polling thread
+        // runs. Hold the actual cleanup boundary while examining invalidation.
+        stop_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert_eq!(h.snapshot()["state"],"stopping");
         assert_eq!(h.distribution_evidence(&g)["state"],"unavailable");
         // Keep the sole job active through LT23 admission: no queued retry.
+        stop_go.send(()).unwrap();
         stop.join().unwrap().unwrap();let before=h.distribution_evidence(&g);assert_eq!(before["state"],"unavailable");
         go.send(()).unwrap();idle(&cap);assert_eq!(h.distribution_evidence(&g),before);
     }

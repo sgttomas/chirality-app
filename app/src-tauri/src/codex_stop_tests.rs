@@ -703,6 +703,29 @@ for line in sys.stdin:
 
     // ---- K-4 / SQ-Q App quit through the real Host (`app_quit`).
 
+    #[test]
+    fn real_host_quit_unknown_group_keeps_app_alive_without_clean_end_and_retries() {
+        let f = Fixture::with_ledger();
+        let decision = quit(&f, Duration::from_millis(200), Ok(true), &mut Vec::new());
+        let app = crate::app_quit::AppQuit::default();
+        f.home.host.model_quit_census(Some(crate::hosting::process_group_custody::Census::Unknown("fixture unreadable group".into())));
+        let refused = app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec())));
+        let permission = app.proceeding();
+        let before_retry = ledger_rows(&f);
+        let failed_snapshot = f.home.host.snapshot();
+        // Restore actual observation before assertions, so a failed assertion
+        // cannot strand a modeled-unknown reservation in this fixture.
+        f.home.host.model_quit_census(None);
+        let retry = app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec())));
+        assert!(refused.unwrap_err().contains("still running"));
+        assert!(permission.is_none(), "no exit permission from stopped state alone");
+        assert_eq!(failed_snapshot["state"], "stopped");
+        assert_eq!(failed_snapshot["generation"], f.generation);
+        assert!(!before_retry.iter().any(|e| e["kind"] == "session_ended"));
+        assert!(retry.unwrap(), "actual settled reservation permits retry");
+        assert_eq!(ledger_rows(&f).iter().filter(|e| e["kind"] == "session_ended").count(), 1);
+    }
+
     fn ledger_rows(f: &Fixture) -> Vec<Value> {
         crate::recovery::stored_entries(&f.ledger())
     }
@@ -740,16 +763,19 @@ for line in sys.stdin:
         assert_eq!(shown.len(), 1);
         assert_eq!(shown[0]["observedLiveTurns"][0]["turnId"], "turn-1", "the question lists the live turn");
         let app = crate::app_quit::AppQuit::default();
-        assert!(app.allow(&decision));
+        assert!(app.allow(&decision, |ids| {
+            assert!(app.proceeding().is_none());
+            let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
+            assert!(late.contains("Quit was confirmed"), "new turns closed before settlement: {late}");
+            crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
+        }).unwrap());
         let ids = app.proceeding().unwrap();
         assert_eq!(ids.len(), 1);
         assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
-        assert_eq!(f.home.host.snapshot()["state"], "ready", "the process is stopped on exit, not before");
+        assert_eq!(f.home.host.snapshot()["state"], "stopped", "settlement precedes permission for native exit");
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(late.contains("Quit was confirmed"), "confirmed quit closes the process to new turns: {late}");
+        assert!(!late.is_empty(), "settled quit rejects new turns");
         assert_eq!(f.wire().last().unwrap(), "turn/interrupt", "nothing new written");
-        let end =crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
-        assert_eq!(end["write"], "confirmed");
         assert_eq!(f.home.host.snapshot()["state"], "stopped");
         let stop = f.home.host.lifecycle_events().into_iter().find(|e| e["transitionId"] == "LT-17").expect("deliberate stop");
         assert_eq!((stop["actor"].as_str(), stop["stopRecord"]["reason"].as_str()), (Some("the person"), Some("quit confirmed by the person")));
@@ -783,7 +809,7 @@ for line in sys.stdin:
         let mut shown = Vec::new();
         let decision = quit(&f, Duration::from_secs(3), Ok(false), &mut shown);
         assert!(matches!(decision, crate::app_quit::Decision::Cancelled(_)));
-        assert!(!crate::app_quit::AppQuit::default().allow(&decision));
+        assert!(!crate::app_quit::AppQuit::default().allow(&decision, |_| panic!("cancel cannot settle")).unwrap());
         assert_eq!(f.wire(), wire, "nothing written to Codex");
         assert_eq!(f.home.host.lifecycle_events().len(), lifecycle, "no stop transition");
         assert_eq!(f.home.host.snapshot()["state"], "ready");
@@ -803,10 +829,14 @@ for line in sys.stdin:
         let decision = crate::app_quit::quit_sequence(&mut ops, Duration::from_secs(1));
         drop(ops);
         let app = crate::app_quit::AppQuit::default();
-        assert!(app.allow(&decision));
+        assert!(app.allow(&decision, |ids| {
+            assert!(app.proceeding().is_none());
+            let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
+            assert!(late.contains("Quit was confirmed"), "new turns closed before settlement: {late}");
+            crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
+        }).unwrap());
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(late.contains("Quit was confirmed"), "AS-03 closes the process to new turns until the exit: {late}");
-        crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        assert!(!late.is_empty(), "AS-03 settled quit rejects new turns");
         let rows = ledger_rows(&f);
         let asked = rows.iter().find(|e| e["kind"] == "quit_requested").unwrap();
         assert_eq!((asked["liveTurns"].clone(), asked["outstandingEntries"].clone(), asked["activeDescendants"].clone()), (json!([]), json!([]), json!([])));
@@ -826,8 +856,7 @@ for line in sys.stdin:
         let decision = quit(&f, Duration::from_millis(400), Ok(true), &mut Vec::new());
         assert!(begin.elapsed() < Duration::from_secs(3));
         let app = crate::app_quit::AppQuit::default();
-        assert!(app.allow(&decision));
-        crate::app_quit::finish_exit(&[Arc::clone(&f.home)], app.proceeding()).unwrap();
+        assert!(app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))).unwrap());
         let rows = ledger_rows(&f);
         let ended = rows.iter().find(|e| e["kind"] == "session_ended").unwrap();
         assert_eq!(ended["stopRequests"][0]["state"], "outcome-unknown");

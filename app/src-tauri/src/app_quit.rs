@@ -19,10 +19,11 @@
 //! (AS-07). On the final confirmation `quit_answered` *confirmed* is
 //! recorded, then each live turn's stop request (SR-01, cause *quit*) before
 //! its interrupt is sent (AS-06, Q-4); the App waits until each turn is
-//! observed ended or the quit wait limit passes (Q-5, AS-08). The caller then
-//! exits the App; on exit every home's Codex process is stopped (Q-6) and
-//! `session_ended` *quit* is written with each quit stop request's state
-//! (Q-7, AS-09). A quit ends no workflow run and answers no request.
+//! observed ended or the quit wait limit passes (Q-5, AS-08). Before allowing
+//! native exit every home's actual owned processes are settled (Q-6), then
+//! `session_ended` *quit* is attempted with each quit stop request's state
+//! (Q-7, AS-09). Unknown settlement keeps the App running and supervised.
+//! A quit ends no workflow run and answers no request.
 
 use crate::codex_stop::{interrupt_and_wait, Interrupts, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
@@ -333,14 +334,17 @@ impl AppQuit {
     pub(crate) fn busy(&self) -> bool {
         self.open.load(Ordering::SeqCst)
     }
-    pub(crate) fn allow(&self, decision: &Decision) -> bool {
+    /// Publish permission to exit only after actual owned-process settlement.
+    /// A failed settlement leaves the App alive and the quit retryable.
+    pub(crate) fn allow(&self, decision: &Decision, settle: impl FnOnce(&[String]) -> Result<Value, String>) -> Result<bool, String> {
         match decision {
             Decision::Quit(outcome) => {
-                let ids = outcome["stopRequests"].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(str::to_owned)).collect();
+                let ids: Vec<String> = outcome["stopRequests"].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(str::to_owned)).collect();
+                settle(&ids)?;
                 *self.proceed.lock().unwrap_or_else(|e| e.into_inner()) = Some(ids);
-                true
+                Ok(true)
             }
-            Decision::Cancelled(_) | Decision::NotAsked(_) => false,
+            Decision::Cancelled(_) | Decision::NotAsked(_) => Ok(false),
         }
     }
     /// The quit stop requests, once the quit may proceed; None otherwise.
@@ -414,30 +418,43 @@ pub(crate) fn session_end(proceeding: Option<Vec<String>>, records: &[Value]) ->
     }
 }
 
-/// On the App's exit: stop each App-owned home's Codex process (Q-6, AS-08;
+/// Before deliberate exit: stop each App-owned home's Codex process (Q-6, AS-08;
 /// HOSTING §4.5 closes the generation, so a quit stop request Codex never
 /// reported ended gets SR-08), then write `session_ended` with each quit stop
 /// request's state (Q-7, AS-09), or *system-terminated* (AS-10) when no quit
 /// was decided. Returns the session-end observation.
 pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<String>>) -> Result<Value, String> {
-    let account = homes.iter().find(|home| home.class() == crate::home_resources::HomeClass::Account).ok_or("no App-owned account home")?;
-    let custody = account.host.app_runtime_custody();
-    if let Ok(custody) = &custody {
-        custody.close_distribution_publication();
-    }
+    let custody = homes.iter().find(|home| home.class() == crate::home_resources::HomeClass::Account)
+        .ok_or_else(|| "no App-owned account home".to_owned()).and_then(|home| home.host.app_runtime_custody());
     // AS-10: the system allows a final write; write it first, then stop each
     // home's process as the system allows.
     let early = if proceeding.is_none() { Some(custody.as_ref().map_err(Clone::clone).and_then(|c| c.record_app_session_end_as("system-terminated", &[]))) } else { None };
     let (actor, reason) = if proceeding.is_some() { ("the person", QUIT_STOP_REASON) } else { ("the system", "system termination") };
+    // Fence every home before settling any one of them. Retain these fences
+    // through successful session-end publication and the native exit.
+    for home in homes { home.host.begin_quit(); }
+    let mut failures = Vec::new();
     for home in homes {
-        let _ = home.host.stop(actor, reason);
+        if let Err(error) = home.host.settle_for_quit(actor, reason) {
+            failures.push(format!("{}: {error}", home.class().as_str()));
+        }
     }
     let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
     if let Some(early) = early {
-        return early;
+        // AS-10 cannot delay system-forced termination. Report cleanup limits
+        // separately instead of presenting them as normal Quit.
+        if !failures.is_empty() { eprintln!("chirality: system termination cleanup unavailable: {}", failures.join("; ")); }
+        return early.map(|mut observation| { observation["ownedProcessCleanupLimits"] = json!(failures); observation });
+    }
+    if !failures.is_empty() {
+        for home in homes { home.host.cancel_quit(); }
+        return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
     }
     let (how, stops) = session_end(proceeding, &records);
-    custody?.record_app_session_end_as(how, &stops)
+    // Q-7: ledger failure is a recording limit, not grounds to fabricate an
+    // end or block an already settled exit. Recovery reads ended-without-record.
+    Ok(custody.and_then(|c| c.record_app_session_end_as(how, &stops))
+        .unwrap_or_else(|error| json!({"write":"not-confirmed","limit":error,"standing":"owned processes settled; session-end recording unavailable"})))
 }
 
 /// C-24 (DEL-01-04 §4.8 WI-1, WI-2): supplier requests waiting for the

@@ -161,6 +161,10 @@ diff clean. Raw bytes/digests are not trimmed and no broad check exception is ad
 - A: native setup, save and normal settlement — observed as bounded above.
 - B: saved-request relaunch, source/generation-bound handshake and settlement —
   pending a separately contained supplier failure path and current A bindings.
+  The [B preflight](NATIVE_RELAUNCH_PREFLIGHT.md) records independent design
+  scrutiny and three isolated macOS policy checks: A's fork denial also denies
+  supplier-style spawn, while executable allowlisting alone admits helper
+  escape. B has not launched; no containment relaxation has been adopted.
 - V4-EXM-10: empty-project plan/revision, real tools, draft, review, registration,
   reuse on new inputs and two refinements — still requires the actual journey.
 - V4-EXM-11: stop, window close/reopen, grant/denial, quit/relaunch and continued

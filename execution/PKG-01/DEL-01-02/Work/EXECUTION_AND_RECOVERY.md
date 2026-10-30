@@ -605,6 +605,19 @@ open, so AS-07 is taken as Stop Codex takes it: on Quit every ready home is
 closed to new turns and live work is assessed again; a changed list is
 recorded (`quit_requested`) and asked again, and `quit_answered` records the
 answer to the final list. Work that only ended meanwhile is not asked again.
+The 2026-10-30 custody repair moves each home's actual process settlement before
+ordinary native exit permission. It fences new supplier starts, includes
+pre-generation probes and retained old groups, and requires observed leader
+exit plus complete empty original-group census; the `stopped` UI state alone
+is not settlement proof. Unknown or failed settlement keeps the App running
+with custody/diagnostics retained, no `session_ended` *quit*, and an explicit
+native failure message. The operation reopens only the turns it closed and
+allows a later deliberate Quit to retry actual retained custody. API-key home
+creation cannot race the set of homes being settled. Successful settlement
+precedes the Q-7 record attempt and native exit; a ledger write failure still
+retains its existing ended-without-record limit rather than blocking an already
+settled exit. This does not cover detached/escaped descendants or prevent
+system-forced death. AS-10 remains the separate best-effort system outcome.
 Live work for AS-03/AS-04 also counts a child of unknown activity, an
 unresolved turn observation and a ready home that could not be assessed
 (none observed is not none); workflow runs in force are listed but alone ask
