@@ -1,0 +1,307 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "installed-custody-observation.s4"
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ]
+    },
+    "inventory": {
+      "anyOf": [
+        {
+          "title": "CC-HOSTING-DISTRIBUTION-01 candidate inventory value; no qualification standing",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "algorithm",
+            "manifest_sha256",
+            "entries"
+          ],
+          "properties": {
+            "method": {
+              "const": "codex-vendor-tree-v1"
+            },
+            "algorithm": {
+              "const": "sha-256"
+            },
+            "manifest_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            "entries": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "kind",
+                      "mode"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Exact relative UTF-8 path; semantic checks enforce components, uniqueness and parent directories. Root is dot, directory only."
+                      },
+                      "mode": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4095,
+                        "description": "POSIX st_mode & 07777; decimal representation."
+                      },
+                      "kind": {
+                        "const": "dir"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "kind",
+                      "mode",
+                      "size",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Exact relative UTF-8 path; semantic checks enforce components, uniqueness and parent directories. Root is dot, directory only."
+                      },
+                      "mode": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4095,
+                        "description": "POSIX st_mode & 07777; decimal representation."
+                      },
+                      "kind": {
+                        "const": "file"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$",
+                        "minLength": 64,
+                        "maxLength": 64
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selection": {
+      "type": "object"
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observer": {
+          "const": "macos-security-framework.s4.v1"
+        },
+        "standing": {
+          "enum": [
+            "installed-observation",
+            "synthetic-source-fixture"
+          ]
+        },
+        "requirement_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "static_validation_flags": {
+          "const": 536870937
+        },
+        "dynamic_validation_flags": {
+          "const": 536870912
+        },
+        "static": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cdhash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "team_identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "signature_flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "get_task_allow": {
+              "const": false
+            }
+          },
+          "required": [
+            "cdhash",
+            "identifier",
+            "team_identifier",
+            "signature_flags",
+            "get_task_allow"
+          ]
+        },
+        "dynamic": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cdhash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "team_identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "signature_flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "get_task_allow": {
+              "const": false
+            }
+          },
+          "required": [
+            "cdhash",
+            "identifier",
+            "team_identifier",
+            "signature_flags",
+            "get_task_allow"
+          ]
+        },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bundle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "executable": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resources": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parent": {
+              "type": "string",
+              "minLength": 1
+            },
+            "translocation": {
+              "const": "not-established"
+            },
+            "app_translocation_path_component": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "bundle",
+            "executable",
+            "resources",
+            "parent",
+            "translocation",
+            "app_translocation_path_component"
+          ]
+        },
+        "custody_assumption": {
+          "const": "stable-installed-bundle"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "observer",
+        "standing",
+        "requirement_sha256",
+        "static_validation_flags",
+        "dynamic_validation_flags",
+        "static",
+        "dynamic",
+        "location",
+        "custody_assumption",
+        "limits"
+      ]
+    },
+    "standing": {
+      "const": "process-observation-evidence-only"
+    },
+    "limits": {
+      "const": [
+        "No live authority from serialized evidence",
+        "No package, installer, quarantine or notarization qualification"
+      ]
+    }
+  },
+  "required": [
+    "format",
+    "generation",
+    "inventory",
+    "selection",
+    "app",
+    "standing",
+    "limits"
+  ],
+  "$id": "urn:chirality:distribution-successor:installed-custody-observation.s4"
+}
