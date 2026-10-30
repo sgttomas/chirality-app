@@ -13,6 +13,11 @@ continue an existing shipped App identity or establish a separate v4 identity.
 The expected requirement will use an independently specified Apple Developer ID
 Application certificate-chain template; the owner selects the identifier/team,
 not arbitrary requirement logic or a self-derived designated requirement.
+This selects a team and bundle identifier, not a particular signing certificate.
+CF-1's certificate/signing-identity name is a separate signing-configuration
+input supplied for the owner's later signing act; certificate renewal is not
+itself a new team/identifier selection. Exact template constraints remain
+reviewed implementation work.
 
 Two concrete identity routes are available for the owner to choose:
 
@@ -31,6 +36,13 @@ Two concrete identity routes are available for the owner to choose:
   Package I-4's stable team/identifier and DEL-01-04's proposed SEAL-2 key-store
   relationship must be reconciled before claiming continuity or key access.
 
+On **both routes**, the chosen team and identifier become the stable I-4 identity
+for later v4 releases. SEAL-C's existing App-data key, its move to the OS keychain
+at signing under OI-011, and any G-8/SEAL-2 entitlement or provisioning-profile
+needs must be reconciled with that identity. Neither route carries development-
+namespace keys or capture history into production without separately designed
+migration; selecting a name does not perform that migration.
+
 No prior production team or bundle identifier has been selected or inspected in
 this lane. The local `v3.0.1` tag is retained; its inspected `runtime/package.json`
 is a runtime workspace manifest, not a production signing identity. It supplies
@@ -38,6 +50,10 @@ no basis to guess the v4 identity. Current source uses
 `dev.chirality.app-v4.skeleton`, and the native candidate uses a fresh
 `dev.chirality.app-v4.candidate.…` namespace; neither is a proposed production
 default. Public release and replacement remain distinct owner decisions.
+An existing-identity continuity choice needs evidence from an actually shipped,
+signed v3 artifact or its authoritative release identity account, not an inferred
+identifier/team from that workspace manifest. No such artifact or identity is
+inspected by this preparation.
 
 Suggested decision wording, with values provided privately only after selection:
 
