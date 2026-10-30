@@ -111,3 +111,12 @@ The following describes later authorized production and qualification, not acts 
 | OUT-003 | OBJ-002, OBJ-004 | REQ-005, CLM-003, CLM-004 | AC-005 | VER-005 | Selected embedding qualification and local-provider protocol requirements with capability limits. |
 | OUT-004 | OBJ-001, OBJ-002, OBJ-004 | REQ-006, CLM-002, CLM-003 | AC-006 | VER-006 | Pin selection/candidate binding, version checks, recorded-exchange results and applicable upgrade comparison. |
 | OUT-003 | OBJ-001, OBJ-002, OBJ-004 | REQ-007, REQ-008, CLM-004, CLM-005, CLM-006 | AC-007 | VER-007 | One-for-one owner/act account and evidence-appropriate standing without inferred acts. |
+
+## S4 implementation reconciliation (2026-10-30)
+
+The bounded installed-integrity implementation and exact evidence/consumer limits
+are recorded in [the S4 technical supplement](Work/INSTALLED_INTEGRITY_S4.md).
+This supplies technical means under the existing outputs and requirements; it
+does not select a publisher, qualify a pin/candidate, change acceptance criteria
+or complete native/package witnesses. The compiled publisher requirement remains
+None, so production continues to refuse before supplier execution.

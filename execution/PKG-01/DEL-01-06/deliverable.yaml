@@ -3,7 +3,9 @@ name: macOS packaging and distribution evidence
 needs:
 - from: DEL-01-01
   condition: 'Packaging consumes the identified stock Codex binary and App hosting basis actually supplied
-    by App DEL-01-01.
+    by App DEL-01-01. S4 installed observation and signing facts are received under
+    Work/INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md; the compiled publisher requirement remains None.
+    Runtime evidence alone does not bind the package record/installer or complete FP-2/W-4.
 
 
     Notes: FACT: INITIALIZED is only local contract maturity; the identified binary and hosting input

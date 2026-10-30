@@ -42,6 +42,7 @@ mod compiled_development_selection;
 pub mod distribution_semantics;
 mod distribution_store;
 mod distribution_s1;
+mod installed_custody;
 pub mod home_resources;
 mod desktop_startup;
 mod desktop_setup_confirmation;
