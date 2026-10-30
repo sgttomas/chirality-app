@@ -697,6 +697,8 @@ then requires recovery by the native input owner, not an inferred new pass.
    to that manager, technical adoption to App Agent 0, and packaging records,
    signing configuration, P1/FP checks and install witness remain here.
 2. **Release configuration choices.** The owner/implementation owner selects
+   the identity route through the reviewed
+   [publisher decision preparation](PUBLISHER_SELECTION_OWNER_ACTION_DRAFT.md):
    the production bundle identifier (and continuity implications under I-4),
    release version and minimum supported macOS. `15.0` is currently proposed;
    the debug identifier/version is not a default answer. Receive the eligible
