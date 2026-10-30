@@ -47,7 +47,18 @@ cancellations, unexpected skips and missing/inconsistent outputs block merging.
 No branch-rule change or product-check removal is needed.
 
 The App workflow retains the former monorepo's focused build, Rust, Node and
-Python checks, plus frozen-source regression checks. Manual App workflow dispatch
+Python checks, plus frozen-source regression checks. On PRs they run as three
+parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds
+its own artifacts. The first compiles every default-feature test target in one
+pass, replacing the separate check pass; the second rebuilds the lib test
+target, and the third builds the successor feature and packaging example. Each
+focused lib cohort filter sits in exactly one of two shards and still runs as
+its own serial libtest process, because some tests read process-wide state that
+others set. The workflow's `App v4 checks` job
+requires all three to succeed. Selection tests execute that gate, check the
+event conditions and reject a filter listed twice; they do not detect a removed
+filter, so cohort changes need review like any other check change.
+Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
 Manual dispatch of the governance harness also always selects product checks.

@@ -1,0 +1,27 @@
+name: App v4 toolchains and locked dependencies
+description: Shared setup for every App v4 product job; versions match the single-job baseline.
+
+runs:
+  using: composite
+  steps:
+    - name: Provision fixed examination source objects
+      shell: bash
+      working-directory: app
+      run: python3 examination/support_identity/provision_ci_objects.py
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: app/package-lock.json
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: '1.97.1'
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install locked App and pinned Python dependencies
+      shell: bash
+      working-directory: app
+      run: |
+        npm ci
+        python -m pip install pytest==9.1.1 jsonschema==4.26.0 referencing==0.37.0
