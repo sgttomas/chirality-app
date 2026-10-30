@@ -138,7 +138,7 @@ Keep unfinished work reviewable in PRs; retain exact evidence and named recovery
 inputs before removing owned integrated worktrees, refs and disposable scratch.
 
 Use isolated branches/PRs and exact checked heads. Before a ready return,
-reconcile affected ScopeOfWork, Design and dependency meaning; obtain focused
+reconcile affected ScopeOfWork, Work and dependency meaning; obtain focused
 checks and independent scrutiny for persistence/permission/destructive changes.
 Agent 0 inspects the actual return and consumer fit. Merge main into later lanes,
 preserve ancestry and rederive affected generated artifacts. Verify merge
@@ -150,7 +150,7 @@ PRs #9, #10 and #11 merged in order. Main at that earlier transition was
 `c5b33e37832364eaa04360540ea5e31bc08a9168`; #10 supplied the tested
 steering/interrupt supersession repair and #11 the catalog/receiving specimens.
 The frozen App catalog origin remains `e1e3f461` / `64aad707…`; current
-receiving pin/evidence is in DEL-09-06 Design/SWBPIPE_RECEIVING_BINDING.md.
+receiving pin/evidence is in DEL-09-06 Work/SWBPIPE_RECEIVING_BINDING.md.
 
 The owner authorized the exact `protect-main` change on 2026-10-29:
 normal PRs, GitHub Actions `harness` success, strict up-to-date branches,

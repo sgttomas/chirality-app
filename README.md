@@ -67,7 +67,7 @@ describes the current product path, checks and remaining qualification limits.
 The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
 applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
 retains its undelivered and unadopted standing. New contract gaps belong in their
-owning Design; PR descriptions carry the history of their fixes.
+owning deliverable's `Work/`; PR descriptions carry the history of their fixes.
 
 ### User documentation
 

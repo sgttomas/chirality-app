@@ -14,7 +14,7 @@ PRs and assigned manager routes; do not dispatch to a retired Windows session.
 Chirality makes a general agent act within and for a host application; its own
 workflow-authoring App is the exemplar. Work at this repository root.
 Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
-Design and dependency conditions. Consult `docs/PRD.md` and its companions for
+Work and dependency conditions. Consult `docs/PRD.md` and its companions for
 requirements and interfaces involved in this slice, not as a compulsory census.
 
 From the repository root:

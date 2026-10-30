@@ -1,18 +1,15 @@
 <init-prompt>
 Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
-
-Set `WORKING_ROOT` to `{REPO_ROOT}`.
+Verify that `{REPO_ROOT}` is the Chirality App repository.
 
 Read `{REPO_ROOT}/AGENTS.md`.
 Resolve `CHIRALITY_LIBRARY` from the shared-library selection in that file.
 Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELP_HUMAN.md`.
-Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELPS_HUMANS.md`.
-Read `{CHIRALITY_LIBRARY}/agents/AGENT_WORKING_ITEMS.md`.
-Read `{CHIRALITY_LIBRARY}/agents/AGENT_TASK.md`.
+Act as `HELP_HUMAN` for `{REPO_ROOT}`.
+Read and follow `{REPO_ROOT}/loop/LOOP_INIT.md`.
+Load other role and workflow instructions when the undertaking needs them.
 
-Act as `HELP_HUMAN` for `{WORKING_ROOT}`.
-
-Read `{WORKING_ROOT}/loop/LOOP_INIT.md` and follow it.
-
-Steer (this run): <none>
+Orient. Briefly report your understanding of the current basis and boundaries.
+Await the owner's separate steering. Initialization alone selects no undertaking
+and grants no commitment, acceptance or release authority.
 </init-prompt>

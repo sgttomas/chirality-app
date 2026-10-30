@@ -1548,9 +1548,9 @@ fixed: the default configuration declares the instruction and workflow
 resources).
 
 Open contract conditions live beside their governing clauses in each
-deliverable's `Design/`. Implementation discoveries are added there; the PR
+deliverable's `Work/`. Implementation discoveries are added there; the PR
 describes the repair and its verification. Retain a witness or capture in
-Design only while a current requirement, test or ruling uses it.
+`Work/` only while a current requirement, test or ruling uses it.
 
 ## Recorded connector route accounts
 
