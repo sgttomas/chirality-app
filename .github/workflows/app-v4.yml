@@ -29,9 +29,9 @@ concurrency:
 
 
 # Pull requests split the focused checks across parallel macOS jobs. Every
-# former cohort filter appears in exactly one shard; libtest runs the union of a
-# shard's filters once, in one process, serially. A new focused cohort joins the
-# shard with the shorter recorded runtime. Manual dispatch keeps the full route.
+# focused lib cohort filter appears in exactly one shard and still runs as its
+# own serial libtest process. A new focused cohort joins the shard with the
+# shorter recorded runtime. Manual dispatch keeps the full route.
 jobs:
   rust-integration:
     name: Rust compile, integration and lib shard A
@@ -48,8 +48,8 @@ jobs:
           checkpoint_custody trial_reads_route_to_the_home_holding_the_trial_conversation
           model_turn model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
-          a15_single_entry file_act role_observations host_tick role_r3
-          home_qualified_hot_run
+          a15_single_entry file_act role_observations host_tick after_end_file_lapse
+          role_r3 home_qualified_hot_run process_group_custody access_provider
           runtime_session::workflow_root_tests::supply_dispatch_tests
           runtime_session::workflow_root_tests::trial_restart_source_tests
           tc2_mode_turn_carries_the_end_notice_with_its_collaboration_mode
@@ -77,9 +77,12 @@ jobs:
               --test policy_standing --test decision_standing --test record_semantics --test record_relations \
               --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation -- --test-threads=1
       - name: Focused lib cohorts (shard A)
+        # One process per cohort, as before: some tests read process-wide state set by others.
         run: |
           set -f
-          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --test-threads=1 $LIB_COHORTS
+          for cohort in $LIB_COHORTS; do
+            cargo test --locked --manifest-path src-tauri/Cargo.toml --lib "$cohort" -- --test-threads=1
+          done
 
   rust-lib-node:
     name: Lib shard B and Node presentation
@@ -96,9 +99,8 @@ jobs:
           trial_authoring_source_tests records_access record_lines records_store
           records_export records_retention installation::tests connector_route_store
           recovery::tests records_continuity fleet_ reply_close native_requests::tests
-          call_custody after_run_end chat_workflow after_end_file_lapse native_links
-          startup_refusal process_group_custody access_provider recovery_root_cold_
-          waiting_requests_tests::
+          call_custody after_run_end chat_workflow native_links startup_refusal
+          recovery_root_cold_ waiting_requests_tests::
           runtime_session::workflow_root_tests::library_entries_tests
           act_control::a15::tests::listed_a15_
           runtime_session::workflow_root_tests::proposal_disclosure_tests
@@ -117,9 +119,12 @@ jobs:
           python tests/check_git_checkout_bytes.py
           npm run build
       - name: Focused lib cohorts (shard B)
+        # One process per cohort, as before: some tests read process-wide state set by others.
         run: |
           set -f
-          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --test-threads=1 $LIB_COHORTS
+          for cohort in $LIB_COHORTS; do
+            cargo test --locked --manifest-path src-tauri/Cargo.toml --lib "$cohort" -- --test-threads=1
+          done
       - name: Standalone terminal identity
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib terminal_exchange_actual_selected_and_unselected_roundtrip -- --test-threads=1
       - name: Desktop setup presentation

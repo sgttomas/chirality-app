@@ -52,8 +52,9 @@ parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds
 its own artifacts. The first compiles every default-feature test target in one
 pass, replacing the separate check pass; the second rebuilds the lib test
 target, and the third builds the successor feature and packaging example. Each
-focused lib cohort filter sits in exactly one of two shards, and each shard runs
-its filters in one serial libtest process. The workflow's `App v4 checks` job
+focused lib cohort filter sits in exactly one of two shards and still runs as
+its own serial libtest process, because some tests read process-wide state that
+others set. The workflow's `App v4 checks` job
 requires all three to succeed. Selection tests execute that gate, check the
 event conditions and reject a filter listed twice; they do not detect a removed
 filter, so cohort changes need review like any other check change.

@@ -284,7 +284,8 @@ def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
     assert all(shards) and len(cohorts) == len(set(cohorts))
     for name in ("rust-integration", "rust-lib-node"):
         run = next(step["run"] for step in jobs[name]["steps"] if "$LIB_COHORTS" in step.get("run", ""))
-        assert run.startswith("set -f\n") and "--lib -- --test-threads=1 $LIB_COHORTS" in run
+        assert run.startswith("set -f\nfor cohort in $LIB_COHORTS; do\n")
+        assert '--lib "$cohort" -- --test-threads=1\ndone' in run
 
 
 @pytest.mark.parametrize("dispatch, focused, full, passes", [
