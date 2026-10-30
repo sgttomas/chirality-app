@@ -9,9 +9,7 @@ Current release pathway, delivery owners and remaining evidence are in
 `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. HELP_HUMAN retains Agent 0
 responsibility; Type 1 managers work in dedicated T3 sessions and communicate
 through T3 chat, owning delivery through repairs, reconciliation and integration
-preparation. All Type 2 TASKs/reviewers use `gpt-6.1-sol`, medium effort and
-standard service (`reasoningEffort: medium`, `serviceTier: default`). These are
-development-agent settings, not product model/provider selections.
+preparation.
 
 The owner's 2026-10-30 handoff direction selects a fresh project Agent 0 from
 the standard init entry. macOS remains the release baseline; App Agent 0 owns
@@ -51,7 +49,8 @@ App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
 workflow and skill bodies are on demand. Roles and methods come from these local
 instructions and the selected library, not host-side agent definitions. Roles
 grant no additional host permissions; use actual host capabilities and return
-mechanisms. Model and effort choices come from session steering.
+mechanisms. Development-agent model, effort and service-tier settings belong
+only in session steering, never in AGENTS.md or other governing repository text.
 
 Use the library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when
 coordinating related contributions into a usable result. Other methods are
