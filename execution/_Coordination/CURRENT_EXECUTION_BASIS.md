@@ -108,9 +108,8 @@ retained inputs before issuing new work.
 remains the return route for those existing assignments during closure, not a
 permanent identity for future project ownership. No new Agent 0 session ID or
 Windows manager assignment is implied here. Final App merges belong to the
-project Agent 0. Type 2 TASKs, reviewers and test
-executors use `gpt-6.1-sol`, medium effort, standard service
-(`reasoningEffort: medium`, `serviceTier: default`). Type 1 choices are separate.
+project Agent 0. Development-agent model, effort and service-tier settings
+come only from session steering.
 
 ### Evidence still required for release
 
