@@ -24,7 +24,7 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-PINS_SHA256 = 'b9fd95e2c9dd688fb6640ba99b4cef6fbee05b6b4366357d9d6b2fc44350eb0d'
+PINS_SHA256 = '66f535320d54de74ee0d31e96661996b7a3a6a3ee784e39b355fc952f74bd314'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',
@@ -92,7 +92,7 @@ def load_module(name, path, raw=None):
 
 class PreRunInputs:
     def __init__(self, current_documentary_root=None, original_support_root=None):
-        pins_bytes = read_file(HERE / 'pre_run_inputs.pins.json')
+        pins_bytes = read_file(HERE / 'pre_run_inputs.terms-v1.pins.json')
         require(sha(pins_bytes) == PINS_SHA256, 'pre-run source pins changed')
         self.pins = parse(pins_bytes)
         producer_path = 'app/examination/standalone/prepare.py'
@@ -119,13 +119,13 @@ class PreRunInputs:
             digest = expected['sha256'] if isinstance(expected, dict) else expected
             require(sha(selected) == digest, 'pre-run source drift: ' + relative)
             self.captured[relative] = data
-        canonical_pins = parse(self.captured['app/examination/support_identity/canonical-pins.v1.json'])
+        canonical_pins = parse(self.captured['app/examination/support_identity/canonical-pins.terms-v1.json'])
         for name, digest in canonical_pins['sources'].items():
             if name.endswith('.md'):
                 original_sources[name] = publication.publication_source(original_root, ('' + name if original_support_root is None else name), digest)
-        condition_path = 'app/examination/documentary_condition.py'
+        condition_path = 'app/examination/support_identity/terms_condition.py'
         condition = load_module('_pre_run_current_documentary', ROOT / condition_path, self.captured[condition_path])
-        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json']
         current_root = ROOT if current_documentary_root is None else Path(current_documentary_root)
         read = lambda root, path: publication.relative_file(root, deliverable_path(root, path))
         current_documents, self.documentary_condition = condition.Condition(current_root, manifest, read).capture('sq')
@@ -186,7 +186,8 @@ class PreRunInputs:
         plan = parse(plan_bytes)
         require(not self.producer.validate(plan), 'plan differs from preserved B7 preparation')
         return {
-            'artifact_kind': 'standalone_pre_run_inputs', 'preparation_version': 1,
+            'artifact_kind': 'standalone_pre_run_inputs', 'preparation_version': 2,
+            'documentary_condition': copy.deepcopy(self.documentary_condition),
             'standing': 'preparation_only', 'plan_sha256': expected_plan_sha256,
             'source_pins_sha256': PINS_SHA256, 'producer_sha256': sha(read_file(Path(__file__))),
             'source_files': copy.deepcopy(self.pins['sources']),
@@ -194,7 +195,7 @@ class PreRunInputs:
             'support_selection': {
                 'purpose': 'preparation_source_correspondence_only',
                 'method': self.support.declaration['binding_method'],
-                'reader_pins_sha256': sha(self.captured['app/examination/support_identity/canonical-pins.v1.json']),
+                'reader_pins_sha256': sha(self.captured['app/examination/support_identity/canonical-pins.terms-v1.json']),
                 'declaration_sha256': self.support.declaration_sha256,
                 'publication_reference': copy.deepcopy(self.support.declaration['publication_reference']),
                 'support_identity': copy.deepcopy(self.support.identity),

@@ -39,6 +39,12 @@ class SQReceivingTests(unittest.TestCase):
         shutil.copytree(FIXTURE, self.root)
         self.selected = json.loads((self.root / 'selection.json').read_bytes())
         self.dossier = json.loads((self.root / 'dossier.json').read_bytes())
+        # Explicitly generate successor sidecars; preserve frozen fixture bytes.
+        for artifact in self.selected['artifacts']:
+            raw = (self.root / artifact['record']['path']).read_bytes()
+            bound = encoded(self.support.binding(artifact['kind'], raw, self.selected['purpose']))
+            (self.root / artifact['binding']['path']).write_bytes(bound)
+            artifact['binding']['sha256'] = sha(bound)
 
     def a(self, slot): return next(x for x in self.selected['artifacts'] if x['slot'] == slot)
     def value(self, slot): return json.loads((self.root / self.a(slot)['record']['path']).read_bytes())
@@ -68,6 +74,14 @@ class SQReceivingTests(unittest.TestCase):
         self.assertIn(needle,json.dumps(result));return result
 
     def schema_valid(self, value): self.assertEqual(list(self.result_validator.iter_errors(value)),[])
+
+    def test_original_current_sidecar_is_not_successor_adoption(self):
+        artifact=self.a('review')
+        path=artifact['binding']['path']
+        original=(FIXTURE/path).read_bytes()
+        (self.root/path).write_bytes(original)
+        artifact['binding']['sha256']=sha(original)
+        self.refused('invalid canonical binding')
 
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
@@ -218,7 +232,7 @@ class SQReceivingTests(unittest.TestCase):
         v=self.value('result-J-3');v.pop('not_run_because');self.save('result-J-3',v);self.refused('SCHEMA')
 
     def test_mixed_purpose_binding_refused(self):
-        a=self.a('review');p=self.root/a['binding']['path'];v=json.loads(p.read_bytes());v['binding_purpose']='historical_correspondence';p.write_bytes(encoded(v));a['binding']['sha256']=sha(p.read_bytes());self.refused('canonical binding identity mismatch')
+        a=self.a('review');p=self.root/a['binding']['path'];v=json.loads(p.read_bytes());v['binding_purpose']='historical_correspondence';p.write_bytes(encoded(v));a['binding']['sha256']=sha(p.read_bytes());self.refused('invalid canonical binding')
 
     def test_missing_prototype_identity_refused_despite_schema_optionality(self):
         v=self.value('result-J-1');v['support_revision'].pop('prototype_digest');self.schema_valid(v);self.save('result-J-1',v);self.refused('support identity missing or different')

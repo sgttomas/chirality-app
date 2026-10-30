@@ -35,7 +35,7 @@ class PreRunInputsTests(unittest.TestCase):
 
     def test_connected_all_cases_preserve_original_blank_and_missing_inputs(self):
         _, condition = self.inputs.support.source_condition('current_producer_declaration')
-        self.assertEqual(condition['method'], 'selected-documentary-source-condition/v2')
+        self.assertEqual(condition['method'], 'selected-documentary-source-condition/v3-terms')
         self.inputs.check(self.selected, self.selected_sha, self.plan)
         self.assertEqual(len(self.selection['fixture_roles']), 13)
         self.assertIsNone(self.selection['candidate_slot']['revision'])
@@ -141,7 +141,7 @@ class PreRunInputsTests(unittest.TestCase):
     def test_duplicate_json_keys_and_nonfinite_values_refuse(self):
         for data in (b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}'):
             with self.assertRaises(ValueError): self.api.parse(data)
-        malicious = self.selected.replace(b'"preparation_version": 1', b'"preparation_version": 1, "preparation_version": 1')
+        malicious = self.selected.replace(b'"preparation_version": 2', b'"preparation_version": 2, "preparation_version": 2')
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             self.inputs.check(malicious, self.api.sha(malicious), self.plan)
 

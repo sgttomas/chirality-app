@@ -9,7 +9,7 @@ import unittest
 
 APP = Path(__file__).resolve().parents[1]
 PROJECT = APP.parent
-MANIFEST = PROJECT / 'execution/PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v2.json'
+MANIFEST = PROJECT / 'execution/PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v3.json'
 
 
 def load(name, path):
@@ -86,12 +86,15 @@ class DocumentaryConditionTests(unittest.TestCase):
             for source in self.manifest['sources']:
                 target = documents / source['path']; target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes((PROJECT / canonical.deliverable_path(PROJECT, source['path'])).read_bytes())
+            for name in self.manifest['terms_adoption']['artifacts']:
+                target = documents / name; target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((PROJECT / name).read_bytes())
             support = canonical.CanonicalSupport(documentary_root=documents)
             records, selected = fixtures.selection_for(support)
             current = root / 'current'; current.mkdir()
             path = fixtures.write_bundle(current, support, records, copy.deepcopy(selected))
             report = support.check(path, canonical.sha(path.read_bytes()))
-            self.assertEqual(report['source_condition']['method'], subject.METHOD)
+            self.assertEqual(report['source_condition']['method'], 'selected-documentary-source-condition/v3-terms')
             self.assertFalse(report['producer_use_verified'])
             historical = root / 'historical'; historical.mkdir()
             selected['binding_purpose'] = 'historical_correspondence'

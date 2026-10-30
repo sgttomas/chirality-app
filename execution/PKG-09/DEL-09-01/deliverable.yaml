@@ -34,7 +34,7 @@ needs:
     Target description — TargetName: Identified recorded real protocol exchanges'
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 - from: DEL-01-06
-  condition: 'Consume the actual targeted App package for native smoke examination and identified packaging
+  condition: 'Documentary terms receiving selects the explicit v3-terms successor for approved PK-R4/section 9; historical support remains unchanged and release is not inferred. Consume the actual targeted App package for native smoke examination and identified packaging
     evidence before relying on a packaged distribution witness.
 
 
@@ -129,9 +129,13 @@ needs:
   gating: false
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- app/examination/support_identity/canonical.py
+- app/examination/support_identity/terms_condition.py
+- app/examination/support_identity/generate_terms_adoption.py
 - app/examination/candidate_identity/identify.py
 - app/examination/candidate_identity/bundled_supplier.py
 checks:
+- app/tests/group_b_terms_successor_test.py
 - app/tests/group_b_sq_receiving_test.py
 - execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py
 - app/tests/candidate_identity_test.py

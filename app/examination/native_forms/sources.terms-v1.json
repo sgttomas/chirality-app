@@ -1,0 +1,21 @@
+{
+  "basis": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "sources": [
+    {
+      "path": "app/examination/standalone/prepare.py",
+      "sha256": "ece15cee72b71feda761796b396bb44877aa8d152d9db048387a05781a979484"
+    },
+    {
+      "path": "app/examination/standalone/sources.terms-v1.json",
+      "sha256": "0261b27a2977ae9a203ff621e66eb8417e02986f31568552ed4ef6094fe474af"
+    },
+    {
+      "path": "app/examination/standalone/missing-inputs.json",
+      "sha256": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
+    },
+    {
+      "path": "app/examination/standalone/invented-inputs.json",
+      "sha256": "2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24"
+    }
+  ]
+}
