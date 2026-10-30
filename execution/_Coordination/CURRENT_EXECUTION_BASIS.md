@@ -48,8 +48,12 @@ direction; a component pass does not silently satisfy or replace them.
   then distribution readiness. One coordinated offline unsigned build is now
   retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
   identity support and input/bundle correspondence, not native qualification.
-  Next: preserve the source-bound headless setup/save/fresh-start result and
-  the failed native-selector attempt in a reviewable evidence contribution.
+  PR #20 is merged: [the bounded headless result](../PKG-09/DEL-09-02/Design/HEADLESS_SETUP_RESULT.md)
+  preserves two Rust cases and seven React/miniDOM checks at source `d908cbec5b`,
+  plus the failed native-selector attempt. This is test-profile evidence, not
+  qualification of the retained desktop bundle. Remaining work in the outgoing
+  session is integration cleanup and named-input retention only; the fresh
+  Agent 0 selects the next actual native/workflow result.
   The owner authorized unattended agent operation of the bounded setup/relaunch
   check, including actual UI confirmation and quit; attendance and manual entry
   of synthetic test paths are no longer gates. Automated actions must retain
@@ -67,8 +71,10 @@ direction; a component pass does not silently satisfy or replace them.
   Own App receiving interfaces, source-bound host evidence and reconciliation
   with DEL-09-06/09-07. PRs #14 and #16 merged the source applicability repair
   and current profile-admission/first-desktop-trace receiving preparation.
-  Next: receive host product-profile integration, activation/cleanup proof and
-  actual desktop evidence. No missing App implementation has been identified
+  Its assigned receiving contribution is closed, with no unmerged repair or
+  active dispatch remaining. Later authorized work receives host product-profile
+  integration, activation/cleanup proof and actual desktop evidence after the
+  cutover. No missing App implementation has been identified
   for the host fixture. The three proposed acceptance-staging changes remain
   owner decisions. Preserve historical preparation and frozen catalog origin;
   repin only when current canonical bytes or meaning require it.
@@ -94,10 +100,11 @@ direction; a component pass does not silently satisfy or replace them.
   fixture passes do not establish product App, guest namespace, SQLite or
   durability qualification.
 
-The named App Type 1 managers retain their already assigned delivery and
-integration-preparation work through this transition; the incoming Agent 0
-reconciles actual PRs, retained inputs and live assignments before issuing more
-work. [The outgoing App Agent 0 session](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619)
+The named App Type 1 sessions identify delivered contributions and any remaining
+integration/cleanup already in progress. They do not create continuing runtime
+assignments after closure; the incoming Agent 0 reconciles actual PRs and named
+retained inputs before issuing new work.
+[The outgoing App Agent 0 session](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619)
 remains the return route for those existing assignments during closure, not a
 permanent identity for future project ownership. No new Agent 0 session ID or
 Windows manager assignment is implied here. Final App merges belong to the
@@ -125,6 +132,11 @@ executors use `gpt-6.1-sol`, medium effort, standard service
    unrun, failed, blocked and limited standing and continuing obligations.
 
 ### Working controls
+
+The owner's current instruction is to merge and clean up existing work for a
+fresh-session handoff, without new threads, tangents or runtime undertakings.
+Keep unfinished work reviewable in PRs; retain exact evidence and named recovery
+inputs before removing owned integrated worktrees, refs and disposable scratch.
 
 Use isolated branches/PRs and exact checked heads. Before a ready return,
 reconcile affected ScopeOfWork, Design and dependency meaning; obtain focused
