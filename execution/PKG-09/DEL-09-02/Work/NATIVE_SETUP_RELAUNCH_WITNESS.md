@@ -1,5 +1,11 @@
 # Native setup/relaunch: current applicability and historical preparation
 
+Later 2026-10-30 owner steering selected release evidence item 1. The
+[current continuation](DESKTOP_CANDIDATE_CONTINUATION.md) records successful
+agent-operated native setup/save/quit on the retained candidate, with relaunch
+still pending. The closure-only restriction below describes the earlier closed
+assignment; its raw preparation and failed pilot remain historical evidence.
+
 Current disposition, 2026-10-30: the owner delegated computer/UI operation and
 then explicitly authorized unattended testing. Physical/current owner presence
 is no longer required for A or B; do not ask for attendance or synthetic-path

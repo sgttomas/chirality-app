@@ -1,0 +1,8 @@
+{"at": "2026-10-30T20:58:22.911570+00:00", "event": "phase_A_started", "pid": 37200, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482"}
+{"at": "2026-10-30T20:58:23.431269+00:00", "event": "popup_open", "label": "Desktop setup action"}
+{"at": "2026-10-30T20:58:23.494264+00:00", "event": "owned_menu_bound", "label": "Desktop setup action", "items": [["Choose explicitly", true], ["Prepare a new account home", true], ["Keep the admitted account; change next project", false]]}
+{"at": "2026-10-30T20:58:23.626491+00:00", "event": "owned_window_capture", "name": "Desktop-setup-action-main", "window": 56152}
+{"at": "2026-10-30T20:58:23.626789+00:00", "event": "work_stopped", "error": "owned window capture identity unavailable"}
+{"at": "2026-10-30T20:58:23.841556+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T20:58:23.841599+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T20:58:24.021047+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}

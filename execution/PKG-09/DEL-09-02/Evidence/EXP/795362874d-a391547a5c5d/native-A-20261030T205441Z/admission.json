@@ -1,0 +1,311 @@
+{
+  "inputs": {
+    "kind": "native_setup_relaunch_inputs_not_executed",
+    "candidate_key": "795362874d-a391547a5c5d",
+    "bundle": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app",
+    "executable": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/MacOS/chirality-app-v4",
+    "executable_sha256": "a0b29cf7120e9fabb1fd2e6e553d69c1a010312db6ae1f1005d572110806d48e",
+    "bundle_identifier": "dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "environment": {
+      "HOME": "/Users/ryan",
+      "PATH": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/Resources/codex/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+      "LANG": "en_US.UTF-8",
+      "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-native-setup-pk383pjj/codex-home",
+      "TMPDIR": "/Users/ryan/dev/chirality-t3/scratch/app-native-setup-pk383pjj/tmp"
+    },
+    "native_input_paths": {
+      "shared_config": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/config.toml",
+      "shared_agents": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/AGENTS.md",
+      "shared_skills": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/skills",
+      "project": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/project"
+    },
+    "files": {
+      "network-denied.sb": "dd4f8e1f9ea0bc30fe500aed24f965138ad3d8047e9913b8fe86dcc7f462ec49",
+      "shared/config.toml": "6fdb010afed89b65f8cb432a2e6698cd3355049e8679cdab557965ea72ade34b",
+      "shared/AGENTS.md": "50e9eb96ae7354840caa90aa022bac5e19cb6e30fa17b4dfedcfe6ee569f48a2"
+    },
+    "expected_app_data": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "actual_account_home": "Only owner-confirmed setup preview supplies account-homes/account-<opaque>; not precreated or adopted",
+    "launch_not_run": true,
+    "network_policy_not_exercised": true,
+    "resource_coordination": {
+      "reported_by": "SWB Type1 relaying SWB Agent0",
+      "state": "resource-clear; execution-hold",
+      "observations_as_reported": [
+        "no exclusive marker",
+        "port8000 idle",
+        "833GiB free disk",
+        "no local heavy SWB lane work"
+      ],
+      "proposed_window": "<=10min serialized two-phase route",
+      "authority_limit": "Both launches await relayed owner answer and GUI presence; resource report grants no GUI/supplier execution or owner-act authority"
+    }
+  },
+  "namespaces": {
+    "AppData": {
+      "path": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+      "present": false
+    },
+    "WebKit": {
+      "path": "/Users/ryan/Library/WebKit/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+      "metadata": [
+        [
+          ".",
+          16777231,
+          283908060,
+          16877,
+          96,
+          1793337498807046161
+        ],
+        [
+          "WebsiteData",
+          16777231,
+          283908061,
+          16877,
+          384,
+          1793337498808169512
+        ],
+        [
+          "WebsiteData/Default",
+          16777231,
+          283908069,
+          16877,
+          96,
+          1793337498901529833
+        ],
+        [
+          "WebsiteData/Default/salt",
+          16777231,
+          283908101,
+          33152,
+          8,
+          1793337498901762379
+        ],
+        [
+          "WebsiteData/DeviceIdHashSalts",
+          16777231,
+          283908067,
+          16877,
+          64,
+          1793337498807230455
+        ],
+        [
+          "WebsiteData/EnhancedSecurity",
+          16777231,
+          283908077,
+          16877,
+          64,
+          1793337498808167887
+        ],
+        [
+          "WebsiteData/IndexedDB",
+          16777231,
+          283908062,
+          16877,
+          64,
+          1793337498807070953
+        ],
+        [
+          "WebsiteData/LocalStorage",
+          16777231,
+          283908064,
+          16877,
+          64,
+          1793337498807136245
+        ],
+        [
+          "WebsiteData/MediaKeys",
+          16777231,
+          283908065,
+          16877,
+          96,
+          1793337498807579419
+        ],
+        [
+          "WebsiteData/MediaKeys/v1",
+          16777231,
+          283908071,
+          16832,
+          96,
+          1793337498807614670
+        ],
+        [
+          "WebsiteData/MediaKeys/v1/salt",
+          16777231,
+          283908072,
+          33152,
+          8,
+          1793337498807660670
+        ],
+        [
+          "WebsiteData/MediaKeysHashSalts",
+          16777231,
+          283908068,
+          16877,
+          64,
+          1793337498807264247
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics",
+          16777231,
+          283908066,
+          16877,
+          256,
+          1793337503907654998
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/observations.db",
+          16777231,
+          283908105,
+          33188,
+          118784,
+          1793393587582641337
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/observations.db-shm",
+          16777231,
+          283908108,
+          33188,
+          32768,
+          1793393587581524585
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/observations.db-wal",
+          16777231,
+          283908107,
+          33188,
+          4152,
+          1793393588004798038
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/pcm.db",
+          16777231,
+          283908156,
+          33188,
+          4096,
+          1793337503907066697
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/pcm.db-shm",
+          16777231,
+          283908159,
+          33188,
+          32768,
+          1793337503907797917
+        ],
+        [
+          "WebsiteData/ResourceLoadStatistics/pcm.db-wal",
+          16777231,
+          283908158,
+          33188,
+          45352,
+          1793337503909821074
+        ],
+        [
+          "WebsiteData/ResourceMonitorThrottler",
+          16777231,
+          283908076,
+          16877,
+          64,
+          1793337498808129761
+        ],
+        [
+          "WebsiteData/SearchHistory",
+          16777231,
+          283908070,
+          16877,
+          64,
+          1793337498807364374
+        ]
+      ]
+    },
+    "Caches": {
+      "path": "/Users/ryan/Library/Caches/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+      "metadata": [
+        [
+          ".",
+          16777231,
+          283908052,
+          16877,
+          96,
+          1793337498806103854
+        ],
+        [
+          "WebKit",
+          16777231,
+          283908053,
+          16877,
+          192,
+          1793393587577773537
+        ],
+        [
+          "WebKit/AlternativeServices",
+          16777231,
+          283908073,
+          16877,
+          64,
+          1793337498807769630
+        ],
+        [
+          "WebKit/CacheStorage",
+          16777231,
+          283908054,
+          16877,
+          96,
+          1793337498973693192
+        ],
+        [
+          "WebKit/CacheStorage/salt",
+          16777231,
+          283908112,
+          33152,
+          8,
+          1793337498973752318
+        ],
+        [
+          "WebKit/HSTS",
+          16777231,
+          283908059,
+          16877,
+          64,
+          1793337498806567153
+        ],
+        [
+          "WebKit/NetworkCache",
+          16777231,
+          283908055,
+          16877,
+          96,
+          1793337498901530375
+        ],
+        [
+          "WebKit/NetworkCache/Version 17",
+          16777231,
+          283908100,
+          16832,
+          128,
+          1793337498902489015
+        ],
+        [
+          "WebKit/NetworkCache/Version 17/Blobs",
+          16777231,
+          283908103,
+          16832,
+          64,
+          1793337498902482849
+        ],
+        [
+          "WebKit/NetworkCache/Version 17/salt",
+          16777231,
+          283908102,
+          33152,
+          8,
+          1793337498902094009
+        ]
+      ]
+    }
+  },
+  "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482",
+  "controller_sha256": "1dc4bd2157bf9924fa1587d5e757d03a8527b4115be88663f5e10f288b8a4886",
+  "prepared_at": "2026-10-30T20:54:31.843148+00:00"
+}

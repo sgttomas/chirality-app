@@ -1,0 +1,18 @@
+{"at": "2026-10-30T20:54:41.059664+00:00", "event": "phase_A_started", "pid": 32788, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482"}
+{"at": "2026-10-30T20:54:41.735704+00:00", "event": "popup_open", "label": "Desktop setup action"}
+{"at": "2026-10-30T20:54:41.796626+00:00", "event": "owned_menu_bound", "label": "Desktop setup action", "items": [["Choose explicitly", true], ["Prepare a new account home", true], ["Keep the admitted account; change next project", false]]}
+{"at": "2026-10-30T20:54:41.797232+00:00", "event": "one_exact_menu_click", "label": "Desktop setup action", "option": "Prepare a new account home", "point": [499.5, 404.0], "transport": "HID event after owned foreground point hit test"}
+{"at": "2026-10-30T20:54:42.063766+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Choose explicitly"}
+{"at": "2026-10-30T20:54:42.504359+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T20:54:43.843473+00:00", "event": "selection_stable_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T20:54:44.137031+00:00", "event": "typed_path_readback", "label": "Shared config.toml", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/config.toml"}
+{"at": "2026-10-30T20:54:44.421103+00:00", "event": "typed_path_readback", "label": "Shared AGENTS.md", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/AGENTS.md"}
+{"at": "2026-10-30T20:54:44.720942+00:00", "event": "typed_path_readback", "label": "Shared skills directory", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/skills"}
+{"at": "2026-10-30T20:54:44.802746+00:00", "event": "popup_open", "label": "Project on next launch"}
+{"at": "2026-10-30T20:54:44.859842+00:00", "event": "owned_menu_bound", "label": "Project on next launch", "items": [["Choose explicitly", true], ["No project", true], ["Choose a project directory", true]]}
+{"at": "2026-10-30T20:54:44.860341+00:00", "event": "one_exact_menu_click", "label": "Project on next launch", "option": "Choose a project directory", "point": [428.5, 718.0], "transport": "HID event after owned foreground point hit test"}
+{"at": "2026-10-30T20:54:45.111298+00:00", "event": "selection_readback", "label": "Project on next launch", "value": "Choose explicitly"}
+{"at": "2026-10-30T20:54:48.176326+00:00", "event": "work_stopped", "error": "selection did not commit: Project on next launch"}
+{"at": "2026-10-30T20:54:48.350710+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T20:54:48.350735+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T20:54:48.350750+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}

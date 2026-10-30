@@ -1,0 +1,5 @@
+{"at": "2026-10-30T20:47:38.216006+00:00", "event": "phase_A_started", "pid": 17943, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482"}
+{"at": "2026-10-30T20:47:38.534792+00:00", "event": "work_stopped", "error": "AX target missing/ambiguous: Desktop setup action"}
+{"at": "2026-10-30T20:47:38.720464+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T20:47:38.720529+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T20:47:38.915646+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}

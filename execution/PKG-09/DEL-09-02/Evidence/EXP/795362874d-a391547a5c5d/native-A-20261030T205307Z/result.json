@@ -1,0 +1,14 @@
+{
+  "candidate": "795362874d-a391547a5c5d",
+  "phase": "A only",
+  "saved": false,
+  "error": "selection did not commit stably: Desktop setup action",
+  "guard_reason": null,
+  "exit_code": 0,
+  "forced": false,
+  "logging_errors": [],
+  "normal_setup_save_quit": false,
+  "supplier": "execution denied by phase-A policy; no relaunch attempted",
+  "actor": "agent under owner direction; not a personal human act",
+  "limits": "Native setup only; no workflow/recovery/access-mode qualification or human-act pass."
+}

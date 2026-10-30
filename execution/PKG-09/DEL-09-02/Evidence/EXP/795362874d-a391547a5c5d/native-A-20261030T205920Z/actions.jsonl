@@ -1,0 +1,28 @@
+{"at": "2026-10-30T20:59:21.574918+00:00", "event": "phase_A_started", "pid": 38461, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482"}
+{"at": "2026-10-30T20:59:22.067963+00:00", "event": "popup_open", "label": "Desktop setup action"}
+{"at": "2026-10-30T20:59:22.137108+00:00", "event": "owned_menu_bound", "label": "Desktop setup action", "items": [["Choose explicitly", true], ["Prepare a new account home", true], ["Keep the admitted account; change next project", false]]}
+{"at": "2026-10-30T20:59:22.263829+00:00", "event": "owned_window_capture", "name": "Desktop-setup-action-main", "window": 56173}
+{"at": "2026-10-30T20:59:22.265170+00:00", "event": "one_exact_menu_click", "label": "Desktop setup action", "option": "Prepare a new account home", "point": [499.5, 404.0], "transport": "HID event after owned foreground point hit test"}
+{"at": "2026-10-30T20:59:22.285024+00:00", "event": "mouse_event_modifiers", "label": "Desktop setup action", "kind": 5, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:22.350173+00:00", "event": "cursor_at_owned_target", "label": "Desktop setup action", "point": [499.5, 404.0]}
+{"at": "2026-10-30T20:59:22.601735+00:00", "event": "mouse_event_modifiers", "label": "Desktop setup action", "kind": 1, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:22.707054+00:00", "event": "mouse_event_modifiers", "label": "Desktop setup action", "kind": 2, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:22.748126+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Choose explicitly"}
+{"at": "2026-10-30T20:59:23.183569+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T20:59:24.521621+00:00", "event": "selection_stable_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T20:59:24.812342+00:00", "event": "typed_path_readback", "label": "Shared config.toml", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/config.toml"}
+{"at": "2026-10-30T20:59:25.093055+00:00", "event": "typed_path_readback", "label": "Shared AGENTS.md", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/AGENTS.md"}
+{"at": "2026-10-30T20:59:25.378985+00:00", "event": "typed_path_readback", "label": "Shared skills directory", "value": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/skills"}
+{"at": "2026-10-30T20:59:25.448859+00:00", "event": "popup_open", "label": "Project on next launch"}
+{"at": "2026-10-30T20:59:25.513344+00:00", "event": "owned_menu_bound", "label": "Project on next launch", "items": [["Choose explicitly", true], ["No project", true], ["Choose a project directory", true]]}
+{"at": "2026-10-30T20:59:25.647144+00:00", "event": "owned_window_capture", "name": "Project-on-next-launch-main", "window": 56173}
+{"at": "2026-10-30T20:59:25.648372+00:00", "event": "one_exact_menu_click", "label": "Project on next launch", "option": "Choose a project directory", "point": [428.5, 718.0], "transport": "HID event after owned foreground point hit test"}
+{"at": "2026-10-30T20:59:25.648452+00:00", "event": "mouse_event_modifiers", "label": "Project on next launch", "kind": 5, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:25.703680+00:00", "event": "cursor_at_owned_target", "label": "Project on next launch", "point": [428.5, 718.0]}
+{"at": "2026-10-30T20:59:25.959676+00:00", "event": "mouse_event_modifiers", "label": "Project on next launch", "kind": 1, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:26.065291+00:00", "event": "mouse_event_modifiers", "label": "Project on next launch", "kind": 2, "inherited": 536870912, "sent": 0}
+{"at": "2026-10-30T20:59:26.114243+00:00", "event": "selection_readback", "label": "Project on next launch", "value": "Choose explicitly"}
+{"at": "2026-10-30T20:59:29.139977+00:00", "event": "work_stopped", "error": "selection did not commit: Project on next launch"}
+{"at": "2026-10-30T20:59:29.334809+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T20:59:29.334837+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T20:59:29.334853+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}
