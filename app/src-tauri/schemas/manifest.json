@@ -81,7 +81,7 @@
     {
       "file": "../resources/distribution-successor/installed-custody-observation.s4.schema.json",
       "source": "execution/PKG-01/DEL-01-01/Work/distribution-s1/installed-custody-observation.s4.schema.json",
-      "sha256": "c7ef1ee715d6f38209a88bd6c0f979283966726bd8001b812a47c28fe5174c6f",
+      "sha256": "16470617d9b46620f955cdb550ca47f987dde35ef84d1ad0a86b75a58a0d21f1",
       "id": "urn:chirality:distribution-successor:installed-custody-observation.s4"
     }
   ],

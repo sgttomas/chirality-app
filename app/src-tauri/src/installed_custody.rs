@@ -12,11 +12,12 @@ pub(crate) const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = None;
 pub(crate) const STATIC_VALIDATION_FLAGS: u32 = (1 << 29) | 1 | (1 << 3) | (1 << 4);
 pub(crate) const DYNAMIC_VALIDATION_FLAGS: u32 = 1 << 29;
 const OBSERVER: &str = "macos-security-framework.s4.v1";
-const LIMITS: [&str; 4] = [
-    "Static validation assumes a stable installed bundle; hostile same-user or administrator mutation remains possible",
+const LIMITS: [&str; 5] = [
+    "Validation assumes a trusted stable installed bundle and parent path; parent writability is not checked and hostile same-user or administrator mutation remains possible",
     "Checks are bounded observations, not an atomic snapshot or an immutable check-to-exec guarantee",
     "No App Management protection, quarantine, notarization, Gatekeeper, revocation or installation witness is established",
     "Nested code is checked in Security.framework standard locations; other sealed resources are checked as resources",
+    "Signing information including dynamic signature flags is disk-backed; running-process assurance comes from SecCodeCheckValidity against the compiled requirement",
 ];
 fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
@@ -151,7 +152,7 @@ pub(crate) fn validate_evidence(value: &Value) -> Result<(), String> {
         ],
     )?;
     if value["observer"] != OBSERVER
-        || value["custody_assumption"] != "stable-installed-bundle"
+        || value["custody_assumption"] != "trusted-stable-installed-bundle-and-parent-path"
         || value["static_validation_flags"] != STATIC_VALIDATION_FLAGS
         || value["dynamic_validation_flags"] != DYNAMIC_VALIDATION_FLAGS
         || value["limits"] != json!(LIMITS)
@@ -213,6 +214,7 @@ pub(crate) fn validate_evidence(value: &Value) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn facts(
     requirement: &str,
     standing: &str,
@@ -234,7 +236,7 @@ fn facts(
         "static":static_info,"dynamic":dynamic_info,
         "location":{"bundle":bundle,"executable":executable,"resources":resources,"parent":parent,
             "translocation":"not-established","app_translocation_path_component":bundle.components().any(|p| p.as_os_str()=="AppTranslocation")},
-        "custody_assumption":"stable-installed-bundle","limits":LIMITS
+        "custody_assumption":"trusted-stable-installed-bundle-and-parent-path","limits":LIMITS
     });
     validate_evidence(&value)?;
     Ok(value)
@@ -372,6 +374,9 @@ mod native {
             .canonicalize()
             .map_err(|_| "Security executable path cannot be resolved".into())
     }
+    // SecCodeCopySigningInformation reports disk-backed signing information,
+    // including kSecCodeInfoFlags. It is not a second independent kernel proof.
+    // SecCodeCheckValidity below supplies the running-process requirement check.
     unsafe fn signing_info(code: Ref, executable: &Path) -> Result<Value, String> {
         let info = copy("copy signing information", |out| {
             SecCodeCopySigningInformation(code, 1 << 1, out)

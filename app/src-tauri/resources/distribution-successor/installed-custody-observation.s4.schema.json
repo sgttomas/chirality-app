@@ -259,7 +259,7 @@
           ]
         },
         "custody_assumption": {
-          "const": "stable-installed-bundle"
+          "const": "trusted-stable-installed-bundle-and-parent-path"
         },
         "limits": {
           "type": "array",
@@ -267,8 +267,8 @@
             "type": "string",
             "minLength": 1
           },
-          "minItems": 4,
-          "maxItems": 4
+          "minItems": 5,
+          "maxItems": 5
         }
       },
       "required": [

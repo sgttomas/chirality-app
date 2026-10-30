@@ -48,3 +48,12 @@ qualification evidence. Source fixture passes do not pass FP-2/W-4, signed or
 quarantined install/launch, or terms/publication decisions. Packaging owns those
 remaining acts and evidence; App Agent 0 owns technical adoption/integration and
 the owner retains publisher, acceptance and release choices.
+
+Signing information returned for the dynamic process is disk-backed (including
+Security.framework kSecCodeInfoFlags); matching static/dynamic fields are a
+consistency join, not independent runtime integrity proof. Running-process
+assurance comes from SecCodeCheckValidity against the same compiled requirement.
+Optional kernel guest-requirement matching can be assessed with the later exact
+publisher requirement; it is not claimed here. The trusted stable parent-path
+assumption and unestablished translocation/App Management protections remain
+explicit limits, not observed access controls.

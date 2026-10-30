@@ -79,3 +79,6 @@ These source fixtures cover the None/debug/platform gates, synthetic signing
 facts, exact S4 reader/Store joins, historical refusal, non-Codex resource
 mutation and successor-only standing compatibility. They supply no signed-App
 or packaged native witness. Existing `s2_` coverage remains selected separately.
+The existing `production_cannot_be_overridden_by_development_fields` regression
+also runs explicitly in that step, preserving its closure-resolution refusal
+point as well as the new S4 checks.

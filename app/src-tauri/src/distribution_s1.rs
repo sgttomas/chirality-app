@@ -145,7 +145,7 @@ pub(crate) fn observed(
         if !s4 { return Err("installed custody issuer unsupported by historical observed-lifecycle-reader.s3.v0.10".into()); }
         validate_installed(o, files, selected.ok_or("installed observation requires selected reference")?)?;
     } else if s4 {
-        gap = true;
+        return Err("S4 observation requires installed custody pass".into());
     }
     let observed_inventory = if o["inventory"].is_null() {
         gap = true;
@@ -288,6 +288,7 @@ pub(crate) fn lifecycle(
     }
     let o = value(files, &l["verification_artifact"])?;
     if l["format"] != "lifecycle-event.s4" && o["format"] == "observed-verification.s4" { return Err("historical lifecycle reader refuses S4 evidence".into()); }
+    if l["format"] == "lifecycle-event.s4" && o["format"] != "observed-verification.s4" { return Err("S4 lifecycle requires S4 observation".into()); }
     let outcome = observed(&o, files, selected)?;
     if l["verification_generation"] != o["generation"]
         || (!e["generation"].is_null() && e["generation"] != o["generation"])
@@ -310,7 +311,8 @@ pub(crate) fn lifecycle(
     {
         return Err("LT-24 cannot waive contradiction".into());
     }
-    if e["supplierStanding"] == "verified-pin" && outcome != "verified" {
+    if (e["supplierStanding"] == "verified-pin" && outcome != "verified")
+        || (l["format"] == "lifecycle-event.s4" && outcome == "verified" && e["supplierStanding"] != "verified-pin") {
         return Err("lifecycle standing differs".into());
     }
     if e.get("versionIdentity").is_some() {

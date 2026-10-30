@@ -42,6 +42,17 @@ fn installed_s4_synthetic_verified_and_lt04_are_evidence_not_legacy_authority(){
     let mut l=json!({"format":"lifecycle-event.s4","verification_artifact":reference,"verification_generation":g,"legacy_event":{"recordKind":"lifecycle-event","sequence":2,"transitionId":"LT-04","generation":g,"fromState":"verifying","event":"verification-passed","toState":"spawning","at":"synthetic","supplierStanding":"verified-pin","verificationResult":{"result":"verified"}}});
     assert_eq!(distribution_s1::lifecycle(&l,&files,Some(&s)).unwrap(),"verified");
     l["format"]=json!("lifecycle-event.s1.v0.10");assert!(distribution_s1::lifecycle(&l,&files,Some(&s)).is_err());
+    l["format"]=json!("lifecycle-event.s4");
+    l["legacy_event"]["supplierStanding"]=json!("unverified-development");
+    assert!(distribution_s1::lifecycle(&l,&files,Some(&s)).unwrap_err().contains("standing differs"));
+    l["legacy_event"]["supplierStanding"]=json!("verified-pin");
+    let mut old=o.clone();old["format"]=json!("observed-verification.s1");
+    let raw=serde_json::to_vec(&old).unwrap();l["verification_artifact"]["sha256"]=json!(tree::digest(&raw));files.insert("observed.json".into(),raw);
+    assert!(distribution_s1::lifecycle(&l,&files,Some(&s)).unwrap_err().contains("S4 lifecycle requires S4 observation"));
+    for outcome in ["missing","unverifiable"] {
+        let mut missing=o.clone();missing["checks"]["custody"]["outcome"]=json!(outcome);missing["outcome"]=json!("unverifiable");
+        assert!(distribution_s1::observed(&missing,&files,Some(&s)).unwrap_err().contains("S4 observation requires installed custody pass"));
+    }
 }
 #[test]
 fn installed_s4_rejects_opaque_null_unknown_and_mismatched_exact_joins(){

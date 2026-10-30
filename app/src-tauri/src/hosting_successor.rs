@@ -61,7 +61,6 @@ pub(crate) fn production_config(
 ) -> HostConfig {
     let mut cfg = HostConfig::new(resources.join("codex/bin/codex"), account, probe, cwd);
     cfg.distribution = Some(Distribution::Production { resources });
-    cfg.require_distribution_artifacts = true;
     cfg
 }
 /// The compiled reference this attempt may compare against. It comes only from
@@ -154,7 +153,7 @@ impl Prepared {
             observation["format"]=json!("observed-verification.s4");
             observation["checks"]["custody"]=check("pass","Own installed bundle and running process validated against compiled publisher requirement");
             observation["outcome"]=json!("verified");
-            observation["limits"]=json!(["Stable installed bundle assumed; hostile same-user/admin mutation and check-to-exec race remain", "No package or supplier qualification is established by this observation"]);
+            observation["limits"]=json!(["Trusted stable installed bundle and parent path assumed; hostile same-user/admin mutation and check-to-exec race remain", "No package or supplier qualification is established by this observation"]);
         }
         (observation,facts)
     }
@@ -311,7 +310,7 @@ fn prepare_installed(
         status:json!({"format":"host-successor-attempt.s2","verificationGeneration":generation,"inventory":inventory,
             "standing":"verified-pin","referenceComparison":comparison,"resolvedExecutable":plan.executable,
             "pathPrefix":root.join("codex-path"),"rawVersionLabel":raw,
-            "limits":["S4 process-local observation; stable installed bundle assumed; check-to-exec race remains", "No package/installer or supplier qualification"]}),
+            "limits":["S4 process-local observation; trusted stable installed bundle and parent path assumed; check-to-exec race remains", "No package/installer or supplier qualification"]}),
         plan,root,inventory,comparison:Some(comparison),installed:Some(installed),
         label:raw.trim_end_matches('\n').into(),
         verification:json!({"result":"verified","reason":"Selected full supplier tree and generated identity agree; own installed App and process satisfy the independent compiled publisher requirement"}),

@@ -63,7 +63,7 @@ The custody check references exact bytes of `installed-custody-observation.s4`:
 - Resolved bundle, executable, Resources and parent paths; translocation is
   `not-established`, with only a separately identified AppTranslocation path
   component observation.
-- `process-observation-evidence-only` standing, stable-installed-bundle assumption,
+- `process-observation-evidence-only` standing, trusted-stable-installed-bundle-and-parent-path assumption,
   explicit mutation/check-to-exec and qualification limits.
 
 Hash-before-parse, closed shapes, known revisions, semantic facts and all joins
@@ -86,7 +86,9 @@ those producers/readers or repin them. Their later adoption needs explicit
 candidate-bound receiving evidence. See the DEL-01-06
 [signing join](../../DEL-01-06/Work/INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md).
 
-A stable installed bundle is an assumption, not immutability. Hostile same-user
+A trusted stable installed bundle and parent path are assumptions, not
+immutability. Parent writability is not checked; translocated launches are
+recorded, not refused solely for translocation. Hostile same-user
 or administrator mutation and the bounded check-to-exec race remain. No observed
 App Management protection, translocation guarantee, quarantine, Gatekeeper,
 notarization or installation witness is claimed. S4 source checks are not
@@ -110,3 +112,32 @@ through t3_cargo/t3_slot with jobs=2, memory guard active, fresh scratch Codex
 homes and scratch temporary directories. Schema correspondence passed for all
 14 maintained mappings; deliverables check reported zero errors. These are
 source-test results, not a signed-App FFI success or native/package witness.
+
+Signing information returned for the dynamic process is disk-backed (including
+Security.framework kSecCodeInfoFlags); matching static/dynamic fields are a
+consistency join, not independent runtime integrity proof. Running-process
+assurance comes from SecCodeCheckValidity against the same compiled requirement.
+Optional kernel guest-requirement matching can be assessed with the later exact
+publisher requirement; it is not claimed here. The trusted stable parent-path
+assumption and unestablished translocation/App Management protections remain
+explicit limits, not observed access controls.
+
+Independent Claude Opus 5.5/high review of e555852b plus CI-only 7b9f8cd6
+identified a redundant production_config store flag that changed a source test's
+refusal point. The flag was removed, preserving real callers' existing store
+requirements. Review repairs also reject mixed S4/old observed envelopes, require
+S4 custody pass and matching verified-pin standing, move Store signature recheck
+before its namespace lease, and clarify disk-backed signing information and
+trusted stable parent-path assumptions. The compiled requirement stays None;
+these repairs do not activate package/EXP/SQ consumers or qualify native behavior.
+
+Post-review verification: the entire `hosting::successor::tests` module with
+`distribution-successor` enabled passed 103 tests; four explicit stock/export
+opt-ins remained ignored. `installed_custody::tests` passed four tests. The
+previously broken production override/refusal test passed and is now selected
+explicitly by PR CI. CI-selection tests passed 62; schema mappings remained 14
+passing and deliverables reported zero errors. The guarded successor test process
+completed normally in about 102 seconds; no actual stock supplier, model or
+retained native candidate was run. The reviewer found no further blocker within
+the None-gated source scope; the manager implemented and checked the bounded
+repairs rather than claiming a signed-runtime success.

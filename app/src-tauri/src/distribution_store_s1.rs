@@ -127,6 +127,12 @@ impl Store {
         &self,g:&Value,mut observation:Value,facts:Value,
         installed:Option<&crate::installed_custody::InstalledCustody>,
     )->Result<S1Reference,String>{
+        // Security validation can scan the complete bundle. Do it before taking
+        // the namespace lease; the Host still revalidates immediately pre-spawn.
+        if let Some(installed)=installed {
+            let resources=Path::new(observation["configuration"]["resolved_root"].as_str().ok_or("supplier root absent")?).parent().ok_or("resources absent")?;
+            installed.recheck(resources)?;
+        }
         let lease=self.authority.lease()?;
         self.guard_s1(&lease)?;
         self.generation(&lease,g)?;
@@ -162,8 +168,6 @@ impl Store {
         }
         if let Some(installed)=installed {
             let selected=self.selected.as_ref().ok_or("installed evidence requires compiled selection")?;
-            let resources=Path::new(observation["configuration"]["resolved_root"].as_str().ok_or("supplier root absent")?).parent().ok_or("resources absent")?;
-            installed.recheck(resources)?;
             let record=json!({"format":"installed-custody-observation.s4","generation":g,"inventory":observation["inventory"],
                 "selection":selected.association(),"app":installed.evidence(),"standing":"process-observation-evidence-only",
                 "limits":["No live authority from serialized evidence", "No package, installer, quarantine or notarization qualification"]});
