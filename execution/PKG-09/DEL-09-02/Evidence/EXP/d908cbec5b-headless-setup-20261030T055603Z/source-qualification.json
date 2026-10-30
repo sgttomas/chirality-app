@@ -1,0 +1,90 @@
+{
+  "source_revision": "d908cbec5b3425f0ad37e9a0337a16d427d61cea",
+  "source_tree": "fe35b9317e96102e44add4c138a2b1babbbde010",
+  "source_files": [
+    {
+      "path": "app/src-tauri/Cargo.toml",
+      "size_bytes": 1242,
+      "sha256": "873ca7efd1f175e263bf082c6da08758359173b142f88ae365f95a311e9fee84"
+    },
+    {
+      "path": "app/src-tauri/Cargo.lock",
+      "size_bytes": 124642,
+      "sha256": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+    },
+    {
+      "path": "app/src-tauri/src/lib.rs",
+      "size_bytes": 180845,
+      "sha256": "ccec34935e13142c9b89db9f343572468a685f787d2a45c87d47d7b94111e482"
+    },
+    {
+      "path": "app/src-tauri/src/desktop_startup.rs",
+      "size_bytes": 237288,
+      "sha256": "239943791e7555041bda3ce5783e50439c2fd780d8cb43905c95f21ab28ac8d5"
+    },
+    {
+      "path": "app/src-tauri/src/desktop_setup_confirmation.rs",
+      "size_bytes": 28749,
+      "sha256": "b2dbd7e56c3476dab8a9d6cb1ea8fef817cfa3c4b08f2f398b6edced627053f0"
+    },
+    {
+      "path": "app/src/DesktopSetupPanel.tsx",
+      "size_bytes": 9328,
+      "sha256": "a0537ad78832720a8410cf42ee0076d5242e1e9a6e5a59dcfbad11894f97ce5c"
+    },
+    {
+      "path": "app/src/App.tsx",
+      "size_bytes": 194011,
+      "sha256": "a3838aa7901cc39c8e3892781b2bbe72d82ebe62d850c6473b735d3fb708e133"
+    },
+    {
+      "path": "app/tests/desktop-setup.test.mjs",
+      "size_bytes": 17555,
+      "sha256": "50064ce4b1e448b1993481d57a1fef1825807948bc7632eddeab9181b04e133d"
+    },
+    {
+      "path": "app/tests/support/mini-dom.mjs",
+      "size_bytes": 5214,
+      "sha256": "a5931f5c2ae9e5ac3a6f362841d484b547628497d36275f1010674a7c4142cd1"
+    },
+    {
+      "path": "app/tests/support/load-src.mjs",
+      "size_bytes": 1200,
+      "sha256": "6a1b920faa920815122a0046ead3c9c9bda062ad0d08247891f32cbb06ec713b"
+    },
+    {
+      "path": "app/package.json",
+      "size_bytes": 2044,
+      "sha256": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac"
+    },
+    {
+      "path": "app/package-lock.json",
+      "size_bytes": 70346,
+      "sha256": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa"
+    }
+  ],
+  "compile": "ONE offline locked --lib --no-run command, jobs2, separate cloned Cargo home/target; compiler-artifact fresh=false",
+  "runner_sha256": "a211316352dfdbae6587d321d84e71a8650b71f837ce037c9e9e89889177eb62",
+  "runner_size_bytes": 122057288,
+  "runner_test_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "runner_features": [],
+  "runner_unchanged_after_focused_runs": true,
+  "original_cached_runner_sha256": "24b0fb5dbfaab066b94a44f2cee6150de1f0d8d35edb92d51648334be33770b2",
+  "source_cache_basis": "Cargo accepted locked offline resolution from cloned prepared registry/target; no all-cache supply-chain audit claimed. Source/archive qualification is the actual Cargo invocation and exact source/lock hashes, not the old runner filename.",
+  "counts": {
+    "joined_Rust_test": 1,
+    "mounted_packet_Rust_producer_asserted_inside_Node": 1,
+    "React_miniDOM_tests": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "packet_limit": "Node captured producer stdout internally and asserted one pass plus DESKTOP_SETUP_PACKETS. Raw DTO stdout was not separately persisted; producer was not rerun merely for a log.",
+  "screen_limit": "No display/AX/AppKit/WebKit/native-dialog route used; no actual screensaver/locked-session trial or security setting change.",
+  "scope_limit": "Real scratch prepare/save/fresh-resolve/consumer joins and actual React source; injected IPC/confirmation and invented fixture inputs; no Host::start/supplier/auth/model/qualification."
+}

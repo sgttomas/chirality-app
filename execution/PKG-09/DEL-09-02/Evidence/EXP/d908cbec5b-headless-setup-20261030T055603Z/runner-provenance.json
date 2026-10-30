@@ -1,0 +1,41 @@
+{
+  "path": "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e",
+  "size_bytes": 122057288,
+  "sha256": "a211316352dfdbae6587d321d84e71a8650b71f837ce037c9e9e89889177eb62",
+  "cargo_artifact": {
+    "reason": "compiler-artifact",
+    "package_id": "path+file:///Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri#chirality-app-v4@0.0.0-skeleton",
+    "manifest_path": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri/Cargo.toml",
+    "target": {
+      "kind": [
+        "rlib",
+        "staticlib",
+        "cdylib"
+      ],
+      "crate_types": [
+        "rlib",
+        "staticlib",
+        "cdylib"
+      ],
+      "name": "chirality_app_v4_lib",
+      "src_path": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    },
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "features": [],
+    "filenames": [
+      "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e"
+    ],
+    "executable": "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e",
+    "fresh": false
+  }
+}

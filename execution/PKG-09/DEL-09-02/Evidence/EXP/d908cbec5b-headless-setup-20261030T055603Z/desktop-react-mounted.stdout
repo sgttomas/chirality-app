@@ -1,0 +1,15 @@
+✔ empty native setup shows explicit choices and never requests supplier/account/model defaults (7.232166ms)
+✔ review displays actual effects before explicit prepare and save remains pending until a fresh launch (8.34375ms)
+✔ native picker retains lossless reference, edits invalidate review, and custody/save errors stay visible (7.403417ms)
+✔ keep-account availability comes from admitted native packets and never supplies an implicit choice (3.816667ms)
+✔ explicit keep-H project Q or absence reviews accurate effects and saves pending-only through project-only IPC (5.780291ms)
+✔ retained preview edits and actual stale/superseded confirmation errors produce no silent fallback or pending save (3.676458ms)
+✔ setup save in the mounted App preserves operational A, Workflow C, unsent TEXT and original composer B targeting D (70.266709ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 801.727208

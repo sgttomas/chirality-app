@@ -1,0 +1,29 @@
+{
+  "phase": "A",
+  "candidate_key": "795362874d-a391547a5c5d",
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/network-denied.sb",
+    "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/MacOS/chirality-app-v4"
+  ],
+  "environment": {
+    "HOME": "/Users/ryan",
+    "PATH": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/Resources/codex/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+    "LANG": "en_US.UTF-8",
+    "CODEX_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/fallback-codex-home",
+    "TMPDIR": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/tmp"
+  },
+  "started_at": "2026-10-30T05:18:17.001468+00:00",
+  "native_actions": "owner only; supervisor presses no controls",
+  "policy_sha256": "dd4f8e1f9ea0bc30fe500aed24f965138ad3d8047e9913b8fe86dcc7f462ec49",
+  "observations": [],
+  "original_child_pid": 55072,
+  "original_process_group": 55072,
+  "finished_at": "2026-10-30T05:27:15.115511+00:00",
+  "exit_code": 0,
+  "abort_reason": null,
+  "peak_sampled_shared_rss_kib": 3690224,
+  "minimum_system_free_percent": 90,
+  "duration_seconds": 538.1037225411274
+}

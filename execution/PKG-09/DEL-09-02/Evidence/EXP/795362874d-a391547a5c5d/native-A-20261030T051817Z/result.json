@@ -1,0 +1,78 @@
+{
+  "phase": "A",
+  "standing": "blocked before review/save by native UI automation selection commit",
+  "actor": "agent under explicit owner direction; no personal owner action claimed",
+  "review_or_prepare_completed": false,
+  "phase_B_launched": false,
+  "original_process_outcome": {
+    "phase": "A",
+    "candidate_key": "795362874d-a391547a5c5d",
+    "command": [
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/network-denied.sb",
+      "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/MacOS/chirality-app-v4"
+    ],
+    "environment": {
+      "HOME": "/Users/ryan",
+      "PATH": "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/Resources/codex/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+      "LANG": "en_US.UTF-8",
+      "CODEX_HOME": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/fallback-codex-home",
+      "TMPDIR": "/private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/tmp"
+    },
+    "started_at": "2026-10-30T05:18:17.001468+00:00",
+    "native_actions": "owner only; supervisor presses no controls",
+    "policy_sha256": "dd4f8e1f9ea0bc30fe500aed24f965138ad3d8047e9913b8fe86dcc7f462ec49",
+    "observations": [],
+    "original_child_pid": 55072,
+    "original_process_group": 55072,
+    "finished_at": "2026-10-30T05:27:15.115511+00:00",
+    "exit_code": 0,
+    "abort_reason": null,
+    "peak_sampled_shared_rss_kib": 3690224,
+    "minimum_system_free_percent": 90,
+    "duration_seconds": 538.1037225411274
+  },
+  "saved_request_exists": false,
+  "account_homes_exists": false,
+  "limits": [
+    "AXIsProcessTrusted true; own window/WebKit content readable; text paths entered through actual native events",
+    "New-account selector did not reliably commit; no request injection or native validation bypass",
+    "Initial App-root AX read included OS menu metadata; narrowed immediately to own AXWindows and discarded unrelated menu metadata",
+    "Normal Command-Q dispatched through targeted App UI; no automatic confirmation click occurred"
+  ],
+  "logs": {
+    "ax-before-review.json": {
+      "size_bytes": 67341,
+      "sha256": "f132adaf5e962df18b3847d2c584c54a16958356865487edeeb4cf83ed159700"
+    },
+    "state.json": {
+      "size_bytes": 1340,
+      "sha256": "7560e902495b3ca156e25e52aeb279191e1baab84cc29425edc59bcdef7910f0"
+    },
+    "ax-initial-tree.json": {
+      "size_bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "ax-filled-tree.json": {
+      "size_bytes": 66995,
+      "sha256": "d664220d784be4b444aa022ae2be1d463238540c61f22fcf87e40b2ed38b4bcd"
+    },
+    "ax-popup-current.json": {
+      "size_bytes": 67907,
+      "sha256": "dae39da32f418d040613b018a683c79754d52253582dec53fde8cd61e72816b7"
+    },
+    "ax-menu-tree.json": {
+      "size_bytes": 66779,
+      "sha256": "944876f3fce2b331ca4efb6ab0eb7e2728b9c5b0c9d636ee2aab2defc9d5173c"
+    },
+    "ax-last-tree.json": {
+      "size_bytes": 67341,
+      "sha256": "f132adaf5e962df18b3847d2c584c54a16958356865487edeeb4cf83ed159700"
+    },
+    "ax-typed-tree.json": {
+      "size_bytes": 67301,
+      "sha256": "f45da72cdfd671bb5f099857a0ba7318f631124bfd263bbdad66d97e6e84c1be"
+    }
+  }
+}

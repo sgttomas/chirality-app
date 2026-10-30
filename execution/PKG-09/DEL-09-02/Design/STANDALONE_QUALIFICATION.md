@@ -590,6 +590,21 @@ the identified current artifact; this identification neither opens a scenario
 nor establishes workflow, recovery, access-mode or packaged qualification.
 ScopeOfWork SOW-195/196/197 and dependency conditions remain unchanged.
 
+**Bounded setup evidence closure (2026-10-30).**
+[The existing headless setup route](HEADLESS_SETUP_RESULT.md) passed at source
+`d908cbec5b`: two focused Rust seams (one packet producer asserted inside Node)
+and seven actual React/miniDOM checks. It exercises real scratch protected
+prepare/save/fresh-resolve and startup consumer joins without `Host::start`;
+IPC/confirmation and DOM are injected, not actual AppKit/WebKit/native dialogs
+or supplier operation. The earlier native A selector automation was blocked
+before review/save, settled code 0 before deadline and never launched B; its raw
+failed/limited observations remain separate. Owner direction now permits
+unattended agent UI operation, not personal-owner act qualification. The original
+presence-only plan is historical; no attendance gate is carried into current
+applicability. No workflow, recovery, access-mode, native dialog/transport,
+installed-custody, packaging or release criterion is passed by these bounded
+checks. Scope/needs and pending owner terms/acceptance decisions are unchanged.
+
 **Current development artifact (2026-10-29).** Candidate preparation
 [`795362874d-a391547a5c5d`](../Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json)
 identifies the one offline debug build of source
