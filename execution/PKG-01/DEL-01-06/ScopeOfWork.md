@@ -95,3 +95,12 @@ Source locators below are repository-relative. `Snapshot` means `projects/chiral
 | OUT-004 | OBJ-002 | REQ-004, CLM-003 | AC-004 | VER-004 | Applicable official supplier publication or direct response obtained and retained by the owner before public release beyond owner use, or explicit unresolved evidence/applicability |
 | OUT-004 | OBJ-002 | REQ-004, REQ-005, CLM-003 | AC-005 | VER-004 | Source/custody and actor attribution; faithful actual-act record and refusal of fabricated confirmation/release claims |
 | OUT-002 | OBJ-002 | REQ-001, REQ-003, REQ-004, REQ-005, CLM-001, CLM-002, CLM-003, CLM-004 | AC-006 | VER-005 | Local package/receiving handoff referencing OUT-003 and OUT-004, with separate owners, native witness and exact open-issue points of need |
+
+## S4 implementation reconciliation (2026-10-30)
+
+The bounded installed-integrity implementation and exact evidence/consumer limits
+are recorded in [the S4 technical supplement](Work/INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md).
+This supplies technical means under the existing outputs and requirements; it
+does not select a publisher, qualify a pin/candidate, change acceptance criteria
+or complete native/package witnesses. The compiled publisher requirement remains
+None, so production continues to refuse before supplier execution.
