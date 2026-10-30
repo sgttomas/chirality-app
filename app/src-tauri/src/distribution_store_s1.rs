@@ -6,6 +6,7 @@ use crate::{
 };
 const OBSERVED: &str = ".chirality-s1/observed.json";
 const LIFECYCLE: &str = ".chirality-s1/lifecycle.json";
+const INSTALLED: &str = ".chirality-s1/installed.json";
 const FACTS: &str = ".chirality-s1/preflight.json";
 const TRANSPORT: &str = ".chirality-s1/transport.json";
 #[derive(Clone, Serialize)]
@@ -117,9 +118,21 @@ impl Store {
     pub(crate) fn publish_observed(
         &self,
         g: &Value,
-        mut observation: Value,
+        observation: Value,
         facts: Value,
     ) -> Result<S1Reference, String> {
+        self.publish_observed_with_installed(g,observation,facts,None)
+    }
+    pub(crate) fn publish_observed_with_installed(
+        &self,g:&Value,mut observation:Value,facts:Value,
+        installed:Option<&crate::installed_custody::InstalledCustody>,
+    )->Result<S1Reference,String>{
+        // Security validation can scan the complete bundle. Do it before taking
+        // the namespace lease; the Host still revalidates immediately pre-spawn.
+        if let Some(installed)=installed {
+            let resources=Path::new(observation["configuration"]["resolved_root"].as_str().ok_or("supplier root absent")?).parent().ok_or("resources absent")?;
+            installed.recheck(resources)?;
+        }
         let lease=self.authority.lease()?;
         self.guard_s1(&lease)?;
         self.generation(&lease,g)?;
@@ -153,9 +166,19 @@ impl Store {
         {
             check["evidence"] = evidence.clone();
         }
-        if distribution_s1::observed(&observation, &files, self.selected.as_ref())?
-            != "unverifiable"
-        {
+        if let Some(installed)=installed {
+            let selected=self.selected.as_ref().ok_or("installed evidence requires compiled selection")?;
+            let record=json!({"format":"installed-custody-observation.s4","generation":g,"inventory":observation["inventory"],
+                "selection":selected.association(),"app":installed.evidence(),"standing":"process-observation-evidence-only",
+                "limits":["No live authority from serialized evidence", "No package, installer, quarantine or notarization qualification"]});
+            let raw=serde_json::to_vec(&record).map_err(error)?;
+            observation["checks"]["custody"]["evidence"]=serde_json::to_value(artifact_ref(INSTALLED,&raw)).map_err(error)?;
+            files.insert(INSTALLED.into(),raw);
+        } else if observation["format"]=="observed-verification.s4" || observation["outcome"]=="verified" {
+            return Err("typed installed observation required; disk evidence is not authority".into());
+        }
+        let expected=if installed.is_some(){"verified"}else{"unverifiable"};
+        if distribution_s1::observed(&observation, &files, self.selected.as_ref())? != expected {
             return Err("pre-spawn observation contradiction; no launch".into());
         }
         files.insert(
@@ -190,7 +213,7 @@ impl Store {
         }
         let mut files = prior.files.clone();
         files.remove(TRANSPORT);
-        let envelope = json!({"format":"lifecycle-event.s1.v0.10","legacy_event":event,"verification_artifact":prior.observed,"verification_generation":g});
+        let envelope = json!({"format":if preceding["artifact"]["format"]=="observed-verification.s4" {"lifecycle-event.s4"}else{"lifecycle-event.s1.v0.10"},"legacy_event":event,"verification_artifact":prior.observed,"verification_generation":g});
         distribution_s1::lifecycle(&envelope, &files, self.selected.as_ref())?;
         files.insert(
             LIFECYCLE.into(),
@@ -338,7 +361,7 @@ impl Store {
         self.guard_s1(&lease)?;
         self.generation(&lease,g)?;
         Ok(
-            json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":"unverified-development","readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Actual LT-09 and eligible same-H5 LT-12/LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"}),
+            json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":if outcome=="verified"{"verified-pin"}else{"unverified-development"},"readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Actual LT-09 and eligible same-H5 LT-12/LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"}),
         )
     }
 }

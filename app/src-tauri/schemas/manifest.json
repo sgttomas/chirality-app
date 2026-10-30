@@ -65,6 +65,24 @@
       "source": "execution/PKG-07/DEL-07-02/Work/connector.standing.schema.json",
       "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
       "id": "urn:chirality:app-v4:del-07-02:connector-standing:0.1"
+    },
+    {
+      "file": "../resources/distribution-successor/observed-verification.s4.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/distribution-s1/observed-verification.s4.schema.json",
+      "sha256": "0cb4e6d406bd195da713a66aafa7f017ca8f9f773962cee1777ca4fb7644fb1b",
+      "id": "urn:chirality:distribution-successor:observed-verification.s4"
+    },
+    {
+      "file": "../resources/distribution-successor/lifecycle-event.s4.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/distribution-s1/lifecycle-event.s4.schema.json",
+      "sha256": "7f553e983d47987cf94372c4e1efa96f162e5e7284741143e9b40b9137f79ba5",
+      "id": "urn:chirality:distribution-successor:lifecycle-event.s4"
+    },
+    {
+      "file": "../resources/distribution-successor/installed-custody-observation.s4.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/distribution-s1/installed-custody-observation.s4.schema.json",
+      "sha256": "16470617d9b46620f955cdb550ca47f987dde35ef84d1ad0a86b75a58a0d21f1",
+      "id": "urn:chirality:distribution-successor:installed-custody-observation.s4"
     }
   ],
   "fixture": {
