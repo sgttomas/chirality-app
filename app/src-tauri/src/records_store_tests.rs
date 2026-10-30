@@ -83,8 +83,9 @@ fn placement_uses_the_override_or_app_data_and_never_falls_back() {
     let overridden = for_app(Some(temporary.clone()), Ok(&data), true, Some(&project), &[]).unwrap();
     assert_eq!((overridden.root.clone(), overridden.placement), (temporary.clone(), Placement::Override));
     assert!(overridden.limits.iter().any(|l| l.contains("temporary folder")), "{:?}", overridden.limits);
-    // A test build's own store is never the App data folder.
-    let test_store = current().unwrap();
+    // A test build's own default store is never the App data folder. Read the
+    // default itself: another test may have configured this process's store.
+    let test_store = from_environment().unwrap();
     assert!(matches!(test_store.placement, Placement::Test | Placement::Override));
     assert!(test_store.root.starts_with(std::env::temp_dir()) || test_store.placement == Placement::Override);
     let _ = std::fs::remove_dir_all(&project);
