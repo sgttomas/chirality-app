@@ -9,7 +9,7 @@ targets the full public v4 release with the live embedded SWBPIPE journey.
 It identifies delivery owners, next results and the evidence still needed.
 
 Chirality makes a general agent act within and for a host application. Its
-workflow-authoring App is the exemplar. [App v4 thesis](docs/thesis/README.md)
+workflow-authoring App is the exemplar. [App v4 thesis](https://github.com/sgttomas/chirality/blob/main/docs/thesis/app/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
 its companions and the deliverable Scopes of Work and Designs.
 
@@ -26,6 +26,12 @@ The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.m
 applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
 retains its undelivered and unadopted standing. New contract gaps belong in their
 owning Design; PR descriptions carry the history of their fixes.
+
+## User documentation
+
+The [App v4 User Manual](docs/user-manual/README.md) is a working draft focused
+on completing tasks and using, testing and improving workflows. Its procedures
+need verification against the release candidate before publication.
 
 ## Basis and history
 
