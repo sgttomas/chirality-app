@@ -1,0 +1,92 @@
+import ctypes as c,json,sys,time
+from pathlib import Path
+root=Path(__file__).resolve().parent;state=json.loads((root/'native-phase-A/state.json').read_bytes());assert 'finished_at' not in state,'Original App already ended';PID=state['original_child_pid'];assert PID==55072
+AX=c.CDLL('/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices');CF=c.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+for lib,name,rest,args in [(AX,'AXIsProcessTrusted',c.c_bool,[]),(AX,'AXUIElementCreateApplication',c.c_void_p,[c.c_int]),(AX,'AXUIElementCopyAttributeValue',c.c_int,[c.c_void_p,c.c_void_p,c.POINTER(c.c_void_p)]),(AX,'AXUIElementSetAttributeValue',c.c_int,[c.c_void_p,c.c_void_p,c.c_void_p]),(AX,'AXUIElementPerformAction',c.c_int,[c.c_void_p,c.c_void_p]),(CF,'CFStringCreateWithCString',c.c_void_p,[c.c_void_p,c.c_char_p,c.c_uint]),(CF,'CFGetTypeID',c.c_ulong,[c.c_void_p]),(CF,'CFStringGetTypeID',c.c_ulong,[]),(CF,'CFArrayGetTypeID',c.c_ulong,[]),(CF,'CFBooleanGetTypeID',c.c_ulong,[]),(CF,'CFNumberGetTypeID',c.c_ulong,[]),(CF,'CFStringGetLength',c.c_long,[c.c_void_p]),(CF,'CFStringGetCString',c.c_bool,[c.c_void_p,c.c_char_p,c.c_long,c.c_uint]),(CF,'CFArrayGetCount',c.c_long,[c.c_void_p]),(CF,'CFArrayGetValueAtIndex',c.c_void_p,[c.c_void_p,c.c_long]),(CF,'CFBooleanGetValue',c.c_bool,[c.c_void_p]),(CF,'CFNumberGetValue',c.c_bool,[c.c_void_p,c.c_int,c.c_void_p])]:
+ f=getattr(lib,name);f.restype=rest;f.argtypes=args
+assert AX.AXIsProcessTrusted(),'AXIsProcessTrusted=false; no permission request'
+def string(s):return CF.CFStringCreateWithCString(None,s.encode(),0x08000100)
+def decode(p):
+ if not p:return None
+ t=CF.CFGetTypeID(p)
+ if t==CF.CFStringGetTypeID():
+  b=c.create_string_buffer(CF.CFStringGetLength(p)*4+1);CF.CFStringGetCString(p,b,len(b),0x08000100);return b.value.decode()
+ if t==CF.CFBooleanGetTypeID():return bool(CF.CFBooleanGetValue(p))
+ if t==CF.CFNumberGetTypeID():
+  n=c.c_longlong();CF.CFNumberGetValue(p,4,c.byref(n));return n.value
+ if t==CF.CFArrayGetTypeID():return [CF.CFArrayGetValueAtIndex(p,i) for i in range(CF.CFArrayGetCount(p))]
+ return p
+def attr(e,key):
+ out=c.c_void_p();rc=AX.AXUIElementCopyAttributeValue(e,string(key),c.byref(out));return decode(out.value) if rc==0 else None
+def walk(e,depth=0,rows=None):
+ if rows is None:rows=[]
+ if depth>18 or len(rows)>=900:return rows
+ props={k:attr(e,k) for k in ['AXRole','AXTitle','AXDescription','AXIdentifier','AXValue','AXEnabled']};props={k:v for k,v in props.items() if v is not None};rows.append((e,depth,props))
+ for child in attr(e,'AXChildren') or []:walk(child,depth+1,rows)
+ return rows
+app=AX.AXUIElementCreateApplication(PID);rows=[]
+for window in attr(app,'AXWindows') or []: walk(window,rows=rows)
+if sys.argv[1]=='quit-key':
+ AX.AXUIElementSetAttributeValue(app,string('AXFrontmost'),c.c_void_p.in_dll(CF,'kCFBooleanTrue').value)
+ AX.CGEventCreateKeyboardEvent.restype=c.c_void_p;AX.CGEventCreateKeyboardEvent.argtypes=[c.c_void_p,c.c_ushort,c.c_bool];AX.CGEventSetFlags.argtypes=[c.c_void_p,c.c_ulonglong];AX.CGEventPostToPid.argtypes=[c.c_int,c.c_void_p]
+ for code,flags in [(53,0),(12,1<<20)]:
+  for down in (True,False):
+   ev=AX.CGEventCreateKeyboardEvent(None,code,down);AX.CGEventSetFlags(ev,flags);AX.CGEventPostToPid(PID,ev);time.sleep(0.03)
+ print(json.dumps({'actor':'agent under owner direction','operation':'own-App Escape then Command-Q; actual confirmation still required'}))
+elif sys.argv[1]=='mouse-select':
+ class Point(c.Structure):_fields_=[('x',c.c_double),('y',c.c_double)]
+ class Size(c.Structure):_fields_=[('width',c.c_double),('height',c.c_double)]
+ AX.AXValueGetValue.restype=c.c_bool;AX.AXValueGetValue.argtypes=[c.c_void_p,c.c_int,c.c_void_p]
+ AX.CGEventCreateMouseEvent.restype=c.c_void_p;AX.CGEventCreateMouseEvent.argtypes=[c.c_void_p,c.c_uint,Point,c.c_uint]
+ AX.CGEventPostToPid.argtypes=[c.c_int,c.c_void_p]
+ label,option=sys.argv[2:4];pop=[e for e,d,p in rows if p.get('AXRole')=='AXPopUpButton' and p.get('AXTitle')==label];assert len(pop)==1
+ AX.AXUIElementSetAttributeValue(app,string('AXFrontmost'),c.c_void_p.in_dll(CF,'kCFBooleanTrue').value);assert AX.AXUIElementPerformAction(pop[0],string('AXPress'))==0;time.sleep(0.15)
+ live=[]
+ for window in attr(app,'AXWindows') or []:walk(window,rows=live)
+ targets=[e for e,d,p in live if p.get('AXRole')=='AXMenuItem' and p.get('AXTitle')==option];assert len(targets)==1,(option,len(targets));e=targets[0]
+ pt,sz=Point(),Size();assert AX.AXValueGetValue(attr(e,'AXPosition'),1,c.byref(pt));assert AX.AXValueGetValue(attr(e,'AXSize'),2,c.byref(sz));assert sz.width>0 and sz.height>0
+ center=Point(pt.x+sz.width/2,pt.y+sz.height/2)
+ for event in (1,2):AX.CGEventPostToPid(PID,AX.CGEventCreateMouseEvent(None,event,center,0));time.sleep(0.05)
+ print(json.dumps({'actor':'agent under owner direction','operation':'AX-derived targeted mouse select','popup':label,'option':option,'point':[center.x,center.y]}))
+elif sys.argv[1] in ('type','choose'):
+ label=sys.argv[2];matches=[(e,p) for e,d,p in rows if p.get('AXRole') in ('AXTextField','AXPopUpButton') and p.get('AXTitle')==label];assert len(matches)==1,(label,len(matches));e,props=matches[0]
+ true=c.c_void_p.in_dll(CF,'kCFBooleanTrue').value
+ assert AX.AXUIElementSetAttributeValue(app,string('AXFrontmost'),true)==0
+ assert AX.AXUIElementSetAttributeValue(e,string('AXFocused'),true)==0
+ for name,rest,args in [('CGEventCreateKeyboardEvent',c.c_void_p,[c.c_void_p,c.c_ushort,c.c_bool]),('CGEventSetFlags',None,[c.c_void_p,c.c_ulonglong]),('CGEventPostToPid',None,[c.c_int,c.c_void_p]),('CGEventKeyboardSetUnicodeString',None,[c.c_void_p,c.c_ulong,c.POINTER(c.c_ushort)])]:
+  f=getattr(AX,name);f.restype=rest;f.argtypes=args
+ def key(code,flags=0,text=None):
+  for down in (True,False):
+   ev=AX.CGEventCreateKeyboardEvent(None,code,down);AX.CGEventSetFlags(ev,flags)
+   if text is not None:
+    b=text.encode('utf-16-le');buf=(c.c_ushort*(len(b)//2)).from_buffer_copy(b);AX.CGEventKeyboardSetUnicodeString(ev,len(buf),buf)
+   AX.CGEventPostToPid(PID,ev);time.sleep(0.03)
+ if sys.argv[1]=='type':key(0,1<<20);key(0,text=sys.argv[3]);key(48)
+ else:
+  options=json.loads(sys.argv[3]);desired=sys.argv[4];current=props.get('AXValue');assert current in options and desired in options,(current,desired)
+  delta=options.index(desired)-options.index(current)
+  key(49);time.sleep(0.1)
+  for i in range(abs(delta)):key(125 if delta>0 else 126)
+  key(36)
+ time.sleep(0.15);print(json.dumps({'actor':'agent under owner direction','operation':sys.argv[1],'label':label,'observed_value':attr(e,'AXValue')}))
+elif sys.argv[1]=='select':
+ label,option=sys.argv[2:4];matches=[(e,p) for e,d,p in rows if p.get('AXRole')=='AXPopUpButton' and p.get('AXTitle')==label];assert len(matches)==1,(label,len(matches));e,props=matches[0]
+ AX.AXUIElementSetAttributeValue(app,string('AXFrontmost'),c.c_void_p.in_dll(CF,'kCFBooleanTrue').value)
+ assert AX.AXUIElementPerformAction(e,string('AXPress'))==0
+ for attempt in range(20):
+  live=[]
+  for window in attr(app,'AXWindows') or []:walk(window,rows=live)
+  items=[(el,p) for el,d,p in live if p.get('AXRole')=='AXMenuItem' and p.get('AXTitle')==option]
+  if len(items)==1:break
+  time.sleep(0.05)
+ assert len(items)==1,('exact popup option unavailable',option,len(items))
+ assert AX.AXUIElementPerformAction(items[0][0],string('AXPick'))==0
+ print(json.dumps({'actor':'agent under owner direction','operation':'select','popup':label,'option':option,'result':0}))
+elif sys.argv[1]=='dump':
+ data=[{'depth':d,**p} for e,d,p in rows];print(json.dumps(data,indent=2));(root/'native-phase-A/ax-last-tree.json').write_text(json.dumps(data,indent=2)+'\n')
+elif sys.argv[1] in ('set','press'):
+ label=sys.argv[2];matches=[(e,p) for e,d,p in rows if label in [p.get('AXTitle'),p.get('AXDescription'),p.get('AXIdentifier')]]
+ assert len(matches)==1,('Expected exact unique target',label,len(matches));e,p=matches[0];assert p.get('AXEnabled') is not False,p
+ if sys.argv[1]=='set':rc=AX.AXUIElementSetAttributeValue(e,string('AXValue'),string(sys.argv[3]))
+ else:rc=AX.AXUIElementPerformAction(e,string('AXPress'))
+ assert rc==0,('AX operation refused',rc,p);print(json.dumps({'actor':'agent under owner direction','operation':sys.argv[1],'target':p,'result':rc,'new_value':sys.argv[3] if len(sys.argv)>3 else None}))
