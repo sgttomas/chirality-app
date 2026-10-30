@@ -128,6 +128,20 @@ come only from session steering.
 5. Evidence packet for the owner's replacement/release decisions, preserving
    unrun, failed, blocked and limited standing and continuing obligations.
 
+Known pinned-source conditions, found 2026-10-30 and not yet dispositioned:
+
+- `app/examination/admission/sources.json` pins the frozen original
+  `EXAMINATION_PROTOCOL.md` (`ff0187da…`); the current file is `c7aa2fcf…`.
+  `tests/group_b_admission_test.py` therefore errors (16) on main, so the manual
+  App v4 workflow's full Python run fails. PR CI does not run it. Re-pinning means
+  a reviewed adoption of the current protocol text as the examination basis.
+- The distribution and terminal receiving cohorts (`app/examination/distribution_receiving/`
+  pins and `PINS_SHA256` constants) record older sources, including `hosting.rs`
+  and `canonical.py`; `app-v4.yml` already excludes them as known-stale. The choice
+  is a reviewed re-binding to current sources or retirement as historical.
+
+Resolve the admission condition before release evidence relies on the full run.
+
 ### Working controls
 
 Use isolated branches/PRs and exact checked heads. Before a ready return,
